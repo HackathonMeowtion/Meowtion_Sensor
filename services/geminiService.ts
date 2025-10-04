@@ -87,6 +87,11 @@ export const identifyCatBreed = async (base64Image: string, mimeType: string): P
 
   } catch (error) {
     console.error("Error calling Gemini API:", error);
+
+    if (error instanceof Error && error.message.includes("Gemini API key is not configured")) {
+      throw error;
+    }
+
     throw new Error("Could not get a valid response from the AI model.");
   }
 };

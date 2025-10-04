@@ -41,6 +41,12 @@ const App: React.FC = () => {
       setAnalysis(result);
     } catch (err) {
       console.error(err);
+
+      if (err instanceof Error && err.message) {
+        setError(err.message);
+        return;
+      }
+
       setError('Failed to identify the cat. The AI may be busy, or the image could not be processed. Please try again.');
     } finally {
       setIsLoading(false);
