@@ -285,11 +285,10 @@ class ServiceRegistry(object):
                 if k not in ordered_parameters:
                     ordered_parameters.append(k)
         for parameter_name in ordered_parameters:
-            field_name = self.__names.CleanName(parameter_name)
             field = dict(method_description['parameters'][parameter_name])
             if 'type' not in field:
                 raise ValueError('No type found in parameter %s' % field)
-            schema['properties'][field_name] = field
+            schema['properties'][parameter_name] = field
         if body_type is not None:
             body_field_name = self.__GetRequestField(
                 method_description, body_type)
@@ -408,6 +407,8 @@ class ServiceRegistry(object):
                 method_description.get('mediaUpload'), method_id)
         method_info.supports_download = method_description.get(
             'supportsMediaDownload', False)
+        if method_description.get('apiVersion'):
+            method_info.api_version_param = method_description.get('apiVersion')
         self.__all_scopes.update(method_description.get('scopes', ()))
         for param, desc in method_description.get('parameters', {}).items():
             param = self.__names.CleanName(param)

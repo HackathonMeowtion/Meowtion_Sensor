@@ -411,7 +411,37 @@ def AddCriteriaPoliciesFlag(parser, resource):
       '--criteria-policies',
       metavar='CRITERIA_POLICIES',
       type=arg_parsers.ArgList(min_length=1, max_length=16),
-      help='The policies that the {} applies to.'.format(resource))
+      help=(
+          'The policies that the {} applies to. Exactly 1 alert policy is'
+          ' required if `criteria-filter` is specified at the same time.'
+          .format(resource)
+      ),
+  )
+
+
+def AddCriteriaFilterFlag(parser, resource):
+  parser.add_argument(
+      '--criteria-filter',
+      metavar='CRITERIA_FILTER',
+      type=str,
+      help=(
+          'Optional. When you define a {}, you can also define a filter for'
+          ' that snooze. The filter is a string containing one or more'
+          ' key-value pairs. The string uses the standard'
+          ' https://google.aip.dev/160 filter syntax. If you define a filter'
+          ' for a snooze, then the snooze can only apply to one alert policy.'
+          " When the snooze is active, incidents won't be created when the"
+          ' incident would have key-value pairs (labels) that match those'
+          ' specified by the filter in the snooze. Snooze filters support'
+          ' resource, metric, and metadata labels. If multiple labels are used,'
+          ' then they must be connected with an AND operator. For example:'
+          ' resource.labels.instance_id="1234567890" AND'
+          ' resource.labels.zone="us-central1-a" AND'
+          ' metric.labels.instance_name="test_group" AND'
+          ' metadata.user_labels.foo="bar" AND'
+          ' metadata.system_labels.region="us-central1"'.format(resource)
+      ),
+  )
 
 
 def AddStartTimeFlag(parser, resource):
@@ -437,6 +467,7 @@ def AddSnoozeSettingsFlags(parser, update=False):
   AddDisplayNameFlag(snooze_settings_group, resource='Snooze')
   if not update:
     AddCriteriaPoliciesFlag(snooze_settings_group, resource='Snooze')
+    AddCriteriaFilterFlag(snooze_settings_group, resource='Snooze')
   AddStartTimeFlag(snooze_settings_group, resource='Snooze')
   AddEndTimeFlag(snooze_settings_group, resource='Snooze')
 

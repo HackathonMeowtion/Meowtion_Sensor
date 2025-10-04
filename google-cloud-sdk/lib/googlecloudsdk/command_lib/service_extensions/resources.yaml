@@ -61,6 +61,32 @@ lbRouteExtension:
     help: |
       The ID of the `LbRouteExtension`.
 
+lbEdgeExtension:
+  name: LbEdgeExtension
+  collection: networkservices.projects.locations.lbEdgeExtensions
+  request_id_field: lbEdgeExtensionId
+  attributes:
+  - *project
+  - *location
+  - &lbEdgeExtension:
+    parameter_name: lbEdgeExtensionsId
+    attribute_name: lb_edge_extension
+    help: |
+      The ID of the `LbEdgeExtension`.
+
+lbTcpExtension:
+  name: LbTcpExtension
+  collection: networkservices.projects.locations.lbTcpExtensions
+  request_id_field: lbTcpExtensionId
+  attributes:
+  - *project
+  - *location
+  - &lbTcpExtension:
+    parameter_name: lbTcpExtensionsId
+    attribute_name: lb_tcp_extension
+    help: |
+      The ID of the `LbTcpExtension`.
+
 lbObservabilityExtension:
   name: LbObservabilityExtension
   collection: networkservices.projects.locations.lbObservabilityExtensions
@@ -73,6 +99,19 @@ lbObservabilityExtension:
     attribute_name: lb_observability_extension
     help: |
       The ID of the `LbObservabilityExtension`.
+
+authzExtension:
+  name: AuthzExtension
+  collection: networkservices.projects.locations.authzExtensions
+  request_id_field: authzExtensionId
+  attributes:
+  - *project
+  - *location
+  - &authzExtension:
+    parameter_name: authzExtensionsId
+    attribute_name: authz_extension
+    help: |
+      The ID of the `AuthzExtension`.
 
 wasmAction:
   name: WasmAction

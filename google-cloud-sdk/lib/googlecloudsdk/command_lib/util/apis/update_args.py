@@ -403,7 +403,7 @@ class UpdateDefaultArgumentGenerator(UpdateBasicArgumentGenerator):
     )
 
   def ApplySetFlag(self, existing_val, set_val):
-    if set_val:
+    if set_val is not None:
       return set_val
     return existing_val
 
@@ -456,8 +456,15 @@ class UpdateListArgumentGenerator(UpdateBasicArgumentGenerator):
         help_text='Remove existing value from {} list.'.format(self.arg_name),
     )
 
+  def _ContainsVal(self, new_val, all_vals):
+    if isinstance(self.flag_type, util.EquitableType):
+      return any(
+          self.flag_type.Matches(new_val, val) for val in all_vals)
+    else:
+      return new_val in all_vals
+
   def ApplySetFlag(self, existing_val, set_val):
-    if set_val:
+    if set_val is not None:
       return set_val
     return existing_val
 
@@ -467,13 +474,16 @@ class UpdateListArgumentGenerator(UpdateBasicArgumentGenerator):
     return existing_val
 
   def ApplyRemoveFlag(self, existing_val, remove_val):
-    if remove_val:
-      return [x for x in existing_val if x not in remove_val]
+    if remove_val is not None:
+      return [
+          x for x in existing_val if not self._ContainsVal(x, remove_val)]
     return existing_val
 
   def ApplyUpdateFlag(self, existing_val, update_val):
-    if update_val:
-      return existing_val + [x for x in update_val if x not in existing_val]
+    if update_val is not None:
+      new_vals = [
+          x for x in update_val if not self._ContainsVal(x, existing_val)]
+      return existing_val + new_vals
     return existing_val
 
 
@@ -559,7 +569,8 @@ class UpdateMapArgumentGenerator(UpdateBasicArgumentGenerator):
 
     key_field = arg_utils.GetFieldFromMessage(field.type, 'key')
     key_type = key_field.type or arg_utils.TYPES.get(key_field.variant)
-    key_list = arg_parsers.ArgList(element_type=key_type)
+    key_list = arg_parsers.ArgObject(
+        value_type=key_type, repeated=True)
 
     return self._CreateBasicFlag(
         flag_prefix=Prefix.REMOVE,
@@ -569,7 +580,7 @@ class UpdateMapArgumentGenerator(UpdateBasicArgumentGenerator):
     )
 
   def ApplySetFlag(self, existing_val, set_val):
-    if set_val:
+    if set_val is not None:
       return set_val
     return existing_val
 
@@ -579,7 +590,7 @@ class UpdateMapArgumentGenerator(UpdateBasicArgumentGenerator):
     return existing_val
 
   def ApplyUpdateFlag(self, existing_val, update_val):
-    if update_val:
+    if update_val is not None:
       output_list = self._GetPropsFieldValue(existing_val)
       update_val_list = self._GetPropsFieldValue(update_val)
       update_key_set = set([x.key for x in update_val_list])
@@ -588,7 +599,7 @@ class UpdateMapArgumentGenerator(UpdateBasicArgumentGenerator):
     return existing_val
 
   def ApplyRemoveFlag(self, existing_val, remove_val):
-    if remove_val:
+    if remove_val is not None:
       output_list = self._GetPropsFieldValue(existing_val)
       remove_val_set = set(remove_val)
       return self._WrapOutput(

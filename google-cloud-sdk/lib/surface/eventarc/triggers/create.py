@@ -23,28 +23,16 @@ from googlecloudsdk.api_lib.eventarc import triggers
 from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.eventarc import flags
 from googlecloudsdk.command_lib.eventarc import types
+from googlecloudsdk.command_lib.util.args import labels_util
 from googlecloudsdk.core import exceptions
 from googlecloudsdk.core import log
 
 _DETAILED_HELP = {
-    'DESCRIPTION':
-        '{description}',
-    'EXAMPLES':
-        """ \
+    'DESCRIPTION': '{description}',
+    'EXAMPLES': """ \
         To create a new trigger ``my-trigger'' for events of type ``google.cloud.pubsub.topic.v1.messagePublished'' with destination Cloud Run service ``my-service'', run:
 
           $ {command} my-trigger --event-filters="type=google.cloud.pubsub.topic.v1.messagePublished" --destination-run-service=my-service
-        """,
-}
-
-_DETAILED_HELP_BETA = {
-    'DESCRIPTION':
-        '{description}',
-    'EXAMPLES':
-        """ \
-        To create a new trigger ``my-trigger'' for events of type ``google.cloud.pubsub.topic.v1.messagePublished'' with destination Cloud Run service ``my-service'', run:
-
-          $ {command} my-trigger --matching-criteria="type=google.cloud.pubsub.topic.v1.messagePublished" --destination-run-service=my-service
         """,
 }
 
@@ -58,6 +46,7 @@ class UnsupportedDestinationError(exceptions.Error):
 
 
 @base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.DefaultUniverseOnly
 class Create(base.CreateCommand):
   """Create an Eventarc trigger."""
 
@@ -72,11 +61,13 @@ class Create(base.CreateCommand):
     flags.AddServiceAccountArg(parser)
     flags.AddCreateDestinationArgs(parser, cls.ReleaseTrack(), required=True)
     flags.AddTransportTopicResourceArg(parser)
+    labels_util.AddCreateLabelsFlags(parser)
+
     base.ASYNC_FLAG.AddToParser(parser)
 
   def Run(self, args):
     """Run the create command."""
-    client = triggers.CreateTriggersClient(self.ReleaseTrack())
+    client = triggers.TriggersClientV1()
     trigger_ref = args.CONCEPTS.trigger.Parse()
     channel_ref = flags.GetChannelArg(args, self.ReleaseTrack())
     transport_topic_ref = args.CONCEPTS.transport_topic.Parse()
@@ -88,7 +79,6 @@ class Create(base.CreateCommand):
         args, self.ReleaseTrack()
     )
 
-    destination_message = None
     # destination Cloud Run
     if args.IsSpecified('destination_run_service') or args.IsKnownAndSpecified(
         'destination_run_job'
@@ -181,6 +171,7 @@ class Create(base.CreateCommand):
         destination_message,
         transport_topic_ref,
         channel_ref,
+        labels_util.ParseCreateArgs(args, client.LabelsValueClass()),
     )
     operation = client.Create(trigger_ref, trigger_message)
     self._event_type = event_filters['type']
@@ -192,22 +183,28 @@ class Create(base.CreateCommand):
     if types.IsPubsubType(self._event_type):
       topic = trigger_dict['transport']['pubsub']['topic']
       if args.IsSpecified('transport_topic'):
-        log.status.Print('Publish to Pub/Sub topic [{}] to receive events '
-                         'in {}.'.format(topic, dest_str))
+        log.status.Print(
+            'Publish to Pub/Sub topic [{}] to receive events in {}.'.format(
+                topic, dest_str
+            )
+        )
       else:
         log.status.Print('Created Pub/Sub topic [{}].'.format(topic))
         log.status.Print(
-            'Publish to this topic to receive events in {}.'.format(dest_str))
+            'Publish to this topic to receive events in {}.'.format(dest_str)
+        )
     return response
 
   def Epilog(self, resources_were_displayed):
     if resources_were_displayed:
       log.warning(
           'It may take up to {} minutes for the new trigger to become active.'
-          .format(triggers.MAX_ACTIVE_DELAY_MINUTES))
+          .format(triggers.MAX_ACTIVE_DELAY_MINUTES)
+      )
 
-  def GetDestinationLocation(self, args, trigger_ref, location_arg_name,
-                             destination_type):
+  def GetDestinationLocation(
+      self, args, trigger_ref, location_arg_name, destination_type
+  ):
     # If no Destination region was provided, use the trigger's location instead.
     if not args.IsSpecified(location_arg_name):
       destination_location = trigger_ref.Parent().Name()
@@ -215,22 +212,10 @@ class Create(base.CreateCommand):
         raise NoDestinationLocationSpecifiedError(
             'The `{}` flag is required when creating a global trigger with a '
             'destination {}.'.format(
-                args.GetFlag(location_arg_name), destination_type))
+                args.GetFlag(location_arg_name), destination_type
+            )
+        )
     else:
       destination_location = args.GetValue(location_arg_name)
 
     return destination_location
-
-
-@base.Deprecate(
-    is_removed=True,
-    warning=('This command is deprecated. '
-             'Please use `gcloud eventarc triggers create` instead.'),
-    error=('This command has been removed. '
-           'Please use `gcloud eventarc triggers create` instead.')
-)
-@base.ReleaseTracks(base.ReleaseTrack.BETA)
-class CreateBeta(Create):
-  """Create an Eventarc trigger."""
-
-  detailed_help = _DETAILED_HELP_BETA

@@ -21,9 +21,13 @@ class BigquerydatatransferProjectsDataSourcesCheckValidCredsRequest(_messages.Me
   Fields:
     checkValidCredsRequest: A CheckValidCredsRequest resource to be passed as
       the request body.
-    name: Required. The data source in the form:
-      `projects/{project_id}/dataSources/{data_source_id}` or `projects/{proje
-      ct_id}/locations/{location_id}/dataSources/{data_source_id}`.
+    name: Required. The name of the data source. If you are using the
+      regionless method, the location must be `US` and the name should be in
+      the following form: *
+      `projects/{project_id}/dataSources/{data_source_id}` If you are using
+      the regionalized method, the name should be in the following form: * `pr
+      ojects/{project_id}/locations/{location_id}/dataSources/{data_source_id}
+      `
   """
 
   checkValidCredsRequest = _messages.MessageField('CheckValidCredsRequest', 1)
@@ -34,9 +38,13 @@ class BigquerydatatransferProjectsDataSourcesGetRequest(_messages.Message):
   r"""A BigquerydatatransferProjectsDataSourcesGetRequest object.
 
   Fields:
-    name: Required. The field will contain name of the resource requested, for
-      example: `projects/{project_id}/dataSources/{data_source_id}` or `projec
-      ts/{project_id}/locations/{location_id}/dataSources/{data_source_id}`
+    name: Required. The name of the resource requested. If you are using the
+      regionless method, the location must be `US` and the name should be in
+      the following form: *
+      `projects/{project_id}/dataSources/{data_source_id}` If you are using
+      the regionalized method, the name should be in the following form: * `pr
+      ojects/{project_id}/locations/{location_id}/dataSources/{data_source_id}
+      `
   """
 
   name = _messages.StringField(1, required=True)
@@ -83,9 +91,13 @@ class BigquerydatatransferProjectsLocationsDataSourcesCheckValidCredsRequest(_me
   Fields:
     checkValidCredsRequest: A CheckValidCredsRequest resource to be passed as
       the request body.
-    name: Required. The data source in the form:
-      `projects/{project_id}/dataSources/{data_source_id}` or `projects/{proje
-      ct_id}/locations/{location_id}/dataSources/{data_source_id}`.
+    name: Required. The name of the data source. If you are using the
+      regionless method, the location must be `US` and the name should be in
+      the following form: *
+      `projects/{project_id}/dataSources/{data_source_id}` If you are using
+      the regionalized method, the name should be in the following form: * `pr
+      ojects/{project_id}/locations/{location_id}/dataSources/{data_source_id}
+      `
   """
 
   checkValidCredsRequest = _messages.MessageField('CheckValidCredsRequest', 1)
@@ -96,9 +108,13 @@ class BigquerydatatransferProjectsLocationsDataSourcesGetRequest(_messages.Messa
   r"""A BigquerydatatransferProjectsLocationsDataSourcesGetRequest object.
 
   Fields:
-    name: Required. The field will contain name of the resource requested, for
-      example: `projects/{project_id}/dataSources/{data_source_id}` or `projec
-      ts/{project_id}/locations/{location_id}/dataSources/{data_source_id}`
+    name: Required. The name of the resource requested. If you are using the
+      regionless method, the location must be `US` and the name should be in
+      the following form: *
+      `projects/{project_id}/dataSources/{data_source_id}` If you are using
+      the regionalized method, the name should be in the following form: * `pr
+      ojects/{project_id}/locations/{location_id}/dataSources/{data_source_id}
+      `
   """
 
   name = _messages.StringField(1, required=True)
@@ -152,6 +168,9 @@ class BigquerydatatransferProjectsLocationsListRequest(_messages.Message):
   r"""A BigquerydatatransferProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -162,10 +181,11 @@ class BigquerydatatransferProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class BigquerydatatransferProjectsLocationsTransferConfigsCreateRequest(_messages.Message):
@@ -173,17 +193,19 @@ class BigquerydatatransferProjectsLocationsTransferConfigsCreateRequest(_message
   object.
 
   Fields:
-    authorizationCode: Optional OAuth2 authorization code to use with this
-      transfer configuration. This is required only if
-      `transferConfig.dataSourceId` is 'youtube_channel' and new credentials
-      are needed, as indicated by `CheckValidCreds`. In order to obtain
-      authorization_code, make a request to the following URL: https://www.gst
-      atic.com/bigquerydatatransfer/oauthz/auth?redirect_uri=urn:ietf:wg:oauth
-      :2.0:oob&response_type=authorization_code&client_id=client_id&scope=data
-      _source_scopes * The client_id is the OAuth client_id of the a data
-      source as returned by ListDataSources method. * data_source_scopes are
-      the scopes returned by ListDataSources method. Note that this should not
-      be set when `service_account_name` is used to create the transfer
+    authorizationCode: Deprecated: Authorization code was required when
+      `transferConfig.dataSourceId` is 'youtube_channel' but it is no longer
+      used in any data sources. Use `version_info` instead. Optional OAuth2
+      authorization code to use with this transfer configuration. This is
+      required only if `transferConfig.dataSourceId` is 'youtube_channel' and
+      new credentials are needed, as indicated by `CheckValidCreds`. In order
+      to obtain authorization_code, make a request to the following URL: https
+      ://bigquery.cloud.google.com/datatransfer/oauthz/auth?redirect_uri=urn:i
+      etf:wg:oauth:2.0:oob&response_type=authorization_code&client_id=client_i
+      d&scope=data_source_scopes * The client_id is the OAuth client_id of the
+      data source as returned by ListDataSources method. * data_source_scopes
+      are the scopes returned by ListDataSources method. Note that this should
+      not be set when `service_account_name` is used to create the transfer
       config.
     parent: Required. The BigQuery project id where the transfer configuration
       should be created. Must be in the format
@@ -200,16 +222,18 @@ class BigquerydatatransferProjectsLocationsTransferConfigsCreateRequest(_message
       accounts).
     transferConfig: A TransferConfig resource to be passed as the request
       body.
-    versionInfo: Optional version info. This is required only if
-      `transferConfig.dataSourceId` is not 'youtube_channel' and new
-      credentials are needed, as indicated by `CheckValidCreds`. In order to
-      obtain version info, make a request to the following URL: https://www.gs
-      tatic.com/bigquerydatatransfer/oauthz/auth?redirect_uri=urn:ietf:wg:oaut
-      h:2.0:oob&response_type=version_info&client_id=client_id&scope=data_sour
-      ce_scopes * The client_id is the OAuth client_id of the a data source as
-      returned by ListDataSources method. * data_source_scopes are the scopes
-      returned by ListDataSources method. Note that this should not be set
-      when `service_account_name` is used to create the transfer config.
+    versionInfo: Optional version info. This parameter replaces
+      `authorization_code` which is no longer used in any data sources. This
+      is required only if `transferConfig.dataSourceId` is 'youtube_channel'
+      *or* new credentials are needed, as indicated by `CheckValidCreds`. In
+      order to obtain version info, make a request to the following URL: https
+      ://bigquery.cloud.google.com/datatransfer/oauthz/auth?redirect_uri=urn:i
+      etf:wg:oauth:2.0:oob&response_type=version_info&client_id=client_id&scop
+      e=data_source_scopes * The client_id is the OAuth client_id of the data
+      source as returned by ListDataSources method. * data_source_scopes are
+      the scopes returned by ListDataSources method. Note that this should not
+      be set when `service_account_name` is used to create the transfer
+      config.
   """
 
   authorizationCode = _messages.StringField(1)
@@ -224,9 +248,12 @@ class BigquerydatatransferProjectsLocationsTransferConfigsDeleteRequest(_message
   object.
 
   Fields:
-    name: Required. The field will contain name of the resource requested, for
-      example: `projects/{project_id}/transferConfigs/{config_id}` or `project
-      s/{project_id}/locations/{location_id}/transferConfigs/{config_id}`
+    name: Required. The name of the resource to delete. If you are using the
+      regionless method, the location must be `US` and the name should be in
+      the following form: *
+      `projects/{project_id}/transferConfigs/{config_id}` If you are using the
+      regionalized method, the name should be in the following form: * `projec
+      ts/{project_id}/locations/{location_id}/transferConfigs/{config_id}`
   """
 
   name = _messages.StringField(1, required=True)
@@ -236,9 +263,12 @@ class BigquerydatatransferProjectsLocationsTransferConfigsGetRequest(_messages.M
   r"""A BigquerydatatransferProjectsLocationsTransferConfigsGetRequest object.
 
   Fields:
-    name: Required. The field will contain name of the resource requested, for
-      example: `projects/{project_id}/transferConfigs/{config_id}` or `project
-      s/{project_id}/locations/{location_id}/transferConfigs/{config_id}`
+    name: Required. The name of the resource requested. If you are using the
+      regionless method, the location must be `US` and the name should be in
+      the following form: *
+      `projects/{project_id}/transferConfigs/{config_id}` If you are using the
+      regionalized method, the name should be in the following form: * `projec
+      ts/{project_id}/locations/{location_id}/transferConfigs/{config_id}`
   """
 
   name = _messages.StringField(1, required=True)
@@ -258,7 +288,10 @@ class BigquerydatatransferProjectsLocationsTransferConfigsListRequest(_messages.
       `ListTransfersResponse` outputs a `next_page` token, which can be used
       as the `page_token` value to request the next page of list results.
     parent: Required. The BigQuery project id for which transfer configs
-      should be returned: `projects/{project_id}` or
+      should be returned. If you are using the regionless method, the location
+      must be `US` and `parent` should be in the following form: *
+      `projects/{project_id} If you are using the regionalized method,
+      `parent` should be in the following form: *
       `projects/{project_id}/locations/{location_id}`
   """
 
@@ -273,17 +306,19 @@ class BigquerydatatransferProjectsLocationsTransferConfigsPatchRequest(_messages
   object.
 
   Fields:
-    authorizationCode: Optional OAuth2 authorization code to use with this
-      transfer configuration. This is required only if
-      `transferConfig.dataSourceId` is 'youtube_channel' and new credentials
-      are needed, as indicated by `CheckValidCreds`. In order to obtain
-      authorization_code, make a request to the following URL: https://www.gst
-      atic.com/bigquerydatatransfer/oauthz/auth?redirect_uri=urn:ietf:wg:oauth
-      :2.0:oob&response_type=authorization_code&client_id=client_id&scope=data
-      _source_scopes * The client_id is the OAuth client_id of the a data
-      source as returned by ListDataSources method. * data_source_scopes are
-      the scopes returned by ListDataSources method. Note that this should not
-      be set when `service_account_name` is used to update the transfer
+    authorizationCode: Deprecated: Authorization code was required when
+      `transferConfig.dataSourceId` is 'youtube_channel' but it is no longer
+      used in any data sources. Use `version_info` instead. Optional OAuth2
+      authorization code to use with this transfer configuration. This is
+      required only if `transferConfig.dataSourceId` is 'youtube_channel' and
+      new credentials are needed, as indicated by `CheckValidCreds`. In order
+      to obtain authorization_code, make a request to the following URL: https
+      ://bigquery.cloud.google.com/datatransfer/oauthz/auth?redirect_uri=urn:i
+      etf:wg:oauth:2.0:oob&response_type=authorization_code&client_id=client_i
+      d&scope=data_source_scopes * The client_id is the OAuth client_id of the
+      data source as returned by ListDataSources method. * data_source_scopes
+      are the scopes returned by ListDataSources method. Note that this should
+      not be set when `service_account_name` is used to update the transfer
       config.
     name: Identifier. The resource name of the transfer config. Transfer
       config names have the form either
@@ -303,16 +338,18 @@ class BigquerydatatransferProjectsLocationsTransferConfigsPatchRequest(_messages
       body.
     updateMask: Required. Required list of fields to be updated in this
       request.
-    versionInfo: Optional version info. This is required only if
-      `transferConfig.dataSourceId` is not 'youtube_channel' and new
-      credentials are needed, as indicated by `CheckValidCreds`. In order to
-      obtain version info, make a request to the following URL: https://www.gs
-      tatic.com/bigquerydatatransfer/oauthz/auth?redirect_uri=urn:ietf:wg:oaut
-      h:2.0:oob&response_type=version_info&client_id=client_id&scope=data_sour
-      ce_scopes * The client_id is the OAuth client_id of the a data source as
-      returned by ListDataSources method. * data_source_scopes are the scopes
-      returned by ListDataSources method. Note that this should not be set
-      when `service_account_name` is used to update the transfer config.
+    versionInfo: Optional version info. This parameter replaces
+      `authorization_code` which is no longer used in any data sources. This
+      is required only if `transferConfig.dataSourceId` is 'youtube_channel'
+      *or* new credentials are needed, as indicated by `CheckValidCreds`. In
+      order to obtain version info, make a request to the following URL: https
+      ://bigquery.cloud.google.com/datatransfer/oauthz/auth?redirect_uri=urn:i
+      etf:wg:oauth:2.0:oob&response_type=version_info&client_id=client_id&scop
+      e=data_source_scopes * The client_id is the OAuth client_id of the data
+      source as returned by ListDataSources method. * data_source_scopes are
+      the scopes returned by ListDataSources method. Note that this should not
+      be set when `service_account_name` is used to update the transfer
+      config.
   """
 
   authorizationCode = _messages.StringField(1)
@@ -328,11 +365,13 @@ class BigquerydatatransferProjectsLocationsTransferConfigsRunsDeleteRequest(_mes
   object.
 
   Fields:
-    name: Required. The field will contain name of the resource requested, for
-      example:
-      `projects/{project_id}/transferConfigs/{config_id}/runs/{run_id}` or `pr
-      ojects/{project_id}/locations/{location_id}/transferConfigs/{config_id}/
-      runs/{run_id}`
+    name: Required. The name of the resource requested. If you are using the
+      regionless method, the location must be `US` and the name should be in
+      the following form: *
+      `projects/{project_id}/transferConfigs/{config_id}/runs/{run_id}` If you
+      are using the regionalized method, the name should be in the following
+      form: * `projects/{project_id}/locations/{location_id}/transferConfigs/{
+      config_id}/runs/{run_id}`
   """
 
   name = _messages.StringField(1, required=True)
@@ -343,11 +382,13 @@ class BigquerydatatransferProjectsLocationsTransferConfigsRunsGetRequest(_messag
   object.
 
   Fields:
-    name: Required. The field will contain name of the resource requested, for
-      example:
-      `projects/{project_id}/transferConfigs/{config_id}/runs/{run_id}` or `pr
-      ojects/{project_id}/locations/{location_id}/transferConfigs/{config_id}/
-      runs/{run_id}`
+    name: Required. The name of the resource requested. If you are using the
+      regionless method, the location must be `US` and the name should be in
+      the following form: *
+      `projects/{project_id}/transferConfigs/{config_id}/runs/{run_id}` If you
+      are using the regionalized method, the name should be in the following
+      form: * `projects/{project_id}/locations/{location_id}/transferConfigs/{
+      config_id}/runs/{run_id}`
   """
 
   name = _messages.StringField(1, required=True)
@@ -370,9 +411,11 @@ class BigquerydatatransferProjectsLocationsTransferConfigsRunsListRequest(_messa
       `ListTransferRunsResponse` outputs a `next_page` token, which can be
       used as the `page_token` value to request the next page of list results.
     parent: Required. Name of transfer configuration for which transfer runs
-      should be retrieved. Format of transfer configuration resource name is:
-      `projects/{project_id}/transferConfigs/{config_id}` or `projects/{projec
-      t_id}/locations/{location_id}/transferConfigs/{config_id}`.
+      should be retrieved. If you are using the regionless method, the
+      location must be `US` and the name should be in the following form: *
+      `projects/{project_id}/transferConfigs/{config_id}` If you are using the
+      regionalized method, the name should be in the following form: * `projec
+      ts/{project_id}/locations/{location_id}/transferConfigs/{config_id}`
     runAttempt: Indicates how run attempts are to be pulled.
     states: When specified, only transfer runs with requested states are
       returned.
@@ -431,10 +474,13 @@ class BigquerydatatransferProjectsLocationsTransferConfigsRunsTransferLogsListRe
       of `ListTransferLogsRequest` list results. For multiple-page results,
       `ListTransferLogsResponse` outputs a `next_page` token, which can be
       used as the `page_token` value to request the next page of list results.
-    parent: Required. Transfer run name in the form:
-      `projects/{project_id}/transferConfigs/{config_id}/runs/{run_id}` or `pr
-      ojects/{project_id}/locations/{location_id}/transferConfigs/{config_id}/
-      runs/{run_id}`
+    parent: Required. Transfer run name. If you are using the regionless
+      method, the location must be `US` and the name should be in the
+      following form: *
+      `projects/{project_id}/transferConfigs/{config_id}/runs/{run_id}` If you
+      are using the regionalized method, the name should be in the following
+      form: * `projects/{project_id}/locations/{location_id}/transferConfigs/{
+      config_id}/runs/{run_id}`
   """
 
   class MessageTypesValueValuesEnum(_messages.Enum):
@@ -464,9 +510,12 @@ class BigquerydatatransferProjectsLocationsTransferConfigsScheduleRunsRequest(_m
   object.
 
   Fields:
-    parent: Required. Transfer configuration name in the form:
-      `projects/{project_id}/transferConfigs/{config_id}` or `projects/{projec
-      t_id}/locations/{location_id}/transferConfigs/{config_id}`.
+    parent: Required. Transfer configuration name. If you are using the
+      regionless method, the location must be `US` and the name should be in
+      the following form: *
+      `projects/{project_id}/transferConfigs/{config_id}` If you are using the
+      regionalized method, the name should be in the following form: * `projec
+      ts/{project_id}/locations/{location_id}/transferConfigs/{config_id}`
     scheduleTransferRunsRequest: A ScheduleTransferRunsRequest resource to be
       passed as the request body.
   """
@@ -481,9 +530,12 @@ class BigquerydatatransferProjectsLocationsTransferConfigsStartManualRunsRequest
   object.
 
   Fields:
-    parent: Required. Transfer configuration name in the form:
-      `projects/{project_id}/transferConfigs/{config_id}` or `projects/{projec
-      t_id}/locations/{location_id}/transferConfigs/{config_id}`.
+    parent: Required. Transfer configuration name. If you are using the
+      regionless method, the location must be `US` and the name should be in
+      the following form: *
+      `projects/{project_id}/transferConfigs/{config_id}` If you are using the
+      regionalized method, the name should be in the following form: * `projec
+      ts/{project_id}/locations/{location_id}/transferConfigs/{config_id}`
     startManualTransferRunsRequest: A StartManualTransferRunsRequest resource
       to be passed as the request body.
   """
@@ -511,17 +563,19 @@ class BigquerydatatransferProjectsTransferConfigsCreateRequest(_messages.Message
   r"""A BigquerydatatransferProjectsTransferConfigsCreateRequest object.
 
   Fields:
-    authorizationCode: Optional OAuth2 authorization code to use with this
-      transfer configuration. This is required only if
-      `transferConfig.dataSourceId` is 'youtube_channel' and new credentials
-      are needed, as indicated by `CheckValidCreds`. In order to obtain
-      authorization_code, make a request to the following URL: https://www.gst
-      atic.com/bigquerydatatransfer/oauthz/auth?redirect_uri=urn:ietf:wg:oauth
-      :2.0:oob&response_type=authorization_code&client_id=client_id&scope=data
-      _source_scopes * The client_id is the OAuth client_id of the a data
-      source as returned by ListDataSources method. * data_source_scopes are
-      the scopes returned by ListDataSources method. Note that this should not
-      be set when `service_account_name` is used to create the transfer
+    authorizationCode: Deprecated: Authorization code was required when
+      `transferConfig.dataSourceId` is 'youtube_channel' but it is no longer
+      used in any data sources. Use `version_info` instead. Optional OAuth2
+      authorization code to use with this transfer configuration. This is
+      required only if `transferConfig.dataSourceId` is 'youtube_channel' and
+      new credentials are needed, as indicated by `CheckValidCreds`. In order
+      to obtain authorization_code, make a request to the following URL: https
+      ://bigquery.cloud.google.com/datatransfer/oauthz/auth?redirect_uri=urn:i
+      etf:wg:oauth:2.0:oob&response_type=authorization_code&client_id=client_i
+      d&scope=data_source_scopes * The client_id is the OAuth client_id of the
+      data source as returned by ListDataSources method. * data_source_scopes
+      are the scopes returned by ListDataSources method. Note that this should
+      not be set when `service_account_name` is used to create the transfer
       config.
     parent: Required. The BigQuery project id where the transfer configuration
       should be created. Must be in the format
@@ -538,16 +592,18 @@ class BigquerydatatransferProjectsTransferConfigsCreateRequest(_messages.Message
       accounts).
     transferConfig: A TransferConfig resource to be passed as the request
       body.
-    versionInfo: Optional version info. This is required only if
-      `transferConfig.dataSourceId` is not 'youtube_channel' and new
-      credentials are needed, as indicated by `CheckValidCreds`. In order to
-      obtain version info, make a request to the following URL: https://www.gs
-      tatic.com/bigquerydatatransfer/oauthz/auth?redirect_uri=urn:ietf:wg:oaut
-      h:2.0:oob&response_type=version_info&client_id=client_id&scope=data_sour
-      ce_scopes * The client_id is the OAuth client_id of the a data source as
-      returned by ListDataSources method. * data_source_scopes are the scopes
-      returned by ListDataSources method. Note that this should not be set
-      when `service_account_name` is used to create the transfer config.
+    versionInfo: Optional version info. This parameter replaces
+      `authorization_code` which is no longer used in any data sources. This
+      is required only if `transferConfig.dataSourceId` is 'youtube_channel'
+      *or* new credentials are needed, as indicated by `CheckValidCreds`. In
+      order to obtain version info, make a request to the following URL: https
+      ://bigquery.cloud.google.com/datatransfer/oauthz/auth?redirect_uri=urn:i
+      etf:wg:oauth:2.0:oob&response_type=version_info&client_id=client_id&scop
+      e=data_source_scopes * The client_id is the OAuth client_id of the data
+      source as returned by ListDataSources method. * data_source_scopes are
+      the scopes returned by ListDataSources method. Note that this should not
+      be set when `service_account_name` is used to create the transfer
+      config.
   """
 
   authorizationCode = _messages.StringField(1)
@@ -561,9 +617,12 @@ class BigquerydatatransferProjectsTransferConfigsDeleteRequest(_messages.Message
   r"""A BigquerydatatransferProjectsTransferConfigsDeleteRequest object.
 
   Fields:
-    name: Required. The field will contain name of the resource requested, for
-      example: `projects/{project_id}/transferConfigs/{config_id}` or `project
-      s/{project_id}/locations/{location_id}/transferConfigs/{config_id}`
+    name: Required. The name of the resource to delete. If you are using the
+      regionless method, the location must be `US` and the name should be in
+      the following form: *
+      `projects/{project_id}/transferConfigs/{config_id}` If you are using the
+      regionalized method, the name should be in the following form: * `projec
+      ts/{project_id}/locations/{location_id}/transferConfigs/{config_id}`
   """
 
   name = _messages.StringField(1, required=True)
@@ -573,9 +632,12 @@ class BigquerydatatransferProjectsTransferConfigsGetRequest(_messages.Message):
   r"""A BigquerydatatransferProjectsTransferConfigsGetRequest object.
 
   Fields:
-    name: Required. The field will contain name of the resource requested, for
-      example: `projects/{project_id}/transferConfigs/{config_id}` or `project
-      s/{project_id}/locations/{location_id}/transferConfigs/{config_id}`
+    name: Required. The name of the resource requested. If you are using the
+      regionless method, the location must be `US` and the name should be in
+      the following form: *
+      `projects/{project_id}/transferConfigs/{config_id}` If you are using the
+      regionalized method, the name should be in the following form: * `projec
+      ts/{project_id}/locations/{location_id}/transferConfigs/{config_id}`
   """
 
   name = _messages.StringField(1, required=True)
@@ -594,7 +656,10 @@ class BigquerydatatransferProjectsTransferConfigsListRequest(_messages.Message):
       `ListTransfersResponse` outputs a `next_page` token, which can be used
       as the `page_token` value to request the next page of list results.
     parent: Required. The BigQuery project id for which transfer configs
-      should be returned: `projects/{project_id}` or
+      should be returned. If you are using the regionless method, the location
+      must be `US` and `parent` should be in the following form: *
+      `projects/{project_id} If you are using the regionalized method,
+      `parent` should be in the following form: *
       `projects/{project_id}/locations/{location_id}`
   """
 
@@ -608,17 +673,19 @@ class BigquerydatatransferProjectsTransferConfigsPatchRequest(_messages.Message)
   r"""A BigquerydatatransferProjectsTransferConfigsPatchRequest object.
 
   Fields:
-    authorizationCode: Optional OAuth2 authorization code to use with this
-      transfer configuration. This is required only if
-      `transferConfig.dataSourceId` is 'youtube_channel' and new credentials
-      are needed, as indicated by `CheckValidCreds`. In order to obtain
-      authorization_code, make a request to the following URL: https://www.gst
-      atic.com/bigquerydatatransfer/oauthz/auth?redirect_uri=urn:ietf:wg:oauth
-      :2.0:oob&response_type=authorization_code&client_id=client_id&scope=data
-      _source_scopes * The client_id is the OAuth client_id of the a data
-      source as returned by ListDataSources method. * data_source_scopes are
-      the scopes returned by ListDataSources method. Note that this should not
-      be set when `service_account_name` is used to update the transfer
+    authorizationCode: Deprecated: Authorization code was required when
+      `transferConfig.dataSourceId` is 'youtube_channel' but it is no longer
+      used in any data sources. Use `version_info` instead. Optional OAuth2
+      authorization code to use with this transfer configuration. This is
+      required only if `transferConfig.dataSourceId` is 'youtube_channel' and
+      new credentials are needed, as indicated by `CheckValidCreds`. In order
+      to obtain authorization_code, make a request to the following URL: https
+      ://bigquery.cloud.google.com/datatransfer/oauthz/auth?redirect_uri=urn:i
+      etf:wg:oauth:2.0:oob&response_type=authorization_code&client_id=client_i
+      d&scope=data_source_scopes * The client_id is the OAuth client_id of the
+      data source as returned by ListDataSources method. * data_source_scopes
+      are the scopes returned by ListDataSources method. Note that this should
+      not be set when `service_account_name` is used to update the transfer
       config.
     name: Identifier. The resource name of the transfer config. Transfer
       config names have the form either
@@ -638,16 +705,18 @@ class BigquerydatatransferProjectsTransferConfigsPatchRequest(_messages.Message)
       body.
     updateMask: Required. Required list of fields to be updated in this
       request.
-    versionInfo: Optional version info. This is required only if
-      `transferConfig.dataSourceId` is not 'youtube_channel' and new
-      credentials are needed, as indicated by `CheckValidCreds`. In order to
-      obtain version info, make a request to the following URL: https://www.gs
-      tatic.com/bigquerydatatransfer/oauthz/auth?redirect_uri=urn:ietf:wg:oaut
-      h:2.0:oob&response_type=version_info&client_id=client_id&scope=data_sour
-      ce_scopes * The client_id is the OAuth client_id of the a data source as
-      returned by ListDataSources method. * data_source_scopes are the scopes
-      returned by ListDataSources method. Note that this should not be set
-      when `service_account_name` is used to update the transfer config.
+    versionInfo: Optional version info. This parameter replaces
+      `authorization_code` which is no longer used in any data sources. This
+      is required only if `transferConfig.dataSourceId` is 'youtube_channel'
+      *or* new credentials are needed, as indicated by `CheckValidCreds`. In
+      order to obtain version info, make a request to the following URL: https
+      ://bigquery.cloud.google.com/datatransfer/oauthz/auth?redirect_uri=urn:i
+      etf:wg:oauth:2.0:oob&response_type=version_info&client_id=client_id&scop
+      e=data_source_scopes * The client_id is the OAuth client_id of the data
+      source as returned by ListDataSources method. * data_source_scopes are
+      the scopes returned by ListDataSources method. Note that this should not
+      be set when `service_account_name` is used to update the transfer
+      config.
   """
 
   authorizationCode = _messages.StringField(1)
@@ -662,11 +731,13 @@ class BigquerydatatransferProjectsTransferConfigsRunsDeleteRequest(_messages.Mes
   r"""A BigquerydatatransferProjectsTransferConfigsRunsDeleteRequest object.
 
   Fields:
-    name: Required. The field will contain name of the resource requested, for
-      example:
-      `projects/{project_id}/transferConfigs/{config_id}/runs/{run_id}` or `pr
-      ojects/{project_id}/locations/{location_id}/transferConfigs/{config_id}/
-      runs/{run_id}`
+    name: Required. The name of the resource requested. If you are using the
+      regionless method, the location must be `US` and the name should be in
+      the following form: *
+      `projects/{project_id}/transferConfigs/{config_id}/runs/{run_id}` If you
+      are using the regionalized method, the name should be in the following
+      form: * `projects/{project_id}/locations/{location_id}/transferConfigs/{
+      config_id}/runs/{run_id}`
   """
 
   name = _messages.StringField(1, required=True)
@@ -676,11 +747,13 @@ class BigquerydatatransferProjectsTransferConfigsRunsGetRequest(_messages.Messag
   r"""A BigquerydatatransferProjectsTransferConfigsRunsGetRequest object.
 
   Fields:
-    name: Required. The field will contain name of the resource requested, for
-      example:
-      `projects/{project_id}/transferConfigs/{config_id}/runs/{run_id}` or `pr
-      ojects/{project_id}/locations/{location_id}/transferConfigs/{config_id}/
-      runs/{run_id}`
+    name: Required. The name of the resource requested. If you are using the
+      regionless method, the location must be `US` and the name should be in
+      the following form: *
+      `projects/{project_id}/transferConfigs/{config_id}/runs/{run_id}` If you
+      are using the regionalized method, the name should be in the following
+      form: * `projects/{project_id}/locations/{location_id}/transferConfigs/{
+      config_id}/runs/{run_id}`
   """
 
   name = _messages.StringField(1, required=True)
@@ -702,9 +775,11 @@ class BigquerydatatransferProjectsTransferConfigsRunsListRequest(_messages.Messa
       `ListTransferRunsResponse` outputs a `next_page` token, which can be
       used as the `page_token` value to request the next page of list results.
     parent: Required. Name of transfer configuration for which transfer runs
-      should be retrieved. Format of transfer configuration resource name is:
-      `projects/{project_id}/transferConfigs/{config_id}` or `projects/{projec
-      t_id}/locations/{location_id}/transferConfigs/{config_id}`.
+      should be retrieved. If you are using the regionless method, the
+      location must be `US` and the name should be in the following form: *
+      `projects/{project_id}/transferConfigs/{config_id}` If you are using the
+      regionalized method, the name should be in the following form: * `projec
+      ts/{project_id}/locations/{location_id}/transferConfigs/{config_id}`
     runAttempt: Indicates how run attempts are to be pulled.
     states: When specified, only transfer runs with requested states are
       returned.
@@ -763,10 +838,13 @@ class BigquerydatatransferProjectsTransferConfigsRunsTransferLogsListRequest(_me
       of `ListTransferLogsRequest` list results. For multiple-page results,
       `ListTransferLogsResponse` outputs a `next_page` token, which can be
       used as the `page_token` value to request the next page of list results.
-    parent: Required. Transfer run name in the form:
-      `projects/{project_id}/transferConfigs/{config_id}/runs/{run_id}` or `pr
-      ojects/{project_id}/locations/{location_id}/transferConfigs/{config_id}/
-      runs/{run_id}`
+    parent: Required. Transfer run name. If you are using the regionless
+      method, the location must be `US` and the name should be in the
+      following form: *
+      `projects/{project_id}/transferConfigs/{config_id}/runs/{run_id}` If you
+      are using the regionalized method, the name should be in the following
+      form: * `projects/{project_id}/locations/{location_id}/transferConfigs/{
+      config_id}/runs/{run_id}`
   """
 
   class MessageTypesValueValuesEnum(_messages.Enum):
@@ -794,9 +872,12 @@ class BigquerydatatransferProjectsTransferConfigsScheduleRunsRequest(_messages.M
   r"""A BigquerydatatransferProjectsTransferConfigsScheduleRunsRequest object.
 
   Fields:
-    parent: Required. Transfer configuration name in the form:
-      `projects/{project_id}/transferConfigs/{config_id}` or `projects/{projec
-      t_id}/locations/{location_id}/transferConfigs/{config_id}`.
+    parent: Required. Transfer configuration name. If you are using the
+      regionless method, the location must be `US` and the name should be in
+      the following form: *
+      `projects/{project_id}/transferConfigs/{config_id}` If you are using the
+      regionalized method, the name should be in the following form: * `projec
+      ts/{project_id}/locations/{location_id}/transferConfigs/{config_id}`
     scheduleTransferRunsRequest: A ScheduleTransferRunsRequest resource to be
       passed as the request body.
   """
@@ -810,9 +891,12 @@ class BigquerydatatransferProjectsTransferConfigsStartManualRunsRequest(_message
   object.
 
   Fields:
-    parent: Required. Transfer configuration name in the form:
-      `projects/{project_id}/transferConfigs/{config_id}` or `projects/{projec
-      t_id}/locations/{location_id}/transferConfigs/{config_id}`.
+    parent: Required. Transfer configuration name. If you are using the
+      regionless method, the location must be `US` and the name should be in
+      the following form: *
+      `projects/{project_id}/transferConfigs/{config_id}` If you are using the
+      regionalized method, the name should be in the following form: * `projec
+      ts/{project_id}/locations/{location_id}/transferConfigs/{config_id}`
     startManualTransferRunsRequest: A StartManualTransferRunsRequest resource
       to be passed as the request body.
   """
@@ -973,6 +1057,7 @@ class DataSourceParameter(_messages.Message):
     displayName: Parameter display name in the user interface.
     fields: Deprecated. This field has no effect.
     immutable: Cannot be changed after initial creation.
+    maxListSize: For list parameters, the max size of the list.
     maxValue: For integer and double values specifies maximum allowed value.
     minValue: For integer and double values specifies minimum allowed value.
     paramId: Parameter identifier.
@@ -1018,16 +1103,17 @@ class DataSourceParameter(_messages.Message):
   displayName = _messages.StringField(4)
   fields = _messages.MessageField('DataSourceParameter', 5, repeated=True)
   immutable = _messages.BooleanField(6)
-  maxValue = _messages.FloatField(7)
-  minValue = _messages.FloatField(8)
-  paramId = _messages.StringField(9)
-  recurse = _messages.BooleanField(10)
-  repeated = _messages.BooleanField(11)
-  required = _messages.BooleanField(12)
-  type = _messages.EnumField('TypeValueValuesEnum', 13)
-  validationDescription = _messages.StringField(14)
-  validationHelpUrl = _messages.StringField(15)
-  validationRegex = _messages.StringField(16)
+  maxListSize = _messages.IntegerField(7)
+  maxValue = _messages.FloatField(8)
+  minValue = _messages.FloatField(9)
+  paramId = _messages.StringField(10)
+  recurse = _messages.BooleanField(11)
+  repeated = _messages.BooleanField(12)
+  required = _messages.BooleanField(13)
+  type = _messages.EnumField('TypeValueValuesEnum', 14)
+  validationDescription = _messages.StringField(15)
+  validationHelpUrl = _messages.StringField(16)
+  validationRegex = _messages.StringField(17)
 
 
 class EmailPreferences(_messages.Message):
@@ -1071,6 +1157,18 @@ class EnrollDataSourcesRequest(_messages.Message):
   """
 
   dataSourceIds = _messages.StringField(1, repeated=True)
+
+
+class EventDrivenSchedule(_messages.Message):
+  r"""Options customizing EventDriven transfers schedule.
+
+  Fields:
+    pubsubSubscription: Pub/Sub subscription name used to receive events. Only
+      Google Cloud Storage data source support this option. Format:
+      projects/{project}/subscriptions/{subscription}
+  """
+
+  pubsubSubscription = _messages.StringField(1)
 
 
 class ListDataSourcesResponse(_messages.Message):
@@ -1226,6 +1324,10 @@ class Location(_messages.Message):
   name = _messages.StringField(5)
 
 
+class ManualSchedule(_messages.Message):
+  r"""Options customizing manual transfers schedule."""
+
+
 class ScheduleOptions(_messages.Message):
   r"""Options customizing the data transfer schedule.
 
@@ -1248,6 +1350,28 @@ class ScheduleOptions(_messages.Message):
   disableAutoScheduling = _messages.BooleanField(1)
   endTime = _messages.StringField(2)
   startTime = _messages.StringField(3)
+
+
+class ScheduleOptionsV2(_messages.Message):
+  r"""V2 options customizing different types of data transfer schedule. This
+  field supports existing time-based and manual transfer schedule. Also
+  supports Event-Driven transfer schedule. ScheduleOptionsV2 cannot be used
+  together with ScheduleOptions/Schedule.
+
+  Fields:
+    eventDrivenSchedule: Event driven transfer schedule options. If set, the
+      transfer will be scheduled upon events arrial.
+    manualSchedule: Manual transfer schedule. If set, the transfer run will
+      not be auto-scheduled by the system, unless the client invokes
+      StartManualTransferRuns. This is equivalent to disable_auto_scheduling =
+      true.
+    timeBasedSchedule: Time based transfer schedule options. This is the
+      default schedule option.
+  """
+
+  eventDrivenSchedule = _messages.MessageField('EventDrivenSchedule', 1)
+  manualSchedule = _messages.MessageField('ManualSchedule', 2)
+  timeBasedSchedule = _messages.MessageField('TimeBasedSchedule', 3)
 
 
 class ScheduleTransferRunsRequest(_messages.Message):
@@ -1416,6 +1540,35 @@ class Status(_messages.Message):
   message = _messages.StringField(3)
 
 
+class TimeBasedSchedule(_messages.Message):
+  r"""Options customizing the time based transfer schedule. Options are
+  migrated from the original ScheduleOptions message.
+
+  Fields:
+    endTime: Defines time to stop scheduling transfer runs. A transfer run
+      cannot be scheduled at or after the end time. The end time can be
+      changed at any moment.
+    schedule: Data transfer schedule. If the data source does not support a
+      custom schedule, this should be empty. If it is empty, the default value
+      for the data source will be used. The specified times are in UTC.
+      Examples of valid format: `1st,3rd monday of month 15:30`, `every
+      wed,fri of jan,jun 13:15`, and `first sunday of quarter 00:00`. See more
+      explanation about the format here:
+      https://cloud.google.com/appengine/docs/flexible/python/scheduling-jobs-
+      with-cron-yaml#the_schedule_format NOTE: The minimum interval time
+      between recurring transfers depends on the data source; refer to the
+      documentation for your data source.
+    startTime: Specifies time to start scheduling transfer runs. The first run
+      will be scheduled at or after the start time according to a recurrence
+      pattern defined in the schedule string. The start time can be changed at
+      any moment.
+  """
+
+  endTime = _messages.StringField(1)
+  schedule = _messages.StringField(2)
+  startTime = _messages.StringField(3)
+
+
 class TimeRange(_messages.Message):
   r"""A specification for a time range, this will request transfer runs with
   run_time between start_time (inclusive) and end_time (exclusive).
@@ -1478,6 +1631,8 @@ class TransferConfig(_messages.Message):
       will return the key name applied in effect. Write methods will apply the
       key if it is present, or otherwise try to apply project default keys if
       it is absent.
+    error: Output only. Error code with detailed information about reason of
+      the latest config failure.
     name: Identifier. The resource name of the transfer config. Transfer
       config names have the form either
       `projects/{project_id}/locations/{region}/transferConfigs/{config_id}`
@@ -1509,6 +1664,9 @@ class TransferConfig(_messages.Message):
       between recurring transfers depends on the data source; refer to the
       documentation for your data source.
     scheduleOptions: Options customizing the data transfer schedule.
+    scheduleOptionsV2: Options customizing different types of data transfer
+      schedule. This field replaces "schedule" and "schedule_options" fields.
+      ScheduleOptionsV2 cannot be used together with ScheduleOptions/Schedule.
     state: Output only. State of the most recently updated transfer run.
     updateTime: Output only. Data transfer modification time. Ignored by
       server on input.
@@ -1570,16 +1728,18 @@ class TransferConfig(_messages.Message):
   displayName = _messages.StringField(6)
   emailPreferences = _messages.MessageField('EmailPreferences', 7)
   encryptionConfiguration = _messages.MessageField('EncryptionConfiguration', 8)
-  name = _messages.StringField(9)
-  nextRunTime = _messages.StringField(10)
-  notificationPubsubTopic = _messages.StringField(11)
-  ownerInfo = _messages.MessageField('UserInfo', 12)
-  params = _messages.MessageField('ParamsValue', 13)
-  schedule = _messages.StringField(14)
-  scheduleOptions = _messages.MessageField('ScheduleOptions', 15)
-  state = _messages.EnumField('StateValueValuesEnum', 16)
-  updateTime = _messages.StringField(17)
-  userId = _messages.IntegerField(18)
+  error = _messages.MessageField('Status', 9)
+  name = _messages.StringField(10)
+  nextRunTime = _messages.StringField(11)
+  notificationPubsubTopic = _messages.StringField(12)
+  ownerInfo = _messages.MessageField('UserInfo', 13)
+  params = _messages.MessageField('ParamsValue', 14)
+  schedule = _messages.StringField(15)
+  scheduleOptions = _messages.MessageField('ScheduleOptions', 16)
+  scheduleOptionsV2 = _messages.MessageField('ScheduleOptionsV2', 17)
+  state = _messages.EnumField('StateValueValuesEnum', 18)
+  updateTime = _messages.StringField(19)
+  userId = _messages.IntegerField(20)
 
 
 class TransferMessage(_messages.Message):

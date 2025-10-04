@@ -41,6 +41,17 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_LOCATIONS_ACCOUNTCONNECTORS = (
+      'projects.locations.accountConnectors',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'accountConnectors/{accountConnectorsId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS_LOCATIONS_CONNECTIONS = (
       'projects.locations.connections',
       '{+name}',
@@ -61,6 +72,44 @@ class Collections(enum.Enum):
               '{connectionsId}/gitRepositoryLinks/{gitRepositoryLinksId}',
       },
       ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_INSIGHTSCONFIGS = (
+      'projects.locations.insightsConfigs',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/insightsConfigs/'
+              '{insightsConfigsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_INSIGHTSCONFIGS_DEPLOYMENTEVENTS = (
+      'projects.locations.insightsConfigs.deploymentEvents',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/insightsConfigs/'
+              '{insightsConfigsId}/deploymentEvents/{deploymentEventsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_KEYRINGS_CRYPTOKEYS = (
+      'projects.locations.keyRings.cryptoKeys',
+      'projects/{projectsId}/locations/{locationsId}/keyRings/{keyRingsId}/'
+      'cryptoKeys/{cryptoKeysId}',
+      {},
+      ['projectsId', 'locationsId', 'keyRingsId', 'cryptoKeysId'],
+      True
+  )
+  PROJECTS_LOCATIONS_NAMESPACES_SERVICES = (
+      'projects.locations.namespaces.services',
+      'projects/{projectsId}/locations/{locationsId}/namespaces/'
+      '{namespacesId}/services/{servicesId}',
+      {},
+      ['projectsId', 'locationsId', 'namespacesId', 'servicesId'],
       True
   )
   PROJECTS_LOCATIONS_OPERATIONS = (

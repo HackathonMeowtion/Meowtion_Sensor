@@ -34,12 +34,71 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  FOLDERS_CAPABILITIES = (
+      'folders.capabilities',
+      '{+name}',
+      {
+          '':
+              'folders/{foldersId}/capabilities/{capabilitiesId}',
+      },
+      ['name'],
+      True
+  )
+  FOLDERS_EFFECTIVESETTINGS = (
+      'folders.effectiveSettings',
+      '{+name}',
+      {
+          '':
+              'folders/{foldersId}/effectiveSettings/{effectiveSettingsId}',
+      },
+      ['name'],
+      True
+  )
+  FOLDERS_SETTINGS = (
+      'folders.settings',
+      '{+name}',
+      {
+          '':
+              'folders/{foldersId}/settings/{settingsId}',
+      },
+      ['name'],
+      True
+  )
   LIENS = (
       'liens',
       '{+name}',
       {
           '':
               'liens/{liensId}',
+      },
+      ['name'],
+      True
+  )
+  LOCATIONS = (
+      'locations',
+      'locations/{locationsId}',
+      {},
+      ['locationsId'],
+      True
+  )
+  LOCATIONS_EFFECTIVETAGBINDINGCOLLECTIONS = (
+      'locations.effectiveTagBindingCollections',
+      '{+name}',
+      {
+          '':
+              'locations/{locationsId}/effectiveTagBindingCollections/'
+              '{effectiveTagBindingCollectionsId}',
+      },
+      ['name'],
+      True
+  )
+  LOCATIONS_TAGBINDINGCOLLECTIONS = (
+      'locations.tagBindingCollections',
+      '{+name}',
+      {
+          '':
+              'locations/{locationsId}/tagBindingCollections/'
+              '{tagBindingCollectionsId}',
       },
       ['name'],
       True
@@ -64,12 +123,53 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  ORGANIZATIONS_EFFECTIVESETTINGS = (
+      'organizations.effectiveSettings',
+      '{+name}',
+      {
+          '':
+              'organizations/{organizationsId}/effectiveSettings/'
+              '{effectiveSettingsId}',
+      },
+      ['name'],
+      True
+  )
+  ORGANIZATIONS_SETTINGS = (
+      'organizations.settings',
+      '{+name}',
+      {
+          '':
+              'organizations/{organizationsId}/settings/{settingsId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS = (
       'projects',
       '{+name}',
       {
           '':
               'projects/{projectsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_EFFECTIVESETTINGS = (
+      'projects.effectiveSettings',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/effectiveSettings/{effectiveSettingsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_SETTINGS = (
+      'projects.settings',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/settings/{settingsId}',
       },
       ['name'],
       True

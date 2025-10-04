@@ -636,6 +636,11 @@ class Secret(_messages.Message):
       long, have a UTF-8 encoding of maximum 128 bytes, and must conform to
       the following PCRE regular expression: `[\p{Ll}\p{Lo}\p{N}_-]{0,63}` No
       more than 64 labels can be assigned to a given resource.
+    TagsValue: Optional. Input only. Immutable. Mapping of Tag keys/values
+      directly bound to this resource. For example: "123/environment":
+      "production", "123/costCenter": "marketing" Tags are used to organize
+      and group resources. Tags can be used to control policy evaluation for
+      the resource.
     VersionAliasesValue: Optional. Mapping from version alias to version name.
       A version alias is a string with a maximum length of 63 characters and
       can contain uppercase and lowercase letters, numerals, and the hyphen
@@ -656,7 +661,7 @@ class Secret(_messages.Message):
       annotation keys and values must be less than 16KiB.
     createTime: Output only. The time at which the Secret was created.
     customerManagedEncryption: Optional. The customer-managed encryption
-      configuration of the Regionalised Secrets. If no configuration is
+      configuration of the regionalized secrets. If no configuration is
       provided, Google-managed default encryption is used. Updates to the
       Secret encryption configuration only apply to SecretVersions added
       afterwards. They do not apply retroactively to existing SecretVersions.
@@ -678,6 +683,11 @@ class Secret(_messages.Message):
       after the Secret has been created.
     rotation: Optional. Rotation policy attached to the Secret. May be
       excluded if there is no rotation policy.
+    tags: Optional. Input only. Immutable. Mapping of Tag keys/values directly
+      bound to this resource. For example: "123/environment": "production",
+      "123/costCenter": "marketing" Tags are used to organize and group
+      resources. Tags can be used to control policy evaluation for the
+      resource.
     topics: Optional. A list of up to 10 Pub/Sub topics to which messages are
       published when control plane operations are called on the secret or its
       versions.
@@ -760,6 +770,33 @@ class Secret(_messages.Message):
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
   @encoding.MapUnrecognizedFields('additionalProperties')
+  class TagsValue(_messages.Message):
+    r"""Optional. Input only. Immutable. Mapping of Tag keys/values directly
+    bound to this resource. For example: "123/environment": "production",
+    "123/costCenter": "marketing" Tags are used to organize and group
+    resources. Tags can be used to control policy evaluation for the resource.
+
+    Messages:
+      AdditionalProperty: An additional property for a TagsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type TagsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a TagsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
   class VersionAliasesValue(_messages.Message):
     r"""Optional. Mapping from version alias to version name. A version alias
     is a string with a maximum length of 63 characters and can contain
@@ -800,10 +837,11 @@ class Secret(_messages.Message):
   name = _messages.StringField(7)
   replication = _messages.MessageField('Replication', 8)
   rotation = _messages.MessageField('Rotation', 9)
-  topics = _messages.MessageField('Topic', 10, repeated=True)
-  ttl = _messages.StringField(11)
-  versionAliases = _messages.MessageField('VersionAliasesValue', 12)
-  versionDestroyTtl = _messages.StringField(13)
+  tags = _messages.MessageField('TagsValue', 10)
+  topics = _messages.MessageField('Topic', 11, repeated=True)
+  ttl = _messages.StringField(12)
+  versionAliases = _messages.MessageField('VersionAliasesValue', 13)
+  versionDestroyTtl = _messages.StringField(14)
 
 
 class SecretPayload(_messages.Message):
@@ -840,7 +878,7 @@ class SecretVersion(_messages.Message):
     createTime: Output only. The time at which the SecretVersion was created.
     customerManagedEncryption: Output only. The customer-managed encryption
       status of the SecretVersion. Only populated if customer-managed
-      encryption is used and Secret is a Regionalised Secret.
+      encryption is used and Secret is a regionalized secret.
     destroyTime: Output only. The time this SecretVersion was destroyed. Only
       present if state is DESTROYED.
     etag: Output only. Etag of the currently stored SecretVersion.
@@ -898,6 +936,9 @@ class SecretmanagerProjectsLocationsListRequest(_messages.Message):
   r"""A SecretmanagerProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -908,10 +949,11 @@ class SecretmanagerProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class SecretmanagerProjectsLocationsSecretsAddVersionRequest(_messages.Message):
@@ -1531,7 +1573,7 @@ class Topic(_messages.Message):
   events occur on this secret.
 
   Fields:
-    name: Required. The resource name of the Pub/Sub topic that will be
+    name: Identifier. The resource name of the Pub/Sub topic that will be
       published to, in the following format: `projects/*/topics/*`. For
       publication to succeed, the Secret Manager service agent must have the
       `pubsub.topic.publish` permission on the topic. The Pub/Sub Publisher
@@ -1543,7 +1585,7 @@ class Topic(_messages.Message):
 
 class UserManaged(_messages.Message):
   r"""A replication policy that replicates the Secret payload into the
-  locations specified in Secret.replication.user_managed.replicas
+  locations specified in Replication.UserManaged.replicas
 
   Fields:
     replicas: Required. The list of Replicas for this Secret. Cannot be empty.
@@ -1570,3 +1612,7 @@ encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    SecretmanagerProjectsLocationsSecretsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    SecretmanagerProjectsSecretsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')

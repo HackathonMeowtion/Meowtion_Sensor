@@ -22,7 +22,7 @@ from __future__ import unicode_literals
 
 import json
 import textwrap
-from typing import Mapping
+from typing import Mapping, Union
 
 from googlecloudsdk.api_lib.run import container_resource
 from googlecloudsdk.api_lib.run import k8s_object
@@ -31,7 +31,7 @@ from googlecloudsdk.core.resource import custom_printer_base as cp
 
 
 def OrderByKey(map_):
-  for k in sorted(map_):
+  for k in sorted(k if k is not None else '' for k in map_):
     yield k, (map_.get(k) if map_.get(k) is not None else '')
 
 
@@ -85,15 +85,16 @@ def GetLabels(labels):
   )
 
 
-def BuildHeader(record):
+def BuildHeader(record, is_multi_region=False):
   con = console_attr.GetConsoleAttr()
   status = con.Colorize(*record.ReadySymbolAndColor())
   try:
-    place = 'region ' + record.region
+    place = ('regions ' if is_multi_region else 'region ') + record.region
   except KeyError:
     place = 'namespace ' + record.namespace
+  kind = ('Multi-Region ' if is_multi_region else '') + record.Kind()
   return con.Emphasize(
-      '{} {} {} in {}'.format(status, record.Kind(), record.name, place)
+      '{} {} {} in {}'.format(status, kind, record.name, place)
   )
 
 
@@ -161,11 +162,18 @@ def GetExecutionEnvironment(record):
   return record.annotations.get(k8s_object.EXECUTION_ENVIRONMENT_ANNOTATION, '')
 
 
+def GetThreatDetectionEnabled(record):
+  if record.annotations.get(
+      k8s_object.THREAT_DETECTION_ANNOTATION, '').lower() == 'true':
+    return 'Enabled'
+  return ''
+
+
 def GetStartupProbe(
     container: container_resource.Container,
     labels: Mapping[str, str],
     is_primary: bool,
-) -> str:
+) -> Union[str, cp.Lines]:
   probe_type = ''
   if is_primary:
     probe_type = labels.get('run.googleapis.com/startupProbeType', '')
@@ -175,8 +183,16 @@ def GetStartupProbe(
   )
 
 
-def GetLivenessProbe(container: container_resource.Container) -> str:
+def GetLivenessProbe(
+    container: container_resource.Container,
+) -> Union[str, cp.Lines]:
   return _GetProbe(container.livenessProbe)
+
+
+def GetReadinessProbe(
+    container: container_resource.Container,
+) -> Union[str, cp.Lines]:
+  return _GetProbe(container.readinessProbe)
 
 
 def _GetProbe(probe, probe_type=''):
@@ -211,6 +227,10 @@ def _GetProbe(probe, probe_type=''):
           (
               'Timeout',
               '{timeout}s'.format(timeout=probe.timeoutSeconds),
+          ),
+          (
+              'Success threshold',
+              '{successes}'.format(successes=probe.successThreshold or ''),
           ),
           (
               'Failure threshold',

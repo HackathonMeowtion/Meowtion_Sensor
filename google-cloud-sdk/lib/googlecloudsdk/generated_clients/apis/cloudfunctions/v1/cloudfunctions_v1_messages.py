@@ -204,7 +204,11 @@ class CloudFunction(_messages.Message):
 
   Enums:
     DockerRegistryValueValuesEnum: Docker Registry to use for this deployment.
-      If unspecified, it defaults to `ARTIFACT_REGISTRY`. If
+      Deprecated: as of March 2025, `CONTAINER_REGISTRY` option is no longer
+      available in response to Container Registry's deprecation:
+      https://cloud.google.com/artifact-registry/docs/transition/transition-
+      from-gcr Please use Artifact Registry instead, which is the default
+      choice. If unspecified, it defaults to `ARTIFACT_REGISTRY`. If
       `docker_repository` field is specified, this field should either be left
       unspecified or set to `ARTIFACT_REGISTRY`.
     IngressSettingsValueValuesEnum: The ingress settings for the function,
@@ -225,15 +229,17 @@ class CloudFunction(_messages.Message):
     availableMemoryMb: The amount of memory in MB available for a function.
       Defaults to 256MB.
     buildDockerfile: Local path to the dockerfile for customizing the base
-      image for the builder, located within the source folder.
+      image for the builder, located within the source folder. Deprecated:
+      this was significantly revised before reaching public.
     buildEnvironmentVariables: Build environment variables that shall be
       available during build time.
     buildId: Output only. The Cloud Build ID of the latest successful
       deployment of the function.
     buildName: Output only. The Cloud Build Name of the function deployment.
       `projects//locations//builds/`.
-    buildServiceAccount: Optional. A service account the user provides for use
-      with Cloud Build.
+    buildServiceAccount: A service account the user provides for use with
+      Cloud Build. The format of this field is
+      `projects/{projectId}/serviceAccounts/{serviceAccountEmail}`.
     buildWorkerPool: Name of the Cloud Build Custom Worker Pool that should be
       used to build the function. The format of this field is
       `projects/{project}/locations/{region}/workerPools/{workerPool}` where
@@ -245,14 +251,20 @@ class CloudFunction(_messages.Message):
       Custom Workers Builder (`roles/cloudbuild.customworkers.builder`) in the
       project.
     buildpackStack: Specifies one of the Google provided buildpack stacks.
+      Deprecated: this API was suspended after private preview and was never
+      revealed publicly.
     customStackUri: Deprecated: customization experience was significantly
       revised, making this field obsolete. It was never revealed to public.
       The URL of a customer provided buildpack stack.
     description: User-provided description of a function.
-    dockerRegistry: Docker Registry to use for this deployment. If
-      unspecified, it defaults to `ARTIFACT_REGISTRY`. If `docker_repository`
-      field is specified, this field should either be left unspecified or set
-      to `ARTIFACT_REGISTRY`.
+    dockerRegistry: Docker Registry to use for this deployment. Deprecated: as
+      of March 2025, `CONTAINER_REGISTRY` option is no longer available in
+      response to Container Registry's deprecation:
+      https://cloud.google.com/artifact-registry/docs/transition/transition-
+      from-gcr Please use Artifact Registry instead, which is the default
+      choice. If unspecified, it defaults to `ARTIFACT_REGISTRY`. If
+      `docker_repository` field is specified, this field should either be left
+      unspecified or set to `ARTIFACT_REGISTRY`.
     dockerRepository: User-managed repository created in Artifact Registry to
       which the function's Docker image will be pushed after it is built by
       Cloud Build. May optionally be encrypted with a customer-managed
@@ -313,12 +325,15 @@ class CloudFunction(_messages.Message):
     onDeployUpdatePolicy: A OnDeployUpdatePolicy attribute.
     pinnedRuntimeVersionPolicy: A PinnedRuntimeVersionPolicy attribute.
     runDockerfile: Local path to the dockerfile for customizing the base image
-      for the worker, located within the source folder.
+      for the worker, located within the source folder. Deprecated: this was
+      significantly revised before reaching public.
     runtime: The runtime in which to run the function. Required when deploying
       a new function, optional when updating an existing function. For a
       complete list of possible choices, see the [`gcloud` command reference](
       https://cloud.google.com/sdk/gcloud/reference/functions/deploy#--
       runtime).
+    satisfiesPzi: Output only.
+    satisfiesPzs: Output only.
     secretEnvironmentVariables: Secret environment variables configuration.
     secretVolumes: Secret volumes configuration.
     serviceAccountEmail: The email of the function's service account. If
@@ -354,10 +369,13 @@ class CloudFunction(_messages.Message):
   """
 
   class DockerRegistryValueValuesEnum(_messages.Enum):
-    r"""Docker Registry to use for this deployment. If unspecified, it
-    defaults to `ARTIFACT_REGISTRY`. If `docker_repository` field is
-    specified, this field should either be left unspecified or set to
-    `ARTIFACT_REGISTRY`.
+    r"""Docker Registry to use for this deployment. Deprecated: as of March
+    2025, `CONTAINER_REGISTRY` option is no longer available in response to
+    Container Registry's deprecation: https://cloud.google.com/artifact-
+    registry/docs/transition/transition-from-gcr Please use Artifact Registry
+    instead, which is the default choice. If unspecified, it defaults to
+    `ARTIFACT_REGISTRY`. If `docker_repository` field is specified, this field
+    should either be left unspecified or set to `ARTIFACT_REGISTRY`.
 
     Values:
       DOCKER_REGISTRY_UNSPECIFIED: Unspecified.
@@ -529,19 +547,21 @@ class CloudFunction(_messages.Message):
   pinnedRuntimeVersionPolicy = _messages.MessageField('PinnedRuntimeVersionPolicy', 26)
   runDockerfile = _messages.StringField(27)
   runtime = _messages.StringField(28)
-  secretEnvironmentVariables = _messages.MessageField('SecretEnvVar', 29, repeated=True)
-  secretVolumes = _messages.MessageField('SecretVolume', 30, repeated=True)
-  serviceAccountEmail = _messages.StringField(31)
-  sourceArchiveUrl = _messages.StringField(32)
-  sourceRepository = _messages.MessageField('SourceRepository', 33)
-  sourceToken = _messages.StringField(34)
-  sourceUploadUrl = _messages.StringField(35)
-  status = _messages.EnumField('StatusValueValuesEnum', 36)
-  timeout = _messages.StringField(37)
-  updateTime = _messages.StringField(38)
-  versionId = _messages.IntegerField(39)
-  vpcConnector = _messages.StringField(40)
-  vpcConnectorEgressSettings = _messages.EnumField('VpcConnectorEgressSettingsValueValuesEnum', 41)
+  satisfiesPzi = _messages.BooleanField(29)
+  satisfiesPzs = _messages.BooleanField(30)
+  secretEnvironmentVariables = _messages.MessageField('SecretEnvVar', 31, repeated=True)
+  secretVolumes = _messages.MessageField('SecretVolume', 32, repeated=True)
+  serviceAccountEmail = _messages.StringField(33)
+  sourceArchiveUrl = _messages.StringField(34)
+  sourceRepository = _messages.MessageField('SourceRepository', 35)
+  sourceToken = _messages.StringField(36)
+  sourceUploadUrl = _messages.StringField(37)
+  status = _messages.EnumField('StatusValueValuesEnum', 38)
+  timeout = _messages.StringField(39)
+  updateTime = _messages.StringField(40)
+  versionId = _messages.IntegerField(41)
+  vpcConnector = _messages.StringField(42)
+  vpcConnectorEgressSettings = _messages.EnumField('VpcConnectorEgressSettingsValueValuesEnum', 43)
 
 
 class CloudfunctionsOperationsGetRequest(_messages.Message):
@@ -755,6 +775,9 @@ class CloudfunctionsProjectsLocationsListRequest(_messages.Message):
   r"""A CloudfunctionsProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -765,10 +788,11 @@ class CloudfunctionsProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class EventTrigger(_messages.Message):
@@ -913,624 +937,6 @@ class GenerateUploadUrlResponse(_messages.Message):
   """
 
   uploadUrl = _messages.StringField(1)
-
-
-class GoogleCloudFunctionsV2LocationMetadata(_messages.Message):
-  r"""Extra GCF specific location information.
-
-  Enums:
-    EnvironmentsValueListEntryValuesEnum:
-
-  Fields:
-    environments: The Cloud Function environments this location supports.
-  """
-
-  class EnvironmentsValueListEntryValuesEnum(_messages.Enum):
-    r"""EnvironmentsValueListEntryValuesEnum enum type.
-
-    Values:
-      ENVIRONMENT_UNSPECIFIED: Unspecified
-      GEN_1: Gen 1
-      GEN_2: Gen 2
-    """
-    ENVIRONMENT_UNSPECIFIED = 0
-    GEN_1 = 1
-    GEN_2 = 2
-
-  environments = _messages.EnumField('EnvironmentsValueListEntryValuesEnum', 1, repeated=True)
-
-
-class GoogleCloudFunctionsV2OperationMetadata(_messages.Message):
-  r"""Represents the metadata of the long-running operation.
-
-  Enums:
-    OperationTypeValueValuesEnum: The operation type.
-
-  Messages:
-    RequestResourceValue: The original request that started the operation.
-
-  Fields:
-    apiVersion: API version used to start the operation.
-    cancelRequested: Identifies whether the user has requested cancellation of
-      the operation. Operations that have successfully been cancelled have
-      google.longrunning.Operation.error value with a google.rpc.Status.code
-      of 1, corresponding to `Code.CANCELLED`.
-    createTime: The time the operation was created.
-    endTime: The time the operation finished running.
-    operationType: The operation type.
-    requestResource: The original request that started the operation.
-    sourceToken: An identifier for Firebase function sources. Disclaimer: This
-      field is only supported for Firebase function deployments.
-    stages: Mechanism for reporting in-progress stages
-    statusDetail: Human-readable status of the operation, if any.
-    target: Server-defined resource path for the target of the operation.
-    verb: Name of the verb executed by the operation.
-  """
-
-  class OperationTypeValueValuesEnum(_messages.Enum):
-    r"""The operation type.
-
-    Values:
-      OPERATIONTYPE_UNSPECIFIED: Unspecified
-      CREATE_FUNCTION: CreateFunction
-      UPDATE_FUNCTION: UpdateFunction
-      DELETE_FUNCTION: DeleteFunction
-      REDIRECT_FUNCTION_UPGRADE_TRAFFIC: RedirectFunctionUpgradeTraffic
-      ROLLBACK_FUNCTION_UPGRADE_TRAFFIC: RollbackFunctionUpgradeTraffic
-      SETUP_FUNCTION_UPGRADE_CONFIG: SetupFunctionUpgradeConfig
-      ABORT_FUNCTION_UPGRADE: AbortFunctionUpgrade
-      COMMIT_FUNCTION_UPGRADE: CommitFunctionUpgrade
-    """
-    OPERATIONTYPE_UNSPECIFIED = 0
-    CREATE_FUNCTION = 1
-    UPDATE_FUNCTION = 2
-    DELETE_FUNCTION = 3
-    REDIRECT_FUNCTION_UPGRADE_TRAFFIC = 4
-    ROLLBACK_FUNCTION_UPGRADE_TRAFFIC = 5
-    SETUP_FUNCTION_UPGRADE_CONFIG = 6
-    ABORT_FUNCTION_UPGRADE = 7
-    COMMIT_FUNCTION_UPGRADE = 8
-
-  @encoding.MapUnrecognizedFields('additionalProperties')
-  class RequestResourceValue(_messages.Message):
-    r"""The original request that started the operation.
-
-    Messages:
-      AdditionalProperty: An additional property for a RequestResourceValue
-        object.
-
-    Fields:
-      additionalProperties: Properties of the object. Contains field @type
-        with type URL.
-    """
-
-    class AdditionalProperty(_messages.Message):
-      r"""An additional property for a RequestResourceValue object.
-
-      Fields:
-        key: Name of the additional property.
-        value: A extra_types.JsonValue attribute.
-      """
-
-      key = _messages.StringField(1)
-      value = _messages.MessageField('extra_types.JsonValue', 2)
-
-    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
-
-  apiVersion = _messages.StringField(1)
-  cancelRequested = _messages.BooleanField(2)
-  createTime = _messages.StringField(3)
-  endTime = _messages.StringField(4)
-  operationType = _messages.EnumField('OperationTypeValueValuesEnum', 5)
-  requestResource = _messages.MessageField('RequestResourceValue', 6)
-  sourceToken = _messages.StringField(7)
-  stages = _messages.MessageField('GoogleCloudFunctionsV2Stage', 8, repeated=True)
-  statusDetail = _messages.StringField(9)
-  target = _messages.StringField(10)
-  verb = _messages.StringField(11)
-
-
-class GoogleCloudFunctionsV2Stage(_messages.Message):
-  r"""Each Stage of the deployment process
-
-  Enums:
-    NameValueValuesEnum: Name of the Stage. This will be unique for each
-      Stage.
-    StateValueValuesEnum: Current state of the Stage
-
-  Fields:
-    message: Message describing the Stage
-    name: Name of the Stage. This will be unique for each Stage.
-    resource: Resource of the Stage
-    resourceUri: Link to the current Stage resource
-    state: Current state of the Stage
-    stateMessages: State messages from the current Stage.
-  """
-
-  class NameValueValuesEnum(_messages.Enum):
-    r"""Name of the Stage. This will be unique for each Stage.
-
-    Values:
-      NAME_UNSPECIFIED: Not specified. Invalid name.
-      ARTIFACT_REGISTRY: Artifact Regsitry Stage
-      BUILD: Build Stage
-      SERVICE: Service Stage
-      TRIGGER: Trigger Stage
-      SERVICE_ROLLBACK: Service Rollback Stage
-      TRIGGER_ROLLBACK: Trigger Rollback Stage
-    """
-    NAME_UNSPECIFIED = 0
-    ARTIFACT_REGISTRY = 1
-    BUILD = 2
-    SERVICE = 3
-    TRIGGER = 4
-    SERVICE_ROLLBACK = 5
-    TRIGGER_ROLLBACK = 6
-
-  class StateValueValuesEnum(_messages.Enum):
-    r"""Current state of the Stage
-
-    Values:
-      STATE_UNSPECIFIED: Not specified. Invalid state.
-      NOT_STARTED: Stage has not started.
-      IN_PROGRESS: Stage is in progress.
-      COMPLETE: Stage has completed.
-    """
-    STATE_UNSPECIFIED = 0
-    NOT_STARTED = 1
-    IN_PROGRESS = 2
-    COMPLETE = 3
-
-  message = _messages.StringField(1)
-  name = _messages.EnumField('NameValueValuesEnum', 2)
-  resource = _messages.StringField(3)
-  resourceUri = _messages.StringField(4)
-  state = _messages.EnumField('StateValueValuesEnum', 5)
-  stateMessages = _messages.MessageField('GoogleCloudFunctionsV2StateMessage', 6, repeated=True)
-
-
-class GoogleCloudFunctionsV2StateMessage(_messages.Message):
-  r"""Informational messages about the state of the Cloud Function or
-  Operation.
-
-  Enums:
-    SeverityValueValuesEnum: Severity of the state message.
-
-  Fields:
-    message: The message.
-    severity: Severity of the state message.
-    type: One-word CamelCase type of the state message.
-  """
-
-  class SeverityValueValuesEnum(_messages.Enum):
-    r"""Severity of the state message.
-
-    Values:
-      SEVERITY_UNSPECIFIED: Not specified. Invalid severity.
-      ERROR: ERROR-level severity.
-      WARNING: WARNING-level severity.
-      INFO: INFO-level severity.
-    """
-    SEVERITY_UNSPECIFIED = 0
-    ERROR = 1
-    WARNING = 2
-    INFO = 3
-
-  message = _messages.StringField(1)
-  severity = _messages.EnumField('SeverityValueValuesEnum', 2)
-  type = _messages.StringField(3)
-
-
-class GoogleCloudFunctionsV2alphaLocationMetadata(_messages.Message):
-  r"""Extra GCF specific location information.
-
-  Enums:
-    EnvironmentsValueListEntryValuesEnum:
-
-  Fields:
-    environments: The Cloud Function environments this location supports.
-  """
-
-  class EnvironmentsValueListEntryValuesEnum(_messages.Enum):
-    r"""EnvironmentsValueListEntryValuesEnum enum type.
-
-    Values:
-      ENVIRONMENT_UNSPECIFIED: Unspecified
-      GEN_1: Gen 1
-      GEN_2: Gen 2
-    """
-    ENVIRONMENT_UNSPECIFIED = 0
-    GEN_1 = 1
-    GEN_2 = 2
-
-  environments = _messages.EnumField('EnvironmentsValueListEntryValuesEnum', 1, repeated=True)
-
-
-class GoogleCloudFunctionsV2alphaOperationMetadata(_messages.Message):
-  r"""Represents the metadata of the long-running operation.
-
-  Enums:
-    OperationTypeValueValuesEnum: The operation type.
-
-  Messages:
-    RequestResourceValue: The original request that started the operation.
-
-  Fields:
-    apiVersion: API version used to start the operation.
-    cancelRequested: Identifies whether the user has requested cancellation of
-      the operation. Operations that have successfully been cancelled have
-      google.longrunning.Operation.error value with a google.rpc.Status.code
-      of 1, corresponding to `Code.CANCELLED`.
-    createTime: The time the operation was created.
-    endTime: The time the operation finished running.
-    operationType: The operation type.
-    requestResource: The original request that started the operation.
-    sourceToken: An identifier for Firebase function sources. Disclaimer: This
-      field is only supported for Firebase function deployments.
-    stages: Mechanism for reporting in-progress stages
-    statusDetail: Human-readable status of the operation, if any.
-    target: Server-defined resource path for the target of the operation.
-    verb: Name of the verb executed by the operation.
-  """
-
-  class OperationTypeValueValuesEnum(_messages.Enum):
-    r"""The operation type.
-
-    Values:
-      OPERATIONTYPE_UNSPECIFIED: Unspecified
-      CREATE_FUNCTION: CreateFunction
-      UPDATE_FUNCTION: UpdateFunction
-      DELETE_FUNCTION: DeleteFunction
-      REDIRECT_FUNCTION_UPGRADE_TRAFFIC: RedirectFunctionUpgradeTraffic
-      ROLLBACK_FUNCTION_UPGRADE_TRAFFIC: RollbackFunctionUpgradeTraffic
-      SETUP_FUNCTION_UPGRADE_CONFIG: SetupFunctionUpgradeConfig
-      ABORT_FUNCTION_UPGRADE: AbortFunctionUpgrade
-      COMMIT_FUNCTION_UPGRADE: CommitFunctionUpgrade
-    """
-    OPERATIONTYPE_UNSPECIFIED = 0
-    CREATE_FUNCTION = 1
-    UPDATE_FUNCTION = 2
-    DELETE_FUNCTION = 3
-    REDIRECT_FUNCTION_UPGRADE_TRAFFIC = 4
-    ROLLBACK_FUNCTION_UPGRADE_TRAFFIC = 5
-    SETUP_FUNCTION_UPGRADE_CONFIG = 6
-    ABORT_FUNCTION_UPGRADE = 7
-    COMMIT_FUNCTION_UPGRADE = 8
-
-  @encoding.MapUnrecognizedFields('additionalProperties')
-  class RequestResourceValue(_messages.Message):
-    r"""The original request that started the operation.
-
-    Messages:
-      AdditionalProperty: An additional property for a RequestResourceValue
-        object.
-
-    Fields:
-      additionalProperties: Properties of the object. Contains field @type
-        with type URL.
-    """
-
-    class AdditionalProperty(_messages.Message):
-      r"""An additional property for a RequestResourceValue object.
-
-      Fields:
-        key: Name of the additional property.
-        value: A extra_types.JsonValue attribute.
-      """
-
-      key = _messages.StringField(1)
-      value = _messages.MessageField('extra_types.JsonValue', 2)
-
-    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
-
-  apiVersion = _messages.StringField(1)
-  cancelRequested = _messages.BooleanField(2)
-  createTime = _messages.StringField(3)
-  endTime = _messages.StringField(4)
-  operationType = _messages.EnumField('OperationTypeValueValuesEnum', 5)
-  requestResource = _messages.MessageField('RequestResourceValue', 6)
-  sourceToken = _messages.StringField(7)
-  stages = _messages.MessageField('GoogleCloudFunctionsV2alphaStage', 8, repeated=True)
-  statusDetail = _messages.StringField(9)
-  target = _messages.StringField(10)
-  verb = _messages.StringField(11)
-
-
-class GoogleCloudFunctionsV2alphaStage(_messages.Message):
-  r"""Each Stage of the deployment process
-
-  Enums:
-    NameValueValuesEnum: Name of the Stage. This will be unique for each
-      Stage.
-    StateValueValuesEnum: Current state of the Stage
-
-  Fields:
-    message: Message describing the Stage
-    name: Name of the Stage. This will be unique for each Stage.
-    resource: Resource of the Stage
-    resourceUri: Link to the current Stage resource
-    state: Current state of the Stage
-    stateMessages: State messages from the current Stage.
-  """
-
-  class NameValueValuesEnum(_messages.Enum):
-    r"""Name of the Stage. This will be unique for each Stage.
-
-    Values:
-      NAME_UNSPECIFIED: Not specified. Invalid name.
-      ARTIFACT_REGISTRY: Artifact Regsitry Stage
-      BUILD: Build Stage
-      SERVICE: Service Stage
-      TRIGGER: Trigger Stage
-      SERVICE_ROLLBACK: Service Rollback Stage
-      TRIGGER_ROLLBACK: Trigger Rollback Stage
-    """
-    NAME_UNSPECIFIED = 0
-    ARTIFACT_REGISTRY = 1
-    BUILD = 2
-    SERVICE = 3
-    TRIGGER = 4
-    SERVICE_ROLLBACK = 5
-    TRIGGER_ROLLBACK = 6
-
-  class StateValueValuesEnum(_messages.Enum):
-    r"""Current state of the Stage
-
-    Values:
-      STATE_UNSPECIFIED: Not specified. Invalid state.
-      NOT_STARTED: Stage has not started.
-      IN_PROGRESS: Stage is in progress.
-      COMPLETE: Stage has completed.
-    """
-    STATE_UNSPECIFIED = 0
-    NOT_STARTED = 1
-    IN_PROGRESS = 2
-    COMPLETE = 3
-
-  message = _messages.StringField(1)
-  name = _messages.EnumField('NameValueValuesEnum', 2)
-  resource = _messages.StringField(3)
-  resourceUri = _messages.StringField(4)
-  state = _messages.EnumField('StateValueValuesEnum', 5)
-  stateMessages = _messages.MessageField('GoogleCloudFunctionsV2alphaStateMessage', 6, repeated=True)
-
-
-class GoogleCloudFunctionsV2alphaStateMessage(_messages.Message):
-  r"""Informational messages about the state of the Cloud Function or
-  Operation.
-
-  Enums:
-    SeverityValueValuesEnum: Severity of the state message.
-
-  Fields:
-    message: The message.
-    severity: Severity of the state message.
-    type: One-word CamelCase type of the state message.
-  """
-
-  class SeverityValueValuesEnum(_messages.Enum):
-    r"""Severity of the state message.
-
-    Values:
-      SEVERITY_UNSPECIFIED: Not specified. Invalid severity.
-      ERROR: ERROR-level severity.
-      WARNING: WARNING-level severity.
-      INFO: INFO-level severity.
-    """
-    SEVERITY_UNSPECIFIED = 0
-    ERROR = 1
-    WARNING = 2
-    INFO = 3
-
-  message = _messages.StringField(1)
-  severity = _messages.EnumField('SeverityValueValuesEnum', 2)
-  type = _messages.StringField(3)
-
-
-class GoogleCloudFunctionsV2betaLocationMetadata(_messages.Message):
-  r"""Extra GCF specific location information.
-
-  Enums:
-    EnvironmentsValueListEntryValuesEnum:
-
-  Fields:
-    environments: The Cloud Function environments this location supports.
-  """
-
-  class EnvironmentsValueListEntryValuesEnum(_messages.Enum):
-    r"""EnvironmentsValueListEntryValuesEnum enum type.
-
-    Values:
-      ENVIRONMENT_UNSPECIFIED: Unspecified
-      GEN_1: Gen 1
-      GEN_2: Gen 2
-    """
-    ENVIRONMENT_UNSPECIFIED = 0
-    GEN_1 = 1
-    GEN_2 = 2
-
-  environments = _messages.EnumField('EnvironmentsValueListEntryValuesEnum', 1, repeated=True)
-
-
-class GoogleCloudFunctionsV2betaOperationMetadata(_messages.Message):
-  r"""Represents the metadata of the long-running operation.
-
-  Enums:
-    OperationTypeValueValuesEnum: The operation type.
-
-  Messages:
-    RequestResourceValue: The original request that started the operation.
-
-  Fields:
-    apiVersion: API version used to start the operation.
-    cancelRequested: Identifies whether the user has requested cancellation of
-      the operation. Operations that have successfully been cancelled have
-      google.longrunning.Operation.error value with a google.rpc.Status.code
-      of 1, corresponding to `Code.CANCELLED`.
-    createTime: The time the operation was created.
-    endTime: The time the operation finished running.
-    operationType: The operation type.
-    requestResource: The original request that started the operation.
-    sourceToken: An identifier for Firebase function sources. Disclaimer: This
-      field is only supported for Firebase function deployments.
-    stages: Mechanism for reporting in-progress stages
-    statusDetail: Human-readable status of the operation, if any.
-    target: Server-defined resource path for the target of the operation.
-    verb: Name of the verb executed by the operation.
-  """
-
-  class OperationTypeValueValuesEnum(_messages.Enum):
-    r"""The operation type.
-
-    Values:
-      OPERATIONTYPE_UNSPECIFIED: Unspecified
-      CREATE_FUNCTION: CreateFunction
-      UPDATE_FUNCTION: UpdateFunction
-      DELETE_FUNCTION: DeleteFunction
-      REDIRECT_FUNCTION_UPGRADE_TRAFFIC: RedirectFunctionUpgradeTraffic
-      ROLLBACK_FUNCTION_UPGRADE_TRAFFIC: RollbackFunctionUpgradeTraffic
-      SETUP_FUNCTION_UPGRADE_CONFIG: SetupFunctionUpgradeConfig
-      ABORT_FUNCTION_UPGRADE: AbortFunctionUpgrade
-      COMMIT_FUNCTION_UPGRADE: CommitFunctionUpgrade
-    """
-    OPERATIONTYPE_UNSPECIFIED = 0
-    CREATE_FUNCTION = 1
-    UPDATE_FUNCTION = 2
-    DELETE_FUNCTION = 3
-    REDIRECT_FUNCTION_UPGRADE_TRAFFIC = 4
-    ROLLBACK_FUNCTION_UPGRADE_TRAFFIC = 5
-    SETUP_FUNCTION_UPGRADE_CONFIG = 6
-    ABORT_FUNCTION_UPGRADE = 7
-    COMMIT_FUNCTION_UPGRADE = 8
-
-  @encoding.MapUnrecognizedFields('additionalProperties')
-  class RequestResourceValue(_messages.Message):
-    r"""The original request that started the operation.
-
-    Messages:
-      AdditionalProperty: An additional property for a RequestResourceValue
-        object.
-
-    Fields:
-      additionalProperties: Properties of the object. Contains field @type
-        with type URL.
-    """
-
-    class AdditionalProperty(_messages.Message):
-      r"""An additional property for a RequestResourceValue object.
-
-      Fields:
-        key: Name of the additional property.
-        value: A extra_types.JsonValue attribute.
-      """
-
-      key = _messages.StringField(1)
-      value = _messages.MessageField('extra_types.JsonValue', 2)
-
-    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
-
-  apiVersion = _messages.StringField(1)
-  cancelRequested = _messages.BooleanField(2)
-  createTime = _messages.StringField(3)
-  endTime = _messages.StringField(4)
-  operationType = _messages.EnumField('OperationTypeValueValuesEnum', 5)
-  requestResource = _messages.MessageField('RequestResourceValue', 6)
-  sourceToken = _messages.StringField(7)
-  stages = _messages.MessageField('GoogleCloudFunctionsV2betaStage', 8, repeated=True)
-  statusDetail = _messages.StringField(9)
-  target = _messages.StringField(10)
-  verb = _messages.StringField(11)
-
-
-class GoogleCloudFunctionsV2betaStage(_messages.Message):
-  r"""Each Stage of the deployment process
-
-  Enums:
-    NameValueValuesEnum: Name of the Stage. This will be unique for each
-      Stage.
-    StateValueValuesEnum: Current state of the Stage
-
-  Fields:
-    message: Message describing the Stage
-    name: Name of the Stage. This will be unique for each Stage.
-    resource: Resource of the Stage
-    resourceUri: Link to the current Stage resource
-    state: Current state of the Stage
-    stateMessages: State messages from the current Stage.
-  """
-
-  class NameValueValuesEnum(_messages.Enum):
-    r"""Name of the Stage. This will be unique for each Stage.
-
-    Values:
-      NAME_UNSPECIFIED: Not specified. Invalid name.
-      ARTIFACT_REGISTRY: Artifact Regsitry Stage
-      BUILD: Build Stage
-      SERVICE: Service Stage
-      TRIGGER: Trigger Stage
-      SERVICE_ROLLBACK: Service Rollback Stage
-      TRIGGER_ROLLBACK: Trigger Rollback Stage
-    """
-    NAME_UNSPECIFIED = 0
-    ARTIFACT_REGISTRY = 1
-    BUILD = 2
-    SERVICE = 3
-    TRIGGER = 4
-    SERVICE_ROLLBACK = 5
-    TRIGGER_ROLLBACK = 6
-
-  class StateValueValuesEnum(_messages.Enum):
-    r"""Current state of the Stage
-
-    Values:
-      STATE_UNSPECIFIED: Not specified. Invalid state.
-      NOT_STARTED: Stage has not started.
-      IN_PROGRESS: Stage is in progress.
-      COMPLETE: Stage has completed.
-    """
-    STATE_UNSPECIFIED = 0
-    NOT_STARTED = 1
-    IN_PROGRESS = 2
-    COMPLETE = 3
-
-  message = _messages.StringField(1)
-  name = _messages.EnumField('NameValueValuesEnum', 2)
-  resource = _messages.StringField(3)
-  resourceUri = _messages.StringField(4)
-  state = _messages.EnumField('StateValueValuesEnum', 5)
-  stateMessages = _messages.MessageField('GoogleCloudFunctionsV2betaStateMessage', 6, repeated=True)
-
-
-class GoogleCloudFunctionsV2betaStateMessage(_messages.Message):
-  r"""Informational messages about the state of the Cloud Function or
-  Operation.
-
-  Enums:
-    SeverityValueValuesEnum: Severity of the state message.
-
-  Fields:
-    message: The message.
-    severity: Severity of the state message.
-    type: One-word CamelCase type of the state message.
-  """
-
-  class SeverityValueValuesEnum(_messages.Enum):
-    r"""Severity of the state message.
-
-    Values:
-      SEVERITY_UNSPECIFIED: Not specified. Invalid severity.
-      ERROR: ERROR-level severity.
-      WARNING: WARNING-level severity.
-      INFO: INFO-level severity.
-    """
-    SEVERITY_UNSPECIFIED = 0
-    ERROR = 1
-    WARNING = 2
-    INFO = 3
-
-  message = _messages.StringField(1)
-  severity = _messages.EnumField('SeverityValueValuesEnum', 2)
-  type = _messages.StringField(3)
 
 
 class HttpsTrigger(_messages.Message):
@@ -1691,7 +1097,7 @@ class OnDeployUpdatePolicy(_messages.Message):
   r"""Security patches are only applied when a function is redeployed.
 
   Fields:
-    runtimeVersion: Output only. contains the runtime version which was used
+    runtimeVersion: Output only. Contains the runtime version which was used
       during latest function deployment.
   """
 
@@ -1987,7 +1393,7 @@ class SecretEnvVar(_messages.Message):
 
   Fields:
     key: Name of the environment variable.
-    projectId: Project identifier (preferrably project number but can also be
+    projectId: Project identifier (preferably project number but can also be
       the project ID) of the project that contains the secret. If not set, it
       will be populated with the function's project assuming that the secret
       exists in the same project as of the function.
@@ -2086,7 +1492,7 @@ class SourceRepository(_messages.Message):
       alias. To refer to a specific fixed alias (tag):
       `https://source.developers.google.com/projects/*/repos/*/fixed-
       aliases/*/paths/*` You may omit `paths/*` if you want to use the main
-      directory.
+      directory. The function response may add an empty `/paths/` to the URL.
   """
 
   deployedUrl = _messages.StringField(1)
@@ -2237,3 +1643,5 @@ encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    CloudfunctionsProjectsLocationsFunctionsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')

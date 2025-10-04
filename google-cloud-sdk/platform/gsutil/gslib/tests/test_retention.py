@@ -155,8 +155,7 @@ class TestRetention(testcase.GsUtilIntegrationTestCase):
         retention_period_in_seconds=_SECONDS_IN_DAY)
     stderr = self.RunGsUtil(
         ['retention', 'lock', suri(bucket_uri)], stdin='n', return_stderr=True)
-    self.assertRegex(stderr,
-                             'Abort [Ll]ocking [Rr]etention [Pp]olicy on')
+    self.assertRegex(stderr, 'Abort [Ll]ocking [Rr]etention [Pp]olicy on')
     self.VerifyRetentionPolicy(
         bucket_uri, expected_retention_period_in_seconds=_SECONDS_IN_DAY)
 
@@ -169,8 +168,8 @@ class TestRetention(testcase.GsUtilIntegrationTestCase):
         stdin='y',
         expected_status=1,
         return_stderr=True)
-    self.assertRegex(
-        stderr, 'does not have a(n Unlocked)? [Rr]etention [Pp]olicy')
+    self.assertRegex(stderr,
+                     'does not have a(n Unlocked)? [Rr]etention [Pp]olicy')
     self.VerifyRetentionPolicy(bucket_uri,
                                expected_retention_period_in_seconds=None)
 
@@ -192,8 +191,7 @@ class TestRetention(testcase.GsUtilIntegrationTestCase):
         retention_period_in_seconds=_SECONDS_IN_DAY, is_locked=True)
     stderr = self.RunGsUtil(
         ['retention', 'lock', suri(bucket_uri)], stdin='y', return_stderr=True)
-    self.assertRegex(stderr,
-                             r'Retention [Pp]olicy on .* is already locked')
+    self.assertRegex(stderr, r'Retention [Pp]olicy on .* is already locked')
 
   @SkipForS3('Retention is not supported for s3 objects')
   @SkipForXML('Retention is not supported for XML API')
@@ -275,7 +273,7 @@ class TestRetention(testcase.GsUtilIntegrationTestCase):
         ['retention', 'get', suri(bucket_uri)], return_stdout=True)
     if self._use_gcloud_storage:
       # Sometimes the field is absent if isLocked is false.
-      self.assertNotRegexpMatches(stdout, r'isLocked \: true')
+      self.assertNotRegex(stdout, r'isLocked \: true')
       self.assertRegex(stdout, r'retentionPeriod\: \'86400\'')
       self.assertRegex(stdout, r'effectiveTime\: \'.*\'')
     else:

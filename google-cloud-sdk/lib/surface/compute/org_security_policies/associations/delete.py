@@ -26,6 +26,7 @@ from googlecloudsdk.command_lib.compute.org_security_policies import org_securit
 import six
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
 class Delete(base.DeleteCommand):
   """Delete a Compute Engine organization security policy association.
@@ -63,9 +64,9 @@ class Delete(base.DeleteCommand):
 Delete.detailed_help = {
     'EXAMPLES':
         """\
-    To delete an association with name ``example-association" of an organization
-    security policy with ID ``123456789", run:
+    To delete an association with name ``example-association'' of an organization
+    security policy with ID ``123456789'', run:
 
-      $ {command} delete example-association --security-policy=123456789
+      $ {command} example-association --security-policy=123456789
     """,
 }

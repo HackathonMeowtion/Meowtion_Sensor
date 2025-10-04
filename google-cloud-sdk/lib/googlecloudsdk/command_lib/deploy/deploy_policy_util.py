@@ -14,12 +14,33 @@
 # limitations under the License.
 """Utilities for the cloud deploy deploy policy resource."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from googlecloudsdk.api_lib.clouddeploy import deploy_policy
 from googlecloudsdk.core import resources
+
+
+def DeployPolicyReference(name, project, region):
+  """Creates the deploy policy reference base on the parameters.
+
+    Returns the shared deploy policy reference.
+
+  Args:
+    name: str, deploy policy ID
+    project: str,project number or ID.
+    region: str, region ID.
+
+  Returns:
+    custom target type reference.
+  """
+  return resources.REGISTRY.Parse(
+      name,
+      collection='clouddeploy.projects.locations.deployPolicies',
+      params={
+          'projectsId': project,
+          'locationsId': region,
+          'deployPoliciesId': name,
+      },
+  )
 
 
 def PatchDeployPolicy(resource):
@@ -76,3 +97,20 @@ def CreateDeployPolicyNamesFromIDs(pipeline_ref, deploy_policy_ids):
       )
       policies.append(deploy_policy_resource_ref.RelativeName())
   return policies
+
+
+def GetDeployPolicy(deploy_policy_ref):
+  """Gets the deploy policy message by calling the get deploy policy API.
+
+  Args:
+    deploy_policy_ref: protorpc.messages.Message, protorpc.messages.Message,
+      deploy policy reference.
+
+  Returns:
+    Deploy policy message.
+  Raises:
+    Exceptions raised by DeployPoliciesClient's get functions
+  """
+  return deploy_policy.DeployPoliciesClient().Get(
+      deploy_policy_ref.RelativeName()
+  )

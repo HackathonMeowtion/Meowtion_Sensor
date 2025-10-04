@@ -25,6 +25,7 @@ from googlecloudsdk.calliope.concepts import deps
 from googlecloudsdk.command_lib.compute.networks import flags as compute_network_flags
 from googlecloudsdk.command_lib.compute.networks.subnets import flags as compute_subnet_flags
 from googlecloudsdk.command_lib.kms import resource_args as kms_resource_args
+from googlecloudsdk.command_lib.util.apis import arg_utils
 from googlecloudsdk.command_lib.util.concepts import concept_parsers
 from googlecloudsdk.command_lib.workbench import completers
 from googlecloudsdk.core import properties
@@ -202,18 +203,40 @@ def AddDiagnosticConfigFlags(parser, vm_type):
       required=False)
 
 
-def AddCreateInstanceFlags(parser):
-  """Construct groups and arguments specific to the instance creation."""
+def GetReservationTypeMapper(messages):
+  return arg_utils.ChoiceEnumMapper(
+      '--reservation-type',
+      messages.ReservationAffinity.ConsumeReservationTypeValueValuesEnum,
+      required=False,
+      custom_mappings={
+          'RESERVATION_NONE': 'none',
+          'RESERVATION_ANY': 'any',
+          'RESERVATION_SPECIFIC': 'specific',
+      },
+      help_str='Type of the reservation.',
+  )
+
+
+def AddCreateInstanceFlags(support_managed_euc, parser):
+  """Construct groups and arguments specific to the instance creation.
+
+  Args:
+    support_managed_euc: Whether to support managed euc.
+    parser: The parser to add the flags to.
+  """
   accelerator_choices = [
       'NVIDIA_TESLA_K80', 'NVIDIA_TESLA_P100',
       'NVIDIA_TESLA_V100', 'NVIDIA_TESLA_P4', 'NVIDIA_TESLA_T4',
       'NVIDIA_TESLA_A100', 'NVIDIA_A100_80GB',
       'NVIDIA_TESLA_T4_VWS', 'NVIDIA_TESLA_P100_VWS', 'NVIDIA_TESLA_P4_VWS',
-      'NVIDIA_L4'
+      'NVIDIA_L4', 'NVIDIA_H100_80GB', 'NVIDIA_H100_MEGA_80GB'
   ]
   disk_choices = ['PD_STANDARD', 'PD_SSD', 'PD_BALANCED', 'PD_EXTREME']
   encryption_choices = ['GMEK', 'CMEK']
   nic_type_choices = ['VIRTIGO_NET', 'GVNIC']
+  reservation_type_choices = [
+      'none', 'any', 'specific'
+  ]
 
   AddInstanceResource(parser)
   gce_setup_group = parser.add_group(
@@ -226,6 +249,12 @@ def AddCreateInstanceFlags(parser):
           '[Compute Engine machine type](https://cloud.google.com/sdk/gcloud/reference/compute/machine-types) '  # pylint: disable=line-too-long
           'of this instance.'),
       default='n1-standard-4')
+  gce_setup_group.add_argument(
+      '--min-cpu-platform',
+      help=(
+          'The minimum CPU platform to use for this instance. The list of '
+          'valid values can be found in '
+          'https://cloud.google.com/compute/docs/instances/specify-min-cpu-platform#availablezones'))   # pylint: disable=line-too-long
   accelerator_group = gce_setup_group.add_group(
       help=(
           'The hardware accelerator used on this instance. If you use '
@@ -270,7 +299,7 @@ def AddCreateInstanceFlags(parser):
           'The ID of the Google Cloud project that this VM image belongs to. '
           'Format: projects/`{project_id}`.'
       ),
-      default='deeplearning-platform-release',
+      default='cloud-notebooks-managed',
   )
   vm_mutex_group = vm_source_group.add_group(mutex=True, required=True)
   vm_mutex_group.add_argument(
@@ -367,6 +396,16 @@ def AddCreateInstanceFlags(parser):
       'kms-location': '--data-disk-encryption-key-location',
       'kms-project': '--data-disk-encryption-key-project',
   }
+  data_group.add_argument(
+      '--data-disk-resource-policies',
+      help=(
+          'Resource policies to apply to the data disk. Format:'
+          ' `projects/{project}/regions/{region}/resourcePolicies/{policy}`.'
+      ),
+      type=arg_parsers.ArgList(),
+      metavar='RESOURCE_POLICIES',
+      hidden=True,
+  )
   kms_resource_args.AddKmsKeyResourceArg(
       parser=data_group,
       resource='data_disk',
@@ -399,6 +438,15 @@ def AddCreateInstanceFlags(parser):
       ),
       type=str)
 
+  gce_setup_group.add_argument(
+      '--confidential-compute-type',
+      help=(
+          'String. VM instance with CC (Confidential Compute) of type. '
+          'Supported values: `SEV`.'
+      ),
+      type=str,
+  )
+
   gpu_group = gce_setup_group.add_group(help='GPU driver configurations.')
   gpu_group.add_argument(
       '--install-gpu-driver',
@@ -421,57 +469,124 @@ def AddCreateInstanceFlags(parser):
 
   network_group = gce_setup_group.add_group(help='Network configs.')
   AddNetworkArgument(
-      ('The name of the VPC that this instance is in. Format: '
-       'projects/`{project_id}`/global/networks/`{network_id}`.'),
-      network_group)
+      (
+          'The name of the VPC that this instance is in. Format: '
+          'projects/`{project_id}`/global/networks/`{network_id}`.'
+      ),
+      network_group,
+  )
   AddSubnetArgument(
-      ('The name of the subnet that this instance is in. Format: projects/'
-       '`{project_id}`/regions/`{region}`/subnetworks/`{subnetwork_id}`.'),
-      network_group)
+      (
+          'The name of the subnet that this instance is in. Format: projects/'
+          '`{project_id}`/regions/`{region}`/subnetworks/`{subnetwork_id}`.'
+      ),
+      network_group,
+  )
 
   network_group.add_argument(
       '--nic-type',
       help='Type of the network interface card.',
       choices=nic_type_choices,
-      default=None)
+      default=None,
+  )
 
   gce_setup_group.add_argument(
       '--disable-public-ip',
       action='store_true',
       dest='disable_public_ip',
       help="""\
-  If specified, no public IP will be assigned to this instance.""")
+  If specified, no public IP will be assigned to this instance.""",
+  )
   gce_setup_group.add_argument(
       '--enable-ip-forwarding',
       action='store_true',
       dest='enable_ip_forwarding',
       help="""\
-  If specified, IP forwarding will be enabled for this instance.""")
+  If specified, IP forwarding will be enabled for this instance.""",
+  )
   parser.add_argument(
       '--disable-proxy-access',
       action='store_true',
       dest='disable_proxy_access',
       help="""\
-  If true, the notebook instance will not register with the proxy.""")
+  If true, the notebook instance will not register with the proxy.""",
+  )
 
   gce_setup_group.add_argument(
       '--metadata',
       help='Custom metadata to apply to this instance.',
       type=arg_parsers.ArgDict(),
-      metavar='KEY=VALUE')
+      metavar='KEY=VALUE',
+  )
 
   gce_setup_group.add_argument(
       '--tags',
       metavar='TAGS',
-      help=('Tags to apply to this instance.'),
-      type=arg_parsers.ArgList())
+      help='Tags to apply to this instance.',
+      type=arg_parsers.ArgList(),
+  )
+
+  reservation_group = gce_setup_group.add_group(
+      help='Reservation configs.'
+  )
+  reservation_group.add_argument(
+      '--reservation-type',
+      help='Type of the reservation.',
+      choices=reservation_type_choices,
+      default='any',
+  )
+  reservation_group.add_argument(
+      '--reservation-key',
+      help=(
+          'The label key of a reservation resource. To target a'
+          ' specific reservation by name, use'
+          ' compute.googleapis.com/reservation-name as the key and specify the'
+          ' name of your reservation as its value.'
+      ),
+      type=str,
+  )
+  reservation_group.add_argument(
+      '--reservation-values',
+      help=(
+          'The label value of a reservation resource. To target a'
+          ' specific reservation by name, use'
+          ' compute.googleapis.com/reservation-name as the key and specify the'
+          ' name of your reservation as its value.'
+      ),
+      metavar='VALUES',
+      type=arg_parsers.ArgList(),
+  )
+
+  parser.add_argument(
+      '--enable-third-party-identity',
+      action='store_true',
+      dest='enable_third_party_identity',
+      help=(
+          'If true, the notebook instance provide a proxy endpoint which allows'
+          ' for third party identity.'
+      ),
+  )
+
+  if support_managed_euc:
+    parser.add_argument(
+        '--enable-managed-euc',
+        action='store_true',
+        dest='enable_managed_euc',
+        help=(
+            'If true, the notebook instance will be created with managed end'
+            '  user credentials enabled.'
+        ),
+    )
 
   parser.add_argument(
       '--labels',
-      help=('Labels to apply to this instance. These can be later modified '
-            'by the setLabels method.'),
+      help=(
+          'Labels to apply to this instance. These can be later modified '
+          'by the setLabels method.'
+      ),
       type=arg_parsers.ArgDict(),
-      metavar='KEY=VALUE')
+      metavar='KEY=VALUE',
+  )
 
   parser.add_argument(
       '--instance-owners',
@@ -543,7 +658,7 @@ def AddUpdateInstanceFlags(parser):
       'NVIDIA_TESLA_V100', 'NVIDIA_TESLA_P4', 'NVIDIA_TESLA_T4',
       'NVIDIA_TESLA_A100', 'NVIDIA_A100_80GB',
       'NVIDIA_TESLA_T4_VWS', 'NVIDIA_TESLA_P100_VWS', 'NVIDIA_TESLA_P4_VWS',
-      'NVIDIA_L4'
+      'NVIDIA_L4', 'NVIDIA_H100_80GB', 'NVIDIA_H100_MEGA_80GB'
   ]
   AddInstanceResource(parser)
   gce_setup_group = parser.add_group(
@@ -611,6 +726,30 @@ def AddUpdateInstanceFlags(parser):
           'The '
           '[Compute Engine machine type](https://cloud.google.com/sdk/gcloud/reference/compute/machine-types) '  # pylint: disable=line-too-long
           'of this instance.'))
+  gce_setup_group.add_argument(
+      '--tags',
+      help='Tags to apply to this instance.',
+      type=arg_parsers.ArgList(),
+      metavar='TAGS',
+  )
+  container_group = gce_setup_group.add_group(
+      help='Container image configurations.'
+  )
+  container_group.add_argument(
+      '--container-repository',
+      help=(
+          'The path to the container image repository. '
+          'For example: gcr.io/`{project_id}`/`{image_name}`.'
+      ),
+      required=True,
+  )
+  container_group.add_argument(
+      '--container-tag',
+      help=(
+          'The tag of the container image. If not specified, '
+          'this defaults to the latest tag.'
+      ),
+  )
 
 
 def AddDiagnoseInstanceFlags(parser):
@@ -646,3 +785,22 @@ def AddResizeDiskFlags(parser):
           'a maximum of 64000 GB (64 TB). '
       ),
   )
+
+
+def AddRestoreInstanceFlags(parser):
+  """Adds snapshot flags to the parser for restore."""
+  AddInstanceResource(parser)
+  snapshot_group = parser.add_group(
+      help=(
+          'Snapshot source to be restored from'
+      ),
+      required=True,
+  )
+  snapshot_group.add_argument(
+      '--snapshot-project',
+      help='The project id of the snapshot to be restored from.',
+      required=True)
+  snapshot_group.add_argument(
+      '--snapshot',
+      help='The snapshot name to be restored from.',
+      required=True)

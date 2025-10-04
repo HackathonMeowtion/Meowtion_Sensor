@@ -24,6 +24,7 @@ from googlecloudsdk.command_lib.run import exceptions
 from googlecloudsdk.command_lib.run import flags
 from googlecloudsdk.command_lib.run import resource_args
 from googlecloudsdk.command_lib.run import serverless_operations
+from googlecloudsdk.command_lib.run import threat_detection_util as crtd_util
 from googlecloudsdk.command_lib.run.printers import export_printer
 from googlecloudsdk.command_lib.run.printers import service_printer
 from googlecloudsdk.command_lib.util.concepts import concept_parsers
@@ -31,9 +32,17 @@ from googlecloudsdk.command_lib.util.concepts import presentation_specs
 from googlecloudsdk.core.resource import resource_printer
 
 
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA,
-                    base.ReleaseTrack.BETA,
-                    base.ReleaseTrack.GA)
+def _GetFormatter(is_multi_region, is_alpha):
+  if is_multi_region:
+    return service_printer.MultiRegionServicePrinter
+  elif is_alpha:
+    return service_printer.ServicePrinterAlpha
+  else:
+    return service_printer.ServicePrinter
+
+
+@base.UniverseCompatible
+@base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.GA)
 class Describe(base.Command):
   """Obtain details about a given service."""
 
@@ -58,26 +67,30 @@ class Describe(base.Command):
   }
 
   @staticmethod
-  def CommonArgs(parser):
+  def CommonArgs(parser, is_multi_region=False, is_alpha=False):
     service_presentation = presentation_specs.ResourcePresentationSpec(
         'SERVICE',
         resource_args.GetServiceResourceSpec(),
         'Service to describe.',
         required=True,
-        prefixes=False)
+        prefixes=False,
+    )
     concept_parsers.ConceptParser([service_presentation]).AddToParser(parser)
 
+    formatter = _GetFormatter(is_multi_region, is_alpha)
     resource_printer.RegisterFormatter(
-        service_printer.SERVICE_PRINTER_FORMAT,
-        service_printer.ServicePrinter, hidden=True)
+        service_printer.SERVICE_PRINTER_FORMAT, formatter, hidden=True
+    )
     parser.display_info.AddFormat(service_printer.SERVICE_PRINTER_FORMAT)
     resource_printer.RegisterFormatter(
         export_printer.EXPORT_PRINTER_FORMAT,
-        export_printer.ExportPrinter, hidden=True)
+        export_printer.ExportPrinter,
+        hidden=True,
+    )
 
   @staticmethod
   def Args(parser):
-    Describe.CommonArgs(parser)
+    Describe.CommonArgs(parser, is_alpha=False)
 
   def _ConnectionContext(self, args):
     return connection_context.GetConnectionContext(
@@ -91,7 +104,19 @@ class Describe(base.Command):
     flags.ValidateResource(service_ref)
     with serverless_operations.Connect(conn_context) as client:
       serv = client.GetService(service_ref)
+      crtd_util.UpdateThreatDetectionState(serv, client)
     if not serv:
-      raise exceptions.ArgumentError('Cannot find service [{}]'.format(
-          service_ref.servicesId))
+      raise exceptions.ArgumentError(
+          'Cannot find service [{}]'.format(service_ref.servicesId)
+      )
     return serv
+
+
+@base.UniverseCompatible
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class DescribeAlpha(Describe):
+  """Obtain details about a given service."""
+
+  @staticmethod
+  def Args(parser):
+    Describe.CommonArgs(parser, is_alpha=True)

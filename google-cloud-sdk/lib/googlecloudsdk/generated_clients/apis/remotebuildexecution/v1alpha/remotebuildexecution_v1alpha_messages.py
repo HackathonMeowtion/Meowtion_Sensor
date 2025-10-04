@@ -208,6 +208,14 @@ class BuildBazelRemoteExecutionV2Command(_messages.Message):
   what filesystems are mounted where) is defined by and specific to the
   implementation of the remote execution API.
 
+  Enums:
+    OutputDirectoryFormatValueValuesEnum: The format that the worker should
+      use to store the contents of output directories. In case this field is
+      set to a value that is not supported by the worker, the worker SHOULD
+      interpret this field as TREE_ONLY. The worker MAY store output
+      directories in formats that are a superset of what was requested (e.g.,
+      interpreting DIRECTORY_ONLY as TREE_AND_DIRECTORY).
+
   Fields:
     arguments: The arguments to the command. The first argument specifies the
       command to run, which may be either an absolute path, a path relative to
@@ -250,6 +258,12 @@ class BuildBazelRemoteExecutionV2Command(_messages.Message):
       directories themselves) are created by the worker prior to execution,
       even if they are not explicitly part of the input root. DEPRECATED since
       2.1: Use `output_paths` instead.
+    outputDirectoryFormat: The format that the worker should use to store the
+      contents of output directories. In case this field is set to a value
+      that is not supported by the worker, the worker SHOULD interpret this
+      field as TREE_ONLY. The worker MAY store output directories in formats
+      that are a superset of what was requested (e.g., interpreting
+      DIRECTORY_ONLY as TREE_AND_DIRECTORY).
     outputFiles: A list of the output files that the client expects to
       retrieve from the action. Only the listed files, as well as directories
       listed in `output_directories`, will be returned to the client as
@@ -307,14 +321,37 @@ class BuildBazelRemoteExecutionV2Command(_messages.Message):
       tree. If it is left empty, then the action is run in the input root.
   """
 
+  class OutputDirectoryFormatValueValuesEnum(_messages.Enum):
+    r"""The format that the worker should use to store the contents of output
+    directories. In case this field is set to a value that is not supported by
+    the worker, the worker SHOULD interpret this field as TREE_ONLY. The
+    worker MAY store output directories in formats that are a superset of what
+    was requested (e.g., interpreting DIRECTORY_ONLY as TREE_AND_DIRECTORY).
+
+    Values:
+      TREE_ONLY: The client is only interested in receiving output directories
+        in the form of a single Tree object, using the `tree_digest` field.
+      DIRECTORY_ONLY: The client is only interested in receiving output
+        directories in the form of a hierarchy of separately stored Directory
+        objects, using the `root_directory_digest` field.
+      TREE_AND_DIRECTORY: The client is interested in receiving output
+        directories both in the form of a single Tree object and a hierarchy
+        of separately stored Directory objects, using both the `tree_digest`
+        and `root_directory_digest` fields.
+    """
+    TREE_ONLY = 0
+    DIRECTORY_ONLY = 1
+    TREE_AND_DIRECTORY = 2
+
   arguments = _messages.StringField(1, repeated=True)
   environmentVariables = _messages.MessageField('BuildBazelRemoteExecutionV2CommandEnvironmentVariable', 2, repeated=True)
   outputDirectories = _messages.StringField(3, repeated=True)
-  outputFiles = _messages.StringField(4, repeated=True)
-  outputNodeProperties = _messages.StringField(5, repeated=True)
-  outputPaths = _messages.StringField(6, repeated=True)
-  platform = _messages.MessageField('BuildBazelRemoteExecutionV2Platform', 7)
-  workingDirectory = _messages.StringField(8)
+  outputDirectoryFormat = _messages.EnumField('OutputDirectoryFormatValueValuesEnum', 4)
+  outputFiles = _messages.StringField(5, repeated=True)
+  outputNodeProperties = _messages.StringField(6, repeated=True)
+  outputPaths = _messages.StringField(7, repeated=True)
+  platform = _messages.MessageField('BuildBazelRemoteExecutionV2Platform', 8)
+  workingDirectory = _messages.StringField(9)
 
 
 class BuildBazelRemoteExecutionV2CommandEnvironmentVariable(_messages.Message):
@@ -357,8 +394,8 @@ class BuildBazelRemoteExecutionV2Digest(_messages.Message):
   concatenating two messages to merge them may produce duplicate fields.
 
   Fields:
-    hash: The hash. In the case of SHA-256, it will always be a lowercase hex
-      string exactly 64 characters long.
+    hash: The hash, represented as a lowercase hexadecimal string, padded with
+      leading zeroes up to the hash function length.
     sizeBytes: The size of the blob, in bytes.
   """
 
@@ -717,13 +754,18 @@ class BuildBazelRemoteExecutionV2OutputDirectory(_messages.Message):
       The path separator is a forward slash `/`. Since this is a relative
       path, it MUST NOT begin with a leading forward slash. The empty string
       value is allowed, and it denotes the entire working directory.
+    rootDirectoryDigest: The digest of the encoded Directory proto containing
+      the contents the directory's root. If both `tree_digest` and
+      `root_directory_digest` are set, this field MUST match the digest of the
+      root directory contained in the Tree message.
     treeDigest: The digest of the encoded Tree proto containing the
       directory's contents.
   """
 
   isTopologicallySorted = _messages.BooleanField(1)
   path = _messages.StringField(2)
-  treeDigest = _messages.MessageField('BuildBazelRemoteExecutionV2Digest', 3)
+  rootDirectoryDigest = _messages.MessageField('BuildBazelRemoteExecutionV2Digest', 3)
+  treeDigest = _messages.MessageField('BuildBazelRemoteExecutionV2Digest', 4)
 
 
 class BuildBazelRemoteExecutionV2OutputFile(_messages.Message):
@@ -935,8 +977,6 @@ class GoogleDevtoolsRemotebuildbotCommandDurations(_messages.Message):
     isoPrepDone: The timestamp when preparation is done and bot starts
       downloading files.
     overall: The time spent completing the command, in total.
-    stderr: The time spent uploading the stderr logs.
-    stdout: The time spent uploading the stdout logs.
     upload: The time spent uploading the output files.
     uploadStartTime: The timestamp when uploading the output files begins.
   """
@@ -951,10 +991,8 @@ class GoogleDevtoolsRemotebuildbotCommandDurations(_messages.Message):
   execution = _messages.StringField(8)
   isoPrepDone = _messages.StringField(9)
   overall = _messages.StringField(10)
-  stderr = _messages.StringField(11)
-  stdout = _messages.StringField(12)
-  upload = _messages.StringField(13)
-  uploadStartTime = _messages.StringField(14)
+  upload = _messages.StringField(11)
+  uploadStartTime = _messages.StringField(12)
 
 
 class GoogleDevtoolsRemotebuildbotCommandEvents(_messages.Message):
@@ -981,6 +1019,8 @@ class GoogleDevtoolsRemotebuildbotCommandEvents(_messages.Message):
     inputCacheMissFiles: The input cache miss rate as a fraction of the number
       of input files.
     inputMountType: Indicates how the input tree was mounted for the action.
+    inputTreeStats: Contains stats about the action input metadata tree that
+      was fetched to determine the action's inputs.
     numErrors: The number of errors reported.
     numWarnings: The number of warnings reported.
     outputLocation: Indicates whether output files and/or output directories
@@ -1017,10 +1057,14 @@ class GoogleDevtoolsRemotebuildbotCommandEvents(_messages.Message):
       MOUNT_WRITABLE: The input tree was mounted as a read-write bind mount.
         The CAS proxy will use file watchers and/or post-action scanning of
         inputs to catch modfiications to the input blobs.
+      MOUNT_READ_ONLY: The input tree was mounted as a read-only bind mount,
+        with a separate writable directories mounted where outputs are
+        expected.
     """
     MOUNT_UNSPECIFIED = 0
     MOUNT_OVERLAY = 1
     MOUNT_WRITABLE = 2
+    MOUNT_READ_ONLY = 3
 
   class OutputLocationValueValuesEnum(_messages.Enum):
     r"""Indicates whether output files and/or output directories were found
@@ -1070,10 +1114,11 @@ class GoogleDevtoolsRemotebuildbotCommandEvents(_messages.Message):
   inputCacheMissBytes = _messages.FloatField(4, variant=_messages.Variant.FLOAT)
   inputCacheMissFiles = _messages.FloatField(5, variant=_messages.Variant.FLOAT)
   inputMountType = _messages.EnumField('InputMountTypeValueValuesEnum', 6)
-  numErrors = _messages.IntegerField(7, variant=_messages.Variant.UINT64)
-  numWarnings = _messages.IntegerField(8, variant=_messages.Variant.UINT64)
-  outputLocation = _messages.EnumField('OutputLocationValueValuesEnum', 9)
-  usedAsyncContainer = _messages.BooleanField(10)
+  inputTreeStats = _messages.MessageField('GoogleDevtoolsRemotebuildbotInputTreeStats', 7)
+  numErrors = _messages.IntegerField(8, variant=_messages.Variant.UINT64)
+  numWarnings = _messages.IntegerField(9, variant=_messages.Variant.UINT64)
+  outputLocation = _messages.EnumField('OutputLocationValueValuesEnum', 10)
+  usedAsyncContainer = _messages.BooleanField(11)
 
 
 class GoogleDevtoolsRemotebuildbotCommandStatus(_messages.Message):
@@ -1180,6 +1225,17 @@ class GoogleDevtoolsRemotebuildbotCommandStatus(_messages.Message):
       DOCKER_START_RUNTIME_PERMISSION_DENIED: Docker failed to start OCI
         runtime because of permission denied.
       DOCKER_PERMISSION_DENIED: Docker failed because of permission denied.
+      NETWORK_PROXY_UPDATE_POLICY_ERROR: The bot failed to update the network
+        proxy policy.
+      SERVICE_ACCOUNT_IMPERSONATION_DENIED: Failed to impersonate the service
+        account.
+      INVALID_FILENAME: Trying to write a file with a filename that is too
+        long.
+      NETWORK_PROXY_GET_NETWORK_ACTIVITY_LOG_ERROR: The bot failed to get the
+        network activity log.
+      NETWORK_PROXY_UPLOAD_NETWORK_ACTIVITY_LOG_ERROR: The bot failed to
+        upload the network activity log.
+      NPROC_EXCEEDED: Failed to start a process because NPROC is too low.
     """
     OK = 0
     INVALID_ARGUMENT = 1
@@ -1234,9 +1290,35 @@ class GoogleDevtoolsRemotebuildbotCommandStatus(_messages.Message):
     DOCKER_START_RUNTIME_FILE_FORMAT_ERROR = 50
     DOCKER_START_RUNTIME_PERMISSION_DENIED = 51
     DOCKER_PERMISSION_DENIED = 52
+    NETWORK_PROXY_UPDATE_POLICY_ERROR = 53
+    SERVICE_ACCOUNT_IMPERSONATION_DENIED = 54
+    INVALID_FILENAME = 55
+    NETWORK_PROXY_GET_NETWORK_ACTIVITY_LOG_ERROR = 56
+    NETWORK_PROXY_UPLOAD_NETWORK_ACTIVITY_LOG_ERROR = 57
+    NPROC_EXCEEDED = 58
 
   code = _messages.EnumField('CodeValueValuesEnum', 1)
   message = _messages.StringField(2)
+
+
+class GoogleDevtoolsRemotebuildbotInputTreeStats(_messages.Message):
+  r"""A GoogleDevtoolsRemotebuildbotInputTreeStats object.
+
+  Fields:
+    maxDepth: Tree depth.
+    processingTimeMillis: Time spent retrieving and processing the tree.
+    totalFiles: Overall number of files in the tree.
+    totalNodes: Overall number of nodes in the tree.
+    totalSize: Total size in bytes of all files in the tree.
+    totalSymlinks: Overall number of symlinks in the tree.
+  """
+
+  maxDepth = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  processingTimeMillis = _messages.IntegerField(2)
+  totalFiles = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  totalNodes = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  totalSize = _messages.IntegerField(5)
+  totalSymlinks = _messages.IntegerField(6, variant=_messages.Variant.INT32)
 
 
 class GoogleDevtoolsRemotebuildbotResourceUsage(_messages.Message):
@@ -1345,7 +1427,8 @@ class GoogleDevtoolsRemotebuildexecutionAdminV1alphaBackendIAMBinding(_messages.
 
   Fields:
     principal: Required. The IAM principal (i.e. twosync or twosync-src group)
-      this binding applies to.
+      this binding applies to. This should be prefixed with `group:`. Example
+      format: group:alphasource-foundry-team-policy@twosync.google.com
     role: Required. The RBE-managed IAM role this binding applies to. The set
       of eligible roles depends on which instance allowlist(s) the parent
       instance is a member of, specifically with regards to the
@@ -1374,6 +1457,35 @@ class GoogleDevtoolsRemotebuildexecutionAdminV1alphaBackendProperties(_messages.
   bindings = _messages.MessageField('GoogleDevtoolsRemotebuildexecutionAdminV1alphaBackendIAMBinding', 2, repeated=True)
 
 
+class GoogleDevtoolsRemotebuildexecutionAdminV1alphaCreateAndroidCIInstanceRequest(_messages.Message):
+  r"""The request used for `CreateAndroidCIInstance`.
+
+  Fields:
+    billingProjectManagerGroup: Optional. Billing Project Manager Group used
+      for changing the billing account of the backend project as we will be
+      bypassing the BE chargeback.
+    instance: Required. Specifies the instance to create. The name in the
+      instance, if specified in the instance, is ignored.
+    instanceId: Required. ID of the created instance. A valid `instance_id`
+      must: be 6-50 characters long, contain only lowercase letters, digits,
+      hyphens and underscores, start with a lowercase letter, and end with a
+      lowercase letter or a digit.
+    macServiceAccount: Optional. Mac Service Account is the service account
+      that will be used to run Mac VMs.
+    parent: Required. Resource name of the project containing the instance.
+      Format: `projects/[PROJECT_ID]`.
+    vmServiceAccount: Optional. Service Account is the service account that
+      will be used to run the VMs.
+  """
+
+  billingProjectManagerGroup = _messages.StringField(1)
+  instance = _messages.MessageField('GoogleDevtoolsRemotebuildexecutionAdminV1alphaInstance', 2)
+  instanceId = _messages.StringField(3)
+  macServiceAccount = _messages.StringField(4)
+  parent = _messages.StringField(5)
+  vmServiceAccount = _messages.StringField(6)
+
+
 class GoogleDevtoolsRemotebuildexecutionAdminV1alphaCreateBackendIAMBindingRequest(_messages.Message):
   r"""The request used for `CreateBackendIAMBinding`.
 
@@ -1396,6 +1508,25 @@ class GoogleDevtoolsRemotebuildexecutionAdminV1alphaCreateBackendIAMBindingRespo
   backendProperties = _messages.MessageField('GoogleDevtoolsRemotebuildexecutionAdminV1alphaBackendProperties', 1)
 
 
+class GoogleDevtoolsRemotebuildexecutionAdminV1alphaCreateGuitarInstanceRequest(_messages.Message):
+  r"""The request used for `CreateGuitarInstance`.
+
+  Fields:
+    instance: Required. Specifies the instance to create. The name in the
+      instance, if specified in the instance, is ignored.
+    instanceId: Required. ID of the created instance. A valid `instance_id`
+      must: be 6-50 characters long, contain only lowercase letters, digits,
+      hyphens and underscores, start with a lowercase letter, and end with a
+      lowercase letter or a digit.
+    parent: Required. Resource name of the project containing the instance.
+      Format: `projects/[PROJECT_ID]`.
+  """
+
+  instance = _messages.MessageField('GoogleDevtoolsRemotebuildexecutionAdminV1alphaInstance', 1)
+  instanceId = _messages.StringField(2)
+  parent = _messages.StringField(3)
+
+
 class GoogleDevtoolsRemotebuildexecutionAdminV1alphaCreateInstanceRequest(_messages.Message):
   r"""The request used for `CreateInstance`.
 
@@ -1413,6 +1544,168 @@ class GoogleDevtoolsRemotebuildexecutionAdminV1alphaCreateInstanceRequest(_messa
   instance = _messages.MessageField('GoogleDevtoolsRemotebuildexecutionAdminV1alphaInstance', 1)
   instanceId = _messages.StringField(2)
   parent = _messages.StringField(3)
+
+
+class GoogleDevtoolsRemotebuildexecutionAdminV1alphaCreateKokoroInstanceRequest(_messages.Message):
+  r"""The request used for `CreateKokoroInstance`.
+
+  Enums:
+    AdminOpsRestrictionsValueValuesEnum: Optional. If AdminOpsRestrictions is
+      ADMIN_OPS_RESTRICTIONS_RESTRICTED then only predefined safe fields are
+      allowed to set through internal APIs through toolproxy.
+      AdminOpsRestrictions can be set to ADMIN_OPS_RESTRICTIONS_RESTRICTED
+      only if ACTION_ISOLATION is enforced.
+    TcaRestrictionsValueValuesEnum: Optional. If tca_restrictions is ENABLED
+      then the instance will have restrictions needed for building Trusted
+      Core Access (TCA) compliant builds. DO NOT USE: In-Development feature.
+
+  Fields:
+    adminOpsRestrictions: Optional. If AdminOpsRestrictions is
+      ADMIN_OPS_RESTRICTIONS_RESTRICTED then only predefined safe fields are
+      allowed to set through internal APIs through toolproxy.
+      AdminOpsRestrictions can be set to ADMIN_OPS_RESTRICTIONS_RESTRICTED
+      only if ACTION_ISOLATION is enforced.
+    immutableMetapolicy: Enforces meta policy immutability if set to true.
+      This field is required. We use 'optional' here to catch (and error on)
+      the case where this field is unset.
+    instance: Required. Specifies the instance to create. The name in the
+      instance, if specified in the instance, is ignored.
+    instanceId: Required. ID of the created instance. A valid `instance_id`
+      must: be 6-50 characters long, contain only lowercase letters, digits,
+      hyphens and underscores, start with a lowercase letter, and end with a
+      lowercase letter or a digit.
+    parent: Required. Resource name of the project containing the instance.
+      Format: `projects/[PROJECT_ID]`.
+    tcaRestrictions: Optional. If tca_restrictions is ENABLED then the
+      instance will have restrictions needed for building Trusted Core Access
+      (TCA) compliant builds. DO NOT USE: In-Development feature.
+  """
+
+  class AdminOpsRestrictionsValueValuesEnum(_messages.Enum):
+    r"""Optional. If AdminOpsRestrictions is ADMIN_OPS_RESTRICTIONS_RESTRICTED
+    then only predefined safe fields are allowed to set through internal APIs
+    through toolproxy. AdminOpsRestrictions can be set to
+    ADMIN_OPS_RESTRICTIONS_RESTRICTED only if ACTION_ISOLATION is enforced.
+
+    Values:
+      RESTRICTIONS_UNSPECIFIED: Default value; interpreted as
+        RESTRICTIONS_ALLOWED.
+      RESTRICTIONS_ALLOWED: Admin operations are allowed normally.
+      RESTRICTIONS_RESTRICTED: Admin operations are restricted to known safe
+        operations that do not affect build integrity.
+    """
+    RESTRICTIONS_UNSPECIFIED = 0
+    RESTRICTIONS_ALLOWED = 1
+    RESTRICTIONS_RESTRICTED = 2
+
+  class TcaRestrictionsValueValuesEnum(_messages.Enum):
+    r"""Optional. If tca_restrictions is ENABLED then the instance will have
+    restrictions needed for building Trusted Core Access (TCA) compliant
+    builds. DO NOT USE: In-Development feature.
+
+    Values:
+      RESTRICTIONS_UNSPECIFIED: TCA restrictions are not specified, defaulting
+        to RESTRICTIONS_DISABLED.
+      RESTRICTIONS_DISABLED: TCA restrictions are disabled for the instance.
+      RESTRICTIONS_ENABLED_V1: V1 version of TCA restrictions are enabled for
+        the instance. These include: 1. ActionHermeticity to be BEST_EFFORT or
+        ENFORCED and ActionIsolation to be ENFORCED. 2. ImmutableMetaPolicy to
+        be true. 3. AdminOpsRestrictions to be RESTRICTED. 4. Using Shielded,
+        Confidential and Software Trusted VMs as RBE workers, which use custom
+        RBE TCA COS VM images and go through TPM attestation verification for
+        various boot parameters. 5. Inputs and outputs of the actions on these
+        VMs requires TPM attestation verification.
+    """
+    RESTRICTIONS_UNSPECIFIED = 0
+    RESTRICTIONS_DISABLED = 1
+    RESTRICTIONS_ENABLED_V1 = 2
+
+  adminOpsRestrictions = _messages.EnumField('AdminOpsRestrictionsValueValuesEnum', 1)
+  immutableMetapolicy = _messages.BooleanField(2)
+  instance = _messages.MessageField('GoogleDevtoolsRemotebuildexecutionAdminV1alphaInstance', 3)
+  instanceId = _messages.StringField(4)
+  parent = _messages.StringField(5)
+  tcaRestrictions = _messages.EnumField('TcaRestrictionsValueValuesEnum', 6)
+
+
+class GoogleDevtoolsRemotebuildexecutionAdminV1alphaCreateTbiInstanceRequest(_messages.Message):
+  r"""The request used for `CreateTbiInstance`.
+
+  Enums:
+    AdminOpsRestrictionsValueValuesEnum: Optional. If AdminOpsRestrictions is
+      ADMIN_OPS_RESTRICTIONS_RESTRICTED then only predefined safe fields are
+      allowed to set through internal APIs through toolproxy.
+      AdminOpsRestrictions can be set to ADMIN_OPS_RESTRICTIONS_RESTRICTED
+      only if ACTION_ISOLATION is enforced.
+    TcaRestrictionsValueValuesEnum: Optional. If tca_restrictions is ENABLED
+      then the instance will have restrictions needed for building Trusted
+      Core Access (TCA) compliant builds. DO NOT USE: In-Development feature.
+
+  Fields:
+    adminOpsRestrictions: Optional. If AdminOpsRestrictions is
+      ADMIN_OPS_RESTRICTIONS_RESTRICTED then only predefined safe fields are
+      allowed to set through internal APIs through toolproxy.
+      AdminOpsRestrictions can be set to ADMIN_OPS_RESTRICTIONS_RESTRICTED
+      only if ACTION_ISOLATION is enforced.
+    immutableMetapolicy: Required. Enforces meta policy immutability if set to
+      true. This field is required. We use 'optional' here to track field
+      presence so that we may catch (and error on) the case where this field
+      is unset.
+    instance: Required. Specifies the instance to create. The name in the
+      instance, if specified in the instance, is ignored.
+    instanceId: Required. ID of the created instance. A valid `instance_id`
+      must: be 6-50 characters long, contain only lowercase letters, digits,
+      hyphens and underscores, start with a lowercase letter, and end with a
+      lowercase letter or a digit.
+    tcaRestrictions: Optional. If tca_restrictions is ENABLED then the
+      instance will have restrictions needed for building Trusted Core Access
+      (TCA) compliant builds. DO NOT USE: In-Development feature.
+  """
+
+  class AdminOpsRestrictionsValueValuesEnum(_messages.Enum):
+    r"""Optional. If AdminOpsRestrictions is ADMIN_OPS_RESTRICTIONS_RESTRICTED
+    then only predefined safe fields are allowed to set through internal APIs
+    through toolproxy. AdminOpsRestrictions can be set to
+    ADMIN_OPS_RESTRICTIONS_RESTRICTED only if ACTION_ISOLATION is enforced.
+
+    Values:
+      RESTRICTIONS_UNSPECIFIED: Default value; interpreted as
+        RESTRICTIONS_ALLOWED.
+      RESTRICTIONS_ALLOWED: Admin operations are allowed normally.
+      RESTRICTIONS_RESTRICTED: Admin operations are restricted to known safe
+        operations that do not affect build integrity.
+    """
+    RESTRICTIONS_UNSPECIFIED = 0
+    RESTRICTIONS_ALLOWED = 1
+    RESTRICTIONS_RESTRICTED = 2
+
+  class TcaRestrictionsValueValuesEnum(_messages.Enum):
+    r"""Optional. If tca_restrictions is ENABLED then the instance will have
+    restrictions needed for building Trusted Core Access (TCA) compliant
+    builds. DO NOT USE: In-Development feature.
+
+    Values:
+      RESTRICTIONS_UNSPECIFIED: TCA restrictions are not specified, defaulting
+        to RESTRICTIONS_DISABLED.
+      RESTRICTIONS_DISABLED: TCA restrictions are disabled for the instance.
+      RESTRICTIONS_ENABLED_V1: V1 version of TCA restrictions are enabled for
+        the instance. These include: 1. ActionHermeticity to be BEST_EFFORT or
+        ENFORCED and ActionIsolation to be ENFORCED. 2. ImmutableMetaPolicy to
+        be true. 3. AdminOpsRestrictions to be RESTRICTED. 4. Using Shielded,
+        Confidential and Software Trusted VMs as RBE workers, which use custom
+        RBE TCA COS VM images and go through TPM attestation verification for
+        various boot parameters. 5. Inputs and outputs of the actions on these
+        VMs requires TPM attestation verification.
+    """
+    RESTRICTIONS_UNSPECIFIED = 0
+    RESTRICTIONS_DISABLED = 1
+    RESTRICTIONS_ENABLED_V1 = 2
+
+  adminOpsRestrictions = _messages.EnumField('AdminOpsRestrictionsValueValuesEnum', 1)
+  immutableMetapolicy = _messages.BooleanField(2)
+  instance = _messages.MessageField('GoogleDevtoolsRemotebuildexecutionAdminV1alphaInstance', 3)
+  instanceId = _messages.StringField(4)
+  tcaRestrictions = _messages.EnumField('TcaRestrictionsValueValuesEnum', 5)
 
 
 class GoogleDevtoolsRemotebuildexecutionAdminV1alphaCreateWorkerPoolRequest(_messages.Message):
@@ -1525,6 +1818,9 @@ class GoogleDevtoolsRemotebuildexecutionAdminV1alphaFeaturePolicy(_messages.Mess
       docker runtime used for containers started on Linux.
     MacExecutionValueValuesEnum: Defines how Windows actions are allowed to
       execute. DO NOT USE: Experimental / unlaunched feature.
+    NetworkAccessValueValuesEnum: Optional. Defines the network access policy
+      for actions on this instance. DO NOT USE: Experimental / unlaunched
+      feature.
     VmVerificationValueValuesEnum: Whether to verify CreateBotSession and
       UpdateBotSession from the bot.
     WindowsExecutionValueValuesEnum: Defines how Windows actions are allowed
@@ -1564,6 +1860,8 @@ class GoogleDevtoolsRemotebuildexecutionAdminV1alphaFeaturePolicy(_messages.Mess
       for containers started on Linux.
     macExecution: Defines how Windows actions are allowed to execute. DO NOT
       USE: Experimental / unlaunched feature.
+    networkAccess: Optional. Defines the network access policy for actions on
+      this instance. DO NOT USE: Experimental / unlaunched feature.
     vmVerification: Whether to verify CreateBotSession and UpdateBotSession
       from the bot.
     windowsExecution: Defines how Windows actions are allowed to execute. DO
@@ -1646,7 +1944,7 @@ class GoogleDevtoolsRemotebuildexecutionAdminV1alphaFeaturePolicy(_messages.Mess
       LINUX_ISOLATION_UNSPECIFIED: Default value. Will be using Linux default
         runtime.
       GVISOR: Use gVisor runsc runtime.
-      OFF: Use stardard Linux runtime. This has the same behaviour as
+      OFF: Use standard Linux runtime. This has the same behaviour as
         unspecified, but it can be used to revert back from gVisor.
     """
     LINUX_ISOLATION_UNSPECIFIED = 0
@@ -1662,10 +1960,32 @@ class GoogleDevtoolsRemotebuildexecutionAdminV1alphaFeaturePolicy(_messages.Mess
         Equivalent to FORBIDDEN.
       MAC_EXECUTION_FORBIDDEN: Mac actions and worker pools are forbidden.
       MAC_EXECUTION_UNRESTRICTED: No restrictions on execution of Mac actions.
+      MAC_EXECUTION_TERMINAL: Mac actions will always result in the worker VM
+        being terminated after the action completes.
     """
     MAC_EXECUTION_UNSPECIFIED = 0
     MAC_EXECUTION_FORBIDDEN = 1
     MAC_EXECUTION_UNRESTRICTED = 2
+    MAC_EXECUTION_TERMINAL = 3
+
+  class NetworkAccessValueValuesEnum(_messages.Enum):
+    r"""Optional. Defines the network access policy for actions on this
+    instance. DO NOT USE: Experimental / unlaunched feature.
+
+    Values:
+      NETWORK_ACCESS_UNSPECIFIED: Default value, if not explicitly set.
+        Equivalent to ALLOWED.
+      NETWORK_ACCESS_ALLOWED: Disables enforcing feature policies related to
+        network access.
+      NETWORK_ACCESS_ENFORCED: Requires feature policies to be set that
+        guarantee network access restrctions. Enforced means that network
+        access will be limited and certain features will be disabled to
+        prevent bypassing the filter. However, a determined and malicious
+        actor may still find a way to gain full network access.
+    """
+    NETWORK_ACCESS_UNSPECIFIED = 0
+    NETWORK_ACCESS_ALLOWED = 1
+    NETWORK_ACCESS_ENFORCED = 2
 
   class VmVerificationValueValuesEnum(_messages.Enum):
     r"""Whether to verify CreateBotSession and UpdateBotSession from the bot.
@@ -1714,8 +2034,9 @@ class GoogleDevtoolsRemotebuildexecutionAdminV1alphaFeaturePolicy(_messages.Mess
   linuxExecution = _messages.EnumField('LinuxExecutionValueValuesEnum', 13)
   linuxIsolation = _messages.EnumField('LinuxIsolationValueValuesEnum', 14)
   macExecution = _messages.EnumField('MacExecutionValueValuesEnum', 15)
-  vmVerification = _messages.EnumField('VmVerificationValueValuesEnum', 16)
-  windowsExecution = _messages.EnumField('WindowsExecutionValueValuesEnum', 17)
+  networkAccess = _messages.EnumField('NetworkAccessValueValuesEnum', 16)
+  vmVerification = _messages.EnumField('VmVerificationValueValuesEnum', 17)
+  windowsExecution = _messages.EnumField('WindowsExecutionValueValuesEnum', 18)
 
 
 class GoogleDevtoolsRemotebuildexecutionAdminV1alphaFeaturePolicyFeature(_messages.Message):
@@ -1774,6 +2095,18 @@ class GoogleDevtoolsRemotebuildexecutionAdminV1alphaGetWorkerPoolRequest(_messag
   name = _messages.StringField(1)
 
 
+class GoogleDevtoolsRemotebuildexecutionAdminV1alphaIAMBinding(_messages.Message):
+  r"""Represents an IAM binding.
+
+  Fields:
+    principal: Required. The IAM principal this binding applies to.
+    role: Required. The IAM role this binding applies to. Format: `roles/`
+  """
+
+  principal = _messages.StringField(1)
+  role = _messages.StringField(2)
+
+
 class GoogleDevtoolsRemotebuildexecutionAdminV1alphaInstance(_messages.Message):
   r"""Instance conceptually encapsulates all Remote Build Execution resources
   for remote builds. An instance consists of storage and compute resources
@@ -1789,6 +2122,15 @@ class GoogleDevtoolsRemotebuildexecutionAdminV1alphaInstance(_messages.Message):
       configuration. Currently, this includes the list of user-managed IAM
       bindings applied to the backend project, which will always be empty for
       instances not in one of the ENABLE_BE_IAM_BINDING_* feature allowlists.
+    bindings: Optional. The list of IAM bindings that should be applied to
+      this instance.
+    casRelations: Specify parent or child instances of `this` instance.
+      Configurations will be rejected if: -- If `this` instance is not
+      allowlisted for `ENABLE_DATA_READS_FROM_PARENT` and this list specifies
+      parent instances. -- If `this` instance is not allowlisted for
+      `ENABLE_DATA_READS_BY_CHILDREN` and this list specifies child instances.
+      -- If both parent and child instances are specified. -- If instance has
+      more than allowed number of parent or child instances.
     featurePolicy: The policy to define whether or not RBE features can be
       used or how they can be used.
     location: The location is a GCP region. Currently only `us-central1` is
@@ -1803,6 +2145,9 @@ class GoogleDevtoolsRemotebuildexecutionAdminV1alphaInstance(_messages.Message):
       notifications. Absence implies that this feature is not enabled for this
       instance.
     state: Output only. State of the instance.
+    storageSettings: User-specified storage settings for this instance.
+    zoneDrains: Optional. The list of zones that should be drained (no new
+      tasks should be assigned to all or part of the workers in these).
   """
 
   class StateValueValuesEnum(_messages.Enum):
@@ -1824,12 +2169,16 @@ class GoogleDevtoolsRemotebuildexecutionAdminV1alphaInstance(_messages.Message):
     INACTIVE = 3
 
   backendProperties = _messages.MessageField('GoogleDevtoolsRemotebuildexecutionAdminV1alphaBackendProperties', 1)
-  featurePolicy = _messages.MessageField('GoogleDevtoolsRemotebuildexecutionAdminV1alphaFeaturePolicy', 2)
-  location = _messages.StringField(3)
-  loggingEnabled = _messages.BooleanField(4)
-  name = _messages.StringField(5)
-  schedulerNotificationConfig = _messages.MessageField('GoogleDevtoolsRemotebuildexecutionAdminV1alphaSchedulerNotificationConfig', 6)
-  state = _messages.EnumField('StateValueValuesEnum', 7)
+  bindings = _messages.MessageField('GoogleDevtoolsRemotebuildexecutionAdminV1alphaIAMBinding', 2, repeated=True)
+  casRelations = _messages.MessageField('GoogleDevtoolsRemotebuildexecutionAdminV1alphaRelationship', 3, repeated=True)
+  featurePolicy = _messages.MessageField('GoogleDevtoolsRemotebuildexecutionAdminV1alphaFeaturePolicy', 4)
+  location = _messages.StringField(5)
+  loggingEnabled = _messages.BooleanField(6)
+  name = _messages.StringField(7)
+  schedulerNotificationConfig = _messages.MessageField('GoogleDevtoolsRemotebuildexecutionAdminV1alphaSchedulerNotificationConfig', 8)
+  state = _messages.EnumField('StateValueValuesEnum', 9)
+  storageSettings = _messages.MessageField('GoogleDevtoolsRemotebuildexecutionAdminV1alphaStorageSettings', 10)
+  zoneDrains = _messages.MessageField('GoogleDevtoolsRemotebuildexecutionAdminV1alphaZoneDrain', 11, repeated=True)
 
 
 class GoogleDevtoolsRemotebuildexecutionAdminV1alphaListInstancesRequest(_messages.Message):
@@ -1895,6 +2244,45 @@ class GoogleDevtoolsRemotebuildexecutionAdminV1alphaListWorkerPoolsResponse(_mes
   workerPools = _messages.MessageField('GoogleDevtoolsRemotebuildexecutionAdminV1alphaWorkerPool', 1, repeated=True)
 
 
+class GoogleDevtoolsRemotebuildexecutionAdminV1alphaRelationship(_messages.Message):
+  r"""Defines the relationship with another RBE instance.
+
+  Enums:
+    RelationValueValuesEnum: Specify the relationship between `instance` and
+      the RBE instance it is related to.
+
+  Fields:
+    instance: Instance resource name (e.g.
+      `projects/[PROJECT_ID]/instances/[INSTANCE_ID]`) of an instance which is
+      either a parent or child of another RBE instance.
+    relation: Specify the relationship between `instance` and the RBE instance
+      it is related to.
+    status: Output only. The validation result of this relationship. Possible
+      status codes are: - `OK`: a valid relationship - `FAILED_PRECONDITION`:
+      missing allowlist or misconfigured instance (Note that we don't want to
+      return `NOT_FOUND` which leaks information about whether or not a
+      project exists)
+  """
+
+  class RelationValueValuesEnum(_messages.Enum):
+    r"""Specify the relationship between `instance` and the RBE instance it is
+    related to.
+
+    Values:
+      RELATION_UNSPECIFIED: Default value but not a valid value; it is an
+        error to set this value.
+      RELATION_CAS_PARENT: `instance` is a parent of another RBE instance.
+      RELATION_CAS_CHILD: `instance` is a child of another RBE instance.
+    """
+    RELATION_UNSPECIFIED = 0
+    RELATION_CAS_PARENT = 1
+    RELATION_CAS_CHILD = 2
+
+  instance = _messages.StringField(1)
+  relation = _messages.EnumField('RelationValueValuesEnum', 2)
+  status = _messages.MessageField('GoogleRpcStatus', 3)
+
+
 class GoogleDevtoolsRemotebuildexecutionAdminV1alphaSchedulerNotificationConfig(_messages.Message):
   r"""Defines configurations for an instance's scheduler notifications, where
   a target Pub/Sub topic will be notified whenever a task (e.g. an action or
@@ -1907,6 +2295,28 @@ class GoogleDevtoolsRemotebuildexecutionAdminV1alphaSchedulerNotificationConfig(
   """
 
   topic = _messages.StringField(1)
+
+
+class GoogleDevtoolsRemotebuildexecutionAdminV1alphaStorageSettings(_messages.Message):
+  r"""Describes the storage settings for an instance. This consists of user-
+  specified TTL values for CAS and ActionResult entries.
+
+  Fields:
+    actionResultTtl: Defines how long after a cached execution result was
+      uploaded or accessed (due to a cache hit) before it is eligible for
+      garbage collection (TTL countdowns are reset upon access). RBE may
+      remove it from the action cache at any time after this period has
+      elapsed. Note that the action cache only concerns when an incoming
+      execution to RBE results in a cache hit. Input and output artifacts of
+      the action are stored in the RBE CAS.
+    casTtl: Defines how long after a blob was uploaded or last accessed before
+      it is eligible for garbage collection (TTL countdowns are reset upon
+      access). RBE may remove it from the instance's CAS at any time after
+      this period has elapsed.
+  """
+
+  actionResultTtl = _messages.StringField(1)
+  casTtl = _messages.StringField(2)
 
 
 class GoogleDevtoolsRemotebuildexecutionAdminV1alphaTestNotifyInstanceRequest(_messages.Message):
@@ -1992,6 +2402,12 @@ class GoogleDevtoolsRemotebuildexecutionAdminV1alphaWorkerConfig(_messages.Messa
       - "private": Workers can only connect to Google APIs and services. -
       "restricted-private": Workers can only connect to Google APIs that are
       reachable through `restricted.googleapis.com` (`199.36.153.4/30`).
+    networkAllowlist: Optional. Specifies the network allowlist to use for the
+      pool. Possible values: - "": No network filtering takes place. Any
+      action with an allowlist will be rejected since it cannot be enforced.
+      This is the default. - "per_action": Network access will be filtered
+      according to the allowlist provided by the action. If no allowlist is
+      provided, the default is to block all requests.
     reserved: Determines whether the worker is reserved (equivalent to a
       Compute Engine on-demand VM and therefore won't be preempted). See
       [Preemptible VMs](https://cloud.google.com/preemptible-vms/) for more
@@ -2047,11 +2463,12 @@ class GoogleDevtoolsRemotebuildexecutionAdminV1alphaWorkerConfig(_messages.Messa
   maxConcurrentActions = _messages.IntegerField(7)
   minCpuPlatform = _messages.StringField(8)
   networkAccess = _messages.StringField(9)
-  reserved = _messages.BooleanField(10)
-  soleTenantNodeType = _messages.StringField(11)
-  userServiceAccounts = _messages.StringField(12, repeated=True)
-  vmImage = _messages.StringField(13)
-  zones = _messages.StringField(14, repeated=True)
+  networkAllowlist = _messages.StringField(10)
+  reserved = _messages.BooleanField(11)
+  soleTenantNodeType = _messages.StringField(12)
+  userServiceAccounts = _messages.StringField(13, repeated=True)
+  vmImage = _messages.StringField(14)
+  zones = _messages.StringField(15, repeated=True)
 
 
 class GoogleDevtoolsRemotebuildexecutionAdminV1alphaWorkerPool(_messages.Message):
@@ -2107,6 +2524,35 @@ class GoogleDevtoolsRemotebuildexecutionAdminV1alphaWorkerPool(_messages.Message
   state = _messages.EnumField('StateValueValuesEnum', 5)
   workerConfig = _messages.MessageField('GoogleDevtoolsRemotebuildexecutionAdminV1alphaWorkerConfig', 6)
   workerCount = _messages.IntegerField(7)
+
+
+class GoogleDevtoolsRemotebuildexecutionAdminV1alphaZoneDrain(_messages.Message):
+  r"""ZoneDrain indicates a zone that should be drained (no new tasks should
+  be assigned to all or part of the workers in it).
+
+  Enums:
+    ZoneTypeValueValuesEnum: Optional. Type of zone for validation purposes.
+
+  Fields:
+    percent: Optional. The percentage of workers in the zone to drain, from 0
+      (no workers drained) to 100 (all workers drained).
+    zone: Required. The zone to drain.
+    zoneType: Optional. Type of zone for validation purposes.
+  """
+
+  class ZoneTypeValueValuesEnum(_messages.Enum):
+    r"""Optional. Type of zone for validation purposes.
+
+    Values:
+      ZONE_TYPE_UNSPECIFIED: When unspecified, defaults to GCE zone type.
+      ZONE_TYPE_GCE: Validate as GCE zone.
+    """
+    ZONE_TYPE_UNSPECIFIED = 0
+    ZONE_TYPE_GCE = 1
+
+  percent = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  zone = _messages.StringField(2)
+  zoneType = _messages.EnumField('ZoneTypeValueValuesEnum', 3)
 
 
 class GoogleDevtoolsRemoteworkersV1test2AdminTemp(_messages.Message):
@@ -2290,7 +2736,7 @@ class GoogleDevtoolsRemoteworkersV1test2CommandTaskInputs(_messages.Message):
       argument might be "C:\Windows\System32\ping.exe" - that is, using drive
       letters and backslashes. A command for a *nix system, on the other hand,
       would use forward slashes. All other fields in the RWAPI must
-      consistently use forward slashes, since those fields may be interpretted
+      consistently use forward slashes, since those fields may be interpreted
       by both the service and the bot.
     environmentVariables: All environment variables required by the task.
     files: The input filesystem to be set up prior to the task beginning. The
@@ -2305,6 +2751,8 @@ class GoogleDevtoolsRemoteworkersV1test2CommandTaskInputs(_messages.Message):
       that are indirectly referenced by an entry there. The bot should check
       against this list before downloading required task inputs to reduce the
       number of communications between itself and the remote CAS server.
+    inputRootDigest: The digest of the Merkle tree root of the inputs to the
+      task. If present, the 'files' field should be empty.
     workingDirectory: Directory from which a command is executed. It is a
       relative directory with respect to the bot's working directory (i.e.,
       "./"). If it is non-empty, then it must exist under "./". Otherwise,
@@ -2315,7 +2763,8 @@ class GoogleDevtoolsRemoteworkersV1test2CommandTaskInputs(_messages.Message):
   environmentVariables = _messages.MessageField('GoogleDevtoolsRemoteworkersV1test2CommandTaskInputsEnvironmentVariable', 2, repeated=True)
   files = _messages.MessageField('GoogleDevtoolsRemoteworkersV1test2Digest', 3, repeated=True)
   inlineBlobs = _messages.MessageField('GoogleDevtoolsRemoteworkersV1test2Blob', 4, repeated=True)
-  workingDirectory = _messages.StringField(5)
+  inputRootDigest = _messages.MessageField('GoogleDevtoolsRemoteworkersV1test2Digest', 5)
+  workingDirectory = _messages.StringField(6)
 
 
 class GoogleDevtoolsRemoteworkersV1test2CommandTaskInputsEnvironmentVariable(_messages.Message):
@@ -2635,6 +3084,21 @@ class RemotebuildexecutionProjectsInstancesCreateBackendIAMBindingRequest(_messa
   """
 
   googleDevtoolsRemotebuildexecutionAdminV1alphaCreateBackendIAMBindingRequest = _messages.MessageField('GoogleDevtoolsRemotebuildexecutionAdminV1alphaCreateBackendIAMBindingRequest', 1)
+  parent = _messages.StringField(2, required=True)
+
+
+class RemotebuildexecutionProjectsInstancesCreateTBIRequest(_messages.Message):
+  r"""A RemotebuildexecutionProjectsInstancesCreateTBIRequest object.
+
+  Fields:
+    googleDevtoolsRemotebuildexecutionAdminV1alphaCreateTbiInstanceRequest: A
+      GoogleDevtoolsRemotebuildexecutionAdminV1alphaCreateTbiInstanceRequest
+      resource to be passed as the request body.
+    parent: Required. Resource name of the project containing the instance.
+      Format: `projects/[PROJECT_ID]`.
+  """
+
+  googleDevtoolsRemotebuildexecutionAdminV1alphaCreateTbiInstanceRequest = _messages.MessageField('GoogleDevtoolsRemotebuildexecutionAdminV1alphaCreateTbiInstanceRequest', 1)
   parent = _messages.StringField(2, required=True)
 
 

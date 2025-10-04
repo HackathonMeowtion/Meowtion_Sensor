@@ -11,14 +11,14 @@
         * The active account does not have permission to create repositories.
         * A valid repository format was not provided.
     examples: |
-      To create a repository with the name `my-repo` under the current project, run:
+      To create a docker repository with the name `my-repo` in the default project and location, run the following command:
 
-        $ {command} my-repo
+        $ {command} my-repo --repository-format=docker
 
-      To create repository `my-repo` with a KMS key
-      `projects/my-project/locations/us/keyRings/my-kr/cryptoKeys/my-key`, run:
+      To create a docker repository `my-repo` with a KMS key
+      `projects/my-project/locations/us/keyRings/my-kr/cryptoKeys/my-key` in the default project and location, run the following command:
 
-        $ {command} my-repo --kms-key=projects/my-project/locations/us/keyRings/my-kr/cryptoKeys/my-key
+        $ {command} my-repo --repository-format=docker --kms-key=projects/my-project/locations/us/keyRings/my-kr/cryptoKeys/my-key
 
   arguments:
     resource:
@@ -96,15 +96,38 @@
       default: null
       help_text: |
         Do not make an HTTP request to validate the remote upstream. Not recommended when setting a custom remote upstream unless you are absolutely sure your upstream URI and any auth is valid.
+    - arg_name: enable-ingestion-attestation
+      type: bool
+      api_field: repository.remoteRepositoryConfig.enableIngestionAttestation
+      default: null
+      hidden: true
+      help_text: |
+        Enable generating attestation with verifiable signature on imported files in remote repositories.
+    - arg_name: alternative-hostname
+      api_field: repository.networkConfig.alternativeHostname
+      hidden: true
+      default: null
+      help_text: |
+        An alternative hostname that a repository can be accessed through.
+    - arg_name: alternative-hostname-path-prefix
+      api_field: repository.networkConfig.prefix
+      hidden: true
+      default: null
+      help_text: |
+        An alternative hostname path prefix that a repository can be accessed through.
+    - arg_name: alternative-hostname-default
+      api_field: repository.networkConfig.isDefault
+      hidden: true
+      default: null
+      help_text: |
+        Whether this is the default repository for the alternative hostname if no repository matches the path prefix.
     - group:
         mutex: true
-        hidden: true
         params:
         - arg_name: allow-vulnerability-scanning
           api_field: repository.vulnerabilityScanningConfig.enablementConfig
           default: null
           action: store_true
-          hidden: true
           help_text: |
             Allow vulnerability scanning on the repository.
           choices:
@@ -115,7 +138,6 @@
           api_field: repository.vulnerabilityScanningConfig.enablementConfig
           default: null
           action: store_true
-          hidden: true
           help_text: |
             Disable vulnerability scanning on the repository.
           choices:

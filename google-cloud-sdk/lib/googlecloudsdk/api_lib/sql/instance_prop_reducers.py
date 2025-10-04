@@ -14,6 +14,7 @@
 # limitations under the License.
 """Reducer functions to generate instance props from prior state and flags."""
 
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
@@ -32,17 +33,52 @@ from googlecloudsdk.core.util import files
 import six
 
 
-def ActiveDirectoryConfig(sql_messages, domain=None):
+def ActiveDirectoryConfig(
+    sql_messages,
+    domain=None,
+    mode=None,
+    dns_servers=None,
+    admin_credential_secret_key=None,
+    organizational_unit=None,
+):
   """Generates the Active Directory configuration for the instance.
 
   Args:
     sql_messages: module, The messages module that should be used.
     domain: string, the Active Directory domain value.
+    mode: string, the Active Directory mode value.
+    dns_servers: list of strings, the list of dns servers.
+    admin_credential_secret_key: string, the name of the admin credential secret
+      manager key.
+    organizational_unit: string, the organizational unit value.
 
   Returns:
     sql_messages.SqlActiveDirectoryConfig object.
   """
-  config = sql_messages.SqlActiveDirectoryConfig(domain=domain)
+
+  should_generate_config = any([
+      domain is not None,
+      mode is not None,
+      dns_servers is not None,
+      admin_credential_secret_key is not None,
+      organizational_unit is not None,
+  ])
+  if not should_generate_config:
+    return None
+
+  config = sql_messages.SqlActiveDirectoryConfig()
+  if domain is not None:
+    config.domain = domain
+  if admin_credential_secret_key is not None:
+    config.adminCredentialSecretName = admin_credential_secret_key
+  if mode is not None:
+    config.mode = sql_messages.SqlActiveDirectoryConfig.ModeValueValuesEnum.lookup_by_name(
+        mode.upper()
+    )
+  if dns_servers:
+    config.dnsServers = dns_servers
+  if organizational_unit is not None:
+    config.organizationalUnit = organizational_unit
   return config
 
 
@@ -76,15 +112,18 @@ def SqlServerAuditConfig(sql_messages,
   return config
 
 
-def BackupConfiguration(sql_messages,
-                        instance=None,
-                        backup_enabled=None,
-                        backup_location=None,
-                        backup_start_time=None,
-                        enable_bin_log=None,
-                        enable_point_in_time_recovery=None,
-                        retained_backups_count=None,
-                        retained_transaction_log_days=None):
+def BackupConfiguration(
+    sql_messages,
+    instance=None,
+    backup_enabled=None,
+    backup_location=None,
+    backup_start_time=None,
+    enable_bin_log=None,
+    enable_point_in_time_recovery=None,
+    retained_backups_count=None,
+    retained_transaction_log_days=None,
+    patch_request=False,
+):
   """Generates the backup configuration for the instance.
 
   Args:
@@ -100,6 +139,7 @@ def BackupConfiguration(sql_messages,
     retained_backups_count: int, how many backups to keep stored.
     retained_transaction_log_days: int, how many days of transaction logs to
       keep stored.
+    patch_request: boolean, True if this is a patch request.
 
   Returns:
     sql_messages.BackupConfiguration object, or None
@@ -127,6 +167,17 @@ def BackupConfiguration(sql_messages,
         enabled=backup_enabled)
   else:
     backup_config = instance.settings.backupConfiguration
+
+  gcbdr_managed = (
+      backup_config.backupTier
+      == sql_messages.BackupConfiguration.BackupTierValueValuesEnum.ENHANCED
+  )
+
+  if patch_request and gcbdr_managed:
+    raise sql_exceptions.ArgumentError(
+        'Backup configuration cannot be changed for instances with a BackupDR'
+        ' backup plan attached.'
+    )
 
   if backup_location is not None:
     backup_config.location = backup_location
@@ -171,13 +222,17 @@ def BackupConfiguration(sql_messages,
 
   # retainedTransactionLogDays is only valid when we have transaction logs,
   # i.e, have binlog or pitr.
-  if (retained_transaction_log_days and not backup_config.binaryLogEnabled and
-      not backup_config.pointInTimeRecoveryEnabled):
+  if (
+      retained_transaction_log_days
+      and not backup_config.binaryLogEnabled
+      and not backup_config.pointInTimeRecoveryEnabled
+  ):
     raise sql_exceptions.ArgumentError(
         'Argument --retained-transaction-log-days only valid when '
         'transaction logs are enabled. To enable transaction logs, use '
         '--enable-bin-log for MySQL, and use --enable-point-in-time-recovery '
-        'for Postgres.')
+        'for Postgres and SQL Server.'
+    )
 
   return backup_config
 
@@ -208,6 +263,24 @@ def DatabaseFlags(sql_messages,
     updated_flags = settings.databaseFlags
 
   return updated_flags
+
+
+def Tags(sql_messages, tags=None):
+  """Generates the tags for the instance.
+
+  Args:
+    sql_messages: module, The messages module that should be used.
+    tags: list of tags.
+
+  Returns:
+    list of sql_messages.Tags objects
+  """
+  updated_tags = []
+  if tags:
+    for tag in tags:
+      updated_tags.append(sql_messages.Tags(tag=tag))
+
+  return updated_tags
 
 
 def MaintenanceWindow(sql_messages,
@@ -407,6 +480,109 @@ def InsightsConfig(sql_messages,
     insights_config.queryPlansPerMinute = insights_config_query_plans_per_minute
 
   return insights_config
+
+
+def DbAlignedAtomicWritesConfig(sql_messages, db_aligned_atomic_writes=None):
+  """Generates the db aligned atomic writes Config for the instance."""
+  if db_aligned_atomic_writes is None:
+    return None
+  return sql_messages.DbAlignedAtomicWritesConfig(
+      dbAlignedAtomicWrites=db_aligned_atomic_writes
+  )
+
+
+def ConnectionPoolConfig(
+    sql_messages,
+    enable_connection_pooling=None,
+    connection_pool_flags=None,
+    clear_connection_pool_flags=None,
+    current_config=None,
+):
+  """Generates the connection pooling config for the instance."""
+
+  # Skip generate new config if no config field is requested to be updated.
+  if all([
+      enable_connection_pooling is None,
+      connection_pool_flags is None,
+      clear_connection_pool_flags is None,
+  ]):
+    return None
+
+  connection_pool_config = current_config or sql_messages.ConnectionPoolConfig()
+  if enable_connection_pooling is not None:
+    connection_pool_config.connectionPoolingEnabled = enable_connection_pooling
+
+  if connection_pool_flags is not None:
+    updated_flags = []
+    for name, value in sorted(connection_pool_flags.items()):
+      updated_flags.append(
+          sql_messages.ConnectionPoolFlags(name=name, value=value)
+      )
+    connection_pool_config.flags = updated_flags
+  elif clear_connection_pool_flags:
+    connection_pool_config.flags = []
+
+  return connection_pool_config
+
+
+def ReadPoolAutoScaleConfig(
+    sql_messages,
+    auto_scale_enabled=None,
+    auto_scale_min_node_count=None,
+    auto_scale_max_node_count=None,
+    auto_scale_target_metrics=None,
+    auto_scale_disable_scale_in=None,
+    auto_scale_in_cooldown_seconds=None,
+    auto_scale_out_cooldown_seconds=None,
+    current_config=None,
+):
+  """Generates the read pool auto-scale config for the instance."""
+  if all([
+      auto_scale_enabled is None,
+      auto_scale_min_node_count is None,
+      auto_scale_max_node_count is None,
+      auto_scale_target_metrics is None,
+      auto_scale_disable_scale_in is None,
+      auto_scale_in_cooldown_seconds is None,
+      auto_scale_out_cooldown_seconds is None,
+  ]):
+    return None
+  read_pool_auto_scale_config = (
+      current_config or sql_messages.ReadPoolAutoScaleConfig()
+  )
+  if auto_scale_enabled is not None:
+    if auto_scale_enabled:
+      read_pool_auto_scale_config.enabled = True
+    else:
+      # If auto-scale is disabled, clear the config.
+      return sql_messages.ReadPoolAutoScaleConfig(enabled=False)
+  if auto_scale_min_node_count is not None:
+    read_pool_auto_scale_config.minNodeCount = auto_scale_min_node_count
+  if auto_scale_max_node_count is not None:
+    read_pool_auto_scale_config.maxNodeCount = auto_scale_max_node_count
+  if auto_scale_target_metrics is not None:
+    read_pool_auto_scale_config.targetMetrics = []
+    for (
+        metric,
+        value,
+    ) in auto_scale_target_metrics.items():
+      read_pool_auto_scale_config.targetMetrics.append(
+          sql_messages.TargetMetric(
+              metric=metric,
+              targetValue=value,
+          )
+      )
+  if auto_scale_disable_scale_in is not None:
+    read_pool_auto_scale_config.disableScaleIn = auto_scale_disable_scale_in
+  if auto_scale_in_cooldown_seconds is not None:
+    read_pool_auto_scale_config.scaleInCooldownSeconds = (
+        auto_scale_in_cooldown_seconds
+    )
+  if auto_scale_out_cooldown_seconds is not None:
+    read_pool_auto_scale_config.scaleOutCooldownSeconds = (
+        auto_scale_out_cooldown_seconds
+    )
+  return read_pool_auto_scale_config
 
 
 def _CustomMachineTypeString(cpu, memory_mib):
@@ -646,3 +822,145 @@ def PasswordPolicy(
     password_policy.enablePasswordPolicy = enable_password_policy
 
   return password_policy
+
+
+def PscAutoConnections(
+    sql_messages,
+    psc_auto_connections=None,
+):
+  """Generates PSC auto connections for the instance.
+
+  Args:
+    sql_messages: module, The messages module that should be used.
+    psc_auto_connections: dict of the allowed consumer projects and networks.
+
+  Returns:
+    list of sql_messages.PscAutoConnectionConfig objects
+
+  Raises:
+    exceptions.InvalidArgumentException when there is no valid network or
+    project specified.
+  """
+  updated_psc_auto_connections = []
+  for connection in psc_auto_connections:
+    current_psc_auto_connection = sql_messages.PscAutoConnectionConfig()
+    current_psc_auto_connection.consumerNetwork = connection.get('network')
+
+    if project := connection.get('project'):
+      current_psc_auto_connection.consumerProject = project
+    else:
+      client = common_api_util.SqlClient(common_api_util.API_VERSION_DEFAULT)
+      network_ref = client.resource_parser.ParseRelativeName(
+          current_psc_auto_connection.consumerNetwork,
+          collection='compute.networks',
+      )
+      current_psc_auto_connection.consumerProject = network_ref.project
+
+    if (
+        current_psc_auto_connection.consumerProject
+        and current_psc_auto_connection.consumerNetwork
+    ):
+      updated_psc_auto_connections.append(current_psc_auto_connection)
+    else:
+      raise exceptions.InvalidArgumentException(
+          '--psc-auto-connections', 'PSC auto connection must have network '
+          'specified.'
+      )
+  return updated_psc_auto_connections
+
+
+def UncMappings(sql_messages, unc_mappings=None, clear_unc_mappings=False):
+  """Generates the database flags for the instance.
+
+  Args:
+    sql_messages: module, The messages module that should be used.
+    unc_mappings: input unc mappings from the user.
+    clear_unc_mappings: boolean, True if unc mappings should be cleared.
+
+  Returns:
+    list of sql_messages.UncMapping objects
+  """
+  updated_mappings = []
+  if unc_mappings:
+    for mapping_str in unc_mappings:
+      try:
+        rest, mode_str = mapping_str.rsplit(':', 1)
+        unc_path, gcs_path = rest.split('=', 1)
+        updated_mappings.append(
+            sql_messages.UncMapping(
+                uncPath=unc_path,
+                gcsPath=gcs_path,
+                mode=sql_messages.UncMapping.ModeValueValuesEnum.lookup_by_name(
+                    mode_str.upper()
+                ),
+            )
+        )
+      except ValueError as e:
+        raise ValueError(
+            "Invalid UNC mapping input. Expected 'unc-path=gcs-path:mode'."
+        ) from e
+      except KeyError as e:
+        raise ValueError(
+            "Invalid mode. Expected 'snapshot_read' or 'snapshot_write'."
+        ) from e
+  elif clear_unc_mappings:
+    updated_mappings = []
+
+  return updated_mappings
+
+
+def FinalBackupConfiguration(
+    sql_messages,
+    instance=None,
+    final_backup_enabled=None,
+    final_backup_retention_days=None,
+):
+  """Generates the Final Backup configuration for the instance.
+
+  Args:
+    sql_messages: module, The messages module that should be used.
+    instance: sql_messages.DatabaseInstance, the original instance, if the
+      previous state is needed.
+    final_backup_enabled: boolean, True if final backup should be enabled.
+    final_backup_retention_days: int, how many days to retain the final backup.
+
+  Returns:
+    sql_messages.FinalBackupConfiguration object, or None
+
+  Raises:
+    sql_exceptions.ArgumentError: Bad combination of arguments.
+  """
+  should_generate_config = any([
+      final_backup_enabled is not None,
+      final_backup_retention_days is not None,
+  ])
+
+  if not should_generate_config:
+    return None
+
+  # final_backup_enabled is explicitly set to False.
+  # final_backup_retention_days should not be set using gcloud.
+  if final_backup_enabled is not None and not final_backup_enabled:
+    if final_backup_retention_days is not None:
+      raise sql_exceptions.ArgumentError(
+          'You cannot set final-backup-retention-days while final-backup field is disabled.'
+      )
+
+  if not instance or not instance.settings.finalBackupConfig:
+    final_backup_config = sql_messages.FinalBackupConfig()
+  else:
+    final_backup_config = instance.settings.finalBackupConfig
+
+  # Generate new final backup config based on the gcloud arguments.
+  if final_backup_enabled is not None:
+    final_backup_config.enabled = final_backup_enabled
+  if final_backup_retention_days is not None:
+    final_backup_config.retentionDays = final_backup_retention_days
+    # Final backup enabled set to true if retention days specified.
+    final_backup_config.enabled = True
+
+  # final_backup_enabled is set to False, we need to cleanup the retention days.
+  if final_backup_enabled is not None and not final_backup_enabled:
+    final_backup_config.retentionDays = None
+
+  return final_backup_config

@@ -76,6 +76,15 @@ def AddProjectOrFolderFlags(parser, help_text, required=True):
   group.add_argument('--folder', help='Folder Id {}'.format(help_text))
 
 
+def AddProjectOrFolderOrOrganizationFlags(parser, help_text, required=True):
+  group = parser.add_mutually_exclusive_group(required=required)
+  group.add_argument('--project', help='Project Id {}'.format(help_text))
+  group.add_argument('--folder', help='Folder Id {}'.format(help_text))
+  group.add_argument(
+      '--organization', help='Organization Id {}'.format(help_text)
+  )
+
+
 def AddLocationFlag(parser, help_text, required=True):
   parser.add_argument(
       '--location',
@@ -84,11 +93,11 @@ def AddLocationFlag(parser, help_text, required=True):
   )
 
 
-def AddComplianceStandardFlag(parser, required=True):
+def AddComplianceFrameworkFlag(parser, required=True):
   parser.add_argument(
-      '--compliance-standard',
+      '--compliance-framework',
       help=(
-          'Compliance Standard against which the Report must be generated.'
+          'Compliance Framework against which the Report must be generated.'
           ' Eg: FEDRAMP_MODERATE'
       ),
       required=required,

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -61,7 +61,7 @@ class ConfigServiceV2Transport(abc.ABC):
 
         Args:
             host (Optional[str]):
-                 The hostname to connect to.
+                 The hostname to connect to (default: 'logging.googleapis.com').
             credentials (Optional[google.auth.credentials.Credentials]): The
                 authorization credentials to attach to requests. These
                 credentials identify the application to the service; if none
@@ -115,6 +115,10 @@ class ConfigServiceV2Transport(abc.ABC):
         if ':' not in host:
             host += ':443'
         self._host = host
+
+    @property
+    def host(self):
+        return self._host
 
     def _prep_wrapped_messages(self, client_info):
         # Precompute the wrapped methods.
@@ -184,10 +188,38 @@ class ConfigServiceV2Transport(abc.ABC):
                 default_timeout=None,
                 client_info=client_info,
             ),
+            self.list_log_scopes: gapic_v1.method.wrap_method(
+                self.list_log_scopes,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.get_log_scope: gapic_v1.method.wrap_method(
+                self.get_log_scope,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.create_log_scope: gapic_v1.method.wrap_method(
+                self.create_log_scope,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.update_log_scope: gapic_v1.method.wrap_method(
+                self.update_log_scope,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.delete_log_scope: gapic_v1.method.wrap_method(
+                self.delete_log_scope,
+                default_timeout=None,
+                client_info=client_info,
+            ),
             self.list_exclusions: gapic_v1.method.wrap_method(
                 self.list_exclusions,
                 default_retry=retries.Retry(
-initial=0.1,maximum=60.0,multiplier=1.3,                    predicate=retries.if_exception_type(
+                    initial=0.1,
+                    maximum=60.0,
+                    multiplier=1.3,
+                    predicate=retries.if_exception_type(
                         core_exceptions.DeadlineExceeded,
                         core_exceptions.InternalServerError,
                         core_exceptions.ServiceUnavailable,
@@ -200,7 +232,10 @@ initial=0.1,maximum=60.0,multiplier=1.3,                    predicate=retries.if
             self.get_exclusion: gapic_v1.method.wrap_method(
                 self.get_exclusion,
                 default_retry=retries.Retry(
-initial=0.1,maximum=60.0,multiplier=1.3,                    predicate=retries.if_exception_type(
+                    initial=0.1,
+                    maximum=60.0,
+                    multiplier=1.3,
+                    predicate=retries.if_exception_type(
                         core_exceptions.DeadlineExceeded,
                         core_exceptions.InternalServerError,
                         core_exceptions.ServiceUnavailable,
@@ -223,7 +258,10 @@ initial=0.1,maximum=60.0,multiplier=1.3,                    predicate=retries.if
             self.delete_exclusion: gapic_v1.method.wrap_method(
                 self.delete_exclusion,
                 default_retry=retries.Retry(
-initial=0.1,maximum=60.0,multiplier=1.3,                    predicate=retries.if_exception_type(
+                    initial=0.1,
+                    maximum=60.0,
+                    multiplier=1.3,
+                    predicate=retries.if_exception_type(
                         core_exceptions.DeadlineExceeded,
                         core_exceptions.InternalServerError,
                         core_exceptions.ServiceUnavailable,
@@ -236,7 +274,10 @@ initial=0.1,maximum=60.0,multiplier=1.3,                    predicate=retries.if
             self.list_sinks: gapic_v1.method.wrap_method(
                 self.list_sinks,
                 default_retry=retries.Retry(
-initial=0.1,maximum=60.0,multiplier=1.3,                    predicate=retries.if_exception_type(
+                    initial=0.1,
+                    maximum=60.0,
+                    multiplier=1.3,
+                    predicate=retries.if_exception_type(
                         core_exceptions.DeadlineExceeded,
                         core_exceptions.InternalServerError,
                         core_exceptions.ServiceUnavailable,
@@ -249,7 +290,10 @@ initial=0.1,maximum=60.0,multiplier=1.3,                    predicate=retries.if
             self.get_sink: gapic_v1.method.wrap_method(
                 self.get_sink,
                 default_retry=retries.Retry(
-initial=0.1,maximum=60.0,multiplier=1.3,                    predicate=retries.if_exception_type(
+                    initial=0.1,
+                    maximum=60.0,
+                    multiplier=1.3,
+                    predicate=retries.if_exception_type(
                         core_exceptions.DeadlineExceeded,
                         core_exceptions.InternalServerError,
                         core_exceptions.ServiceUnavailable,
@@ -267,7 +311,10 @@ initial=0.1,maximum=60.0,multiplier=1.3,                    predicate=retries.if
             self.update_sink: gapic_v1.method.wrap_method(
                 self.update_sink,
                 default_retry=retries.Retry(
-initial=0.1,maximum=60.0,multiplier=1.3,                    predicate=retries.if_exception_type(
+                    initial=0.1,
+                    maximum=60.0,
+                    multiplier=1.3,
+                    predicate=retries.if_exception_type(
                         core_exceptions.DeadlineExceeded,
                         core_exceptions.InternalServerError,
                         core_exceptions.ServiceUnavailable,
@@ -280,7 +327,10 @@ initial=0.1,maximum=60.0,multiplier=1.3,                    predicate=retries.if
             self.delete_sink: gapic_v1.method.wrap_method(
                 self.delete_sink,
                 default_retry=retries.Retry(
-initial=0.1,maximum=60.0,multiplier=1.3,                    predicate=retries.if_exception_type(
+                    initial=0.1,
+                    maximum=60.0,
+                    multiplier=1.3,
+                    predicate=retries.if_exception_type(
                         core_exceptions.DeadlineExceeded,
                         core_exceptions.InternalServerError,
                         core_exceptions.ServiceUnavailable,
@@ -335,8 +385,18 @@ initial=0.1,maximum=60.0,multiplier=1.3,                    predicate=retries.if
                 default_timeout=None,
                 client_info=client_info,
             ),
+            self.get_saved_query: gapic_v1.method.wrap_method(
+                self.get_saved_query,
+                default_timeout=None,
+                client_info=client_info,
+            ),
             self.create_saved_query: gapic_v1.method.wrap_method(
                 self.create_saved_query,
+                default_timeout=None,
+                client_info=client_info,
+            ),
+            self.update_saved_query: gapic_v1.method.wrap_method(
+                self.update_saved_query,
                 default_timeout=None,
                 client_info=client_info,
             ),
@@ -482,6 +542,51 @@ initial=0.1,maximum=60.0,multiplier=1.3,                    predicate=retries.if
     @property
     def delete_view(self) -> Callable[
             [logging_config.DeleteViewRequest],
+            Union[
+                empty_pb2.Empty,
+                Awaitable[empty_pb2.Empty]
+            ]]:
+        raise NotImplementedError()
+
+    @property
+    def list_log_scopes(self) -> Callable[
+            [logging_config.ListLogScopesRequest],
+            Union[
+                logging_config.ListLogScopesResponse,
+                Awaitable[logging_config.ListLogScopesResponse]
+            ]]:
+        raise NotImplementedError()
+
+    @property
+    def get_log_scope(self) -> Callable[
+            [logging_config.GetLogScopeRequest],
+            Union[
+                logging_config.LogScope,
+                Awaitable[logging_config.LogScope]
+            ]]:
+        raise NotImplementedError()
+
+    @property
+    def create_log_scope(self) -> Callable[
+            [logging_config.CreateLogScopeRequest],
+            Union[
+                logging_config.LogScope,
+                Awaitable[logging_config.LogScope]
+            ]]:
+        raise NotImplementedError()
+
+    @property
+    def update_log_scope(self) -> Callable[
+            [logging_config.UpdateLogScopeRequest],
+            Union[
+                logging_config.LogScope,
+                Awaitable[logging_config.LogScope]
+            ]]:
+        raise NotImplementedError()
+
+    @property
+    def delete_log_scope(self) -> Callable[
+            [logging_config.DeleteLogScopeRequest],
             Union[
                 empty_pb2.Empty,
                 Awaitable[empty_pb2.Empty]
@@ -660,8 +765,26 @@ initial=0.1,maximum=60.0,multiplier=1.3,                    predicate=retries.if
         raise NotImplementedError()
 
     @property
+    def get_saved_query(self) -> Callable[
+            [logging_config.GetSavedQueryRequest],
+            Union[
+                logging_config.SavedQuery,
+                Awaitable[logging_config.SavedQuery]
+            ]]:
+        raise NotImplementedError()
+
+    @property
     def create_saved_query(self) -> Callable[
             [logging_config.CreateSavedQueryRequest],
+            Union[
+                logging_config.SavedQuery,
+                Awaitable[logging_config.SavedQuery]
+            ]]:
+        raise NotImplementedError()
+
+    @property
+    def update_saved_query(self) -> Callable[
+            [logging_config.UpdateSavedQueryRequest],
             Union[
                 logging_config.SavedQuery,
                 Awaitable[logging_config.SavedQuery]

@@ -22,19 +22,28 @@ from googlecloudsdk.command_lib.container.fleet.packages import utils
 _DETAILED_HELP = {
     'DESCRIPTION': '{description}',
     'EXAMPLES': """ \
-        To create Release ``v1.0.0'' for Resource Bundle ``my-bundle'' in ``us-central1'', run:
+        To create Release `v1.0.0` for Resource Bundle `my-bundle` in `us-central1`, run:
 
-          $ {command} --version=v1.0.0 --resource-bundle=my-bundle --variants=variant-*.yaml
+          $ {command} --version=v1.0.0 --resource-bundle=my-bundle --source=manifest.yaml
+
+        To create a Release with multiple variants in one directory, run:
+
+          $ {command} --version=v1.0.0 --resource-bundle=my-bundle --source=/manifests/ --variants-pattern=manifest-*.yaml
+
+        To create a Release with multiple variants across multiple directories, ex:
+
+          $ {command} --version=v1.0.0 --resource-bundle=my-bundle --source=/manifests/ --variants-pattern=dir-*/
         """,
 }
 
 
-@base.Hidden
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.GA)
 class Create(base.CreateCommand):
   """Create Package Rollouts Release."""
 
   detailed_help = _DETAILED_HELP
+  _api_version = 'v1'
 
   @staticmethod
   def Args(parser):
@@ -44,18 +53,25 @@ class Create(base.CreateCommand):
         '--version', required=True, help='Version of the Release to create.'
     )
     flags.AddLifecycleFlag(parser)
+    flags.AddVariantsPatternFlag(parser)
     parser.add_argument(
-        '--variants',
+        '--source',
         required=True,
-        help="""Glob pattern to Variants of the Release.
-          ex: --variants=manifest.yaml, --variants=/variants/us-```*```.yaml,
-              --variants=/manifests-dir/""",
+        help="""Source file or directory to create the Release from.
+          e.g. ``--source=manifest.yaml'', ``--source=/manifests-dir/''
+          Can optionally be paired with the ``--variants-pattern'' arg to create
+          multiple variants of a Release.""",
     )
+    flags.AddSkipCreatingVariantResourcesFlag(parser)
 
   def Run(self, args):
     """Run the create command."""
-    client = apis.ReleasesClient()
-    variants = utils.VariantsFromGlobPattern(args.variants)
+    client = apis.ReleasesClient(self._api_version)
+    utils.ValidateSource(args.source)
+    glob_pattern = utils.GlobPatternFromSourceAndVariantsPattern(
+        args.source, args.variants_pattern
+    )
+    variants = utils.VariantsFromGlobPattern(glob_pattern)
 
     return client.Create(
         resource_bundle=args.resource_bundle,
@@ -64,4 +80,21 @@ class Create(base.CreateCommand):
         location=flags.GetLocation(args),
         lifecycle=args.lifecycle,
         variants=variants,
+        skip_creating_variant_resources=args.skip_creating_variant_resources,
     )
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.BETA)
+class CreateBeta(Create):
+  """Create Package Rollouts Release."""
+
+  _api_version = 'v1beta'
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class CreateAlpha(Create):
+  """Create Package Rollouts Release."""
+
+  _api_version = 'v1alpha'

@@ -5,8 +5,7 @@ project:
   - &project
     parameter_name: projectsId
     attribute_name: project
-    help: |
-      The project Id.
+    help: The project Id.
     property: core/project
 
 location:
@@ -17,8 +16,19 @@ location:
   - &location
     parameter_name: locationsId
     attribute_name: location
-    help: |
-      The location Id.
+    help: The location Id.
+
+operation:
+  name: operation
+  collection: networkservices.projects.locations.operations
+  attributes:
+  - *project
+  - *location
+  - &operation
+    parameter_name: operationsId
+    attribute_name: operation
+    help: Id of the operation.
+  disable_auto_completers: true
 
 httpFilter:
   name: http filter
@@ -163,3 +173,135 @@ serviceLbPolicy:
     parameter_name: serviceLbPoliciesId
     attribute_name: service_lb_policy
     help: Id of the service LB Policy.
+
+multicastDomain:
+  name: multicast domain
+  collection: networkservices.projects.locations.multicastDomains
+  request_id_field: multicastDomainId
+  attributes:
+  - *project
+  - *location
+  - &multicastDomain
+    parameter_name: multicastDomainsId
+    attribute_name: multicast_domain
+    help: Id of the multicast domain.
+
+multicastDomainGroup:
+  name: multicast domain group
+  collection: networkservices.projects.locations.multicastDomainGroups
+  request_id_field: multicastDomainGroupId
+  attributes:
+  - *project
+  - *location
+  - &multicastDomainGroup
+    parameter_name: multicastDomainGroupsId
+    attribute_name: multicast_domain_group
+    help: Id of the multicast domain group.
+
+multicastGroupDefinition:
+  name: multicast group definition
+  collection: networkservices.projects.locations.multicastGroupDefinitions
+  request_id_field: multicastGroupDefinitionId
+  attributes:
+  - *project
+  - *location
+  - &multicastGroupDefinition
+    parameter_name: multicastGroupDefinitionsId
+    attribute_name: multicast_group_definition
+    help: Id of the multicast group definition.
+
+multicastGroupRange:
+  name: multicast group range
+  collection: networkservices.projects.locations.multicastGroupRanges
+  request_id_field: multicastGroupRangeId
+  attributes:
+  - *project
+  - *location
+  - &multicastGroupRange
+    parameter_name: multicastGroupRangesId
+    attribute_name: multicast_group_range
+    help: Id of the multicast group range.
+
+multicastDomainActivation:
+  name: multicast domain activation
+  collection: networkservices.projects.locations.multicastDomainActivations
+  request_id_field: multicastDomainActivationId
+  attributes:
+  - *project
+  - *location
+  - &multicastDomainActivation
+    parameter_name: multicastDomainActivationsId
+    attribute_name: multicast_domain_activation
+    help: Id of the multicast domain activation.
+
+multicastGroup:
+  name: multicast group
+  collection: networkservices.projects.locations.multicastGroups
+  request_id_field: multicastGroupId
+  attributes:
+  - *project
+  - *location
+  - &multicastGroup
+    parameter_name: multicastGroupsId
+    attribute_name: multicast_group
+    help: Id of the multicast group.
+
+multicastGroupRangeActivation:
+  name: multicast group range activation
+  collection: networkservices.projects.locations.multicastGroupRangeActivations
+  request_id_field: multicastGroupRangeActivationId
+  attributes:
+  - *project
+  - *location
+  - &multicastGroupRangeActivation
+    parameter_name: multicastGroupRangeActivationsId
+    attribute_name: multicast_group_range_activation
+    help: Id of the multicast group range activation.
+
+multicastConsumerAssociation:
+  name: multicast consumer association
+  collection: networkservices.projects.locations.multicastConsumerAssociations
+  request_id_field: multicastConsumerAssociationId
+  attributes:
+  - *project
+  - *location
+  - &multicastConsumerAssociation
+    parameter_name: multicastConsumerAssociationsId
+    attribute_name: multicast_consumer_association
+    help: Id of the multicast consumer association.
+
+multicastGroupConsumerActivation:
+  name: multicast group consumer activation
+  collection: networkservices.projects.locations.multicastGroupConsumerActivations
+  request_id_field: multicastGroupConsumerActivationId
+  attributes:
+  - *project
+  - *location
+  - &multicastGroupConsumerActivation
+    parameter_name: multicastGroupConsumerActivationsId
+    attribute_name: multicast_group_consumer_activation
+    help: Id of the multicast group consumer activation.
+
+multicastProducerAssociation:
+  name: multicast producer association
+  collection: networkservices.projects.locations.multicastProducerAssociations
+  request_id_field: multicastProducerAssociationId
+  attributes:
+  - *project
+  - *location
+  - &multicastProducerAssociation
+    parameter_name: multicastProducerAssociationsId
+    attribute_name: multicast_producer_association
+    help: Id of the multicast producer association.
+
+multicastGroupProducerActivation:
+  name: multicast group producer activation
+  collection: networkservices.projects.locations.multicastGroupProducerActivations
+  request_id_field: multicastGroupProducerActivationId
+  attributes:
+  - *project
+  - *location
+  - &multicastGroupProducerActivation
+    parameter_name: multicastGroupProducerActivationsId
+    attribute_name: multicast_group_producer_activation
+    help: Id of the multicast group producer activation.

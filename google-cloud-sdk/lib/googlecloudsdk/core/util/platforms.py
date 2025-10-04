@@ -467,7 +467,7 @@ class Platform(object):
 class PythonVersion(object):
   """Class to validate the Python version we are using.
 
-  The Cloud CLI officially supports Python 3.8.
+  The Cloud CLI officially supports Python 3.9.
 
   However, many commands do work with Python 3.6, so we don't error out when
   users are using this (we consider it sometimes "compatible" but not
@@ -476,8 +476,14 @@ class PythonVersion(object):
 
   # See class docstring for descriptions of what these mean
   MIN_REQUIRED_PY3_VERSION = (3, 6)
-  MIN_SUPPORTED_PY3_VERSION = (3, 8)
-  MAX_SUPPORTED_PY3_VERSION = (3, 12)
+  MIN_SUPPORTED_PY3_VERSION = (3, 9)
+  MAX_SUPPORTED_PY3_VERSION = (
+      (3, 14)  # pylint: disable=g-long-ternary
+      if encoding.GetEncodedValue(
+          os.environ, 'ENABLE_MAX_GCLOUD_PYTHON_VERSION_OVERRIDE'
+      )
+      else (3, 13)
+  )
   UPCOMING_SUNSET_PY3_VERSION = None
   UPCOMING_PY3_MIN_SUPPORTED_VERSION = None
   UPCOMING_PY3_DEPRECATION_DATE = None
@@ -584,12 +590,12 @@ the CLOUDSDK_PYTHON environment variable to point to it.
 
     # Warn if python version is being deprecated soon.
     elif (PythonVersion.UPCOMING_PY3_MIN_SUPPORTED_VERSION and
-          self.version <= PythonVersion.UPCOMING_PY3_MIN_SUPPORTED_VERSION):
+          self.version < PythonVersion.UPCOMING_PY3_MIN_SUPPORTED_VERSION):
       sys.stderr.write(
           """\
-WARNING:  Python 3.{0}-3.{1} will be deprecated on {2}. {3}{4}""".format(
-              PythonVersion.MIN_SUNSET_PY3_VERSION[1],
-              PythonVersion.MAX_SUNSET_PY3_VERSION[1],
+WARNING:  Python {0}.{1} will be deprecated on {2}. {3}{4}""".format(
+              PythonVersion.UPCOMING_SUNSET_PY3_VERSION[0],
+              PythonVersion.UPCOMING_SUNSET_PY3_VERSION[1],
               PythonVersion.UPCOMING_PY3_DEPRECATION_DATE,
               self.UpcomingSupportedVersionMessage(),
               self.InstallMacPythonMessage()

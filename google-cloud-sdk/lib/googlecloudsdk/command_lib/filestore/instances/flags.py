@@ -14,22 +14,20 @@
 # limitations under the License.
 """Flags and helpers for the Cloud Filestore instances commands."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 from googlecloudsdk.api_lib.filestore import filestore_client
 from googlecloudsdk.calliope import arg_parsers
 from googlecloudsdk.calliope import base
 from googlecloudsdk.calliope import exceptions
 from googlecloudsdk.calliope.concepts import concepts
 from googlecloudsdk.command_lib.filestore import flags
+from googlecloudsdk.command_lib.filestore.instances import dp_util
 from googlecloudsdk.command_lib.kms import resource_args as kms_resource_args
 from googlecloudsdk.command_lib.util.apis import arg_utils
 from googlecloudsdk.command_lib.util.args import labels_util
 from googlecloudsdk.command_lib.util.concepts import concept_parsers
+import six
 
-INSTANCES_LIST_FORMAT = """\
+INSTANCES_LIST_FORMAT_V1_ALPAH = """\
     table(
       name.basename():label=INSTANCE_NAME:sort=1,
       name.segment(3):label=LOCATION,
@@ -55,14 +53,12 @@ INSTANCES_LIST_FORMAT_BETA = """\
     )"""
 
 FILE_SHARE_ARG_SPEC = {
-    'name':
-        str,
-    'capacity':
-        arg_parsers.BinarySize(
-            default_unit='GB',
-            suggested_binary_size_scales=['GB', 'GiB', 'TB', 'TiB']),
-    'nfs-export-options':
-        list
+    'name': str,
+    'capacity': arg_parsers.BinarySize(
+        default_unit='GB',
+        suggested_binary_size_scales=['GB', 'GiB', 'TB', 'TiB'],
+    ),
+    'nfs-export-options': list,
 }
 
 FILE_TIER_TO_TYPE = {
@@ -77,6 +73,43 @@ FILE_TIER_TO_TYPE = {
     'REGIONAL': 'REGIONAL',
 }
 
+_LDAP_HELP_TEXT = """\
+        LDAP configuration for an instance. Specifies the domain name, servers,
+        users-ou, and groups-ou to be created by the filestore instance. users-ou
+        and groups-ou are optional.
+
+         domain
+            The desired domain name. i.e.:
+            'my-domain.com'
+
+          servers
+            The desired LDAP servers. i.e.:
+            'ldap.example.com', 'ldap2.example.com'
+
+          users-ou
+            The desired users Organizational Unit (OU).
+
+          groups-ou
+            The desired groups Organizational Unit (OU).
+
+          Use the following format to specify the LDAP configuration:
+            --ldap=^:^domain=my-domain.com:servers=ldap.example.com,ldap2.example.com:users-ou=users:groups-ou=groups
+  """
+
+_MANAGED_AD_HELP_TEXT = """\
+        Managed Active Directory configuration for an instance. Specifies both
+        the domain name and a computer name (unique to the domain) to be created
+        by the filestore instance.
+
+         domain
+            The desired domain full uri. i.e.:
+            projects/PROJECT/locations/global/domains/DOMAIN
+
+         computer
+            The desired active directory computer name to be created by
+            the filestore instance when connecting to the domain.
+  """
+
 
 def AddAsyncFlag(parser):
   help_text = """Return immediately, without waiting for the operation
@@ -88,10 +121,7 @@ def AddAsyncFlag(parser):
 def AddForceArg(parser):
   help_text = """Forces the deletion of an instance and its child resources,
   such as snapshots."""
-  parser.add_argument(
-      '--force',
-      action='store_true',
-      help=(help_text))
+  parser.add_argument('--force', action='store_true', help=(help_text))
 
 
 def AddClearNfsExportOptionsArg(parser):
@@ -101,7 +131,8 @@ def AddClearNfsExportOptionsArg(parser):
       '--clear-nfs-export-options',
       action='store_true',
       required=False,
-      help=help_text)
+      help=help_text,
+  )
 
 
 def GetTierType(instance_tier):
@@ -113,19 +144,52 @@ def AddLocationArg(parser):
   parser.add_argument(
       '--location',
       required=False,
-      help='Location of the Cloud Filestore instance/operation.')
+      help='Location of the Cloud Filestore instance/operation.',
+  )
 
 
 def AddRegionArg(parser):
   parser.add_argument(
-      '--region',
-      required=False,
-      help='Region of the Cloud Filestore instance.')
+      '--region', required=False, help='Region of the Cloud Filestore instance.'
+  )
+
+
+def GetTagsArg():
+  """Makes the base.Argument for --tags flag."""
+  help_parts = [
+      'List of tags KEY=VALUE pairs to bind.',
+      'Each item must be expressed as',
+      '`<tag-key-namespaced-name>=<tag-value-short-name>`.\n',
+      'Example: `123/environment=production,123/costCenter=marketing`\n',
+  ]
+  return base.Argument(
+      '--tags',
+      metavar='KEY=VALUE',
+      type=arg_parsers.ArgDict(),
+      action=arg_parsers.UpdateAction,
+      help='\n'.join(help_parts),
+      hidden=False,
+  )
+
+
+def GetTagsFromArgs(args, tags_message, tags_arg_name='tags'):
+  """Makes the tags message object."""
+  tags = getattr(args, tags_arg_name)
+  if not tags:
+    return None
+  # Sorted for test stability
+  return tags_message(
+      additionalProperties=[
+          tags_message.AdditionalProperty(key=key, value=value)
+          for key, value in sorted(six.iteritems(tags))
+      ]
+  )
 
 
 def AddDescriptionArg(parser):
   parser.add_argument(
-      '--description', help='A description of the Cloud Filestore instance.')
+      '--description', help='A description of the Cloud Filestore instance.'
+  )
 
 
 def GetAndValidateKmsKeyName(args):
@@ -134,26 +198,28 @@ def GetAndValidateKmsKeyName(args):
   if kms_ref:
     return kms_ref.RelativeName()
   # If parsing fails but args were specified, raise error.
-  for keyword in ['kms-key', 'kms-keyring',
-                  'kms-location', 'kms-project']:
+  for keyword in ['kms-key', 'kms-keyring', 'kms-location', 'kms-project']:
     if getattr(args, keyword.replace('-', '_'), None):
       raise exceptions.InvalidArgumentException(
           '--kms-project --kms-location --kms-keyring --kms-key',
           'Specify fully qualified KMS key ID with --kms-key, or use '
           'combination of --kms-project, --kms-location, --kms-keyring and '
-          '--kms-key to specify the key ID in pieces.')
+          '--kms-key to specify the key ID in pieces.',
+      )
   return None  # user didn't specify KMS key
 
 
 def AddKmsKeyArg(parser):
   permission_info = '{} must hold permission {}'.format(
       "The 'Filestore Service Agent' service account",
-      "'Cloud KMS CryptoKey Encrypter/Decrypter'")
+      "'Cloud KMS CryptoKey Encrypter/Decrypter'",
+  )
   kms_resource_args.AddKmsKeyResourceArg(
       parser=parser,
       resource='instance',
       permission_info=permission_info,
-      required=False)
+      required=False,
+  )
 
 
 def GetTierArg(messages):
@@ -236,6 +302,33 @@ def GetProtocolArg(messages):
   return protocol_arg
 
 
+def GetBackendTypeArg(messages):
+  """Creates a --backendType flag spec for the arg parser.
+
+  Args:
+    messages: The messages module.
+
+  Returns:
+    The chosen backendType arg.
+  """
+  backend_type_arg = (
+      arg_utils.ChoiceEnumMapper(
+          '--backend-type',
+          messages.Instance.BackendTypeValueValuesEnum,
+          help_str='The service backend type for the Cloud Filestore instance.',
+          custom_mappings={
+              'COMPUTE_BASED_BACKEND':
+                  ('compute-based-backend',
+                   'Compute based backend.'),
+              'FILESTORE_BACKEND':
+                  ('filestore-backend',
+                   'Filestore backend.'),
+          },
+          # This flag stays hidden in v1beta1 throughout its whole lifecycle.
+          hidden=True))
+  return backend_type_arg
+
+
 def AddConnectManagedActiveDirectoryArg(parser):
   """Adds a --managed-ad flag to the parser.
 
@@ -248,28 +341,86 @@ def AddConnectManagedActiveDirectoryArg(parser):
       'computer': str,
   }
 
-  managed_ad_help = """\
-        Managed Active Directory configuration for an instance. Specifies both
-        the domain name and a computer name (unique to the domain) to be created
-        by the filestore instance.
-
-         domain
-            The desired domain full uri. i.e:
-            projects/PROJECT/locations/global/domains/DOMAIN
-
-         computer
-            The desired active directory computer name to be created by
-            the filestore instance when connecting to the domain.
-  """
-
   parser.add_argument(
       '--managed-ad',
       type=arg_parsers.ArgDict(
           spec=managed_ad_arg_spec, required_keys=['domain', 'computer']
       ),
       required=False,
-      help=managed_ad_help,
+      help=_MANAGED_AD_HELP_TEXT,
   )
+
+
+def AddConnectLdapArg(parser):
+  """Adds a --ldap flag to the parser.
+
+  Args:
+    parser: argparse parser.
+  """
+
+  ldap_arg_spec = {
+      'domain': str,
+      'servers': str,
+      'users-ou': str,
+      'groups-ou': str,
+  }
+
+  parser.add_argument(
+      '--ldap',
+      metavar='^:^domain=DOMAIN:servers=SERVER1,SERVER2:users-ou=USERSOU:groups-ou=GROUPSOU',
+      type=arg_parsers.ArgDict(
+          spec=ldap_arg_spec,
+          required_keys=['domain', 'servers'],
+      ),
+      required=False,
+      help=_LDAP_HELP_TEXT,
+      hidden=True,
+  )
+
+
+def AddDisconnectLdapArg(parser):
+  """Adds a --disconnect-ldap flag to the parser.
+
+  Args:
+    parser: argparse parser.
+  """
+
+  disconnect_ldap_help = """\
+        Disconnect the instance from LDAP."""
+
+  parser.add_argument(
+      '--disconnect-ldap',
+      action='store_true',
+      required=False,
+      hidden=True,
+      help=disconnect_ldap_help,
+  )
+
+
+def AddDirectoryServicesArg(parser, api_version):
+  """Adds --managed-ad and --ldap flags to the parser.
+
+  Args:
+    parser: argparse parser.
+    api_version: filestore_client api version.
+  """
+
+  # Managed AD is not supported in alpha.
+  if api_version == filestore_client.ALPHA_API_VERSION:
+    return
+  # Managed AD and LDAP are both supported in beta.
+  elif api_version == filestore_client.BETA_API_VERSION:
+    group = parser.add_group(
+        help='Directory services configuration for an instance.',
+        required=False,
+        mutex=True,
+    )
+
+    AddConnectManagedActiveDirectoryArg(group)
+    AddConnectLdapArg(group)
+  # LDAP is supported in GA.
+  else:
+    AddConnectLdapArg(parser)
 
 
 def AddDisconnectManagedActiveDirectoryArg(parser):
@@ -279,42 +430,73 @@ def AddDisconnectManagedActiveDirectoryArg(parser):
     parser: argparse parser.
   """
 
-  disconnnect_managed_ad_help = """\
+  disconnect_managed_ad_help = """\
         Disconnect the instance from Managed Active Directory."""
 
   parser.add_argument(
       '--disconnect-managed-ad',
       action='store_true',
       required=False,
-      help=disconnnect_managed_ad_help)
+      help=disconnect_managed_ad_help,
+  )
 
 
-def AddManagedActiveDirectoryConnectionArgs(parser):
-  """Adds a --managed-ad flag to the parser.
+def AddDirectoryServicesConnectDisconnectArgs(parser, api_version):
+  """Adds --managed-ad, --disconnect-managed-ad, --ldap, --disconnect-ldap flags to the parser.
 
   Args:
     parser: argparse parser.
+    api_version: filestore_client api version.
   """
 
-  connection_arg_group = parser.add_mutually_exclusive_group()
-  AddConnectManagedActiveDirectoryArg(connection_arg_group)
-  AddDisconnectManagedActiveDirectoryArg(connection_arg_group)
+  connection_arg_group = parser.add_mutually_exclusive_group(
+      hidden=api_version == filestore_client.V1_API_VERSION,
+  )
+  # Managed AD is supported in beta only.
+  if api_version == filestore_client.BETA_API_VERSION:
+    AddConnectManagedActiveDirectoryArg(connection_arg_group)
+    AddDisconnectManagedActiveDirectoryArg(connection_arg_group)
+  # LDAP is supported in both beta and GA.
+  AddConnectLdapArg(connection_arg_group)
+  AddDisconnectLdapArg(connection_arg_group)
 
 
-def AddNetworkArg(parser):
+def AddSourceInstanceArg(parser):
+  parser.add_argument(
+      '--source-instance',
+      required=False,
+      help='The replication source instance of the Cloud Filestore instance.',
+  )
+
+
+def AddNetworkArg(parser, api_version):
   """Adds a --network flag to the given parser.
 
   Args:
     parser: argparse parser.
+    api_version: filestore_client api version.
   """
 
-  network_arg_spec = {
+  network_arg_spec_alpha = {
       'name': str,
       'reserved-ip-range': str,
       'connect-mode': str,
   }
 
-  network_help = """\
+  network_arg_spec_beta_v1 = {
+      'name': str,
+      'reserved-ip-range': str,
+      'connect-mode': str,
+      'psc-endpoint-project': str,
+  }
+
+  network_arg_spec = {
+      filestore_client.V1_API_VERSION: network_arg_spec_beta_v1,
+      filestore_client.ALPHA_API_VERSION: network_arg_spec_alpha,
+      filestore_client.BETA_API_VERSION: network_arg_spec_beta_v1,
+  }
+
+  network_help_alpha = """\
         Network configuration for a Cloud Filestore instance. Specifying
         `reserved-ip-range` and `connect-mode` is optional.
         *name*::: The name of the Google Compute Engine
@@ -338,19 +520,59 @@ def AddNetworkArg(parser):
         CONNECT_MODE must be one of: DIRECT_PEERING or PRIVATE_SERVICE_ACCESS.
   """
 
+  network_help_beta_v1 = """\
+        Network configuration for a Cloud Filestore instance. Specifying
+        `reserved-ip-range` and `connect-mode` is optional.
+        *name*::: The name of the Google Compute Engine
+        [VPC network](/compute/docs/networks-and-firewalls#networks) to which
+        the instance is connected.
+        *reserved-ip-range*::: The `reserved-ip-range` can have one of the
+        following two types of values: a CIDR range value when using
+        DIRECT_PEERING connect mode or an allocated IP address range
+        (https://cloud.google.com/compute/docs/ip-addresses/reserve-static-internal-ip-address)
+        when using PRIVATE_SERVICE_ACCESS connect mode. When the name of an
+        allocated IP address range is specified, it must be one of the ranges
+        associated with the private service access connection. When specified as
+        a direct CIDR value, it must be a /29 CIDR block for Basic tier or a /24
+        CIDR block for High Scale, Zonal, Enterprise or Regional tier in one of the internal IP
+        address ranges (https://www.arin.net/knowledge/address_filters.html)
+        that identifies the range of IP addresses reserved for this instance.
+        For example, 10.0.0.0/29 or 192.168.0.0/24. The range you specify can't
+        overlap with either existing subnets or assigned IP address ranges for
+        other Cloud Filestore instances in the selected VPC network.
+        *connect-mode*::: Network connection mode used by instances.
+        CONNECT_MODE must be one of: DIRECT_PEERING, PRIVATE_SERVICE_ACCESS or
+        PRIVATE_SERVICE_CONNECT.
+        *psc-endpoint-project*::: Consumer service project in which the psc
+        endpoint would be set up. This is optional, and only relevant in case
+        the network is a shared VPC. If this is not specified, the psc endpoint
+        would be setup in the VPC host project.
+  """
+
+  network_help = {
+      filestore_client.V1_API_VERSION: network_help_beta_v1,
+      filestore_client.ALPHA_API_VERSION: network_help_alpha,
+      filestore_client.BETA_API_VERSION: network_help_beta_v1,
+  }
+
   parser.add_argument(
       '--network',
-      type=arg_parsers.ArgDict(spec=network_arg_spec, required_keys=['name']),
+      type=arg_parsers.ArgDict(
+          spec=network_arg_spec[api_version], required_keys=['name']
+      ),
       required=True,
-      help=network_help)
+      help=network_help[api_version],
+  )
 
 
-def AddFileShareArg(parser,
-                    api_version,
-                    include_snapshot_flags=False,
-                    include_backup_flags=False,
-                    clear_nfs_export_options_required=False,
-                    required=True):
+def AddFileShareArg(
+    parser,
+    api_version,
+    include_snapshot_flags=False,
+    include_backup_flags=False,
+    clear_nfs_export_options_required=False,
+    required=True,
+):
   """Adds a --file-share flag to the given parser.
 
   Args:
@@ -422,11 +644,14 @@ The security flavors supported are:
 - KRB5I: KRB5 plus integrity protection (data packets are tamper proof).
 - KRB5P: KRB5I plus privacy protection (data packets are tamper proof and
   encrypted).
+
+*network*::: The source VPC network for `ip-ranges`. Required for instances using
+Private Service Connect, optional otherwise. If provided, must be the same
+network specified in the `network.name` field.
 """
 
   file_share_help = {
-      filestore_client.V1_API_VERSION:
-          """\
+      filestore_client.V1_API_VERSION: """\
 File share configuration for an instance.  Specifying both `name` and `capacity`
 is required.
 
@@ -478,7 +703,7 @@ If NO_ROOT_SQUASH is specified, an error will be returned.
 The default value is 65534.
 """,
       filestore_client.ALPHA_API_VERSION: alpha_beta_help_text,
-      filestore_client.BETA_API_VERSION: alpha_beta_help_text
+      filestore_client.BETA_API_VERSION: alpha_beta_help_text,
   }
   source_snapshot_help = """\
 
@@ -531,6 +756,63 @@ instance-zone will be used.
     )
 
 
+def AddPerformanceArg(parser, hidden=False):
+  """Adds a --performance flag to the given parser.
+
+  Args:
+    parser: argparse parser.
+    hidden: if hidden or not.
+  """
+  performance_help = """\
+        Performance configuration for the instance. This flag is used
+        to configure the read IOPS provisioned for the instance. The
+        instance's write IOPS and read/write throughputs will be derived from the
+        configured read IOPS. For more information about the derived performance
+        limits and default performance see: https://cloud.google.com/filestore/docs/performance.
+        Must be one of:
+
+          max-iops
+            The number of IOPS to provision for the instance.
+            MAX-IOPS must be in multiple of 1000 and in the supported IOPS
+            range for the current capacity of the instance.
+            For more details, see: https://cloud.google.com/filestore/docs/performance.
+
+          max-iops-per-tb
+            Is used for setting the max IOPS of the instance by
+            specifying the IOPS per TB. When this parameter is used, the
+            max IOPS are derived from the instance capacity:
+            The instance max IOPS will be calculated by multiplying the
+            capacity of the instance (TB) by MAX-IOPS-PER-TB, and rounding
+            to the nearest 1000. The max IOPS will be changed
+            dynamically based on the instance capacity.
+            MAX-IOPS-PER-TB must be in the supported range of the instance.
+            For more details, see: https://cloud.google.com/filestore/docs/performance.
+
+
+        Examples:
+
+        Configure an instance with `max-iops` performance:
+
+          $ {command} example-cluster --performance=max-iops=17000
+
+        Configure an instance with `max-iops-per-tb` performance:
+
+          $ {command} example-cluster --performance=max-iops-per-tb=17000
+  """
+
+  performance_arg_spec = {
+      'max-iops': arg_parsers.BoundedInt(1),
+      'max-iops-per-tb': arg_parsers.BoundedInt(1),
+  }
+
+  parser.add_argument(
+      '--performance',
+      type=arg_parsers.ArgDict(spec=performance_arg_spec, max_length=1),
+      help=performance_help,
+      hidden=hidden,
+  )
+
+
 def AddInstanceCreateArgs(parser, api_version):
   """Add args for creating an instance."""
   concept_parsers.ConceptParser(
@@ -541,39 +823,62 @@ def AddInstanceCreateArgs(parser, api_version):
   AddRegionArg(parser)
   AddAsyncFlag(parser)
   labels_util.AddCreateLabelsFlags(parser)
-  AddNetworkArg(parser)
+  AddNetworkArg(parser, api_version)
   messages = filestore_client.GetMessages(version=api_version)
   GetTierArg(messages).choice_arg.AddToParser(parser)
-  if api_version == filestore_client.BETA_API_VERSION:
+
+  if api_version in [
+      filestore_client.BETA_API_VERSION,
+      filestore_client.V1_API_VERSION,
+  ]:
     GetProtocolArg(messages).choice_arg.AddToParser(parser)
-    AddConnectManagedActiveDirectoryArg(parser)
+    AddDirectoryServicesArg(parser, api_version)
+  if api_version in [
+      filestore_client.BETA_API_VERSION,
+  ]:
+    GetBackendTypeArg(messages).choice_arg.AddToParser(parser)
   AddFileShareArg(
       parser,
       api_version,
       include_snapshot_flags=(
-          api_version == filestore_client.ALPHA_API_VERSION),
-      include_backup_flags=True)
-  if api_version in [filestore_client.BETA_API_VERSION,
-                     filestore_client.V1_API_VERSION]:
+          api_version == filestore_client.ALPHA_API_VERSION
+      ),
+      include_backup_flags=True,
+  )
+  if api_version in [
+      filestore_client.BETA_API_VERSION,
+      filestore_client.V1_API_VERSION,
+  ]:
     AddKmsKeyArg(parser)
+    AddSourceInstanceArg(parser)
+    AddPerformanceArg(parser)
+    GetTagsArg().AddToParser(parser)
+    dp_util.AddDeletionProtectionCreateArgs(parser)
 
 
 def AddInstanceUpdateArgs(parser, api_version):
   """Add args for updating an instance."""
-  concept_parsers.ConceptParser([
-      flags.GetInstancePresentationSpec('The instance to update.')
-  ]).AddToParser(parser)
+  concept_parsers.ConceptParser(
+      [flags.GetInstancePresentationSpec('The instance to update.')]
+  ).AddToParser(parser)
   AddDescriptionArg(parser)
   AddLocationArg(parser)
   AddRegionArg(parser)
   AddAsyncFlag(parser)
   labels_util.AddUpdateLabelsFlags(parser)
-  if api_version == filestore_client.BETA_API_VERSION:
-    AddManagedActiveDirectoryConnectionArgs(parser)
   AddFileShareArg(
       parser,
       api_version,
       include_snapshot_flags=(
-          api_version == filestore_client.ALPHA_API_VERSION),
+          api_version == filestore_client.ALPHA_API_VERSION
+      ),
       clear_nfs_export_options_required=True,
-      required=False)
+      required=False,
+  )
+  if api_version in [
+      filestore_client.BETA_API_VERSION,
+      filestore_client.V1_API_VERSION,
+  ]:
+    AddDirectoryServicesConnectDisconnectArgs(parser, api_version)
+    AddPerformanceArg(parser)
+    dp_util.AddDeletionProtectionUpdateArgs(parser)

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ from typing import MutableMapping, MutableSequence
 import proto  # type: ignore
 
 from cloudsdk.google.protobuf import timestamp_pb2  # type: ignore
+from googlecloudsdk.generated_clients.gapic_clients.spanner_v1.types import transaction
 
 
 __protobuf__ = proto.module(
@@ -33,14 +34,27 @@ __protobuf__ = proto.module(
 class CommitResponse(proto.Message):
     r"""The response for [Commit][google.spanner.v1.Spanner.Commit].
 
+    .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
+
     Attributes:
         commit_timestamp (google.protobuf.timestamp_pb2.Timestamp):
             The Cloud Spanner timestamp at which the
             transaction committed.
         commit_stats (googlecloudsdk.generated_clients.gapic_clients.spanner_v1.types.CommitResponse.CommitStats):
-            The statistics about this Commit. Not returned by default.
-            For more information, see
+            The statistics about this ``Commit``. Not returned by
+            default. For more information, see
             [CommitRequest.return_commit_stats][google.spanner.v1.CommitRequest.return_commit_stats].
+        precommit_token (googlecloudsdk.generated_clients.gapic_clients.spanner_v1.types.MultiplexedSessionPrecommitToken):
+            If specified, transaction has not committed
+            yet. You must retry the commit with the new
+            precommit token.
+
+            This field is a member of `oneof`_ ``MultiplexedSessionRetry``.
+        snapshot_timestamp (google.protobuf.timestamp_pb2.Timestamp):
+            If ``TransactionOptions.isolation_level`` is set to
+            ``IsolationLevel.REPEATABLE_READ``, then the snapshot
+            timestamp is the timestamp at which all reads in the
+            transaction ran. This timestamp is never returned.
     """
 
     class CommitStats(proto.Message):
@@ -73,6 +87,17 @@ class CommitResponse(proto.Message):
         proto.MESSAGE,
         number=2,
         message=CommitStats,
+    )
+    precommit_token: transaction.MultiplexedSessionPrecommitToken = proto.Field(
+        proto.MESSAGE,
+        number=4,
+        oneof='MultiplexedSessionRetry',
+        message=transaction.MultiplexedSessionPrecommitToken,
+    )
+    snapshot_timestamp: timestamp_pb2.Timestamp = proto.Field(
+        proto.MESSAGE,
+        number=5,
+        message=timestamp_pb2.Timestamp,
     )
 
 

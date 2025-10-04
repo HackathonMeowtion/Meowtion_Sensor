@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*- #
-# Copyright 2020 Google LLC. All Rights Reserved.
+# Copyright 2025 Google LLC. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,10 +19,12 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from apitools.base.py import encoding
+from apitools.base.py import list_pager
 from googlecloudsdk.api_lib.database_migration import api_util
 from googlecloudsdk.api_lib.database_migration import conversion_workspaces
 from googlecloudsdk.api_lib.database_migration import filter_rewrite
 from googlecloudsdk.api_lib.storage import storage_util
+from googlecloudsdk.calliope import base
 from googlecloudsdk.calliope import exceptions
 from googlecloudsdk.command_lib.util.args import labels_util
 from googlecloudsdk.core import exceptions as core_exceptions
@@ -37,13 +39,27 @@ class Error(core_exceptions.Error):
 class MigrationJobsClient(object):
   """Client for migration jobs service in the API."""
 
-  _FIELDS_MAP = ['display_name', 'type', 'dump_path', 'source', 'destination']
+  # Contains the update mask for specified fields.
+  _FIELDS_MAP = [
+      'display_name',
+      'type',
+      'dump_path',
+      'source',
+      'destination',
+      'dump_flags',
+  ]
   _REVERSE_MAP = ['vm_ip', 'vm_port', 'vm', 'vpc']
 
   def __init__(self, release_track):
     self.client = api_util.GetClientInstance(release_track)
     self.messages = api_util.GetMessagesModule(release_track)
     self._service = self.client.projects_locations_migrationJobs
+    if release_track == base.ReleaseTrack.GA:
+      self._service_objects = (
+          self.client.projects_locations_migrationJobs_objects
+      )
+    else:
+      self._service_objects = None
     self.resource_parser = api_util.GetResourceParser(release_track)
     self.release_track = release_track
 
@@ -55,7 +71,8 @@ class MigrationJobsClient(object):
       return
     try:
       storage_util.ObjectReference.FromArgument(
-          args.dump_path, allow_empty_object=False)
+          args.dump_path, allow_empty_object=False
+      )
     except Exception as e:
       raise exceptions.InvalidArgumentException('dump-path', six.text_type(e))
 
@@ -131,10 +148,7 @@ class MigrationJobsClient(object):
 
   def _GetReverseSshConnectivity(self, args):
     return self.messages.ReverseSshConnectivity(
-        vm=args.vm,
-        vmIp=args.vm_ip,
-        vmPort=args.vm_port,
-        vpc=args.vpc
+        vm=args.vm, vmIp=args.vm_ip, vmPort=args.vm_port, vpc=args.vpc
     )
 
   def _GetStaticIpConnectivity(self):
@@ -148,14 +162,42 @@ class MigrationJobsClient(object):
     update_result = labels_util.Diff(
         additions=add_labels,
         subtractions=remove_labels,
-        clear=args.clear_labels
+        clear=args.clear_labels,
     ).Apply(value_type)
     if update_result.needs_update:
       migration_job.labels = update_result.labels
       update_fields.append('labels')
 
-  def _GetConversionWorkspaceInfo(self, conversion_workspace_ref, args):
-    """Returns the conversion worksapce info.
+  def _GetConversionWorkspace(self, conversion_workspace_name):
+    """Returns the conversion workspace.
+
+    Args:
+      conversion_workspace_name: str, the reference of the conversion workspace.
+
+    Raises:
+      BadArgumentException: Unable to fetch latest commit for the specified
+      conversion workspace.
+    """
+    cw_client = conversion_workspaces.ConversionWorkspacesClient(
+        release_track=self.release_track,
+    )
+    conversion_workspace = cw_client.crud.Read(
+        name=conversion_workspace_name,
+    )
+    if conversion_workspace.latestCommitId is None:
+      raise exceptions.BadArgumentException(
+          'conversion-workspace',
+          (
+              'Unable to fetch latest commit for the specified conversion'
+              ' workspace. Conversion Workspace might not be committed.'
+          ),
+      )
+    return conversion_workspace
+
+  def _GetConversionWorkspaceInfo(
+      self, conversion_workspace_ref, args
+  ):
+    """Returns the conversion workspace info.
 
     Args:
       conversion_workspace_ref: str, the reference of the conversion workspace.
@@ -166,30 +208,17 @@ class MigrationJobsClient(object):
       BadArgumentException: Unable to fetch latest commit for the specified
       conversion workspace.
     """
-    if conversion_workspace_ref is not None:
-      conversion_workspace_obj = self.messages.ConversionWorkspaceInfo(
-          name=conversion_workspace_ref.RelativeName()
+    conversion_workspace_obj = self.messages.ConversionWorkspaceInfo(
+        name=conversion_workspace_ref.RelativeName()
+    )
+    if args.commit_id is not None:
+      conversion_workspace_obj.commitId = args.commit_id
+    else:
+      conversion_workspace = self._GetConversionWorkspace(
+          conversion_workspace_ref.RelativeName()
       )
-      if args.commit_id is not None:
-        conversion_workspace_obj.commitId = args.commit_id
-      else:
-        # Get conversion workspace's latest commit id.
-        cw_client = conversion_workspaces.ConversionWorkspacesClient(
-            self.release_track
-        )
-        conversion_workspace = cw_client.Describe(
-            conversion_workspace_ref.RelativeName(),
-        )
-        if conversion_workspace.latestCommitId is None:
-          raise exceptions.BadArgumentException(
-              'conversion-workspace',
-              (
-                  'Unable to fetch latest commit for the specified conversion'
-                  ' workspace. Conversion Workspace might not be committed.'
-              ),
-          )
-        conversion_workspace_obj.commitId = conversion_workspace.latestCommitId
-      return conversion_workspace_obj
+      conversion_workspace_obj.commitId = conversion_workspace.latestCommitId
+    return conversion_workspace_obj
 
   def _ComplementConversionWorkspaceInfo(self, conversion_workspace, args):
     """Returns the conversion workspace info with the supplied or the latest commit id.
@@ -219,10 +248,10 @@ class MigrationJobsClient(object):
       return conversion_workspace
     # Get conversion workspace's latest commit id.
     cw_client = conversion_workspaces.ConversionWorkspacesClient(
-        self.release_track
+        release_track=self.release_track,
     )
-    cst_conversion_workspace = cw_client.Describe(
-        conversion_workspace.name,
+    cst_conversion_workspace = cw_client.crud.Read(
+        name=conversion_workspace.name,
     )
     if cst_conversion_workspace.latestCommitId is None:
       raise exceptions.BadArgumentException(
@@ -302,17 +331,288 @@ class MigrationJobsClient(object):
         with.
     """
     sqlserver_homogeneous_migration_job_config_obj = (
-        self.messages.SqlServerHomogeneousMigrationJobConfig(
-            backupFilePattern=args.sqlserver_backup_file_pattern
-        )
+        self.messages.SqlServerHomogeneousMigrationJobConfig()
     )
-    if args.IsKnownAndSpecified('sqlserver_databases'):
-      sqlserver_homogeneous_migration_job_config_obj.databaseBackups = (
-          self._GetSqlServerDatabaseBackups(
-              args.sqlserver_databases, args.sqlserver_encrypted_databases
-          )
+    if args.IsKnownAndSpecified('sqlserver_dag_source_ag'):
+      dag_config = self.messages.SqlServerDagConfig(
+          sourceAg=args.sqlserver_dag_source_ag,
+          linkedServer=args.sqlserver_dag_linked_server,
       )
+      sqlserver_homogeneous_migration_job_config_obj.dagConfig = dag_config
+    else:
+      sqlserver_homogeneous_migration_job_config_obj.backupFilePattern = (
+          args.sqlserver_backup_file_pattern
+      )
+      if args.IsKnownAndSpecified('sqlserver_diff_backup'):
+        sqlserver_homogeneous_migration_job_config_obj.useDiffBackup = (
+            args.sqlserver_diff_backup
+        )
+      if args.IsKnownAndSpecified('sqlserver_promote_when_ready'):
+        sqlserver_homogeneous_migration_job_config_obj.promoteWhenReady = (
+            args.sqlserver_promote_when_ready
+        )
+      if args.IsKnownAndSpecified('sqlserver_databases'):
+        sqlserver_homogeneous_migration_job_config_obj.databaseBackups = (
+            self._GetSqlServerDatabaseBackups(
+                args.sqlserver_databases, args.sqlserver_encrypted_databases
+            )
+        )
     return sqlserver_homogeneous_migration_job_config_obj
+
+  def _GetSourceObjectsConfigForAllDatabases(self):
+    """Returns the source objects config."""
+    return self.messages.SourceObjectsConfig(
+        objectsSelectionType=self.messages.SourceObjectsConfig.ObjectsSelectionTypeValueValuesEnum.ALL_OBJECTS
+    )
+
+  def _GetSourceObjectsConfigForSpecifiedDatabases(self, databases_filter):
+    """Returns the source objects config."""
+    source_objects_conifg = self.messages.SourceObjectsConfig(
+        objectsSelectionType=self.messages.SourceObjectsConfig.ObjectsSelectionTypeValueValuesEnum.SPECIFIED_OBJECTS
+    )
+    source_object_configs = []
+    for database in databases_filter:
+      source_object_identifier = self.messages.SourceObjectIdentifier(
+          database=database,
+          type=self.messages.SourceObjectIdentifier.TypeValueValuesEnum.lookup_by_name(
+              'DATABASE'
+          ),
+      )
+      source_object_configs.append(
+          self.messages.SourceObjectConfig(
+              objectIdentifier=source_object_identifier,
+          ),
+      )
+    source_objects_conifg.objectConfigs = source_object_configs
+    return source_objects_conifg
+
+  def _GetSourceObjectsConfigForSpecifiedTables(self, object_filters):
+    """Returns the source objects config."""
+    source_objects_config = self.messages.SourceObjectsConfig(
+        objectsSelectionType=self.messages.SourceObjectsConfig.ObjectsSelectionTypeValueValuesEnum.SPECIFIED_OBJECTS
+    )
+    for object_filter in object_filters:
+      schema_name = object_filter['schema']
+      table_name = object_filter['table']
+      source_object_identifier = self.messages.SourceObjectIdentifier(
+          schema=schema_name,
+          table=table_name,
+          type=self.messages.SourceObjectIdentifier.TypeValueValuesEnum.lookup_by_name(
+              'TABLE'
+          ),
+      )
+      if source_objects_config.objectConfigs is None:
+        source_objects_config.objectConfigs = []
+      source_objects_config.objectConfigs.append(
+          self.messages.SourceObjectConfig(
+              objectIdentifier=source_object_identifier,
+          ),
+      )
+    return source_objects_config
+
+  def _GetMigrationJobObjectsConfig(self, args):
+    """Returns the migration job objects config.
+
+    Args:
+      args: argparse.Namespace, The arguments that this command was invoked
+        with.
+    """
+    source_objects_conifg = self.messages.SourceObjectsConfig()
+
+    if args.IsKnownAndSpecified('all_databases'):
+      source_objects_conifg = self._GetSourceObjectsConfigForAllDatabases()
+    elif args.IsKnownAndSpecified('databases_filter'):
+      source_objects_conifg = self._GetSourceObjectsConfigForSpecifiedDatabases(
+          args.databases_filter
+      )
+    elif args.IsKnownAndSpecified('object_filter'):
+      source_objects_conifg = self._GetSourceObjectsConfigForSpecifiedTables(
+          args.object_filter
+      )
+
+    return self.messages.MigrationJobObjectsConfig(
+        sourceObjectsConfig=source_objects_conifg
+    )
+
+  def _IsHeterogeneousConfigKnownAndSpecified(self, args):
+    """Checks if at least one heterogeneous config flag is specified.
+
+    Args:
+      args: argparse.Namespace, The arguments that this command was invoked
+        with.
+
+    Returns:
+      True if at least one of the heterogeneous config's flags is known and
+      specified.
+    """
+    return (
+        args.IsKnownAndSpecified('max_concurrent_full_dump_connections')
+        or args.IsKnownAndSpecified('max_concurrent_cdc_connections')
+        or args.IsKnownAndSpecified('skip_full_dump')
+        or args.IsKnownAndSpecified('oracle_cdc_start_position')
+        or args.IsKnownAndSpecified('sqlserver_cdc_start_position')
+        or args.IsKnownAndSpecified('max_concurrent_destination_connections')
+        or args.IsKnownAndSpecified('transaction_timeout')
+    )
+
+  def _GetPostgresDestinationConfig(self, args):
+    """Returns the postgres destination config.
+
+    Args:
+      args: argparse.Namespace, the arguments that this command was invoked
+        with.
+
+    Returns:
+      PostgresDestinationConfig: The postgres destination config.
+    """
+    postgres_destination_config = self.messages.PostgresDestinationConfig()
+    if args.IsKnownAndSpecified('max_concurrent_destination_connections'):
+      postgres_destination_config.maxConcurrentConnections = (
+          args.max_concurrent_destination_connections
+      )
+    if args.IsKnownAndSpecified('transaction_timeout'):
+      postgres_destination_config.transactionTimeout = (
+          str(args.transaction_timeout) + 's'
+      )
+    return postgres_destination_config
+
+  def _GetOracleSourceConfig(self, args):
+    """Returns the oracle source config.
+
+    Args:
+      args: argparse.Namespace, the arguments that this command was invoked
+        with.
+
+    Returns:
+      The oracle source config.
+
+    Raises:
+      RequiredArgumentException: The Oracle CDC start position should be
+      specified when skipping full dump.
+    """
+    oracle_source_config = self.messages.OracleSourceConfig()
+    if args.IsKnownAndSpecified('max_concurrent_full_dump_connections'):
+      oracle_source_config.maxConcurrentFullDumpConnections = (
+          args.max_concurrent_full_dump_connections
+      )
+    if args.IsKnownAndSpecified('max_concurrent_cdc_connections'):
+      oracle_source_config.maxConcurrentCdcConnections = (
+          args.max_concurrent_cdc_connections
+      )
+    if args.IsKnownAndSpecified('skip_full_dump'):
+      oracle_source_config.skipFullDump = args.skip_full_dump
+      if args.IsKnownAndSpecified('oracle_cdc_start_position'):
+        temp = int(args.oracle_cdc_start_position)
+        oracle_source_config.cdcStartPosition = temp
+      else:
+        raise exceptions.RequiredArgumentException(
+            'oracle-cdc-start-position',
+            (
+                'The Oracle CDC start position should be specified when'
+                ' skipping full dump.'
+            ),
+        )
+    return oracle_source_config
+
+  def _GetSqlServerSourceConfig(self, args):
+    """Returns the sqlserver source config.
+
+    Args:
+      args: argparse.Namespace, the arguments that this command was invoked
+        with.
+
+    Returns:
+      The sqlserver source config.
+
+    Raises:
+      RequiredArgumentException: The SQL Server CDC start position should be
+      specified when skipping full dump.
+    """
+    sqlserver_source_config = self.messages.SqlServerSourceConfig()
+    if args.IsKnownAndSpecified('max_concurrent_full_dump_connections'):
+      sqlserver_source_config.maxConcurrentFullDumpConnections = (
+          args.max_concurrent_full_dump_connections
+      )
+    if args.IsKnownAndSpecified('max_concurrent_cdc_connections'):
+      sqlserver_source_config.maxConcurrentCdcConnections = (
+          args.max_concurrent_cdc_connections
+      )
+    if args.IsKnownAndSpecified('skip_full_dump'):
+      sqlserver_source_config.skipFullDump = args.skip_full_dump
+      if args.IsKnownAndSpecified('sqlserver_cdc_start_position'):
+        sqlserver_source_config.sqlserverCdcStartPosition = (
+            args.sqlserver_cdc_start_position
+        )
+      else:
+        raise exceptions.RequiredArgumentException(
+            'sqlserver-cdc-start-position',
+            (
+                'The SQL Server CDC start position should be specified when'
+                ' skipping full dump.'
+            ),
+        )
+    return sqlserver_source_config
+
+  def _GetHeterogeneousMigrationJobConfig(
+      self, conversion_workspace_name, args
+  ):
+    """Returns the heterogeneous migration job config.
+
+    Args:
+      conversion_workspace_name: str, the name of the conversion workspace.
+      args: argparse.Namespace, The arguments that this command was invoked
+        with.
+
+    Returns:
+      A tuple containing the heterogeneous config key and the config object.
+
+    Raises:
+      Error: Invalid source or destination engine.
+    """
+    if self._IsHeterogeneousConfigKnownAndSpecified(args):
+      conversion_workspace = self._GetConversionWorkspace(
+          conversion_workspace_name
+      )
+      if (
+          conversion_workspace.destination.engine
+          == self.messages.DatabaseEngineInfo.EngineValueValuesEnum.POSTGRESQL
+      ):
+        postgres_destination_config = self._GetPostgresDestinationConfig(
+            args
+        )
+      else:
+        raise Error(
+            'Cannot create heterogeneous migration job configuration for '
+            'destination engine: {engine}'.format(
+                engine=conversion_workspace.destination.engine
+            )
+        )
+      if (
+          conversion_workspace.source.engine
+          == self.messages.DatabaseEngineInfo.EngineValueValuesEnum.ORACLE
+      ):
+        oracle_to_postgres_config = self.messages.OracleToPostgresConfig(
+            oracleSourceConfig=self._GetOracleSourceConfig(args),
+            postgresDestinationConfig=postgres_destination_config
+            )
+        return 'oracleToPostgresConfig', oracle_to_postgres_config
+      elif (
+          conversion_workspace.source.engine
+          == self.messages.DatabaseEngineInfo.EngineValueValuesEnum.SQLSERVER
+      ):
+        sqlserver_to_postgres_config = self.messages.SqlServerToPostgresConfig(
+            sqlserverSourceConfig=self._GetSqlServerSourceConfig(args),
+            postgresDestinationConfig=postgres_destination_config
+            )
+        return 'sqlserverToPostgresConfig', sqlserver_to_postgres_config
+      else:
+        raise Error(
+            'Cannot create heterogeneous migration job configuration for '
+            ' source engine: {engine}'.format(
+                engine=conversion_workspace.source.engine
+            ),
+        )
+    return None, None
 
   def _GetMigrationJob(
       self,
@@ -322,7 +622,27 @@ class MigrationJobsClient(object):
       cmek_key_ref,
       args,
   ):
-    """Returns a migration job."""
+    """Returns a migration job.
+
+    Args:
+      source_ref: a Resource reference to a
+        datamigration.projects.locations.connectionProfiles resource.
+      destination_ref: a Resource reference to a
+        datamigration.projects.locations.connectionProfiles resource.
+      conversion_workspace_ref: a Resource reference to a
+        datamigration.projects.locations.conversionWorkspaces resource.
+      cmek_key_ref: a Resource reference to a
+        cloudkms.projects.locations.keyRings.cryptoKeys resource.
+      args: argparse.Namespace, The arguments that this command was invoked
+        with.
+
+    Returns:
+      MigrationJob: the migration job.
+
+    Raises:
+      RequiredArgumentException: If conversion workspace is not specified for
+      heterogeneous migration job.
+    """
     migration_job_type = self.messages.MigrationJob
     labels = labels_util.ParseCreateArgs(
         args, self.messages.MigrationJob.LabelsValue
@@ -338,6 +658,30 @@ class MigrationJobsClient(object):
     elif args.IsSpecified('static_ip'):
       params['staticIpConnectivity'] = self._GetStaticIpConnectivity()
 
+    if args.IsSpecified('dump_flags'):
+      params['dumpFlags'] = self._GetDumpFlags(args.dump_flags)
+
+    if conversion_workspace_ref is not None:
+      params['conversionWorkspace'] = self._GetConversionWorkspaceInfo(
+          conversion_workspace_ref, args
+      )
+      heterogeneous_config_key, heterogeneous_config_obj = (
+          self._GetHeterogeneousMigrationJobConfig(
+              conversion_workspace_ref.RelativeName(), args
+          )
+      )
+      if heterogeneous_config_key is not None:
+        params[heterogeneous_config_key] = heterogeneous_config_obj
+    else:
+      if self._IsHeterogeneousConfigKnownAndSpecified(args):
+        raise exceptions.RequiredArgumentException(
+            'conversion-workspace',
+            (
+                'Conversion workspace is required for heterogeneous migration'
+                ' job.'
+            ),
+        )
+
     migration_job_obj = migration_job_type(
         labels=labels,
         displayName=args.display_name,
@@ -346,11 +690,8 @@ class MigrationJobsClient(object):
         dumpPath=args.dump_path,
         source=source,
         destination=destination,
-        **params)
-    if conversion_workspace_ref is not None:
-      migration_job_obj.conversionWorkspace = self._GetConversionWorkspaceInfo(
-          conversion_workspace_ref, args
-      )
+        **params
+    )
     if cmek_key_ref is not None:
       migration_job_obj.cmekKeyName = cmek_key_ref.RelativeName()
 
@@ -368,12 +709,84 @@ class MigrationJobsClient(object):
           self.messages.MigrationJob, args.dump_type
       )
 
-    if args.IsKnownAndSpecified('sqlserver_databases'):
+    if args.IsKnownAndSpecified(
+        'sqlserver_databases'
+    ) or args.IsKnownAndSpecified('sqlserver_dag_source_ag'):
       migration_job_obj.sqlserverHomogeneousMigrationJobConfig = (
           self._GetSqlserverHomogeneousMigrationJobConfig(args)
       )
 
+    if args.IsKnownAndSpecified('databases_filter') or args.IsKnownAndSpecified(
+        'all_databases'
+    ):
+      migration_job_obj.objectsConfig = self._GetMigrationJobObjectsConfig(args)
+
     return migration_job_obj
+
+  def _UpdateHeterogeneousMigrationJobConfigUpdateFields(
+      self, args, update_fields, source_engine, destination_engine
+  ):
+    """Update the heterogeneous migration job config update fields."""
+    config_key = '{}To{}Config'.format(
+        source_engine, destination_engine.title()
+    )
+    source_config_key = '{}.{}SourceConfig'.format(config_key, source_engine)
+    destination_config_key = '{}.{}DestinationConfig'.format(
+        config_key, destination_engine
+    )
+    if args.IsKnownAndSpecified('max_concurrent_full_dump_connections'):
+      update_fields.append(
+          '{}.maxConcurrentFullDumpConnections'.format(source_config_key)
+      )
+    if args.IsKnownAndSpecified('max_concurrent_cdc_connections'):
+      update_fields.append(
+          '{}.maxConcurrentCdcConnections'.format(source_config_key)
+      )
+    if args.IsKnownAndSpecified('max_concurrent_destination_connections'):
+      update_fields.append(
+          '{}.maxConcurrentDestinationConnections'.format(
+              destination_config_key
+          )
+      )
+    if args.IsKnownAndSpecified('transaction_timeout'):
+      update_fields.append(
+          '{}.transactionTimeout'.format(destination_config_key)
+      )
+
+  def _UpdateHeterogeneousMigrationJobConfig(
+      self, args, migration_job, update_fields
+  ):
+    """Update the heterogeneous migration job config for the migration job."""
+    heterogeneous_config_key, heterogeneous_config_obj = (
+        self._GetHeterogeneousMigrationJobConfig(
+            migration_job.conversionWorkspace.name, args
+        )
+    )
+    if heterogeneous_config_key == 'oracleToPostgresConfig':
+      migration_job.oracleToPostgresConfig = heterogeneous_config_obj
+      self._UpdateHeterogeneousMigrationJobConfigUpdateFields(
+          args,
+          update_fields,
+          'oracle',
+          'postgres',
+      )
+    elif heterogeneous_config_key == 'sqlserverToPostgresConfig':
+      migration_job.sqlserverToPostgresConfig = heterogeneous_config_obj
+      self._UpdateHeterogeneousMigrationJobConfigUpdateFields(
+          args,
+          update_fields,
+          'sqlserver',
+          'postgres',
+      )
+    else:
+      raise Error(
+          'Cannot update heterogeneous migration job configuration for '
+          'source engine: {source_engine} and destination engine: '
+          '{destination_engine}'.format(
+              source_engine=migration_job.conversionWorkspace.source.engine,
+              destination_engine=migration_job.conversionWorkspace.destination.engine,
+          )
+      )
 
   def _UpdateConnectivity(self, migration_job, args):
     """Update connectivity method for the migration job."""
@@ -385,7 +798,8 @@ class MigrationJobsClient(object):
 
     if args.IsSpecified('peer_vpc'):
       migration_job.vpcPeeringConnectivity = self._GetVpcPeeringConnectivity(
-          args)
+          args
+      )
       migration_job.reverseSshConnectivity = None
       migration_job.staticIpConnectivity = None
       return
@@ -393,20 +807,87 @@ class MigrationJobsClient(object):
     for field in self._REVERSE_MAP:
       if args.IsSpecified(field):
         migration_job.reverseSshConnectivity = self._GetReverseSshConnectivity(
-            args)
+            args
+        )
         migration_job.vpcPeeringConnectivity = None
         migration_job.staticIpConnectivity = None
         return
 
+  def _UpdateSqlserverHomogeneousMigrationJobConfig(self, args, migration_job):
+    """Update the sqlserver homogeneous migration job config for the migration job."""
+
+    if migration_job.sqlserverHomogeneousMigrationJobConfig is None:
+      raise Error(
+          'Cannot update sqlserver homogeneous migration job config when it was'
+          ' not set during creation of the migration job.'
+      )
+
+    sqlserver_homogeneous_migration_job_config_obj = (
+        migration_job.sqlserverHomogeneousMigrationJobConfig
+    )
+
+    if args.IsKnownAndSpecified('sqlserver_backup_file_pattern'):
+      sqlserver_homogeneous_migration_job_config_obj.backupFilePattern = (
+          args.sqlserver_backup_file_pattern
+      )
+    if args.IsKnownAndSpecified('sqlserver_diff_backup'):
+      sqlserver_homogeneous_migration_job_config_obj.useDiffBackup = (
+          args.sqlserver_diff_backup
+      )
+    if args.IsKnownAndSpecified('sqlserver_promote_when_ready'):
+      sqlserver_homogeneous_migration_job_config_obj.promoteWhenReady = (
+          args.sqlserver_promote_when_ready
+      )
+    if args.IsKnownAndSpecified(
+        'sqlserver_dag_source_ag'
+    ) or args.IsKnownAndSpecified('sqlserver_dag_linked_server'):
+      if sqlserver_homogeneous_migration_job_config_obj.dagConfig is None:
+        sqlserver_homogeneous_migration_job_config_obj.dagConfig = (
+            self.messages.SqlServerDagConfig()
+        )
+      if args.IsKnownAndSpecified('sqlserver_dag_source_ag'):
+        sqlserver_homogeneous_migration_job_config_obj.dagConfig.sourceAg = (
+            args.sqlserver_dag_source_ag
+        )
+      if args.IsKnownAndSpecified('sqlserver_dag_linked_server'):
+        (
+            sqlserver_homogeneous_migration_job_config_obj.dagConfig.linkedServer
+        ) = args.sqlserver_dag_linked_server
+    if args.IsKnownAndSpecified('sqlserver_databases'):
+      sqlserver_homogeneous_migration_job_config_obj.databaseBackups = (
+          self._GetSqlServerDatabaseBackups(
+              args.sqlserver_databases, args.sqlserver_encrypted_databases
+          )
+      )
+    elif args.IsKnownAndSpecified('sqlserver_encrypted_databases'):
+      raise exceptions.InvalidArgumentException(
+          '--sqlserver-encrypted-databases',
+          '--sqlserver-encrypted-databases can only be specified when'
+          ' --sqlserver-databases is specified.',
+      )
+
+  def _UpdateMigrationJobObjectsConfig(self, args, migration_job):
+    """Update the migration job objects config for the migration job."""
+
+    if args.IsKnownAndSpecified('databases_filter') or args.IsKnownAndSpecified(
+        'all_databases'
+    ):
+      migration_job.objectsConfig = self._GetMigrationJobObjectsConfig(args)
+
   def _GetUpdateMask(self, args):
     """Returns update mask for specified fields."""
-    update_fields = [resource_property.ConvertToCamelCase(field)
-                     for field in sorted(self._FIELDS_MAP)
-                     if args.IsSpecified(field)]
-    update_fields.extend(
-        ['reverseSshConnectivity.{0}'.format(
-            resource_property.ConvertToCamelCase(field))
-         for field in sorted(self._REVERSE_MAP) if args.IsSpecified(field)])
+    update_fields = [
+        resource_property.ConvertToCamelCase(field)
+        for field in sorted(self._FIELDS_MAP)
+        if args.IsSpecified(field)
+    ]
+    update_fields.extend([
+        'reverseSshConnectivity.{0}'.format(
+            resource_property.ConvertToCamelCase(field)
+        )
+        for field in sorted(self._REVERSE_MAP)
+        if args.IsSpecified(field)
+    ])
     if args.IsSpecified('peer_vpc'):
       update_fields.append('vpcPeeringConnectivity.vpc')
     if args.IsKnownAndSpecified('dump_parallel_level'):
@@ -419,10 +900,54 @@ class MigrationJobsClient(object):
         'filter'
     ):
       update_fields.append('conversionWorkspace.commitId')
-    return  update_fields
+
+    if args.IsKnownAndSpecified('sqlserver_backup_file_pattern'):
+      update_fields.append(
+          'sqlserverHomogeneousMigrationJobConfig.backupFilePattern'
+      )
+    if args.IsKnownAndSpecified('sqlserver_diff_backup'):
+      update_fields.append(
+          'sqlserverHomogeneousMigrationJobConfig.useDiffBackup'
+      )
+    if args.IsKnownAndSpecified('sqlserver_promote_when_ready'):
+      update_fields.append(
+          'sqlserverHomogeneousMigrationJobConfig.promoteWhenReady'
+      )
+    if args.IsKnownAndSpecified('sqlserver_dag_source_ag'):
+      update_fields.append(
+          'sqlserverHomogeneousMigrationJobConfig.dagConfig.sourceAg'
+      )
+    if args.IsKnownAndSpecified('sqlserver_dag_linked_server'):
+      update_fields.append(
+          'sqlserverHomogeneousMigrationJobConfig.dagConfig.linkedServer'
+      )
+    if args.IsKnownAndSpecified(
+        'sqlserver_databases'
+    ) or args.IsKnownAndSpecified('sqlserver_encrypted_databases'):
+      update_fields.append(
+          'sqlserverHomogeneousMigrationJobConfig.databaseBackups'
+      )
+    if args.IsKnownAndSpecified('databases_filter') or args.IsKnownAndSpecified(
+        'all_databases'
+    ):
+      update_fields.append('objectsConfig.sourceObjectsConfig')
+    return update_fields
+
+  def _GetDumpFlags(self, dump_flags):
+    """Returns the dump flags for the migration job."""
+    dump_flags_list = []
+    for name, value in dump_flags.items():
+      dump_flags_list.append(
+          self.messages.DumpFlag(
+              name=name,
+              value=value,
+          )
+      )
+    return self.messages.DumpFlags(dumpFlags=dump_flags_list)
 
   def _GetUpdatedMigrationJob(
-      self, migration_job, source_ref, destination_ref, args):
+      self, migration_job, source_ref, destination_ref, args
+  ):
     """Returns updated migration job and list of updated fields."""
     update_fields = self._GetUpdateMask(args)
     if args.IsSpecified('display_name'):
@@ -435,6 +960,8 @@ class MigrationJobsClient(object):
       )
     if args.IsSpecified('dump_path'):
       migration_job.dumpPath = args.dump_path
+    if args.IsSpecified('dump_flags'):
+      migration_job.dumpFlags = self._GetDumpFlags(args.dump_flags)
     if args.IsSpecified('source'):
       migration_job.source = source_ref.RelativeName()
     if args.IsSpecified('destination'):
@@ -448,6 +975,24 @@ class MigrationJobsClient(object):
       migration_job.filter = server_filter
     self._UpdateConnectivity(migration_job, args)
     self._UpdateLabels(args, migration_job, update_fields)
+    if (
+        args.IsKnownAndSpecified('sqlserver_backup_file_pattern')
+        or args.IsKnownAndSpecified('sqlserver_diff_backup')
+        or args.IsKnownAndSpecified('sqlserver_promote_when_ready')
+        or args.IsKnownAndSpecified('sqlserver_databases')
+        or args.IsKnownAndSpecified('sqlserver_encrypted_databases')
+        or args.IsKnownAndSpecified('sqlserver_dag_source_ag')
+        or args.IsKnownAndSpecified('sqlserver_dag_linked_server')
+    ):
+      self._UpdateSqlserverHomogeneousMigrationJobConfig(args, migration_job)
+
+    self._UpdateMigrationJobObjectsConfig(args, migration_job)
+
+    if self._IsHeterogeneousConfigKnownAndSpecified(args):
+      self._UpdateHeterogeneousMigrationJobConfig(
+          args, migration_job, update_fields
+      )
+
     return migration_job, update_fields
 
   def _GetExistingMigrationJob(self, name):
@@ -507,7 +1052,8 @@ class MigrationJobsClient(object):
         migrationJob=migration_job,
         migrationJobId=migration_job_id,
         parent=parent_ref,
-        requestId=request_id)
+        requestId=request_id,
+    )
 
     return self._service.Create(create_req)
 
@@ -515,14 +1061,13 @@ class MigrationJobsClient(object):
     """Updates a migration job.
 
     Args:
-      name: str, the reference of the migration job to
-          update.
+      name: str, the reference of the migration job to update.
       source_ref: a Resource reference to a
         datamigration.projects.locations.connectionProfiles resource.
       destination_ref: a Resource reference to a
         datamigration.projects.locations.connectionProfiles resource.
-      args: argparse.Namespace, The arguments that this command was
-          invoked with.
+      args: argparse.Namespace, The arguments that this command was invoked
+        with.
 
     Returns:
       Operation: the operation for updating the migration job.678888888
@@ -545,7 +1090,8 @@ class MigrationJobsClient(object):
       )
 
     migration_job, update_fields = self._GetUpdatedMigrationJob(
-        current_mj, source_ref, destination_ref, args)
+        current_mj, source_ref, destination_ref, args
+    )
 
     request_id = api_util.GenerateRequestId()
     update_req_type = (
@@ -555,7 +1101,110 @@ class MigrationJobsClient(object):
         migrationJob=migration_job,
         name=name,
         requestId=request_id,
-        updateMask=','.join(update_fields)
+        updateMask=','.join(update_fields),
     )
 
     return self._service.Patch(update_req)
+
+  def Promote(
+      self,
+      name,
+      args=None,
+  ):
+    """Promotes a migration job.
+
+    Args:
+      name: str, the name of the resource to promote.
+      args: argparse.Namespace, The arguments that this command was invoked
+        with.
+
+    Returns:
+      Operation: the operation for promoting the migration job.
+    """
+    promote_mj_req = self.messages.PromoteMigrationJobRequest()
+    if args.IsKnownAndSpecified('databases_filter'):
+      promote_mj_req.objectsFilter = self._GetMigrationJobObjectsConfig(args)
+
+    promote_req = (
+        self.messages.DatamigrationProjectsLocationsMigrationJobsPromoteRequest(
+            name=name,
+            promoteMigrationJobRequest=promote_mj_req,
+        )
+    )
+
+    return self._service.Promote(promote_req)
+
+  def Restart(
+      self,
+      name,
+      args=None,
+  ):
+    """Restarts a migration job.
+
+    Args:
+      name: str, the name of the resource to restart.
+      args: argparse.Namespace, The arguments that this command was invoked
+        with.
+
+    Returns:
+      Operation: the operation for promoting the migration job.
+    """
+    restart_mj_req = self.messages.RestartMigrationJobRequest()
+    if args.IsKnownAndSpecified('databases_filter') or args.IsKnownAndSpecified(
+        'object_filter'
+    ):
+      restart_mj_req.objectsFilter = self._GetMigrationJobObjectsConfig(args)
+    if args.IsKnownAndSpecified('skip_validation'):
+      restart_mj_req.skipValidation = True
+    if args.IsKnownAndSpecified('restart_failed_objects'):
+      restart_mj_req.restartFailedObjects = True
+
+    restart_req = (
+        self.messages.DatamigrationProjectsLocationsMigrationJobsRestartRequest(
+            name=name,
+            restartMigrationJobRequest=restart_mj_req,
+        )
+    )
+
+    return self._service.Restart(restart_req)
+
+  def FetchSourceObjects(
+      self,
+      name,
+  ):
+    """Fetches source objects of a migration job.
+
+    Args:
+      name: str, the name of the resource to fetch source objects for.
+
+    Returns:
+      Operation: the operation for fetching source objects of the migration job.
+    """
+    fetch_source_objects_req = self.messages.DatamigrationProjectsLocationsMigrationJobsFetchSourceObjectsRequest(
+        name=name,
+    )
+
+    return self._service.FetchSourceObjects(fetch_source_objects_req)
+
+  def ListObjects(self, migration_job_ref):
+    """Get the list of objects in a migration job.
+
+    Args:
+      migration_job_ref: The migration job for which to list objects.
+
+    Returns:
+      An iterator over all the matching migration job objects.
+    """
+    list_req_type = (
+        self.messages.DatamigrationProjectsLocationsMigrationJobsObjectsListRequest
+    )
+    list_req = list_req_type(parent=migration_job_ref.RelativeName())
+
+    return list_pager.YieldFromList(
+        service=self._service_objects,
+        request=list_req,
+        limit=None,
+        batch_size=None,
+        field='migrationJobObjects',
+        batch_size_attribute=None,
+    )

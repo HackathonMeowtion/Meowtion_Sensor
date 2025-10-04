@@ -107,6 +107,10 @@ class TestMvUnitTests(testcase.GsUtilUnitTestCase):
     ])
     self.assertEqual(actual, expected)
 
+
+class TestMvUnitTestsWithShim(testcase.ShimUnitTestBase):
+  """Unit tests for mv command with shim."""
+
   def test_shim_translates_flags(self):
     bucket_uri = self.CreateBucket()
     fpath = self.CreateTempFile(contents=b'abcd')
@@ -117,13 +121,13 @@ class TestMvUnitTests(testcase.GsUtilUnitTestCase):
           'CLOUDSDK_ROOT_DIR': 'fake_dir',
       }):
         mock_log_handler = self.RunCommand(
-            'mv', ['-a', 'public-read', fpath,
+            'mv', ['-a', 'public-read', '-U', '-r', '-R', fpath,
                    suri(bucket_uri)],
             return_log_handler=True)
         info_lines = '\n'.join(mock_log_handler.messages['info'])
         self.assertIn(
             'Gcloud Storage Command: {} storage mv'
-            ' --predefined-acl publicRead {} {}'.format(
+            ' --predefined-acl publicRead --skip-unsupported {} {}'.format(
                 shim_util._get_gcloud_binary_path('fake_dir'), fpath,
                 suri(bucket_uri)), info_lines)
 

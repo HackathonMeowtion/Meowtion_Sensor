@@ -61,6 +61,7 @@ DETAILED_HELP = {
 }
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(
     base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA, base.ReleaseTrack.GA
 )
@@ -81,9 +82,14 @@ class Update(base.UpdateCommand):
     parser.add_argument(
         '--retention-days',
         type=int,
-        help='A new retention period for the bucket.')
+        help=arg_parsers.UniverseHelpText(
+            default='A new retention period for the bucket.',
+            universe_help='This is not available.\n',
+        ),
+    )
     parser.add_argument(
         '--description', help='A new description for the bucket.')
+    util.AddParentArgs(parser, 'bucket to update')
     util.AddBucketLocationArg(parser, True, 'Location of the bucket.')
     parser.add_argument(
         '--locked',
@@ -155,9 +161,12 @@ class Update(base.UpdateCommand):
         '--enable-analytics',
         action='store_true',
         default=None,
-        help=(
-            'Whether to opt the bucket into Log Analytics. Once opted in, the'
-            ' bucket cannot be opted out of Log Analytics.'
+        help=arg_parsers.UniverseHelpText(
+            default=(
+                'Whether to opt the bucket into Log Analytics. Once opted in,'
+                ' the bucket cannot be opted out of Log Analytics.'
+            ),
+            universe_help='This is not available.\n',
         ),
     )
     parser.add_argument(
@@ -176,12 +185,17 @@ class Update(base.UpdateCommand):
         and must be consistent.
     """
     if not self._current_bucket:
-      return util.GetClient().projects_locations_buckets.Get(
+      self._current_bucket = util.GetClient().projects_locations_buckets.Get(
           util.GetMessages().LoggingProjectsLocationsBucketsGetRequest(
               name=util.CreateResourceName(
                   util.CreateResourceName(
-                      util.GetProjectResource(args.project).RelativeName(),
-                      'locations', args.location), 'buckets', args.BUCKET_ID)))
+                      util.GetParentFromArgs(args), 'locations', args.location
+                  ),
+                  'buckets',
+                  args.BUCKET_ID,
+              )
+          )
+      )
     return self._current_bucket
 
   def _Run(self, args):
@@ -272,7 +286,7 @@ class Update(base.UpdateCommand):
           util.GetMessages().LoggingProjectsLocationsBucketsUpdateAsyncRequest(
               name=util.CreateResourceName(
                   util.CreateResourceName(
-                      util.GetProjectResource(args.project).RelativeName(),
+                      util.GetParentFromArgs(args),
                       'locations',
                       args.location,
                   ),
@@ -290,7 +304,7 @@ class Update(base.UpdateCommand):
           util.GetMessages().LoggingProjectsLocationsBucketsPatchRequest(
               name=util.CreateResourceName(
                   util.CreateResourceName(
-                      util.GetProjectResource(args.project).RelativeName(),
+                      util.GetParentFromArgs(args),
                       'locations',
                       args.location,
                   ),

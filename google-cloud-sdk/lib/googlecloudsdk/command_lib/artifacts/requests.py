@@ -18,15 +18,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from apitools.base.py import exceptions as apitools_exceptions
+from apitools.base.py import http_wrapper
 from apitools.base.py import list_pager
 from googlecloudsdk.api_lib.artifacts import exceptions as ar_exceptions
 from googlecloudsdk.api_lib.cloudkms import iam as kms_iam
-from googlecloudsdk.api_lib.cloudresourcemanager import projects_api
 from googlecloudsdk.api_lib.iam import util as iam_api
 from googlecloudsdk.api_lib.util import apis
 from googlecloudsdk.command_lib.iam import iam_util
-from googlecloudsdk.command_lib.projects import util as project_util
 from googlecloudsdk.core import resources
+
 
 ARTIFACTREGISTRY_API_NAME = "artifactregistry"
 ARTIFACTREGISTRY_API_VERSION = "v1"
@@ -38,8 +39,6 @@ _GCR_PERMISSION = "storage.objects.list"
 
 CRYPTO_KEY_COLLECTION = "cloudkms.projects.locations.keyRings.cryptoKeys"
 
-REDIRECT_PERMISSIONS = ["storage.buckets.update"]
-
 
 def GetStorageClient():
   return apis.GetClientInstance(STORAGE_API_NAME, STORAGE_API_VERSION)
@@ -49,12 +48,21 @@ def GetStorageMessages():
   return apis.GetMessagesModule(STORAGE_API_NAME, STORAGE_API_VERSION)
 
 
+def SkipRetryOn500Errors(response):
+  """Wrap http_wrapper.CheckResponse to skip retry on 501."""
+  if response.status_code >= 500:
+    raise apitools_exceptions.HttpError.FromResponse(response)
+  return http_wrapper.CheckResponse(response)
+
+
 def GetClient(skip_activation_prompt=False):
-  return apis.GetClientInstance(
+  client = apis.GetClientInstance(
       ARTIFACTREGISTRY_API_NAME,
       ARTIFACTREGISTRY_API_VERSION,
       skip_activation_prompt=skip_activation_prompt,
   )
+  client.check_response_func = SkipRetryOn500Errors
+  return client
 
 
 def GetMessages():
@@ -138,10 +146,10 @@ def GetVersionFromTag(client, messages, tag):
   return get_tag_res.version.split("/")[-1]
 
 
-def ListTags(client, messages, package, page_size=None):
+def ListTags(client, messages, package, page_size=None, server_filter=None):
   """Lists all tags under a package with the given package name."""
   list_tags_req = messages.ArtifactregistryProjectsLocationsRepositoriesPackagesTagsListRequest(
-      parent=package)
+      parent=package, filter=server_filter)
   return list(
       list_pager.YieldFromList(
           client.projects_locations_repositories_packages_tags,
@@ -164,28 +172,31 @@ def ListVersionTags(client, messages, package, version, page_size=None):
           field="tags"))
 
 
-def ListPackages(client, messages, repo, page_size=None):
+def ListPackages(client, messages, repo, page_size=None,
+                 order_by=None, limit=None, server_filter=None):
   """Lists all packages under a repository."""
-  list_pkgs_req = messages.ArtifactregistryProjectsLocationsRepositoriesPackagesListRequest(
-      parent=repo)
+  list_pkgs_req = (
+      messages.ArtifactregistryProjectsLocationsRepositoriesPackagesListRequest(
+          parent=repo, orderBy=order_by, filter=server_filter))
   return list(
       list_pager.YieldFromList(
           client.projects_locations_repositories_packages,
           list_pkgs_req,
+          limit=limit,
           batch_size=page_size,
           batch_size_attribute="pageSize",
           field="packages"))
 
 
-def ListVersions(client, messages, pkg, version_view,
-                 page_size=None, order_by=None, limit=None):
+def ListVersions(client, messages, pkg, version_view=None,
+                 page_size=None, order_by=None, limit=None, server_filter=None):
   """Lists all versions under a package."""
   page_limit = limit
   if limit is None or (page_size is not None and page_size < limit):
     page_limit = page_size
 
   list_vers_req = messages.ArtifactregistryProjectsLocationsRepositoriesPackagesVersionsListRequest(
-      parent=pkg, view=version_view, orderBy=order_by)
+      parent=pkg, view=version_view, orderBy=order_by, filter=server_filter)
   return list(
       list_pager.YieldFromList(
           client.projects_locations_repositories_packages_versions,
@@ -196,12 +207,14 @@ def ListVersions(client, messages, pkg, version_view,
           field="versions"))
 
 
-def ListRepositories(project, page_size=None):
+def ListRepositories(project, page_size=None,
+                     order_by=None, server_filter=None):
   """Lists all repositories under a project."""
   client = GetClient()
   messages = GetMessages()
-  list_repos_req = messages.ArtifactregistryProjectsLocationsRepositoriesListRequest(
-      parent=project)
+  list_repos_req = (
+      messages.ArtifactregistryProjectsLocationsRepositoriesListRequest(
+          parent=project, orderBy=order_by, filter=server_filter))
   return list(
       list_pager.YieldFromList(
           client.projects_locations_repositories,
@@ -211,13 +224,12 @@ def ListRepositories(project, page_size=None):
           field="repositories"))
 
 
-def ListFiles(client, messages, repo, arg_filters, page_size=None):
+def ListFiles(client, messages, repo, server_filter=None,
+              page_size=None, order_by=None):
   """Lists all files under a repository."""
-  client = GetClient()
-  messages = GetMessages()
   list_files_req = (
       messages.ArtifactregistryProjectsLocationsRepositoriesFilesListRequest(
-          parent=repo, filter=arg_filters))
+          parent=repo, filter=server_filter, orderBy=order_by))
   return list(
       list_pager.YieldFromList(
           client.projects_locations_repositories_files,
@@ -344,13 +356,6 @@ def GetServiceAccount(service_account):
           name=iam_util.EmailToAccountResourceName(service_account)))
 
 
-def TestRedirectionIAMPermission(project):
-  """Tests the user has the storage.buckets.update IAM permission on the project."""
-  project_ref = project_util.ParseProject(project)
-  result = projects_api.TestIamPermissions(project_ref, REDIRECT_PERMISSIONS)
-  return set(REDIRECT_PERMISSIONS) == set(result.permissions)
-
-
 def GetProjectSettings(project_id):
   client = GetClient()
   messages = GetMessages()
@@ -439,3 +444,61 @@ def SetUpgradeRedirectionState(
       )
   )
   return client.projects.UpdateProjectSettings(update_settings_req)
+
+
+# TODO(b/339473586): If possible annotate list DockerImage output.
+def ListDockerImages(parent: str, page_size: int, limit: int):
+  """Lists all docker images under a repository."""
+  client = GetClient()
+  messages = GetMessages()
+  list_images_req = messages.ArtifactregistryProjectsLocationsRepositoriesDockerImagesListRequest(
+      parent=parent
+  )
+  return list(
+      list_pager.YieldFromList(
+          client.projects_locations_repositories_dockerImages,
+          list_images_req,
+          batch_size=page_size,
+          batch_size_attribute="pageSize",
+          field="dockerImages",
+          limit=limit,
+      )
+  )
+
+
+def CopyRepository(source_repo, dest_repo_name):
+  """Copies a repository."""
+  client = GetClient()
+  messages = GetMessages()
+  req = messages.ArtifactregistryProjectsLocationsRepositoriesCopyRepositoryRequest(
+      destinationRepository=dest_repo_name,
+      copyRepositoryRequest=messages.CopyRepositoryRequest(
+          sourceRepository=source_repo
+      ),
+  )
+  return client.projects_locations_repositories.CopyRepository(req)
+
+
+def ExportArtifact(version, tag, gcs_destination):
+  """Exports an artifact by version or tag."""
+  client = GetClient()
+  messages = GetMessages()
+  if version:
+    req = messages.ArtifactregistryProjectsLocationsRepositoriesExportArtifactRequest(
+        repository=version.Parent().Parent().RelativeName(),
+        exportArtifactRequest=messages.ExportArtifactRequest(
+            gcsPath=gcs_destination,
+            sourceVersion=version.RelativeName(),
+        ),
+    )
+  elif tag:
+    req = messages.ArtifactregistryProjectsLocationsRepositoriesExportArtifactRequest(
+        repository=tag.Parent().Parent().RelativeName(),
+        exportArtifactRequest=messages.ExportArtifactRequest(
+            gcsPath=gcs_destination,
+            sourceTag=tag.RelativeName(),
+        ),
+    )
+  else:
+    raise ValueError("Either version or tag must be specified.")
+  return client.projects_locations_repositories.ExportArtifact(req)

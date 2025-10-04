@@ -22,13 +22,16 @@ from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.spanner import resource_args
 
 
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
-class AlphaDescribe(base.DescribeCommand):
-  """Describe a Cloud Spanner instance partition with ALPHA features."""
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(
+    base.ReleaseTrack.GA, base.ReleaseTrack.BETA, base.ReleaseTrack.ALPHA
+)
+class Describe(base.DescribeCommand):
+  """Describe a Spanner instance partition."""
 
   detailed_help = {
       'EXAMPLES': textwrap.dedent("""\
-        To describe a Cloud Spanner instance partition, run:
+        To describe a Spanner instance partition, run:
 
           $ {command} my-instance-partition-id --instance=my-instance-id
         """),

@@ -77,18 +77,6 @@ def _AddToApisMap(api_name, api_version, api_def):
   apis_map.MAP[api_name] = api_versions
 
 
-def SetDefaultVersion(api_name, api_version):
-  """Resets default version for given api."""
-  # pylint:disable=protected-access
-  api_def = apis_internal.GetApiDef(api_name, api_version)
-  # pylint:disable=protected-access
-  default_version = apis_internal._GetDefaultVersion(api_name)
-  # pylint:disable=protected-access
-  default_api_def = apis_internal.GetApiDef(api_name, default_version)
-  default_api_def.default_version = False
-  api_def.default_version = True
-
-
 def GetVersions(api_name):
   """Return available versions for given api.
 
@@ -140,6 +128,7 @@ def ResolveVersion(api_name, api_version=None):
 
 API_ENABLEMENT_ERROR_EXPECTED_STATUS_CODE = 403  # retry status code
 RESOURCE_EXHAUSTED_STATUS_CODE = 429
+MAX_RETRY_DELAY_SEC = 60  # Default max retry delay defined by apitools.
 
 
 def GetApiEnablementInfo(exception):
@@ -227,13 +216,20 @@ def CheckResponse(skip_activation_prompt=False):
     if response is None:
       # Caller shouldn't call us if the response is None, but handle anyway.
       raise apitools_exceptions.RequestError(
-          'Request to url %s did not return a response.' %
-          response.request_url)
-    # If it was a resource exhausted error, return
+          'Request to url %s did not return a response.' % response.request_url
+      )
     elif response.status_code == RESOURCE_EXHAUSTED_STATUS_CODE:
-      return
+      if response.retry_after and response.retry_after > MAX_RETRY_DELAY_SEC:
+        # If the retry after is greater than the max retry delay, do not retry.
+        return
+      if response.retry_after:
+        raise apitools_exceptions.RetryAfterError.FromResponse(response)
+      else:
+        raise apitools_exceptions.BadStatusCodeError.FromResponse(response)
+
     elif response.status_code >= 500:
       raise apitools_exceptions.BadStatusCodeError.FromResponse(response)
+
     elif response.retry_after:
       raise apitools_exceptions.RetryAfterError.FromResponse(response)
 

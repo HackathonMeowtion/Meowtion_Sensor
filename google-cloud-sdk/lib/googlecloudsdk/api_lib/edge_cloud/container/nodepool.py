@@ -15,6 +15,8 @@
 """Helpers for the container node pool related commands."""
 
 from googlecloudsdk.api_lib.edge_cloud.container import util
+from googlecloudsdk.calliope import base
+from googlecloudsdk.calliope import exceptions
 from googlecloudsdk.command_lib.run import flags
 from googlecloudsdk.command_lib.util.args import labels_util
 from googlecloudsdk.core import resources
@@ -70,6 +72,8 @@ def GetNodePoolCreateRequest(args, release_track):
       parent=node_pool_ref.Parent().RelativeName(),
   )
   PopulateNodePoolCreateMessage(req, messages, args)
+  if release_track == base.ReleaseTrack.ALPHA:
+    PopulateNodePoolAlphaCreateMessage(req, args)
   return req
 
 
@@ -129,6 +133,52 @@ def PopulateNodePoolCreateMessage(req, messages, args):
       v.key = key
       v.value = value
       req.nodePool.nodeConfig.labels.additionalProperties.append(v)
+  if flags.FlagIsExplicitlySet(args, 'node_storage_schema'):
+    if not req.nodePool.nodeConfig:
+      req.nodePool.nodeConfig = messages.NodeConfig()
+    req.nodePool.nodeConfig.nodeStorageSchema = args.node_storage_schema
+
+
+def PopulateNodePoolAlphaCreateMessage(req, args):
+  """Fill the Alpha create node pool message from command arguments.
+
+  Args:
+    req: create node pool request message.
+    args: command line arguments.
+  """
+  if flags.FlagIsExplicitlySet(args, 'node_system_partition_size_gib'):
+    messages = util.GetMessagesModule(base.ReleaseTrack.ALPHA)
+    if not req.nodePool.nodeConfig:
+      req.nodePool.nodeConfig = messages.NodeConfig()
+    SetNodeSystemPartitionSize(req, args, messages)
+
+
+def PopulateNodePoolUpdateAlphaMessage(req, messages, update_mask_pieces, args):
+  """Filled the Alpha node pool message from command arguments.
+
+  Args:
+    req: create node pool request message.
+    messages: message module of edgecontainer node pool.
+    update_mask_pieces: update masks.
+    args: command line arguments.
+  """
+  if flags.FlagIsExplicitlySet(
+      args, 'use_google_managed_key'
+  ) and flags.FlagIsExplicitlySet(args, 'local_disk_kms_key'):
+    raise exceptions.InvalidArgumentException(
+        '--use-google-managed-key, --local-disk-kms-key',
+        'cannot be specified at the same time',
+    )
+  if flags.FlagIsExplicitlySet(args, 'use_google_managed_key'):
+    update_mask_pieces.append('localDiskEncryption')
+    req.nodePool.localDiskEncryption = messages.LocalDiskEncryption()
+    req.nodePool.localDiskEncryption.kmsKey = ''
+    return
+  if flags.FlagIsExplicitlySet(args, 'local_disk_kms_key'):
+    update_mask_pieces.append('localDiskEncryption')
+    req.nodePool.localDiskEncryption = messages.LocalDiskEncryption()
+    req.nodePool.localDiskEncryption.kmsKey = args.local_disk_kms_key
+    return
 
 
 def PopulateNodePoolUpdateMessage(
@@ -168,3 +218,42 @@ def PopulateNodePoolUpdateMessage(
       v.key = key
       v.value = value
       req.nodePool.nodeConfig.labels.additionalProperties.append(v)
+  if flags.FlagIsExplicitlySet(
+      args, 'use_google_managed_key'
+  ) and flags.FlagIsExplicitlySet(args, 'local_disk_kms_key'):
+    raise exceptions.InvalidArgumentException(
+        '--use-google-managed-key, --local-disk-kms-key',
+        'cannot be specified at the same time',
+    )
+  if flags.FlagIsExplicitlySet(args, 'use_google_managed_key'):
+    update_mask_pieces.append('localDiskEncryption')
+    req.nodePool.localDiskEncryption = messages.LocalDiskEncryption()
+    req.nodePool.localDiskEncryption.kmsKey = ''
+  if flags.FlagIsExplicitlySet(args, 'local_disk_kms_key'):
+    update_mask_pieces.append('localDiskEncryption')
+    req.nodePool.localDiskEncryption = messages.LocalDiskEncryption()
+    req.nodePool.localDiskEncryption.kmsKey = args.local_disk_kms_key
+
+
+def SetNodeSystemPartitionSize(req, args, messages):
+  """Set node system partition size in the node pool request message.
+
+  Args:
+   req: Create node pool request message.
+   args: Command line arguments.
+   messages: Message module of edgecontainer node pool.
+  """
+  if args.node_system_partition_size_gib == 100:
+    req.nodePool.nodeConfig.nodeSystemPartitionSize = (
+        messages.NodeConfig.NodeSystemPartitionSizeValueValuesEnum.SYSTEM_PARTITION_GIB_SIZE100
+    )
+  elif args.node_system_partition_size_gib == 300:
+    req.nodePool.nodeConfig.nodeSystemPartitionSize = (
+        messages.NodeConfig.NodeSystemPartitionSizeValueValuesEnum.SYSTEM_PARTITION_GIB_SIZE300
+    )
+  else:
+    raise ValueError(
+        'Unsupported --node_system_partition_size_gib value: '
+        + args.node_system_partition_size_gib
+        + '; valid values are 100 and 300.'
+    )

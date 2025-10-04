@@ -28,10 +28,14 @@ DEFAULT_LIST_FORMAT = """\
   table(
     name,
     displayName,
-    securityPolicyId
+    shortName,
+    securityPolicyId,
+    excludedProjects,
+    excludedFolders
   )"""
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
 class List(base.DescribeCommand, base.ListCommand):
   """List the associations of an organization or folder resource.
@@ -69,7 +73,7 @@ class List(base.DescribeCommand, base.ListCommand):
 List.detailed_help = {
     'EXAMPLES':
         """\
-    To list the associations of the folder with ID ``987654321", run:
+    To list the associations of the folder with ID ``987654321'', run:
 
       $ {command} --folder=987654321
     """,

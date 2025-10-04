@@ -20,6 +20,7 @@ from __future__ import unicode_literals
 
 import argparse
 
+from googlecloudsdk.calliope import actions
 from googlecloudsdk.calliope import arg_parsers
 from googlecloudsdk.calliope import base
 from googlecloudsdk.calliope.concepts import concepts
@@ -31,6 +32,121 @@ from googlecloudsdk.core import properties
 def AddAsyncFlag(parser):
   """Adds --async flag."""
   base.ASYNC_FLAG.AddToParser(parser)
+
+
+def AddAllowUnauthenticatedCorsPreflightRequestsFlag(parser):
+  """Adds a --allow-unauthenticated-cors-preflight-requests flag to the given parser."""
+  help_text = """\
+    By default, the workstations service makes sure that all requests to the
+    workstation are authenticated. CORS preflight requests do
+    not include cookies or custom headers, and so are considered
+    unauthenticated and blocked by the workstations service. Enabling this
+    option allows these unauthenticated CORS preflight requests through to
+    the workstation, where it becomes the responsibility of the destination
+    server in the workstation to validate the request
+  """
+  parser.add_argument(
+      '--allow-unauthenticated-cors-preflight-requests',
+      action='store_true',
+      help=help_text,
+  )
+
+
+def AddDisallowUnauthenticatedCorsPreflightRequestsToggleFlag(parser):
+  """Adds a --disallow-unauthenticated-cors-preflight-requests flag to the given parser."""
+  help_text = """\
+    By default, the workstations service makes sure that all requests to the
+    workstation are authenticated. CORS preflight requests do
+    not include cookies or custom headers, and so are considered
+    unauthenticated and blocked by the workstations service. Enabling this
+    option allows these unauthenticated CORS preflight requests through to
+    the workstation, where it becomes the responsibility of the destination
+    server in the workstation to validate the request
+  """
+
+  group = parser.add_mutually_exclusive_group()
+  group.add_argument(
+      '--allow-unauthenticated-cors-preflight-requests',
+      action='store_true',
+      help=help_text,
+  )
+
+  help_text = """\
+  If set, requires that all requests to the workstation are authenticated."""
+  group.add_argument(
+      '--disallow-unauthenticated-cors-preflight-requests',
+      action='store_true',
+      help=help_text,
+  )
+
+
+def AddDisableLocalhostReplacementFlag(parser):
+  """Adds a --disable-localhost-replacement flag to the given parser."""
+  help_text = """\
+    By default, the workstations service replaces references to localhost,
+    127.0.0.1, and 0.0.0.0 with the workstation's hostname in http responses
+    from the workstation so that applications under development run properly
+    on the workstation. This may intefere with some applications, and so
+    this option allows that behavior to be disabled.
+  """
+  parser.add_argument(
+      '--disable-localhost-replacement',
+      action='store_true',
+      help=help_text,
+  )
+
+
+def AddDisableLocalhostReplacementToggleFlag(parser):
+  """Adds a --enable-localhost-replacement flag to the given parser."""
+  help_text = """\
+    By default, the workstations service replaces references to localhost,
+    127.0.0.1, and 0.0.0.0 with the workstation's hostname in http responses
+    from the workstation so that applications under development run properly
+    on the workstation. This may intefere with some applications, and so
+    this option allows that behavior to be disabled.
+  """
+
+  group = parser.add_mutually_exclusive_group()
+  group.add_argument(
+      '--disable-localhost-replacement',
+      action='store_true',
+      help=help_text,
+  )
+
+  help_text = """\
+  If set, requires that all requests to the workstation are authenticated."""
+  group.add_argument(
+      '--enable-localhost-replacement',
+      action='store_true',
+      help=help_text,
+  )
+
+
+def AddAllowedPortsFlag(parser):
+  """Adds a --allowed-ports flag to the given parser."""
+  help_text = """\
+  A Single or Range of ports externally accessible in the workstation.
+  If not specified defaults to ports 22, 80 and ports 1024-65535.
+
+  To specify a single port, both first and last should be same.
+
+  Example:
+
+    $ {command} --allowed-ports=first=9000,last=9090
+    $ {command} --allowed-ports=first=80,last=80"""
+  parser.add_argument(
+      '--allowed-ports',
+      metavar='ALLOWED_PORTS',
+      type=arg_parsers.ArgObject(
+          spec={
+              'first': int,
+              'last': int,
+          },
+          required_keys=['first', 'last'],
+      ),
+      action=arg_parsers.FlattenAction(),
+      help=help_text,
+  )
 
 
 def LocationsAttributeConfig(
@@ -54,9 +170,7 @@ def LocationsAttributeConfig(
     )
   if global_fallthrough:
     fallthroughs.append(
-        deps.Fallthrough(
-            lambda: '-', hint='default is all regions'
-        )
+        deps.Fallthrough(lambda: '-', hint='default is all regions')
     )
   return concepts.ResourceParameterAttributeConfig(
       name='region',
@@ -253,7 +367,8 @@ def AddServiceAccountScopes(parser):
       '--service-account-scopes',
       metavar='SERVICE_ACCOUNT_SCOPES',
       type=arg_parsers.ArgList(),
-      help=help_text)
+      help=help_text,
+  )
 
 
 def AddNetworkTags(parser):
@@ -270,13 +385,14 @@ def AddNetworkTags(parser):
       '--network-tags',
       metavar='NETWORK_TAGS',
       type=arg_parsers.ArgList(),
-      help=help_text)
+      help=help_text,
+  )
 
 
 def AddPoolSize(parser, use_default=True):
   """Adds a --pool-size flag to the given parser."""
   help_text = """\
-  Number of instances to pool for faster Workstation starup."""
+  Number of instances to pool for faster Workstation startup."""
   parser.add_argument(
       '--pool-size',
       default=0 if use_default else None,
@@ -371,6 +487,21 @@ def AddShieldedIntegrityMonitoring(parser, use_default=True):
   )
 
 
+def AddSourceWorkstation(parser):
+  """Adds a --source-workstation flag to the given parser."""
+  help_text = """\
+  Source workstation from which this workstations persistent directories are
+  cloned on creation. When specified, the workstations service agent must have
+  `compute.disks.createSnapshot` and `compute.snapshots.useReadOnly` permissions
+  on the source workstation's host project.
+  """
+  parser.add_argument(
+      '--source-workstation',
+      type=str,
+      help=help_text,
+  )
+
+
 def AddEnableAuditAgent(parser, use_default=True):
   """Adds an --enable-audit-agent flag to the given parser."""
   help_text = """\
@@ -379,6 +510,21 @@ def AddEnableAuditAgent(parser, use_default=True):
   permission on the project."""
   parser.add_argument(
       '--enable-audit-agent',
+      action='store_true',
+      default=False if use_default else None,
+      help=help_text,
+  )
+
+
+def AddGrantWorkstationAdminRoleOnCreate(parser, use_default=True):
+  """Adds a --grant-workstation-admin-role-on-create flag to the given parser."""
+  help_text = """\
+  Default value is false.
+  If set, creator of a workstation will get `roles/workstations.policyAdmin`
+  role along with `roles/workstations.user` role on the workstation created by
+  them."""
+  parser.add_argument(
+      '--grant-workstation-admin-role-on-create',
       action='store_true',
       default=False if use_default else None,
       help=help_text,
@@ -431,19 +577,98 @@ def AddPdDiskType(parser):
       '--pd-disk-type',
       choices=['pd-standard', 'pd-balanced', 'pd-ssd'],
       default='pd-standard',
-      help=help_text)
+      help=help_text,
+  )
 
 
-def AddPdDiskSize(parser):
-  """Adds a --pd-disk-size flag to the given parser."""
+def AddNoPersistentStorageOrPd(parser):
+  """Adds a --no-persistent-storage or group of persistent directory flags to the given parser."""
+  top_level_mutex_group = parser.add_mutually_exclusive_group()
+
+  help_text = """\
+  If set, workstations under this configuration will not have a persistent directory."""
+  top_level_mutex_group.add_argument(
+      '--no-persistent-storage',
+      action='store_true',
+      help=help_text,
+  )
+
+  help_text = """\
+  Persistent directory configuration."""
+  pd_group = top_level_mutex_group.add_group(mutex=False, help=help_text)
+  AddPdDiskType(pd_group)
+  AddPdDiskSizeOrSnapshot(pd_group)
+  AddPdReclaimPolicy(pd_group)
+
+
+def AddPdDiskSizeOrSnapshot(parser):
+  """Adds a --pd-disk-size or --pd-source-snapshot flag to the given parser."""
   help_text = """\
   Size of the persistent directory in GB."""
-  parser.add_argument(
+  group = parser.add_mutually_exclusive_group()
+  group.add_argument(
       '--pd-disk-size',
       choices=[10, 50, 100, 200, 500, 1000],
       default=200,
       type=int,
-      help=help_text)
+      help=help_text,
+  )
+
+  help_text = """\
+  Name of the snapshot to use as the source for the home disk."""
+  group.add_argument(
+      '--pd-source-snapshot',
+      default='',
+      help=help_text,
+  )
+
+
+def AddPdDiskTypeArg():
+  help_text = """\
+  Type of the persistent directory."""
+  return base.Argument(
+      '--pd-disk-type',
+      choices=['pd-standard', 'pd-balanced', 'pd-ssd'],
+      default='pd-standard',
+      help=help_text,
+  )
+
+
+def AddPdDiskSizeArg(use_default):
+  help_text = """\
+  Size of the persistent directory in GB."""
+  return base.Argument(
+      '--pd-disk-size',
+      choices=[10, 50, 100, 200, 500, 1000],
+      default=200 if use_default else None,
+      type=int,
+      help=help_text,
+  )
+
+
+def AddPdSourceSnapshotArg():
+  help_text = """\
+  Name of the snapshot to use as the source for the persistent directory."""
+  return base.Argument(
+      '--pd-source-snapshot',
+      default='',
+      help=help_text,
+  )
+
+
+def AddPersistentDirectories(parser, use_default=True):
+  """Adds a --pd-disk-size, --pd-disk-type, and --pd-source-snapshot flag to the given parser."""
+
+  persistent_directory_group = parser.add_mutually_exclusive_group()
+  AddPdSourceSnapshotArg().AddToParser(persistent_directory_group)
+
+  help_text = """\
+  --pd-source-snapshot cannot be specified when --pd-disk-size or --pd-disk-type is specified."""
+  type_size_group = persistent_directory_group.add_group(
+      mutex=False, help=help_text
+  )
+  AddPdDiskTypeArg().AddToParser(type_size_group)
+  AddPdDiskSizeArg(use_default).AddToParser(type_size_group)
 
 
 def AddPdReclaimPolicy(parser):
@@ -453,37 +678,52 @@ def AddPdReclaimPolicy(parser):
   parser.add_argument(
       '--pd-reclaim-policy',
       choices={
-          'delete':
-              'The persistent disk will be deleted with the Workstation.',
-          'retain':
-              'The persistent disk will be remain after the workstation is deleted and the administrator must manually delete the disk.'
+          'delete': 'The persistent disk will be deleted with the Workstation.',
+          'retain': (
+              'The persistent disk will be remain after the workstation is'
+              ' deleted and the administrator must manually delete the disk.'
+          ),
       },
       default='delete',
-      help=help_text)
+      help=help_text,
+  )
 
 
 def AddEphemeralDirectory(parser):
+  """Adds a --ephemeral-directory flag to the given parser."""
   spec = {
       'mount-path': str,
       'disk-type': str,
       'source-snapshot': str,
       'source-image': str,
-      'read-only': bool
+      'read-only': arg_parsers.ArgBoolean(),
   }
   help_text = """\
-  Ephemeral directory which won't persist across workstation sessions."""
+  Ephemeral directory which won't persist across workstation sessions. An ephemeral directory is backed by a Compute Engine persistent disk whose mount-path, source-snapshot, source-image, and read-only are configurable.
+
+  *mount-path*::: Location of this directory in the running workstation.
+
+  *source-snapshot:: Name of the snapshot to use as the source for the disk. Must be empty if [source_image][] is set. Must be empty if [read_only][] is false. Updating [source_snapshot][] will update content in the ephemeral directory after the workstation is restarted.
+
+  *source-image::: Name of the disk image to use as the source for the disk. Must be empty if [source_snapshot][] is set. Updating [source_image][] will update content in the ephemeral directory after the workstation is restarted.
+
+  *read-only::: Whether the disk is read only. If true, the disk may be shared by multiple VMs and [source_snapshot][] must be set. Set to false when not specified and true when specified.
+
+  Example:
+
+    $ {command} --ephemeral-directory="mount-path=/home2,disk-type=pd-balanced,source-snapshot=projects/my-project/global/snapshots/snapshot,read-only=true"
+  """
   parser.add_argument(
       '--ephemeral-directory',
       type=arg_parsers.ArgDict(spec=spec),
       action='append',
       metavar='PROPERTY=VALUE',
-      help=help_text
+      help=help_text,
   )
 
 
 def AddContainerImageField(parser, use_default=True):
-  """Adds the --container-predefined-image and --container-custom-image flags to the given parser.
-  """
+  """Adds the --container-predefined-image and --container-custom-image flags to the given parser."""
   predefined_image_help_text = """\
   Code editor on base images."""
   custom_image_help_text = """\
@@ -512,7 +752,8 @@ def AddContainerImageField(parser, use_default=True):
   )
 
   group.add_argument(
-      '--container-custom-image', type=str, help=custom_image_help_text)
+      '--container-custom-image', type=str, help=custom_image_help_text
+  )
 
 
 def AddContainerCommandField(parser):
@@ -527,7 +768,8 @@ def AddContainerCommandField(parser):
       '--container-command',
       metavar='CONTAINER_COMMAND',
       type=arg_parsers.ArgList(),
-      help=help_text)
+      help=help_text,
+  )
 
 
 def AddContainerArgsField(parser):
@@ -542,7 +784,8 @@ def AddContainerArgsField(parser):
       '--container-args',
       metavar='CONTAINER_ARGS',
       type=arg_parsers.ArgList(),
-      help=help_text)
+      help=help_text,
+  )
 
 
 def AddContainerEnvField(parser):
@@ -557,7 +800,8 @@ def AddContainerEnvField(parser):
       '--container-env',
       metavar='CONTAINER_ENV',
       type=arg_parsers.ArgDict(key_type=str, value_type=str),
-      help=help_text)
+      help=help_text,
+  )
 
 
 def AddContainerWorkingDirField(parser):
@@ -603,7 +847,8 @@ def AddLocalHostPortField(parser):
       '--local-host-port',
       type=arg_parsers.HostPort.Parse,
       default='localhost:0',
-      help=help_text)
+      help=help_text,
+  )
 
 
 def AddCommandField(parser):
@@ -617,7 +862,7 @@ def AddCommandField(parser):
 
 
 def AddSshArgsAndUserField(parser):
-  """Adds a --user flag to the given parser."""
+  """Additional flags and positional args to be passed to *ssh(1)*."""
   help_text = """\
   The username with which to SSH.
   """
@@ -626,6 +871,14 @@ def AddSshArgsAndUserField(parser):
   help_text = """\
   Flags and positionals passed to the underlying ssh implementation."""
   parser.add_argument('ssh_args', nargs=argparse.REMAINDER, help=help_text)
+
+  help_text = """\
+  Additional flags to be passed to *ssh(1)*. It is recommended that flags
+  be passed using an assignment operator and quotes. Example:
+
+    $ {command} --ssh-flag="-vvv" --ssh-flag="-L 80:localhost:80"
+  """
+  parser.add_argument('--ssh-flag', action='append', help=help_text)
 
 
 def AddEncryptionKeyFields(parser):
@@ -670,9 +923,7 @@ def AddAcceleratorFields(parser):
   The type of accelerator resource to attach to the instance, for example,
   "nvidia-tesla-p100".
   """
-  group.add_argument(
-      '--accelerator-type', type=str, help=help_text
-  )
+  group.add_argument('--accelerator-type', type=str, help=help_text)
 
   help_text = """\
   The number of accelerator cards exposed to the instance.
@@ -686,8 +937,8 @@ def AddBoostConfigs(parser):
   """Adds a --boost-config flag to the given parser."""
   help_text = """\
   Boost Configuration(s) that workstations running with this configuration can
-  boost up to. This includes id (required), machine-type, accelerator-type, and
-  accelerator-count.
+  boost up to. This includes id (required), machine-type, accelerator-type,
+  accelerator-count, pool-size, boot-disk-size, and enable-nested-virtualization.
 
   Example:
 
@@ -701,6 +952,18 @@ def AddBoostConfigs(parser):
               'machine-type': str,
               'accelerator-type': str,
               'accelerator-count': int,
+              'pool-size': int,
+              'boot-disk-size': int,
+              'enable-nested-virtualization': bool,
+              'reservation-affinity': arg_parsers.ArgObject(
+                  spec={
+                      'key': str,
+                      'values': arg_parsers.ArgList(),
+                      'consume-reservation-type': (
+                          ValidateConsumeReservationType
+                      ),
+                  }
+              ),
           },
           required_keys=['id'],
       ),
@@ -740,27 +1003,15 @@ def AddReplicaZones(parser):
       '--replica-zones',
       metavar='REPLICA_ZONES',
       type=arg_parsers.ArgList(),
-      help=help_text)
-
-
-def AddDisableSSHToVM(parser, use_default=True):
-  """Adds a --disable-ssh-to-vm flag to the given parser."""
-  help_text = """\
-  Default value is False.
-  If set, workstations disable SSH connections to the root VM."""
-  parser.add_argument(
-      '--disable-ssh-to-vm',
-      action='store_true',
-      default=False if use_default else False,
       help=help_text,
   )
 
 
-def AddEnableSSHToVM(parser):
-  """Adds a --enable-ssh-to-vm flag to the given parser."""
+def AddDisableSSHToVM(parser):
+  """Adds a --disable-ssh-to-vm flag to the given parser."""
+  group = parser.add_mutually_exclusive_group()
   help_text = """\
   If set, workstations disable SSH connections to the root VM."""
-  group = parser.add_mutually_exclusive_group()
   group.add_argument(
       '--disable-ssh-to-vm',
       action='store_true',
@@ -773,3 +1024,111 @@ def AddEnableSSHToVM(parser):
       action='store_true',
       help=help_text,
   )
+
+
+def AddEnableSSHToVM(parser, use_default=False):
+  """Adds a --enable-ssh-to-vm flag to the given parser."""
+  help_text = """\
+  Default value is False.
+  If set, workstations enable SSH connections to the root VM."""
+  parser.add_argument(
+      '--enable-ssh-to-vm',
+      default=False if use_default else None,
+      action='store_true',
+      help=help_text,
+  )
+
+
+def AddDeprecatedDisableSSHToVM(parser, use_default=True):
+  """Adds a --disable-ssh-to-vm flag to the given parser."""
+  help_text = """\
+  Default value is False.
+  If set, workstations disable SSH connections to the root VM."""
+  parser.add_argument(
+      '--disable-ssh-to-vm',
+      action=actions.DeprecationAction(
+          '--disable-ssh-to-vm',
+          warn=(
+              'The {flag_name} option is deprecated; use --enable-ssh-to-vm'
+              ' instead.'
+          ),
+          removed=False,
+          action='store_true',
+      ),
+      default=False if use_default else False,
+      help=help_text,
+  )
+
+
+def AddVmTags(parser):
+  """Adds a --vm-tags flag to the given parser."""
+  help_text = """\
+  Resource manager tags to be bound to the instance.
+  Tag keys and values have the same definition as
+  https://cloud.google.com/resource-manager/docs/tags/tags-overview
+
+  Example:
+
+    $ {command} --vm-tags=tagKeys/key1=tagValues/value1,tagKeys/key2=tagValues/value2"""
+  parser.add_argument(
+      '--vm-tags',
+      metavar='VM_TAGS',
+      type=arg_parsers.ArgDict(key_type=str, value_type=str),
+      help=help_text,
+  )
+
+
+def AddMaxUsableWorkstationsCount(parser):
+  """Adds a --max-usable-workstations-count flag to the given parser."""
+  help_text = """\
+  Maximum number of workstations under this configuration a user can have
+  `workstations.workstation.use` permission on.
+
+  If not specified, defaults to `0`, which indicates a user can have unlimited
+  number of workstations under this configuration."""
+
+  parser.add_argument(
+      '--max-usable-workstations-count',
+      metavar='MAX_USABLE_WORKSTATIONS_COUNT',
+      type=int,
+      default=0,
+      help=help_text,
+  )
+
+
+def AddReservationAffinity(parser):
+  """Adds a --reservation-affinity flag to the given parser."""
+  help_text = """\
+  Reservation Affinity for the VM. This includes key, values, and
+  consumeReservationType.
+
+  Example:
+    $ {command} --reservation-affinity=key=compute.googleapis.com/reservation-name,consumeReservationType=SPECIFIC_RESERVATION,values=my-reservation
+  """
+
+  parser.add_argument(
+      '--reservation-affinity',
+      metavar='RESERVATION_AFFINITY',
+      type=arg_parsers.ArgObject(
+          spec={
+              'key': str,
+              'values': arg_parsers.ArgList(),
+              'consume-reservation-type': ValidateConsumeReservationType,
+          },
+      ),
+      help=help_text,
+  )
+
+
+def ValidateConsumeReservationType(value):
+  """Validates the consume-reservation-type value."""
+  allowed_values = [
+      'ANY_RESERVATION',
+      'NO_RESERVATION',
+      'SPECIFIC_RESERVATION',
+  ]
+  if value not in allowed_values:
+    raise argparse.ArgumentTypeError(
+        f"Invalid choice: '{value}'. Valid choices are {allowed_values}"
+    )
+  return value

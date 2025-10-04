@@ -21,6 +21,7 @@ from __future__ import unicode_literals
 import json
 import os
 import shutil
+import stat
 import textwrap
 
 from apitools.base.py import encoding
@@ -52,6 +53,15 @@ def GetClientInstance():
 
 def GetProject():
   return properties.VALUES.core.project.Get(required=True)
+
+
+def _GetBaseImagePath(image, is_distroless=False):
+  """Returns full the image path of the given image."""
+  if not is_distroless:
+    return (
+        f'gcr.io/dataflow-templates-base/{image}-template-launcher-base:latest'
+    )
+  return f'gcr.io/dataflow-templates-base/{image}-template-launcher-base-distroless:latest'
 
 
 class Jobs:
@@ -333,6 +343,7 @@ class TemplateArguments:
   network = None
   subnetwork = None
   worker_machine_type = None
+  launcher_machine_type = None
   staging_location = None
   temp_location = None
   kms_key_name = None
@@ -343,6 +354,7 @@ class TemplateArguments:
   worker_zone = None
   enable_streaming_engine = None
   additional_experiments = None
+  additional_pipeline_options = None
   additional_user_labels = None
   streaming_update = None
   transform_name_mappings = None
@@ -359,6 +371,7 @@ class TemplateArguments:
                network=None,
                subnetwork=None,
                worker_machine_type=None,
+               launcher_machine_type=None,
                staging_location=None,
                temp_location=None,
                kms_key_name=None,
@@ -369,6 +382,7 @@ class TemplateArguments:
                worker_zone=None,
                enable_streaming_engine=None,
                additional_experiments=None,
+               additional_pipeline_options=None,
                additional_user_labels=None,
                streaming_update=None,
                transform_name_mappings=None,
@@ -383,6 +397,7 @@ class TemplateArguments:
     self.network = network
     self.subnetwork = subnetwork
     self.worker_machine_type = worker_machine_type
+    self.launcher_machine_type = launcher_machine_type
     self.staging_location = staging_location
     self.temp_location = temp_location
     self.kms_key_name = kms_key_name
@@ -393,6 +408,7 @@ class TemplateArguments:
     self.worker_zone = worker_zone
     self.enable_streaming_engine = enable_streaming_engine
     self.additional_experiments = additional_experiments
+    self.additional_pipeline_options = additional_pipeline_options
     self.additional_user_labels = additional_user_labels
     self.streaming_update = streaming_update
     self.transform_name_mappings = transform_name_mappings
@@ -411,6 +427,9 @@ class Templates:
   FLEX_TEMPLATE_USER_LABELS_VALUE = (
       FLEX_TEMPLATE_ENVIRONMENT.AdditionalUserLabelsValue
   )
+  DYNAMIC_TEMPLATE_TRANSFORM_NAME_MAPPING_VALUE = (
+      LAUNCH_TEMPLATE_PARAMETERS.TransformNameMappingValue
+  )
   FLEX_TEMPLATE_PARAMETER = GetMessagesModule().LaunchFlexTemplateParameter
   FLEX_TEMPLATE_PARAMETERS_VALUE = FLEX_TEMPLATE_PARAMETER.ParametersValue
   FLEX_TEMPLATE_TRANSFORM_NAME_MAPPING_VALUE = (
@@ -424,32 +443,28 @@ class Templates:
   SDK_INFO = GetMessagesModule().SDKInfo
   SDK_LANGUAGE = GetMessagesModule().SDKInfo.LanguageValueValuesEnum
   CONTAINER_SPEC = GetMessagesModule().ContainerSpec
-  FLEX_TEMPLATE_JAVA11_BASE_IMAGE = ('gcr.io/dataflow-templates-base/'
-                                     'java11-template-launcher-base:latest')
-  FLEX_TEMPLATE_JAVA17_BASE_IMAGE = ('gcr.io/dataflow-templates-base/'
-                                     'java17-template-launcher-base:latest')
-  FLEX_TEMPLATE_JAVA8_BASE_IMAGE = ('gcr.io/dataflow-templates-base/'
-                                    'java8-template-launcher-base:latest')
-  FLEX_TEMPLATE_PYTHON3_BASE_IMAGE = ('gcr.io/dataflow-templates-base/'
-                                      'python3-template-launcher-base:latest')
-  FLEX_TEMPLATE_GO_BASE_IMAGE = ('gcr.io/dataflow-templates-base/'
-                                 'go-template-launcher-base:latest')
-  # Mapping of apitools request message fields to their json parameters
-  _CUSTOM_JSON_FIELD_MAPPINGS = {
-      'dynamicTemplate_gcsPath': 'dynamicTemplate.gcsPath',
-      'dynamicTemplate_stagingLocation': 'dynamicTemplate.stagingLocation'
-  }
-
-  # message fields.
-  @staticmethod
-  def ModifyDynamicTemplatesLaunchRequest(req):
-    """Add Api field query string mappings to req."""
-    updated_request_type = type(req)
-    for req_field, mapped_param in Templates._CUSTOM_JSON_FIELD_MAPPINGS.items(
-    ):
-      encoding.AddCustomJsonFieldMapping(updated_request_type, req_field,
-                                         mapped_param)
-    return req
+  FLEX_TEMPLATE_JAVA11_BASE_IMAGE = _GetBaseImagePath('java11')
+  FLEX_TEMPLATE_JAVA17_BASE_IMAGE = _GetBaseImagePath('java17')
+  FLEX_TEMPLATE_JAVA21_BASE_IMAGE = _GetBaseImagePath('java21')
+  FLEX_TEMPLATE_JAVA11_DISTROLESS_BASE_IMAGE = _GetBaseImagePath('java11', True)
+  FLEX_TEMPLATE_JAVA17_DISTROLESS_BASE_IMAGE = _GetBaseImagePath('java17', True)
+  FLEX_TEMPLATE_JAVA21_DISTROLESS_BASE_IMAGE = _GetBaseImagePath('java21', True)
+  FLEX_TEMPLATE_PYTHON3_BASE_IMAGE = _GetBaseImagePath('python3')
+  FLEX_TEMPLATE_GO_BASE_IMAGE = _GetBaseImagePath('go')
+  FLEX_TEMPLATE_GO_DISTROLESS_BASE_IMAGE = _GetBaseImagePath('go', True)
+  YAML_TEMPLATE_GCS_LOCATION = (
+      'gs://dataflow-templates-{}/latest/flex/Yaml_Template'
+  )
+  ALL_PERMISSIONS_MASK = (
+      stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO
+  )
+  FILE_PERMISSIONS_MASK = (
+      stat.S_IWUSR | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
+  )
+  # Directories need +x for access.
+  DIR_PERMISSIONS_MASK = (
+      stat.S_IRWXU | stat.S_IXGRP | stat.S_IRGRP | stat.S_IXOTH | stat.S_IROTH
+  )
 
   @staticmethod
   def GetService():
@@ -482,6 +497,11 @@ class Templates:
     ).RuntimeEnvironment.IpConfigurationValueValuesEnum
     ip_private = ip_configuration_enum.WORKER_IP_PRIVATE
     ip_configuration = ip_private if template_args.disable_public_ips else None
+    user_labels_value = GetMessagesModule(
+    ).RuntimeEnvironment.AdditionalUserLabelsValue
+    user_labels_list = Templates.__ConvertDictArguments(
+        template_args.additional_user_labels,
+        user_labels_value)
 
     body = Templates.CREATE_REQUEST(
         gcsPath=template_args.gcs_location,
@@ -501,9 +521,19 @@ class Templates:
             workerRegion=template_args.worker_region,
             workerZone=template_args.worker_zone,
             enableStreamingEngine=template_args.enable_streaming_engine,
-            additionalExperiments=(template_args.additional_experiments
-                                   if template_args.additional_experiments else
-                                   [])),
+            additionalUserLabels=user_labels_value(
+                additionalProperties=user_labels_list)
+            if user_labels_list else None,
+            additionalExperiments=(
+                template_args.additional_experiments
+                if template_args.additional_experiments else
+                []
+            ),
+            additionalPipelineOptions=(
+                template_args.additional_pipeline_options
+                if template_args.additional_pipeline_options
+                else []
+            )),
         parameters=Templates.PARAMETERS_VALUE(
             additionalProperties=params_list) if parameters else None)
     request = GetMessagesModule(
@@ -535,6 +565,21 @@ class Templates:
           Templates.LAUNCH_TEMPLATE_PARAMETERS_VALUE.AdditionalProperty(
               key=k, value=v))
 
+    transform_mapping_list = Templates.__ConvertDictArguments(
+        template_args.transform_name_mappings,
+        Templates.DYNAMIC_TEMPLATE_TRANSFORM_NAME_MAPPING_VALUE,
+    )
+    transform_mappings = None
+    streaming_update = None
+    if template_args.streaming_update:
+      streaming_update = template_args.streaming_update
+      if transform_mapping_list:
+        transform_mappings = (
+            Templates.DYNAMIC_TEMPLATE_TRANSFORM_NAME_MAPPING_VALUE(
+                additionalProperties=transform_mapping_list
+            )
+        )
+
     # TODO(b/139889563): Remove default when args region is changed to required
     region_id = template_args.region_id or DATAFLOW_API_DEFAULT_REGION
 
@@ -556,21 +601,29 @@ class Templates:
             kmsKeyName=template_args.kms_key_name,
             ipConfiguration=ip_configuration,
             workerRegion=template_args.worker_region,
-            workerZone=template_args.worker_zone),
+            workerZone=template_args.worker_zone,
+            enableStreamingEngine=template_args.enable_streaming_engine,
+            additionalExperiments=(
+                template_args.additional_experiments
+                if template_args.additional_experiments
+                else []
+            ),
+        ),
         jobName=template_args.job_name,
         parameters=Templates.LAUNCH_TEMPLATE_PARAMETERS_VALUE(
-            additionalProperties=params_list) if parameters else None,
-        update=False)
-    request = GetMessagesModule(
-    ).DataflowProjectsLocationsTemplatesLaunchRequest(
-        dynamicTemplate_gcsPath=template_args.gcs_location,
-        dynamicTemplate_stagingLocation=template_args.staging_location,
-        location=region_id,
-        launchTemplateParameters=body,
-        projectId=template_args.project_id or GetProject(),
-        validateOnly=False)
-
-    Templates.ModifyDynamicTemplatesLaunchRequest(request)
+            additionalProperties=params_list) if params_list else None,
+        update=streaming_update,
+        transformNameMapping=transform_mappings,
+    )
+    request = (
+        GetMessagesModule().DataflowProjectsLocationsTemplatesLaunchRequest(
+            gcsPath=template_args.gcs_location,
+            location=region_id,
+            launchTemplateParameters=body,
+            projectId=template_args.project_id or GetProject(),
+            validateOnly=False,
+        )
+    )
 
     try:
       return Templates.GetService().Launch(request)
@@ -658,16 +711,37 @@ class Templates:
         'rm -rf /var/lib/apt/lists/*',
     ]
 
-    env['FLEX_TEMPLATE_PYTHON_PY_FILE'] = '/template/{}'.format(
-        (env['FLEX_TEMPLATE_PYTHON_PY_FILE']))
+    env['FLEX_TEMPLATE_PYTHON_PY_FILE'] = (
+        f'/template/{env["FLEX_TEMPLATE_PYTHON_PY_FILE"]}'
+    )
+    if 'FLEX_TEMPLATE_PYTHON_EXTRA_PACKAGES' in env:
+      package_list = env['FLEX_TEMPLATE_PYTHON_EXTRA_PACKAGES'].split(',')
+      if package_list:
+        packages_path = [f'/template/{package}' for package in package_list]
+        env['FLEX_TEMPLATE_PYTHON_EXTRA_PACKAGES'] = ','.join(packages_path)
+        package_arg = ' '.join(packages_path)
+        commands.append(
+            f'pip install {package_arg}'
+        )
     if 'FLEX_TEMPLATE_PYTHON_REQUIREMENTS_FILE' in env:
-      env['FLEX_TEMPLATE_PYTHON_REQUIREMENTS_FILE'] = '/template/{}'.format(
-          env['FLEX_TEMPLATE_PYTHON_REQUIREMENTS_FILE'])
-      commands.append('pip install --no-cache-dir -U -r {}'.format(
-          env['FLEX_TEMPLATE_PYTHON_REQUIREMENTS_FILE']))
+      env['FLEX_TEMPLATE_PYTHON_REQUIREMENTS_FILE'] = (
+          f'/template/{env["FLEX_TEMPLATE_PYTHON_REQUIREMENTS_FILE"]}'
+      )
+      commands.append(
+          'pip install --no-cache-dir -U -r'
+          f' {env["FLEX_TEMPLATE_PYTHON_REQUIREMENTS_FILE"]}'
+      )
+      commands.append(
+          '(pip check || (e=$?; echo "Building a container with incompatible'
+          ' dependencies is prevented by default. If you are sure you want to'
+          ' proceed, you need to create your own container image. See:'
+          ' https://cloud.google.com/dataflow/docs/guides/templates/configuring-flex-templates";'
+          ' exit $e))'
+      )
     if 'FLEX_TEMPLATE_PYTHON_SETUP_FILE' in env:
-      env['FLEX_TEMPLATE_PYTHON_SETUP_FILE'] = '/template/{}'.format(
-          env['FLEX_TEMPLATE_PYTHON_SETUP_FILE'])
+      env['FLEX_TEMPLATE_PYTHON_SETUP_FILE'] = (
+          f'/template/{env["FLEX_TEMPLATE_PYTHON_SETUP_FILE"]}'
+      )
 
     envs = ['ENV {}={}'.format(k, v) for k, v in sorted(env.items())]
     env_list = '\n'.join(envs)
@@ -827,7 +901,46 @@ class Templates:
       Templates._ValidateTemplateParameters(template_metadata.parameters)
       template_metadata_obj.parameters = template_metadata.parameters
 
+    if template_metadata.yamlDefinition:
+      template_metadata_obj.yamlDefinition = template_metadata.yamlDefinition
+
     return template_metadata_obj
+
+  @staticmethod
+  def GetYamlTemplateImage(args):
+    """Returns the image path for a YAML template."""
+    if args.image:
+      return args.image
+    elif args.yaml_image:
+      return args.yaml_image
+
+    # TODO: b/397983834 - Try to extract a region from the gcs bucket.
+    if args.worker_region:
+      try:
+        return Templates._ExtractYamlTemplateImage(args.worker_region)
+      except exceptions.HttpException:
+        pass  # Fall through to using default region.
+
+    return Templates._ExtractYamlTemplateImage(DATAFLOW_API_DEFAULT_REGION)
+
+  @staticmethod
+  def _ExtractYamlTemplateImage(region_id):
+    """Returns the image path for a YAML template."""
+    yaml_gcl_template_path = Templates.YAML_TEMPLATE_GCS_LOCATION.format(
+        region_id
+    )
+    storage_client = storage_api.StorageClient()
+    obj_ref = storage_util.ObjectReference.FromUrl(yaml_gcl_template_path)
+    try:
+      generic_template_definition = json.load(
+          storage_client.ReadObject(obj_ref)
+      )
+    except Exception as e:
+      raise exceptions.HttpException(
+          'Unable to read file {0} due to incorrect file path or insufficient'
+          ' read permissions'.format(yaml_gcl_template_path)
+      ) from e
+    return generic_template_definition['image']
 
   @staticmethod
   def _GetFlexTemplateBaseImage(flex_template_base_image):
@@ -844,12 +957,26 @@ class Templates:
       return Templates.FLEX_TEMPLATE_JAVA11_BASE_IMAGE
     elif flex_template_base_image == 'JAVA17':
       return Templates.FLEX_TEMPLATE_JAVA17_BASE_IMAGE
+    elif flex_template_base_image == 'JAVA21':
+      return Templates.FLEX_TEMPLATE_JAVA21_BASE_IMAGE
+    elif flex_template_base_image == 'JAVA11_DISTROLESS':
+      return Templates.FLEX_TEMPLATE_JAVA11_DISTROLESS_BASE_IMAGE
+    elif flex_template_base_image == 'JAVA17_DISTROLESS':
+      return Templates.FLEX_TEMPLATE_JAVA17_DISTROLESS_BASE_IMAGE
+    elif flex_template_base_image == 'JAVA21_DISTROLESS':
+      return Templates.FLEX_TEMPLATE_JAVA21_DISTROLESS_BASE_IMAGE
     elif flex_template_base_image == 'JAVA8':
-      return Templates.FLEX_TEMPLATE_JAVA8_BASE_IMAGE
+      log.warning(
+          'JAVA8 is deprecated and redirected to JAVA11. This option '
+          'will be removed in a future release'
+      )
+      return Templates.FLEX_TEMPLATE_JAVA11_BASE_IMAGE
     elif flex_template_base_image == 'PYTHON3':
       return Templates.FLEX_TEMPLATE_PYTHON3_BASE_IMAGE
     elif flex_template_base_image == 'GO':
       return Templates.FLEX_TEMPLATE_GO_BASE_IMAGE
+    elif flex_template_base_image == 'GO_DISTROLESS':
+      return Templates.FLEX_TEMPLATE_GO_DISTROLESS_BASE_IMAGE
     return flex_template_base_image
 
   @staticmethod
@@ -866,6 +993,8 @@ class Templates:
       return Templates.SDK_INFO(language=Templates.SDK_LANGUAGE.JAVA)
     elif sdk_language == 'PYTHON':
       return Templates.SDK_INFO(language=Templates.SDK_LANGUAGE.PYTHON)
+    elif sdk_language == 'YAML':
+      return Templates.SDK_INFO(language=Templates.SDK_LANGUAGE.YAML)
     elif sdk_language == 'GO':
       return Templates.SDK_INFO(language=Templates.SDK_LANGUAGE.GO)
 
@@ -984,9 +1113,50 @@ class Templates:
       raise exceptions.HttpException(error)
 
   @staticmethod
-  def BuildAndStoreFlexTemplateImage(image_gcr_path, flex_template_base_image,
-                                     jar_paths, py_paths, go_binary_path, env,
-                                     sdk_language, gcs_log_dir):
+  def _AddPermissions(path, permissions):
+    """Adds the given permissions to a file or directory.
+
+    Args:
+      path: The path to the file or directory.
+      permissions: The permissions to add.
+
+    Raises:
+      OSError: If the chmod fails.
+    """
+    permissions = (
+        os.stat(path).st_mode & Templates.ALL_PERMISSIONS_MASK
+    ) | permissions
+    os.chmod(path, permissions)
+
+  @staticmethod
+  def _ChmodRWorldReadable(top_dir_path):
+    """Walks a dir to chmod itself and its contents with the configured access.
+
+    Args:
+      top_dir_path: The path to the top-level directory.
+
+    Raises:
+      OSError: If the chmod fails.
+    """
+    for dirpath, _, filenames in os.walk(top_dir_path):
+      Templates._AddPermissions(dirpath, Templates.DIR_PERMISSIONS_MASK)
+      for filename in filenames:
+        Templates._AddPermissions(
+            os.path.join(dirpath, filename), Templates.FILE_PERMISSIONS_MASK
+        )
+
+  @staticmethod
+  def BuildAndStoreFlexTemplateImage(
+      image_gcr_path,
+      flex_template_base_image,
+      jar_paths,
+      py_paths,
+      go_binary_path,
+      env,
+      sdk_language,
+      gcs_log_dir,
+      cloud_build_service_account,
+  ):
     """Builds the flex template docker container image and stores it in GCR.
 
     Args:
@@ -998,6 +1168,8 @@ class Templates:
       env: Dictionary of env variables to set in the container image.
       sdk_language: SDK language of the flex template.
       gcs_log_dir: Path to Google Cloud Storage directory to store build logs.
+      cloud_build_service_account: Service account to be used by Cloud
+        Build to build the image.
 
     Returns:
       True if container is built and store successfully.
@@ -1019,10 +1191,32 @@ class Templates:
       for path in paths:
         absl_path = os.path.abspath(path)
         if os.path.isfile(absl_path):
-          shutil.copy2(absl_path, temp_dir)
+          copy_file = shutil.copy2(absl_path, temp_dir)
+          # Add the configured access to support non-root container execution.
+          try:
+            Templates._AddPermissions(
+                copy_file, Templates.FILE_PERMISSIONS_MASK
+            )
+          except OSError:
+            log.warning(
+                'Could not adjust permissions for copied file {}'.format(
+                    copy_file
+                )
+            )
         else:
-          shutil.copytree(absl_path,
-                          '{}/{}'.format(temp_dir, os.path.basename(absl_path)))
+          copy_dir = shutil.copytree(
+              absl_path,
+              os.path.join(temp_dir, os.path.basename(absl_path)),
+          )
+          # Add the configured access to support non-root container execution.
+          try:
+            Templates._ChmodRWorldReadable(copy_dir)
+          except OSError:
+            log.warning(
+                'Could not adjust permissions for copied directory {}'.format(
+                    copy_dir
+                )
+            )
         pipeline_files.append(os.path.split(absl_path)[1])
 
       log.status.Print(
@@ -1038,7 +1232,7 @@ class Templates:
 
       messages = cloudbuild_util.GetMessagesModule()
       build_config = submit_util.CreateBuildConfig(
-          image_gcr_path,
+          tag=image_gcr_path,
           no_cache=False,
           messages=messages,
           substitutions=None,
@@ -1056,7 +1250,11 @@ class Templates:
           arg_revision=None,
           arg_git_source_dir=None,
           arg_git_source_revision=None,
-          arg_service_account=None,
+          arg_service_account=(
+              cloud_build_service_account
+              if cloud_build_service_account
+              else None
+          ),
           buildpack=None,
       )
       log.status.Print('Pushing flex template container image to GCR...')
@@ -1119,6 +1317,7 @@ class Templates:
                 network=template_args.network,
                 subnetwork=template_args.subnetwork,
                 machineType=template_args.worker_machine_type,
+                launcherMachineType=template_args.launcher_machine_type,
                 tempLocation=template_args.temp_location if template_args
                 .temp_location else template_args.staging_location,
                 stagingLocation=template_args.staging_location,
@@ -1133,7 +1332,12 @@ class Templates:
                     .additional_experiments else []),
                 additionalUserLabels=Templates.FLEX_TEMPLATE_USER_LABELS_VALUE(
                     additionalProperties=user_labels_list
-                ) if user_labels_list else None),
+                ) if user_labels_list else None,
+                additionalPipelineOptions=(
+                    template_args.additional_pipeline_options
+                    if template_args.additional_pipeline_options
+                    else []
+                )),
             update=streaming_update,
             transformNameMappings=transform_mappings,
             parameters=Templates.FLEX_TEMPLATE_PARAMETERS_VALUE(

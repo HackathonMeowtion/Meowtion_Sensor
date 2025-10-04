@@ -112,6 +112,9 @@ class CheckUpgradeResponse(_messages.Message):
 
   Fields:
     buildLogUri: Output only. Url for a docker build log of an upgraded image.
+    configConflicts: Output only. Contains information about environment
+      configuration that is incompatible with the new image version, except
+      for pypi modules conflicts.
     containsPypiModulesConflict: Output only. Whether build has succeeded or
       failed on modules conflicts.
     imageVersion: Composer image for which the build was happening.
@@ -163,10 +166,11 @@ class CheckUpgradeResponse(_messages.Message):
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
   buildLogUri = _messages.StringField(1)
-  containsPypiModulesConflict = _messages.EnumField('ContainsPypiModulesConflictValueValuesEnum', 2)
-  imageVersion = _messages.StringField(3)
-  pypiConflictBuildLogExtract = _messages.StringField(4)
-  pypiDependencies = _messages.MessageField('PypiDependenciesValue', 5)
+  configConflicts = _messages.MessageField('ConfigConflict', 2, repeated=True)
+  containsPypiModulesConflict = _messages.EnumField('ContainsPypiModulesConflictValueValuesEnum', 3)
+  imageVersion = _messages.StringField(4)
+  pypiConflictBuildLogExtract = _messages.StringField(5)
+  pypiDependencies = _messages.MessageField('PypiDependenciesValue', 6)
 
 
 class CidrBlock(_messages.Message):
@@ -255,13 +259,20 @@ class ComposerProjectsLocationsEnvironmentsDagsDagRunsListRequest(_messages.Mess
     pageToken: The next_page_token returned from a previous List request.
     parent: Required. List DAG runs in the given parent resource. Parent must
       be in the form: "projects/{projectId}/locations/{locationId}/environment
-      s/{environmentId}/dags/{dagId}".
+      s/{environmentId}/dags/{dagId}". If dagId is specified as a wildcard
+      '-', the response will contain the runs of all DAGs.
+    runsCountPerDag: Optional. If set to value greater than 0, the cross-DAG
+      list mode will be used and response will contain the specified number of
+      last DAG runs for selected DAGs. Pagination is not supported if this
+      field is set. Sort order is descending by DAG run execution_date if this
+      field is set. Filter is supported.
   """
 
   filter = _messages.StringField(1)
   pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
   pageToken = _messages.StringField(3)
   parent = _messages.StringField(4, required=True)
+  runsCountPerDag = _messages.IntegerField(5, variant=_messages.Variant.INT32)
 
 
 class ComposerProjectsLocationsEnvironmentsDagsDagRunsTaskInstancesGetRequest(_messages.Message):
@@ -520,6 +531,21 @@ class ComposerProjectsLocationsEnvironmentsLoadSnapshotRequest(_messages.Message
   loadSnapshotRequest = _messages.MessageField('LoadSnapshotRequest', 2)
 
 
+class ComposerProjectsLocationsEnvironmentsMigrateRequest(_messages.Message):
+  r"""A ComposerProjectsLocationsEnvironmentsMigrateRequest object.
+
+  Fields:
+    migrateEnvironmentRequest: A MigrateEnvironmentRequest resource to be
+      passed as the request body.
+    name: Required. The resource name of the environment to migrate, in the
+      form: "projects/{projectId}/locations/{locationId}/environments/{environ
+      mentId}"
+  """
+
+  migrateEnvironmentRequest = _messages.MessageField('MigrateEnvironmentRequest', 1)
+  name = _messages.StringField(2, required=True)
+
+
 class ComposerProjectsLocationsEnvironmentsPatchRequest(_messages.Message):
   r"""A ComposerProjectsLocationsEnvironmentsPatchRequest object.
 
@@ -649,9 +675,9 @@ class ComposerProjectsLocationsEnvironmentsRestartWebServerRequest(_messages.Mes
   r"""A ComposerProjectsLocationsEnvironmentsRestartWebServerRequest object.
 
   Fields:
-    name: The resource name of the environment to restart the web server for,
-      in the form: "projects/{projectId}/locations/{locationId}/environments/{
-      environmentId}"
+    name: Required. The resource name of the environment to restart the web
+      server for, in the form: "projects/{projectId}/locations/{locationId}/en
+      vironments/{environmentId}"
     restartWebServerRequest: A RestartWebServerRequest resource to be passed
       as the request body.
   """
@@ -983,6 +1009,34 @@ class ComposerWorkloadStatus(_messages.Message):
   statusMessage = _messages.StringField(3)
 
 
+class ConfigConflict(_messages.Message):
+  r"""Environment configuration conflict.
+
+  Enums:
+    TypeValueValuesEnum: Conflict type. It can be blocking or non-blocking.
+
+  Fields:
+    message: Conflict message.
+    type: Conflict type. It can be blocking or non-blocking.
+  """
+
+  class TypeValueValuesEnum(_messages.Enum):
+    r"""Conflict type. It can be blocking or non-blocking.
+
+    Values:
+      CONFLICT_TYPE_UNSPECIFIED: Conflict type is unknown.
+      BLOCKING: Conflict is blocking, the upgrade would fail.
+      NON_BLOCKING: Conflict is non-blocking. The upgrade would succeed, but
+        the environment configuration would be changed.
+    """
+    CONFLICT_TYPE_UNSPECIFIED = 0
+    BLOCKING = 1
+    NON_BLOCKING = 2
+
+  message = _messages.StringField(1)
+  type = _messages.EnumField('TypeValueValuesEnum', 2)
+
+
 class Dag(_messages.Message):
   r"""A Composer DAG resource.
 
@@ -1061,7 +1115,7 @@ class Dag(_messages.Message):
 class DagProcessorResource(_messages.Message):
   r"""Configuration for resources used by Airflow DAG processors. This field
   is supported for Cloud Composer environments in versions
-  composer-3.*.*-airflow-*.*.* and newer.
+  composer-3-airflow-*.*.*-build.* and newer.
 
   Fields:
     count: Optional. The number of DAG processors. If not provided or set to
@@ -1090,6 +1144,10 @@ class DagRun(_messages.Message):
   Fields:
     dagId: The DAG ID of the DAG whose execution is described by this DAG run.
     dagRunId: The DAG run ID.
+    dataIntervalEnd: End of the data interval. Added in version 2.2. If run
+      has been triggered manually, this field is equal to execution_date.
+    dataIntervalStart: Start of the data interval. Added in version 2.2. If
+      run has been triggered manually, this field is equal to execution_date.
     endDate: Timestamp when the DAG run ended. Set only if the DAG run has
       finished.
     executionDate: The logical date and time which the DAG run and its task
@@ -1097,6 +1155,8 @@ class DagRun(_messages.Message):
     name: The resource name of the DAG, in the form: "projects/{projectId}/loc
       ations/{locationId}/environments/{environmentId}/dags/{dagId}/dagRuns/{d
       agRunId}".
+    runAfter: Timestamp when the DAG run was scheduled to start. Added in
+      Airflow 3.
     startDate: Timestamp when the DAG run started.
     state: DAG run state.
     type: DAG run type (how it got created/executed).
@@ -1136,12 +1196,15 @@ class DagRun(_messages.Message):
 
   dagId = _messages.StringField(1)
   dagRunId = _messages.StringField(2)
-  endDate = _messages.StringField(3)
-  executionDate = _messages.StringField(4)
-  name = _messages.StringField(5)
-  startDate = _messages.StringField(6)
-  state = _messages.EnumField('StateValueValuesEnum', 7)
-  type = _messages.EnumField('TypeValueValuesEnum', 8)
+  dataIntervalEnd = _messages.StringField(3)
+  dataIntervalStart = _messages.StringField(4)
+  endDate = _messages.StringField(5)
+  executionDate = _messages.StringField(6)
+  name = _messages.StringField(7)
+  runAfter = _messages.StringField(8)
+  startDate = _messages.StringField(9)
+  state = _messages.EnumField('StateValueValuesEnum', 10)
+  type = _messages.EnumField('TypeValueValuesEnum', 11)
 
 
 class DagStats(_messages.Message):
@@ -1299,7 +1362,7 @@ class Environment(_messages.Message):
       additionally constrained to be <= 128 bytes in size.
 
   Fields:
-    config: Configuration parameters for this environment.
+    config: Optional. Configuration parameters for this environment.
     createTime: Output only. The time at which this environment was created.
     labels: Optional. User-defined labels for this environment. The labels map
       can contain no more than 64 entries. Entries of the labels map are UTF8
@@ -1307,10 +1370,11 @@ class Environment(_messages.Message):
       to regexp: \p{Ll}\p{Lo}{0,62} * Values must conform to regexp:
       [\p{Ll}\p{Lo}\p{N}_-]{0,63} * Both keys and values are additionally
       constrained to be <= 128 bytes in size.
-    name: The resource name of the environment, in the form:
+    name: Identifier. The resource name of the environment, in the form:
       "projects/{projectId}/locations/{locationId}/environments/{environmentId
       }" EnvironmentId must start with a lowercase letter followed by up to 63
       lowercase letters, numbers, or hyphens, and cannot end with a hyphen.
+    satisfiesPzi: Output only. Reserved for future use.
     satisfiesPzs: Output only. Reserved for future use.
     state: The current state of the environment.
     storageConfig: Optional. Storage configuration for this environment.
@@ -1374,11 +1438,12 @@ class Environment(_messages.Message):
   createTime = _messages.StringField(2)
   labels = _messages.MessageField('LabelsValue', 3)
   name = _messages.StringField(4)
-  satisfiesPzs = _messages.BooleanField(5)
-  state = _messages.EnumField('StateValueValuesEnum', 6)
-  storageConfig = _messages.MessageField('StorageConfig', 7)
-  updateTime = _messages.StringField(8)
-  uuid = _messages.StringField(9)
+  satisfiesPzi = _messages.BooleanField(5)
+  satisfiesPzs = _messages.BooleanField(6)
+  state = _messages.EnumField('StateValueValuesEnum', 7)
+  storageConfig = _messages.MessageField('StorageConfig', 8)
+  updateTime = _messages.StringField(9)
+  uuid = _messages.StringField(10)
 
 
 class EnvironmentConfig(_messages.Message):
@@ -1433,20 +1498,21 @@ class EnvironmentConfig(_messages.Message):
       networks feature is: - in case of private environment: enabled with no
       external networks allowlisted. - in case of public environment:
       disabled.
-    nodeConfig: The configuration used for the Kubernetes Engine cluster.
+    nodeConfig: Optional. The configuration used for the Kubernetes Engine
+      cluster.
     nodeCount: The number of nodes in the Kubernetes Engine cluster that will
       be used to run this environment. This field is supported for Cloud
       Composer environments in versions composer-1.*.*-airflow-*.*.*.
-    privateEnvironmentConfig: The configuration used for the Private IP Cloud
-      Composer environment.
+    privateEnvironmentConfig: Optional. The configuration used for the Private
+      IP Cloud Composer environment.
     recoveryConfig: Optional. The Recovery settings configuration of an
       environment. This field is supported for Cloud Composer environments in
       versions composer-2.*.*-airflow-*.*.* and newer.
     resilienceMode: Optional. Resilience mode of the Cloud Composer
       Environment. This field is supported for Cloud Composer environments in
       versions composer-2.2.0-airflow-*.*.* and newer.
-    softwareConfig: The configuration settings for software inside the
-      environment.
+    softwareConfig: Optional. The configuration settings for software inside
+      the environment.
     webServerConfig: Optional. The configuration settings for the Airflow web
       server App Engine instance. This field is supported for Cloud Composer
       environments in versions composer-1.*.*-airflow-*.*.*.
@@ -1471,11 +1537,13 @@ class EnvironmentConfig(_messages.Message):
       ENVIRONMENT_SIZE_SMALL: The environment size is small.
       ENVIRONMENT_SIZE_MEDIUM: The environment size is medium.
       ENVIRONMENT_SIZE_LARGE: The environment size is large.
+      ENVIRONMENT_SIZE_EXTRA_LARGE: The environment size is extra large.
     """
     ENVIRONMENT_SIZE_UNSPECIFIED = 0
     ENVIRONMENT_SIZE_SMALL = 1
     ENVIRONMENT_SIZE_MEDIUM = 2
     ENVIRONMENT_SIZE_LARGE = 3
+    ENVIRONMENT_SIZE_EXTRA_LARGE = 4
 
   class ResilienceModeValueValuesEnum(_messages.Enum):
     r"""Optional. Resilience mode of the Cloud Composer Environment. This
@@ -1573,6 +1641,22 @@ class FetchDatabasePropertiesResponse(_messages.Message):
   isFailoverReplicaAvailable = _messages.BooleanField(1)
   primaryGceZone = _messages.StringField(2)
   secondaryGceZone = _messages.StringField(3)
+
+
+class FilestoreConfig(_messages.Message):
+  r"""The configuration for data storage in the environment using Filestore.
+
+  Fields:
+    instance: Required. The resource name of the Filestore instance, in the
+      format
+      `projects/{project_id}/locations/{location_id}/instances/{instance_id}`.
+    path: Required. Path within the Filestore instance that will be mounted in
+      the Airflow components. Starts with the volume share. For example, given
+      the instance 10.10.10.10:/vol1 the mount path can be "/vol1/some/path".
+  """
+
+  instance = _messages.StringField(1)
+  path = _messages.StringField(2)
 
 
 class IPAllocationPolicy(_messages.Message):
@@ -1893,11 +1977,65 @@ class MasterAuthorizedNetworksConfig(_messages.Message):
   Fields:
     cidrBlocks: Up to 50 external networks that could access Kubernetes master
       through HTTPS.
-    enabled: Whether or not master authorized networks feature is enabled.
+    enabled: Optional. Whether or not master authorized networks feature is
+      enabled.
   """
 
   cidrBlocks = _messages.MessageField('CidrBlock', 1, repeated=True)
   enabled = _messages.BooleanField(2)
+
+
+class MigrateEnvironmentRequest(_messages.Message):
+  r"""Request to migrate a Composer 2 environment to Composer 3 in place.
+
+  Enums:
+    GkeClusterRetentionPolicyValueValuesEnum: Required. The retention policy
+      for the GKE cluster associated with the Cloud Composer 2 environment.
+      The cluster can be retained or deleted after the migration.
+
+  Fields:
+    gkeClusterRetentionPolicy: Required. The retention policy for the GKE
+      cluster associated with the Cloud Composer 2 environment. The cluster
+      can be retained or deleted after the migration.
+    imageVersion: Required. Target image version to which the environment will
+      be migrated. This has to be a Composer 3 version with a specific Airflow
+      version and build in format `composer-3-airflow-x.y.z-build.t`, or one
+      of the version aliases: `composer-3-airflow-x`, `composer-3-airflow-x.y`
+      or `composer-3-airflow-x.y.z`. Only migration to Composer 3 version is
+      supported. See also [version list](/composer/docs/composer-versions) and
+      [versioning overview](/composer/docs/composer-versioning-overview).
+    maintenanceWindow: Optional. The configuration settings for Cloud Composer
+      maintenance window. This configuration is applied to the migrated
+      environment. The following example: ``` {
+      "startTime":"2019-08-01T01:00:00Z" "endTime":"2019-08-01T07:00:00Z"
+      "recurrence":"FREQ=WEEKLY;BYDAY=TU,WE" } ``` would define a maintenance
+      window between 01 and 07 hours UTC during each Tuesday and Wednesday.
+    workloadsConfig: Optional. The workloads configuration settings for the
+      Cloud Composer environment. It will be applied to the migrated
+      environment. The workloads include Airflow scheduler, web server,
+      triggerer, dag processor and workers.
+  """
+
+  class GkeClusterRetentionPolicyValueValuesEnum(_messages.Enum):
+    r"""Required. The retention policy for the GKE cluster associated with the
+    Cloud Composer 2 environment. The cluster can be retained or deleted after
+    the migration.
+
+    Values:
+      GKE_CLUSTER_RETENTION_POLICY_UNSPECIFIED: Default value.
+      DELETE_GKE_CLUSTER: GKE cluster will be deleted after environment
+        migration.
+      RETAIN_GKE_CLUSTER: GKE cluster will be retained after environment
+        migration.
+    """
+    GKE_CLUSTER_RETENTION_POLICY_UNSPECIFIED = 0
+    DELETE_GKE_CLUSTER = 1
+    RETAIN_GKE_CLUSTER = 2
+
+  gkeClusterRetentionPolicy = _messages.EnumField('GkeClusterRetentionPolicyValueValuesEnum', 1)
+  imageVersion = _messages.StringField(2)
+  maintenanceWindow = _messages.MessageField('MaintenanceWindow', 3)
+  workloadsConfig = _messages.MessageField('WorkloadsConfig', 4)
 
 
 class NetworkingConfig(_messages.Message):
@@ -1906,19 +2044,19 @@ class NetworkingConfig(_messages.Message):
 
   Enums:
     ConnectionTypeValueValuesEnum: Optional. Indicates the user requested
-      specifc connection type between Tenant and Customer projects. You cannot
-      set networking connection type in public IP environment.
+      specific connection type between Tenant and Customer projects. You
+      cannot set networking connection type in public IP environment.
 
   Fields:
-    connectionType: Optional. Indicates the user requested specifc connection
+    connectionType: Optional. Indicates the user requested specific connection
       type between Tenant and Customer projects. You cannot set networking
       connection type in public IP environment.
   """
 
   class ConnectionTypeValueValuesEnum(_messages.Enum):
-    r"""Optional. Indicates the user requested specifc connection type between
-    Tenant and Customer projects. You cannot set networking connection type in
-    public IP environment.
+    r"""Optional. Indicates the user requested specific connection type
+    between Tenant and Customer projects. You cannot set networking connection
+    type in public IP environment.
 
     Values:
       CONNECTION_TYPE_UNSPECIFIED: No specific connection type was requested,
@@ -1947,7 +2085,7 @@ class NodeConfig(_messages.Message):
       case of overlap, IPs from this range will not be accessible in the
       user's VPC network. Cannot be updated. If not specified, the default
       value of '100.64.128.0/20' is used. This field is supported for Cloud
-      Composer environments in versions composer-3.*.*-airflow-*.*.* and
+      Composer environments in versions composer-3-airflow-*.*.*-build.* and
       newer.
     composerNetworkAttachment: Optional. Network Attachment that Cloud
       Composer environment is connected to, which provides connectivity with a
@@ -1958,7 +2096,7 @@ class NodeConfig(_messages.Message):
       disabled. Network attachment must be provided in format projects/{projec
       t}/regions/{region}/networkAttachments/{networkAttachment}. This field
       is supported for Cloud Composer environments in versions
-      composer-3.*.*-airflow-*.*.* and newer.
+      composer-3-airflow-*.*.*-build.* and newer.
     diskSizeGb: Optional. The disk size in GB used for node VMs. Minimum size
       is 30GB. If unspecified, defaults to 100GB. Cannot be updated. This
       field is supported for Cloud Composer environments in versions
@@ -2198,6 +2336,7 @@ class OperationMetadata(_messages.Message):
       LOAD_SNAPSHOT: Loads snapshot of the resource operation.
       DATABASE_FAILOVER: Triggers failover of environment's Cloud SQL instance
         (only for highly resilient environments).
+      MIGRATE: Migrates resource to a new major version.
     """
     TYPE_UNSPECIFIED = 0
     CREATE = 1
@@ -2207,6 +2346,7 @@ class OperationMetadata(_messages.Message):
     SAVE_SNAPSHOT = 5
     LOAD_SNAPSHOT = 6
     DATABASE_FAILOVER = 7
+    MIGRATE = 8
 
   class StateValueValuesEnum(_messages.Enum):
     r"""Output only. The current operation state.
@@ -2321,7 +2461,7 @@ class PrivateEnvironmentConfig(_messages.Message):
       `NodeConfig.composer_network_attachment` field are specified). If
       `false`, the builds also have access to the internet. This field is
       supported for Cloud Composer environments in versions
-      composer-3.*.*-airflow-*.*.* and newer.
+      composer-3-airflow-*.*.*-build.* and newer.
     enablePrivateEnvironment: Optional. If `true`, a Private IP Cloud Composer
       environment is created. If this field is set to true,
       `IPAllocationPolicy.use_ip_aliases` must be set to true for Cloud
@@ -2447,7 +2587,7 @@ class SoftwareConfig(_messages.Message):
     WebServerPluginsModeValueValuesEnum: Optional. Whether or not the web
       server uses custom plugins. If unspecified, the field defaults to
       `PLUGINS_ENABLED`. This field is supported for Cloud Composer
-      environments in versions composer-3.*.*-airflow-*.*.* and newer.
+      environments in versions composer-3-airflow-*.*.*-build.* and newer.
 
   Messages:
     AirflowConfigOverridesValue: Optional. Apache Airflow configuration
@@ -2509,23 +2649,24 @@ class SoftwareConfig(_messages.Message):
       * `C_FORCE_ROOT` * `CONTAINER_NAME` * `DAGS_FOLDER` * `GCP_PROJECT` *
       `GCS_BUCKET` * `GKE_CLUSTER_NAME` * `SQL_DATABASE` * `SQL_INSTANCE` *
       `SQL_PASSWORD` * `SQL_PROJECT` * `SQL_REGION` * `SQL_USER`
-    imageVersion: The version of the software running in the environment. This
-      encapsulates both the version of Cloud Composer functionality and the
-      version of Apache Airflow. It must match the regular expression `compose
-      r-([0-9]+(\.[0-9]+\.[0-9]+(-preview\.[0-9]+)?)?|latest)-airflow-([0-
-      9]+(\.[0-9]+(\.[0-9]+)?)?)`. When used as input, the server also checks
-      if the provided version is supported and denies the request for an
-      unsupported version. The Cloud Composer portion of the image version is
-      a full [semantic version](https://semver.org), or an alias in the form
-      of major version number or `latest`. When an alias is provided, the
-      server replaces it with the current Cloud Composer version that
-      satisfies the alias. The Apache Airflow portion of the image version is
-      a full semantic version that points to one of the supported Apache
-      Airflow versions, or an alias in the form of only major or major.minor
-      versions specified. When an alias is provided, the server replaces it
-      with the latest Apache Airflow version that satisfies the alias and is
-      supported in the given Cloud Composer version. In all cases, the
-      resolved image version is stored in the same field. See also [version
+    imageVersion: Optional. The version of the software running in the
+      environment. This encapsulates both the version of Cloud Composer
+      functionality and the version of Apache Airflow. It must match the
+      regular expression `composer-([0-9]+(\.[0-9]+\.[0-9]+(-preview\.[0-
+      9]+)?)?|latest)-airflow-([0-9]+(\.[0-9]+(\.[0-9]+)?)?)`. When used as
+      input, the server also checks if the provided version is supported and
+      denies the request for an unsupported version. The Cloud Composer
+      portion of the image version is a full [semantic
+      version](https://semver.org), or an alias in the form of major version
+      number or `latest`. When an alias is provided, the server replaces it
+      with the current Cloud Composer version that satisfies the alias. The
+      Apache Airflow portion of the image version is a full semantic version
+      that points to one of the supported Apache Airflow versions, or an alias
+      in the form of only major or major.minor versions specified. When an
+      alias is provided, the server replaces it with the latest Apache Airflow
+      version that satisfies the alias and is supported in the given Cloud
+      Composer version. In all cases, the resolved image version is stored in
+      the same field. See also [version
       list](/composer/docs/concepts/versioning/composer-versions) and
       [versioning overview](/composer/docs/concepts/versioning/composer-
       versioning-overview).
@@ -2547,7 +2688,7 @@ class SoftwareConfig(_messages.Message):
     webServerPluginsMode: Optional. Whether or not the web server uses custom
       plugins. If unspecified, the field defaults to `PLUGINS_ENABLED`. This
       field is supported for Cloud Composer environments in versions
-      composer-3.*.*-airflow-*.*.* and newer.
+      composer-3-airflow-*.*.*-build.* and newer.
   """
 
   class AirflowExecutorTypeValueValuesEnum(_messages.Enum):
@@ -2570,7 +2711,7 @@ class SoftwareConfig(_messages.Message):
     r"""Optional. Whether or not the web server uses custom plugins. If
     unspecified, the field defaults to `PLUGINS_ENABLED`. This field is
     supported for Cloud Composer environments in versions
-    composer-3.*.*-airflow-*.*.* and newer.
+    composer-3-airflow-*.*.*-build.* and newer.
 
     Values:
       WEB_SERVER_PLUGINS_MODE_UNSPECIFIED: Default mode.
@@ -2852,16 +2993,12 @@ class StorageConfig(_messages.Message):
   Fields:
     bucket: Optional. The name of the Cloud Storage bucket used by the
       environment. No `gs://` prefix.
-    filestoreDirectory: Optional. The path to the Filestore directory used by
-      the environment considering the share name as a root
-    filestoreInstance: Optional. The Filestore instance uri used by the
-      environment.
-      projects/{project}/locations/{location}/instances/{instance}
+    filestoreConfig: Optional. The configuration for data storage in the
+      environment using Filestore.
   """
 
   bucket = _messages.StringField(1)
-  filestoreDirectory = _messages.StringField(2)
-  filestoreInstance = _messages.StringField(3)
+  filestoreConfig = _messages.MessageField('FilestoreConfig', 2)
 
 
 class Task(_messages.Message):
@@ -2977,6 +3114,9 @@ class TaskInstance(_messages.Message):
     priorityWeight: Priority weight of this task against other tasks.
     queue: Which queue to target when running this task.
     queuedDttm: Timestamp when the task was queued.
+    renderedMapIndex: Named mapping - a rendered map index template for this
+      task instance. If task doesn't have a template specified or
+      is_dynamically_mapped is set to false, this field is empty.
     startDate: Timestamp when the task instance started execution.
     state: Task instance state.
     taskId: The task instance ID. It is the same as the task ID in the DAG.
@@ -3037,11 +3177,12 @@ class TaskInstance(_messages.Message):
   priorityWeight = _messages.IntegerField(13, variant=_messages.Variant.INT32)
   queue = _messages.StringField(14)
   queuedDttm = _messages.StringField(15)
-  startDate = _messages.StringField(16)
-  state = _messages.EnumField('StateValueValuesEnum', 17)
-  taskId = _messages.StringField(18)
-  taskType = _messages.StringField(19)
-  tryNumber = _messages.IntegerField(20, variant=_messages.Variant.INT32)
+  renderedMapIndex = _messages.StringField(16)
+  startDate = _messages.StringField(17)
+  state = _messages.EnumField('StateValueValuesEnum', 18)
+  taskId = _messages.StringField(19)
+  taskType = _messages.StringField(20)
+  tryNumber = _messages.IntegerField(21, variant=_messages.Variant.INT32)
 
 
 class TaskLogsRetentionConfig(_messages.Message):
@@ -3142,12 +3283,14 @@ class UserWorkloadsConfigMap(_messages.Message):
   Messages:
     DataValue: Optional. The "data" field of Kubernetes ConfigMap, organized
       in key-value pairs. For details see:
-      https://kubernetes.io/docs/concepts/configuration/configmap/
+      https://kubernetes.io/docs/concepts/configuration/configmap/ Example: {
+      "example_key": "example_value", "another_key": "another_value" }
 
   Fields:
     data: Optional. The "data" field of Kubernetes ConfigMap, organized in
       key-value pairs. For details see:
-      https://kubernetes.io/docs/concepts/configuration/configmap/
+      https://kubernetes.io/docs/concepts/configuration/configmap/ Example: {
+      "example_key": "example_value", "another_key": "another_value" }
     name: Identifier. The resource name of the ConfigMap, in the form: "projec
       ts/{projectId}/locations/{locationId}/environments/{environmentId}/userW
       orkloadsConfigMaps/{userWorkloadsConfigMapId}"
@@ -3157,7 +3300,8 @@ class UserWorkloadsConfigMap(_messages.Message):
   class DataValue(_messages.Message):
     r"""Optional. The "data" field of Kubernetes ConfigMap, organized in key-
     value pairs. For details see:
-    https://kubernetes.io/docs/concepts/configuration/configmap/
+    https://kubernetes.io/docs/concepts/configuration/configmap/ Example: {
+    "example_key": "example_value", "another_key": "another_value" }
 
     Messages:
       AdditionalProperty: An additional property for a DataValue object.
@@ -3192,14 +3336,18 @@ class UserWorkloadsSecret(_messages.Message):
       key-value pairs, which can contain sensitive values such as a password,
       a token, or a key. The values for all keys have to be base64-encoded
       strings. For details see:
-      https://kubernetes.io/docs/concepts/configuration/secret/
+      https://kubernetes.io/docs/concepts/configuration/secret/ Example: {
+      "example": "ZXhhbXBsZV92YWx1ZQ==", "another-example":
+      "YW5vdGhlcl9leGFtcGxlX3ZhbHVl" }
 
   Fields:
     data: Optional. The "data" field of Kubernetes Secret, organized in key-
       value pairs, which can contain sensitive values such as a password, a
       token, or a key. The values for all keys have to be base64-encoded
       strings. For details see:
-      https://kubernetes.io/docs/concepts/configuration/secret/
+      https://kubernetes.io/docs/concepts/configuration/secret/ Example: {
+      "example": "ZXhhbXBsZV92YWx1ZQ==", "another-example":
+      "YW5vdGhlcl9leGFtcGxlX3ZhbHVl" }
     name: Identifier. The resource name of the Secret, in the form: "projects/
       {projectId}/locations/{locationId}/environments/{environmentId}/userWork
       loadsSecrets/{userWorkloadsSecretId}"
@@ -3211,7 +3359,9 @@ class UserWorkloadsSecret(_messages.Message):
     value pairs, which can contain sensitive values such as a password, a
     token, or a key. The values for all keys have to be base64-encoded
     strings. For details see:
-    https://kubernetes.io/docs/concepts/configuration/secret/
+    https://kubernetes.io/docs/concepts/configuration/secret/ Example: {
+    "example": "ZXhhbXBsZV92YWx1ZQ==", "another-example":
+    "YW5vdGhlcl9leGFtcGxlX3ZhbHVl" }
 
     Messages:
       AdditionalProperty: An additional property for a DataValue object.
@@ -3310,7 +3460,7 @@ class WorkloadsConfig(_messages.Message):
   Fields:
     dagProcessor: Optional. Resources used by Airflow DAG processors. This
       field is supported for Cloud Composer environments in versions
-      composer-3.*.*-airflow-*.*.* and newer.
+      composer-3-airflow-*.*.*-build.* and newer.
     scheduler: Optional. Resources used by Airflow scheduler.
     schedulerCpu: Optional. CPU request and limit for Airflow scheduler.
     triggerer: Optional. Resources used by Airflow triggerers.
@@ -3338,3 +3488,7 @@ encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    ComposerProjectsLocationsEnvironmentsDagsListStatsRequest, 'interval_endTime', 'interval.endTime')
+encoding.AddCustomJsonFieldMapping(
+    ComposerProjectsLocationsEnvironmentsDagsListStatsRequest, 'interval_startTime', 'interval.startTime')

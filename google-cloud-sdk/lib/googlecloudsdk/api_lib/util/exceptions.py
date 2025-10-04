@@ -24,6 +24,8 @@ import io
 import json
 import logging
 import string
+import urllib.parse
+
 from apitools.base.py import exceptions as apitools_exceptions
 from googlecloudsdk.api_lib.util import resource as resource_util
 from googlecloudsdk.core import exceptions as core_exceptions
@@ -33,7 +35,6 @@ from googlecloudsdk.core.resource import resource_lex
 from googlecloudsdk.core.resource import resource_printer
 from googlecloudsdk.core.resource import resource_property
 from googlecloudsdk.core.util import encoding
-
 import six
 
 
@@ -47,6 +48,8 @@ _ESCAPED_RIGHT_CURLY = 'R'
 
 # ErrorInfo identifier used for extracting domain based handlers.
 ERROR_INFO_SUFFIX = 'google.rpc.ErrorInfo'
+LOCALIZED_MESSAGE_SUFFIX = 'google.rpc.LocalizedMessage'
+HELP_SUFFIX = 'google.rpc.Help'
 
 
 def _Escape(s):
@@ -169,6 +172,10 @@ class FormattableErrorPayload(string.Formatter):
     parts = field_name.split('?', 1)
     subparts = parts.pop(0).split(':', 1)
     name = subparts.pop(0)
+    # Remove the leading 0. from the name if it exists to keep formatter in sync
+    # with resoruce lexers expecations. Needed for python 3.14 compatibility.
+    if (name.startswith('0.') and len(name) > 1) or name == '0.':
+      name = name[1:]
     printer_format = subparts.pop(0) if subparts else None
     recursive_format = parts.pop(0) if parts else None
     name, value = self._GetField(name)
@@ -260,10 +267,14 @@ class HttpErrorPayload(FormattableErrorPayload):
     status_code: The HTTP status code number.
     status_description: The status_code description.
     status_message: Context specific status message.
+    unparsed_details: The unparsed details.
     type_details: ErrorDetails Indexed by type.
-    url: The HTTP url.
-    .<a>.<b>...: The <a>.<b>... attribute in the JSON content (synthesized in
-      get_field()).
+    url: The HTTP url. .<a>.<b>...: The <a>.<b>... attribute in the JSON content
+      (synthesized in get_field()).
+
+  Grammar:
+    Format strings inherit from python's string.formatter. where we pass tokens
+    obtained by the resource projection framework format strings.
 
   Examples:
     error_format values and resulting output:
@@ -303,6 +314,7 @@ class HttpErrorPayload(FormattableErrorPayload):
     self.resource_name = ''
     self.resource_version = ''
     self.url = ''
+    self._cred_info = None
     if not isinstance(http_error, six.string_types):
       self._ExtractResponseAndJsonContent(http_error)
       self._ExtractUrlResourceAndInstanceNames(http_error)
@@ -319,6 +331,42 @@ class HttpErrorPayload(FormattableErrorPayload):
       name, value = super(HttpErrorPayload, self)._GetField(name)
     return name, value
 
+  def _GetMTLSEndpointOverride(self, endpoint_override):
+    """Generates mTLS endpoint override for a given endpoint override.
+
+    Args:
+      endpoint_override: The endpoint to generate the mTLS endpoint override
+        for.
+
+    Returns:
+      The mTLS endpoint override, if one exists. Otherwise, None.
+    """
+    if 'sandbox.googleapis.com' in endpoint_override:
+      return endpoint_override.replace(
+          'sandbox.googleapis.com', 'mtls.sandbox.googleapis.com'
+      )
+    elif 'googleapis.com' in endpoint_override:
+      return endpoint_override.replace('googleapis.com', 'mtls.googleapis.com')
+    else:
+      return None
+
+  def _IsMTLSEnabledAndApiEndpointOverridesPresent(self):
+    """Returns whether mTLS is enabled and an endpoint override is present for the current gcloud invocation."""
+    return (
+        properties.VALUES.api_endpoint_overrides.AllValues()
+        and properties.VALUES.context_aware.use_client_certificate.GetBool()
+        and properties.IsInternalUserCheck()
+    )
+
+  def _IsExistingOverrideMTLS(self, endpoint_override):
+    """Returns whether the existing endpoint override is using mTLS already."""
+    urlparsed = urllib.parse.urlparse(endpoint_override)
+    domain_parts = urlparsed.netloc
+    if not domain_parts:
+      return None
+    domain = domain_parts.split('.')[1]
+    return domain.startswith('mtls')
+
   def _ExtractResponseAndJsonContent(self, http_error):
     """Extracts the response and JSON content from the HttpError."""
     response = getattr(http_error, 'response', None)
@@ -332,18 +380,84 @@ class HttpErrorPayload(FormattableErrorPayload):
       self.error_info = _JsonSortedDict(self.content['error'])
       if not self.status_code:  # Could have been set above.
         self.status_code = int(self.error_info.get('code', 0))
+
+      if self.status_code in [401, 403, 404] and self.error_info.get(
+          'message', ''
+      ):
+        from googlecloudsdk.core.credentials import store as c_store  # pylint: disable=g-import-not-at-top
+
+        # Append the credential info to the error message.
+        self._cred_info = c_store.CredentialInfo.GetCredentialInfo()
+        if self._cred_info:
+          cred_info_message = self._cred_info.GetInfoString()
+          existing_message = self.content['error']['message']
+          # Some surface actually appends an ending dot at the end of the
+          # message, so we need to make sure not adding an ending dot if the
+          # existing message doesn't have one. (Note that cred_info_message
+          # string we created ends with a dot.)
+          if existing_message[-1] != '.':
+            # add dot after existing_message and remove the ending dot from
+            # cred_info_message.
+            self.content['error']['message'] = (
+                existing_message + '. ' + cred_info_message[:-1]
+            )
+          else:
+            self.content['error']['message'] = (
+                existing_message + ' ' + cred_info_message
+            )
+          self.error_info['message'] = self.content['error']['message']
+
       if not self.status_description:  # Could have been set above.
         self.status_description = self.error_info.get('status', '')
+      if self._IsMTLSEnabledAndApiEndpointOverridesPresent():
+        endpoint_overrides = (
+            properties.VALUES.api_endpoint_overrides.AllValues()
+        )
+        for api_name, endpoint_override in endpoint_overrides.items():
+          mtls_endpoint = self._GetMTLSEndpointOverride(endpoint_override)
+          if (
+              not self._IsExistingOverrideMTLS(endpoint_override)
+              and http_error.url.startswith(endpoint_override)
+              and mtls_endpoint
+          ):
+            self.error_info['message'] = (
+                'Certificate-based access is enabled, but the endpoint override'
+                ' for the following API is not using mTLS: {}. Please update'
+                ' the endpoint override to use mTLS endpoint: {} '.format(
+                    [api_name, endpoint_override], mtls_endpoint
+                )
+            )
+            self.error_info['details'] = [{
+                '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+                'reason': 'ACCESS_DENIED',
+                'metadata': {
+                    'endpoint_override': endpoint_override,
+                    'mtls_endpoint_override': mtls_endpoint,
+                },
+            }]
+            break
       self.status_message = self.error_info.get('message', '')
       self.details = self.error_info.get('details', [])
       self.violations = self._ExtractViolations(self.details)
       self.field_violations = self._ExtractFieldViolations(self.details)
       self.type_details = self._IndexErrorDetailsByType(self.details)
       self.domain_details = self._IndexErrorInfoByDomain(self.details)
+      if properties.VALUES.core.parse_error_details.GetBool():
+        self.unparsed_details = self.RedactParsedTypes(self.details)
     except (KeyError, TypeError, ValueError):
       self.status_message = content
     except AttributeError:
       pass
+
+  def RedactParsedTypes(self, details):
+    """Redacts the parsed types from the details list."""
+    unparsed_details = []
+    for item in details:
+      error_type = item.get('@type', None)
+      error_suffix = error_type.split('/')[-1]
+      if error_suffix not in (LOCALIZED_MESSAGE_SUFFIX, HELP_SUFFIX):
+        unparsed_details.append(item)
+    return unparsed_details
 
   def _IndexErrorDetailsByType(self, details):
     """Extracts and indexes error details list by the type attribute."""
@@ -398,10 +512,16 @@ class HttpErrorPayload(FormattableErrorPayload):
     """Makes description for error by checking which fields are filled in."""
     if self.status_code and self.resource_item and self.instance_name:
       if self.status_code == 403:
-        return ('User [{0}] does not have permission to access {1} [{2}] (or '
-                'it may not exist)').format(
-                    properties.VALUES.core.account.Get(),
-                    self.resource_item, self.instance_name)
+        if self._cred_info:
+          account = (
+              self._cred_info.impersonated_account or self._cred_info.account
+          )
+        else:
+          account = properties.VALUES.core.account.Get()
+        return (
+            '[{0}] does not have permission to access {1} [{2}] (or '
+            'it may not exist)'
+        ).format(account, self.resource_item, self.instance_name)
       if self.status_code == 404:
         return '{0} [{1}] not found'.format(
             self.resource_item.capitalize(), self.instance_name)
@@ -499,12 +619,25 @@ class HttpException(core_exceptions.Error):
   def __str__(self):
     error_format = self.error_format
     if error_format is None:
-      error_format = '{message}'
+      error_prefix = '{message?}'
       if properties.VALUES.core.parse_error_details.GetBool():
-        error_format += ('\n{type_details.LocalizedMessage'
-                         ':value(message.list(separator="\n"))}')
+        parsed_localized_messages = (
+            '{type_details.LocalizedMessage'
+            ':value(message.list(separator="\n"))?\n{?}}'
+        )
+        parsed_help_messages = (
+            '{type_details.Help'
+            ':value(links.flatten(show="values",separator="\n"))?\n{?}}'
+        )
+        unparsed_details = '{unparsed_details?\n{?}}'
+        error_format = (
+            error_prefix
+            + parsed_localized_messages
+            + parsed_help_messages
+            + unparsed_details
+        )
       else:
-        error_format += '{details?\n{?}}'
+        error_format = error_prefix + '{details?\n{?}}'
       if log.GetVerbosity() <= logging.DEBUG:
         error_format += '{.debugInfo?\n{?}}'
     return _Expand(self.payload.format(_Escape(error_format)))

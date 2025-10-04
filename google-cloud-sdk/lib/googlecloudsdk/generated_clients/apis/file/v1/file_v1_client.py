@@ -301,7 +301,7 @@ class FileV1(base_api.BaseApiClient):
         method_id='file.projects.locations.instances.snapshots.list',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken', 'returnPartialSuccess'],
         relative_path='v1/{+parent}/snapshots',
         request_field='',
         request_type_name='FileProjectsLocationsInstancesSnapshotsListRequest',
@@ -481,6 +481,33 @@ class FileV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def PromoteReplica(self, request, global_params=None):
+      r"""Promote the standby instance (replica).
+
+      Args:
+        request: (FileProjectsLocationsInstancesPromoteReplicaRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('PromoteReplica')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    PromoteReplica.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}:promoteReplica',
+        http_method='POST',
+        method_id='file.projects.locations.instances.promoteReplica',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}:promoteReplica',
+        request_field='promoteReplicaRequest',
+        request_type_name='FileProjectsLocationsInstancesPromoteReplicaRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
     def Restore(self, request, global_params=None):
       r"""Restores an existing instance's file share from a backup. The capacity of the instance needs to be equal to or larger than the capacity of the backup (and also equal to or larger than the minimum capacity of the tier).
 
@@ -546,7 +573,7 @@ class FileV1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (FileProjectsLocationsOperationsCancelRequest) input message
@@ -709,7 +736,7 @@ class FileV1(base_api.BaseApiClient):
         method_id='file.projects.locations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'includeUnrevealedLocations', 'pageSize', 'pageToken'],
+        query_params=['extraLocationTypes', 'filter', 'pageSize', 'pageToken'],
         relative_path='v1/{+name}/locations',
         request_field='',
         request_type_name='FileProjectsLocationsListRequest',

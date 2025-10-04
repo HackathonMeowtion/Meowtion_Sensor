@@ -197,6 +197,149 @@ _POSTGRESQL_UPDATE_SOURCE_CONFIG_HELP_TEXT = """\
   ```
 """
 
+_SQLSERVER_CREATE_SOURCE_CONFIG_HELP_TEXT = """
+  Path to a YAML (or JSON) file containing the configuration for SQL Server Source Config.
+
+  The JSON file is formatted as follows, with camelCase field naming:
+
+  ```
+    {
+      "includeObjects": {},
+      "excludeObjects": {
+        "schemas": [
+          {
+            "schema": "SAMPLE",
+            "tables": [
+              {
+                "table": "SAMPLE_TABLE",
+                "columns": [
+                  {
+                    "column": "COL",
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "maxConcurrentCdcTasks": 2,
+      "maxConcurrentBackfillTasks": 10,
+      "transactionLogs": {}  # Or changeTables
+    }
+  ```
+"""
+
+_SQLSERVER_UPDATE_SOURCE_CONFIG_HELP_TEXT = """
+  Path to a YAML (or JSON) file containing the configuration for SQL Server Source Config.
+
+  The JSON file is formatted as follows, with camelCase field naming:
+
+  ```
+    {
+      "includeObjects": {},
+      "excludeObjects": {
+        "schemas": [
+          {
+            "schema": "SAMPLE",
+            "tables": [
+              {
+                "table": "SAMPLE_TABLE",
+                "columns": [
+                  {
+                    "column": "COL",
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "maxConcurrentCdcTasks": 2,
+      "maxConcurrentBackfillTasks": 10,
+      "transactionLogs": {}  # Or changeTables
+    }
+  ```
+"""
+
+_SALESFORCE_CREATE_SOURCE_CONFIG_HELP_TEXT = """
+  Path to a YAML (or JSON) file containing the configuration for Salesforce Source Config.
+
+  The JSON file is formatted as follows, with camelCase field naming:
+
+  ```
+    {
+      "pollingInterval": "3000s",
+      "includeObjects": {},
+      "excludeObjects": {
+        "objects": [
+          {
+            "objectName": "SAMPLE",
+            "fields": [
+              {
+                "fieldName": "SAMPLE_FIELD",
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ```
+"""
+
+_SALESFORCE_UPDATE_SOURCE_CONFIG_HELP_TEXT = """
+  Path to a YAML (or JSON) file containing the configuration for Salesforce Source Config.
+
+  The JSON file is formatted as follows, with camelCase field naming:
+
+  ```
+    {
+      "pollingInterval": "3000s",
+      "includeObjects": {},
+      "excludeObjects": {
+        "objects": [
+          {
+            "objectName": "SAMPLE",
+            "fields": [
+              {
+                "fieldName": "SAMPLE_FIELD",
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ```
+"""
+
+_MONGODB_SOURCE_CONFIG_HELP_TEXT = """\
+  Path to a YAML (or JSON) file containing the configuration for MongoDB Source Config.
+
+  The JSON file is formatted as follows, with snake_case field naming:
+
+  ```
+    {
+      "includeObjects": {},
+      "excludeObjects": {
+        "databases": [
+          {
+            "database": "sampleDb",
+            "collections": [
+              {
+                "collection": "sampleCollection",
+                "fields": [
+                  {
+                    "field": "SAMPLE_FIELD",
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ```
+"""
+
 
 def ConnectionProfileAttributeConfig(name='connection_profile'):
   return concepts.ResourceParameterAttributeConfig(
@@ -411,15 +554,12 @@ def GetVpcResourceSpec():
 
 def AddPrivateConnectionResourceArg(parser,
                                     verb,
-                                    release_track,
                                     positional=True):
   """Add a resource argument for a Datastream private connection.
 
   Args:
     parser: the parser for the command.
     verb: str, the verb to describe the resource, such as 'to update'.
-    release_track: Some arguments are added based on the command release
-      track.
     positional: bool, if True, means that the resource is a positional rather
       than a flag.
   """
@@ -428,30 +568,12 @@ def AddPrivateConnectionResourceArg(parser,
   else:
     name = '--private-connection'
 
-  vpc_peering_config_parser = parser.add_group(required=True)
-
-  vpc_peering_config_parser.add_argument(
-      '--subnet',
-      help="""A free subnet for peering. (CIDR of /29).""",
-      required=True)
-
-  # TODO(b/207467120): use only vpc flag.
-  vpc_field_name = 'vpc'
-  if release_track == base.ReleaseTrack.BETA:
-    vpc_field_name = 'vpc-name'
-
   resource_specs = [
       presentation_specs.ResourcePresentationSpec(
           name,
           GetPrivateConnectionResourceSpec(),
           'The private connection {}.'.format(verb),
           required=True),
-      presentation_specs.ResourcePresentationSpec(
-          '--%s' % vpc_field_name,
-          GetVpcResourceSpec(),
-          'Resource ID of the private connection.',
-          group=vpc_peering_config_parser,
-          required=True)
   ]
   concept_parsers.ConceptParser(
       resource_specs).AddToParser(parser)
@@ -480,8 +602,25 @@ def AddStreamResourceArg(parser, verb, release_track, required=True):
       == base.ReleaseTrack.BETA else _MYSQL_SOURCE_CONFIG_HELP_TEXT)
   source_config_parser_group.add_argument(
       '--postgresql-source-config',
-      help=_POSTGRESQL_UPDATE_SOURCE_CONFIG_HELP_TEXT if verb == 'update'
-      else _POSTGRESQL_CREATE_SOURCE_CONFIG_HELP_TEXT
+      help=_POSTGRESQL_UPDATE_SOURCE_CONFIG_HELP_TEXT
+      if verb == 'update'
+      else _POSTGRESQL_CREATE_SOURCE_CONFIG_HELP_TEXT,
+  )
+  source_config_parser_group.add_argument(
+      '--sqlserver-source-config',
+      help=_SQLSERVER_UPDATE_SOURCE_CONFIG_HELP_TEXT
+      if verb == 'update'
+      else _SQLSERVER_CREATE_SOURCE_CONFIG_HELP_TEXT,
+  )
+  source_config_parser_group.add_argument(
+      '--salesforce-source-config',
+      help=_SALESFORCE_UPDATE_SOURCE_CONFIG_HELP_TEXT
+      if verb == 'update'
+      else _SALESFORCE_CREATE_SOURCE_CONFIG_HELP_TEXT,
+  )
+  source_config_parser_group.add_argument(
+      '--mongodb-source-config',
+      help=_MONGODB_SOURCE_CONFIG_HELP_TEXT,
   )
 
   destination_parser = parser.add_group(required=required)
@@ -509,7 +648,9 @@ def AddStreamResourceArg(parser, verb, release_track, required=True):
       help="""\
       Path to a YAML (or JSON) file containing the configuration for Google BigQuery Destination Config.
 
-      The JSON file is formatted as follows:
+      The YAML (or JSON) file should be formatted as follows:
+
+      BigQuery configuration with source hierarchy datasets and merge mode (merge mode is by default):
 
       ```
       {
@@ -520,10 +661,54 @@ def AddStreamResourceArg(parser, verb, release_track, required=True):
             "kmsKeyName": "projects/{project}/locations/{location}/keyRings/{key_ring}/cryptoKeys/{cryptoKey}"
           }
         },
+        "merge": {}
         "dataFreshness": "3600s"
       }
       ```
-        """,
+
+      BigQuery configuration with source hierarchy datasets and append only mode:
+      ```
+      {
+        "sourceHierarchyDatasets": {
+          "datasetTemplate": {
+            "location": "us-central1",
+            "datasetIdPrefix": "my_prefix",
+            "kmsKeyName": "projects/{project}/locations/{location}/keyRings/{key_ring}/cryptoKeys/{cryptoKey}"
+          }
+        },
+        "appendOnly": {}
+      }
+      ```
+
+      BigQuery configuration with single target dataset and merge mode:
+
+      ```
+      {
+        "singleTargetDataset": {
+          "datasetId": "projectId:my_dataset"
+        },
+        "merge": {}
+        "dataFreshness": "3600s"
+      }
+      ```
+
+      BigQuery configuration with Big Lake table configuration:
+      ```
+      {
+        "singleTargetDataset": {
+          "datasetId": "projectId:datasetId"
+        },
+        "appendOnly": {},
+        "blmtConfig": {
+          "bucket": "bucketName",
+          "tableFormat": "ICEBERG",
+          "fileFormat": "PARQUET",
+          "connectionName": "projectId.region.connectionName",
+          "rootPath": "/root"
+        }
+      }
+      ```
+      """,
   )
 
   source_field = 'source'

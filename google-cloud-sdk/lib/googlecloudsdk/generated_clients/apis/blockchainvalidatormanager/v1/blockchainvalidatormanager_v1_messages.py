@@ -18,10 +18,10 @@ class BlockchainValidatorConfig(_messages.Message):
   configured on a validator client.
 
   Enums:
-    BlockchainTypeValueValuesEnum: Immutable. The blockchain type of the
-      validator.
-    KeySourceValueValuesEnum: Immutable. The source of the voting key for the
-      blockchain validator.
+    BlockchainTypeValueValuesEnum: Required. Immutable. The blockchain type of
+      the validator.
+    KeySourceValueValuesEnum: Required. Immutable. The source of the voting
+      key for the blockchain validator.
 
   Messages:
     LabelsValue: Optional. Labels as key value pairs
@@ -33,14 +33,14 @@ class BlockchainValidatorConfig(_messages.Message):
       Manager, or it will be offline (no attestations or blocks will be
       produced). If this node is offline or deleted, the validator will be
       offline.
-    blockchainType: Immutable. The blockchain type of the validator.
+    blockchainType: Required. Immutable. The blockchain type of the validator.
     createTime: Output only. [Output only] Create time stamp
     ethereumProtocolDetails: Optional. Ethereum-specific configuration for a
       blockchain validator.
     existingSeedPhraseReference: Optional. An existing seed phrase, read from
       Secret Manager.
-    keySource: Immutable. The source of the voting key for the blockchain
-      validator.
+    keySource: Required. Immutable. The source of the voting key for the
+      blockchain validator.
     labels: Optional. Labels as key value pairs
     name: Identifier. The name of the validator. It must have the format `"pro
       jects/{project}/locations/{location}/blockchainValidatorConfigs/{validat
@@ -68,7 +68,7 @@ class BlockchainValidatorConfig(_messages.Message):
   """
 
   class BlockchainTypeValueValuesEnum(_messages.Enum):
-    r"""Immutable. The blockchain type of the validator.
+    r"""Required. Immutable. The blockchain type of the validator.
 
     Values:
       BLOCKCHAIN_TYPE_UNSPECIFIED: Blockchain type has not been specified, but
@@ -79,7 +79,8 @@ class BlockchainValidatorConfig(_messages.Message):
     ETHEREUM = 1
 
   class KeySourceValueValuesEnum(_messages.Enum):
-    r"""Immutable. The source of the voting key for the blockchain validator.
+    r"""Required. Immutable. The source of the voting key for the blockchain
+    validator.
 
     Values:
       KEY_SOURCE_UNSPECIFIED: Voting key source has not been specified, but
@@ -409,12 +410,17 @@ class ExistingSeedPhraseReference(_messages.Message):
   Fields:
     depositTxData: Output only. Immutable. The deposit transaction data
       corresponding to the derived key.
+    derivationIndex: Optional. Immutable. The index to derive the voting key
+      at, used as part of a derivation path. The derivation path is built from
+      this as "m/12381/3600//0/0" See also
+      https://eips.ethereum.org/EIPS/eip-2334#eth2-specific-parameters
     seedPhraseSecret: Required. Immutable. Reference into Secret Manager for
       where the seed phrase is stored.
   """
 
   depositTxData = _messages.StringField(1)
-  seedPhraseSecret = _messages.StringField(2)
+  derivationIndex = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  seedPhraseSecret = _messages.StringField(3)
 
 
 class ListBlockchainValidatorConfigsResponse(_messages.Message):
@@ -703,12 +709,20 @@ class SeedPhraseReference(_messages.Message):
   Fields:
     depositTxData: Output only. Immutable. The deposit transaction data
       corresponding to the derived key.
+    derivationIndex: Output only. Immutable. The index to derive the voting
+      key at, used as part of a derivation path. The derivation path is built
+      from this as "m/12381/3600//0/0" See also
+      https://eips.ethereum.org/EIPS/eip-2334#eth2-specific-parameters
+    exportSeedPhrase: Optional. Immutable. True to export the seed phrase to
+      Secret Manager.
     seedPhraseSecret: Required. Immutable. Reference into Secret Manager for
       where the seed phrase is stored.
   """
 
   depositTxData = _messages.StringField(1)
-  seedPhraseSecret = _messages.StringField(2)
+  derivationIndex = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  exportSeedPhrase = _messages.BooleanField(3)
+  seedPhraseSecret = _messages.StringField(4)
 
 
 class StandardQueryParameters(_messages.Message):

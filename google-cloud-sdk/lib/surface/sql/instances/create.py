@@ -13,13 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Creates a new Cloud SQL instance."""
-
+# TODO(b/362481808): remove python2-isms.
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
 from apitools.base.py import exceptions as apitools_exceptions
-
 from googlecloudsdk.api_lib.sql import api_util as common_api_util
 from googlecloudsdk.api_lib.sql import exceptions as sql_exceptions
 from googlecloudsdk.api_lib.sql import operations
@@ -41,27 +40,26 @@ import six
 _INSTANCE_CREATION_TIMEOUT_SECONDS = 3600
 
 DETAILED_HELP = {
-    'EXAMPLES':
-        """\
-        To create a MySQL 5.7 instance with ID ``prod-instance'' that has 2
+    'EXAMPLES': """\
+        To create a MySQL 8.0 instance with ID ``prod-instance'' that has 2
         CPUs, 4 GB of RAM, and is in the region ``us-central1'' (a zone will be
         auto-assigned), where the 'root' user has its password set to
         ``password123'', run:
 
-          $ {command} prod-instance --database-version=MYSQL_5_7 --cpu=2 --memory=4GB --region=us-central1 --root-password=password123
+          $ {command} prod-instance --database-version=MYSQL_8_0 --cpu=2 --memory=4GB --region=us-central1 --root-password=password123
 
-        To create a Postgres 9.6 instance with ID ``prod-instance'' that has 2
+        To create a Postgres 15 instance with ID ``prod-instance'' that has 2
         CPUs, 8 GiB of RAM, and is in the zone ``us-central1-a'', where the
         'postgres' user has its password set to ``password123'', run:
 
-          $ {command} prod-instance --database-version=POSTGRES_9_6 --cpu=2 --memory=8GiB --zone=us-central1-a --root-password=password123
+          $ {command} prod-instance --database-version=POSTGRES_15 --cpu=2 --memory=8GiB --zone=us-central1-a --root-password=password123
 
-        To create a SQL Server 2017 Express instance with ID ``prod-instance''
+        To create a SQL Server 2022 Express instance with ID ``prod-instance''
         that has 2 CPUs, 3840MiB of RAM, and is in the zone ``us-central1-a'',
         where the 'sqlserver' user has its password set to ``password123'',
         run:
 
-          $ {command} prod-instance --database-version=SQLSERVER_2017_EXPRESS --cpu=2 --memory=3840MiB --zone=us-central1-a --root-password=password123
+          $ {command} prod-instance --database-version=SQLSERVER_2022_EXPRESS --cpu=2 --memory=3840MiB --zone=us-central1-a --root-password=password123
         """,
 }
 
@@ -71,7 +69,6 @@ def AddBaseArgs(parser):
   # TODO(b/35705305): move common flags to command_lib.sql.flags
   base.ASYNC_FLAG.AddToParser(parser)
   parser.display_info.AddFormat(flags.GetInstanceListFormat())
-  # (-- LINT.IfChange(instance_settings) --)
   flags.AddActivationPolicy(parser)
   flags.AddActiveDirectoryDomain(parser)
   flags.AddAssignIp(parser)
@@ -90,7 +87,8 @@ def AddBaseArgs(parser):
   parser.add_argument(
       'instance',
       type=command_validate.InstanceNameRegexpValidator(),
-      help='Cloud SQL instance ID.')
+      help='Cloud SQL instance ID.',
+  )
   flags.AddMaintenanceReleaseChannel(parser)
   flags.AddMaintenanceWindowDay(parser)
   flags.AddMaintenanceWindowHour(parser)
@@ -100,7 +98,8 @@ def AddBaseArgs(parser):
   flags.AddInsightsConfigQueryInsightsEnabled(parser, show_negated_in_help=True)
   flags.AddInsightsConfigQueryStringLength(parser)
   flags.AddInsightsConfigRecordApplicationTags(
-      parser, show_negated_in_help=True)
+      parser, show_negated_in_help=True
+  )
   flags.AddInsightsConfigRecordClientAddress(parser, show_negated_in_help=True)
   flags.AddInsightsConfigQueryPlansPerMinute(parser)
   flags.AddMasterInstanceName(parser)
@@ -124,12 +123,11 @@ def AddBaseArgs(parser):
       'kms-key': '--disk-encryption-key',
       'kms-keyring': '--disk-encryption-key-keyring',
       'kms-location': '--disk-encryption-key-location',
-      'kms-project': '--disk-encryption-key-project'
+      'kms-project': '--disk-encryption-key-project',
   }
   kms_resource_args.AddKmsKeyResourceArg(
-      parser,
-      'instance',
-      flag_overrides=kms_flag_overrides)
+      parser, 'instance', flag_overrides=kms_flag_overrides
+  )
   flags.AddEnablePointInTimeRecovery(parser)
   flags.AddNetwork(parser)
   flags.AddSqlServerAudit(parser)
@@ -140,16 +138,40 @@ def AddBaseArgs(parser):
   flags.AddEnableGooglePrivatePath(parser, show_negated_in_help=False)
   flags.AddThreadsPerCore(parser)
   flags.AddCascadableReplica(parser)
-  flags.AddEnableDataCache(parser, show_negated_in_help=False)
+  flags.AddEnableDataCache(parser)
   flags.AddRecreateReplicasOnPrimaryCrash(parser)
   psc_setup_group = parser.add_group()
   flags.AddEnablePrivateServiceConnect(psc_setup_group)
   flags.AddAllowedPscProjects(psc_setup_group)
+  flags.AddCustomSubjectAlternativeNames(parser)
   flags.AddSslMode(parser)
   flags.AddEnableGoogleMLIntegration(parser)
-  # (--
-  # LINT.ThenChange(../backups/restore.py:instance_settings)
-  # --)
+  flags.AddEnableDataplexIntegration(parser)
+  flags.AddPscAutoConnections(parser)
+  flags.AddServerCaMode(parser)
+  flags.AddTags(parser)
+  flags.AddRetainBackupsOnDelete(parser)
+  flags.AddServerCaPool(parser)
+  flags.AddStorageProvisionedIops(parser)
+  flags.AddStorageProvisionedThroughput(parser)
+  flags.AddInstanceType(parser)
+  flags.AddNodeCount(parser)
+  flags.AddActiveDirectoryMode(parser, hidden=True)
+  flags.AddActiveDirectorySecretManagerKey(parser, hidden=True)
+  flags.AddActiveDirectoryOrganizationalUnit(parser, hidden=True)
+  flags.AddActiveDirectoryDNSServers(parser, hidden=True)
+  flags.ClearActiveDirectoryDNSServers(parser, hidden=True)
+  flags.AddForceSqlNetworkArchitecture(parser)
+  flags.AddFinalBackup(parser)
+  flags.AddFinalbackupRetentionDays(parser)
+  flags.AddEnableConnectionPooling(parser)
+  flags.AddConnectionPoolFlags(parser)
+
+  # When adding a new field for instance creation, determine if it should also
+  # be included in the restore to new instance command. This command uses backup
+  # settings to create a new instance, allowing users to override some settings.
+  # If the new field should be user-overridable during restore, add it to the
+  # restore command.
 
 
 def AddBetaArgs(parser):
@@ -159,11 +181,14 @@ def AddBetaArgs(parser):
   flags.AddAllocatedIpRangeName(parser)
   labels_util.AddCreateLabelsFlags(parser)
   flags.AddReplicationLagMaxSecondsForRecreate(parser)
+  flags.AddEnableDbAlignedAtomicWrites(parser)
+  flags.AddEnableAcceleratedReplicaMode(parser)
+  flags.AddEnableAutoUpgrade(parser)
 
 
-def AddAlphaArgs(unused_parser):
+def AddAlphaArgs(parser):
   """Declare alpha flags for this command parser."""
-  pass
+  flags.AddReadPoolAutoScaleConfig(parser, hidden=True)
 
 
 def RunBaseCreateCommand(args, release_track):
@@ -194,7 +219,8 @@ def RunBaseCreateCommand(args, release_track):
   instance_ref = client.resource_parser.Parse(
       args.instance,
       params={'project': properties.VALUES.core.project.GetOrFail},
-      collection='sql.instances')
+      collection='sql.instances',
+  )
 
   # Get the region, tier, and database version from the master if these fields
   # are not specified.
@@ -203,31 +229,51 @@ def RunBaseCreateCommand(args, release_track):
     master_instance_ref = client.resource_parser.Parse(
         args.master_instance_name,
         params={'project': properties.VALUES.core.project.GetOrFail},
-        collection='sql.instances')
+        collection='sql.instances',
+    )
     try:
       master_instance_resource = sql_client.instances.Get(
           sql_messages.SqlInstancesGetRequest(
               project=instance_ref.project,
-              instance=master_instance_ref.instance))
+              instance=master_instance_ref.instance,
+          )
+      )
     except apitools_exceptions.HttpError as error:
       # TODO(b/64292220): Remove once API gives helpful error message.
       log.debug('operation : %s', six.text_type(master_instance_ref))
       exc = exceptions.HttpException(error)
-      if resource_property.Get(exc.payload.content,
-                               resource_lex.ParseKey('error.errors[0].reason'),
-                               None) == 'notAuthorized':
-        msg = ('You are either not authorized to access the master instance or '
-               'it does not exist.')
+      if (
+          resource_property.Get(
+              exc.payload.content,
+              resource_lex.ParseKey('error.errors[0].reason'),
+              None,
+          )
+          == 'notAuthorized'
+      ):
+        msg = (
+            'You are either not authorized to access the master instance or '
+            'it does not exist.'
+        )
         raise exceptions.HttpException(msg)
       raise
     if not args.IsSpecified('region'):
       args.region = master_instance_resource.region
     if not args.IsSpecified('database_version'):
       args.database_version = master_instance_resource.databaseVersion.name
-    if not args.IsSpecified('tier') and not (
-        args.IsSpecified('cpu') or
-        args.IsSpecified('memory')) and master_instance_resource.settings:
+    if (
+        not args.IsSpecified('tier')
+        and not (args.IsSpecified('cpu') or args.IsSpecified('memory'))
+        and master_instance_resource.settings
+    ):
       args.tier = master_instance_resource.settings.tier
+
+    if args.IsKnownAndSpecified('enable_accelerated_replica_mode'):
+      if not (
+          master_instance_resource.databaseVersion.name.startswith('MYSQL_')
+      ):
+        raise sql_exceptions.ArgumentError(
+            '--enable-accelerated-replica-mode is only supported for MySQL.'
+        )
 
     # Validate master/replica CMEK configurations.
     if master_instance_resource.diskEncryptionConfiguration:
@@ -241,7 +287,8 @@ def RunBaseCreateCommand(args, release_track):
         raise exceptions.RequiredArgumentException(
             '--disk-encryption-key',
             '`--disk-encryption-key` is required when creating a cross-region '
-            'replica of an instance with customer-managed encryption.')
+            'replica of an instance with customer-managed encryption.',
+        )
       else:
         command_util.ShowCmekWarning('replica')
     elif args.IsSpecified('disk_encryption_key'):
@@ -249,29 +296,41 @@ def RunBaseCreateCommand(args, release_track):
       # master is not.
       raise sql_exceptions.ArgumentError(
           '`--disk-encryption-key` cannot be specified when creating a replica '
-          'of an instance without customer-managed encryption.')
+          'of an instance without customer-managed encryption.'
+      )
 
     if args.IsSpecified('cascadable_replica'):
       if args.region == master_instance_resource.region:
         raise exceptions.InvalidArgumentException(
             '--cascadable-replica',
             '`--cascadable-replica` can only be specified when creating a '
-            'replica that is in a different region than the primary.'
+            'replica that is in a different region than the primary.',
         )
   else:
     if args.IsSpecified('cascadable_replica'):
       raise exceptions.InvalidArgumentException(
           '--cascadable-replica',
           '`--cascadable-replica` can only be specified when '
-          '`--master-instance-name` is specified.'
+          '`--master-instance-name` is specified.',
       )
 
+    if args.IsKnownAndSpecified('enable_accelerated_replica_mode'):
+      if args.IsSpecified('database_version'):
+        if not args.database_version.startswith('MYSQL_'):
+          raise sql_exceptions.ArgumentError(
+              '--enable-accelerated-replica-mode is only supported for MySQL.'
+          )
+
   # --root-password is required when creating SQL Server instances
-  if args.IsSpecified('database_version') and args.database_version.startswith(
-      'SQLSERVER') and not args.IsSpecified('root_password'):
+  if (
+      args.IsSpecified('database_version')
+      and args.database_version.startswith('SQLSERVER')
+      and not args.IsSpecified('root_password')
+  ):
     raise exceptions.RequiredArgumentException(
         '--root-password',
-        '`--root-password` is required when creating SQL Server instances.')
+        '`--root-password` is required when creating SQL Server instances.',
+    )
 
   if not args.backup:
     if args.IsSpecified('enable_bin_log'):
@@ -280,17 +339,36 @@ def RunBaseCreateCommand(args, release_track):
         # otherwise no_backup is not allowed with enable_bin_log
         raise sql_exceptions.ArgumentError(
             '`--enable-bin-log` cannot be specified when --no-backup is '
-            'specified')
+            'specified'
+        )
     elif args.IsSpecified('enable_point_in_time_recovery'):
       raise sql_exceptions.ArgumentError(
           '`--enable-point-in-time-recovery` cannot be specified when '
-          '--no-backup is specified')
+          '--no-backup is specified'
+      )
 
-  if (args.IsKnownAndSpecified('allowed_psc_projects') and
-      not args.IsKnownAndSpecified('enable_private_service_connect')):
+  if args.IsKnownAndSpecified(
+      'allowed_psc_projects'
+  ) and not args.IsKnownAndSpecified('enable_private_service_connect'):
     raise sql_exceptions.ArgumentError(
-        '`--allowed-psc-projects` requires '
-        '`--enable-private-service-connect`')
+        '`--allowed-psc-projects` requires `--enable-private-service-connect`'
+    )
+
+  if args.IsKnownAndSpecified(
+      'psc_auto_connections'
+  ) and not args.IsKnownAndSpecified('enable_private_service_connect'):
+    raise sql_exceptions.ArgumentError(
+        '`--psc-auto-connections` requires `--enable-private-service-connect`'
+    )
+
+  # TODO(b/372040396): Add the check for server_ca_mode when it is supported.
+  if args.IsKnownAndSpecified(
+      'custom_subject_alternative_names'
+  ) and not args.IsKnownAndSpecified('server_ca_mode'):
+    raise sql_exceptions.ArgumentError(
+        '`--custom-subject-alternative-names` requires customer managed'
+        ' server CA'
+    )
 
   if args.database_flags is not None and any([
       'sync_binlog' in args.database_flags,
@@ -304,7 +382,15 @@ def RunBaseCreateCommand(args, release_track):
     )
 
   if args.IsSpecified('edition') and args.edition == 'enterprise-plus':
-    if not args.IsSpecified('tier'):
+    # This logic is awkward because we only want to change behavior for "new"
+    # database types to avoid breaking changes.
+    can_infer_tier = (
+        args.tier
+        and command_util.DoesEnterprisePlusReplicaInferTierForDatabaseType(
+            args.database_version
+        )
+    )
+    if not (args.IsSpecified('tier') or can_infer_tier):
       raise sql_exceptions.ArgumentError(
           '`--edition=enterprise-plus` requires `--tier`'
       )
@@ -314,51 +400,67 @@ def RunBaseCreateCommand(args, release_track):
           sql_messages,
           args,
           instance_ref=instance_ref,
-          release_track=release_track))
+          release_track=release_track,
+      )
+  )
 
   operation_ref = None
   try:
     result_operation = sql_client.instances.Insert(
         sql_messages.SqlInstancesInsertRequest(
-            databaseInstance=instance_resource,
-            project=instance_ref.project))
+            databaseInstance=instance_resource, project=instance_ref.project
+        )
+    )
 
     operation_ref = client.resource_parser.Create(
         'sql.operations',
         operation=result_operation.name,
-        project=instance_ref.project)
+        project=instance_ref.project,
+    )
 
     if args.async_:
       if not args.IsSpecified('format'):
         args.format = 'default'
       return sql_client.operations.Get(
           sql_messages.SqlOperationsGetRequest(
-              project=operation_ref.project, operation=operation_ref.operation))
+              project=operation_ref.project, operation=operation_ref.operation
+          )
+      )
 
     operations.OperationsV1Beta4.WaitForOperation(
         sql_client,
         operation_ref,
         'Creating Cloud SQL instance for ' + args.database_version,
-        max_wait_seconds=args.timeout)
+        max_wait_seconds=args.timeout,
+    )
 
     log.CreatedResource(instance_ref)
 
     new_resource = sql_client.instances.Get(
         sql_messages.SqlInstancesGetRequest(
-            project=instance_ref.project, instance=instance_ref.instance))
+            project=instance_ref.project, instance=instance_ref.instance
+        )
+    )
     return new_resource
   except apitools_exceptions.HttpError as error:
     log.debug('operation : %s', six.text_type(operation_ref))
     exc = exceptions.HttpException(error)
-    if resource_property.Get(exc.payload.content,
-                             resource_lex.ParseKey('error.errors[0].reason'),
-                             None) == 'errorMaxInstancePerLabel':
-      msg = resource_property.Get(exc.payload.content,
-                                  resource_lex.ParseKey('error.message'), None)
+    if (
+        resource_property.Get(
+            exc.payload.content,
+            resource_lex.ParseKey('error.errors[0].reason'),
+            None,
+        )
+        == 'errorMaxInstancePerLabel'
+    ):
+      msg = resource_property.Get(
+          exc.payload.content, resource_lex.ParseKey('error.message'), None
+      )
       raise exceptions.HttpException(msg)
     raise
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Create(base.Command):
   """Creates a new Cloud SQL instance."""
@@ -377,6 +479,7 @@ class Create(base.Command):
 
 
 @base.ReleaseTracks(base.ReleaseTrack.BETA)
+@base.DefaultUniverseOnly
 class CreateBeta(base.Command):
   """Creates a new Cloud SQL instance."""
 
@@ -395,6 +498,7 @@ class CreateBeta(base.Command):
 
 
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.DefaultUniverseOnly
 class CreateAlpha(base.Command):
   """Creates a new Cloud SQL instance."""
 

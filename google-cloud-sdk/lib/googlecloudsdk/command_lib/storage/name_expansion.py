@@ -29,6 +29,7 @@ from googlecloudsdk.command_lib.storage import storage_url
 from googlecloudsdk.command_lib.storage import wildcard_iterator
 from googlecloudsdk.command_lib.storage.resources import resource_reference
 from googlecloudsdk.core import log
+from googlecloudsdk.core import properties
 from googlecloudsdk.core.util import debug_output
 
 
@@ -64,6 +65,7 @@ class NameExpansionIterator:
       ignore_symlinks=False,
       include_buckets=BucketSetting.NO,
       managed_folder_setting=folder_util.ManagedFolderSetting.DO_NOT_LIST,
+      folder_setting=folder_util.FolderSetting.DO_NOT_LIST,
       object_state=cloud_api.ObjectState.LIVE,
       preserve_symlinks=False,
       raise_error_for_unmatched_urls=True,
@@ -82,6 +84,8 @@ class NameExpansionIterator:
         whether to raise an error.
       managed_folder_setting (folder_util.ManagedFolderSetting): Indicates how
         to deal with managed folders.
+      folder_setting (folder_util.FolderSetting): Indicates how to deal with
+        folders.
       object_state (cloud_api.ObjectState): Versions of objects to query.
       preserve_symlinks (bool): Preserve symlinks instead of following them.
       raise_error_for_unmatched_urls (bool): If True, raises an error if any url
@@ -106,6 +110,7 @@ class NameExpansionIterator:
     self._ignore_symlinks = ignore_symlinks
     self._include_buckets = include_buckets
     self._managed_folder_setting = managed_folder_setting
+    self._folder_setting = folder_setting
     self._preserve_symlinks = preserve_symlinks
     self._raise_error_for_unmatched_urls = raise_error_for_unmatched_urls
     self._raise_managed_folder_precondition_errors = (
@@ -129,14 +134,19 @@ class NameExpansionIterator:
       self,
       url,
       managed_folder_setting=folder_util.ManagedFolderSetting.DO_NOT_LIST,
+      folder_setting=folder_util.FolderSetting.DO_NOT_LIST,
   ):
     """Returns get_wildcard_iterator with instance variables as args."""
     return wildcard_iterator.get_wildcard_iterator(
         url,
-        fetch_encrypted_object_hashes=True,
+        fetch_encrypted_object_hashes=(
+            properties.VALUES.storage.check_hashes.Get()
+            != properties.CheckHashes.NEVER.value
+        ),
         fields_scope=self._fields_scope,
         ignore_symlinks=self._ignore_symlinks,
         managed_folder_setting=managed_folder_setting,
+        folder_setting=folder_setting,
         object_state=self.object_state,
         preserve_symlinks=self._preserve_symlinks,
         raise_managed_folder_precondition_errors=(
@@ -196,13 +206,20 @@ class NameExpansionIterator:
       else:
         wildcard_iterator_managed_folder_setting = self._managed_folder_setting
 
+      wildcard_iterator_folder_setting = self._folder_setting
+
       for resource in self._get_wildcard_iterator(
           url,
           managed_folder_setting=wildcard_iterator_managed_folder_setting,
+          folder_setting=wildcard_iterator_folder_setting,
       ):
         if (
             self._managed_folder_setting
             is folder_util.ManagedFolderSetting.LIST_WITHOUT_OBJECTS
+            and isinstance(resource, resource_reference.ObjectResource)
+        ) or (
+            self._folder_setting
+            is folder_util.FolderSetting.LIST_WITHOUT_OBJECTS
             and isinstance(resource, resource_reference.ObjectResource)
         ):
           continue
@@ -216,6 +233,7 @@ class NameExpansionIterator:
     child_resources = self._get_wildcard_iterator(
         new_storage_url.url_string,
         managed_folder_setting=self._managed_folder_setting,
+        folder_setting=self._folder_setting,
     )
     for child_resource in child_resources:
       yield self._get_name_expansion_result(
@@ -244,8 +262,8 @@ class NameExpansionIterator:
     ]
     if non_matching_urls:
       raise errors.InvalidUrlError(
-          'The following URLs matched no objects or files:\n-{}'.format(
-              '\n-'.join(non_matching_urls)))
+          'The following URLs matched no objects or files:\n{}'.format(
+              '\n'.join(non_matching_urls)))
 
   def _raise_error_if_multiple_sources_include_stdin(self, expanded_url):
     if (self._has_multiple_top_level_resources and isinstance(
@@ -280,12 +298,20 @@ class NameExpansionIterator:
           name_expansion_result.resource,
           resource_reference.ManagedFolderResource,
       )
+      should_return_folder = self._folder_setting in {
+          folder_util.FolderSetting.LIST_WITHOUT_OBJECTS,
+          folder_util.FolderSetting.LIST_AS_FOLDERS,
+      } and isinstance(
+          name_expansion_result.resource,
+          resource_reference.FolderResource,
+      )
       if (
           not resource_reference.is_container_or_has_container_url(
               name_expansion_result.resource
           )
           or should_return_bucket
           or should_return_managed_folder
+          or should_return_folder
       ):
         self._url_found_match_tracker[input_url] = True
         yield name_expansion_result
@@ -298,7 +324,11 @@ class NameExpansionIterator:
             self._url_found_match_tracker[input_url] = True
             yield nested_name_expansion_result
 
-        elif not (should_return_bucket or should_return_managed_folder):
+        elif not (
+            should_return_bucket
+            or should_return_managed_folder
+            or should_return_folder
+        ):
           if self._recursion_requested is RecursionSetting.NO_WITH_WARNING:
             # Does not warn about buckets processed above because it's confusing
             # to warn about something that was successfully processed.

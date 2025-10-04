@@ -21,6 +21,13 @@ from __future__ import unicode_literals
 
 import json
 
+from google.auth import _helpers
+from google.auth import credentials as google_auth_credentials
+from google.auth import exceptions as google_auth_exceptions
+from google.auth import external_account_authorized_user as google_auth_external_account_authorized_user
+from google.oauth2 import _client as google_auth_client
+from google.oauth2 import credentials
+from google.oauth2 import reauth as google_auth_reauth
 from googlecloudsdk.core import context_aware
 from googlecloudsdk.core import exceptions
 from googlecloudsdk.core import http
@@ -28,23 +35,14 @@ from googlecloudsdk.core import log
 from googlecloudsdk.core import properties
 from googlecloudsdk.core.console import console_io
 from googlecloudsdk.core.util import retry
-
 from oauth2client import client as oauth2client_client
 from oauth2client.contrib import reauth
-
+from pyu2f import errors as pyu2f_errors
 import six
 from six.moves import http_client
 from six.moves import urllib
 
-from google.auth import _helpers
-from google.auth import credentials as google_auth_credentials
-from google.auth import external_account_authorized_user as google_auth_external_account_authorized_user
-from google.auth import exceptions as google_auth_exceptions
-from google.oauth2 import _client as google_auth_client
-from google.oauth2 import credentials
-from google.oauth2 import reauth as google_auth_reauth
-
-GOOGLE_REVOKE_URI = 'https://accounts.google.com/o/oauth2/revoke'
+GOOGLE_REVOKE_URI = 'https://oauth2.googleapis.com/revoke'
 
 
 class Error(exceptions.Error):
@@ -60,7 +58,8 @@ class ContextAwareAccessDeniedError(Error, google_auth_exceptions.RefreshError):
 
   def __init__(self):
     super(ContextAwareAccessDeniedError, self).__init__(
-        context_aware.CONTEXT_AWARE_ACCESS_HELP_MSG)
+        context_aware.ContextAwareAccessError.Get()
+    )
 
 
 class TokenRevokeError(Error, google_auth_exceptions.GoogleAuthError):
@@ -104,10 +103,10 @@ class Credentials(credentials.Credentials):
     try:
       return self._Refresh(request)
     except ReauthRequiredError:
-      if not console_io.IsInteractive():
-        log.info('Reauthentication not performed as we cannot prompt during '
-                 'non-interactive execution.')
-        return
+      if not console_io.CanPrompt():
+        raise google_auth_exceptions.ReauthFailError(
+            'cannot prompt during non-interactive execution.'
+        )
 
       # When we clean up oauth2client code in the future, we can remove the else
       # part.
@@ -128,6 +127,15 @@ class Credentials(credentials.Credentials):
               self._token_uri,
               list(self.scopes or []),
           )
+
+        except pyu2f_errors.OsHidError as e:
+          # The device does not have a security key attached.
+          # Sometimes manually re-authenticating gets around this.
+          raise google_auth_exceptions.ReauthFailError(
+              'A security key reauthentication challenge was issued but no key'
+              ' was found. Try manually reauthenticating.'
+          ) from e
+
         except KeyError:
           # context: b/328663283
           # pyu2f lib doesn't handle the timeout well. When timeout happens, the
@@ -193,7 +201,7 @@ class Credentials(credentials.Credentials):
     headers = {
         'content-type': google_auth_client._URLENCODED_CONTENT_TYPE,  # pylint: disable=protected-access
     }
-    response = request(token_revoke_uri, headers=headers)
+    response = request(token_revoke_uri, headers=headers, method='POST')
     if response.status != http_client.OK:
       response_data = six.ensure_text(response.data)
       response_json = json.loads(response_data)

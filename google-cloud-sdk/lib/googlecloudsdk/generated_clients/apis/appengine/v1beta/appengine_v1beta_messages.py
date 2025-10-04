@@ -117,7 +117,8 @@ class AppengineAppsAuthorizedCertificatesCreateRequest(_messages.Message):
   Fields:
     authorizedCertificate: A AuthorizedCertificate resource to be passed as
       the request body.
-    parent: Name of the parent Application resource. Example: apps/myapp.
+    parent: Required. Name of the parent Application resource. Example:
+      apps/myapp.
   """
 
   authorizedCertificate = _messages.MessageField('AuthorizedCertificate', 1)
@@ -128,7 +129,7 @@ class AppengineAppsAuthorizedCertificatesDeleteRequest(_messages.Message):
   r"""A AppengineAppsAuthorizedCertificatesDeleteRequest object.
 
   Fields:
-    name: Name of the resource to delete. Example:
+    name: Required. Name of the resource to delete. Example:
       apps/myapp/authorizedCertificates/12345.
   """
 
@@ -143,7 +144,7 @@ class AppengineAppsAuthorizedCertificatesGetRequest(_messages.Message):
       response.
 
   Fields:
-    name: Name of the resource requested. Example:
+    name: Required. Name of the resource requested. Example:
       apps/myapp/authorizedCertificates/12345.
     view: Controls the set of fields returned in the GET response.
   """
@@ -174,7 +175,8 @@ class AppengineAppsAuthorizedCertificatesListRequest(_messages.Message):
   Fields:
     pageSize: Maximum results to return per page.
     pageToken: Continuation token for fetching the next page of results.
-    parent: Name of the parent Application resource. Example: apps/myapp.
+    parent: Required. Name of the parent Application resource. Example:
+      apps/myapp.
     view: Controls the set of fields returned in the LIST response.
   """
 
@@ -202,7 +204,7 @@ class AppengineAppsAuthorizedCertificatesPatchRequest(_messages.Message):
   Fields:
     authorizedCertificate: A AuthorizedCertificate resource to be passed as
       the request body.
-    name: Name of the resource to update. Example:
+    name: Required. Name of the resource to update. Example:
       apps/myapp/authorizedCertificates/12345.
     updateMask: Standard field mask for the set of fields to be updated.
       Updates are only supported on the certificate_raw_data and display_name
@@ -220,7 +222,8 @@ class AppengineAppsAuthorizedDomainsListRequest(_messages.Message):
   Fields:
     pageSize: Maximum results to return per page.
     pageToken: Continuation token for fetching the next page of results.
-    parent: Name of the parent Application resource. Example: apps/myapp.
+    parent: Required. Name of the parent Application resource. Example:
+      apps/myapp.
   """
 
   pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
@@ -240,7 +243,8 @@ class AppengineAppsDomainMappingsCreateRequest(_messages.Message):
     domainMapping: A DomainMapping resource to be passed as the request body.
     overrideStrategy: Whether the domain creation should override any existing
       mappings for this domain. By default, overrides are rejected.
-    parent: Name of the parent Application resource. Example: apps/myapp.
+    parent: Required. Name of the parent Application resource. Example:
+      apps/myapp.
   """
 
   class OverrideStrategyValueValuesEnum(_messages.Enum):
@@ -271,7 +275,7 @@ class AppengineAppsDomainMappingsDeleteRequest(_messages.Message):
   r"""A AppengineAppsDomainMappingsDeleteRequest object.
 
   Fields:
-    name: Name of the resource to delete. Example:
+    name: Required. Name of the resource to delete. Example:
       apps/myapp/domainMappings/example.com.
   """
 
@@ -282,7 +286,7 @@ class AppengineAppsDomainMappingsGetRequest(_messages.Message):
   r"""A AppengineAppsDomainMappingsGetRequest object.
 
   Fields:
-    name: Name of the resource requested. Example:
+    name: Required. Name of the resource requested. Example:
       apps/myapp/domainMappings/example.com.
   """
 
@@ -295,7 +299,8 @@ class AppengineAppsDomainMappingsListRequest(_messages.Message):
   Fields:
     pageSize: Maximum results to return per page.
     pageToken: Continuation token for fetching the next page of results.
-    parent: Name of the parent Application resource. Example: apps/myapp.
+    parent: Required. Name of the parent Application resource. Example:
+      apps/myapp.
   """
 
   pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
@@ -308,7 +313,7 @@ class AppengineAppsDomainMappingsPatchRequest(_messages.Message):
 
   Fields:
     domainMapping: A DomainMapping resource to be passed as the request body.
-    name: Name of the resource to update. Example:
+    name: Required. Name of the resource to update. Example:
       apps/myapp/domainMappings/example.com.
     updateMask: Required. Standard field mask for the set of fields to be
       updated.
@@ -338,8 +343,8 @@ class AppengineAppsFirewallIngressRulesCreateRequest(_messages.Message):
 
   Fields:
     firewallRule: A FirewallRule resource to be passed as the request body.
-    parent: Name of the parent Firewall collection in which to create a new
-      rule. Example: apps/myapp/firewall/ingressRules.
+    parent: Required. Name of the parent Firewall collection in which to
+      create a new rule. Example: apps/myapp/firewall/ingressRules.
   """
 
   firewallRule = _messages.MessageField('FirewallRule', 1)
@@ -410,7 +415,8 @@ class AppengineAppsGetRequest(_messages.Message):
 
   Fields:
     includeExtraData: Optional. Options to include extra data
-    name: Name of the Application resource to get. Example: apps/myapp.
+    name: Required. Name of the Application resource to get. Example:
+      apps/myapp.
   """
 
   class IncludeExtraDataValueValuesEnum(_messages.Enum):
@@ -473,6 +479,9 @@ class AppengineAppsLocationsListRequest(_messages.Message):
   r"""A AppengineAppsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like "displayName=tokyo", and is
       documented in more detail in AIP-160 (https://google.aip.dev/160).
@@ -483,10 +492,11 @@ class AppengineAppsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class AppengineAppsOperationsGetRequest(_messages.Message):
@@ -520,7 +530,8 @@ class AppengineAppsPatchRequest(_messages.Message):
 
   Fields:
     application: A Application resource to be passed as the request body.
-    name: Name of the Application resource to update. Example: apps/myapp.
+    name: Required. Name of the Application resource to update. Example:
+      apps/myapp.
     updateMask: Required. Standard field mask for the set of fields to be
       updated.
   """
@@ -534,7 +545,7 @@ class AppengineAppsRepairRequest(_messages.Message):
   r"""A AppengineAppsRepairRequest object.
 
   Fields:
-    name: Name of the application to repair. Example: apps/myapp
+    name: Required. Name of the application to repair. Example: apps/myapp
     repairApplicationRequest: A RepairApplicationRequest resource to be passed
       as the request body.
   """
@@ -547,7 +558,7 @@ class AppengineAppsServicesDeleteRequest(_messages.Message):
   r"""A AppengineAppsServicesDeleteRequest object.
 
   Fields:
-    name: Name of the resource requested. Example:
+    name: Required. Name of the resource requested. Example:
       apps/myapp/services/default.
   """
 
@@ -562,7 +573,7 @@ class AppengineAppsServicesGetRequest(_messages.Message):
 
   Fields:
     includeExtraData: Optional. Options to include extra data
-    name: Name of the resource requested. Example:
+    name: Required. Name of the resource requested. Example:
       apps/myapp/services/default.
   """
 
@@ -590,12 +601,55 @@ class AppengineAppsServicesListRequest(_messages.Message):
   Fields:
     pageSize: Maximum results to return per page.
     pageToken: Continuation token for fetching the next page of results.
-    parent: Name of the parent Application resource. Example: apps/myapp.
+    parent: Required. Name of the parent Application resource. Example:
+      apps/myapp.
   """
 
   pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
   pageToken = _messages.StringField(2)
   parent = _messages.StringField(3, required=True)
+
+
+class AppengineAppsServicesMigrationCheckGen1appIdRequest(_messages.Message):
+  r"""A AppengineAppsServicesMigrationCheckGen1appIdRequest object.
+
+  Fields:
+    checkGen1AppIdRequest: A CheckGen1AppIdRequest resource to be passed as
+      the request body.
+    name: Required. Name of the resource requested. Example:
+      apps/myapp/services/default.
+  """
+
+  checkGen1AppIdRequest = _messages.MessageField('CheckGen1AppIdRequest', 1)
+  name = _messages.StringField(2, required=True)
+
+
+class AppengineAppsServicesMigrationMigrateCodeFileRequest(_messages.Message):
+  r"""A AppengineAppsServicesMigrationMigrateCodeFileRequest object.
+
+  Fields:
+    migrateCodeFileRequest: A MigrateCodeFileRequest resource to be passed as
+      the request body.
+    name: Required. Name of the resource requested. Example:
+      apps/myapp/services/default.
+  """
+
+  migrateCodeFileRequest = _messages.MessageField('MigrateCodeFileRequest', 1)
+  name = _messages.StringField(2, required=True)
+
+
+class AppengineAppsServicesMigrationMigrateConfigYamlRequest(_messages.Message):
+  r"""A AppengineAppsServicesMigrationMigrateConfigYamlRequest object.
+
+  Fields:
+    migrateConfigYamlRequest: A MigrateConfigYamlRequest resource to be passed
+      as the request body.
+    name: Required. Name of the resource requested. Example:
+      apps/myapp/services/default.
+  """
+
+  migrateConfigYamlRequest = _messages.MessageField('MigrateConfigYamlRequest', 1)
+  name = _messages.StringField(2, required=True)
 
 
 class AppengineAppsServicesPatchRequest(_messages.Message):
@@ -616,7 +670,7 @@ class AppengineAppsServicesPatchRequest(_messages.Message):
       flexible environment. For examples, see Migrating and Splitting Traffic
       (https://cloud.google.com/appengine/docs/admin-api/migrating-splitting-
       traffic).
-    name: Name of the resource to update. Example:
+    name: Required. Name of the resource to update. Example:
       apps/myapp/services/default.
     service: A Service resource to be passed as the request body.
     updateMask: Required. Standard field mask for the set of fields to be
@@ -633,8 +687,8 @@ class AppengineAppsServicesVersionsCreateRequest(_messages.Message):
   r"""A AppengineAppsServicesVersionsCreateRequest object.
 
   Fields:
-    parent: Name of the parent resource to create this version under. Example:
-      apps/myapp/services/default.
+    parent: Required. Name of the parent resource to create this version
+      under. Example: apps/myapp/services/default.
     version: A Version resource to be passed as the request body.
   """
 
@@ -646,7 +700,7 @@ class AppengineAppsServicesVersionsDeleteRequest(_messages.Message):
   r"""A AppengineAppsServicesVersionsDeleteRequest object.
 
   Fields:
-    name: Name of the resource requested. Example:
+    name: Required. Name of the resource requested. Example:
       apps/myapp/services/default/versions/v1.
   """
 
@@ -663,7 +717,7 @@ class AppengineAppsServicesVersionsGetRequest(_messages.Message):
 
   Fields:
     includeExtraData: Optional. Options to include extra data
-    name: Name of the resource requested. Example:
+    name: Required. Name of the resource requested. Example:
       apps/myapp/services/default/versions/v1.
     view: Controls the set of fields returned in the Get response.
   """
@@ -706,7 +760,7 @@ class AppengineAppsServicesVersionsInstancesDebugRequest(_messages.Message):
   Fields:
     debugInstanceRequest: A DebugInstanceRequest resource to be passed as the
       request body.
-    name: Name of the resource requested. Example:
+    name: Required. Name of the resource requested. Example:
       apps/myapp/services/default/versions/v1/instances/instance-1.
   """
 
@@ -718,7 +772,7 @@ class AppengineAppsServicesVersionsInstancesDeleteRequest(_messages.Message):
   r"""A AppengineAppsServicesVersionsInstancesDeleteRequest object.
 
   Fields:
-    name: Name of the resource requested. Example:
+    name: Required. Name of the resource requested. Example:
       apps/myapp/services/default/versions/v1/instances/instance-1.
   """
 
@@ -729,7 +783,7 @@ class AppengineAppsServicesVersionsInstancesGetRequest(_messages.Message):
   r"""A AppengineAppsServicesVersionsInstancesGetRequest object.
 
   Fields:
-    name: Name of the resource requested. Example:
+    name: Required. Name of the resource requested. Example:
       apps/myapp/services/default/versions/v1/instances/instance-1.
   """
 
@@ -742,7 +796,7 @@ class AppengineAppsServicesVersionsInstancesListRequest(_messages.Message):
   Fields:
     pageSize: Maximum results to return per page.
     pageToken: Continuation token for fetching the next page of results.
-    parent: Name of the parent Version resource. Example:
+    parent: Required. Name of the parent Version resource. Example:
       apps/myapp/services/default/versions/v1.
   """
 
@@ -761,7 +815,7 @@ class AppengineAppsServicesVersionsListRequest(_messages.Message):
   Fields:
     pageSize: Maximum results to return per page.
     pageToken: Continuation token for fetching the next page of results.
-    parent: Name of the parent Service resource. Example:
+    parent: Required. Name of the parent Service resource. Example:
       apps/myapp/services/default.
     view: Controls the set of fields returned in the List response.
   """
@@ -789,7 +843,7 @@ class AppengineAppsServicesVersionsPatchRequest(_messages.Message):
   r"""A AppengineAppsServicesVersionsPatchRequest object.
 
   Fields:
-    name: Name of the resource to update. Example:
+    name: Required. Name of the resource to update. Example:
       apps/myapp/services/default/versions/1.
     updateMask: Standard field mask for the set of fields to be updated.
     version: A Version resource to be passed as the request body.
@@ -800,6 +854,120 @@ class AppengineAppsServicesVersionsPatchRequest(_messages.Message):
   version = _messages.MessageField('Version', 3)
 
 
+class AppengineProjectsLocationsApplicationsAuthorizedCertificatesCreateRequest(_messages.Message):
+  r"""A
+  AppengineProjectsLocationsApplicationsAuthorizedCertificatesCreateRequest
+  object.
+
+  Fields:
+    authorizedCertificate: A AuthorizedCertificate resource to be passed as
+      the request body.
+    parent: Required. Name of the parent Application resource. Example:
+      apps/myapp.
+  """
+
+  authorizedCertificate = _messages.MessageField('AuthorizedCertificate', 1)
+  parent = _messages.StringField(2, required=True)
+
+
+class AppengineProjectsLocationsApplicationsAuthorizedCertificatesDeleteRequest(_messages.Message):
+  r"""A
+  AppengineProjectsLocationsApplicationsAuthorizedCertificatesDeleteRequest
+  object.
+
+  Fields:
+    name: Required. Name of the resource to delete. Example:
+      apps/myapp/authorizedCertificates/12345.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class AppengineProjectsLocationsApplicationsAuthorizedCertificatesGetRequest(_messages.Message):
+  r"""A AppengineProjectsLocationsApplicationsAuthorizedCertificatesGetRequest
+  object.
+
+  Enums:
+    ViewValueValuesEnum: Controls the set of fields returned in the GET
+      response.
+
+  Fields:
+    name: Required. Name of the resource requested. Example:
+      apps/myapp/authorizedCertificates/12345.
+    view: Controls the set of fields returned in the GET response.
+  """
+
+  class ViewValueValuesEnum(_messages.Enum):
+    r"""Controls the set of fields returned in the GET response.
+
+    Values:
+      BASIC_CERTIFICATE: Basic certificate information, including applicable
+        domains and expiration date.
+      FULL_CERTIFICATE: The information from BASIC_CERTIFICATE, plus detailed
+        information on the domain mappings that have this certificate mapped.
+    """
+    BASIC_CERTIFICATE = 0
+    FULL_CERTIFICATE = 1
+
+  name = _messages.StringField(1, required=True)
+  view = _messages.EnumField('ViewValueValuesEnum', 2)
+
+
+class AppengineProjectsLocationsApplicationsAuthorizedCertificatesListRequest(_messages.Message):
+  r"""A
+  AppengineProjectsLocationsApplicationsAuthorizedCertificatesListRequest
+  object.
+
+  Enums:
+    ViewValueValuesEnum: Controls the set of fields returned in the LIST
+      response.
+
+  Fields:
+    pageSize: Maximum results to return per page.
+    pageToken: Continuation token for fetching the next page of results.
+    parent: Required. Name of the parent Application resource. Example:
+      apps/myapp.
+    view: Controls the set of fields returned in the LIST response.
+  """
+
+  class ViewValueValuesEnum(_messages.Enum):
+    r"""Controls the set of fields returned in the LIST response.
+
+    Values:
+      BASIC_CERTIFICATE: Basic certificate information, including applicable
+        domains and expiration date.
+      FULL_CERTIFICATE: The information from BASIC_CERTIFICATE, plus detailed
+        information on the domain mappings that have this certificate mapped.
+    """
+    BASIC_CERTIFICATE = 0
+    FULL_CERTIFICATE = 1
+
+  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+  view = _messages.EnumField('ViewValueValuesEnum', 4)
+
+
+class AppengineProjectsLocationsApplicationsAuthorizedCertificatesPatchRequest(_messages.Message):
+  r"""A
+  AppengineProjectsLocationsApplicationsAuthorizedCertificatesPatchRequest
+  object.
+
+  Fields:
+    authorizedCertificate: A AuthorizedCertificate resource to be passed as
+      the request body.
+    name: Required. Name of the resource to update. Example:
+      apps/myapp/authorizedCertificates/12345.
+    updateMask: Standard field mask for the set of fields to be updated.
+      Updates are only supported on the certificate_raw_data and display_name
+      fields.
+  """
+
+  authorizedCertificate = _messages.MessageField('AuthorizedCertificate', 1)
+  name = _messages.StringField(2, required=True)
+  updateMask = _messages.StringField(3)
+
+
 class AppengineProjectsLocationsApplicationsAuthorizedDomainsListRequest(_messages.Message):
   r"""A AppengineProjectsLocationsApplicationsAuthorizedDomainsListRequest
   object.
@@ -807,12 +975,226 @@ class AppengineProjectsLocationsApplicationsAuthorizedDomainsListRequest(_messag
   Fields:
     pageSize: Maximum results to return per page.
     pageToken: Continuation token for fetching the next page of results.
-    parent: Name of the parent Application resource. Example: apps/myapp.
+    parent: Required. Name of the parent Application resource. Example:
+      apps/myapp.
   """
 
   pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
   pageToken = _messages.StringField(2)
   parent = _messages.StringField(3, required=True)
+
+
+class AppengineProjectsLocationsApplicationsDomainMappingsCreateRequest(_messages.Message):
+  r"""A AppengineProjectsLocationsApplicationsDomainMappingsCreateRequest
+  object.
+
+  Enums:
+    OverrideStrategyValueValuesEnum: Whether the domain creation should
+      override any existing mappings for this domain. By default, overrides
+      are rejected.
+
+  Fields:
+    domainMapping: A DomainMapping resource to be passed as the request body.
+    overrideStrategy: Whether the domain creation should override any existing
+      mappings for this domain. By default, overrides are rejected.
+    parent: Required. Name of the parent Application resource. Example:
+      apps/myapp.
+  """
+
+  class OverrideStrategyValueValuesEnum(_messages.Enum):
+    r"""Whether the domain creation should override any existing mappings for
+    this domain. By default, overrides are rejected.
+
+    Values:
+      UNSPECIFIED_DOMAIN_OVERRIDE_STRATEGY: Strategy unspecified. Defaults to
+        STRICT.
+      STRICT: Overrides not allowed. If a mapping already exists for the
+        specified domain, the request will return an ALREADY_EXISTS (409).
+      OVERRIDE: Overrides allowed. If a mapping already exists for the
+        specified domain, the request will overwrite it. Note that this might
+        stop another Google product from serving. For example, if the domain
+        is mapped to another App Engine application, that app will no longer
+        serve from that domain.
+    """
+    UNSPECIFIED_DOMAIN_OVERRIDE_STRATEGY = 0
+    STRICT = 1
+    OVERRIDE = 2
+
+  domainMapping = _messages.MessageField('DomainMapping', 1)
+  overrideStrategy = _messages.EnumField('OverrideStrategyValueValuesEnum', 2)
+  parent = _messages.StringField(3, required=True)
+
+
+class AppengineProjectsLocationsApplicationsDomainMappingsDeleteRequest(_messages.Message):
+  r"""A AppengineProjectsLocationsApplicationsDomainMappingsDeleteRequest
+  object.
+
+  Fields:
+    name: Required. Name of the resource to delete. Example:
+      apps/myapp/domainMappings/example.com.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class AppengineProjectsLocationsApplicationsDomainMappingsGetRequest(_messages.Message):
+  r"""A AppengineProjectsLocationsApplicationsDomainMappingsGetRequest object.
+
+  Fields:
+    name: Required. Name of the resource requested. Example:
+      apps/myapp/domainMappings/example.com.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class AppengineProjectsLocationsApplicationsDomainMappingsPatchRequest(_messages.Message):
+  r"""A AppengineProjectsLocationsApplicationsDomainMappingsPatchRequest
+  object.
+
+  Fields:
+    domainMapping: A DomainMapping resource to be passed as the request body.
+    name: Required. Name of the resource to update. Example:
+      apps/myapp/domainMappings/example.com.
+    updateMask: Required. Standard field mask for the set of fields to be
+      updated.
+  """
+
+  domainMapping = _messages.MessageField('DomainMapping', 1)
+  name = _messages.StringField(2, required=True)
+  updateMask = _messages.StringField(3)
+
+
+class AppengineProjectsLocationsApplicationsPatchRequest(_messages.Message):
+  r"""A AppengineProjectsLocationsApplicationsPatchRequest object.
+
+  Fields:
+    application: A Application resource to be passed as the request body.
+    name: Required. Name of the Application resource to update. Example:
+      apps/myapp.
+    updateMask: Required. Standard field mask for the set of fields to be
+      updated.
+  """
+
+  application = _messages.MessageField('Application', 1)
+  name = _messages.StringField(2, required=True)
+  updateMask = _messages.StringField(3)
+
+
+class AppengineProjectsLocationsApplicationsServicesDeleteRequest(_messages.Message):
+  r"""A AppengineProjectsLocationsApplicationsServicesDeleteRequest object.
+
+  Fields:
+    name: Required. Name of the resource requested. Example:
+      apps/myapp/services/default.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class AppengineProjectsLocationsApplicationsServicesMigrationCheckGen1appIdRequest(_messages.Message):
+  r"""A
+  AppengineProjectsLocationsApplicationsServicesMigrationCheckGen1appIdRequest
+  object.
+
+  Fields:
+    checkGen1AppIdRequest: A CheckGen1AppIdRequest resource to be passed as
+      the request body.
+    name: Required. Name of the resource requested. Example:
+      apps/myapp/services/default.
+  """
+
+  checkGen1AppIdRequest = _messages.MessageField('CheckGen1AppIdRequest', 1)
+  name = _messages.StringField(2, required=True)
+
+
+class AppengineProjectsLocationsApplicationsServicesMigrationMigrateCodeFileRequest(_messages.Message):
+  r"""A AppengineProjectsLocationsApplicationsServicesMigrationMigrateCodeFile
+  Request object.
+
+  Fields:
+    migrateCodeFileRequest: A MigrateCodeFileRequest resource to be passed as
+      the request body.
+    name: Required. Name of the resource requested. Example:
+      apps/myapp/services/default.
+  """
+
+  migrateCodeFileRequest = _messages.MessageField('MigrateCodeFileRequest', 1)
+  name = _messages.StringField(2, required=True)
+
+
+class AppengineProjectsLocationsApplicationsServicesMigrationMigrateConfigYamlRequest(_messages.Message):
+  r"""A AppengineProjectsLocationsApplicationsServicesMigrationMigrateConfigYa
+  mlRequest object.
+
+  Fields:
+    migrateConfigYamlRequest: A MigrateConfigYamlRequest resource to be passed
+      as the request body.
+    name: Required. Name of the resource requested. Example:
+      apps/myapp/services/default.
+  """
+
+  migrateConfigYamlRequest = _messages.MessageField('MigrateConfigYamlRequest', 1)
+  name = _messages.StringField(2, required=True)
+
+
+class AppengineProjectsLocationsApplicationsServicesPatchRequest(_messages.Message):
+  r"""A AppengineProjectsLocationsApplicationsServicesPatchRequest object.
+
+  Fields:
+    migrateTraffic: Set to true to gradually shift traffic to one or more
+      versions that you specify. By default, traffic is shifted immediately.
+      For gradual traffic migration, the target versions must be located
+      within instances that are configured for both warmup requests
+      (https://cloud.google.com/appengine/docs/admin-
+      api/reference/rest/v1beta/apps.services.versions#InboundServiceType) and
+      automatic scaling (https://cloud.google.com/appengine/docs/admin-
+      api/reference/rest/v1beta/apps.services.versions#AutomaticScaling). You
+      must specify the shardBy (https://cloud.google.com/appengine/docs/admin-
+      api/reference/rest/v1beta/apps.services#ShardBy) field in the Service
+      resource. Gradual traffic migration is not supported in the App Engine
+      flexible environment. For examples, see Migrating and Splitting Traffic
+      (https://cloud.google.com/appengine/docs/admin-api/migrating-splitting-
+      traffic).
+    name: Required. Name of the resource to update. Example:
+      apps/myapp/services/default.
+    service: A Service resource to be passed as the request body.
+    updateMask: Required. Standard field mask for the set of fields to be
+      updated.
+  """
+
+  migrateTraffic = _messages.BooleanField(1)
+  name = _messages.StringField(2, required=True)
+  service = _messages.MessageField('Service', 3)
+  updateMask = _messages.StringField(4)
+
+
+class AppengineProjectsLocationsApplicationsServicesVersionsDeleteRequest(_messages.Message):
+  r"""A AppengineProjectsLocationsApplicationsServicesVersionsDeleteRequest
+  object.
+
+  Fields:
+    name: Required. Name of the resource requested. Example:
+      apps/myapp/services/default/versions/v1.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class AppengineProjectsLocationsApplicationsServicesVersionsPatchRequest(_messages.Message):
+  r"""A AppengineProjectsLocationsApplicationsServicesVersionsPatchRequest
+  object.
+
+  Fields:
+    name: Required. Name of the resource to update. Example:
+      apps/myapp/services/default/versions/1.
+    updateMask: Standard field mask for the set of fields to be updated.
+    version: A Version resource to be passed as the request body.
+  """
+
+  name = _messages.StringField(1, required=True)
+  updateMask = _messages.StringField(2)
+  version = _messages.MessageField('Version', 3)
 
 
 class AppengineProjectsLocationsGetRequest(_messages.Message):
@@ -829,6 +1211,9 @@ class AppengineProjectsLocationsListRequest(_messages.Message):
   r"""A AppengineProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like "displayName=tokyo", and is
       documented in more detail in AIP-160 (https://google.aip.dev/160).
@@ -839,10 +1224,11 @@ class AppengineProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class AppengineProjectsLocationsOperationsGetRequest(_messages.Message):
@@ -879,6 +1265,9 @@ class Application(_messages.Message):
     DatabaseTypeValueValuesEnum: The type of the Cloud Firestore or Cloud
       Datastore database associated with this application.
     ServingStatusValueValuesEnum: Serving status of this application.
+    SslPolicyValueValuesEnum: The SSL policy that will be applied to the
+      application. If set to Modern it will restrict traffic with TLS < 1.2
+      and allow only Modern Ciphers suite
 
   Messages:
     GeneratedCustomerMetadataValue: Additional Google Generated Customer
@@ -919,12 +1308,14 @@ class Application(_messages.Message):
       is also where all of the application's end user content is
       stored.Defaults to us-central.View the list of supported locations
       (https://cloud.google.com/appengine/docs/locations).
-    name: Output only. Full path to the Application resource in the API.
-      Example: apps/myapp.@OutputOnly
+    name: A string attribute.
     serviceAccount: The service account associated with the application. This
       is the app-level default identity. If no identity provided during create
       version, Admin API will fallback to this one.
     servingStatus: Serving status of this application.
+    sslPolicy: The SSL policy that will be applied to the application. If set
+      to Modern it will restrict traffic with TLS < 1.2 and allow only Modern
+      Ciphers suite
   """
 
   class DatabaseTypeValueValuesEnum(_messages.Enum):
@@ -955,6 +1346,22 @@ class Application(_messages.Message):
     SERVING = 1
     USER_DISABLED = 2
     SYSTEM_DISABLED = 3
+
+  class SslPolicyValueValuesEnum(_messages.Enum):
+    r"""The SSL policy that will be applied to the application. If set to
+    Modern it will restrict traffic with TLS < 1.2 and allow only Modern
+    Ciphers suite
+
+    Values:
+      SSL_POLICY_UNSPECIFIED: Required by linter. Will work same as DEFAULT
+      DEFAULT: DEFAULT is to allow all TLS versions and cipher suites
+        supported by App Engine
+      MODERN: MODERN is to allow only TLS 1.2 and TLS 1.3 along with Modern
+        cipher suites only
+    """
+    SSL_POLICY_UNSPECIFIED = 0
+    DEFAULT = 1
+    MODERN = 2
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class GeneratedCustomerMetadataValue(_messages.Message):
@@ -1000,6 +1407,7 @@ class Application(_messages.Message):
   name = _messages.StringField(14)
   serviceAccount = _messages.StringField(15)
   servingStatus = _messages.EnumField('ServingStatusValueValuesEnum', 16)
+  sslPolicy = _messages.EnumField('SslPolicyValueValuesEnum', 17)
 
 
 class AuthorizedCertificate(_messages.Message):
@@ -1185,6 +1593,26 @@ class CertificateRawData(_messages.Message):
 
   privateKey = _messages.StringField(1)
   publicCertificate = _messages.StringField(2)
+
+
+class CheckGen1AppIdRequest(_messages.Message):
+  r"""Request message for MigrationAssistService.CheckGen1AppId
+
+  Fields:
+    projectId: Required. The project id of the app to be migrated
+  """
+
+  projectId = _messages.StringField(1)
+
+
+class CheckGen1AppIdResponse(_messages.Message):
+  r"""Response message for MigrationAssistService.CheckGen1AppId
+
+  Fields:
+    exists: Whether the app exists in App Engine Gen1
+  """
+
+  exists = _messages.BooleanField(1)
 
 
 class CloudBuildOptions(_messages.Message):
@@ -1638,7 +2066,11 @@ class FileInfo(_messages.Message):
 
 class FirewallRule(_messages.Message):
   r"""A single firewall rule that is evaluated against incoming traffic and
-  provides an action to take on matched requests.
+  provides an action to take on matched requests. A positive integer between
+  1, Int32.MaxValue-1 that defines the order of rule evaluation. Rules with
+  the lowest priority are evaluated first.A default rule at priority
+  Int32.MaxValue matches all IPv4 and IPv6 traffic when no previous rule
+  matches. Only the action of this rule can be modified by the user.
 
   Enums:
     ActionValueValuesEnum: The action to take on matched requests.
@@ -1647,11 +2079,7 @@ class FirewallRule(_messages.Message):
     action: The action to take on matched requests.
     description: An optional string description of this rule. This field has a
       maximum length of 400 characters.
-    priority: A positive integer between 1, Int32.MaxValue-1 that defines the
-      order of rule evaluation. Rules with the lowest priority are evaluated
-      first.A default rule at priority Int32.MaxValue matches all IPv4 and
-      IPv6 traffic when no previous rule matches. Only the action of this rule
-      can be modified by the user.
+    priority: A integer attribute.
     sourceRange: IP address or range, defined using CIDR notation, of requests
       that this rule applies to. You can use the wildcard character "*" to
       match all IPs equivalent to "0/0" and "::/0" together. Examples:
@@ -1690,6 +2118,21 @@ class FlexibleRuntimeSettings(_messages.Message):
 
   operatingSystem = _messages.StringField(1)
   runtimeVersion = _messages.StringField(2)
+
+
+class GceTag(_messages.Message):
+  r"""For use only by GCE. GceTag is a wrapper around the GCE administrative
+  tag with parent info.
+
+  Fields:
+    parent: The parents(s) of the tag. Eg. projects/123, folders/456 It
+      usually contains only one parent. But, in some corner cases, it can
+      contain multiple parents. Currently, organizations are not supported.
+    tag: The administrative_tag name.
+  """
+
+  parent = _messages.StringField(1, repeated=True)
+  tag = _messages.StringField(2)
 
 
 class GoogleAppengineV1betaLocationMetadata(_messages.Message):
@@ -2187,6 +2630,72 @@ class ManualScaling(_messages.Message):
   instances = _messages.IntegerField(1, variant=_messages.Variant.INT32)
 
 
+class MigrateCodeFileRequest(_messages.Message):
+  r"""Request message for MigrationAssistService.MigrateCodeFile
+
+  Enums:
+    RuntimeValueValuesEnum: Required. Runtime for which migration is being
+      done
+
+  Fields:
+    codeAsString: Required. User's code file as a string
+    projectId: Required. The project id of the app to be migrated
+    runtime: Required. Runtime for which migration is being done
+  """
+
+  class RuntimeValueValuesEnum(_messages.Enum):
+    r"""Required. Runtime for which migration is being done
+
+    Values:
+      MIGRATION_ASSIST_RUNTIME_UNSPECIFIED: Unspecified runtime
+      GEN1_PYTHON27: App Engine Gen1 Python 2.7 runtime
+    """
+    MIGRATION_ASSIST_RUNTIME_UNSPECIFIED = 0
+    GEN1_PYTHON27 = 1
+
+  codeAsString = _messages.StringField(1)
+  projectId = _messages.StringField(2)
+  runtime = _messages.EnumField('RuntimeValueValuesEnum', 3)
+
+
+class MigrateConfigYamlRequest(_messages.Message):
+  r"""Request message for MigrationAssistService.MigrateConfigYaml
+
+  Enums:
+    RuntimeValueValuesEnum: Required. Runtime for which migration is being
+      done
+
+  Fields:
+    configAsString: Required. User's config yaml file as a string
+    projectId: Required. The project id of the app to be migrated
+    runtime: Required. Runtime for which migration is being done
+  """
+
+  class RuntimeValueValuesEnum(_messages.Enum):
+    r"""Required. Runtime for which migration is being done
+
+    Values:
+      MIGRATION_ASSIST_RUNTIME_UNSPECIFIED: Unspecified runtime
+      GEN1_PYTHON27: App Engine Gen1 Python 2.7 runtime
+    """
+    MIGRATION_ASSIST_RUNTIME_UNSPECIFIED = 0
+    GEN1_PYTHON27 = 1
+
+  configAsString = _messages.StringField(1)
+  projectId = _messages.StringField(2)
+  runtime = _messages.EnumField('RuntimeValueValuesEnum', 3)
+
+
+class MigrateConfigYamlResponse(_messages.Message):
+  r"""Response message for MigrationAssistService.MigrateConfigYaml
+
+  Fields:
+    configAsString: The migrated config yaml file as a string
+  """
+
+  configAsString = _messages.StringField(1)
+
+
 class Network(_messages.Message):
   r"""Extra network settings. Only applicable in the App Engine flexible
   environment.
@@ -2541,6 +3050,8 @@ class ProjectsMetadata(_messages.Message):
       same state that is communicated to the CLH during project events. Notice
       that this field is not set in the DB, it is only set in this proto when
       communicated to CLH in the side channel.
+    gceTag: The GCE tags associated with the consumer project and those
+      inherited due to their ancestry, if any. Not supported by CCFE.
     p4ServiceAccount: The service account authorized to operate on the
       consumer project. Note: CCFE only propagates P4SA with default tag to
       CLH.
@@ -2587,11 +3098,12 @@ class ProjectsMetadata(_messages.Message):
   consumerProjectId = _messages.StringField(1)
   consumerProjectNumber = _messages.IntegerField(2)
   consumerProjectState = _messages.EnumField('ConsumerProjectStateValueValuesEnum', 3)
-  p4ServiceAccount = _messages.StringField(4)
-  producerProjectId = _messages.StringField(5)
-  producerProjectNumber = _messages.IntegerField(6)
-  tenantProjectId = _messages.StringField(7)
-  tenantProjectNumber = _messages.IntegerField(8)
+  gceTag = _messages.MessageField('GceTag', 4, repeated=True)
+  p4ServiceAccount = _messages.StringField(5)
+  producerProjectId = _messages.StringField(6)
+  producerProjectNumber = _messages.IntegerField(7)
+  tenantProjectId = _messages.StringField(8)
+  tenantProjectNumber = _messages.IntegerField(9)
 
 
 class ReadinessCheck(_messages.Message):
@@ -2807,6 +3319,24 @@ class RequestUtilization(_messages.Message):
   targetRequestCountPerSecond = _messages.IntegerField(2, variant=_messages.Variant.INT32)
 
 
+class ResourceEvent(_messages.Message):
+  r"""The request that is passed to CLH during per-resource events. The
+  request will be sent with update semantics in all cases except for data
+  governance purge events. These events will be sent with delete semantics and
+  the CLH is expected to delete the resource receiving this event.
+
+  Fields:
+    eventId: The unique ID for this per-resource event. CLHs can use this
+      value to dedup repeated calls. required
+    name: The name of the resource for which this event is. required
+    state: The state of the project that led to this event.
+  """
+
+  eventId = _messages.StringField(1)
+  name = _messages.StringField(2)
+  state = _messages.MessageField('ContainerState', 3)
+
+
 class ResourceRecord(_messages.Message):
   r"""A DNS resource record.
 
@@ -2962,8 +3492,8 @@ class Service(_messages.Message):
     generatedCustomerMetadata: Additional Google Generated Customer Metadata,
       this field won't be provided by default and can be requested by setting
       the IncludeExtraData field in GetServiceRequest
-    id: Relative name of the service within the application. Example:
-      default.@OutputOnly
+    id: Output only. Relative name of the service within the application.
+      Example: default.@OutputOnly
     labels: A set of labels to apply to this service. Labels are key/value
       pairs that describe the service and all resources that belong to it
       (e.g., versions). The labels can be used to search and group resources,
@@ -2974,7 +3504,7 @@ class Service(_messages.Message):
       lowercase letters, numeric characters, underscores, dashes, and
       international characters. Label keys must start with a lowercase letter
       or an international character. Each service can have at most 32 labels.
-    name: Full path to the Service resource in the API. Example:
+    name: Output only. Full path to the Service resource in the API. Example:
       apps/myapp/services/default.@OutputOnly
     networkSettings: Ingress settings for this service. Will apply to all
       versions.
@@ -3092,7 +3622,7 @@ class SslSettings(_messages.Message):
         mapped SSL certificate will be automatically renewed.
       MANUAL: SSL support for this domain is configured manually by the user.
         Either the domain has no SSL support or a user-obtained SSL
-        certificate has been explictly mapped to this domain.
+        certificate has been explicitly mapped to this domain.
     """
     AUTOMATIC = 0
     MANUAL = 1
@@ -3170,7 +3700,7 @@ class StandardSchedulerSettings(_messages.Message):
 
   Fields:
     maxInstances: Maximum number of instances to run for this version. Set to
-      zero to disable max_instances configuration.
+      2147483647 to disable max_instances configuration.
     minInstances: Minimum number of instances to run for this version. Set to
       zero to disable min_instances configuration.
     targetCpuUtilization: Target CPU utilization ratio to maintain when
@@ -3298,6 +3828,20 @@ class Status(_messages.Message):
   code = _messages.IntegerField(1, variant=_messages.Variant.INT32)
   details = _messages.MessageField('DetailsValueListEntry', 2, repeated=True)
   message = _messages.StringField(3)
+
+
+class SubnetworkKey(_messages.Message):
+  r"""Subnetwork key message.
+
+  Fields:
+    hostProjectId: Project id (name not number) of the project that hosts the
+      network
+    subnet: Short name of the subnetwork. e.g. SUBNET instead of
+      projects/{PROJECT_NAME}/regions/{REGION}/subnetworks/{SUBNET}
+  """
+
+  hostProjectId = _messages.StringField(1)
+  subnet = _messages.StringField(2)
 
 
 class TrafficSplit(_messages.Message):
@@ -3535,6 +4079,7 @@ class Version(_messages.Message):
   files that are deployed into a service.
 
   Enums:
+    AppEngineBundledServicesValueListEntryValuesEnum:
     InboundServicesValueListEntryValuesEnum:
     ServingStatusValueValuesEnum: Current serving status of this version. Only
       the versions with a SERVING status create instances and can be
@@ -3558,6 +4103,8 @@ class Version(_messages.Message):
       view=FULL is set.
     appEngineApis: Allows App Engine second generation runtimes to access the
       legacy bundled services.
+    appEngineBundledServices: List of specific App Engine Bundled Services
+      that are enabled for this Version.
     automaticScaling: Automatic scaling is based on request rate, response
       latencies, and other application metrics. Instances are dynamically
       created and destroyed as needed in order to handle traffic.
@@ -3570,7 +4117,8 @@ class Version(_messages.Message):
     buildEnvVariables: Environment variables available to the build
       environment.Only returned in GET requests if view=FULL is set.
     createTime: Time that this version was created.@OutputOnly
-    createdBy: Email address of the user who created this version.@OutputOnly
+    createdBy: Output only. Email address of the user who created this
+      version.@OutputOnly
     defaultExpiration: Duration that static files should be cached by web
       proxies and browsers. Only applicable if the corresponding
       StaticFilesHandler (https://cloud.google.com/appengine/docs/admin-
@@ -3579,8 +4127,9 @@ class Version(_messages.Message):
       if view=FULL is set.
     deployment: Code and application artifacts that make up this version.Only
       returned in GET requests if view=FULL is set.
-    diskUsageBytes: Total size in bytes of all the files that are included in
-      this version and currently hosted on the App Engine disk.@OutputOnly
+    diskUsageBytes: Output only. Total size in bytes of all the files that are
+      included in this version and currently hosted on the App Engine
+      disk.@OutputOnly
     endpointsApiService: Cloud Endpoints configuration.If
       endpoints_api_service is set, the Cloud Endpoints Extensible Service
       Proxy will be provided to serve the API implemented by the app.
@@ -3620,7 +4169,7 @@ class Version(_messages.Message):
       you to perform complex initialization and rely on the state of its
       memory over time. Manually scaled versions are sometimes referred to as
       "backends".
-    name: Full path to the Version resource in the API. Example:
+    name: Output only. Full path to the Version resource in the API. Example:
       apps/myapp/services/default/versions/v1.@OutputOnly
     network: Extra network settings. Only applicable in the App Engine
       flexible environment.
@@ -3647,13 +4196,52 @@ class Version(_messages.Message):
       SERVING.
     threadsafe: Whether multiple requests can be dispatched to this version at
       once.
-    versionUrl: Serving URL for this version. Example: "https://myversion-dot-
-      myservice-dot-myapp.appspot.com"@OutputOnly
+    versionUrl: Output only. Serving URL for this version. Example:
+      "https://myversion-dot-myservice-dot-myapp.appspot.com"@OutputOnly
     vm: Whether to deploy this version in a container on a virtual machine.
     vpcAccessConnector: Enables VPC connectivity for standard apps.
+    vpcEgress: Enables VPC egress connectivity for standard apps.
     zones: The Google Compute Engine zones that are supported by this version
       in the App Engine flexible environment. Deprecated.
   """
+
+  class AppEngineBundledServicesValueListEntryValuesEnum(_messages.Enum):
+    r"""AppEngineBundledServicesValueListEntryValuesEnum enum type.
+
+    Values:
+      BUNDLED_SERVICE_TYPE_UNSPECIFIED: Default, invalid value
+      BUNDLED_SERVICE_TYPE_APP_IDENTITY_SERVICE: App Identity Service
+      BUNDLED_SERVICE_TYPE_BLOBSTORE: Blobstore
+      BUNDLED_SERVICE_TYPE_CAPABILITY_SERVICE: Capability Service
+      BUNDLED_SERVICE_TYPE_DATASTORE_V3: Datastore V3
+      BUNDLED_SERVICE_TYPE_DEFERRED: Deferred
+      BUNDLED_SERVICE_TYPE_IMAGES: Images
+      BUNDLED_SERVICE_TYPE_MAIL: Mail
+      BUNDLED_SERVICE_TYPE_MEMCACHE: Memcache
+      BUNDLED_SERVICE_TYPE_MODULES: Modules
+      BUNDLED_SERVICE_TYPE_NAMESPACES: Namespaces
+      BUNDLED_SERVICE_TYPE_NDB: NDB
+      BUNDLED_SERVICE_TYPE_SEARCH: Search
+      BUNDLED_SERVICE_TYPE_TASKQUEUES: Task Queues
+      BUNDLED_SERVICE_TYPE_URLFETCH: URL Fetch
+      BUNDLED_SERVICE_TYPE_USERS: Users
+    """
+    BUNDLED_SERVICE_TYPE_UNSPECIFIED = 0
+    BUNDLED_SERVICE_TYPE_APP_IDENTITY_SERVICE = 1
+    BUNDLED_SERVICE_TYPE_BLOBSTORE = 2
+    BUNDLED_SERVICE_TYPE_CAPABILITY_SERVICE = 3
+    BUNDLED_SERVICE_TYPE_DATASTORE_V3 = 4
+    BUNDLED_SERVICE_TYPE_DEFERRED = 5
+    BUNDLED_SERVICE_TYPE_IMAGES = 6
+    BUNDLED_SERVICE_TYPE_MAIL = 7
+    BUNDLED_SERVICE_TYPE_MEMCACHE = 8
+    BUNDLED_SERVICE_TYPE_MODULES = 9
+    BUNDLED_SERVICE_TYPE_NAMESPACES = 10
+    BUNDLED_SERVICE_TYPE_NDB = 11
+    BUNDLED_SERVICE_TYPE_SEARCH = 12
+    BUNDLED_SERVICE_TYPE_TASKQUEUES = 13
+    BUNDLED_SERVICE_TYPE_URLFETCH = 14
+    BUNDLED_SERVICE_TYPE_USERS = 15
 
   class InboundServicesValueListEntryValuesEnum(_messages.Enum):
     r"""InboundServicesValueListEntryValuesEnum enum type.
@@ -3811,46 +4399,48 @@ class Version(_messages.Message):
 
   apiConfig = _messages.MessageField('ApiConfigHandler', 1)
   appEngineApis = _messages.BooleanField(2)
-  automaticScaling = _messages.MessageField('AutomaticScaling', 3)
-  basicScaling = _messages.MessageField('BasicScaling', 4)
-  betaSettings = _messages.MessageField('BetaSettingsValue', 5)
-  buildEnvVariables = _messages.MessageField('BuildEnvVariablesValue', 6)
-  createTime = _messages.StringField(7)
-  createdBy = _messages.StringField(8)
-  defaultExpiration = _messages.StringField(9)
-  deployment = _messages.MessageField('Deployment', 10)
-  diskUsageBytes = _messages.IntegerField(11)
-  endpointsApiService = _messages.MessageField('EndpointsApiService', 12)
-  entrypoint = _messages.MessageField('Entrypoint', 13)
-  env = _messages.StringField(14)
-  envVariables = _messages.MessageField('EnvVariablesValue', 15)
-  errorHandlers = _messages.MessageField('ErrorHandler', 16, repeated=True)
-  flexibleRuntimeSettings = _messages.MessageField('FlexibleRuntimeSettings', 17)
-  generatedCustomerMetadata = _messages.MessageField('GeneratedCustomerMetadataValue', 18)
-  handlers = _messages.MessageField('UrlMap', 19, repeated=True)
-  healthCheck = _messages.MessageField('HealthCheck', 20)
-  id = _messages.StringField(21)
-  inboundServices = _messages.EnumField('InboundServicesValueListEntryValuesEnum', 22, repeated=True)
-  instanceClass = _messages.StringField(23)
-  libraries = _messages.MessageField('Library', 24, repeated=True)
-  livenessCheck = _messages.MessageField('LivenessCheck', 25)
-  manualScaling = _messages.MessageField('ManualScaling', 26)
-  name = _messages.StringField(27)
-  network = _messages.MessageField('Network', 28)
-  nobuildFilesRegex = _messages.StringField(29)
-  readinessCheck = _messages.MessageField('ReadinessCheck', 30)
-  resources = _messages.MessageField('Resources', 31)
-  runtime = _messages.StringField(32)
-  runtimeApiVersion = _messages.StringField(33)
-  runtimeChannel = _messages.StringField(34)
-  runtimeMainExecutablePath = _messages.StringField(35)
-  serviceAccount = _messages.StringField(36)
-  servingStatus = _messages.EnumField('ServingStatusValueValuesEnum', 37)
-  threadsafe = _messages.BooleanField(38)
-  versionUrl = _messages.StringField(39)
-  vm = _messages.BooleanField(40)
-  vpcAccessConnector = _messages.MessageField('VpcAccessConnector', 41)
-  zones = _messages.StringField(42, repeated=True)
+  appEngineBundledServices = _messages.EnumField('AppEngineBundledServicesValueListEntryValuesEnum', 3, repeated=True)
+  automaticScaling = _messages.MessageField('AutomaticScaling', 4)
+  basicScaling = _messages.MessageField('BasicScaling', 5)
+  betaSettings = _messages.MessageField('BetaSettingsValue', 6)
+  buildEnvVariables = _messages.MessageField('BuildEnvVariablesValue', 7)
+  createTime = _messages.StringField(8)
+  createdBy = _messages.StringField(9)
+  defaultExpiration = _messages.StringField(10)
+  deployment = _messages.MessageField('Deployment', 11)
+  diskUsageBytes = _messages.IntegerField(12)
+  endpointsApiService = _messages.MessageField('EndpointsApiService', 13)
+  entrypoint = _messages.MessageField('Entrypoint', 14)
+  env = _messages.StringField(15)
+  envVariables = _messages.MessageField('EnvVariablesValue', 16)
+  errorHandlers = _messages.MessageField('ErrorHandler', 17, repeated=True)
+  flexibleRuntimeSettings = _messages.MessageField('FlexibleRuntimeSettings', 18)
+  generatedCustomerMetadata = _messages.MessageField('GeneratedCustomerMetadataValue', 19)
+  handlers = _messages.MessageField('UrlMap', 20, repeated=True)
+  healthCheck = _messages.MessageField('HealthCheck', 21)
+  id = _messages.StringField(22)
+  inboundServices = _messages.EnumField('InboundServicesValueListEntryValuesEnum', 23, repeated=True)
+  instanceClass = _messages.StringField(24)
+  libraries = _messages.MessageField('Library', 25, repeated=True)
+  livenessCheck = _messages.MessageField('LivenessCheck', 26)
+  manualScaling = _messages.MessageField('ManualScaling', 27)
+  name = _messages.StringField(28)
+  network = _messages.MessageField('Network', 29)
+  nobuildFilesRegex = _messages.StringField(30)
+  readinessCheck = _messages.MessageField('ReadinessCheck', 31)
+  resources = _messages.MessageField('Resources', 32)
+  runtime = _messages.StringField(33)
+  runtimeApiVersion = _messages.StringField(34)
+  runtimeChannel = _messages.StringField(35)
+  runtimeMainExecutablePath = _messages.StringField(36)
+  serviceAccount = _messages.StringField(37)
+  servingStatus = _messages.EnumField('ServingStatusValueValuesEnum', 38)
+  threadsafe = _messages.BooleanField(39)
+  versionUrl = _messages.StringField(40)
+  vm = _messages.BooleanField(41)
+  vpcAccessConnector = _messages.MessageField('VpcAccessConnector', 42)
+  vpcEgress = _messages.MessageField('VpcEgress', 43)
+  zones = _messages.StringField(44, repeated=True)
 
 
 class Volume(_messages.Message):
@@ -3899,6 +4489,50 @@ class VpcAccessConnector(_messages.Message):
 
   egressSetting = _messages.EnumField('EgressSettingValueValuesEnum', 1)
   name = _messages.StringField(2)
+
+
+class VpcEgress(_messages.Message):
+  r"""Vpc Egress configuration.
+
+  Enums:
+    EgressSettingValueValuesEnum: The egress setting for the subnetwork,
+      controlling what traffic is diverted through it.
+
+  Fields:
+    egressSetting: The egress setting for the subnetwork, controlling what
+      traffic is diverted through it.
+    networkTags: The network tags to apply to the instance.
+    subnetworkKey: The subnetwork key.
+  """
+
+  class EgressSettingValueValuesEnum(_messages.Enum):
+    r"""The egress setting for the subnetwork, controlling what traffic is
+    diverted through it.
+
+    Values:
+      EGRESS_SETTING_UNSPECIFIED: No value set; apply default behavior
+      ALL_TRAFFIC: Force all traffic to egress through the NetworkInterface
+        (and configured VPC Network)
+      PRIVATE_IP_RANGES: Force all Private IP Space traffic to egress through
+        NetworkInterface (and configured VPC Network)
+    """
+    EGRESS_SETTING_UNSPECIFIED = 0
+    ALL_TRAFFIC = 1
+    PRIVATE_IP_RANGES = 2
+
+  egressSetting = _messages.EnumField('EgressSettingValueValuesEnum', 1)
+  networkTags = _messages.MessageField('VpcNetworkTag', 2, repeated=True)
+  subnetworkKey = _messages.MessageField('SubnetworkKey', 3)
+
+
+class VpcNetworkTag(_messages.Message):
+  r"""Network tag message.
+
+  Fields:
+    value: value for the tag name
+  """
+
+  value = _messages.StringField(1)
 
 
 class ZipInfo(_messages.Message):

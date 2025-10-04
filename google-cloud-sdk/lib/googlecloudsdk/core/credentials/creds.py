@@ -51,7 +51,7 @@ import six
 
 ADC_QUOTA_PROJECT_FIELD_NAME = 'quota_project_id'
 
-_REVOKE_URI = 'https://accounts.google.com/o/oauth2/revoke'
+_REVOKE_URI = 'https://oauth2.googleapis.com/revoke'
 
 UNKNOWN_CREDS_NAME = 'unknown'
 USER_ACCOUNT_CREDS_NAME = 'authorized_user'
@@ -190,12 +190,29 @@ def HasDefaultUniverseDomain(credentials):
   return True
 
 
-def GetEffectiveTokenUri(cred_json, key='token_uri'):
+def GetDefaultTokenUri():
+  """Get default token URI for credential based on context aware settings."""
+  if properties.VALUES.context_aware.use_client_certificate.GetBool():
+    return properties.VALUES.auth.mtls_token_host.Get(required=True)
+  else:
+    return properties.VALUES.auth.token_host.Get(required=True)
+
+
+def GetEffectiveTokenUriFromCreds(cred_json, key='token_uri'):
+  """Get the effective token URI for the given credential."""
   if properties.VALUES.auth.token_host.IsExplicitlySet():
     return properties.VALUES.auth.token_host.Get()
-  if cred_json.get(key):
+  # If credentials JSON is provided and token_uri is present and not
+  # default/mTLS host, use the token_uri from the credentials JSON.
+  if (
+      cred_json.get(key)
+      and cred_json.get(key) != properties.VALUES.auth.DEFAULT_TOKEN_HOST
+      and cred_json.get(key) != properties.VALUES.auth.mtls_token_host.Get()
+  ):
     return cred_json.get(key)
-  return properties.VALUES.auth.DEFAULT_TOKEN_HOST
+  # Otherwise, the default or mTLS token host is used. The decision is driven by
+  # context_aware or use_client_certificate settings.
+  return GetDefaultTokenUri()
 
 
 def UseSelfSignedJwt(creds):
@@ -350,15 +367,16 @@ class _SqlCursor(object):
     self._cursor = None
 
   def __enter__(self):
+    # The default timeout to wait before raising an OperationalError when db is
+    # locked is 5 seconds. Here we pass it explicitly in the constructor for the
+    # ease of future debugging/investigation. Related bug: b/356223015
     self._connection = sqlite3.connect(
         self._store_file,
+        timeout=5.0,
         detect_types=sqlite3.PARSE_DECLTYPES,
         isolation_level=None,  # Use autocommit mode.
         check_same_thread=True  # Only creating thread may use the connection.
     )
-    # Wait up to 1 second for any locks to clear up.
-    # https://sqlite.org/pragma.html#pragma_busy_timeout
-    self._connection.execute('PRAGMA busy_timeout = 1000')
     self._cursor = self._connection.cursor()
     return self
 
@@ -592,7 +610,8 @@ class AccessTokenCache(object):
   See go/gcloud-multi-universe-auth-cache section 3.2, 3.3 for more details.
   """
 
-  def __init__(self, store_file):
+  def __init__(self, store_file, cache_only_rapt=False):
+    self._cache_only_rapt = cache_only_rapt
     self._cursor = _SqlCursor(store_file)
     self._Execute(
         'CREATE TABLE IF NOT EXISTS "{}" '
@@ -648,6 +667,19 @@ class AccessTokenCache(object):
       rapt_token: str, The rapt token string to store.
       id_token: str, The ID token string to store.
     """
+    # This is used for the cases, when we want to cache the RAPT token but not
+    # the access token. For example, when we generate a scoped access token
+    # using the print-access-token command.
+    if self._cache_only_rapt:
+      result = self.Load(formatted_account_id)
+      if result:
+        access_token, token_expiry, _, id_token = result
+      else:
+        # If the access token is not stored in the cache, we will set it to
+        # None, as we only want to cache the RAPT token here.
+        access_token = None
+        token_expiry = None
+        id_token = None
     try:
       self._Execute(
           'REPLACE INTO "{}" '
@@ -849,8 +881,9 @@ def MaybeAttachAccessTokenCacheStore(credentials,
   return store.get()
 
 
-def MaybeAttachAccessTokenCacheStoreGoogleAuth(credentials,
-                                               access_token_file=None):
+def MaybeAttachAccessTokenCacheStoreGoogleAuth(
+    credentials, access_token_file=None, cache_only_rapt=False
+):
   """Attaches access token cache to given credentials if no store set.
 
   Note that credentials themselves will not be persisted only access token. Use
@@ -865,6 +898,7 @@ def MaybeAttachAccessTokenCacheStoreGoogleAuth(credentials,
   Args:
     credentials: google.auth.credentials.Credentials.
     access_token_file: str, optional path to use for access token storage.
+    cache_only_rapt: bool, True to only cache RAPT token.
 
   Returns:
     google.auth.credentials.Credentials, reloaded credentials.
@@ -881,8 +915,10 @@ def MaybeAttachAccessTokenCacheStoreGoogleAuth(credentials,
     account_id = hashlib.sha256(six.ensure_binary(
         credentials.refresh_token)).hexdigest()
 
-  access_token_cache = AccessTokenCache(access_token_file or
-                                        config.Paths().access_token_db_path)
+  access_token_cache = AccessTokenCache(
+      access_token_file or config.Paths().access_token_db_path,
+      cache_only_rapt=cache_only_rapt,
+  )
   store = AccessTokenStoreGoogleAuth(access_token_cache, account_id,
                                      credentials)
   credentials = store.Get()
@@ -952,6 +988,10 @@ class CredentialStoreWithCache(CredentialStore):
     """Returns all the accounts stored in the cache."""
     return self._credential_store.GetAccounts()
 
+  def GetAccountsWithUniverseDomain(self):
+    """Returns all the accounts stored in the cache with their universe domain."""
+    return self._credential_store.GetAccountsWithUniverseDomain()
+
   def Load(self, account_id, use_google_auth=True):
     """Loads the credentials of account_id from the cache.
 
@@ -1017,29 +1057,27 @@ class CredentialStoreWithCache(CredentialStore):
     )
 
 
-def GetCredentialStore(store_file=None,
-                       access_token_file=None,
-                       with_access_token_cache=True):
+def GetCredentialStore(
+    store_file=None,
+    access_token_file=None,
+    cache_only_rapt=False,
+):
   """Constructs credential store.
 
   Args:
     store_file: str, optional path to use for storage. If not specified
       config.Paths().credentials_path will be used.
-
     access_token_file: str, optional path to use for access token storage. Note
       that some implementations use store_file to also store access_tokens, in
       which case this argument is ignored.
-    with_access_token_cache: bool, True to load a credential store with
-      auto caching for access tokens. False to load a credential store without
-      auto caching for access tokens.
+    cache_only_rapt: bool, True to only cache RAPT token.
 
   Returns:
     CredentialStore object.
   """
-  if with_access_token_cache:
-    return _GetSqliteStoreWithCache(store_file, access_token_file)
-  else:
-    return _GetSqliteStore(store_file)
+  return _GetSqliteStoreWithCache(
+      store_file, access_token_file, cache_only_rapt
+  )
 
 
 class CredentialType(enum.Enum):
@@ -1363,7 +1401,7 @@ def FromJson(json_value):
   """Returns Oauth2client credentials from library independent json format."""
   json_key = json.loads(json_value)
   cred_type = CredentialType.FromTypeKey(json_key['type'])
-  json_key['token_uri'] = GetEffectiveTokenUri(json_key)
+  json_key['token_uri'] = GetEffectiveTokenUriFromCreds(json_key)
   if cred_type == CredentialType.SERVICE_ACCOUNT:
     cred = service_account.ServiceAccountCredentials.from_json_keyfile_dict(
         json_key, scopes=config.CLOUDSDK_SCOPES)
@@ -1421,7 +1459,7 @@ def FromJsonGoogleAuth(json_value):
   json_key = json.loads(json_value)
   cred_type = CredentialTypeGoogleAuth.FromTypeKey(json_key['type'])
   if cred_type == CredentialTypeGoogleAuth.SERVICE_ACCOUNT:
-    json_key['token_uri'] = GetEffectiveTokenUri(json_key)
+    json_key['token_uri'] = GetEffectiveTokenUriFromCreds(json_key)
     # Import only when necessary to decrease the startup time. Move it to
     # global once google-auth is ready to replace oauth2client.
     # pylint: disable=g-import-not-at-top
@@ -1440,7 +1478,7 @@ def FromJsonGoogleAuth(json_value):
     EnableSelfSignedJwtIfApplicable(cred)
     return cred
   if cred_type == CredentialTypeGoogleAuth.P12_SERVICE_ACCOUNT:
-    json_key['token_uri'] = GetEffectiveTokenUri(json_key)
+    json_key['token_uri'] = GetEffectiveTokenUriFromCreds(json_key)
     from googlecloudsdk.core.credentials import p12_service_account  # pylint: disable=g-import-not-at-top
     cred = p12_service_account.CreateP12ServiceAccount(
         base64.b64decode(json_key['private_key']),
@@ -1516,7 +1554,7 @@ def FromJsonGoogleAuth(json_value):
     return WrapGoogleAuthExternalAccountRefresh(cred)
 
   if cred_type == CredentialTypeGoogleAuth.USER_ACCOUNT:
-    json_key['token_uri'] = GetEffectiveTokenUri(json_key)
+    json_key['token_uri'] = GetEffectiveTokenUriFromCreds(json_key)
     # Import only when necessary to decrease the startup time. Move it to
     # global once google-auth is ready to replace oauth2client.
     # pylint: disable=g-import-not-at-top
@@ -1571,8 +1609,11 @@ def WrapGoogleAuthExternalAccountRefresh(cred):
   return cred
 
 
-def _GetSqliteStoreWithCache(sqlite_credential_file=None,
-                             sqlite_access_token_file=None):
+def _GetSqliteStoreWithCache(
+    sqlite_credential_file=None,
+    sqlite_access_token_file=None,
+    cache_only_rapt=False,
+):
   """Get a sqlite-based Credential Store."""
 
   credential_store = _GetSqliteStore(sqlite_credential_file)
@@ -1580,7 +1621,9 @@ def _GetSqliteStoreWithCache(sqlite_credential_file=None,
   sqlite_access_token_file = (sqlite_access_token_file or
                               config.Paths().access_token_db_path)
   files.PrivatizeFile(sqlite_access_token_file)
-  access_token_cache = AccessTokenCache(sqlite_access_token_file)
+  access_token_cache = AccessTokenCache(
+      sqlite_access_token_file, cache_only_rapt
+  )
   return CredentialStoreWithCache(credential_store, access_token_cache)
 
 
@@ -1712,7 +1755,7 @@ def _ConvertOauth2ClientCredentialsToADC(credentials):
   return credentials.serialization_data
 
 
-IMPERSONATION_TOKEN_URL = 'https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/{}:generateAccessToken'
+IMPERSONATION_TOKEN_URL = 'https://iamcredentials.{}/v1/projects/-/serviceAccounts/{}:generateAccessToken'
 
 
 def _ConvertCredentialsToADC(credentials, impersonated_service_account,
@@ -1725,16 +1768,25 @@ def _ConvertCredentialsToADC(credentials, impersonated_service_account,
 
   if not impersonated_service_account:
     return creds_dict
+
+  if hasattr(credentials, 'universe_domain'):
+    universe_domain = credentials.universe_domain
+  else:
+    universe_domain = properties.VALUES.core.universe_domain.default
+
   impersonated_creds_dict = {
       'source_credentials':
           creds_dict,
       'service_account_impersonation_url':
-          IMPERSONATION_TOKEN_URL.format(impersonated_service_account),
+          IMPERSONATION_TOKEN_URL.format(
+              universe_domain,
+              impersonated_service_account),
       'delegates':
           delegates or [],
       'type':
           'impersonated_service_account'
   }
+
   return impersonated_creds_dict
 
 

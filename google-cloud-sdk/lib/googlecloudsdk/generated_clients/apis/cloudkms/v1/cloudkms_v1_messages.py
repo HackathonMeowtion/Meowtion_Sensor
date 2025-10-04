@@ -268,6 +268,55 @@ class AuditLogConfig(_messages.Message):
   logType = _messages.EnumField('LogTypeValueValuesEnum', 2)
 
 
+class AutokeyConfig(_messages.Message):
+  r"""Cloud KMS Autokey configuration for a folder or project.
+
+  Enums:
+    StateValueValuesEnum: Output only. The state for the AutokeyConfig.
+
+  Fields:
+    etag: Optional. A checksum computed by the server based on the value of
+      other fields. This may be sent on update requests to ensure that the
+      client has an up-to-date value before proceeding. The request will be
+      rejected with an ABORTED error on a mismatched etag.
+    keyProject: Optional. Name of the key project, e.g.
+      `projects/{PROJECT_ID}` or `projects/{PROJECT_NUMBER}`, where Cloud KMS
+      Autokey will provision a new CryptoKey when a KeyHandle is created. On
+      UpdateAutokeyConfig, the caller will require
+      `cloudkms.cryptoKeys.setIamPolicy` permission on this key project. Once
+      configured, for Cloud KMS Autokey to function properly, this key project
+      must have the Cloud KMS API activated and the Cloud KMS Service Agent
+      for this key project must be granted the `cloudkms.admin` role (or
+      pertinent permissions). A request with an empty key project field will
+      clear the configuration.
+    name: Identifier. Name of the AutokeyConfig resource, e.g.
+      `folders/{FOLDER_NUMBER}/autokeyConfig`
+      `projects/{PROJECT_NUMBER}/autokeyConfig`.
+    state: Output only. The state for the AutokeyConfig.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. The state for the AutokeyConfig.
+
+    Values:
+      STATE_UNSPECIFIED: The state of the AutokeyConfig is unspecified.
+      ACTIVE: The AutokeyConfig is currently active.
+      KEY_PROJECT_DELETED: A previously configured key project has been
+        deleted and the current AutokeyConfig is unusable.
+      UNINITIALIZED: The AutokeyConfig is not yet initialized or has been
+        reset to its default uninitialized state.
+    """
+    STATE_UNSPECIFIED = 0
+    ACTIVE = 1
+    KEY_PROJECT_DELETED = 2
+    UNINITIALIZED = 3
+
+  etag = _messages.StringField(1)
+  keyProject = _messages.StringField(2)
+  name = _messages.StringField(3)
+  state = _messages.EnumField('StateValueValuesEnum', 4)
+
+
 class Binding(_messages.Message):
   r"""Associates `members`, or principals, with a `role`.
 
@@ -405,6 +454,123 @@ class CertificateChains(_messages.Message):
   caviumCerts = _messages.StringField(1, repeated=True)
   googleCardCerts = _messages.StringField(2, repeated=True)
   googlePartitionCerts = _messages.StringField(3, repeated=True)
+
+
+class ChecksummedData(_messages.Message):
+  r"""Data with integrity verification field.
+
+  Fields:
+    crc32cChecksum: Integrity verification field. A CRC32C checksum of the
+      returned ChecksummedData.data. An integrity check of
+      ChecksummedData.data can be performed by computing the CRC32C checksum
+      of ChecksummedData.data and comparing your results to this field.
+      Discard the response in case of non-matching checksum values, and
+      perform a limited number of retries. A persistent mismatch may indicate
+      an issue in your computation of the CRC32C checksum. Note: This field is
+      defined as int64 for reasons of compatibility across different
+      languages. However, it is a non-negative integer, which will never
+      exceed `2^32-1`, and can be safely downconverted to uint32 in languages
+      that support this type.
+    data: Raw Data.
+  """
+
+  crc32cChecksum = _messages.IntegerField(1)
+  data = _messages.BytesField(2)
+
+
+class CloudkmsFoldersGetAutokeyConfigRequest(_messages.Message):
+  r"""A CloudkmsFoldersGetAutokeyConfigRequest object.
+
+  Fields:
+    name: Required. Name of the AutokeyConfig resource, e.g.
+      `folders/{FOLDER_NUMBER}/autokeyConfig`.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class CloudkmsFoldersGetKajPolicyConfigRequest(_messages.Message):
+  r"""A CloudkmsFoldersGetKajPolicyConfigRequest object.
+
+  Fields:
+    name: Required. The name of the KeyAccessJustificationsPolicyConfig to
+      get.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class CloudkmsFoldersUpdateAutokeyConfigRequest(_messages.Message):
+  r"""A CloudkmsFoldersUpdateAutokeyConfigRequest object.
+
+  Fields:
+    autokeyConfig: A AutokeyConfig resource to be passed as the request body.
+    name: Identifier. Name of the AutokeyConfig resource, e.g.
+      `folders/{FOLDER_NUMBER}/autokeyConfig`
+      `projects/{PROJECT_NUMBER}/autokeyConfig`.
+    updateMask: Required. Masks which fields of the AutokeyConfig to update,
+      e.g. `keyProject`.
+  """
+
+  autokeyConfig = _messages.MessageField('AutokeyConfig', 1)
+  name = _messages.StringField(2, required=True)
+  updateMask = _messages.StringField(3)
+
+
+class CloudkmsFoldersUpdateKajPolicyConfigRequest(_messages.Message):
+  r"""A CloudkmsFoldersUpdateKajPolicyConfigRequest object.
+
+  Fields:
+    keyAccessJustificationsPolicyConfig: A KeyAccessJustificationsPolicyConfig
+      resource to be passed as the request body.
+    name: Identifier. The resource name for this
+      KeyAccessJustificationsPolicyConfig in the format of
+      "{organizations|folders|projects}/*/kajPolicyConfig".
+    updateMask: Optional. The list of fields to update.
+  """
+
+  keyAccessJustificationsPolicyConfig = _messages.MessageField('KeyAccessJustificationsPolicyConfig', 1)
+  name = _messages.StringField(2, required=True)
+  updateMask = _messages.StringField(3)
+
+
+class CloudkmsOrganizationsGetKajPolicyConfigRequest(_messages.Message):
+  r"""A CloudkmsOrganizationsGetKajPolicyConfigRequest object.
+
+  Fields:
+    name: Required. The name of the KeyAccessJustificationsPolicyConfig to
+      get.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class CloudkmsOrganizationsUpdateKajPolicyConfigRequest(_messages.Message):
+  r"""A CloudkmsOrganizationsUpdateKajPolicyConfigRequest object.
+
+  Fields:
+    keyAccessJustificationsPolicyConfig: A KeyAccessJustificationsPolicyConfig
+      resource to be passed as the request body.
+    name: Identifier. The resource name for this
+      KeyAccessJustificationsPolicyConfig in the format of
+      "{organizations|folders|projects}/*/kajPolicyConfig".
+    updateMask: Optional. The list of fields to update.
+  """
+
+  keyAccessJustificationsPolicyConfig = _messages.MessageField('KeyAccessJustificationsPolicyConfig', 1)
+  name = _messages.StringField(2, required=True)
+  updateMask = _messages.StringField(3)
+
+
+class CloudkmsProjectsGetKajPolicyConfigRequest(_messages.Message):
+  r"""A CloudkmsProjectsGetKajPolicyConfigRequest object.
+
+  Fields:
+    name: Required. The name of the KeyAccessJustificationsPolicyConfig to
+      get.
+  """
+
+  name = _messages.StringField(1, required=True)
 
 
 class CloudkmsProjectsLocationsEkmConfigGetIamPolicyRequest(_messages.Message):
@@ -639,6 +805,56 @@ class CloudkmsProjectsLocationsGetRequest(_messages.Message):
   name = _messages.StringField(1, required=True)
 
 
+class CloudkmsProjectsLocationsKeyHandlesCreateRequest(_messages.Message):
+  r"""A CloudkmsProjectsLocationsKeyHandlesCreateRequest object.
+
+  Fields:
+    keyHandle: A KeyHandle resource to be passed as the request body.
+    keyHandleId: Optional. Id of the KeyHandle. Must be unique to the resource
+      project and location. If not provided by the caller, a new UUID is used.
+    parent: Required. Name of the resource project and location to create the
+      KeyHandle in, e.g. `projects/{PROJECT_ID}/locations/{LOCATION}`.
+  """
+
+  keyHandle = _messages.MessageField('KeyHandle', 1)
+  keyHandleId = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+
+
+class CloudkmsProjectsLocationsKeyHandlesGetRequest(_messages.Message):
+  r"""A CloudkmsProjectsLocationsKeyHandlesGetRequest object.
+
+  Fields:
+    name: Required. Name of the KeyHandle resource, e.g.
+      `projects/{PROJECT_ID}/locations/{LOCATION}/keyHandles/{KEY_HANDLE_ID}`.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class CloudkmsProjectsLocationsKeyHandlesListRequest(_messages.Message):
+  r"""A CloudkmsProjectsLocationsKeyHandlesListRequest object.
+
+  Fields:
+    filter: Optional. Filter to apply when listing KeyHandles, e.g.
+      `resource_type_selector="{SERVICE}.googleapis.com/{TYPE}"`.
+    pageSize: Optional. Optional limit on the number of KeyHandles to include
+      in the response. The service may return fewer than this value. Further
+      KeyHandles can subsequently be obtained by including the
+      ListKeyHandlesResponse.next_page_token in a subsequent request. If
+      unspecified, at most 100 KeyHandles will be returned.
+    pageToken: Optional. Optional pagination token, returned earlier via
+      ListKeyHandlesResponse.next_page_token.
+    parent: Required. Name of the resource project and location from which to
+      list KeyHandles, e.g. `projects/{PROJECT_ID}/locations/{LOCATION}`.
+  """
+
+  filter = _messages.StringField(1)
+  pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(3)
+  parent = _messages.StringField(4, required=True)
+
+
 class CloudkmsProjectsLocationsKeyRingsCreateRequest(_messages.Message):
   r"""A CloudkmsProjectsLocationsKeyRingsCreateRequest object.
 
@@ -721,6 +937,21 @@ class CloudkmsProjectsLocationsKeyRingsCryptoKeysCryptoKeyVersionsCreateRequest(
   parent = _messages.StringField(2, required=True)
 
 
+class CloudkmsProjectsLocationsKeyRingsCryptoKeysCryptoKeyVersionsDecapsulateRequest(_messages.Message):
+  r"""A CloudkmsProjectsLocationsKeyRingsCryptoKeysCryptoKeyVersionsDecapsulat
+  eRequest object.
+
+  Fields:
+    decapsulateRequest: A DecapsulateRequest resource to be passed as the
+      request body.
+    name: Required. The resource name of the CryptoKeyVersion to use for
+      decapsulation.
+  """
+
+  decapsulateRequest = _messages.MessageField('DecapsulateRequest', 1)
+  name = _messages.StringField(2, required=True)
+
+
 class CloudkmsProjectsLocationsKeyRingsCryptoKeysCryptoKeyVersionsDestroyRequest(_messages.Message):
   r"""A
   CloudkmsProjectsLocationsKeyRingsCryptoKeysCryptoKeyVersionsDestroyRequest
@@ -740,11 +971,57 @@ class CloudkmsProjectsLocationsKeyRingsCryptoKeysCryptoKeyVersionsGetPublicKeyRe
   r"""A CloudkmsProjectsLocationsKeyRingsCryptoKeysCryptoKeyVersionsGetPublicK
   eyRequest object.
 
+  Enums:
+    PublicKeyFormatValueValuesEnum: Optional. The PublicKey format specified
+      by the user. This field is required for PQC algorithms. If specified,
+      the public key will be exported through the public_key field in the
+      requested format. Otherwise, the pem field will be populated for non-PQC
+      algorithms, and an error will be returned for PQC algorithms.
+
   Fields:
     name: Required. The name of the CryptoKeyVersion public key to get.
+    publicKeyFormat: Optional. The PublicKey format specified by the user.
+      This field is required for PQC algorithms. If specified, the public key
+      will be exported through the public_key field in the requested format.
+      Otherwise, the pem field will be populated for non-PQC algorithms, and
+      an error will be returned for PQC algorithms.
   """
 
+  class PublicKeyFormatValueValuesEnum(_messages.Enum):
+    r"""Optional. The PublicKey format specified by the user. This field is
+    required for PQC algorithms. If specified, the public key will be exported
+    through the public_key field in the requested format. Otherwise, the pem
+    field will be populated for non-PQC algorithms, and an error will be
+    returned for PQC algorithms.
+
+    Values:
+      PUBLIC_KEY_FORMAT_UNSPECIFIED: If the public_key_format field is not
+        specified: - For PQC algorithms, an error will be returned. - For non-
+        PQC algorithms, the default format is PEM, and the field pem will be
+        populated. Otherwise, the public key will be exported through the
+        public_key field in the requested format.
+      PEM: The returned public key will be encoded in PEM format. See the
+        [RFC7468](https://tools.ietf.org/html/rfc7468) sections for [General
+        Considerations](https://tools.ietf.org/html/rfc7468#section-2) and
+        [Textual Encoding of Subject Public Key Info]
+        (https://tools.ietf.org/html/rfc7468#section-13) for more information.
+      DER: The returned public key will be encoded in DER format (the
+        PrivateKeyInfo structure from RFC 5208).
+      NIST_PQC: This is supported only for PQC algorithms. The key material is
+        returned in the format defined by NIST PQC standards (FIPS 203, FIPS
+        204, and FIPS 205).
+      XWING_RAW_BYTES: The returned public key is in raw bytes format defined
+        in its standard https://datatracker.ietf.org/doc/draft-connolly-cfrg-
+        xwing-kem.
+    """
+    PUBLIC_KEY_FORMAT_UNSPECIFIED = 0
+    PEM = 1
+    DER = 2
+    NIST_PQC = 3
+    XWING_RAW_BYTES = 4
+
   name = _messages.StringField(1, required=True)
+  publicKeyFormat = _messages.EnumField('PublicKeyFormatValueValuesEnum', 2)
 
 
 class CloudkmsProjectsLocationsKeyRingsCryptoKeysCryptoKeyVersionsGetRequest(_messages.Message):
@@ -1305,6 +1582,9 @@ class CloudkmsProjectsLocationsListRequest(_messages.Message):
   r"""A CloudkmsProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -1315,10 +1595,21 @@ class CloudkmsProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
+
+
+class CloudkmsProjectsLocationsOperationsGetRequest(_messages.Message):
+  r"""A CloudkmsProjectsLocationsOperationsGetRequest object.
+
+  Fields:
+    name: The name of the operation resource.
+  """
+
+  name = _messages.StringField(1, required=True)
 
 
 class CloudkmsProjectsLocationsUpdateEkmConfigRequest(_messages.Message):
@@ -1332,6 +1623,61 @@ class CloudkmsProjectsLocationsUpdateEkmConfigRequest(_messages.Message):
   """
 
   ekmConfig = _messages.MessageField('EkmConfig', 1)
+  name = _messages.StringField(2, required=True)
+  updateMask = _messages.StringField(3)
+
+
+class CloudkmsProjectsShowEffectiveAutokeyConfigRequest(_messages.Message):
+  r"""A CloudkmsProjectsShowEffectiveAutokeyConfigRequest object.
+
+  Fields:
+    parent: Required. Name of the resource project to the show effective Cloud
+      KMS Autokey configuration for. This may be helpful for interrogating the
+      effect of nested folder configurations on a given resource project.
+  """
+
+  parent = _messages.StringField(1, required=True)
+
+
+class CloudkmsProjectsShowEffectiveKeyAccessJustificationsEnrollmentConfigRequest(_messages.Message):
+  r"""A
+  CloudkmsProjectsShowEffectiveKeyAccessJustificationsEnrollmentConfigRequest
+  object.
+
+  Fields:
+    project: Required. The number or id of the project to get the effective
+      KeyAccessJustificationsEnrollmentConfig for.
+  """
+
+  project = _messages.StringField(1, required=True)
+
+
+class CloudkmsProjectsShowEffectiveKeyAccessJustificationsPolicyConfigRequest(_messages.Message):
+  r"""A
+  CloudkmsProjectsShowEffectiveKeyAccessJustificationsPolicyConfigRequest
+  object.
+
+  Fields:
+    project: Required. The number or id of the project to get the effective
+      KeyAccessJustificationsPolicyConfig. In the format of "projects/{|}"
+  """
+
+  project = _messages.StringField(1, required=True)
+
+
+class CloudkmsProjectsUpdateKajPolicyConfigRequest(_messages.Message):
+  r"""A CloudkmsProjectsUpdateKajPolicyConfigRequest object.
+
+  Fields:
+    keyAccessJustificationsPolicyConfig: A KeyAccessJustificationsPolicyConfig
+      resource to be passed as the request body.
+    name: Identifier. The resource name for this
+      KeyAccessJustificationsPolicyConfig in the format of
+      "{organizations|folders|projects}/*/kajPolicyConfig".
+    updateMask: Optional. The list of fields to update.
+  """
+
+  keyAccessJustificationsPolicyConfig = _messages.MessageField('KeyAccessJustificationsPolicyConfig', 1)
   name = _messages.StringField(2, required=True)
   updateMask = _messages.StringField(3)
 
@@ -1360,10 +1706,19 @@ class CryptoKey(_messages.Message):
       exhaustive and may apply to additional ProtectionLevels in the future.
     destroyScheduledDuration: Immutable. The period of time that versions of
       this key spend in the DESTROY_SCHEDULED state before transitioning to
-      DESTROYED. If not specified at creation time, the default duration is 24
-      hours.
+      DESTROYED. If not specified at creation time, the default duration is 30
+      days.
     importOnly: Immutable. Whether this key may contain imported versions
       only.
+    keyAccessJustificationsPolicy: Optional. The policy used for Key Access
+      Justifications Policy Enforcement. If this field is present and this key
+      is enrolled in Key Access Justifications Policy Enforcement, the policy
+      will be evaluated in encrypt, decrypt, and sign operations, and the
+      operation will fail if rejected by the policy. The policy is defined by
+      specifying zero or more allowed justification codes.
+      https://cloud.google.com/assured-workloads/key-access-
+      justifications/docs/justification-codes By default, this field is
+      absent, and all justification codes are allowed.
     labels: Labels with user-defined metadata. For more information, see
       [Labeling Keys](https://cloud.google.com/kms/docs/labeling-keys).
     name: Output only. The resource name for this CryptoKey in the format
@@ -1407,6 +1762,8 @@ class CryptoKey(_messages.Message):
         interoperable symmetric encryption and does not support automatic
         CryptoKey rotation.
       MAC: CryptoKeys with this purpose may be used with MacSign.
+      KEY_ENCAPSULATION: CryptoKeys with this purpose may be used with
+        GetPublicKey and Decapsulate.
     """
     CRYPTO_KEY_PURPOSE_UNSPECIFIED = 0
     ENCRYPT_DECRYPT = 1
@@ -1414,6 +1771,7 @@ class CryptoKey(_messages.Message):
     ASYMMETRIC_DECRYPT = 3
     RAW_ENCRYPT_DECRYPT = 4
     MAC = 5
+    KEY_ENCAPSULATION = 6
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
@@ -1444,13 +1802,14 @@ class CryptoKey(_messages.Message):
   cryptoKeyBackend = _messages.StringField(2)
   destroyScheduledDuration = _messages.StringField(3)
   importOnly = _messages.BooleanField(4)
-  labels = _messages.MessageField('LabelsValue', 5)
-  name = _messages.StringField(6)
-  nextRotationTime = _messages.StringField(7)
-  primary = _messages.MessageField('CryptoKeyVersion', 8)
-  purpose = _messages.EnumField('PurposeValueValuesEnum', 9)
-  rotationPeriod = _messages.StringField(10)
-  versionTemplate = _messages.MessageField('CryptoKeyVersionTemplate', 11)
+  keyAccessJustificationsPolicy = _messages.MessageField('KeyAccessJustificationsPolicy', 5)
+  labels = _messages.MessageField('LabelsValue', 6)
+  name = _messages.StringField(7)
+  nextRotationTime = _messages.StringField(8)
+  primary = _messages.MessageField('CryptoKeyVersion', 9)
+  purpose = _messages.EnumField('PurposeValueValuesEnum', 10)
+  rotationPeriod = _messages.StringField(11)
+  versionTemplate = _messages.MessageField('CryptoKeyVersionTemplate', 12)
 
 
 class CryptoKeyVersion(_messages.Message):
@@ -1565,6 +1924,8 @@ class CryptoKeyVersion(_messages.Message):
         curve is only supported for HSM protection level. Other hash functions
         can also be used: https://cloud.google.com/kms/docs/create-validate-
         signatures#ecdsa_support_for_other_hash_algorithms
+      EC_SIGN_ED25519: EdDSA on the Curve25519 in pure mode (taking data as
+        input).
       HMAC_SHA256: HMAC-SHA256 signing with a 256 bit key.
       HMAC_SHA1: HMAC-SHA1 signing with a 160 bit key.
       HMAC_SHA384: HMAC-SHA384 signing with a 384 bit key.
@@ -1572,6 +1933,17 @@ class CryptoKeyVersion(_messages.Message):
       HMAC_SHA224: HMAC-SHA224 signing with a 224 bit key.
       EXTERNAL_SYMMETRIC_ENCRYPTION: Algorithm representing symmetric
         encryption by an external key manager.
+      ML_KEM_768: ML-KEM-768 (FIPS 203)
+      ML_KEM_1024: ML-KEM-1024 (FIPS 203)
+      KEM_XWING: X-Wing hybrid KEM combining ML-KEM-768 with X25519 following
+        datatracker.ietf.org/doc/draft-connolly-cfrg-xwing-kem/.
+      PQ_SIGN_ML_DSA_65: The post-quantum Module-Lattice-Based Digital
+        Signature Algorithm, at security level 3. Randomized version.
+      PQ_SIGN_SLH_DSA_SHA2_128S: The post-quantum stateless hash-based digital
+        signature algorithm, at security level 1. Randomized version.
+      PQ_SIGN_HASH_SLH_DSA_SHA2_128S_SHA256: The post-quantum stateless hash-
+        based digital signature algorithm, at security level 1. Randomized
+        pre-hash version supporting SHA256 digests.
     """
     CRYPTO_KEY_VERSION_ALGORITHM_UNSPECIFIED = 0
     GOOGLE_SYMMETRIC_ENCRYPTION = 1
@@ -1602,12 +1974,19 @@ class CryptoKeyVersion(_messages.Message):
     EC_SIGN_P256_SHA256 = 26
     EC_SIGN_P384_SHA384 = 27
     EC_SIGN_SECP256K1_SHA256 = 28
-    HMAC_SHA256 = 29
-    HMAC_SHA1 = 30
-    HMAC_SHA384 = 31
-    HMAC_SHA512 = 32
-    HMAC_SHA224 = 33
-    EXTERNAL_SYMMETRIC_ENCRYPTION = 34
+    EC_SIGN_ED25519 = 29
+    HMAC_SHA256 = 30
+    HMAC_SHA1 = 31
+    HMAC_SHA384 = 32
+    HMAC_SHA512 = 33
+    HMAC_SHA224 = 34
+    EXTERNAL_SYMMETRIC_ENCRYPTION = 35
+    ML_KEM_768 = 36
+    ML_KEM_1024 = 37
+    KEM_XWING = 38
+    PQ_SIGN_ML_DSA_65 = 39
+    PQ_SIGN_SLH_DSA_SHA2_128S = 40
+    PQ_SIGN_HASH_SLH_DSA_SHA2_128S_SHA256 = 41
 
   class ProtectionLevelValueValuesEnum(_messages.Enum):
     r"""Output only. The ProtectionLevel describing how crypto operations are
@@ -1639,7 +2018,7 @@ class CryptoKeyVersion(_messages.Message):
       ENABLED: This version may be used for cryptographic operations.
       DISABLED: This version may not be used, but the key material is still
         available, and the version can be placed back into the ENABLED state.
-      DESTROYED: This version is destroyed, and the key material is no longer
+      DESTROYED: The key material of this version is destroyed and no longer
         stored. This version may only become ENABLED again if this version is
         reimport_eligible and the original key material is reimported with a
         call to KeyManagementService.ImportCryptoKeyVersion.
@@ -1775,6 +2154,8 @@ class CryptoKeyVersionTemplate(_messages.Message):
         curve is only supported for HSM protection level. Other hash functions
         can also be used: https://cloud.google.com/kms/docs/create-validate-
         signatures#ecdsa_support_for_other_hash_algorithms
+      EC_SIGN_ED25519: EdDSA on the Curve25519 in pure mode (taking data as
+        input).
       HMAC_SHA256: HMAC-SHA256 signing with a 256 bit key.
       HMAC_SHA1: HMAC-SHA1 signing with a 160 bit key.
       HMAC_SHA384: HMAC-SHA384 signing with a 384 bit key.
@@ -1782,6 +2163,17 @@ class CryptoKeyVersionTemplate(_messages.Message):
       HMAC_SHA224: HMAC-SHA224 signing with a 224 bit key.
       EXTERNAL_SYMMETRIC_ENCRYPTION: Algorithm representing symmetric
         encryption by an external key manager.
+      ML_KEM_768: ML-KEM-768 (FIPS 203)
+      ML_KEM_1024: ML-KEM-1024 (FIPS 203)
+      KEM_XWING: X-Wing hybrid KEM combining ML-KEM-768 with X25519 following
+        datatracker.ietf.org/doc/draft-connolly-cfrg-xwing-kem/.
+      PQ_SIGN_ML_DSA_65: The post-quantum Module-Lattice-Based Digital
+        Signature Algorithm, at security level 3. Randomized version.
+      PQ_SIGN_SLH_DSA_SHA2_128S: The post-quantum stateless hash-based digital
+        signature algorithm, at security level 1. Randomized version.
+      PQ_SIGN_HASH_SLH_DSA_SHA2_128S_SHA256: The post-quantum stateless hash-
+        based digital signature algorithm, at security level 1. Randomized
+        pre-hash version supporting SHA256 digests.
     """
     CRYPTO_KEY_VERSION_ALGORITHM_UNSPECIFIED = 0
     GOOGLE_SYMMETRIC_ENCRYPTION = 1
@@ -1812,12 +2204,19 @@ class CryptoKeyVersionTemplate(_messages.Message):
     EC_SIGN_P256_SHA256 = 26
     EC_SIGN_P384_SHA384 = 27
     EC_SIGN_SECP256K1_SHA256 = 28
-    HMAC_SHA256 = 29
-    HMAC_SHA1 = 30
-    HMAC_SHA384 = 31
-    HMAC_SHA512 = 32
-    HMAC_SHA224 = 33
-    EXTERNAL_SYMMETRIC_ENCRYPTION = 34
+    EC_SIGN_ED25519 = 29
+    HMAC_SHA256 = 30
+    HMAC_SHA1 = 31
+    HMAC_SHA384 = 32
+    HMAC_SHA512 = 33
+    HMAC_SHA224 = 34
+    EXTERNAL_SYMMETRIC_ENCRYPTION = 35
+    ML_KEM_768 = 36
+    ML_KEM_1024 = 37
+    KEM_XWING = 38
+    PQ_SIGN_ML_DSA_65 = 39
+    PQ_SIGN_SLH_DSA_SHA2_128S = 40
+    PQ_SIGN_HASH_SLH_DSA_SHA2_128S_SHA256 = 41
 
   class ProtectionLevelValueValuesEnum(_messages.Enum):
     r"""ProtectionLevel to use when creating a CryptoKeyVersion based on this
@@ -1839,6 +2238,92 @@ class CryptoKeyVersionTemplate(_messages.Message):
 
   algorithm = _messages.EnumField('AlgorithmValueValuesEnum', 1)
   protectionLevel = _messages.EnumField('ProtectionLevelValueValuesEnum', 2)
+
+
+class DecapsulateRequest(_messages.Message):
+  r"""Request message for KeyManagementService.Decapsulate.
+
+  Fields:
+    ciphertext: Required. The ciphertext produced from encapsulation with the
+      named CryptoKeyVersion public key(s).
+    ciphertextCrc32c: Optional. A CRC32C checksum of the
+      DecapsulateRequest.ciphertext. If specified, KeyManagementService will
+      verify the integrity of the received DecapsulateRequest.ciphertext using
+      this checksum. KeyManagementService will report an error if the checksum
+      verification fails. If you receive a checksum error, your client should
+      verify that CRC32C(DecapsulateRequest.ciphertext) is equal to
+      DecapsulateRequest.ciphertext_crc32c, and if so, perform a limited
+      number of retries. A persistent mismatch may indicate an issue in your
+      computation of the CRC32C checksum. Note: This field is defined as int64
+      for reasons of compatibility across different languages. However, it is
+      a non-negative integer, which will never exceed 2^32-1, and can be
+      safely downconverted to uint32 in languages that support this type.
+  """
+
+  ciphertext = _messages.BytesField(1)
+  ciphertextCrc32c = _messages.IntegerField(2)
+
+
+class DecapsulateResponse(_messages.Message):
+  r"""Response message for KeyManagementService.Decapsulate.
+
+  Enums:
+    ProtectionLevelValueValuesEnum: The ProtectionLevel of the
+      CryptoKeyVersion used in decapsulation.
+
+  Fields:
+    name: The resource name of the CryptoKeyVersion used for decapsulation.
+      Check this field to verify that the intended resource was used for
+      decapsulation.
+    protectionLevel: The ProtectionLevel of the CryptoKeyVersion used in
+      decapsulation.
+    sharedSecret: The decapsulated shared_secret originally encapsulated with
+      the matching public key.
+    sharedSecretCrc32c: Integrity verification field. A CRC32C checksum of the
+      returned DecapsulateResponse.shared_secret. An integrity check of
+      DecapsulateResponse.shared_secret can be performed by computing the
+      CRC32C checksum of DecapsulateResponse.shared_secret and comparing your
+      results to this field. Discard the response in case of non-matching
+      checksum values, and perform a limited number of retries. A persistent
+      mismatch may indicate an issue in your computation of the CRC32C
+      checksum. Note: receiving this response message indicates that
+      KeyManagementService is able to successfully decrypt the ciphertext.
+      Note: This field is defined as int64 for reasons of compatibility across
+      different languages. However, it is a non-negative integer, which will
+      never exceed 2^32-1, and can be safely downconverted to uint32 in
+      languages that support this type.
+    verifiedCiphertextCrc32c: Integrity verification field. A flag indicating
+      whether DecapsulateRequest.ciphertext_crc32c was received by
+      KeyManagementService and used for the integrity verification of the
+      ciphertext. A false value of this field indicates either that
+      DecapsulateRequest.ciphertext_crc32c was left unset or that it was not
+      delivered to KeyManagementService. If you've set
+      DecapsulateRequest.ciphertext_crc32c but this field is still false,
+      discard the response and perform a limited number of retries.
+  """
+
+  class ProtectionLevelValueValuesEnum(_messages.Enum):
+    r"""The ProtectionLevel of the CryptoKeyVersion used in decapsulation.
+
+    Values:
+      PROTECTION_LEVEL_UNSPECIFIED: Not specified.
+      SOFTWARE: Crypto operations are performed in software.
+      HSM: Crypto operations are performed in a Hardware Security Module.
+      EXTERNAL: Crypto operations are performed by an external key manager.
+      EXTERNAL_VPC: Crypto operations are performed in an EKM-over-VPC
+        backend.
+    """
+    PROTECTION_LEVEL_UNSPECIFIED = 0
+    SOFTWARE = 1
+    HSM = 2
+    EXTERNAL = 3
+    EXTERNAL_VPC = 4
+
+  name = _messages.StringField(1)
+  protectionLevel = _messages.EnumField('ProtectionLevelValueValuesEnum', 2)
+  sharedSecret = _messages.BytesField(3)
+  sharedSecretCrc32c = _messages.IntegerField(4)
+  verifiedCiphertextCrc32c = _messages.BooleanField(5)
 
 
 class DecryptRequest(_messages.Message):
@@ -1990,9 +2475,9 @@ class EkmConnection(_messages.Message):
       operations on the EKM. If unset, this defaults to MANUAL.
     name: Output only. The resource name for the EkmConnection in the format
       `projects/*/locations/*/ekmConnections/*`.
-    serviceResolvers: A list of ServiceResolvers where the EKM can be reached.
-      There should be one ServiceResolver per EKM replica. Currently, only a
-      single ServiceResolver is supported.
+    serviceResolvers: Optional. A list of ServiceResolvers where the EKM can
+      be reached. There should be one ServiceResolver per EKM replica.
+      Currently, only a single ServiceResolver is supported.
   """
 
   class KeyManagementModeValueValuesEnum(_messages.Enum):
@@ -2360,6 +2845,8 @@ class ImportCryptoKeyVersionRequest(_messages.Message):
         curve is only supported for HSM protection level. Other hash functions
         can also be used: https://cloud.google.com/kms/docs/create-validate-
         signatures#ecdsa_support_for_other_hash_algorithms
+      EC_SIGN_ED25519: EdDSA on the Curve25519 in pure mode (taking data as
+        input).
       HMAC_SHA256: HMAC-SHA256 signing with a 256 bit key.
       HMAC_SHA1: HMAC-SHA1 signing with a 160 bit key.
       HMAC_SHA384: HMAC-SHA384 signing with a 384 bit key.
@@ -2367,6 +2854,17 @@ class ImportCryptoKeyVersionRequest(_messages.Message):
       HMAC_SHA224: HMAC-SHA224 signing with a 224 bit key.
       EXTERNAL_SYMMETRIC_ENCRYPTION: Algorithm representing symmetric
         encryption by an external key manager.
+      ML_KEM_768: ML-KEM-768 (FIPS 203)
+      ML_KEM_1024: ML-KEM-1024 (FIPS 203)
+      KEM_XWING: X-Wing hybrid KEM combining ML-KEM-768 with X25519 following
+        datatracker.ietf.org/doc/draft-connolly-cfrg-xwing-kem/.
+      PQ_SIGN_ML_DSA_65: The post-quantum Module-Lattice-Based Digital
+        Signature Algorithm, at security level 3. Randomized version.
+      PQ_SIGN_SLH_DSA_SHA2_128S: The post-quantum stateless hash-based digital
+        signature algorithm, at security level 1. Randomized version.
+      PQ_SIGN_HASH_SLH_DSA_SHA2_128S_SHA256: The post-quantum stateless hash-
+        based digital signature algorithm, at security level 1. Randomized
+        pre-hash version supporting SHA256 digests.
     """
     CRYPTO_KEY_VERSION_ALGORITHM_UNSPECIFIED = 0
     GOOGLE_SYMMETRIC_ENCRYPTION = 1
@@ -2397,12 +2895,19 @@ class ImportCryptoKeyVersionRequest(_messages.Message):
     EC_SIGN_P256_SHA256 = 26
     EC_SIGN_P384_SHA384 = 27
     EC_SIGN_SECP256K1_SHA256 = 28
-    HMAC_SHA256 = 29
-    HMAC_SHA1 = 30
-    HMAC_SHA384 = 31
-    HMAC_SHA512 = 32
-    HMAC_SHA224 = 33
-    EXTERNAL_SYMMETRIC_ENCRYPTION = 34
+    EC_SIGN_ED25519 = 29
+    HMAC_SHA256 = 30
+    HMAC_SHA1 = 31
+    HMAC_SHA384 = 32
+    HMAC_SHA512 = 33
+    HMAC_SHA224 = 34
+    EXTERNAL_SYMMETRIC_ENCRYPTION = 35
+    ML_KEM_768 = 36
+    ML_KEM_1024 = 37
+    KEM_XWING = 38
+    PQ_SIGN_ML_DSA_65 = 39
+    PQ_SIGN_SLH_DSA_SHA2_128S = 40
+    PQ_SIGN_HASH_SLH_DSA_SHA2_128S_SHA256 = 41
 
   algorithm = _messages.EnumField('AlgorithmValueValuesEnum', 1)
   cryptoKeyVersion = _messages.StringField(2)
@@ -2566,6 +3071,137 @@ class ImportJob(_messages.Message):
   state = _messages.EnumField('StateValueValuesEnum', 10)
 
 
+class KeyAccessJustificationsEnrollmentConfig(_messages.Message):
+  r"""The configuration of a protection level for a project's Key Access
+  Justifications enrollment.
+
+  Fields:
+    auditLogging: Whether the project has KAJ logging enabled.
+    policyEnforcement: Whether the project is enrolled in KAJ policy
+      enforcement.
+  """
+
+  auditLogging = _messages.BooleanField(1)
+  policyEnforcement = _messages.BooleanField(2)
+
+
+class KeyAccessJustificationsPolicy(_messages.Message):
+  r"""A KeyAccessJustificationsPolicy specifies zero or more allowed
+  AccessReason values for encrypt, decrypt, and sign operations on a
+  CryptoKey.
+
+  Enums:
+    AllowedAccessReasonsValueListEntryValuesEnum:
+
+  Fields:
+    allowedAccessReasons: The list of allowed reasons for access to a
+      CryptoKey. Zero allowed access reasons means all encrypt, decrypt, and
+      sign operations for the CryptoKey associated with this policy will fail.
+  """
+
+  class AllowedAccessReasonsValueListEntryValuesEnum(_messages.Enum):
+    r"""AllowedAccessReasonsValueListEntryValuesEnum enum type.
+
+    Values:
+      REASON_UNSPECIFIED: Unspecified access reason.
+      CUSTOMER_INITIATED_SUPPORT: Customer-initiated support.
+      GOOGLE_INITIATED_SERVICE: Google-initiated access for system management
+        and troubleshooting.
+      THIRD_PARTY_DATA_REQUEST: Google-initiated access in response to a legal
+        request or legal process.
+      GOOGLE_INITIATED_REVIEW: Google-initiated access for security, fraud,
+        abuse, or compliance purposes.
+      CUSTOMER_INITIATED_ACCESS: Customer uses their account to perform any
+        access to their own data which their IAM policy authorizes.
+      GOOGLE_INITIATED_SYSTEM_OPERATION: Google systems access customer data
+        to help optimize the structure of the data or quality for future uses
+        by the customer.
+      REASON_NOT_EXPECTED: No reason is expected for this key request.
+      MODIFIED_CUSTOMER_INITIATED_ACCESS: Customer uses their account to
+        perform any access to their own data which their IAM policy
+        authorizes, and one of the following is true: * A Google administrator
+        has reset the root-access account associated with the user's
+        organization within the past 7 days. * A Google-initiated emergency
+        access operation has interacted with a resource in the same project or
+        folder as the currently accessed resource within the past 7 days.
+      MODIFIED_GOOGLE_INITIATED_SYSTEM_OPERATION: Google systems access
+        customer data to help optimize the structure of the data or quality
+        for future uses by the customer, and one of the following is true: * A
+        Google administrator has reset the root-access account associated with
+        the user's organization within the past 7 days. * A Google-initiated
+        emergency access operation has interacted with a resource in the same
+        project or folder as the currently accessed resource within the past 7
+        days.
+      GOOGLE_RESPONSE_TO_PRODUCTION_ALERT: Google-initiated access to maintain
+        system reliability.
+      CUSTOMER_AUTHORIZED_WORKFLOW_SERVICING: One of the following operations
+        is being executed while simultaneously encountering an internal
+        technical issue which prevented a more precise justification code from
+        being generated: * Your account has been used to perform any access to
+        your own data which your IAM policy authorizes. * An automated Google
+        system operates on encrypted customer data which your IAM policy
+        authorizes. * Customer-initiated Google support access. * Google-
+        initiated support access to protect system reliability.
+    """
+    REASON_UNSPECIFIED = 0
+    CUSTOMER_INITIATED_SUPPORT = 1
+    GOOGLE_INITIATED_SERVICE = 2
+    THIRD_PARTY_DATA_REQUEST = 3
+    GOOGLE_INITIATED_REVIEW = 4
+    CUSTOMER_INITIATED_ACCESS = 5
+    GOOGLE_INITIATED_SYSTEM_OPERATION = 6
+    REASON_NOT_EXPECTED = 7
+    MODIFIED_CUSTOMER_INITIATED_ACCESS = 8
+    MODIFIED_GOOGLE_INITIATED_SYSTEM_OPERATION = 9
+    GOOGLE_RESPONSE_TO_PRODUCTION_ALERT = 10
+    CUSTOMER_AUTHORIZED_WORKFLOW_SERVICING = 11
+
+  allowedAccessReasons = _messages.EnumField('AllowedAccessReasonsValueListEntryValuesEnum', 1, repeated=True)
+
+
+class KeyAccessJustificationsPolicyConfig(_messages.Message):
+  r"""A singleton configuration for Key Access Justifications policies.
+
+  Fields:
+    defaultKeyAccessJustificationPolicy: Optional. The default key access
+      justification policy used when a CryptoKey is created in this folder.
+      This is only used when a Key Access Justifications policy is not
+      provided in the CreateCryptoKeyRequest. This overrides any default
+      policies in its ancestry.
+    name: Identifier. The resource name for this
+      KeyAccessJustificationsPolicyConfig in the format of
+      "{organizations|folders|projects}/*/kajPolicyConfig".
+  """
+
+  defaultKeyAccessJustificationPolicy = _messages.MessageField('KeyAccessJustificationsPolicy', 1)
+  name = _messages.StringField(2)
+
+
+class KeyHandle(_messages.Message):
+  r"""Resource-oriented representation of a request to Cloud KMS Autokey and
+  the resulting provisioning of a CryptoKey.
+
+  Fields:
+    kmsKey: Output only. Name of a CryptoKey that has been provisioned for
+      Customer Managed Encryption Key (CMEK) use in the KeyHandle project and
+      location for the requested resource type. The CryptoKey project will
+      reflect the value configured in the AutokeyConfig on the resource
+      project's ancestor folder at the time of the KeyHandle creation. If more
+      than one ancestor folder has a configured AutokeyConfig, the nearest of
+      these configurations is used.
+    name: Identifier. Name of the KeyHandle resource, e.g.
+      `projects/{PROJECT_ID}/locations/{LOCATION}/keyHandles/{KEY_HANDLE_ID}`.
+    resourceTypeSelector: Required. Indicates the resource type that the
+      resulting CryptoKey is meant to protect, e.g.
+      `{SERVICE}.googleapis.com/{TYPE}`. See documentation for supported
+      resource types.
+  """
+
+  kmsKey = _messages.StringField(1)
+  name = _messages.StringField(2)
+  resourceTypeSelector = _messages.StringField(3)
+
+
 class KeyOperationAttestation(_messages.Message):
   r"""Contains an HSM-generated attestation about a key operation. For more
   information, see [Verifying attestations]
@@ -2625,6 +3261,8 @@ class ListCryptoKeyVersionsResponse(_messages.Message):
       in ListCryptoKeyVersionsRequest.page_token to retrieve the next page of
       results.
     totalSize: The total number of CryptoKeyVersions that matched the query.
+      This field is not populated if ListCryptoKeyVersionsRequest.filter is
+      applied.
   """
 
   cryptoKeyVersions = _messages.MessageField('CryptoKeyVersion', 1, repeated=True)
@@ -2640,7 +3278,8 @@ class ListCryptoKeysResponse(_messages.Message):
     nextPageToken: A token to retrieve next page of results. Pass this value
       in ListCryptoKeysRequest.page_token to retrieve the next page of
       results.
-    totalSize: The total number of CryptoKeys that matched the query.
+    totalSize: The total number of CryptoKeys that matched the query. This
+      field is not populated if ListCryptoKeysRequest.filter is applied.
   """
 
   cryptoKeys = _messages.MessageField('CryptoKey', 1, repeated=True)
@@ -2656,7 +3295,8 @@ class ListEkmConnectionsResponse(_messages.Message):
     nextPageToken: A token to retrieve next page of results. Pass this value
       in ListEkmConnectionsRequest.page_token to retrieve the next page of
       results.
-    totalSize: The total number of EkmConnections that matched the query.
+    totalSize: The total number of EkmConnections that matched the query. This
+      field is not populated if ListEkmConnectionsRequest.filter is applied.
   """
 
   ekmConnections = _messages.MessageField('EkmConnection', 1, repeated=True)
@@ -2672,12 +3312,27 @@ class ListImportJobsResponse(_messages.Message):
     nextPageToken: A token to retrieve next page of results. Pass this value
       in ListImportJobsRequest.page_token to retrieve the next page of
       results.
-    totalSize: The total number of ImportJobs that matched the query.
+    totalSize: The total number of ImportJobs that matched the query. This
+      field is not populated if ListImportJobsRequest.filter is applied.
   """
 
   importJobs = _messages.MessageField('ImportJob', 1, repeated=True)
   nextPageToken = _messages.StringField(2)
   totalSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+
+
+class ListKeyHandlesResponse(_messages.Message):
+  r"""Response message for Autokey.ListKeyHandles.
+
+  Fields:
+    keyHandles: Resulting KeyHandles.
+    nextPageToken: A token to retrieve next page of results. Pass this value
+      in ListKeyHandlesRequest.page_token to retrieve the next page of
+      results.
+  """
+
+  keyHandles = _messages.MessageField('KeyHandle', 1, repeated=True)
+  nextPageToken = _messages.StringField(2)
 
 
 class ListKeyRingsResponse(_messages.Message):
@@ -2687,7 +3342,8 @@ class ListKeyRingsResponse(_messages.Message):
     keyRings: The list of KeyRings.
     nextPageToken: A token to retrieve next page of results. Pass this value
       in ListKeyRingsRequest.page_token to retrieve the next page of results.
-    totalSize: The total number of KeyRings that matched the query.
+    totalSize: The total number of KeyRings that matched the query. This field
+      is not populated if ListKeyRingsRequest.filter is applied.
   """
 
   keyRings = _messages.MessageField('KeyRing', 1, repeated=True)
@@ -2906,7 +3562,7 @@ class MacVerifyRequest(_messages.Message):
       integrity of the received MacVerifyRequest.mac using this checksum.
       KeyManagementService will report an error if the checksum verification
       fails. If you receive a checksum error, your client should verify that
-      CRC32C(MacVerifyRequest.tag) is equal to MacVerifyRequest.mac_crc32c,
+      CRC32C(MacVerifyRequest.mac) is equal to MacVerifyRequest.mac_crc32c,
       and if so, perform a limited number of retries. A persistent mismatch
       may indicate an issue in your computation of the CRC32C checksum. Note:
       This field is defined as int64 for reasons of compatibility across
@@ -2981,6 +3637,114 @@ class MacVerifyResponse(_messages.Message):
   verifiedDataCrc32c = _messages.BooleanField(4)
   verifiedMacCrc32c = _messages.BooleanField(5)
   verifiedSuccessIntegrity = _messages.BooleanField(6)
+
+
+class Operation(_messages.Message):
+  r"""This resource represents a long-running operation that is the result of
+  a network API call.
+
+  Messages:
+    MetadataValue: Service-specific metadata associated with the operation. It
+      typically contains progress information and common metadata such as
+      create time. Some services might not provide such metadata. Any method
+      that returns a long-running operation should document the metadata type,
+      if any.
+    ResponseValue: The normal, successful response of the operation. If the
+      original method returns no data on success, such as `Delete`, the
+      response is `google.protobuf.Empty`. If the original method is standard
+      `Get`/`Create`/`Update`, the response should be the resource. For other
+      methods, the response should have the type `XxxResponse`, where `Xxx` is
+      the original method name. For example, if the original method name is
+      `TakeSnapshot()`, the inferred response type is `TakeSnapshotResponse`.
+
+  Fields:
+    done: If the value is `false`, it means the operation is still in
+      progress. If `true`, the operation is completed, and either `error` or
+      `response` is available.
+    error: The error result of the operation in case of failure or
+      cancellation.
+    metadata: Service-specific metadata associated with the operation. It
+      typically contains progress information and common metadata such as
+      create time. Some services might not provide such metadata. Any method
+      that returns a long-running operation should document the metadata type,
+      if any.
+    name: The server-assigned name, which is only unique within the same
+      service that originally returns it. If you use the default HTTP mapping,
+      the `name` should be a resource name ending with
+      `operations/{unique_id}`.
+    response: The normal, successful response of the operation. If the
+      original method returns no data on success, such as `Delete`, the
+      response is `google.protobuf.Empty`. If the original method is standard
+      `Get`/`Create`/`Update`, the response should be the resource. For other
+      methods, the response should have the type `XxxResponse`, where `Xxx` is
+      the original method name. For example, if the original method name is
+      `TakeSnapshot()`, the inferred response type is `TakeSnapshotResponse`.
+  """
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class MetadataValue(_messages.Message):
+    r"""Service-specific metadata associated with the operation. It typically
+    contains progress information and common metadata such as create time.
+    Some services might not provide such metadata. Any method that returns a
+    long-running operation should document the metadata type, if any.
+
+    Messages:
+      AdditionalProperty: An additional property for a MetadataValue object.
+
+    Fields:
+      additionalProperties: Properties of the object. Contains field @type
+        with type URL.
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a MetadataValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A extra_types.JsonValue attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.MessageField('extra_types.JsonValue', 2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class ResponseValue(_messages.Message):
+    r"""The normal, successful response of the operation. If the original
+    method returns no data on success, such as `Delete`, the response is
+    `google.protobuf.Empty`. If the original method is standard
+    `Get`/`Create`/`Update`, the response should be the resource. For other
+    methods, the response should have the type `XxxResponse`, where `Xxx` is
+    the original method name. For example, if the original method name is
+    `TakeSnapshot()`, the inferred response type is `TakeSnapshotResponse`.
+
+    Messages:
+      AdditionalProperty: An additional property for a ResponseValue object.
+
+    Fields:
+      additionalProperties: Properties of the object. Contains field @type
+        with type URL.
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a ResponseValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A extra_types.JsonValue attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.MessageField('extra_types.JsonValue', 2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  done = _messages.BooleanField(1)
+  error = _messages.MessageField('Status', 2)
+  metadata = _messages.MessageField('MetadataValue', 3)
+  name = _messages.StringField(4)
+  response = _messages.MessageField('ResponseValue', 5)
 
 
 class Policy(_messages.Message):
@@ -3068,6 +3832,8 @@ class PublicKey(_messages.Message):
     AlgorithmValueValuesEnum: The Algorithm associated with this key.
     ProtectionLevelValueValuesEnum: The ProtectionLevel of the
       CryptoKeyVersion public key.
+    PublicKeyFormatValueValuesEnum: The PublicKey format specified by the
+      customer through the public_key_format field.
 
   Fields:
     algorithm: The Algorithm associated with this key.
@@ -3086,10 +3852,14 @@ class PublicKey(_messages.Message):
       mismatch may indicate an issue in your computation of the CRC32C
       checksum. Note: This field is defined as int64 for reasons of
       compatibility across different languages. However, it is a non-negative
-      integer, which will never exceed 2^32-1, and can be safely downconverted
-      to uint32 in languages that support this type. NOTE: This field is in
-      Beta.
+      integer, which will never exceed `2^32-1`, and can be safely
+      downconverted to uint32 in languages that support this type. NOTE: This
+      field is in Beta.
     protectionLevel: The ProtectionLevel of the CryptoKeyVersion public key.
+    publicKey: This field contains the public key (with integrity
+      verification), formatted according to the public_key_format field.
+    publicKeyFormat: The PublicKey format specified by the customer through
+      the public_key_format field.
   """
 
   class AlgorithmValueValuesEnum(_messages.Enum):
@@ -3145,6 +3915,8 @@ class PublicKey(_messages.Message):
         curve is only supported for HSM protection level. Other hash functions
         can also be used: https://cloud.google.com/kms/docs/create-validate-
         signatures#ecdsa_support_for_other_hash_algorithms
+      EC_SIGN_ED25519: EdDSA on the Curve25519 in pure mode (taking data as
+        input).
       HMAC_SHA256: HMAC-SHA256 signing with a 256 bit key.
       HMAC_SHA1: HMAC-SHA1 signing with a 160 bit key.
       HMAC_SHA384: HMAC-SHA384 signing with a 384 bit key.
@@ -3152,6 +3924,17 @@ class PublicKey(_messages.Message):
       HMAC_SHA224: HMAC-SHA224 signing with a 224 bit key.
       EXTERNAL_SYMMETRIC_ENCRYPTION: Algorithm representing symmetric
         encryption by an external key manager.
+      ML_KEM_768: ML-KEM-768 (FIPS 203)
+      ML_KEM_1024: ML-KEM-1024 (FIPS 203)
+      KEM_XWING: X-Wing hybrid KEM combining ML-KEM-768 with X25519 following
+        datatracker.ietf.org/doc/draft-connolly-cfrg-xwing-kem/.
+      PQ_SIGN_ML_DSA_65: The post-quantum Module-Lattice-Based Digital
+        Signature Algorithm, at security level 3. Randomized version.
+      PQ_SIGN_SLH_DSA_SHA2_128S: The post-quantum stateless hash-based digital
+        signature algorithm, at security level 1. Randomized version.
+      PQ_SIGN_HASH_SLH_DSA_SHA2_128S_SHA256: The post-quantum stateless hash-
+        based digital signature algorithm, at security level 1. Randomized
+        pre-hash version supporting SHA256 digests.
     """
     CRYPTO_KEY_VERSION_ALGORITHM_UNSPECIFIED = 0
     GOOGLE_SYMMETRIC_ENCRYPTION = 1
@@ -3182,12 +3965,19 @@ class PublicKey(_messages.Message):
     EC_SIGN_P256_SHA256 = 26
     EC_SIGN_P384_SHA384 = 27
     EC_SIGN_SECP256K1_SHA256 = 28
-    HMAC_SHA256 = 29
-    HMAC_SHA1 = 30
-    HMAC_SHA384 = 31
-    HMAC_SHA512 = 32
-    HMAC_SHA224 = 33
-    EXTERNAL_SYMMETRIC_ENCRYPTION = 34
+    EC_SIGN_ED25519 = 29
+    HMAC_SHA256 = 30
+    HMAC_SHA1 = 31
+    HMAC_SHA384 = 32
+    HMAC_SHA512 = 33
+    HMAC_SHA224 = 34
+    EXTERNAL_SYMMETRIC_ENCRYPTION = 35
+    ML_KEM_768 = 36
+    ML_KEM_1024 = 37
+    KEM_XWING = 38
+    PQ_SIGN_ML_DSA_65 = 39
+    PQ_SIGN_SLH_DSA_SHA2_128S = 40
+    PQ_SIGN_HASH_SLH_DSA_SHA2_128S_SHA256 = 41
 
   class ProtectionLevelValueValuesEnum(_messages.Enum):
     r"""The ProtectionLevel of the CryptoKeyVersion public key.
@@ -3206,11 +3996,43 @@ class PublicKey(_messages.Message):
     EXTERNAL = 3
     EXTERNAL_VPC = 4
 
+  class PublicKeyFormatValueValuesEnum(_messages.Enum):
+    r"""The PublicKey format specified by the customer through the
+    public_key_format field.
+
+    Values:
+      PUBLIC_KEY_FORMAT_UNSPECIFIED: If the public_key_format field is not
+        specified: - For PQC algorithms, an error will be returned. - For non-
+        PQC algorithms, the default format is PEM, and the field pem will be
+        populated. Otherwise, the public key will be exported through the
+        public_key field in the requested format.
+      PEM: The returned public key will be encoded in PEM format. See the
+        [RFC7468](https://tools.ietf.org/html/rfc7468) sections for [General
+        Considerations](https://tools.ietf.org/html/rfc7468#section-2) and
+        [Textual Encoding of Subject Public Key Info]
+        (https://tools.ietf.org/html/rfc7468#section-13) for more information.
+      DER: The returned public key will be encoded in DER format (the
+        PrivateKeyInfo structure from RFC 5208).
+      NIST_PQC: This is supported only for PQC algorithms. The key material is
+        returned in the format defined by NIST PQC standards (FIPS 203, FIPS
+        204, and FIPS 205).
+      XWING_RAW_BYTES: The returned public key is in raw bytes format defined
+        in its standard https://datatracker.ietf.org/doc/draft-connolly-cfrg-
+        xwing-kem.
+    """
+    PUBLIC_KEY_FORMAT_UNSPECIFIED = 0
+    PEM = 1
+    DER = 2
+    NIST_PQC = 3
+    XWING_RAW_BYTES = 4
+
   algorithm = _messages.EnumField('AlgorithmValueValuesEnum', 1)
   name = _messages.StringField(2)
   pem = _messages.StringField(3)
   pemCrc32c = _messages.IntegerField(4)
   protectionLevel = _messages.EnumField('ProtectionLevelValueValuesEnum', 5)
+  publicKey = _messages.MessageField('ChecksummedData', 6)
+  publicKeyFormat = _messages.EnumField('PublicKeyFormatValueValuesEnum', 7)
 
 
 class RawDecryptRequest(_messages.Message):
@@ -3568,6 +4390,46 @@ class SetIamPolicyRequest(_messages.Message):
   updateMask = _messages.StringField(2)
 
 
+class ShowEffectiveAutokeyConfigResponse(_messages.Message):
+  r"""Response message for ShowEffectiveAutokeyConfig.
+
+  Fields:
+    keyProject: Name of the key project configured in the resource project's
+      folder ancestry.
+  """
+
+  keyProject = _messages.StringField(1)
+
+
+class ShowEffectiveKeyAccessJustificationsEnrollmentConfigResponse(_messages.Message):
+  r"""Response message for KeyAccessJustificationsConfig.ShowEffectiveKeyAcces
+  sJustificationsEnrollmentConfig
+
+  Fields:
+    externalConfig: The effective KeyAccessJustificationsEnrollmentConfig for
+      external keys.
+    hardwareConfig: The effective KeyAccessJustificationsEnrollmentConfig for
+      hardware keys.
+    softwareConfig: The effective KeyAccessJustificationsEnrollmentConfig for
+      software keys.
+  """
+
+  externalConfig = _messages.MessageField('KeyAccessJustificationsEnrollmentConfig', 1)
+  hardwareConfig = _messages.MessageField('KeyAccessJustificationsEnrollmentConfig', 2)
+  softwareConfig = _messages.MessageField('KeyAccessJustificationsEnrollmentConfig', 3)
+
+
+class ShowEffectiveKeyAccessJustificationsPolicyConfigResponse(_messages.Message):
+  r"""Response message for KeyAccessJustificationsConfig.ShowEffectiveKeyAcces
+  sJustificationsPolicyConfig.
+
+  Fields:
+    effectiveKajPolicy: The effective KeyAccessJustificationsPolicyConfig.
+  """
+
+  effectiveKajPolicy = _messages.MessageField('KeyAccessJustificationsPolicyConfig', 1)
+
+
 class StandardQueryParameters(_messages.Message):
   r"""Query parameters accepted by all methods.
 
@@ -3631,6 +4493,57 @@ class StandardQueryParameters(_messages.Message):
   upload_protocol = _messages.StringField(12)
 
 
+class Status(_messages.Message):
+  r"""The `Status` type defines a logical error model that is suitable for
+  different programming environments, including REST APIs and RPC APIs. It is
+  used by [gRPC](https://github.com/grpc). Each `Status` message contains
+  three pieces of data: error code, error message, and error details. You can
+  find out more about this error model and how to work with it in the [API
+  Design Guide](https://cloud.google.com/apis/design/errors).
+
+  Messages:
+    DetailsValueListEntry: A DetailsValueListEntry object.
+
+  Fields:
+    code: The status code, which should be an enum value of google.rpc.Code.
+    details: A list of messages that carry the error details. There is a
+      common set of message types for APIs to use.
+    message: A developer-facing error message, which should be in English. Any
+      user-facing error message should be localized and sent in the
+      google.rpc.Status.details field, or localized by the client.
+  """
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class DetailsValueListEntry(_messages.Message):
+    r"""A DetailsValueListEntry object.
+
+    Messages:
+      AdditionalProperty: An additional property for a DetailsValueListEntry
+        object.
+
+    Fields:
+      additionalProperties: Properties of the object. Contains field @type
+        with type URL.
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a DetailsValueListEntry object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A extra_types.JsonValue attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.MessageField('extra_types.JsonValue', 2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  code = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  details = _messages.MessageField('DetailsValueListEntry', 2, repeated=True)
+  message = _messages.StringField(3)
+
+
 class TestIamPermissionsRequest(_messages.Message):
   r"""Request message for `TestIamPermissions` method.
 
@@ -3691,3 +4604,13 @@ encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    CloudkmsProjectsLocationsEkmConfigGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    CloudkmsProjectsLocationsEkmConnectionsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    CloudkmsProjectsLocationsKeyRingsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    CloudkmsProjectsLocationsKeyRingsCryptoKeysGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    CloudkmsProjectsLocationsKeyRingsImportJobsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')

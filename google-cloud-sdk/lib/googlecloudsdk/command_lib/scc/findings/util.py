@@ -25,6 +25,7 @@ from apitools.base.py import encoding
 from googlecloudsdk.api_lib.scc import securitycenter_client
 from googlecloudsdk.command_lib.scc import errors
 from googlecloudsdk.command_lib.scc import util as scc_util
+from googlecloudsdk.core.util import times
 
 
 def ValidateMutexOnFindingAndSourceAndOrganization(args):
@@ -81,6 +82,7 @@ def GetFullFindingName(args, version):
 
 
 def GetFullSourceName(args, version):
+
   """Returns relative resource name for a source from --source argument.
 
   Args:
@@ -93,6 +95,7 @@ def GetFullSourceName(args, version):
     if no location is specified in argument: sources/{source_id}
     if a location is specified: sources/{source_id}/locations/{location_id}
   """
+
   resource_pattern = re.compile(
       "(organizations|projects|folders)/.*/sources/[0-9-]+"
   )
@@ -113,6 +116,13 @@ def GetFullSourceName(args, version):
   location = scc_util.ValidateAndGetLocation(args, version)
   if resource_pattern.match(args.source):
     source = args.source
+    if version == "v2":
+      return f"{source}/locations/{location}"
+    return source
+
+  if (id_pattern.match(args.source) and
+      (hasattr(args, "finding") or hasattr(args, "parent"))):
+    source = f"{scc_util.GetFindingsParentFromPositionalArguments(args)}/sources/{args.source}"
     if version == "v2":
       return f"{source}/locations/{location}"
     return source
@@ -220,6 +230,17 @@ def ConvertStateInput(state, version):
   )
 
 
+def ConvertMuteStateInput(mute_state, messages):
+  """Convert mute state input to messages.BulkMuteFindingsRequest.MuteStateValueValuesEnum object."""
+  if mute_state == "muted":
+    return messages.BulkMuteFindingsRequest.MuteStateValueValuesEnum.MUTED
+  elif mute_state == "undefined":
+    return messages.BulkMuteFindingsRequest.MuteStateValueValuesEnum.UNDEFINED
+  raise errors.InvalidSCCInputError(
+      "Mute state must be one of [muted, undefined]."
+  )
+
+
 def ValidateAndGetParent(args):
   """Validates parent."""
   if args.organization is not None:  # Validates organization.
@@ -280,7 +301,10 @@ def ValidateMutexOnSourceAndParent(args):
 def ExtractSecurityMarksFromResponse(response, args):
   """Returns security marks from finding response."""
   del args
-  list_finding_response = list(response)
+  if isinstance(response, list):
+    list_finding_response = response
+  else:
+    list_finding_response = list(response)
   if len(list_finding_response) > 1:
     raise errors.InvalidSCCInputError(
         "ListFindingResponse must only return one finding since it is "
@@ -347,3 +371,28 @@ def GetApiVersionUsingDeprecatedArgs(args, deprecated_args):
   else:
     parent = args.parent
   return scc_util.GetVersionFromArguments(args, parent, deprecated_args)
+
+
+def ValidateAndFormatExportTime(export_time):
+  """Validates the export time."""
+  try:
+    read_time_dt = times.ParseDateTime(export_time)
+    return times.FormatDateTime(read_time_dt)
+  except (times.DateTimeSyntaxError, times.DateTimeValueError) as e:
+    raise errors.InvalidSCCInputError(
+        "Invalid export time format. Please provide a valid date/time. Example:"
+        " 2024-08-20T12:00:00Z"
+    ) from e
+
+
+def ValidateDataset(dataset):
+  """Validates the dataset."""
+  dataset_pattern = re.compile(
+      "^projects/[a-zA-Z0-9-]+/datasets/[a-zA-Z0-9_]+$"
+  )
+  if not dataset_pattern.match(dataset):
+    raise errors.InvalidSCCInputError(
+        "Dataset must match the pattern"
+        " projects/[a-zA-Z0-9-]+/datasets/[a-zA-Z0-9_]+."
+    )
+  return dataset

@@ -56,24 +56,28 @@ EXAMPLES_GA = ("""\
     To clone an instance from its current state (most recent binary log
   coordinates):
 
-    $ {command} instance-foo instance-bar
+    $ {command} my-source-instance my-cloned-instance
 
   To clone a MySQL instance from an earlier point in time (past binary log
   coordinates):
 
-    $ {command} instance-foo instance-bar --bin-log-file-name mysql-bin.000020 --bin-log-position 170
+    $ {command} my-source-instance my-cloned-instance --bin-log-file-name mysql-bin.000020 --bin-log-position 170
 
   To clone a MySQL source instance at a specific point in time:
 
-    $ {command} instance-foo instance-bar --point-in-time '2012-11-15T16:19:00.094Z'
+    $ {command} my-source-instance my-cloned-instance --point-in-time '2012-11-15T16:19:00.094Z'
 
   To clone a PostgreSQL source instance at a specific point in time:
 
-    $ {command} instance-foo instance-bar --point-in-time '2012-11-15T16:19:00.094Z'
+    $ {command} my-source-instance my-cloned-instance --point-in-time '2012-11-15T16:19:00.094Z'
 
   To clone a SQL Server source instance at a specific point in time:
 
-    $ {command} instance-foo instance-bar --point-in-time '2012-11-15T16:19:00.094Z'
+    $ {command} my-source-instance my-cloned-instance --point-in-time '2012-11-15T16:19:00.094Z'
+
+  To clone a deleted instance, include the name and deletion time of the source instance:
+
+  $ {command} my-source-instance my-cloned-instance --source-instance-deletion-time '2012-11-15T16:19:00.094Z'
     """)
 
 EXAMPLES_ALPHA = ("""\
@@ -81,7 +85,7 @@ EXAMPLES_ALPHA = ("""\
   To specify the allocated IP range for the private IP target Instance
   (reserved for future use):
 
-  $ {command} instance-foo instance-bar --allocated-ip-range-name range-bar
+  $ {command} my-source-instance my-cloned-instance --allocated-ip-range-name cloned-instance-ip-range
     """)
 
 DETAILED_HELP = {
@@ -153,8 +157,16 @@ def _UpdateRequestFromArgs(request, args, sql_messages, release_track):
   if args.point_in_time and args.restore_database_name:
     clone_context.databaseNames[:] = [args.restore_database_name]
 
-  if args.point_in_time and args.preferred_zone:
+  if args.preferred_zone:
     clone_context.preferredZone = args.preferred_zone
+
+  if args.preferred_secondary_zone:
+    clone_context.preferredSecondaryZone = args.preferred_secondary_zone
+
+  if args.source_instance_deletion_time:
+    clone_context.sourceInstanceDeletionTime = (
+        args.source_instance_deletion_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+    )
 
   if release_track == base.ReleaseTrack.ALPHA:
     # ALLOCATED IP RANGE options
@@ -289,15 +301,34 @@ def AddBaseArgs(parser):
     The name of the database to be restored for a point-in-time restore. If
     set, the destination instance will only restore the specified database.
     """)
-  point_in_time_group.add_argument(
+  parser.add_argument(
       '--preferred-zone',
       required=False,
       help="""\
-    The preferred zone for the cloned instance. If set, the destination instance
-    will be created in this zone.
+    The preferred zone for the cloned instance. If you specify a value for
+    this flag, then the destination instance uses the value as the primary
+    zone.
     """)
+  parser.add_argument(
+      '--preferred-secondary-zone',
+      required=False,
+      help="""\
+    The preferred secondary zone for the cloned regional instance. If you
+    specify a value for this flag, then the destination instance uses the
+    value as the secondary zone. The secondary zone can't be the same as the
+    primary zone.
+    """)
+  parser.add_argument(
+      '--source-instance-deletion-time',
+      type=arg_parsers.Datetime.Parse,
+      required=False,
+      help="""\
+      The time the source instance was deleted. This is required if cloning
+      from a deleted instance.
+      """)
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA, base.ReleaseTrack.BETA)
 class Clone(base.CreateCommand):
   """Clones a Cloud SQL instance."""
@@ -314,6 +345,7 @@ class Clone(base.CreateCommand):
     return RunBaseCloneCommand(args, self.ReleaseTrack())
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
 class CloneAlpha(base.CreateCommand):
   """Clones a Cloud SQL instance."""

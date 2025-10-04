@@ -128,6 +128,14 @@ class BillingAccount(_messages.Message):
   account to one or more projects.
 
   Fields:
+    currencyCode: Optional. The currency in which the billing account is
+      billed and charged, represented as an ISO 4217 code such as `USD`.
+      Billing account currency is determined at the time of billing account
+      creation and cannot be updated subsequently, so this field should not be
+      set on update requests. In addition, a subaccount always matches the
+      currency of its parent billing account, so this field should not be set
+      on subaccount creation requests. Clients can read this field to
+      determine the currency of an existing billing account.
     displayName: The display name given to the billing account, such as `My
       Billing Account`. This name is displayed in the Google Cloud Console.
     masterBillingAccount: If this account is a
@@ -150,11 +158,12 @@ class BillingAccount(_messages.Message):
       `billingAccounts/012345-567890-ABCDEF`
   """
 
-  displayName = _messages.StringField(1)
-  masterBillingAccount = _messages.StringField(2)
-  name = _messages.StringField(3)
-  open = _messages.BooleanField(4)
-  parent = _messages.StringField(5)
+  currencyCode = _messages.StringField(1)
+  displayName = _messages.StringField(2)
+  masterBillingAccount = _messages.StringField(3)
+  name = _messages.StringField(4)
+  open = _messages.BooleanField(5)
+  parent = _messages.StringField(6)
 
 
 class Binding(_messages.Message):
@@ -555,7 +564,7 @@ class CloudbillingServicesSkusListRequest(_messages.Message):
       a `next_page_token` value returned from a previous `ListSkus` call. If
       unspecified, the first page of results is returned.
     parent: Required. The name of the service. Example:
-      "services/DA34-426B-A397"
+      "services/6F81-5844-456A"
     startTime: Optional inclusive start time of the time range for which the
       pricing versions will be returned. Timestamps in the future are not
       allowed. The time range has to be within a single calendar month in
@@ -922,8 +931,8 @@ class Service(_messages.Message):
       "businessEntities/GCP", "businessEntities/Maps"
     displayName: A human readable display name for this service.
     name: The resource name for the service. Example:
-      "services/DA34-426B-A397"
-    serviceId: The identifier for the service. Example: "DA34-426B-A397"
+      "services/6F81-5844-456A"
+    serviceId: The identifier for the service. Example: "6F81-5844-456A"
   """
 
   businessEntityName = _messages.StringField(1)
@@ -950,7 +959,7 @@ class SetIamPolicyRequest(_messages.Message):
 
 
 class Sku(_messages.Message):
-  r"""Encapsulates a single SKU in Google Cloud Platform
+  r"""Encapsulates a single SKU in Google Cloud
 
   Fields:
     category: The category hierarchy of this SKU, purely for organizational
@@ -959,7 +968,7 @@ class Sku(_messages.Message):
       of 256 characters.
     geoTaxonomy: The geographic taxonomy for this sku.
     name: The resource name for the SKU. Example:
-      "services/DA34-426B-A397/skus/AA95-CD31-42FE"
+      "services/6F81-5844-456A/skus/D041-B8A1-6E0B"
     pricingInfo: A timeline of pricing info for this SKU in chronological
       order.
     serviceProviderName: Identifies the service provider. This is 'Google' for
@@ -967,7 +976,7 @@ class Sku(_messages.Message):
     serviceRegions: List of service regions this SKU is offered at. Example:
       "asia-east1" Service regions can be found at
       https://cloud.google.com/about/locations/
-    skuId: The identifier for the SKU. Example: "AA95-CD31-42FE"
+    skuId: The identifier for the SKU. Example: "D041-B8A1-6E0B"
   """
 
   category = _messages.MessageField('Category', 1)
@@ -1088,3 +1097,5 @@ encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    CloudbillingBillingAccountsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')

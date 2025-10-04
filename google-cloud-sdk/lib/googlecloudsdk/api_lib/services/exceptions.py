@@ -18,15 +18,15 @@ from googlecloudsdk.core import exceptions as core_exceptions
 
 
 class Error(core_exceptions.Error):
-  """Exceptions for Services errors."""
+  """Base class for Services errors."""
 
 
-class EnableServicePermissionDeniedException(Error):
-  """Permission denied exception for enable service command."""
+class EnableServiceException(Error):
+  """Exception for enable service command."""
 
 
-class ListServicesPermissionDeniedException(Error):
-  """Permission denied exception for list services command."""
+class ListServicesException(Error):
+  """List services command."""
 
 
 class GetServicePermissionDeniedException(Error):
@@ -89,12 +89,12 @@ class GenerateServiceIdentityPermissionDeniedException(Error):
   """Permission denied exception for generate service identitiy command."""
 
 
-class GetConsumerPolicyPermissionDeniedException(Error):
-  """Permission denied exception for get consumer policy."""
+class GetConsumerPolicyException(Error):
+  """Exception for get consumer policy."""
 
 
-class UpdateConsumerPolicyPermissionDeniedException(Error):
-  """Permission denied exception for update consumer policy."""
+class UpdateConsumerPolicyException(Error):
+  """Update consumer policy."""
 
 
 class GetReverseDependencyClosurePermissionDeniedException(Error):
@@ -105,52 +105,68 @@ class ListFlattenedMembersPermissionDeniedException(Error):
   """Permission denied exception for list flattened members."""
 
 
-class ListGroupMembersPermissionDeniedException(Error):
-  """Permission denied exception for list group members."""
+class ListGroupMembersException(Error):
+  """Exception for list group members."""
 
 
 class FetchValueInfoPermissionDeniedException(Error):
   """Permission denied exception for fetch value info group members."""
 
 
-class GetEffectiverPolicyPermissionDeniedException(Error):
-  """Permission denied exception for get effective policy."""
+class GetEffectivePolicyException(Error):
+  """Exception for get effective policy."""
 
 
 class FetchPublicValueInfoPermissionDeniedException(Error):
   """Permission denied exception for fetch public value info group members."""
 
 
-class TestEnabledPermissionDeniedException(Error):
-  """Permission denied exception for test enabled."""
+class TestEnabledException(Error):
+  """Exception for test enabled."""
 
 
-class ListDescendantServicesPermissionDeniedException(Error):
-  """Permission denied exception for list descendant services."""
+class ListDescendantServicesException(Error):
+  """Exception for list descendant services."""
+
+
+class ListExpandedMembersException(Error):
+  """Exception for list expanded members."""
 
 
 class ListAncestorGroupsPermissionDeniedException(Error):
   """Permission denied exception for list ancestor groups."""
 
 
-class BatchGetServicePermissionDeniedException(Error):
-  """Permission denied exception for batch get service."""
-
-  pass
+class BatchGetServiceException(Error):
+  """Batch get service."""
 
 
-class ListCategoryServicespermissionDeniedException(Error):
-  """Permission denied exception for list category service."""
+class ListCategoryServicesException(Error):
+  """List category service."""
 
-  pass
+
+class AnalyzeConsumerPolicyException(Error):
+  """Analyze consumer policy."""
+
+
+class TestMcpEnabledException(Error):
+  """Exception for test MCP enabled."""
+
+
+class GetMcpPolicyException(Error):
+  """Exception for get MCP policy."""
+
+
+class GetEffectiveMcpPolicyException(Error):
+  """Exception for get effective MCP policy."""
 
 
 class OperationErrorException(Error):
-  """Exception for operation error."""
+  """Operation error."""
 
 
 class TimeoutError(Error):
-  """Exception for timeout error."""
+  """Timeout error."""
 
 
 def ReraiseError(err, klass):

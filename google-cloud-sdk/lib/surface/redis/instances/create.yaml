@@ -84,7 +84,7 @@
         according to http://redis.io/topics/config. Currently, the only
         supported parameters are:
 
-        Redis version 3.2 and newer: maxmemory-policy, notify-keyspace-events, timeout.
+        Redis version 3.2 and newer: maxmemory-policy, notify-keyspace-events, timeout, databases.
 
         Redis version 4.0 and newer: activedefrag, lfu-decay-time, lfu-log-factor, maxmemory-gb.
 
@@ -210,6 +210,20 @@
       processor: googlecloudsdk.command_lib.redis.util:WarnOnAuthEnabled
       help_text: |
         Enables Redis AUTH for the instance. If omitted AUTH is disabled.
+    - arg_name: tags
+      release_tracks: [GA]
+      api_field: instance.tags.additionalProperties
+      # TODO(b/348137430): Remove hidden as part of GA launch.
+      hidden: true
+      metavar: KEY=VALUE
+      help_text: |
+        List of tag KEY=VALUE pairs to add.
+      type:
+        arg_dict:
+          flatten: true
+          spec:
+          - api_field: key
+          - api_field: value
     labels:
       api_field: instance.labels
 

@@ -30,9 +30,11 @@ from googlecloudsdk.command_lib.run import serverless_operations
 from googlecloudsdk.command_lib.run import stages
 from googlecloudsdk.command_lib.util.concepts import concept_parsers
 from googlecloudsdk.command_lib.util.concepts import presentation_specs
+from googlecloudsdk.core import properties
 from googlecloudsdk.core.console import progress_tracker
 
 
+@base.UniverseCompatible
 def ContainerArgGroup(release_track=base.ReleaseTrack.GA):
   """Returns an argument group with all per-container update args."""
 
@@ -46,7 +48,7 @@ Container Flags
   group.AddArgument(flags.ImageArg(required=False))
   group.AddArgument(flags.PortArg())
   group.AddArgument(flags.Http2Flag())
-  group.AddArgument(flags.MutexEnvVarsFlags())
+  group.AddArgument(flags.MutexEnvVarsFlags(release_track=release_track))
   group.AddArgument(flags.MemoryFlag())
   group.AddArgument(flags.CpuFlag())
   group.AddArgument(flags.CommandFlag())
@@ -54,18 +56,17 @@ Container Flags
   group.AddArgument(flags.SecretsFlags())
   group.AddArgument(flags.DependsOnFlag())
 
-  if release_track == base.ReleaseTrack.ALPHA:
-    group.AddArgument(flags.GpuFlag())
-    group.AddArgument(flags.BaseImageArg())
-
-  if release_track in [base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA]:
-    group.AddArgument(flags.AddVolumeMountFlag())
-    group.AddArgument(flags.RemoveVolumeMountFlag())
-    group.AddArgument(flags.ClearVolumeMountsFlag())
+  group.AddArgument(flags.AddVolumeMountFlag())
+  group.AddArgument(flags.RemoveVolumeMountFlag())
+  group.AddArgument(flags.ClearVolumeMountsFlag())
+  group.AddArgument(flags.StartupProbeFlag())
+  group.AddArgument(flags.LivenessProbeFlag())
+  group.AddArgument(flags.GpuFlag())
 
   return group
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Update(base.Command):
   """Update Cloud Run environment variables and other configuration settings."""
@@ -86,31 +87,35 @@ class Update(base.Command):
       ' `--connectivity`, `--image`'
   )
 
-  @staticmethod
-  def CommonArgs(parser):
+  @classmethod
+  def CommonArgs(cls, parser):
     # Flags specific to managed CR
-    managed_group = flags.GetManagedArgGroup(parser)
-    flags.AddBinAuthzPolicyFlags(managed_group)
-    flags.AddBinAuthzBreakglassFlag(managed_group)
-    flags.AddCloudSQLFlags(managed_group)
-    flags.AddCmekKeyFlag(managed_group)
-    flags.AddCmekKeyRevocationActionTypeFlag(managed_group)
-    flags.AddCpuThrottlingFlag(managed_group)
-    flags.AddCustomAudiencesFlag(managed_group)
-    flags.AddEgressSettingsFlag(managed_group)
-    flags.AddEncryptionKeyShutdownHoursFlag(managed_group)
-    flags.AddRevisionSuffixArg(managed_group)
-    flags.AddSandboxArg(managed_group)
-    flags.AddSessionAffinityFlag(managed_group)
-    flags.AddStartupCpuBoostFlag(managed_group)
-    flags.AddVpcConnectorArgs(managed_group)
-    flags.AddVpcNetworkGroupFlagsForUpdate(managed_group)
-    flags.RemoveContainersFlag().AddToParser(managed_group)
-
+    flags.AddBinAuthzPolicyFlags(parser)
+    flags.AddBinAuthzBreakglassFlag(parser)
+    flags.AddCloudSQLFlags(parser)
+    flags.AddCmekKeyFlag(parser)
+    flags.AddCmekKeyRevocationActionTypeFlag(parser)
+    flags.AddCpuThrottlingFlag(parser)
+    flags.AddCustomAudiencesFlag(parser)
+    flags.AddDefaultUrlFlag(parser)
+    flags.AddEgressSettingsFlag(parser)
+    flags.AddEncryptionKeyShutdownHoursFlag(parser)
+    flags.AddGpuTypeFlag(parser)
+    flags.GpuZonalRedundancyFlag(parser)
+    flags.AddRevisionSuffixArg(parser)
+    flags.AddSandboxArg(parser)
+    flags.AddSessionAffinityFlag(parser)
+    flags.AddStartupCpuBoostFlag(parser)
+    flags.AddVpcConnectorArgs(parser)
+    flags.AddVpcNetworkGroupFlagsForUpdate(parser)
+    flags.RemoveContainersFlag().AddToParser(parser)
+    flags.AddVolumesFlags(parser, cls.ReleaseTrack())
+    flags.AddServiceMinMaxInstancesFlag(parser)
+    flags.AddInvokerIamCheckFlag(parser)
+    flags.AddScalingFlag(parser)
     # Flags specific to connecting to a cluster
-    cluster_group = flags.GetClusterArgGroup(parser)
-    flags.AddEndpointVisibilityEnum(cluster_group)
-    flags.AddConfigMapsFlags(cluster_group)
+    flags.AddEndpointVisibilityEnum(parser)
+    flags.CONFIG_MAP_FLAGS.AddToParser(parser)
 
     # Flags not specific to any platform
     service_presentation = presentation_specs.ResourcePresentationSpec(
@@ -176,6 +181,17 @@ class Update(base.Command):
     )
     return changes
 
+  def _IsMultiRegion(self):
+    return False
+
+  def _GetMultiRegionRegions(self, changes, service):  # used by child - pylint: disable=unused-argument
+    return None
+
+  def _GetIap(self, args):
+    if flags.FlagIsExplicitlySet(args, 'iap'):
+      return args.iap
+    return None
+
   def Run(self, args):
     """Update the service resource.
 
@@ -192,19 +208,23 @@ class Update(base.Command):
     conn_context = self._ConnectionContext(args)
     service_ref = args.CONCEPTS.service.Parse()
     flags.ValidateResource(service_ref)
-
+    iap = self._GetIap(args)
     with serverless_operations.Connect(conn_context) as client:
       service = client.GetService(service_ref)
+      messages_util.MaybeLogDefaultGpuTypeMessage(args, service)
       changes = self._GetBaseChanges(args, service)
       resource_change_validators.ValidateClearVpcConnector(service, args)
       has_latest = (
           service is None or traffic.LATEST_REVISION_KEY in service.spec_traffic
       )
       creates_revision = config_changes.AdjustsTemplate(changes)
+      multiregion_regions = self._GetMultiRegionRegions(changes, service)
       deployment_stages = stages.ServiceStages(
           include_iam_policy_set=False,
           include_route=creates_revision and has_latest,
           include_create_revision=creates_revision,
+          regions_list=multiregion_regions,
+          include_iap=iap is not None,
       )
       if creates_revision:
         progress_message = 'Deploying...'
@@ -214,24 +234,42 @@ class Update(base.Command):
         progress_message = 'Updating...'
         failure_message = 'Update failed'
         result_message = 'updating'
-      with progress_tracker.StagedProgressTracker(
-          progress_message,
-          deployment_stages,
-          failure_message=failure_message,
-          suppress_output=args.async_,
-      ) as tracker:
-        service = client.ReleaseService(
-            service_ref,
-            changes,
-            self.ReleaseTrack(),
-            tracker,
-            asyn=args.async_,
-            prefetch=service,
-            generate_name=(
-                flags.FlagIsExplicitlySet(args, 'revision_suffix')
-                or flags.FlagIsExplicitlySet(args, 'tag')
-            ),
-        )
+
+      def _ReleaseService(changes_):
+        with progress_tracker.StagedProgressTracker(
+            progress_message,
+            deployment_stages,
+            failure_message=failure_message,
+            suppress_output=args.async_,
+        ) as tracker:
+          return client.ReleaseService(
+              service_ref,
+              changes_,
+              self.ReleaseTrack(),
+              tracker,
+              asyn=args.async_,
+              prefetch=service,
+              generate_name=(
+                  flags.FlagIsExplicitlySet(args, 'revision_suffix')
+                  or flags.FlagIsExplicitlySet(args, 'tag')
+              ),
+              is_verbose=properties.VALUES.core.verbosity.Get() == 'debug',
+              iap_enabled=iap,
+              multiregion_regions=multiregion_regions,
+          )
+
+      try:
+        service = _ReleaseService(changes)
+      except exceptions.HttpError as e:
+        if flags.ShouldRetryNoZonalRedundancy(args, str(e)):
+          changes.append(
+              config_changes.GpuZonalRedundancyChange(
+                  gpu_zonal_redundancy=False
+              )
+          )
+          service = _ReleaseService(changes)
+        else:
+          raise e
 
       if args.async_:
         pretty_print.Success(
@@ -243,7 +281,9 @@ class Update(base.Command):
       else:
         if creates_revision:
           pretty_print.Success(
-              messages_util.GetSuccessMessageForSynchronousDeploy(service)
+              messages_util.GetSuccessMessageForSynchronousDeploy(
+                  service, args.no_traffic
+              )
           )
         else:
           pretty_print.Success(
@@ -258,16 +298,19 @@ class Update(base.Command):
 class BetaUpdate(Update):
   """Update Cloud Run environment variables and other configuration settings."""
 
+  input_flags = (
+      '`--update-env-vars`, `--memory`, `--concurrency`, `--timeout`,'
+      ' `--connectivity`, `--image`, `--iap`'
+  )
+
   @classmethod
   def Args(cls, parser):
-    Update.CommonArgs(parser)
+    cls.CommonArgs(parser)
 
     # Flags specific to managed CR
-    managed_group = flags.GetManagedArgGroup(parser)
-    flags.AddDefaultUrlFlag(managed_group)
-    flags.AddDeployHealthCheckFlag(managed_group)
-    flags.AddServiceMinInstancesFlag(managed_group)
-    flags.AddVolumesFlags(managed_group, cls.ReleaseTrack())
+    flags.AddDeployHealthCheckFlag(parser)
+    flags.SERVICE_MESH_FLAG.AddToParser(parser)
+    flags.AddIapFlag(parser)
     container_args = ContainerArgGroup(cls.ReleaseTrack())
     container_parser.AddContainerFlags(parser, container_args)
 
@@ -276,23 +319,28 @@ class BetaUpdate(Update):
 class AlphaUpdate(BetaUpdate):
   """Update Cloud Run environment variables and other configuration settings."""
 
+  input_flags = (
+      '`--update-env-vars`, `--memory`, `--concurrency`, `--timeout`,'
+      ' `--connectivity`, `--image`, `--iap`'
+  )
+
   @classmethod
   def Args(cls, parser):
-    Update.CommonArgs(parser)
+    cls.CommonArgs(parser)
 
     # Flags specific to managed CR
-    managed_group = flags.GetManagedArgGroup(parser)
-    flags.AddDeployHealthCheckFlag(managed_group)
-    flags.AddDefaultUrlFlag(managed_group)
-    flags.AddInvokerIamCheckFlag(managed_group)
-    flags.AddRuntimeFlag(managed_group)
-    flags.AddDescriptionFlag(managed_group)
-    flags.AddServiceMinInstancesFlag(managed_group)
-    flags.AddMaxSurgeFlag(managed_group)
-    flags.AddVolumesFlags(managed_group, cls.ReleaseTrack())
-    flags.AddGpuTypeFlag(managed_group)
-    flags.SERVICE_MESH_FLAG.AddToParser(managed_group)
+    flags.AddDeployHealthCheckFlag(parser)
+    flags.AddIapFlag(parser)
+    flags.AddRuntimeFlag(parser)
+    flags.AddDescriptionFlag(parser)
+    flags.SERVICE_MESH_FLAG.AddToParser(parser)
+    flags.IDENTITY_FLAG.AddToParser(parser)
+    flags.ENABLE_WORKLOAD_CERTIFICATE_FLAG.AddToParser(parser)
+    flags.MESH_DATAPLANE_FLAG.AddToParser(parser)
+    flags.AddOverflowScalingFlag(parser)
+    flags.AddClearPresetFlag(parser)
     container_args = ContainerArgGroup(cls.ReleaseTrack())
+    container_args.AddArgument(flags.ReadinessProbeFlag())
     container_parser.AddContainerFlags(parser, container_args)
 
 

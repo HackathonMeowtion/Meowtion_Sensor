@@ -16,6 +16,192 @@ from apitools.base.py import extra_types
 package = 'documentai'
 
 
+class CloudAiDocumentaiLabHifiaToolsValidationValidatorInput(_messages.Message):
+  r"""Definition of the validation rules. Those are the input to the validator
+  logic and they are used to validate a document.
+
+  Fields:
+    validationRules: A
+      CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRule
+      attribute.
+  """
+
+  validationRules = _messages.MessageField('CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRule', 1, repeated=True)
+
+
+class CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRule(_messages.Message):
+  r"""A CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRule
+  object.
+
+  Fields:
+    description: Description of the validation rule. This has no use but for
+      documentation
+    fieldOccurrences: A CloudAiDocumentaiLabHifiaToolsValidationValidatorInput
+      ValidationRuleFieldOccurrences attribute.
+    fieldRegex: A CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValida
+      tionRuleFieldRegex attribute.
+    formValidation: A CloudAiDocumentaiLabHifiaToolsValidationValidatorInputVa
+      lidationRuleFormValidation attribute.
+    name: Name of the validation rule.
+  """
+
+  description = _messages.StringField(1)
+  fieldOccurrences = _messages.MessageField('CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleFieldOccurrences', 2)
+  fieldRegex = _messages.MessageField('CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleFieldRegex', 3)
+  formValidation = _messages.MessageField('CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleFormValidation', 4)
+  name = _messages.StringField(5)
+
+
+class CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleConstant(_messages.Message):
+  r"""The constant value used in the validation rules.
+
+  Fields:
+    floatValue: A number attribute.
+  """
+
+  floatValue = _messages.FloatField(1, variant=_messages.Variant.FLOAT)
+
+
+class CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleField(_messages.Message):
+  r"""A
+  CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleField
+  object.
+
+  Fields:
+    defaultValue: Default value to use if the field is not present. If the
+      field is missing and the default value is not set, the validation run as
+      if the field is not present in the validation logic.
+    fieldName: The field name to validate. This can be a simple field name or
+      a nested field one using the ':' (meant as an aggregator) or '*' (meant
+      as foreach) operators.
+  """
+
+  defaultValue = _messages.MessageField('CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleConstant', 1)
+  fieldName = _messages.StringField(2)
+
+
+class CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleFieldOccurrences(_messages.Message):
+  r"""A CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleFi
+  eldOccurrences object.
+
+  Fields:
+    field: A
+      CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleFiel
+      d attribute.
+    maxOccurrences: A integer attribute.
+    minOccurrences: Min and max occurrences of the field. If not set, there is
+      limit set. The defined interval is a closed-closed interval, i.e. [min,
+      max].
+  """
+
+  field = _messages.MessageField('CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleField', 1)
+  maxOccurrences = _messages.IntegerField(2, variant=_messages.Variant.UINT32)
+  minOccurrences = _messages.IntegerField(3, variant=_messages.Variant.UINT32)
+
+
+class CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleFieldRegex(_messages.Message):
+  r"""A CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleFi
+  eldRegex object.
+
+  Fields:
+    field: A
+      CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleFiel
+      d attribute.
+    pattern: Python regex to validate the field values.
+  """
+
+  field = _messages.MessageField('CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleField', 1)
+  pattern = _messages.StringField(2)
+
+
+class CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleFormValidation(_messages.Message):
+  r"""A CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleFo
+  rmValidation object.
+
+  Enums:
+    ValidationOperatorValueValuesEnum: The relational operator to be applied
+      to the operands.
+
+  Fields:
+    leftOperand: A CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValid
+      ationRuleFormValidationOperation attribute.
+    rightOperand: A CloudAiDocumentaiLabHifiaToolsValidationValidatorInputVali
+      dationRuleFormValidationOperation attribute.
+    validationOperator: The relational operator to be applied to the operands.
+  """
+
+  class ValidationOperatorValueValuesEnum(_messages.Enum):
+    r"""The relational operator to be applied to the operands.
+
+    Values:
+      OPERATION_TYPE_UNSPECIFIED: <no description>
+      OPERATION_TYPE_EQ: <no description>
+      OPERATION_TYPE_NE: <no description>
+      OPERATION_TYPE_LT: <no description>
+      OPERATION_TYPE_LE: <no description>
+      OPERATION_TYPE_GT: <no description>
+      OPERATION_TYPE_GE: <no description>
+    """
+    OPERATION_TYPE_UNSPECIFIED = 0
+    OPERATION_TYPE_EQ = 1
+    OPERATION_TYPE_NE = 2
+    OPERATION_TYPE_LT = 3
+    OPERATION_TYPE_LE = 4
+    OPERATION_TYPE_GT = 5
+    OPERATION_TYPE_GE = 6
+
+  leftOperand = _messages.MessageField('CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleFormValidationOperation', 1)
+  rightOperand = _messages.MessageField('CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleFormValidationOperation', 2)
+  validationOperator = _messages.EnumField('ValidationOperatorValueValuesEnum', 3)
+
+
+class CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleFormValidationOperation(_messages.Message):
+  r"""A CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleFo
+  rmValidationOperation object.
+
+  Enums:
+    OperationTypeValueValuesEnum: The operation type to be applied to all the
+      operands.
+
+  Fields:
+    constants: A list of constants to be used as operands.
+    fields: A list of fields to be used as operands.
+    operationType: The operation type to be applied to all the operands.
+    operations: A list of recursive operations to be used as operands.
+  """
+
+  class OperationTypeValueValuesEnum(_messages.Enum):
+    r"""The operation type to be applied to all the operands.
+
+    Values:
+      OPERATION_TYPE_UNSPECIFIED: <no description>
+      OPERATION_TYPE_SUM: <no description>
+      OPERATION_TYPE_SUB: <no description>
+      OPERATION_TYPE_MUL: <no description>
+      OPERATION_TYPE_DIV: <no description>
+      OPERATION_TYPE_MAX: <no description>
+      OPERATION_TYPE_MIN: <no description>
+      OPERATION_TYPE_ABS: <no description>
+      OPERATION_TYPE_UNIQUE: <no description>
+      OPERATION_TYPE_COUNT: <no description>
+    """
+    OPERATION_TYPE_UNSPECIFIED = 0
+    OPERATION_TYPE_SUM = 1
+    OPERATION_TYPE_SUB = 2
+    OPERATION_TYPE_MUL = 3
+    OPERATION_TYPE_DIV = 4
+    OPERATION_TYPE_MAX = 5
+    OPERATION_TYPE_MIN = 6
+    OPERATION_TYPE_ABS = 7
+    OPERATION_TYPE_UNIQUE = 8
+    OPERATION_TYPE_COUNT = 9
+
+  constants = _messages.MessageField('CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleConstant', 1, repeated=True)
+  fields = _messages.MessageField('CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleField', 2, repeated=True)
+  operationType = _messages.EnumField('OperationTypeValueValuesEnum', 3)
+  operations = _messages.MessageField('CloudAiDocumentaiLabHifiaToolsValidationValidatorInputValidationRuleFormValidationOperation', 4, repeated=True)
+
+
 class DocumentaiOperationsDeleteRequest(_messages.Message):
   r"""A DocumentaiOperationsDeleteRequest object.
 
@@ -51,6 +237,9 @@ class DocumentaiProjectsLocationsListRequest(_messages.Message):
   r"""A DocumentaiProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -61,10 +250,11 @@ class DocumentaiProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class DocumentaiProjectsLocationsOperationsCancelRequest(_messages.Message):
@@ -1530,9 +1720,13 @@ class GoogleCloudDocumentaiV1Document(_messages.Message):
   quality.
 
   Fields:
+    chunkedDocument: Document chunked based on chunking config.
     content: Optional. Inline document content, represented as a stream of
       bytes. Note: As with all `bytes` fields, protobuffers use a pure binary
       representation, whereas JSON representations use base64.
+    docid: Optional. An internal identifier for document. Should be loggable
+      (no PII).
+    documentLayout: Parsed layout of the document.
     entities: A list of entities detected on Document.text. For document
       shards, entities in this list may cross shard boundaries.
     entityRelations: Placeholder. Relationship among Document.entities.
@@ -1556,24 +1750,221 @@ class GoogleCloudDocumentaiV1Document(_messages.Message):
       URIs](https://cloud.google.com/storage/docs/reference-uris).
   """
 
-  content = _messages.BytesField(1)
-  entities = _messages.MessageField('GoogleCloudDocumentaiV1DocumentEntity', 2, repeated=True)
-  entityRelations = _messages.MessageField('GoogleCloudDocumentaiV1DocumentEntityRelation', 3, repeated=True)
-  error = _messages.MessageField('GoogleRpcStatus', 4)
-  mimeType = _messages.StringField(5)
-  pages = _messages.MessageField('GoogleCloudDocumentaiV1DocumentPage', 6, repeated=True)
-  revisions = _messages.MessageField('GoogleCloudDocumentaiV1DocumentRevision', 7, repeated=True)
-  shardInfo = _messages.MessageField('GoogleCloudDocumentaiV1DocumentShardInfo', 8)
-  text = _messages.StringField(9)
-  textChanges = _messages.MessageField('GoogleCloudDocumentaiV1DocumentTextChange', 10, repeated=True)
-  textStyles = _messages.MessageField('GoogleCloudDocumentaiV1DocumentStyle', 11, repeated=True)
-  uri = _messages.StringField(12)
+  chunkedDocument = _messages.MessageField('GoogleCloudDocumentaiV1DocumentChunkedDocument', 1)
+  content = _messages.BytesField(2)
+  docid = _messages.StringField(3)
+  documentLayout = _messages.MessageField('GoogleCloudDocumentaiV1DocumentDocumentLayout', 4)
+  entities = _messages.MessageField('GoogleCloudDocumentaiV1DocumentEntity', 5, repeated=True)
+  entityRelations = _messages.MessageField('GoogleCloudDocumentaiV1DocumentEntityRelation', 6, repeated=True)
+  error = _messages.MessageField('GoogleRpcStatus', 7)
+  mimeType = _messages.StringField(8)
+  pages = _messages.MessageField('GoogleCloudDocumentaiV1DocumentPage', 9, repeated=True)
+  revisions = _messages.MessageField('GoogleCloudDocumentaiV1DocumentRevision', 10, repeated=True)
+  shardInfo = _messages.MessageField('GoogleCloudDocumentaiV1DocumentShardInfo', 11)
+  text = _messages.StringField(12)
+  textChanges = _messages.MessageField('GoogleCloudDocumentaiV1DocumentTextChange', 13, repeated=True)
+  textStyles = _messages.MessageField('GoogleCloudDocumentaiV1DocumentStyle', 14, repeated=True)
+  uri = _messages.StringField(15)
+
+
+class GoogleCloudDocumentaiV1DocumentChunkedDocument(_messages.Message):
+  r"""Represents the chunks that the document is divided into.
+
+  Fields:
+    chunks: List of chunks.
+  """
+
+  chunks = _messages.MessageField('GoogleCloudDocumentaiV1DocumentChunkedDocumentChunk', 1, repeated=True)
+
+
+class GoogleCloudDocumentaiV1DocumentChunkedDocumentChunk(_messages.Message):
+  r"""Represents a chunk.
+
+  Fields:
+    chunkId: ID of the chunk.
+    content: Text content of the chunk.
+    pageFooters: Page footers associated with the chunk.
+    pageHeaders: Page headers associated with the chunk.
+    pageSpan: Page span of the chunk.
+    sourceBlockIds: Unused.
+  """
+
+  chunkId = _messages.StringField(1)
+  content = _messages.StringField(2)
+  pageFooters = _messages.MessageField('GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageFooter', 3, repeated=True)
+  pageHeaders = _messages.MessageField('GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageHeader', 4, repeated=True)
+  pageSpan = _messages.MessageField('GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageSpan', 5)
+  sourceBlockIds = _messages.StringField(6, repeated=True)
+
+
+class GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageFooter(_messages.Message):
+  r"""Represents the page footer associated with the chunk.
+
+  Fields:
+    pageSpan: Page span of the footer.
+    text: Footer in text format.
+  """
+
+  pageSpan = _messages.MessageField('GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageSpan', 1)
+  text = _messages.StringField(2)
+
+
+class GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageHeader(_messages.Message):
+  r"""Represents the page header associated with the chunk.
+
+  Fields:
+    pageSpan: Page span of the header.
+    text: Header in text format.
+  """
+
+  pageSpan = _messages.MessageField('GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageSpan', 1)
+  text = _messages.StringField(2)
+
+
+class GoogleCloudDocumentaiV1DocumentChunkedDocumentChunkChunkPageSpan(_messages.Message):
+  r"""Represents where the chunk starts and ends in the document.
+
+  Fields:
+    pageEnd: Page where chunk ends in the document.
+    pageStart: Page where chunk starts in the document.
+  """
+
+  pageEnd = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  pageStart = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+
+
+class GoogleCloudDocumentaiV1DocumentDocumentLayout(_messages.Message):
+  r"""Represents the parsed layout of a document as a collection of blocks
+  that the document is divided into.
+
+  Fields:
+    blocks: List of blocks in the document.
+  """
+
+  blocks = _messages.MessageField('GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlock', 1, repeated=True)
+
+
+class GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlock(_messages.Message):
+  r"""Represents a block. A block could be one of the various types (text,
+  table, list) supported.
+
+  Fields:
+    blockId: ID of the block.
+    boundingBox: Identifies the bounding box for the block.
+    listBlock: Block consisting of list content/structure.
+    pageSpan: Page span of the block.
+    tableBlock: Block consisting of table content/structure.
+    textBlock: Block consisting of text content.
+  """
+
+  blockId = _messages.StringField(1)
+  boundingBox = _messages.MessageField('GoogleCloudDocumentaiV1BoundingPoly', 2)
+  listBlock = _messages.MessageField('GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutListBlock', 3)
+  pageSpan = _messages.MessageField('GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutPageSpan', 4)
+  tableBlock = _messages.MessageField('GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTableBlock', 5)
+  textBlock = _messages.MessageField('GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTextBlock', 6)
+
+
+class GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutListBlock(_messages.Message):
+  r"""Represents a list type block.
+
+  Fields:
+    listEntries: List entries that constitute a list block.
+    type: Type of the list_entries (if exist). Available options are `ordered`
+      and `unordered`.
+  """
+
+  listEntries = _messages.MessageField('GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutListEntry', 1, repeated=True)
+  type = _messages.StringField(2)
+
+
+class GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutListEntry(_messages.Message):
+  r"""Represents an entry in the list.
+
+  Fields:
+    blocks: A list entry is a list of blocks. Repeated blocks support further
+      hierarchies and nested blocks.
+  """
+
+  blocks = _messages.MessageField('GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlock', 1, repeated=True)
+
+
+class GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutPageSpan(_messages.Message):
+  r"""Represents where the block starts and ends in the document.
+
+  Fields:
+    pageEnd: Page where block ends in the document.
+    pageStart: Page where block starts in the document.
+  """
+
+  pageEnd = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  pageStart = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+
+
+class GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTableBlock(_messages.Message):
+  r"""Represents a table type block.
+
+  Fields:
+    bodyRows: Body rows containing main table content.
+    caption: Table caption/title.
+    headerRows: Header rows at the top of the table.
+  """
+
+  bodyRows = _messages.MessageField('GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTableRow', 1, repeated=True)
+  caption = _messages.StringField(2)
+  headerRows = _messages.MessageField('GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTableRow', 3, repeated=True)
+
+
+class GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTableCell(_messages.Message):
+  r"""Represents a cell in a table row.
+
+  Fields:
+    blocks: A table cell is a list of blocks. Repeated blocks support further
+      hierarchies and nested blocks.
+    colSpan: How many columns this cell spans.
+    rowSpan: How many rows this cell spans.
+  """
+
+  blocks = _messages.MessageField('GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlock', 1, repeated=True)
+  colSpan = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  rowSpan = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+
+
+class GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTableRow(_messages.Message):
+  r"""Represents a row in a table.
+
+  Fields:
+    cells: A table row is a list of table cells.
+  """
+
+  cells = _messages.MessageField('GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTableCell', 1, repeated=True)
+
+
+class GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlockLayoutTextBlock(_messages.Message):
+  r"""Represents a text type block.
+
+  Fields:
+    blocks: A text block could further have child blocks. Repeated blocks
+      support further hierarchies and nested blocks.
+    text: Text content stored in the block.
+    type: Type of the text in the block. Available options are: `paragraph`,
+      `subtitle`, `heading-1`, `heading-2`, `heading-3`, `heading-4`,
+      `heading-5`, `header`, `footer`.
+  """
+
+  blocks = _messages.MessageField('GoogleCloudDocumentaiV1DocumentDocumentLayoutDocumentLayoutBlock', 1, repeated=True)
+  text = _messages.StringField(2)
+  type = _messages.StringField(3)
 
 
 class GoogleCloudDocumentaiV1DocumentEntity(_messages.Message):
   r"""An entity that could be a phrase in the text or a property that belongs
   to the document. It is a known entity type, such as a person, an
   organization, or location.
+
+  Enums:
+    MethodValueValuesEnum: Optional. Specifies how the entity's value is
+      obtained.
 
   Fields:
     confidence: Optional. Confidence of detected Schema entity. Range `[0,
@@ -1583,6 +1974,7 @@ class GoogleCloudDocumentaiV1DocumentEntity(_messages.Message):
     mentionId: Optional. Deprecated. Use `id` field instead.
     mentionText: Optional. Text value of the entity e.g. `1600 Amphitheatre
       Pkwy`.
+    method: Optional. Specifies how the entity's value is obtained.
     normalizedValue: Optional. Normalized entity value. Absent if the
       extracted value could not be converted or the type (e.g. address) is not
       supported for certain parsers. This field is also only populated for
@@ -1599,17 +1991,33 @@ class GoogleCloudDocumentaiV1DocumentEntity(_messages.Message):
     type: Required. Entity type from a schema e.g. `Address`.
   """
 
+  class MethodValueValuesEnum(_messages.Enum):
+    r"""Optional. Specifies how the entity's value is obtained.
+
+    Values:
+      METHOD_UNSPECIFIED: When the method is not specified, it should be
+        treated as `EXTRACT`.
+      EXTRACT: The entity's value is directly extracted as-is from the
+        document text.
+      DERIVE: The entity's value is derived through inference and is not
+        necessarily an exact text extraction from the document.
+    """
+    METHOD_UNSPECIFIED = 0
+    EXTRACT = 1
+    DERIVE = 2
+
   confidence = _messages.FloatField(1, variant=_messages.Variant.FLOAT)
   id = _messages.StringField(2)
   mentionId = _messages.StringField(3)
   mentionText = _messages.StringField(4)
-  normalizedValue = _messages.MessageField('GoogleCloudDocumentaiV1DocumentEntityNormalizedValue', 5)
-  pageAnchor = _messages.MessageField('GoogleCloudDocumentaiV1DocumentPageAnchor', 6)
-  properties = _messages.MessageField('GoogleCloudDocumentaiV1DocumentEntity', 7, repeated=True)
-  provenance = _messages.MessageField('GoogleCloudDocumentaiV1DocumentProvenance', 8)
-  redacted = _messages.BooleanField(9)
-  textAnchor = _messages.MessageField('GoogleCloudDocumentaiV1DocumentTextAnchor', 10)
-  type = _messages.StringField(11)
+  method = _messages.EnumField('MethodValueValuesEnum', 5)
+  normalizedValue = _messages.MessageField('GoogleCloudDocumentaiV1DocumentEntityNormalizedValue', 6)
+  pageAnchor = _messages.MessageField('GoogleCloudDocumentaiV1DocumentPageAnchor', 7)
+  properties = _messages.MessageField('GoogleCloudDocumentaiV1DocumentEntity', 8, repeated=True)
+  provenance = _messages.MessageField('GoogleCloudDocumentaiV1DocumentProvenance', 9)
+  redacted = _messages.BooleanField(10)
+  textAnchor = _messages.MessageField('GoogleCloudDocumentaiV1DocumentTextAnchor', 11)
+  type = _messages.StringField(12)
 
 
 class GoogleCloudDocumentaiV1DocumentEntityNormalizedValue(_messages.Message):
@@ -1629,6 +2037,7 @@ class GoogleCloudDocumentaiV1DocumentEntityNormalizedValue(_messages.Message):
     integerValue: Integer value.
     moneyValue: Money value. See also: https://github.com/googleapis/googleapi
       s/blob/master/google/type/money.proto
+    signatureValue: A boolean attribute.
     text: Optional. An optional field to store a normalized string. For some
       entity types, one of respective `structured_value` fields may also be
       populated. Also not all the types of `structured_value` will be
@@ -1647,7 +2056,8 @@ class GoogleCloudDocumentaiV1DocumentEntityNormalizedValue(_messages.Message):
   floatValue = _messages.FloatField(5, variant=_messages.Variant.FLOAT)
   integerValue = _messages.IntegerField(6, variant=_messages.Variant.INT32)
   moneyValue = _messages.MessageField('GoogleTypeMoney', 7)
-  text = _messages.StringField(8)
+  signatureValue = _messages.BooleanField(8)
+  text = _messages.StringField(9)
 
 
 class GoogleCloudDocumentaiV1DocumentEntityRelation(_messages.Message):
@@ -2380,11 +2790,13 @@ class GoogleCloudDocumentaiV1DocumentSchemaEntityTypeProperty(_messages.Message)
   r"""Defines properties that can be part of the entity type.
 
   Enums:
+    MethodValueValuesEnum: Specifies how the entity's value is obtained.
     OccurrenceTypeValueValuesEnum: Occurrence type limits the number of
       instances an entity type appears in the document.
 
   Fields:
     displayName: User defined name for the property.
+    method: Specifies how the entity's value is obtained.
     name: The name of the property. Follows the same guidelines as the
       EntityType name.
     occurrenceType: Occurrence type limits the number of instances an entity
@@ -2392,6 +2804,20 @@ class GoogleCloudDocumentaiV1DocumentSchemaEntityTypeProperty(_messages.Message)
     valueType: A reference to the value type of the property. This type is
       subject to the same conventions as the `Entity.base_types` field.
   """
+
+  class MethodValueValuesEnum(_messages.Enum):
+    r"""Specifies how the entity's value is obtained.
+
+    Values:
+      METHOD_UNSPECIFIED: Unspecified method. It defaults to `EXTRACT`.
+      EXTRACT: The entity's value is directly extracted as-is from the
+        document text.
+      DERIVE: The entity's value is derived through inference and is not
+        necessarily an exact text extraction from the document.
+    """
+    METHOD_UNSPECIFIED = 0
+    EXTRACT = 1
+    DERIVE = 2
 
   class OccurrenceTypeValueValuesEnum(_messages.Enum):
     r"""Occurrence type limits the number of instances an entity type appears
@@ -2413,9 +2839,10 @@ class GoogleCloudDocumentaiV1DocumentSchemaEntityTypeProperty(_messages.Message)
     REQUIRED_MULTIPLE = 4
 
   displayName = _messages.StringField(1)
-  name = _messages.StringField(2)
-  occurrenceType = _messages.EnumField('OccurrenceTypeValueValuesEnum', 3)
-  valueType = _messages.StringField(4)
+  method = _messages.EnumField('MethodValueValuesEnum', 2)
+  name = _messages.StringField(3)
+  occurrenceType = _messages.EnumField('OccurrenceTypeValueValuesEnum', 4)
+  valueType = _messages.StringField(5)
 
 
 class GoogleCloudDocumentaiV1DocumentSchemaMetadata(_messages.Message):
@@ -3008,6 +3435,8 @@ class GoogleCloudDocumentaiV1ProcessOptions(_messages.Message):
     fromStart: Only process certain pages from the start. Process all if the
       document has fewer pages.
     individualPageSelector: Which pages to process (1-indexed).
+    layoutConfig: Optional. Only applicable to `LAYOUT_PARSER_PROCESSOR`.
+      Returns error if set on other processor types.
     ocrConfig: Only applicable to `OCR_PROCESSOR` and `FORM_PARSER_PROCESSOR`.
       Returns error if set on other processor types.
     schemaOverride: Optional. Override the schema of the ProcessorVersion.
@@ -3018,8 +3447,9 @@ class GoogleCloudDocumentaiV1ProcessOptions(_messages.Message):
   fromEnd = _messages.IntegerField(1, variant=_messages.Variant.INT32)
   fromStart = _messages.IntegerField(2, variant=_messages.Variant.INT32)
   individualPageSelector = _messages.MessageField('GoogleCloudDocumentaiV1ProcessOptionsIndividualPageSelector', 3)
-  ocrConfig = _messages.MessageField('GoogleCloudDocumentaiV1OcrConfig', 4)
-  schemaOverride = _messages.MessageField('GoogleCloudDocumentaiV1DocumentSchema', 5)
+  layoutConfig = _messages.MessageField('GoogleCloudDocumentaiV1ProcessOptionsLayoutConfig', 4)
+  ocrConfig = _messages.MessageField('GoogleCloudDocumentaiV1OcrConfig', 5)
+  schemaOverride = _messages.MessageField('GoogleCloudDocumentaiV1DocumentSchema', 6)
 
 
 class GoogleCloudDocumentaiV1ProcessOptionsIndividualPageSelector(_messages.Message):
@@ -3030,6 +3460,36 @@ class GoogleCloudDocumentaiV1ProcessOptionsIndividualPageSelector(_messages.Mess
   """
 
   pages = _messages.IntegerField(1, repeated=True, variant=_messages.Variant.INT32)
+
+
+class GoogleCloudDocumentaiV1ProcessOptionsLayoutConfig(_messages.Message):
+  r"""Serving config for layout parser processor.
+
+  Fields:
+    chunkingConfig: Optional. Config for chunking in layout parser processor.
+    returnBoundingBoxes: Optional. Whether to include bounding boxes in layout
+      parser processor response.
+    returnImages: Optional. Whether to include images in layout parser
+      processor response.
+  """
+
+  chunkingConfig = _messages.MessageField('GoogleCloudDocumentaiV1ProcessOptionsLayoutConfigChunkingConfig', 1)
+  returnBoundingBoxes = _messages.BooleanField(2)
+  returnImages = _messages.BooleanField(3)
+
+
+class GoogleCloudDocumentaiV1ProcessOptionsLayoutConfigChunkingConfig(_messages.Message):
+  r"""Serving config for chunking.
+
+  Fields:
+    chunkSize: Optional. The chunk sizes to use when splitting documents, in
+      order of level.
+    includeAncestorHeadings: Optional. Whether or not to include ancestor
+      headings when splitting.
+  """
+
+  chunkSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  includeAncestorHeadings = _messages.BooleanField(2)
 
 
 class GoogleCloudDocumentaiV1ProcessRequest(_messages.Message):
@@ -3048,6 +3508,7 @@ class GoogleCloudDocumentaiV1ProcessRequest(_messages.Message):
       pages field, so it must be in the form of `{document_field_name}` or
       `pages.{page_field_name}`.
     gcsDocument: A raw document on Google Cloud Storage.
+    imagelessMode: Optional. Option to remove images from the document.
     inlineDocument: An inline document proto.
     labels: Optional. The labels with user-defined metadata for the request.
       Label keys and values can be no longer than 63 characters (Unicode
@@ -3090,11 +3551,12 @@ class GoogleCloudDocumentaiV1ProcessRequest(_messages.Message):
 
   fieldMask = _messages.StringField(1)
   gcsDocument = _messages.MessageField('GoogleCloudDocumentaiV1GcsDocument', 2)
-  inlineDocument = _messages.MessageField('GoogleCloudDocumentaiV1Document', 3)
-  labels = _messages.MessageField('LabelsValue', 4)
-  processOptions = _messages.MessageField('GoogleCloudDocumentaiV1ProcessOptions', 5)
-  rawDocument = _messages.MessageField('GoogleCloudDocumentaiV1RawDocument', 6)
-  skipHumanReview = _messages.BooleanField(7)
+  imagelessMode = _messages.BooleanField(3)
+  inlineDocument = _messages.MessageField('GoogleCloudDocumentaiV1Document', 4)
+  labels = _messages.MessageField('LabelsValue', 5)
+  processOptions = _messages.MessageField('GoogleCloudDocumentaiV1ProcessOptions', 6)
+  rawDocument = _messages.MessageField('GoogleCloudDocumentaiV1RawDocument', 7)
+  skipHumanReview = _messages.BooleanField(8)
 
 
 class GoogleCloudDocumentaiV1ProcessResponse(_messages.Message):
@@ -3118,7 +3580,7 @@ class GoogleCloudDocumentaiV1Processor(_messages.Message):
     StateValueValuesEnum: Output only. The state of the processor.
 
   Fields:
-    createTime: The time the processor was created.
+    createTime: Output only. The time the processor was created.
     defaultProcessorVersion: The default processor version.
     displayName: The display name of the processor.
     kmsKeyName: The [KMS key](https://cloud.google.com/security-key-
@@ -3128,6 +3590,8 @@ class GoogleCloudDocumentaiV1Processor(_messages.Message):
     processEndpoint: Output only. Immutable. The http endpoint that can be
       called to invoke processing.
     processorVersionAliases: Output only. The processor version aliases.
+    satisfiesPzi: Output only. Reserved for future use.
+    satisfiesPzs: Output only. Reserved for future use.
     state: Output only. The state of the processor.
     type: The processor type, such as: `OCR_PROCESSOR`, `INVOICE_PROCESSOR`.
       To get a list of processor types, see FetchProcessorTypes.
@@ -3172,8 +3636,10 @@ class GoogleCloudDocumentaiV1Processor(_messages.Message):
   name = _messages.StringField(5)
   processEndpoint = _messages.StringField(6)
   processorVersionAliases = _messages.MessageField('GoogleCloudDocumentaiV1ProcessorVersionAlias', 7, repeated=True)
-  state = _messages.EnumField('StateValueValuesEnum', 8)
-  type = _messages.StringField(9)
+  satisfiesPzi = _messages.BooleanField(8)
+  satisfiesPzs = _messages.BooleanField(9)
+  state = _messages.EnumField('StateValueValuesEnum', 10)
+  type = _messages.StringField(11)
 
 
 class GoogleCloudDocumentaiV1ProcessorType(_messages.Message):
@@ -3273,21 +3739,27 @@ class GoogleCloudDocumentaiV1ProcessorVersion(_messages.Message):
     StateValueValuesEnum: Output only. The state of the processor version.
 
   Fields:
-    createTime: The time the processor version was created.
-    deprecationInfo: If set, information about the eventual deprecation of
-      this version.
+    createTime: Output only. The time the processor version was created.
+    deprecationInfo: Output only. If set, information about the eventual
+      deprecation of this version.
     displayName: The display name of the processor version.
-    documentSchema: The schema of the processor version. Describes the output.
+    documentSchema: Output only. The schema of the processor version.
+      Describes the output.
+    genAiModelInfo: Output only. Information about Generative AI model-based
+      processor versions.
     googleManaged: Output only. Denotes that this `ProcessorVersion` is
       managed by Google.
-    kmsKeyName: The KMS key name used for encryption.
-    kmsKeyVersionName: The KMS key version with which data is encrypted.
-    latestEvaluation: The most recently invoked evaluation for the processor
-      version.
+    kmsKeyName: Output only. The KMS key name used for encryption.
+    kmsKeyVersionName: Output only. The KMS key version with which data is
+      encrypted.
+    latestEvaluation: Output only. The most recently invoked evaluation for
+      the processor version.
     modelType: Output only. The model type of this processor version.
     name: Identifier. The resource name of the processor version. Format: `pro
       jects/{project}/locations/{location}/processors/{processor}/processorVer
       sions/{processor_version}`
+    satisfiesPzi: Output only. Reserved for future use.
+    satisfiesPzs: Output only. Reserved for future use.
     state: Output only. The state of the processor version.
   """
 
@@ -3334,13 +3806,16 @@ class GoogleCloudDocumentaiV1ProcessorVersion(_messages.Message):
   deprecationInfo = _messages.MessageField('GoogleCloudDocumentaiV1ProcessorVersionDeprecationInfo', 2)
   displayName = _messages.StringField(3)
   documentSchema = _messages.MessageField('GoogleCloudDocumentaiV1DocumentSchema', 4)
-  googleManaged = _messages.BooleanField(5)
-  kmsKeyName = _messages.StringField(6)
-  kmsKeyVersionName = _messages.StringField(7)
-  latestEvaluation = _messages.MessageField('GoogleCloudDocumentaiV1EvaluationReference', 8)
-  modelType = _messages.EnumField('ModelTypeValueValuesEnum', 9)
-  name = _messages.StringField(10)
-  state = _messages.EnumField('StateValueValuesEnum', 11)
+  genAiModelInfo = _messages.MessageField('GoogleCloudDocumentaiV1ProcessorVersionGenAiModelInfo', 5)
+  googleManaged = _messages.BooleanField(6)
+  kmsKeyName = _messages.StringField(7)
+  kmsKeyVersionName = _messages.StringField(8)
+  latestEvaluation = _messages.MessageField('GoogleCloudDocumentaiV1EvaluationReference', 9)
+  modelType = _messages.EnumField('ModelTypeValueValuesEnum', 10)
+  name = _messages.StringField(11)
+  satisfiesPzi = _messages.BooleanField(12)
+  satisfiesPzs = _messages.BooleanField(13)
+  state = _messages.EnumField('StateValueValuesEnum', 14)
 
 
 class GoogleCloudDocumentaiV1ProcessorVersionAlias(_messages.Message):
@@ -3367,6 +3842,65 @@ class GoogleCloudDocumentaiV1ProcessorVersionDeprecationInfo(_messages.Message):
 
   deprecationTime = _messages.StringField(1)
   replacementProcessorVersion = _messages.StringField(2)
+
+
+class GoogleCloudDocumentaiV1ProcessorVersionGenAiModelInfo(_messages.Message):
+  r"""Information about Generative AI model-based processor versions.
+
+  Fields:
+    customGenAiModelInfo: Information for a custom Generative AI model created
+      by the user.
+    foundationGenAiModelInfo: Information for a pretrained Google-managed
+      foundation model.
+  """
+
+  customGenAiModelInfo = _messages.MessageField('GoogleCloudDocumentaiV1ProcessorVersionGenAiModelInfoCustomGenAiModelInfo', 1)
+  foundationGenAiModelInfo = _messages.MessageField('GoogleCloudDocumentaiV1ProcessorVersionGenAiModelInfoFoundationGenAiModelInfo', 2)
+
+
+class GoogleCloudDocumentaiV1ProcessorVersionGenAiModelInfoCustomGenAiModelInfo(_messages.Message):
+  r"""Information for a custom Generative AI model created by the user. These
+  are created with `Create New Version` in either the `Call foundation model`
+  or `Fine tuning` tabs.
+
+  Enums:
+    CustomModelTypeValueValuesEnum: The type of custom model created by the
+      user.
+
+  Fields:
+    baseProcessorVersionId: The base processor version ID for the custom
+      model.
+    customModelType: The type of custom model created by the user.
+  """
+
+  class CustomModelTypeValueValuesEnum(_messages.Enum):
+    r"""The type of custom model created by the user.
+
+    Values:
+      CUSTOM_MODEL_TYPE_UNSPECIFIED: The model type is unspecified.
+      VERSIONED_FOUNDATION: The model is a versioned foundation model.
+      FINE_TUNED: The model is a finetuned foundation model.
+    """
+    CUSTOM_MODEL_TYPE_UNSPECIFIED = 0
+    VERSIONED_FOUNDATION = 1
+    FINE_TUNED = 2
+
+  baseProcessorVersionId = _messages.StringField(1)
+  customModelType = _messages.EnumField('CustomModelTypeValueValuesEnum', 2)
+
+
+class GoogleCloudDocumentaiV1ProcessorVersionGenAiModelInfoFoundationGenAiModelInfo(_messages.Message):
+  r"""Information for a pretrained Google-managed foundation model.
+
+  Fields:
+    finetuningAllowed: Whether finetuning is allowed for this base processor
+      version.
+    minTrainLabeledDocuments: The minimum number of labeled documents in the
+      training dataset required for finetuning.
+  """
+
+  finetuningAllowed = _messages.BooleanField(1)
+  minTrainLabeledDocuments = _messages.IntegerField(2, variant=_messages.Variant.INT32)
 
 
 class GoogleCloudDocumentaiV1RawDocument(_messages.Message):
@@ -3647,2139 +4181,6 @@ class GoogleCloudDocumentaiV1Vertex(_messages.Message):
   y = _messages.IntegerField(2, variant=_messages.Variant.INT32)
 
 
-class GoogleCloudDocumentaiV1beta1Barcode(_messages.Message):
-  r"""Encodes the detailed information of a barcode.
-
-  Fields:
-    format: Format of a barcode. The supported formats are: - `CODE_128`: Code
-      128 type. - `CODE_39`: Code 39 type. - `CODE_93`: Code 93 type. -
-      `CODABAR`: Codabar type. - `DATA_MATRIX`: 2D Data Matrix type. - `ITF`:
-      ITF type. - `EAN_13`: EAN-13 type. - `EAN_8`: EAN-8 type. - `QR_CODE`:
-      2D QR code type. - `UPC_A`: UPC-A type. - `UPC_E`: UPC-E type. -
-      `PDF417`: PDF417 type. - `AZTEC`: 2D Aztec code type. - `DATABAR`: GS1
-      DataBar code type.
-    rawValue: Raw value encoded in the barcode. For example:
-      `'MEBKM:TITLE:Google;URL:https://www.google.com;;'`.
-    valueFormat: Value format describes the format of the value that a barcode
-      encodes. The supported formats are: - `CONTACT_INFO`: Contact
-      information. - `EMAIL`: Email address. - `ISBN`: ISBN identifier. -
-      `PHONE`: Phone number. - `PRODUCT`: Product. - `SMS`: SMS message. -
-      `TEXT`: Text string. - `URL`: URL address. - `WIFI`: Wifi information. -
-      `GEO`: Geo-localization. - `CALENDAR_EVENT`: Calendar event. -
-      `DRIVER_LICENSE`: Driver's license.
-  """
-
-  format = _messages.StringField(1)
-  rawValue = _messages.StringField(2)
-  valueFormat = _messages.StringField(3)
-
-
-class GoogleCloudDocumentaiV1beta1BatchProcessDocumentsResponse(_messages.Message):
-  r"""Response to an batch document processing request. This is returned in
-  the LRO Operation after the operation is complete.
-
-  Fields:
-    responses: Responses for each individual document.
-  """
-
-  responses = _messages.MessageField('GoogleCloudDocumentaiV1beta1ProcessDocumentResponse', 1, repeated=True)
-
-
-class GoogleCloudDocumentaiV1beta1BoundingPoly(_messages.Message):
-  r"""A bounding polygon for the detected image annotation.
-
-  Fields:
-    normalizedVertices: The bounding polygon normalized vertices.
-    vertices: The bounding polygon vertices.
-  """
-
-  normalizedVertices = _messages.MessageField('GoogleCloudDocumentaiV1beta1NormalizedVertex', 1, repeated=True)
-  vertices = _messages.MessageField('GoogleCloudDocumentaiV1beta1Vertex', 2, repeated=True)
-
-
-class GoogleCloudDocumentaiV1beta1Document(_messages.Message):
-  r"""Document represents the canonical document resource in Document AI. It
-  is an interchange format that provides insights into documents and allows
-  for collaboration between users and Document AI to iterate and optimize for
-  quality.
-
-  Fields:
-    content: Optional. Inline document content, represented as a stream of
-      bytes. Note: As with all `bytes` fields, protobuffers use a pure binary
-      representation, whereas JSON representations use base64.
-    entities: A list of entities detected on Document.text. For document
-      shards, entities in this list may cross shard boundaries.
-    entityRelations: Placeholder. Relationship among Document.entities.
-    error: Any error that occurred while processing this document.
-    mimeType: An IANA published [media type (MIME
-      type)](https://www.iana.org/assignments/media-types/media-types.xhtml).
-    pages: Visual page layout for the Document.
-    revisions: Placeholder. Revision history of this document.
-    shardInfo: Information about the sharding if this document is sharded part
-      of a larger document. If the document is not sharded, this message is
-      not specified.
-    text: Optional. UTF-8 encoded text in reading order from the document.
-    textChanges: Placeholder. A list of text corrections made to
-      Document.text. This is usually used for annotating corrections to OCR
-      mistakes. Text changes for a given revision may not overlap with each
-      other.
-    textStyles: Styles for the Document.text.
-    uri: Optional. Currently supports Google Cloud Storage URI of the form
-      `gs://bucket_name/object_name`. Object versioning is not supported. For
-      more information, refer to [Google Cloud Storage Request
-      URIs](https://cloud.google.com/storage/docs/reference-uris).
-  """
-
-  content = _messages.BytesField(1)
-  entities = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentEntity', 2, repeated=True)
-  entityRelations = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentEntityRelation', 3, repeated=True)
-  error = _messages.MessageField('GoogleRpcStatus', 4)
-  mimeType = _messages.StringField(5)
-  pages = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPage', 6, repeated=True)
-  revisions = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentRevision', 7, repeated=True)
-  shardInfo = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentShardInfo', 8)
-  text = _messages.StringField(9)
-  textChanges = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentTextChange', 10, repeated=True)
-  textStyles = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentStyle', 11, repeated=True)
-  uri = _messages.StringField(12)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentEntity(_messages.Message):
-  r"""An entity that could be a phrase in the text or a property that belongs
-  to the document. It is a known entity type, such as a person, an
-  organization, or location.
-
-  Fields:
-    confidence: Optional. Confidence of detected Schema entity. Range `[0,
-      1]`.
-    id: Optional. Canonical id. This will be a unique value in the entity list
-      for this document.
-    mentionId: Optional. Deprecated. Use `id` field instead.
-    mentionText: Optional. Text value of the entity e.g. `1600 Amphitheatre
-      Pkwy`.
-    normalizedValue: Optional. Normalized entity value. Absent if the
-      extracted value could not be converted or the type (e.g. address) is not
-      supported for certain parsers. This field is also only populated for
-      certain supported document types.
-    pageAnchor: Optional. Represents the provenance of this entity wrt. the
-      location on the page where it was found.
-    properties: Optional. Entities can be nested to form a hierarchical data
-      structure representing the content in the document.
-    provenance: Optional. The history of this annotation.
-    redacted: Optional. Whether the entity will be redacted for de-
-      identification purposes.
-    textAnchor: Optional. Provenance of the entity. Text anchor indexing into
-      the Document.text.
-    type: Required. Entity type from a schema e.g. `Address`.
-  """
-
-  confidence = _messages.FloatField(1, variant=_messages.Variant.FLOAT)
-  id = _messages.StringField(2)
-  mentionId = _messages.StringField(3)
-  mentionText = _messages.StringField(4)
-  normalizedValue = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentEntityNormalizedValue', 5)
-  pageAnchor = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageAnchor', 6)
-  properties = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentEntity', 7, repeated=True)
-  provenance = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentProvenance', 8)
-  redacted = _messages.BooleanField(9)
-  textAnchor = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentTextAnchor', 10)
-  type = _messages.StringField(11)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentEntityNormalizedValue(_messages.Message):
-  r"""Parsed and normalized entity value.
-
-  Fields:
-    addressValue: Postal address. See also: https://github.com/googleapis/goog
-      leapis/blob/master/google/type/postal_address.proto
-    booleanValue: Boolean value. Can be used for entities with binary values,
-      or for checkboxes.
-    dateValue: Date value. Includes year, month, day. See also: https://github
-      .com/googleapis/googleapis/blob/master/google/type/date.proto
-    datetimeValue: DateTime value. Includes date, time, and timezone. See
-      also: https://github.com/googleapis/googleapis/blob/master/google/type/d
-      atetime.proto
-    floatValue: Float value.
-    integerValue: Integer value.
-    moneyValue: Money value. See also: https://github.com/googleapis/googleapi
-      s/blob/master/google/type/money.proto
-    text: Optional. An optional field to store a normalized string. For some
-      entity types, one of respective `structured_value` fields may also be
-      populated. Also not all the types of `structured_value` will be
-      normalized. For example, some processors may not generate `float` or
-      `integer` normalized text by default. Below are sample formats mapped to
-      structured values. - Money/Currency type (`money_value`) is in the ISO
-      4217 text format. - Date type (`date_value`) is in the ISO 8601 text
-      format. - Datetime type (`datetime_value`) is in the ISO 8601 text
-      format.
-  """
-
-  addressValue = _messages.MessageField('GoogleTypePostalAddress', 1)
-  booleanValue = _messages.BooleanField(2)
-  dateValue = _messages.MessageField('GoogleTypeDate', 3)
-  datetimeValue = _messages.MessageField('GoogleTypeDateTime', 4)
-  floatValue = _messages.FloatField(5, variant=_messages.Variant.FLOAT)
-  integerValue = _messages.IntegerField(6, variant=_messages.Variant.INT32)
-  moneyValue = _messages.MessageField('GoogleTypeMoney', 7)
-  text = _messages.StringField(8)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentEntityRelation(_messages.Message):
-  r"""Relationship between Entities.
-
-  Fields:
-    objectId: Object entity id.
-    relation: Relationship description.
-    subjectId: Subject entity id.
-  """
-
-  objectId = _messages.StringField(1)
-  relation = _messages.StringField(2)
-  subjectId = _messages.StringField(3)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentPage(_messages.Message):
-  r"""A page in a Document.
-
-  Fields:
-    blocks: A list of visually detected text blocks on the page. A block has a
-      set of lines (collected into paragraphs) that have a common line-spacing
-      and orientation.
-    detectedBarcodes: A list of detected barcodes.
-    detectedLanguages: A list of detected languages together with confidence.
-    dimension: Physical dimension of the page.
-    formFields: A list of visually detected form fields on the page.
-    image: Rendered image for this page. This image is preprocessed to remove
-      any skew, rotation, and distortions such that the annotation bounding
-      boxes can be upright and axis-aligned.
-    imageQualityScores: Image quality scores.
-    layout: Layout for the page.
-    lines: A list of visually detected text lines on the page. A collection of
-      tokens that a human would perceive as a line.
-    pageNumber: 1-based index for current Page in a parent Document. Useful
-      when a page is taken out of a Document for individual processing.
-    paragraphs: A list of visually detected text paragraphs on the page. A
-      collection of lines that a human would perceive as a paragraph.
-    provenance: The history of this page.
-    symbols: A list of visually detected symbols on the page.
-    tables: A list of visually detected tables on the page.
-    tokens: A list of visually detected tokens on the page.
-    transforms: Transformation matrices that were applied to the original
-      document image to produce Page.image.
-    visualElements: A list of detected non-text visual elements e.g. checkbox,
-      signature etc. on the page.
-  """
-
-  blocks = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageBlock', 1, repeated=True)
-  detectedBarcodes = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageDetectedBarcode', 2, repeated=True)
-  detectedLanguages = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageDetectedLanguage', 3, repeated=True)
-  dimension = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageDimension', 4)
-  formFields = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageFormField', 5, repeated=True)
-  image = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageImage', 6)
-  imageQualityScores = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageImageQualityScores', 7)
-  layout = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageLayout', 8)
-  lines = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageLine', 9, repeated=True)
-  pageNumber = _messages.IntegerField(10, variant=_messages.Variant.INT32)
-  paragraphs = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageParagraph', 11, repeated=True)
-  provenance = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentProvenance', 12)
-  symbols = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageSymbol', 13, repeated=True)
-  tables = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageTable', 14, repeated=True)
-  tokens = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageToken', 15, repeated=True)
-  transforms = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageMatrix', 16, repeated=True)
-  visualElements = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageVisualElement', 17, repeated=True)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentPageAnchor(_messages.Message):
-  r"""Referencing the visual context of the entity in the Document.pages. Page
-  anchors can be cross-page, consist of multiple bounding polygons and
-  optionally reference specific layout element types.
-
-  Fields:
-    pageRefs: One or more references to visual page elements
-  """
-
-  pageRefs = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageAnchorPageRef', 1, repeated=True)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentPageAnchorPageRef(_messages.Message):
-  r"""Represents a weak reference to a page element within a document.
-
-  Enums:
-    LayoutTypeValueValuesEnum: Optional. The type of the layout element that
-      is being referenced if any.
-
-  Fields:
-    boundingPoly: Optional. Identifies the bounding polygon of a layout
-      element on the page. If `layout_type` is set, the bounding polygon must
-      be exactly the same to the layout element it's referring to.
-    confidence: Optional. Confidence of detected page element, if applicable.
-      Range `[0, 1]`.
-    layoutId: Optional. Deprecated. Use PageRef.bounding_poly instead.
-    layoutType: Optional. The type of the layout element that is being
-      referenced if any.
-    page: Required. Index into the Document.pages element, for example using
-      `Document.pages` to locate the related page element. This field is
-      skipped when its value is the default `0`. See
-      https://developers.google.com/protocol-buffers/docs/proto3#json.
-  """
-
-  class LayoutTypeValueValuesEnum(_messages.Enum):
-    r"""Optional. The type of the layout element that is being referenced if
-    any.
-
-    Values:
-      LAYOUT_TYPE_UNSPECIFIED: Layout Unspecified.
-      BLOCK: References a Page.blocks element.
-      PARAGRAPH: References a Page.paragraphs element.
-      LINE: References a Page.lines element.
-      TOKEN: References a Page.tokens element.
-      VISUAL_ELEMENT: References a Page.visual_elements element.
-      TABLE: Refrrences a Page.tables element.
-      FORM_FIELD: References a Page.form_fields element.
-    """
-    LAYOUT_TYPE_UNSPECIFIED = 0
-    BLOCK = 1
-    PARAGRAPH = 2
-    LINE = 3
-    TOKEN = 4
-    VISUAL_ELEMENT = 5
-    TABLE = 6
-    FORM_FIELD = 7
-
-  boundingPoly = _messages.MessageField('GoogleCloudDocumentaiV1beta1BoundingPoly', 1)
-  confidence = _messages.FloatField(2, variant=_messages.Variant.FLOAT)
-  layoutId = _messages.StringField(3)
-  layoutType = _messages.EnumField('LayoutTypeValueValuesEnum', 4)
-  page = _messages.IntegerField(5)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentPageBlock(_messages.Message):
-  r"""A block has a set of lines (collected into paragraphs) that have a
-  common line-spacing and orientation.
-
-  Fields:
-    detectedLanguages: A list of detected languages together with confidence.
-    layout: Layout for Block.
-    provenance: The history of this annotation.
-  """
-
-  detectedLanguages = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageDetectedLanguage', 1, repeated=True)
-  layout = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageLayout', 2)
-  provenance = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentProvenance', 3)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentPageDetectedBarcode(_messages.Message):
-  r"""A detected barcode.
-
-  Fields:
-    barcode: Detailed barcode information of the DetectedBarcode.
-    layout: Layout for DetectedBarcode.
-  """
-
-  barcode = _messages.MessageField('GoogleCloudDocumentaiV1beta1Barcode', 1)
-  layout = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageLayout', 2)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentPageDetectedLanguage(_messages.Message):
-  r"""Detected language for a structural component.
-
-  Fields:
-    confidence: Confidence of detected language. Range `[0, 1]`.
-    languageCode: The [BCP-47 language
-      code](https://www.unicode.org/reports/tr35/#Unicode_locale_identifier),
-      such as `en-US` or `sr-Latn`.
-  """
-
-  confidence = _messages.FloatField(1, variant=_messages.Variant.FLOAT)
-  languageCode = _messages.StringField(2)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentPageDimension(_messages.Message):
-  r"""Dimension for the page.
-
-  Fields:
-    height: Page height.
-    unit: Dimension unit.
-    width: Page width.
-  """
-
-  height = _messages.FloatField(1, variant=_messages.Variant.FLOAT)
-  unit = _messages.StringField(2)
-  width = _messages.FloatField(3, variant=_messages.Variant.FLOAT)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentPageFormField(_messages.Message):
-  r"""A form field detected on the page.
-
-  Fields:
-    correctedKeyText: Created for Labeling UI to export key text. If
-      corrections were made to the text identified by the
-      `field_name.text_anchor`, this field will contain the correction.
-    correctedValueText: Created for Labeling UI to export value text. If
-      corrections were made to the text identified by the
-      `field_value.text_anchor`, this field will contain the correction.
-    fieldName: Layout for the FormField name. e.g. `Address`, `Email`, `Grand
-      total`, `Phone number`, etc.
-    fieldValue: Layout for the FormField value.
-    nameDetectedLanguages: A list of detected languages for name together with
-      confidence.
-    provenance: The history of this annotation.
-    valueDetectedLanguages: A list of detected languages for value together
-      with confidence.
-    valueType: If the value is non-textual, this field represents the type.
-      Current valid values are: - blank (this indicates the `field_value` is
-      normal text) - `unfilled_checkbox` - `filled_checkbox`
-  """
-
-  correctedKeyText = _messages.StringField(1)
-  correctedValueText = _messages.StringField(2)
-  fieldName = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageLayout', 3)
-  fieldValue = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageLayout', 4)
-  nameDetectedLanguages = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageDetectedLanguage', 5, repeated=True)
-  provenance = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentProvenance', 6)
-  valueDetectedLanguages = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageDetectedLanguage', 7, repeated=True)
-  valueType = _messages.StringField(8)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentPageImage(_messages.Message):
-  r"""Rendered image contents for this page.
-
-  Fields:
-    content: Raw byte content of the image.
-    height: Height of the image in pixels.
-    mimeType: Encoding [media type (MIME
-      type)](https://www.iana.org/assignments/media-types/media-types.xhtml)
-      for the image.
-    width: Width of the image in pixels.
-  """
-
-  content = _messages.BytesField(1)
-  height = _messages.IntegerField(2, variant=_messages.Variant.INT32)
-  mimeType = _messages.StringField(3)
-  width = _messages.IntegerField(4, variant=_messages.Variant.INT32)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentPageImageQualityScores(_messages.Message):
-  r"""Image quality scores for the page image.
-
-  Fields:
-    detectedDefects: A list of detected defects.
-    qualityScore: The overall quality score. Range `[0, 1]` where `1` is
-      perfect quality.
-  """
-
-  detectedDefects = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageImageQualityScoresDetectedDefect', 1, repeated=True)
-  qualityScore = _messages.FloatField(2, variant=_messages.Variant.FLOAT)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentPageImageQualityScoresDetectedDefect(_messages.Message):
-  r"""Image Quality Defects
-
-  Fields:
-    confidence: Confidence of detected defect. Range `[0, 1]` where `1`
-      indicates strong confidence that the defect exists.
-    type: Name of the defect type. Supported values are: -
-      `quality/defect_blurry` - `quality/defect_noisy` - `quality/defect_dark`
-      - `quality/defect_faint` - `quality/defect_text_too_small` -
-      `quality/defect_document_cutoff` - `quality/defect_text_cutoff` -
-      `quality/defect_glare`
-  """
-
-  confidence = _messages.FloatField(1, variant=_messages.Variant.FLOAT)
-  type = _messages.StringField(2)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentPageLayout(_messages.Message):
-  r"""Visual element describing a layout unit on a page.
-
-  Enums:
-    OrientationValueValuesEnum: Detected orientation for the Layout.
-
-  Fields:
-    boundingPoly: The bounding polygon for the Layout.
-    confidence: Confidence of the current Layout within context of the object
-      this layout is for. e.g. confidence can be for a single token, a table,
-      a visual element, etc. depending on context. Range `[0, 1]`.
-    orientation: Detected orientation for the Layout.
-    textAnchor: Text anchor indexing into the Document.text.
-  """
-
-  class OrientationValueValuesEnum(_messages.Enum):
-    r"""Detected orientation for the Layout.
-
-    Values:
-      ORIENTATION_UNSPECIFIED: Unspecified orientation.
-      PAGE_UP: Orientation is aligned with page up.
-      PAGE_RIGHT: Orientation is aligned with page right. Turn the head 90
-        degrees clockwise from upright to read.
-      PAGE_DOWN: Orientation is aligned with page down. Turn the head 180
-        degrees from upright to read.
-      PAGE_LEFT: Orientation is aligned with page left. Turn the head 90
-        degrees counterclockwise from upright to read.
-    """
-    ORIENTATION_UNSPECIFIED = 0
-    PAGE_UP = 1
-    PAGE_RIGHT = 2
-    PAGE_DOWN = 3
-    PAGE_LEFT = 4
-
-  boundingPoly = _messages.MessageField('GoogleCloudDocumentaiV1beta1BoundingPoly', 1)
-  confidence = _messages.FloatField(2, variant=_messages.Variant.FLOAT)
-  orientation = _messages.EnumField('OrientationValueValuesEnum', 3)
-  textAnchor = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentTextAnchor', 4)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentPageLine(_messages.Message):
-  r"""A collection of tokens that a human would perceive as a line. Does not
-  cross column boundaries, can be horizontal, vertical, etc.
-
-  Fields:
-    detectedLanguages: A list of detected languages together with confidence.
-    layout: Layout for Line.
-    provenance: The history of this annotation.
-  """
-
-  detectedLanguages = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageDetectedLanguage', 1, repeated=True)
-  layout = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageLayout', 2)
-  provenance = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentProvenance', 3)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentPageMatrix(_messages.Message):
-  r"""Representation for transformation matrix, intended to be compatible and
-  used with OpenCV format for image manipulation.
-
-  Fields:
-    cols: Number of columns in the matrix.
-    data: The matrix data.
-    rows: Number of rows in the matrix.
-    type: This encodes information about what data type the matrix uses. For
-      example, 0 (CV_8U) is an unsigned 8-bit image. For the full list of
-      OpenCV primitive data types, please refer to
-      https://docs.opencv.org/4.3.0/d1/d1b/group__core__hal__interface.html
-  """
-
-  cols = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  data = _messages.BytesField(2)
-  rows = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  type = _messages.IntegerField(4, variant=_messages.Variant.INT32)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentPageParagraph(_messages.Message):
-  r"""A collection of lines that a human would perceive as a paragraph.
-
-  Fields:
-    detectedLanguages: A list of detected languages together with confidence.
-    layout: Layout for Paragraph.
-    provenance: The history of this annotation.
-  """
-
-  detectedLanguages = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageDetectedLanguage', 1, repeated=True)
-  layout = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageLayout', 2)
-  provenance = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentProvenance', 3)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentPageSymbol(_messages.Message):
-  r"""A detected symbol.
-
-  Fields:
-    detectedLanguages: A list of detected languages together with confidence.
-    layout: Layout for Symbol.
-  """
-
-  detectedLanguages = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageDetectedLanguage', 1, repeated=True)
-  layout = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageLayout', 2)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentPageTable(_messages.Message):
-  r"""A table representation similar to HTML table structure.
-
-  Fields:
-    bodyRows: Body rows of the table.
-    detectedLanguages: A list of detected languages together with confidence.
-    headerRows: Header rows of the table.
-    layout: Layout for Table.
-    provenance: The history of this table.
-  """
-
-  bodyRows = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageTableTableRow', 1, repeated=True)
-  detectedLanguages = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageDetectedLanguage', 2, repeated=True)
-  headerRows = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageTableTableRow', 3, repeated=True)
-  layout = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageLayout', 4)
-  provenance = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentProvenance', 5)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentPageTableTableCell(_messages.Message):
-  r"""A cell representation inside the table.
-
-  Fields:
-    colSpan: How many columns this cell spans.
-    detectedLanguages: A list of detected languages together with confidence.
-    layout: Layout for TableCell.
-    rowSpan: How many rows this cell spans.
-  """
-
-  colSpan = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  detectedLanguages = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageDetectedLanguage', 2, repeated=True)
-  layout = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageLayout', 3)
-  rowSpan = _messages.IntegerField(4, variant=_messages.Variant.INT32)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentPageTableTableRow(_messages.Message):
-  r"""A row of table cells.
-
-  Fields:
-    cells: Cells that make up this row.
-  """
-
-  cells = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageTableTableCell', 1, repeated=True)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentPageToken(_messages.Message):
-  r"""A detected token.
-
-  Fields:
-    detectedBreak: Detected break at the end of a Token.
-    detectedLanguages: A list of detected languages together with confidence.
-    layout: Layout for Token.
-    provenance: The history of this annotation.
-    styleInfo: Text style attributes.
-  """
-
-  detectedBreak = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageTokenDetectedBreak', 1)
-  detectedLanguages = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageDetectedLanguage', 2, repeated=True)
-  layout = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageLayout', 3)
-  provenance = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentProvenance', 4)
-  styleInfo = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageTokenStyleInfo', 5)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentPageTokenDetectedBreak(_messages.Message):
-  r"""Detected break at the end of a Token.
-
-  Enums:
-    TypeValueValuesEnum: Detected break type.
-
-  Fields:
-    type: Detected break type.
-  """
-
-  class TypeValueValuesEnum(_messages.Enum):
-    r"""Detected break type.
-
-    Values:
-      TYPE_UNSPECIFIED: Unspecified break type.
-      SPACE: A single whitespace.
-      WIDE_SPACE: A wider whitespace.
-      HYPHEN: A hyphen that indicates that a token has been split across
-        lines.
-    """
-    TYPE_UNSPECIFIED = 0
-    SPACE = 1
-    WIDE_SPACE = 2
-    HYPHEN = 3
-
-  type = _messages.EnumField('TypeValueValuesEnum', 1)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentPageTokenStyleInfo(_messages.Message):
-  r"""Font and other text style attributes.
-
-  Fields:
-    backgroundColor: Color of the background.
-    bold: Whether the text is bold (equivalent to font_weight is at least
-      `700`).
-    fontSize: Font size in points (`1` point is `\xb9\u2044\u2087\u2082`
-      inches).
-    fontType: Name or style of the font.
-    fontWeight: TrueType weight on a scale `100` (thin) to `1000` (ultra-
-      heavy). Normal is `400`, bold is `700`.
-    handwritten: Whether the text is handwritten.
-    italic: Whether the text is italic.
-    letterSpacing: Letter spacing in points.
-    pixelFontSize: Font size in pixels, equal to _unrounded font_size_ *
-      _resolution_ \xf7 `72.0`.
-    smallcaps: Whether the text is in small caps. This feature is not
-      supported yet.
-    strikeout: Whether the text is strikethrough. This feature is not
-      supported yet.
-    subscript: Whether the text is a subscript. This feature is not supported
-      yet.
-    superscript: Whether the text is a superscript. This feature is not
-      supported yet.
-    textColor: Color of the text.
-    underlined: Whether the text is underlined.
-  """
-
-  backgroundColor = _messages.MessageField('GoogleTypeColor', 1)
-  bold = _messages.BooleanField(2)
-  fontSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  fontType = _messages.StringField(4)
-  fontWeight = _messages.IntegerField(5, variant=_messages.Variant.INT32)
-  handwritten = _messages.BooleanField(6)
-  italic = _messages.BooleanField(7)
-  letterSpacing = _messages.FloatField(8)
-  pixelFontSize = _messages.FloatField(9)
-  smallcaps = _messages.BooleanField(10)
-  strikeout = _messages.BooleanField(11)
-  subscript = _messages.BooleanField(12)
-  superscript = _messages.BooleanField(13)
-  textColor = _messages.MessageField('GoogleTypeColor', 14)
-  underlined = _messages.BooleanField(15)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentPageVisualElement(_messages.Message):
-  r"""Detected non-text visual elements e.g. checkbox, signature etc. on the
-  page.
-
-  Fields:
-    detectedLanguages: A list of detected languages together with confidence.
-    layout: Layout for VisualElement.
-    type: Type of the VisualElement.
-  """
-
-  detectedLanguages = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageDetectedLanguage', 1, repeated=True)
-  layout = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentPageLayout', 2)
-  type = _messages.StringField(3)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentProvenance(_messages.Message):
-  r"""Structure to identify provenance relationships between annotations in
-  different revisions.
-
-  Enums:
-    TypeValueValuesEnum: The type of provenance operation.
-
-  Fields:
-    id: The Id of this operation. Needs to be unique within the scope of the
-      revision.
-    parents: References to the original elements that are replaced.
-    revision: The index of the revision that produced this element.
-    type: The type of provenance operation.
-  """
-
-  class TypeValueValuesEnum(_messages.Enum):
-    r"""The type of provenance operation.
-
-    Values:
-      OPERATION_TYPE_UNSPECIFIED: Operation type unspecified. If no operation
-        is specified a provenance entry is simply used to match against a
-        `parent`.
-      ADD: Add an element.
-      REMOVE: Remove an element identified by `parent`.
-      UPDATE: Updates any fields within the given provenance scope of the
-        message. It overwrites the fields rather than replacing them. Use this
-        when you want to update a field value of an entity without also
-        updating all the child properties.
-      REPLACE: Currently unused. Replace an element identified by `parent`.
-      EVAL_REQUESTED: Deprecated. Request human review for the element
-        identified by `parent`.
-      EVAL_APPROVED: Deprecated. Element is reviewed and approved at human
-        review, confidence will be set to 1.0.
-      EVAL_SKIPPED: Deprecated. Element is skipped in the validation process.
-    """
-    OPERATION_TYPE_UNSPECIFIED = 0
-    ADD = 1
-    REMOVE = 2
-    UPDATE = 3
-    REPLACE = 4
-    EVAL_REQUESTED = 5
-    EVAL_APPROVED = 6
-    EVAL_SKIPPED = 7
-
-  id = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  parents = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentProvenanceParent', 2, repeated=True)
-  revision = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  type = _messages.EnumField('TypeValueValuesEnum', 4)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentProvenanceParent(_messages.Message):
-  r"""The parent element the current element is based on. Used for
-  referencing/aligning, removal and replacement operations.
-
-  Fields:
-    id: The id of the parent provenance.
-    index: The index of the parent item in the corresponding item list (eg.
-      list of entities, properties within entities, etc.) in the parent
-      revision.
-    revision: The index of the index into current revision's parent_ids list.
-  """
-
-  id = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  index = _messages.IntegerField(2, variant=_messages.Variant.INT32)
-  revision = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentRevision(_messages.Message):
-  r"""Contains past or forward revisions of this document.
-
-  Fields:
-    agent: If the change was made by a person specify the name or id of that
-      person.
-    createTime: The time that the revision was created, internally generated
-      by doc proto storage at the time of create.
-    humanReview: Human Review information of this revision.
-    id: Id of the revision, internally generated by doc proto storage. Unique
-      within the context of the document.
-    parent: The revisions that this revision is based on. This can include one
-      or more parent (when documents are merged.) This field represents the
-      index into the `revisions` field.
-    parentIds: The revisions that this revision is based on. Must include all
-      the ids that have anything to do with this revision - eg. there are
-      `provenance.parent.revision` fields that index into this field.
-    processor: If the annotation was made by processor identify the processor
-      by its resource name.
-  """
-
-  agent = _messages.StringField(1)
-  createTime = _messages.StringField(2)
-  humanReview = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentRevisionHumanReview', 3)
-  id = _messages.StringField(4)
-  parent = _messages.IntegerField(5, repeated=True, variant=_messages.Variant.INT32)
-  parentIds = _messages.StringField(6, repeated=True)
-  processor = _messages.StringField(7)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentRevisionHumanReview(_messages.Message):
-  r"""Human Review information of the document.
-
-  Fields:
-    state: Human review state. e.g. `requested`, `succeeded`, `rejected`.
-    stateMessage: A message providing more details about the current state of
-      processing. For example, the rejection reason when the state is
-      `rejected`.
-  """
-
-  state = _messages.StringField(1)
-  stateMessage = _messages.StringField(2)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentShardInfo(_messages.Message):
-  r"""For a large document, sharding may be performed to produce several
-  document shards. Each document shard contains this field to detail which
-  shard it is.
-
-  Fields:
-    shardCount: Total number of shards.
-    shardIndex: The 0-based index of this shard.
-    textOffset: The index of the first character in Document.text in the
-      overall document global text.
-  """
-
-  shardCount = _messages.IntegerField(1)
-  shardIndex = _messages.IntegerField(2)
-  textOffset = _messages.IntegerField(3)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentStyle(_messages.Message):
-  r"""Annotation for common text style attributes. This adheres to CSS
-  conventions as much as possible.
-
-  Fields:
-    backgroundColor: Text background color.
-    color: Text color.
-    fontFamily: Font family such as `Arial`, `Times New Roman`.
-      https://www.w3schools.com/cssref/pr_font_font-family.asp
-    fontSize: Font size.
-    fontWeight: [Font
-      weight](https://www.w3schools.com/cssref/pr_font_weight.asp). Possible
-      values are `normal`, `bold`, `bolder`, and `lighter`.
-    textAnchor: Text anchor indexing into the Document.text.
-    textDecoration: [Text
-      decoration](https://www.w3schools.com/cssref/pr_text_text-
-      decoration.asp). Follows CSS standard.
-    textStyle: [Text style](https://www.w3schools.com/cssref/pr_font_font-
-      style.asp). Possible values are `normal`, `italic`, and `oblique`.
-  """
-
-  backgroundColor = _messages.MessageField('GoogleTypeColor', 1)
-  color = _messages.MessageField('GoogleTypeColor', 2)
-  fontFamily = _messages.StringField(3)
-  fontSize = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentStyleFontSize', 4)
-  fontWeight = _messages.StringField(5)
-  textAnchor = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentTextAnchor', 6)
-  textDecoration = _messages.StringField(7)
-  textStyle = _messages.StringField(8)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentStyleFontSize(_messages.Message):
-  r"""Font size with unit.
-
-  Fields:
-    size: Font size for the text.
-    unit: Unit for the font size. Follows CSS naming (such as `in`, `px`, and
-      `pt`).
-  """
-
-  size = _messages.FloatField(1, variant=_messages.Variant.FLOAT)
-  unit = _messages.StringField(2)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentTextAnchor(_messages.Message):
-  r"""Text reference indexing into the Document.text.
-
-  Fields:
-    content: Contains the content of the text span so that users do not have
-      to look it up in the text_segments. It is always populated for
-      formFields.
-    textSegments: The text segments from the Document.text.
-  """
-
-  content = _messages.StringField(1)
-  textSegments = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentTextAnchorTextSegment', 2, repeated=True)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentTextAnchorTextSegment(_messages.Message):
-  r"""A text segment in the Document.text. The indices may be out of bounds
-  which indicate that the text extends into another document shard for large
-  sharded documents. See ShardInfo.text_offset
-
-  Fields:
-    endIndex: TextSegment half open end UTF-8 char index in the Document.text.
-    startIndex: TextSegment start UTF-8 char index in the Document.text.
-  """
-
-  endIndex = _messages.IntegerField(1)
-  startIndex = _messages.IntegerField(2)
-
-
-class GoogleCloudDocumentaiV1beta1DocumentTextChange(_messages.Message):
-  r"""This message is used for text changes aka. OCR corrections.
-
-  Fields:
-    changedText: The text that replaces the text identified in the
-      `text_anchor`.
-    provenance: The history of this annotation.
-    textAnchor: Provenance of the correction. Text anchor indexing into the
-      Document.text. There can only be a single `TextAnchor.text_segments`
-      element. If the start and end index of the text segment are the same,
-      the text change is inserted before that index.
-  """
-
-  changedText = _messages.StringField(1)
-  provenance = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentProvenance', 2, repeated=True)
-  textAnchor = _messages.MessageField('GoogleCloudDocumentaiV1beta1DocumentTextAnchor', 3)
-
-
-class GoogleCloudDocumentaiV1beta1GcsDestination(_messages.Message):
-  r"""The Google Cloud Storage location where the output file will be written
-  to.
-
-  Fields:
-    uri: A string attribute.
-  """
-
-  uri = _messages.StringField(1)
-
-
-class GoogleCloudDocumentaiV1beta1GcsSource(_messages.Message):
-  r"""The Google Cloud Storage location where the input file will be read
-  from.
-
-  Fields:
-    uri: A string attribute.
-  """
-
-  uri = _messages.StringField(1)
-
-
-class GoogleCloudDocumentaiV1beta1InputConfig(_messages.Message):
-  r"""The desired input location and metadata.
-
-  Fields:
-    gcsSource: The Google Cloud Storage location to read the input from. This
-      must be a single file.
-    mimeType: Required. Mimetype of the input. Current supported mimetypes are
-      application/pdf, image/tiff, and image/gif. In addition,
-      application/json type is supported for requests with
-      ProcessDocumentRequest.automl_params field set. The JSON file needs to
-      be in Document format.
-  """
-
-  gcsSource = _messages.MessageField('GoogleCloudDocumentaiV1beta1GcsSource', 1)
-  mimeType = _messages.StringField(2)
-
-
-class GoogleCloudDocumentaiV1beta1NormalizedVertex(_messages.Message):
-  r"""A vertex represents a 2D point in the image. NOTE: the normalized vertex
-  coordinates are relative to the original image and range from 0 to 1.
-
-  Fields:
-    x: X coordinate.
-    y: Y coordinate (starts from the top of the image).
-  """
-
-  x = _messages.FloatField(1, variant=_messages.Variant.FLOAT)
-  y = _messages.FloatField(2, variant=_messages.Variant.FLOAT)
-
-
-class GoogleCloudDocumentaiV1beta1OperationMetadata(_messages.Message):
-  r"""Contains metadata for the BatchProcessDocuments operation.
-
-  Enums:
-    StateValueValuesEnum: The state of the current batch processing.
-
-  Fields:
-    createTime: The creation time of the operation.
-    state: The state of the current batch processing.
-    stateMessage: A message providing more details about the current state of
-      processing.
-    updateTime: The last update time of the operation.
-  """
-
-  class StateValueValuesEnum(_messages.Enum):
-    r"""The state of the current batch processing.
-
-    Values:
-      STATE_UNSPECIFIED: The default value. This value is used if the state is
-        omitted.
-      ACCEPTED: Request is received.
-      WAITING: Request operation is waiting for scheduling.
-      RUNNING: Request is being processed.
-      SUCCEEDED: The batch processing completed successfully.
-      CANCELLED: The batch processing was cancelled.
-      FAILED: The batch processing has failed.
-    """
-    STATE_UNSPECIFIED = 0
-    ACCEPTED = 1
-    WAITING = 2
-    RUNNING = 3
-    SUCCEEDED = 4
-    CANCELLED = 5
-    FAILED = 6
-
-  createTime = _messages.StringField(1)
-  state = _messages.EnumField('StateValueValuesEnum', 2)
-  stateMessage = _messages.StringField(3)
-  updateTime = _messages.StringField(4)
-
-
-class GoogleCloudDocumentaiV1beta1OutputConfig(_messages.Message):
-  r"""The desired output location and metadata.
-
-  Fields:
-    gcsDestination: The Google Cloud Storage location to write the output to.
-    pagesPerShard: The max number of pages to include into each output
-      Document shard JSON on Google Cloud Storage. The valid range is [1,
-      100]. If not specified, the default value is 20. For example, for one
-      pdf file with 100 pages, 100 parsed pages will be produced. If
-      `pages_per_shard` = 20, then 5 Document shard JSON files each containing
-      20 parsed pages will be written under the prefix
-      OutputConfig.gcs_destination.uri and suffix pages-x-to-y.json where x
-      and y are 1-indexed page numbers. Example GCS outputs with 157 pages and
-      pages_per_shard = 50: pages-001-to-050.json pages-051-to-100.json
-      pages-101-to-150.json pages-151-to-157.json
-  """
-
-  gcsDestination = _messages.MessageField('GoogleCloudDocumentaiV1beta1GcsDestination', 1)
-  pagesPerShard = _messages.IntegerField(2, variant=_messages.Variant.INT32)
-
-
-class GoogleCloudDocumentaiV1beta1ProcessDocumentResponse(_messages.Message):
-  r"""Response to a single document processing request.
-
-  Fields:
-    inputConfig: Information about the input file. This is the same as the
-      corresponding input config in the request.
-    outputConfig: The output location of the parsed responses. The responses
-      are written to this location as JSON-serialized `Document` objects.
-  """
-
-  inputConfig = _messages.MessageField('GoogleCloudDocumentaiV1beta1InputConfig', 1)
-  outputConfig = _messages.MessageField('GoogleCloudDocumentaiV1beta1OutputConfig', 2)
-
-
-class GoogleCloudDocumentaiV1beta1Vertex(_messages.Message):
-  r"""A vertex represents a 2D point in the image. NOTE: the vertex
-  coordinates are in the same scale as the original image.
-
-  Fields:
-    x: X coordinate.
-    y: Y coordinate (starts from the top of the image).
-  """
-
-  x = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  y = _messages.IntegerField(2, variant=_messages.Variant.INT32)
-
-
-class GoogleCloudDocumentaiV1beta2Barcode(_messages.Message):
-  r"""Encodes the detailed information of a barcode.
-
-  Fields:
-    format: Format of a barcode. The supported formats are: - `CODE_128`: Code
-      128 type. - `CODE_39`: Code 39 type. - `CODE_93`: Code 93 type. -
-      `CODABAR`: Codabar type. - `DATA_MATRIX`: 2D Data Matrix type. - `ITF`:
-      ITF type. - `EAN_13`: EAN-13 type. - `EAN_8`: EAN-8 type. - `QR_CODE`:
-      2D QR code type. - `UPC_A`: UPC-A type. - `UPC_E`: UPC-E type. -
-      `PDF417`: PDF417 type. - `AZTEC`: 2D Aztec code type. - `DATABAR`: GS1
-      DataBar code type.
-    rawValue: Raw value encoded in the barcode. For example:
-      `'MEBKM:TITLE:Google;URL:https://www.google.com;;'`.
-    valueFormat: Value format describes the format of the value that a barcode
-      encodes. The supported formats are: - `CONTACT_INFO`: Contact
-      information. - `EMAIL`: Email address. - `ISBN`: ISBN identifier. -
-      `PHONE`: Phone number. - `PRODUCT`: Product. - `SMS`: SMS message. -
-      `TEXT`: Text string. - `URL`: URL address. - `WIFI`: Wifi information. -
-      `GEO`: Geo-localization. - `CALENDAR_EVENT`: Calendar event. -
-      `DRIVER_LICENSE`: Driver's license.
-  """
-
-  format = _messages.StringField(1)
-  rawValue = _messages.StringField(2)
-  valueFormat = _messages.StringField(3)
-
-
-class GoogleCloudDocumentaiV1beta2BatchProcessDocumentsResponse(_messages.Message):
-  r"""Response to an batch document processing request. This is returned in
-  the LRO Operation after the operation is complete.
-
-  Fields:
-    responses: Responses for each individual document.
-  """
-
-  responses = _messages.MessageField('GoogleCloudDocumentaiV1beta2ProcessDocumentResponse', 1, repeated=True)
-
-
-class GoogleCloudDocumentaiV1beta2BoundingPoly(_messages.Message):
-  r"""A bounding polygon for the detected image annotation.
-
-  Fields:
-    normalizedVertices: The bounding polygon normalized vertices.
-    vertices: The bounding polygon vertices.
-  """
-
-  normalizedVertices = _messages.MessageField('GoogleCloudDocumentaiV1beta2NormalizedVertex', 1, repeated=True)
-  vertices = _messages.MessageField('GoogleCloudDocumentaiV1beta2Vertex', 2, repeated=True)
-
-
-class GoogleCloudDocumentaiV1beta2Document(_messages.Message):
-  r"""Document represents the canonical document resource in Document AI. It
-  is an interchange format that provides insights into documents and allows
-  for collaboration between users and Document AI to iterate and optimize for
-  quality.
-
-  Fields:
-    content: Optional. Inline document content, represented as a stream of
-      bytes. Note: As with all `bytes` fields, protobuffers use a pure binary
-      representation, whereas JSON representations use base64.
-    entities: A list of entities detected on Document.text. For document
-      shards, entities in this list may cross shard boundaries.
-    entityRelations: Placeholder. Relationship among Document.entities.
-    error: Any error that occurred while processing this document.
-    labels: Labels for this document.
-    mimeType: An IANA published [media type (MIME
-      type)](https://www.iana.org/assignments/media-types/media-types.xhtml).
-    pages: Visual page layout for the Document.
-    revisions: Placeholder. Revision history of this document.
-    shardInfo: Information about the sharding if this document is sharded part
-      of a larger document. If the document is not sharded, this message is
-      not specified.
-    text: Optional. UTF-8 encoded text in reading order from the document.
-    textChanges: Placeholder. A list of text corrections made to
-      Document.text. This is usually used for annotating corrections to OCR
-      mistakes. Text changes for a given revision may not overlap with each
-      other.
-    textStyles: Styles for the Document.text.
-    uri: Optional. Currently supports Google Cloud Storage URI of the form
-      `gs://bucket_name/object_name`. Object versioning is not supported. For
-      more information, refer to [Google Cloud Storage Request
-      URIs](https://cloud.google.com/storage/docs/reference-uris).
-  """
-
-  content = _messages.BytesField(1)
-  entities = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentEntity', 2, repeated=True)
-  entityRelations = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentEntityRelation', 3, repeated=True)
-  error = _messages.MessageField('GoogleRpcStatus', 4)
-  labels = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentLabel', 5, repeated=True)
-  mimeType = _messages.StringField(6)
-  pages = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPage', 7, repeated=True)
-  revisions = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentRevision', 8, repeated=True)
-  shardInfo = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentShardInfo', 9)
-  text = _messages.StringField(10)
-  textChanges = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentTextChange', 11, repeated=True)
-  textStyles = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentStyle', 12, repeated=True)
-  uri = _messages.StringField(13)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentEntity(_messages.Message):
-  r"""An entity that could be a phrase in the text or a property that belongs
-  to the document. It is a known entity type, such as a person, an
-  organization, or location.
-
-  Fields:
-    confidence: Optional. Confidence of detected Schema entity. Range `[0,
-      1]`.
-    id: Optional. Canonical id. This will be a unique value in the entity list
-      for this document.
-    mentionId: Optional. Deprecated. Use `id` field instead.
-    mentionText: Optional. Text value of the entity e.g. `1600 Amphitheatre
-      Pkwy`.
-    normalizedValue: Optional. Normalized entity value. Absent if the
-      extracted value could not be converted or the type (e.g. address) is not
-      supported for certain parsers. This field is also only populated for
-      certain supported document types.
-    pageAnchor: Optional. Represents the provenance of this entity wrt. the
-      location on the page where it was found.
-    properties: Optional. Entities can be nested to form a hierarchical data
-      structure representing the content in the document.
-    provenance: Optional. The history of this annotation.
-    redacted: Optional. Whether the entity will be redacted for de-
-      identification purposes.
-    textAnchor: Optional. Provenance of the entity. Text anchor indexing into
-      the Document.text.
-    type: Required. Entity type from a schema e.g. `Address`.
-  """
-
-  confidence = _messages.FloatField(1, variant=_messages.Variant.FLOAT)
-  id = _messages.StringField(2)
-  mentionId = _messages.StringField(3)
-  mentionText = _messages.StringField(4)
-  normalizedValue = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentEntityNormalizedValue', 5)
-  pageAnchor = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageAnchor', 6)
-  properties = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentEntity', 7, repeated=True)
-  provenance = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentProvenance', 8)
-  redacted = _messages.BooleanField(9)
-  textAnchor = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentTextAnchor', 10)
-  type = _messages.StringField(11)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentEntityNormalizedValue(_messages.Message):
-  r"""Parsed and normalized entity value.
-
-  Fields:
-    addressValue: Postal address. See also: https://github.com/googleapis/goog
-      leapis/blob/master/google/type/postal_address.proto
-    booleanValue: Boolean value. Can be used for entities with binary values,
-      or for checkboxes.
-    dateValue: Date value. Includes year, month, day. See also: https://github
-      .com/googleapis/googleapis/blob/master/google/type/date.proto
-    datetimeValue: DateTime value. Includes date, time, and timezone. See
-      also: https://github.com/googleapis/googleapis/blob/master/google/type/d
-      atetime.proto
-    floatValue: Float value.
-    integerValue: Integer value.
-    moneyValue: Money value. See also: https://github.com/googleapis/googleapi
-      s/blob/master/google/type/money.proto
-    text: Optional. An optional field to store a normalized string. For some
-      entity types, one of respective `structured_value` fields may also be
-      populated. Also not all the types of `structured_value` will be
-      normalized. For example, some processors may not generate `float` or
-      `integer` normalized text by default. Below are sample formats mapped to
-      structured values. - Money/Currency type (`money_value`) is in the ISO
-      4217 text format. - Date type (`date_value`) is in the ISO 8601 text
-      format. - Datetime type (`datetime_value`) is in the ISO 8601 text
-      format.
-  """
-
-  addressValue = _messages.MessageField('GoogleTypePostalAddress', 1)
-  booleanValue = _messages.BooleanField(2)
-  dateValue = _messages.MessageField('GoogleTypeDate', 3)
-  datetimeValue = _messages.MessageField('GoogleTypeDateTime', 4)
-  floatValue = _messages.FloatField(5, variant=_messages.Variant.FLOAT)
-  integerValue = _messages.IntegerField(6, variant=_messages.Variant.INT32)
-  moneyValue = _messages.MessageField('GoogleTypeMoney', 7)
-  text = _messages.StringField(8)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentEntityRelation(_messages.Message):
-  r"""Relationship between Entities.
-
-  Fields:
-    objectId: Object entity id.
-    relation: Relationship description.
-    subjectId: Subject entity id.
-  """
-
-  objectId = _messages.StringField(1)
-  relation = _messages.StringField(2)
-  subjectId = _messages.StringField(3)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentLabel(_messages.Message):
-  r"""Label attaches schema information and/or other metadata to segments
-  within a Document. Multiple Labels on a single field can denote either
-  different labels, different instances of the same label created at different
-  times, or some combination of both.
-
-  Fields:
-    automlModel: Label is generated AutoML model. This field stores the full
-      resource name of the AutoML model. Format: `projects/{project-
-      id}/locations/{location-id}/models/{model-id}`
-    confidence: Confidence score between 0 and 1 for label assignment.
-    name: Name of the label. When the label is generated from AutoML Text
-      Classification model, this field represents the name of the category.
-  """
-
-  automlModel = _messages.StringField(1)
-  confidence = _messages.FloatField(2, variant=_messages.Variant.FLOAT)
-  name = _messages.StringField(3)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentPage(_messages.Message):
-  r"""A page in a Document.
-
-  Fields:
-    blocks: A list of visually detected text blocks on the page. A block has a
-      set of lines (collected into paragraphs) that have a common line-spacing
-      and orientation.
-    detectedBarcodes: A list of detected barcodes.
-    detectedLanguages: A list of detected languages together with confidence.
-    dimension: Physical dimension of the page.
-    formFields: A list of visually detected form fields on the page.
-    image: Rendered image for this page. This image is preprocessed to remove
-      any skew, rotation, and distortions such that the annotation bounding
-      boxes can be upright and axis-aligned.
-    imageQualityScores: Image quality scores.
-    layout: Layout for the page.
-    lines: A list of visually detected text lines on the page. A collection of
-      tokens that a human would perceive as a line.
-    pageNumber: 1-based index for current Page in a parent Document. Useful
-      when a page is taken out of a Document for individual processing.
-    paragraphs: A list of visually detected text paragraphs on the page. A
-      collection of lines that a human would perceive as a paragraph.
-    provenance: The history of this page.
-    symbols: A list of visually detected symbols on the page.
-    tables: A list of visually detected tables on the page.
-    tokens: A list of visually detected tokens on the page.
-    transforms: Transformation matrices that were applied to the original
-      document image to produce Page.image.
-    visualElements: A list of detected non-text visual elements e.g. checkbox,
-      signature etc. on the page.
-  """
-
-  blocks = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageBlock', 1, repeated=True)
-  detectedBarcodes = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageDetectedBarcode', 2, repeated=True)
-  detectedLanguages = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageDetectedLanguage', 3, repeated=True)
-  dimension = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageDimension', 4)
-  formFields = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageFormField', 5, repeated=True)
-  image = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageImage', 6)
-  imageQualityScores = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageImageQualityScores', 7)
-  layout = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageLayout', 8)
-  lines = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageLine', 9, repeated=True)
-  pageNumber = _messages.IntegerField(10, variant=_messages.Variant.INT32)
-  paragraphs = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageParagraph', 11, repeated=True)
-  provenance = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentProvenance', 12)
-  symbols = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageSymbol', 13, repeated=True)
-  tables = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageTable', 14, repeated=True)
-  tokens = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageToken', 15, repeated=True)
-  transforms = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageMatrix', 16, repeated=True)
-  visualElements = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageVisualElement', 17, repeated=True)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentPageAnchor(_messages.Message):
-  r"""Referencing the visual context of the entity in the Document.pages. Page
-  anchors can be cross-page, consist of multiple bounding polygons and
-  optionally reference specific layout element types.
-
-  Fields:
-    pageRefs: One or more references to visual page elements
-  """
-
-  pageRefs = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageAnchorPageRef', 1, repeated=True)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentPageAnchorPageRef(_messages.Message):
-  r"""Represents a weak reference to a page element within a document.
-
-  Enums:
-    LayoutTypeValueValuesEnum: Optional. The type of the layout element that
-      is being referenced if any.
-
-  Fields:
-    boundingPoly: Optional. Identifies the bounding polygon of a layout
-      element on the page. If `layout_type` is set, the bounding polygon must
-      be exactly the same to the layout element it's referring to.
-    confidence: Optional. Confidence of detected page element, if applicable.
-      Range `[0, 1]`.
-    layoutId: Optional. Deprecated. Use PageRef.bounding_poly instead.
-    layoutType: Optional. The type of the layout element that is being
-      referenced if any.
-    page: Required. Index into the Document.pages element, for example using
-      `Document.pages` to locate the related page element. This field is
-      skipped when its value is the default `0`. See
-      https://developers.google.com/protocol-buffers/docs/proto3#json.
-  """
-
-  class LayoutTypeValueValuesEnum(_messages.Enum):
-    r"""Optional. The type of the layout element that is being referenced if
-    any.
-
-    Values:
-      LAYOUT_TYPE_UNSPECIFIED: Layout Unspecified.
-      BLOCK: References a Page.blocks element.
-      PARAGRAPH: References a Page.paragraphs element.
-      LINE: References a Page.lines element.
-      TOKEN: References a Page.tokens element.
-      VISUAL_ELEMENT: References a Page.visual_elements element.
-      TABLE: Refrrences a Page.tables element.
-      FORM_FIELD: References a Page.form_fields element.
-    """
-    LAYOUT_TYPE_UNSPECIFIED = 0
-    BLOCK = 1
-    PARAGRAPH = 2
-    LINE = 3
-    TOKEN = 4
-    VISUAL_ELEMENT = 5
-    TABLE = 6
-    FORM_FIELD = 7
-
-  boundingPoly = _messages.MessageField('GoogleCloudDocumentaiV1beta2BoundingPoly', 1)
-  confidence = _messages.FloatField(2, variant=_messages.Variant.FLOAT)
-  layoutId = _messages.StringField(3)
-  layoutType = _messages.EnumField('LayoutTypeValueValuesEnum', 4)
-  page = _messages.IntegerField(5)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentPageBlock(_messages.Message):
-  r"""A block has a set of lines (collected into paragraphs) that have a
-  common line-spacing and orientation.
-
-  Fields:
-    detectedLanguages: A list of detected languages together with confidence.
-    layout: Layout for Block.
-    provenance: The history of this annotation.
-  """
-
-  detectedLanguages = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageDetectedLanguage', 1, repeated=True)
-  layout = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageLayout', 2)
-  provenance = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentProvenance', 3)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentPageDetectedBarcode(_messages.Message):
-  r"""A detected barcode.
-
-  Fields:
-    barcode: Detailed barcode information of the DetectedBarcode.
-    layout: Layout for DetectedBarcode.
-  """
-
-  barcode = _messages.MessageField('GoogleCloudDocumentaiV1beta2Barcode', 1)
-  layout = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageLayout', 2)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentPageDetectedLanguage(_messages.Message):
-  r"""Detected language for a structural component.
-
-  Fields:
-    confidence: Confidence of detected language. Range `[0, 1]`.
-    languageCode: The [BCP-47 language
-      code](https://www.unicode.org/reports/tr35/#Unicode_locale_identifier),
-      such as `en-US` or `sr-Latn`.
-  """
-
-  confidence = _messages.FloatField(1, variant=_messages.Variant.FLOAT)
-  languageCode = _messages.StringField(2)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentPageDimension(_messages.Message):
-  r"""Dimension for the page.
-
-  Fields:
-    height: Page height.
-    unit: Dimension unit.
-    width: Page width.
-  """
-
-  height = _messages.FloatField(1, variant=_messages.Variant.FLOAT)
-  unit = _messages.StringField(2)
-  width = _messages.FloatField(3, variant=_messages.Variant.FLOAT)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentPageFormField(_messages.Message):
-  r"""A form field detected on the page.
-
-  Fields:
-    correctedKeyText: Created for Labeling UI to export key text. If
-      corrections were made to the text identified by the
-      `field_name.text_anchor`, this field will contain the correction.
-    correctedValueText: Created for Labeling UI to export value text. If
-      corrections were made to the text identified by the
-      `field_value.text_anchor`, this field will contain the correction.
-    fieldName: Layout for the FormField name. e.g. `Address`, `Email`, `Grand
-      total`, `Phone number`, etc.
-    fieldValue: Layout for the FormField value.
-    nameDetectedLanguages: A list of detected languages for name together with
-      confidence.
-    provenance: The history of this annotation.
-    valueDetectedLanguages: A list of detected languages for value together
-      with confidence.
-    valueType: If the value is non-textual, this field represents the type.
-      Current valid values are: - blank (this indicates the `field_value` is
-      normal text) - `unfilled_checkbox` - `filled_checkbox`
-  """
-
-  correctedKeyText = _messages.StringField(1)
-  correctedValueText = _messages.StringField(2)
-  fieldName = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageLayout', 3)
-  fieldValue = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageLayout', 4)
-  nameDetectedLanguages = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageDetectedLanguage', 5, repeated=True)
-  provenance = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentProvenance', 6)
-  valueDetectedLanguages = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageDetectedLanguage', 7, repeated=True)
-  valueType = _messages.StringField(8)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentPageImage(_messages.Message):
-  r"""Rendered image contents for this page.
-
-  Fields:
-    content: Raw byte content of the image.
-    height: Height of the image in pixels.
-    mimeType: Encoding [media type (MIME
-      type)](https://www.iana.org/assignments/media-types/media-types.xhtml)
-      for the image.
-    width: Width of the image in pixels.
-  """
-
-  content = _messages.BytesField(1)
-  height = _messages.IntegerField(2, variant=_messages.Variant.INT32)
-  mimeType = _messages.StringField(3)
-  width = _messages.IntegerField(4, variant=_messages.Variant.INT32)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentPageImageQualityScores(_messages.Message):
-  r"""Image quality scores for the page image.
-
-  Fields:
-    detectedDefects: A list of detected defects.
-    qualityScore: The overall quality score. Range `[0, 1]` where `1` is
-      perfect quality.
-  """
-
-  detectedDefects = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageImageQualityScoresDetectedDefect', 1, repeated=True)
-  qualityScore = _messages.FloatField(2, variant=_messages.Variant.FLOAT)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentPageImageQualityScoresDetectedDefect(_messages.Message):
-  r"""Image Quality Defects
-
-  Fields:
-    confidence: Confidence of detected defect. Range `[0, 1]` where `1`
-      indicates strong confidence that the defect exists.
-    type: Name of the defect type. Supported values are: -
-      `quality/defect_blurry` - `quality/defect_noisy` - `quality/defect_dark`
-      - `quality/defect_faint` - `quality/defect_text_too_small` -
-      `quality/defect_document_cutoff` - `quality/defect_text_cutoff` -
-      `quality/defect_glare`
-  """
-
-  confidence = _messages.FloatField(1, variant=_messages.Variant.FLOAT)
-  type = _messages.StringField(2)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentPageLayout(_messages.Message):
-  r"""Visual element describing a layout unit on a page.
-
-  Enums:
-    OrientationValueValuesEnum: Detected orientation for the Layout.
-
-  Fields:
-    boundingPoly: The bounding polygon for the Layout.
-    confidence: Confidence of the current Layout within context of the object
-      this layout is for. e.g. confidence can be for a single token, a table,
-      a visual element, etc. depending on context. Range `[0, 1]`.
-    orientation: Detected orientation for the Layout.
-    textAnchor: Text anchor indexing into the Document.text.
-  """
-
-  class OrientationValueValuesEnum(_messages.Enum):
-    r"""Detected orientation for the Layout.
-
-    Values:
-      ORIENTATION_UNSPECIFIED: Unspecified orientation.
-      PAGE_UP: Orientation is aligned with page up.
-      PAGE_RIGHT: Orientation is aligned with page right. Turn the head 90
-        degrees clockwise from upright to read.
-      PAGE_DOWN: Orientation is aligned with page down. Turn the head 180
-        degrees from upright to read.
-      PAGE_LEFT: Orientation is aligned with page left. Turn the head 90
-        degrees counterclockwise from upright to read.
-    """
-    ORIENTATION_UNSPECIFIED = 0
-    PAGE_UP = 1
-    PAGE_RIGHT = 2
-    PAGE_DOWN = 3
-    PAGE_LEFT = 4
-
-  boundingPoly = _messages.MessageField('GoogleCloudDocumentaiV1beta2BoundingPoly', 1)
-  confidence = _messages.FloatField(2, variant=_messages.Variant.FLOAT)
-  orientation = _messages.EnumField('OrientationValueValuesEnum', 3)
-  textAnchor = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentTextAnchor', 4)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentPageLine(_messages.Message):
-  r"""A collection of tokens that a human would perceive as a line. Does not
-  cross column boundaries, can be horizontal, vertical, etc.
-
-  Fields:
-    detectedLanguages: A list of detected languages together with confidence.
-    layout: Layout for Line.
-    provenance: The history of this annotation.
-  """
-
-  detectedLanguages = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageDetectedLanguage', 1, repeated=True)
-  layout = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageLayout', 2)
-  provenance = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentProvenance', 3)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentPageMatrix(_messages.Message):
-  r"""Representation for transformation matrix, intended to be compatible and
-  used with OpenCV format for image manipulation.
-
-  Fields:
-    cols: Number of columns in the matrix.
-    data: The matrix data.
-    rows: Number of rows in the matrix.
-    type: This encodes information about what data type the matrix uses. For
-      example, 0 (CV_8U) is an unsigned 8-bit image. For the full list of
-      OpenCV primitive data types, please refer to
-      https://docs.opencv.org/4.3.0/d1/d1b/group__core__hal__interface.html
-  """
-
-  cols = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  data = _messages.BytesField(2)
-  rows = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  type = _messages.IntegerField(4, variant=_messages.Variant.INT32)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentPageParagraph(_messages.Message):
-  r"""A collection of lines that a human would perceive as a paragraph.
-
-  Fields:
-    detectedLanguages: A list of detected languages together with confidence.
-    layout: Layout for Paragraph.
-    provenance: The history of this annotation.
-  """
-
-  detectedLanguages = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageDetectedLanguage', 1, repeated=True)
-  layout = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageLayout', 2)
-  provenance = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentProvenance', 3)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentPageSymbol(_messages.Message):
-  r"""A detected symbol.
-
-  Fields:
-    detectedLanguages: A list of detected languages together with confidence.
-    layout: Layout for Symbol.
-  """
-
-  detectedLanguages = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageDetectedLanguage', 1, repeated=True)
-  layout = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageLayout', 2)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentPageTable(_messages.Message):
-  r"""A table representation similar to HTML table structure.
-
-  Fields:
-    bodyRows: Body rows of the table.
-    detectedLanguages: A list of detected languages together with confidence.
-    headerRows: Header rows of the table.
-    layout: Layout for Table.
-    provenance: The history of this table.
-  """
-
-  bodyRows = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageTableTableRow', 1, repeated=True)
-  detectedLanguages = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageDetectedLanguage', 2, repeated=True)
-  headerRows = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageTableTableRow', 3, repeated=True)
-  layout = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageLayout', 4)
-  provenance = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentProvenance', 5)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentPageTableTableCell(_messages.Message):
-  r"""A cell representation inside the table.
-
-  Fields:
-    colSpan: How many columns this cell spans.
-    detectedLanguages: A list of detected languages together with confidence.
-    layout: Layout for TableCell.
-    rowSpan: How many rows this cell spans.
-  """
-
-  colSpan = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  detectedLanguages = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageDetectedLanguage', 2, repeated=True)
-  layout = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageLayout', 3)
-  rowSpan = _messages.IntegerField(4, variant=_messages.Variant.INT32)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentPageTableTableRow(_messages.Message):
-  r"""A row of table cells.
-
-  Fields:
-    cells: Cells that make up this row.
-  """
-
-  cells = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageTableTableCell', 1, repeated=True)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentPageToken(_messages.Message):
-  r"""A detected token.
-
-  Fields:
-    detectedBreak: Detected break at the end of a Token.
-    detectedLanguages: A list of detected languages together with confidence.
-    layout: Layout for Token.
-    provenance: The history of this annotation.
-    styleInfo: Text style attributes.
-  """
-
-  detectedBreak = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageTokenDetectedBreak', 1)
-  detectedLanguages = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageDetectedLanguage', 2, repeated=True)
-  layout = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageLayout', 3)
-  provenance = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentProvenance', 4)
-  styleInfo = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageTokenStyleInfo', 5)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentPageTokenDetectedBreak(_messages.Message):
-  r"""Detected break at the end of a Token.
-
-  Enums:
-    TypeValueValuesEnum: Detected break type.
-
-  Fields:
-    type: Detected break type.
-  """
-
-  class TypeValueValuesEnum(_messages.Enum):
-    r"""Detected break type.
-
-    Values:
-      TYPE_UNSPECIFIED: Unspecified break type.
-      SPACE: A single whitespace.
-      WIDE_SPACE: A wider whitespace.
-      HYPHEN: A hyphen that indicates that a token has been split across
-        lines.
-    """
-    TYPE_UNSPECIFIED = 0
-    SPACE = 1
-    WIDE_SPACE = 2
-    HYPHEN = 3
-
-  type = _messages.EnumField('TypeValueValuesEnum', 1)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentPageTokenStyleInfo(_messages.Message):
-  r"""Font and other text style attributes.
-
-  Fields:
-    backgroundColor: Color of the background.
-    bold: Whether the text is bold (equivalent to font_weight is at least
-      `700`).
-    fontSize: Font size in points (`1` point is `\xb9\u2044\u2087\u2082`
-      inches).
-    fontType: Name or style of the font.
-    fontWeight: TrueType weight on a scale `100` (thin) to `1000` (ultra-
-      heavy). Normal is `400`, bold is `700`.
-    handwritten: Whether the text is handwritten.
-    italic: Whether the text is italic.
-    letterSpacing: Letter spacing in points.
-    pixelFontSize: Font size in pixels, equal to _unrounded font_size_ *
-      _resolution_ \xf7 `72.0`.
-    smallcaps: Whether the text is in small caps. This feature is not
-      supported yet.
-    strikeout: Whether the text is strikethrough. This feature is not
-      supported yet.
-    subscript: Whether the text is a subscript. This feature is not supported
-      yet.
-    superscript: Whether the text is a superscript. This feature is not
-      supported yet.
-    textColor: Color of the text.
-    underlined: Whether the text is underlined.
-  """
-
-  backgroundColor = _messages.MessageField('GoogleTypeColor', 1)
-  bold = _messages.BooleanField(2)
-  fontSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  fontType = _messages.StringField(4)
-  fontWeight = _messages.IntegerField(5, variant=_messages.Variant.INT32)
-  handwritten = _messages.BooleanField(6)
-  italic = _messages.BooleanField(7)
-  letterSpacing = _messages.FloatField(8)
-  pixelFontSize = _messages.FloatField(9)
-  smallcaps = _messages.BooleanField(10)
-  strikeout = _messages.BooleanField(11)
-  subscript = _messages.BooleanField(12)
-  superscript = _messages.BooleanField(13)
-  textColor = _messages.MessageField('GoogleTypeColor', 14)
-  underlined = _messages.BooleanField(15)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentPageVisualElement(_messages.Message):
-  r"""Detected non-text visual elements e.g. checkbox, signature etc. on the
-  page.
-
-  Fields:
-    detectedLanguages: A list of detected languages together with confidence.
-    layout: Layout for VisualElement.
-    type: Type of the VisualElement.
-  """
-
-  detectedLanguages = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageDetectedLanguage', 1, repeated=True)
-  layout = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentPageLayout', 2)
-  type = _messages.StringField(3)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentProvenance(_messages.Message):
-  r"""Structure to identify provenance relationships between annotations in
-  different revisions.
-
-  Enums:
-    TypeValueValuesEnum: The type of provenance operation.
-
-  Fields:
-    id: The Id of this operation. Needs to be unique within the scope of the
-      revision.
-    parents: References to the original elements that are replaced.
-    revision: The index of the revision that produced this element.
-    type: The type of provenance operation.
-  """
-
-  class TypeValueValuesEnum(_messages.Enum):
-    r"""The type of provenance operation.
-
-    Values:
-      OPERATION_TYPE_UNSPECIFIED: Operation type unspecified. If no operation
-        is specified a provenance entry is simply used to match against a
-        `parent`.
-      ADD: Add an element.
-      REMOVE: Remove an element identified by `parent`.
-      UPDATE: Updates any fields within the given provenance scope of the
-        message. It overwrites the fields rather than replacing them. Use this
-        when you want to update a field value of an entity without also
-        updating all the child properties.
-      REPLACE: Currently unused. Replace an element identified by `parent`.
-      EVAL_REQUESTED: Deprecated. Request human review for the element
-        identified by `parent`.
-      EVAL_APPROVED: Deprecated. Element is reviewed and approved at human
-        review, confidence will be set to 1.0.
-      EVAL_SKIPPED: Deprecated. Element is skipped in the validation process.
-    """
-    OPERATION_TYPE_UNSPECIFIED = 0
-    ADD = 1
-    REMOVE = 2
-    UPDATE = 3
-    REPLACE = 4
-    EVAL_REQUESTED = 5
-    EVAL_APPROVED = 6
-    EVAL_SKIPPED = 7
-
-  id = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  parents = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentProvenanceParent', 2, repeated=True)
-  revision = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  type = _messages.EnumField('TypeValueValuesEnum', 4)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentProvenanceParent(_messages.Message):
-  r"""The parent element the current element is based on. Used for
-  referencing/aligning, removal and replacement operations.
-
-  Fields:
-    id: The id of the parent provenance.
-    index: The index of the parent item in the corresponding item list (eg.
-      list of entities, properties within entities, etc.) in the parent
-      revision.
-    revision: The index of the index into current revision's parent_ids list.
-  """
-
-  id = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  index = _messages.IntegerField(2, variant=_messages.Variant.INT32)
-  revision = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentRevision(_messages.Message):
-  r"""Contains past or forward revisions of this document.
-
-  Fields:
-    agent: If the change was made by a person specify the name or id of that
-      person.
-    createTime: The time that the revision was created, internally generated
-      by doc proto storage at the time of create.
-    humanReview: Human Review information of this revision.
-    id: Id of the revision, internally generated by doc proto storage. Unique
-      within the context of the document.
-    parent: The revisions that this revision is based on. This can include one
-      or more parent (when documents are merged.) This field represents the
-      index into the `revisions` field.
-    parentIds: The revisions that this revision is based on. Must include all
-      the ids that have anything to do with this revision - eg. there are
-      `provenance.parent.revision` fields that index into this field.
-    processor: If the annotation was made by processor identify the processor
-      by its resource name.
-  """
-
-  agent = _messages.StringField(1)
-  createTime = _messages.StringField(2)
-  humanReview = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentRevisionHumanReview', 3)
-  id = _messages.StringField(4)
-  parent = _messages.IntegerField(5, repeated=True, variant=_messages.Variant.INT32)
-  parentIds = _messages.StringField(6, repeated=True)
-  processor = _messages.StringField(7)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentRevisionHumanReview(_messages.Message):
-  r"""Human Review information of the document.
-
-  Fields:
-    state: Human review state. e.g. `requested`, `succeeded`, `rejected`.
-    stateMessage: A message providing more details about the current state of
-      processing. For example, the rejection reason when the state is
-      `rejected`.
-  """
-
-  state = _messages.StringField(1)
-  stateMessage = _messages.StringField(2)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentShardInfo(_messages.Message):
-  r"""For a large document, sharding may be performed to produce several
-  document shards. Each document shard contains this field to detail which
-  shard it is.
-
-  Fields:
-    shardCount: Total number of shards.
-    shardIndex: The 0-based index of this shard.
-    textOffset: The index of the first character in Document.text in the
-      overall document global text.
-  """
-
-  shardCount = _messages.IntegerField(1)
-  shardIndex = _messages.IntegerField(2)
-  textOffset = _messages.IntegerField(3)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentStyle(_messages.Message):
-  r"""Annotation for common text style attributes. This adheres to CSS
-  conventions as much as possible.
-
-  Fields:
-    backgroundColor: Text background color.
-    color: Text color.
-    fontFamily: Font family such as `Arial`, `Times New Roman`.
-      https://www.w3schools.com/cssref/pr_font_font-family.asp
-    fontSize: Font size.
-    fontWeight: [Font
-      weight](https://www.w3schools.com/cssref/pr_font_weight.asp). Possible
-      values are `normal`, `bold`, `bolder`, and `lighter`.
-    textAnchor: Text anchor indexing into the Document.text.
-    textDecoration: [Text
-      decoration](https://www.w3schools.com/cssref/pr_text_text-
-      decoration.asp). Follows CSS standard.
-    textStyle: [Text style](https://www.w3schools.com/cssref/pr_font_font-
-      style.asp). Possible values are `normal`, `italic`, and `oblique`.
-  """
-
-  backgroundColor = _messages.MessageField('GoogleTypeColor', 1)
-  color = _messages.MessageField('GoogleTypeColor', 2)
-  fontFamily = _messages.StringField(3)
-  fontSize = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentStyleFontSize', 4)
-  fontWeight = _messages.StringField(5)
-  textAnchor = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentTextAnchor', 6)
-  textDecoration = _messages.StringField(7)
-  textStyle = _messages.StringField(8)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentStyleFontSize(_messages.Message):
-  r"""Font size with unit.
-
-  Fields:
-    size: Font size for the text.
-    unit: Unit for the font size. Follows CSS naming (such as `in`, `px`, and
-      `pt`).
-  """
-
-  size = _messages.FloatField(1, variant=_messages.Variant.FLOAT)
-  unit = _messages.StringField(2)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentTextAnchor(_messages.Message):
-  r"""Text reference indexing into the Document.text.
-
-  Fields:
-    content: Contains the content of the text span so that users do not have
-      to look it up in the text_segments. It is always populated for
-      formFields.
-    textSegments: The text segments from the Document.text.
-  """
-
-  content = _messages.StringField(1)
-  textSegments = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentTextAnchorTextSegment', 2, repeated=True)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentTextAnchorTextSegment(_messages.Message):
-  r"""A text segment in the Document.text. The indices may be out of bounds
-  which indicate that the text extends into another document shard for large
-  sharded documents. See ShardInfo.text_offset
-
-  Fields:
-    endIndex: TextSegment half open end UTF-8 char index in the Document.text.
-    startIndex: TextSegment start UTF-8 char index in the Document.text.
-  """
-
-  endIndex = _messages.IntegerField(1)
-  startIndex = _messages.IntegerField(2)
-
-
-class GoogleCloudDocumentaiV1beta2DocumentTextChange(_messages.Message):
-  r"""This message is used for text changes aka. OCR corrections.
-
-  Fields:
-    changedText: The text that replaces the text identified in the
-      `text_anchor`.
-    provenance: The history of this annotation.
-    textAnchor: Provenance of the correction. Text anchor indexing into the
-      Document.text. There can only be a single `TextAnchor.text_segments`
-      element. If the start and end index of the text segment are the same,
-      the text change is inserted before that index.
-  """
-
-  changedText = _messages.StringField(1)
-  provenance = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentProvenance', 2, repeated=True)
-  textAnchor = _messages.MessageField('GoogleCloudDocumentaiV1beta2DocumentTextAnchor', 3)
-
-
-class GoogleCloudDocumentaiV1beta2GcsDestination(_messages.Message):
-  r"""The Google Cloud Storage location where the output file will be written
-  to.
-
-  Fields:
-    uri: A string attribute.
-  """
-
-  uri = _messages.StringField(1)
-
-
-class GoogleCloudDocumentaiV1beta2GcsSource(_messages.Message):
-  r"""The Google Cloud Storage location where the input file will be read
-  from.
-
-  Fields:
-    uri: A string attribute.
-  """
-
-  uri = _messages.StringField(1)
-
-
-class GoogleCloudDocumentaiV1beta2InputConfig(_messages.Message):
-  r"""The desired input location and metadata.
-
-  Fields:
-    contents: Content in bytes, represented as a stream of bytes. Note: As
-      with all `bytes` fields, proto buffer messages use a pure binary
-      representation, whereas JSON representations use base64. This field only
-      works for synchronous ProcessDocument method.
-    gcsSource: The Google Cloud Storage location to read the input from. This
-      must be a single file.
-    mimeType: Required. Mimetype of the input. Current supported mimetypes are
-      application/pdf, image/tiff, and image/gif. In addition,
-      application/json type is supported for requests with
-      ProcessDocumentRequest.automl_params field set. The JSON file needs to
-      be in Document format.
-  """
-
-  contents = _messages.BytesField(1)
-  gcsSource = _messages.MessageField('GoogleCloudDocumentaiV1beta2GcsSource', 2)
-  mimeType = _messages.StringField(3)
-
-
-class GoogleCloudDocumentaiV1beta2NormalizedVertex(_messages.Message):
-  r"""A vertex represents a 2D point in the image. NOTE: the normalized vertex
-  coordinates are relative to the original image and range from 0 to 1.
-
-  Fields:
-    x: X coordinate.
-    y: Y coordinate (starts from the top of the image).
-  """
-
-  x = _messages.FloatField(1, variant=_messages.Variant.FLOAT)
-  y = _messages.FloatField(2, variant=_messages.Variant.FLOAT)
-
-
-class GoogleCloudDocumentaiV1beta2OperationMetadata(_messages.Message):
-  r"""Contains metadata for the BatchProcessDocuments operation.
-
-  Enums:
-    StateValueValuesEnum: The state of the current batch processing.
-
-  Fields:
-    createTime: The creation time of the operation.
-    state: The state of the current batch processing.
-    stateMessage: A message providing more details about the current state of
-      processing.
-    updateTime: The last update time of the operation.
-  """
-
-  class StateValueValuesEnum(_messages.Enum):
-    r"""The state of the current batch processing.
-
-    Values:
-      STATE_UNSPECIFIED: The default value. This value is used if the state is
-        omitted.
-      ACCEPTED: Request is received.
-      WAITING: Request operation is waiting for scheduling.
-      RUNNING: Request is being processed.
-      SUCCEEDED: The batch processing completed successfully.
-      CANCELLED: The batch processing was cancelled.
-      FAILED: The batch processing has failed.
-    """
-    STATE_UNSPECIFIED = 0
-    ACCEPTED = 1
-    WAITING = 2
-    RUNNING = 3
-    SUCCEEDED = 4
-    CANCELLED = 5
-    FAILED = 6
-
-  createTime = _messages.StringField(1)
-  state = _messages.EnumField('StateValueValuesEnum', 2)
-  stateMessage = _messages.StringField(3)
-  updateTime = _messages.StringField(4)
-
-
-class GoogleCloudDocumentaiV1beta2OutputConfig(_messages.Message):
-  r"""The desired output location and metadata.
-
-  Fields:
-    gcsDestination: The Google Cloud Storage location to write the output to.
-    pagesPerShard: The max number of pages to include into each output
-      Document shard JSON on Google Cloud Storage. The valid range is [1,
-      100]. If not specified, the default value is 20. For example, for one
-      pdf file with 100 pages, 100 parsed pages will be produced. If
-      `pages_per_shard` = 20, then 5 Document shard JSON files each containing
-      20 parsed pages will be written under the prefix
-      OutputConfig.gcs_destination.uri and suffix pages-x-to-y.json where x
-      and y are 1-indexed page numbers. Example GCS outputs with 157 pages and
-      pages_per_shard = 50: pages-001-to-050.json pages-051-to-100.json
-      pages-101-to-150.json pages-151-to-157.json
-  """
-
-  gcsDestination = _messages.MessageField('GoogleCloudDocumentaiV1beta2GcsDestination', 1)
-  pagesPerShard = _messages.IntegerField(2, variant=_messages.Variant.INT32)
-
-
-class GoogleCloudDocumentaiV1beta2ProcessDocumentResponse(_messages.Message):
-  r"""Response to a single document processing request.
-
-  Fields:
-    inputConfig: Information about the input file. This is the same as the
-      corresponding input config in the request.
-    outputConfig: The output location of the parsed responses. The responses
-      are written to this location as JSON-serialized `Document` objects.
-  """
-
-  inputConfig = _messages.MessageField('GoogleCloudDocumentaiV1beta2InputConfig', 1)
-  outputConfig = _messages.MessageField('GoogleCloudDocumentaiV1beta2OutputConfig', 2)
-
-
-class GoogleCloudDocumentaiV1beta2Vertex(_messages.Message):
-  r"""A vertex represents a 2D point in the image. NOTE: the vertex
-  coordinates are in the same scale as the original image.
-
-  Fields:
-    x: X coordinate.
-    y: Y coordinate (starts from the top of the image).
-  """
-
-  x = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  y = _messages.IntegerField(2, variant=_messages.Variant.INT32)
-
-
 class GoogleCloudDocumentaiV1beta3BatchDeleteDocumentsMetadata(_messages.Message):
   r"""A GoogleCloudDocumentaiV1beta3BatchDeleteDocumentsMetadata object.
 
@@ -5941,6 +4342,8 @@ class GoogleCloudDocumentaiV1beta3Dataset(_messages.Message):
       stored under a user-managed Cloud Storage location.
     name: Dataset resource name. Format:
       `projects/{project}/locations/{location}/processors/{processor}/dataset`
+    satisfiesPzi: Output only. Reserved for future use.
+    satisfiesPzs: Output only. Reserved for future use.
     spannerIndexingConfig: Optional. A lightweight indexing source with low
       latency and high reliability, but lacking advanced features like CMEK
       and content-based search.
@@ -5967,9 +4370,11 @@ class GoogleCloudDocumentaiV1beta3Dataset(_messages.Message):
   documentWarehouseConfig = _messages.MessageField('GoogleCloudDocumentaiV1beta3DatasetDocumentWarehouseConfig', 1)
   gcsManagedConfig = _messages.MessageField('GoogleCloudDocumentaiV1beta3DatasetGCSManagedConfig', 2)
   name = _messages.StringField(3)
-  spannerIndexingConfig = _messages.MessageField('GoogleCloudDocumentaiV1beta3DatasetSpannerIndexingConfig', 4)
-  state = _messages.EnumField('StateValueValuesEnum', 5)
-  unmanagedDatasetConfig = _messages.MessageField('GoogleCloudDocumentaiV1beta3DatasetUnmanagedDatasetConfig', 6)
+  satisfiesPzi = _messages.BooleanField(4)
+  satisfiesPzs = _messages.BooleanField(5)
+  spannerIndexingConfig = _messages.MessageField('GoogleCloudDocumentaiV1beta3DatasetSpannerIndexingConfig', 6)
+  state = _messages.EnumField('StateValueValuesEnum', 7)
+  unmanagedDatasetConfig = _messages.MessageField('GoogleCloudDocumentaiV1beta3DatasetUnmanagedDatasetConfig', 8)
 
 
 class GoogleCloudDocumentaiV1beta3DatasetDocumentWarehouseConfig(_messages.Message):
@@ -6897,44 +5302,45 @@ class GoogleTypeMoney(_messages.Message):
 
 
 class GoogleTypePostalAddress(_messages.Message):
-  r"""Represents a postal address, e.g. for postal delivery or payments
-  addresses. Given a postal address, a postal service can deliver items to a
-  premise, P.O. Box or similar. It is not intended to model geographical
-  locations (roads, towns, mountains). In typical usage an address would be
-  created via user input or from importing existing data, depending on the
-  type of process. Advice on address input / editing: - Use an
-  internationalization-ready address widget such as
-  https://github.com/google/libaddressinput) - Users should not be presented
+  r"""Represents a postal address, such as for postal delivery or payments
+  addresses. With a postal address, a postal service can deliver items to a
+  premise, P.O. box, or similar. A postal address is not intended to model
+  geographical locations like roads, towns, or mountains. In typical usage, an
+  address would be created by user input or from importing existing data,
+  depending on the type of process. Advice on address input or editing: - Use
+  an internationalization-ready address widget such as
+  https://github.com/google/libaddressinput. - Users should not be presented
   with UI elements for input or editing of fields outside countries where that
-  field is used. For more guidance on how to use this schema, please see:
-  https://support.google.com/business/answer/6397478
+  field is used. For more guidance on how to use this schema, see:
+  https://support.google.com/business/answer/6397478.
 
   Fields:
     addressLines: Unstructured address lines describing the lower levels of an
-      address. Because values in address_lines do not have type information
-      and may sometimes contain multiple values in a single field (e.g.
-      "Austin, TX"), it is important that the line order is clear. The order
-      of address lines should be "envelope order" for the country/region of
-      the address. In places where this can vary (e.g. Japan),
-      address_language is used to make it explicit (e.g. "ja" for large-to-
-      small ordering and "ja-Latn" or "en" for small-to-large). This way, the
-      most specific line of an address can be selected based on the language.
-      The minimum permitted structural representation of an address consists
-      of a region_code with all remaining information placed in the
-      address_lines. It would be possible to format such an address very
-      approximately without geocoding, but no semantic reasoning could be made
-      about any of the address components until it was at least partially
-      resolved. Creating an address only containing a region_code and
-      address_lines, and then geocoding is the recommended way to handle
-      completely unstructured addresses (as opposed to guessing which parts of
-      the address should be localities or administrative areas).
+      address. Because values in `address_lines` do not have type information
+      and may sometimes contain multiple values in a single field (for
+      example, "Austin, TX"), it is important that the line order is clear.
+      The order of address lines should be "envelope order" for the country or
+      region of the address. In places where this can vary (for example,
+      Japan), `address_language` is used to make it explicit (for example,
+      "ja" for large-to-small ordering and "ja-Latn" or "en" for small-to-
+      large). In this way, the most specific line of an address can be
+      selected based on the language. The minimum permitted structural
+      representation of an address consists of a `region_code` with all
+      remaining information placed in the `address_lines`. It would be
+      possible to format such an address very approximately without geocoding,
+      but no semantic reasoning could be made about any of the address
+      components until it was at least partially resolved. Creating an address
+      only containing a `region_code` and `address_lines` and then geocoding
+      is the recommended way to handle completely unstructured addresses (as
+      opposed to guessing which parts of the address should be localities or
+      administrative areas).
     administrativeArea: Optional. Highest administrative subdivision which is
       used for postal addresses of a country or region. For example, this can
-      be a state, a province, an oblast, or a prefecture. Specifically, for
-      Spain this is the province and not the autonomous community (e.g.
-      "Barcelona" and not "Catalonia"). Many countries don't use an
-      administrative area in postal addresses. E.g. in Switzerland this should
-      be left unpopulated.
+      be a state, a province, an oblast, or a prefecture. For Spain, this is
+      the province and not the autonomous community (for example, "Barcelona"
+      and not "Catalonia"). Many countries don't use an administrative area in
+      postal addresses. For example, in Switzerland, this should be left
+      unpopulated.
     languageCode: Optional. BCP-47 language code of the contents of this
       address (if known). This is often the UI language of the input form or
       is expected to match one of the languages used in the address'
@@ -6944,15 +5350,15 @@ class GoogleTypePostalAddress(_messages.Message):
       related operations. If this value is not known, it should be omitted
       (rather than specifying a possibly incorrect default). Examples: "zh-
       Hant", "ja", "ja-Latn", "en".
-    locality: Optional. Generally refers to the city/town portion of the
+    locality: Optional. Generally refers to the city or town portion of the
       address. Examples: US city, IT comune, UK post town. In regions of the
       world where localities are not well defined or do not fit into this
-      structure well, leave locality empty and use address_lines.
+      structure well, leave `locality` empty and use `address_lines`.
     organization: Optional. The name of the organization at the address.
     postalCode: Optional. Postal code of the address. Not all countries use or
       require postal codes to be present, but where they are used, they may
-      trigger additional validation with other parts of the address (e.g.
-      state/zip validation in the U.S.A.).
+      trigger additional validation with other parts of the address (for
+      example, state or zip code validation in the United States).
     recipients: Optional. The recipient at the address. This field may, under
       certain circumstances, contain multiline information. For example, it
       might contain "care of" information.
@@ -6966,11 +5372,12 @@ class GoogleTypePostalAddress(_messages.Message):
       compatible with old revisions.
     sortingCode: Optional. Additional, country-specific, sorting code. This is
       not used in most regions. Where it is used, the value is either a string
-      like "CEDEX", optionally followed by a number (e.g. "CEDEX 7"), or just
-      a number alone, representing the "sector code" (Jamaica), "delivery area
-      indicator" (Malawi) or "post office indicator" (e.g. C\xf4te d'Ivoire).
+      like "CEDEX", optionally followed by a number (for example, "CEDEX 7"),
+      or just a number alone, representing the "sector code" (Jamaica),
+      "delivery area indicator" (Malawi) or "post office indicator" (C\xf4te
+      d'Ivoire).
     sublocality: Optional. Sublocality of the address. For example, this can
-      be neighborhoods, boroughs, districts.
+      be a neighborhood, borough, or district.
   """
 
   addressLines = _messages.StringField(1, repeated=True)
@@ -6991,8 +5398,9 @@ class GoogleTypeTimeZone(_messages.Message):
   Database](https://www.iana.org/time-zones).
 
   Fields:
-    id: IANA Time Zone Database time zone, e.g. "America/New_York".
-    version: Optional. IANA Time Zone Database version number, e.g. "2019a".
+    id: IANA Time Zone Database time zone. For example "America/New_York".
+    version: Optional. IANA Time Zone Database version number. For example
+      "2019a".
   """
 
   id = _messages.StringField(1)

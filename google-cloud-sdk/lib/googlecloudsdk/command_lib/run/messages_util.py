@@ -19,16 +19,53 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from googlecloudsdk.api_lib.run import k8s_object
+from googlecloudsdk.core import log
 
-def GetSuccessMessageForSynchronousDeploy(service):
+
+def GetSuccessMessageForMultiRegionSynchronousDeploy(service, regions):
   """Returns a user message for a successful synchronous deploy.
 
   Args:
     service: googlecloudsdk.api_lib.run.service.Service, Deployed service for
       which to build a success message.
+    regions: list of regions that we deployed to.
+  """
+  msg = (
+      'Multi-Region Service [{{bold}}{s}{{reset}}] '
+      'has been deployed to regions {{bold}}{r}{{reset}}.'
+      '\nRegional URLs:'
+  ).format(
+      s=service.name,
+      r=regions,
+  )
+  for region in regions:
+    condition = 'MultiRegionReady/' + region
+    url = (
+        service.conditions[condition].get('message')
+        if condition in service.conditions
+        else ''
+    )
+    msg += '\n{{bold}}{url}{{reset}} ({{bold}}{r}{{reset}})'.format(
+        r=region, url=url
+    )
+  return msg
+
+
+def GetSuccessMessageForSynchronousDeploy(service, no_traffic):
+  """Returns a user message for a successful synchronous deploy.
+
+  Args:
+    service: googlecloudsdk.api_lib.run.service.Service, Deployed service for
+      which to build a success message.
+    no_traffic: bool, whether the service was deployed with --no-traffic flag.
   """
   latest_ready = service.status.latestReadyRevisionName
-  latest_percent_traffic = service.latest_percent_traffic
+  # Use lastCreatedRevisionName if --no-traffic is set. This was due to a bug
+  # where the latestReadyRevisionName was not updated in time when traffic
+  # update was not needed in reconciliation steps.
+  latest_created = service.status.latestCreatedRevisionName
+  latest_percent_traffic = 0 if no_traffic else service.latest_percent_traffic
   msg = (
       'Service [{{bold}}{serv}{{reset}}] '
       'revision [{{bold}}{rev}{{reset}}] '
@@ -46,7 +83,7 @@ def GetSuccessMessageForSynchronousDeploy(service):
   return (
       msg.format(
           serv=service.name,
-          rev=latest_ready,
+          rev=latest_created if no_traffic else latest_ready,
           url=service.domain,
           latest_percent_traffic=latest_percent_traffic,
       )
@@ -76,14 +113,20 @@ def GetStartDeployMessage(
       '[{{bold}}{resource}{{reset}}] in {ns_label} [{{bold}}{ns}{{reset}}]'
   )
   msg += conn_context.location_label
-
+  # For WorkerPools case resource_ref.Parent().Name() returns the region name
+  # which is not what we want.
+  ns = (
+      resource_ref.projectsId
+      if resource_kind_lower == 'worker pool'
+      else resource_ref.Parent().Name()
+  )
   return msg.format(
       operation=operation,
       operator=conn_context.operator,
       resource_kind=resource_kind_lower,
       ns_label=conn_context.ns_label,
       resource=resource_ref.Name(),
-      ns=resource_ref.Parent().Name(),
+      ns=ns,
   )
 
 
@@ -149,7 +192,7 @@ def GetExecutionCreatedMessage(release_track, execution):
 def _GetExecutionUiLink(execution):
   return (
       'https://console.cloud.google.com/run/jobs/executions/'
-      'details/{region}/{execution_name}/tasks?project={project}'
+      'details/{region}/{execution_name}?project={project}'
   ).format(
       region=execution.region,
       execution_name=execution.name,
@@ -168,11 +211,7 @@ def GetBuildEquivalentForSourceRunMessage(name, pack, source, subgroup=''):
     subgroup: subgroup name for this command. Either 'jobs ', 'workers ' or
       empty for services
   """
-  build_flag = ''
-  if pack:
-    build_flag = '--pack image=[IMAGE]'
-  else:
-    build_flag = '--tag [IMAGE]'
+  build_flag = '--pack image=[IMAGE]' if pack else '--tag [IMAGE]'
   msg = (
       'This command is equivalent to running '
       '`gcloud builds submit {build_flag} {source}` and '
@@ -183,22 +222,43 @@ def GetBuildEquivalentForSourceRunMessage(name, pack, source, subgroup=''):
   )
 
 
-def GetSuccessMessageForWorkerDeploy(worker):
-  """Returns a user message for a successful synchronous deploy.
+def MaybeLogDefaultGpuTypeMessage(args, resource):
+  """Logs a user message for GPU type default value if it is not provided."""
+  gpu_set = 'gpu' in args and args.gpu
+  gpu_type_set = 'gpu_type' in args and args.gpu_type
+  if 'containers' in args and args.containers:
+    for _, container_args in args.containers.items():
+      if 'gpu' in container_args and container_args.gpu:
+        gpu_set = True
+  has_gpu_type = (
+      resource
+      and resource.template
+      and resource.template.node_selector
+      and resource.template.node_selector.get(k8s_object.GPU_TYPE_NODE_SELECTOR)
+  )
+  if gpu_set and not gpu_type_set and not has_gpu_type:
+    log.status.Print(
+        'No GPU type is provided, defaulting to nvidia-l4. To specify the'
+        ' GPU type use --gpu-type.'
+    )
 
-  TODO(b/322180968): Once Worker API is ready, replace Service related
-  references.
-  Args:
-    worker: googlecloudsdk.api_lib.run.service.Service, Deployed service for
-      which to build a success message.
-  """
-  latest_ready = worker.status.latestReadyRevisionName
-  msg = (
-      'Worker [{{bold}}{worker}{{reset}}] '
-      'revision [{{bold}}{rev}{{reset}}] '
-      'has been deployed.'
+
+def MaybeLogDefaultGpuTypeMessageForV2Resource(args, resource):
+  """Logs a user message for GPU type default value if it is not provided."""
+  gpu_set = 'gpu' in args and args.gpu
+  gpu_type_set = 'gpu_type' in args and args.gpu_type
+  if 'containers' in args and args.containers:
+    for _, container_args in args.containers.items():
+      if 'gpu' in container_args and container_args.gpu:
+        gpu_set = True
+  has_gpu_type = (
+      resource
+      and resource.template
+      and resource.template.node_selector
+      and resource.template.node_selector.accelerator
   )
-  return msg.format(
-      worker=worker.name,
-      rev=latest_ready,
-  )
+  if gpu_set and not gpu_type_set and not has_gpu_type:
+    log.status.Print(
+        'No GPU type is provided, defaulting to nvidia-l4. To specify the'
+        ' GPU type use --gpu-type.'
+    )

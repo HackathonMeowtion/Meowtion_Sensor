@@ -28,6 +28,7 @@ from googlecloudsdk.core import properties
 from googlecloudsdk.core import resources
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class List(base.ListCommand):
   """List Filestore instances."""
@@ -40,7 +41,9 @@ class List(base.ListCommand):
         'The location in which to list instances.')]).AddToParser(parser)
     instances_flags.AddLocationArg(parser)
     instances_flags.AddRegionArg(parser)
-    parser.display_info.AddFormat(instances_flags.INSTANCES_LIST_FORMAT)
+    parser.display_info.AddFormat(
+        instances_flags.INSTANCES_LIST_FORMAT_V1_ALPAH
+    )
 
     def UriFunc(resource):
       registry = filestore_client.GetFilestoreRegistry()
@@ -78,7 +81,9 @@ class ListBeta(List):
     ]).AddToParser(parser)
     instances_flags.AddLocationArg(parser)
     instances_flags.AddRegionArg(parser)
-    parser.display_info.AddFormat(instances_flags.INSTANCES_LIST_FORMAT_BETA)
+    parser.display_info.AddFormat(
+        instances_flags.INSTANCES_LIST_FORMAT_BETA
+    )
 
     def UriFunc(resource):
       registry = filestore_client.GetFilestoreRegistry(
@@ -102,7 +107,9 @@ class ListAlpha(List):
         'The location in which to list instances.')]).AddToParser(parser)
     instances_flags.AddLocationArg(parser)
     instances_flags.AddRegionArg(parser)
-    parser.display_info.AddFormat(instances_flags.INSTANCES_LIST_FORMAT)
+    parser.display_info.AddFormat(
+        instances_flags.INSTANCES_LIST_FORMAT_V1_ALPAH
+    )
 
     def UriFunc(resource):
       registry = resources.REGISTRY.Clone()

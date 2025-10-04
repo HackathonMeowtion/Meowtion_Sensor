@@ -22,11 +22,14 @@ from googlecloudsdk.api_lib.compute import base_classes
 from googlecloudsdk.api_lib.compute import firewall_policy_rule_utils as rule_utils
 from googlecloudsdk.api_lib.compute.firewall_policies import client
 from googlecloudsdk.calliope import base
+from googlecloudsdk.calliope import exceptions
 from googlecloudsdk.command_lib.compute.firewall_policies import firewall_policies_utils
 from googlecloudsdk.command_lib.compute.firewall_policies import flags
+from googlecloudsdk.command_lib.compute.network_firewall_policies import secure_tags_utils
 import six
 
 
+@base.UniverseCompatible
 class Create(base.CreateCommand):
   r"""Creates a Compute Engine firewall policy rule.
 
@@ -37,6 +40,10 @@ class Create(base.CreateCommand):
 
   @classmethod
   def Args(cls, parser):
+    support_network_scopes = (
+        cls.ReleaseTrack() == base.ReleaseTrack.ALPHA
+        or cls.ReleaseTrack() == base.ReleaseTrack.BETA
+    )
     cls.FIREWALL_POLICY_ARG = flags.FirewallPolicyRuleArgument(
         required=True, operation='create'
     )
@@ -45,16 +52,18 @@ class Create(base.CreateCommand):
     flags.AddFirewallPolicyId(parser, operation='inserted')
     flags.AddSrcIpRanges(parser)
     flags.AddDestIpRanges(parser)
-    flags.AddLayer4Configs(parser)
+    flags.AddLayer4Configs(parser, required=True)
     flags.AddDirection(parser)
     flags.AddEnableLogging(parser)
     flags.AddDisabled(parser)
     flags.AddTargetResources(parser)
     flags.AddTargetServiceAccounts(parser)
-    flags.AddSrcThreatIntelligence(parser)
-    flags.AddDestThreatIntelligence(parser)
-    flags.AddSrcRegionCodes(parser)
-    flags.AddDestRegionCodes(parser)
+    flags.AddSrcSecureTags(parser)
+    flags.AddTargetSecureTags(parser)
+    flags.AddSrcThreatIntelligence(parser, support_network_scopes)
+    flags.AddDestThreatIntelligence(parser, support_network_scopes)
+    flags.AddSrcRegionCodes(parser, support_network_scopes)
+    flags.AddDestRegionCodes(parser, support_network_scopes)
     flags.AddSrcFqdns(parser)
     flags.AddDestFqdns(parser)
     flags.AddSrcAddressGroups(parser)
@@ -63,6 +72,16 @@ class Create(base.CreateCommand):
     flags.AddTlsInspect(parser)
     flags.AddDescription(parser)
     flags.AddOrganization(parser, required=False)
+    if (
+        cls.ReleaseTrack() == base.ReleaseTrack.ALPHA
+        or cls.ReleaseTrack() == base.ReleaseTrack.BETA
+    ):
+      flags.AddSrcNetworkScope(parser)
+      flags.AddSrcNetworks(parser)
+      flags.AddDestNetworkScope(parser)
+      flags.AddSrcNetworkType(parser)
+      flags.AddDestNetworkType(parser)
+
     parser.display_info.AddCacheUpdater(flags.FirewallPoliciesCompleter)
 
   def Run(self, args):
@@ -87,6 +106,8 @@ class Create(base.CreateCommand):
     layer4_configs = []
     target_resources = []
     target_service_accounts = []
+    src_secure_tags = []
+    target_secure_tags = []
     src_address_groups = []
     dest_address_groups = []
     src_fqdns = []
@@ -99,6 +120,10 @@ class Create(base.CreateCommand):
     tls_inspect = None
     enable_logging = False
     disabled = False
+    src_network_scope = None
+    src_networks = []
+    dest_network_scope = None
+
     if args.IsSpecified('src_ip_ranges'):
       src_ip_ranges = args.src_ip_ranges
     if args.IsSpecified('dest_ip_ranges'):
@@ -109,6 +134,16 @@ class Create(base.CreateCommand):
       target_resources = args.target_resources
     if args.IsSpecified('target_service_accounts'):
       target_service_accounts = args.target_service_accounts
+    if args.IsSpecified('src_secure_tags'):
+      src_secure_tags = secure_tags_utils.TranslateSecureTagsForFirewallPolicy(
+          holder.client, args.src_secure_tags
+      )
+    if args.IsSpecified('target_secure_tags'):
+      target_secure_tags = (
+          secure_tags_utils.TranslateSecureTagsForFirewallPolicy(
+              holder.client, args.target_secure_tags
+          )
+      )
     if args.IsSpecified('src_threat_intelligence'):
       src_threat_intelligence = args.src_threat_intelligence
     if args.IsSpecified('dest_threat_intelligence'):
@@ -152,22 +187,108 @@ class Create(base.CreateCommand):
     if args.IsSpecified('disabled'):
       disabled = args.disabled
 
+    if (
+        self.ReleaseTrack() == base.ReleaseTrack.ALPHA
+        or self.ReleaseTrack() == base.ReleaseTrack.BETA
+    ):
+      if args.IsSpecified('src_network_scope') and args.IsSpecified(
+          'src_network_type'
+      ):
+        raise exceptions.ToolException(
+            'At most one of src_network_scope and src_network_type can be'
+            ' specified.'
+        )
+      if args.IsSpecified('dest_network_scope') and args.IsSpecified(
+          'dest_network_type'
+      ):
+        raise exceptions.ToolException(
+            'At most one of dest_network_scope and dest_network_type can be'
+            ' specified.'
+        )
+
+      if args.IsSpecified('src_network_scope'):
+        if not args.src_network_scope:
+          src_network_scope = (
+              holder.client.messages.FirewallPolicyRuleMatcher.SrcNetworkScopeValueValuesEnum.UNSPECIFIED
+          )
+        else:
+          src_network_scope = holder.client.messages.FirewallPolicyRuleMatcher.SrcNetworkScopeValueValuesEnum(
+              args.src_network_scope
+          )
+      if args.IsSpecified('src_networks'):
+        src_networks = args.src_networks
+      if args.IsSpecified('dest_network_scope'):
+        if not args.dest_network_scope:
+          dest_network_scope = (
+              holder.client.messages.FirewallPolicyRuleMatcher.DestNetworkScopeValueValuesEnum.UNSPECIFIED
+          )
+        else:
+          dest_network_scope = holder.client.messages.FirewallPolicyRuleMatcher.DestNetworkScopeValueValuesEnum(
+              args.dest_network_scope
+          )
+      if args.IsSpecified('src_network_type'):
+        # src_network_type and src_network_scope are mutually exclusive so only
+        # one of them can be specified.
+        if not args.src_network_type:
+          src_network_scope = (
+              holder.client.messages.FirewallPolicyRuleMatcher.SrcNetworkScopeValueValuesEnum.UNSPECIFIED
+          )
+        else:
+          src_network_scope = holder.client.messages.FirewallPolicyRuleMatcher.SrcNetworkScopeValueValuesEnum(
+              args.src_network_type
+          )
+      if args.IsSpecified('dest_network_type'):
+        # dest_network_type and dest_network_scope are mutually exclusive so
+        # only one of them can be specified.
+        if not args.dest_network_type:
+          dest_network_scope = (
+              holder.client.messages.FirewallPolicyRuleMatcher.DestNetworkScopeValueValuesEnum.UNSPECIFIED
+          )
+        else:
+          dest_network_scope = holder.client.messages.FirewallPolicyRuleMatcher.DestNetworkScopeValueValuesEnum(
+              args.dest_network_type
+          )
+
     layer4_config_list = rule_utils.ParseLayer4Configs(
         layer4_configs, holder.client.messages
     )
-    matcher = holder.client.messages.FirewallPolicyRuleMatcher(
-        srcIpRanges=src_ip_ranges,
-        destIpRanges=dest_ip_ranges,
-        layer4Configs=layer4_config_list,
-        srcAddressGroups=src_address_groups,
-        destAddressGroups=dest_address_groups,
-        srcFqdns=src_fqdns,
-        destFqdns=dest_fqdns,
-        srcRegionCodes=src_region_codes,
-        destRegionCodes=dest_region_codes,
-        srcThreatIntelligences=src_threat_intelligence,
-        destThreatIntelligences=dest_threat_intelligence,
-    )
+
+    if (
+        self.ReleaseTrack() == base.ReleaseTrack.ALPHA
+        or self.ReleaseTrack() == base.ReleaseTrack.BETA
+    ):
+      matcher = holder.client.messages.FirewallPolicyRuleMatcher(
+          srcIpRanges=src_ip_ranges,
+          destIpRanges=dest_ip_ranges,
+          layer4Configs=layer4_config_list,
+          srcAddressGroups=src_address_groups,
+          destAddressGroups=dest_address_groups,
+          srcSecureTags=src_secure_tags,
+          srcFqdns=src_fqdns,
+          destFqdns=dest_fqdns,
+          srcRegionCodes=src_region_codes,
+          destRegionCodes=dest_region_codes,
+          srcThreatIntelligences=src_threat_intelligence,
+          destThreatIntelligences=dest_threat_intelligence,
+          srcNetworkScope=src_network_scope,
+          srcNetworks=src_networks,
+          destNetworkScope=dest_network_scope,
+      )
+    else:
+      matcher = holder.client.messages.FirewallPolicyRuleMatcher(
+          srcIpRanges=src_ip_ranges,
+          destIpRanges=dest_ip_ranges,
+          layer4Configs=layer4_config_list,
+          srcAddressGroups=src_address_groups,
+          destAddressGroups=dest_address_groups,
+          srcSecureTags=src_secure_tags,
+          srcFqdns=src_fqdns,
+          destFqdns=dest_fqdns,
+          srcRegionCodes=src_region_codes,
+          destRegionCodes=dest_region_codes,
+          srcThreatIntelligences=src_threat_intelligence,
+          destThreatIntelligences=dest_threat_intelligence,
+      )
     traffic_direct = (
         holder.client.messages.FirewallPolicyRule.DirectionValueValuesEnum.INGRESS
     )
@@ -188,6 +309,7 @@ class Create(base.CreateCommand):
         direction=traffic_direct,
         targetResources=target_resources,
         targetServiceAccounts=target_service_accounts,
+        targetSecureTags=target_secure_tags,
         securityProfileGroup=security_profile_group,
         tlsInspect=tls_inspect,
         description=args.description,

@@ -139,9 +139,12 @@ OPERATION_NAME_ARG = base.Argument(
 
 LOCATION_FLAG = base.Argument(
     '--location',
-    required=False,
+    required=arg_parsers.ArgRequiredInUniverse(
+        default_universe=False, non_default_universe=True
+    ),
     help='The Cloud Composer location (e.g., us-central1).',
-    action=actions.StoreProperty(properties.VALUES.composer.location))
+    action=actions.StoreProperty(properties.VALUES.composer.location),
+)
 
 _ENV_VAR_NAME_ERROR = (
     'Only upper and lowercase letters, digits, and underscores are allowed. '
@@ -165,6 +168,14 @@ _ENVIRONMENT_SIZE_MAPPING = {
     'ENVIRONMENT_SIZE_SMALL': 'small',
     'ENVIRONMENT_SIZE_MEDIUM': 'medium',
     'ENVIRONMENT_SIZE_LARGE': 'large'
+}
+
+_ENVIRONMENT_SIZE_MAPPING_ALPHA = {
+    'ENVIRONMENT_SIZE_UNSPECIFIED': 'unspecified',
+    'ENVIRONMENT_SIZE_SMALL': 'small',
+    'ENVIRONMENT_SIZE_MEDIUM': 'medium',
+    'ENVIRONMENT_SIZE_LARGE': 'large',
+    'ENVIRONMENT_SIZE_EXTRA_LARGE': 'extra-large'
 }
 
 AIRFLOW_CONFIGS_FLAG_GROUP_DESCRIPTION = (
@@ -459,7 +470,7 @@ NETWORK_FLAG = base.Argument(
 SUBNETWORK_FLAG = base.Argument(
     '--subnetwork',
     help=(
-        'The Compute Engine subnetwork '
+        'The Compute Engine Subnetwork '
         '(https://cloud.google.com/compute/docs/subnetworks) to which the '
         'environment will be connected.'
     ),
@@ -578,8 +589,7 @@ DISABLE_PRIVATE_BUILDS_ONLY = base.Argument(
     const=True,
     help="""\
     Builds performed during operations that install Python
-    packages have an access to the internet
-    supported in Composer {} or greater.
+    packages have an access to the internet, supported in Composer {} or greater.
     """.format(MIN_COMPOSER3_VERSION),
 )
 
@@ -954,7 +964,7 @@ ENVIRONMENT_SIZE_ALPHA = arg_utils.ChoiceEnumMapper(
     message_enum=api_util.GetMessagesModule(
         release_track=base.ReleaseTrack.ALPHA).EnvironmentConfig
     .EnvironmentSizeValueValuesEnum,
-    custom_mappings=_ENVIRONMENT_SIZE_MAPPING)
+    custom_mappings=_ENVIRONMENT_SIZE_MAPPING_ALPHA)
 
 AIRFLOW_DATABASE_RETENTION_DAYS = base.Argument(
     '--airflow-database-retention-days',
@@ -1065,9 +1075,14 @@ ENABLE_PRIVATE_ENVIRONMENT_FLAG = base.Argument(
 
     If not specified, cluster nodes will be assigned public IP addresses.
 
+    When used with Composer 3, disable internet connection from any Composer
+    component.
+
     When used with Composer 1.x, cannot be specified unless `--enable-ip-alias`
     is also specified.
-    """)
+
+    """,
+)
 
 ENABLE_PRIVATE_ENDPOINT_FLAG = base.Argument(
     '--enable-private-endpoint',
@@ -1794,14 +1809,13 @@ def AddAutoscalingUpdateFlagsToGroup(update_type_group, release_track):
   TRIGGERER_MEMORY.AddToParser(triggerer_enabled_group)
   ENABLE_TRIGGERER.AddToParser(triggerer_enabled_group)
   DISABLE_TRIGGERER.AddToParser(triggerer_params_group)
-  if release_track != base.ReleaseTrack.GA:
-    dag_processor_params_group = update_group.add_argument_group(
-        DAG_PROCESSOR_PARAMETERS_FLAG_GROUP_DESCRIPTION,
-    )
-    DAG_PROCESSOR_CPU.AddToParser(dag_processor_params_group)
-    DAG_PROCESSOR_COUNT.AddToParser(dag_processor_params_group)
-    DAG_PROCESSOR_MEMORY.AddToParser(dag_processor_params_group)
-    DAG_PROCESSOR_STORAGE.AddToParser(dag_processor_params_group)
+  dag_processor_params_group = update_group.add_argument_group(
+      DAG_PROCESSOR_PARAMETERS_FLAG_GROUP_DESCRIPTION,
+  )
+  DAG_PROCESSOR_CPU.AddToParser(dag_processor_params_group)
+  DAG_PROCESSOR_COUNT.AddToParser(dag_processor_params_group)
+  DAG_PROCESSOR_MEMORY.AddToParser(dag_processor_params_group)
+  DAG_PROCESSOR_STORAGE.AddToParser(dag_processor_params_group)
 
   # Note: this flag is available for patching of both Composer 1.*.* and 2.*.*
   # environments.

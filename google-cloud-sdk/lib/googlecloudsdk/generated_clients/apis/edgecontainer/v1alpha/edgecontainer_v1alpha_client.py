@@ -39,13 +39,487 @@ class EdgecontainerV1alpha(base_api.BaseApiClient):
         default_global_params=default_global_params,
         additional_http_headers=additional_http_headers,
         response_encoding=response_encoding)
+    self.organizations_locations_identityProviders = self.OrganizationsLocationsIdentityProvidersService(self)
+    self.organizations_locations_operations = self.OrganizationsLocationsOperationsService(self)
+    self.organizations_locations_zones_zonalProjects = self.OrganizationsLocationsZonesZonalProjectsService(self)
+    self.organizations_locations_zones = self.OrganizationsLocationsZonesService(self)
+    self.organizations_locations = self.OrganizationsLocationsService(self)
+    self.organizations = self.OrganizationsService(self)
     self.projects_locations_clusters_nodePools = self.ProjectsLocationsClustersNodePoolsService(self)
     self.projects_locations_clusters = self.ProjectsLocationsClustersService(self)
     self.projects_locations_machines = self.ProjectsLocationsMachinesService(self)
     self.projects_locations_operations = self.ProjectsLocationsOperationsService(self)
+    self.projects_locations_serviceAccounts = self.ProjectsLocationsServiceAccountsService(self)
     self.projects_locations_vpnConnections = self.ProjectsLocationsVpnConnectionsService(self)
+    self.projects_locations_zonalServices = self.ProjectsLocationsZonalServicesService(self)
+    self.projects_locations_zones = self.ProjectsLocationsZonesService(self)
     self.projects_locations = self.ProjectsLocationsService(self)
     self.projects = self.ProjectsService(self)
+
+  class OrganizationsLocationsIdentityProvidersService(base_api.BaseApiService):
+    """Service class for the organizations_locations_identityProviders resource."""
+
+    _NAME = 'organizations_locations_identityProviders'
+
+    def __init__(self, client):
+      super(EdgecontainerV1alpha.OrganizationsLocationsIdentityProvidersService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Configures an identity provider in the infra cluster.
+
+      Args:
+        request: (EdgecontainerOrganizationsLocationsIdentityProvidersCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (IdentityProvider) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}/identityProviders',
+        http_method='POST',
+        method_id='edgecontainer.organizations.locations.identityProviders.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1alpha/{+parent}/identityProviders',
+        request_field='createIdentityProviderRequest',
+        request_type_name='EdgecontainerOrganizationsLocationsIdentityProvidersCreateRequest',
+        response_type_name='IdentityProvider',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""DeleteIdentityProvider removes the identity provider from the infra cluster.
+
+      Args:
+        request: (EdgecontainerOrganizationsLocationsIdentityProvidersDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (IdentityProvider) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}/identityProviders/{identityProvidersId}',
+        http_method='DELETE',
+        method_id='edgecontainer.organizations.locations.identityProviders.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['cluster', 'requestId', 'zoneId'],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='EdgecontainerOrganizationsLocationsIdentityProvidersDeleteRequest',
+        response_type_name='IdentityProvider',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""GetIdentityProvider gets the identity provider details.
+
+      Args:
+        request: (EdgecontainerOrganizationsLocationsIdentityProvidersGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (IdentityProvider) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}/identityProviders/{identityProvidersId}',
+        http_method='GET',
+        method_id='edgecontainer.organizations.locations.identityProviders.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['cluster', 'zoneId'],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='EdgecontainerOrganizationsLocationsIdentityProvidersGetRequest',
+        response_type_name='IdentityProvider',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists identity providers that are configured in the infra cluster.
+
+      Args:
+        request: (EdgecontainerOrganizationsLocationsIdentityProvidersListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListIdentityProvidersResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}/identityProviders',
+        http_method='GET',
+        method_id='edgecontainer.organizations.locations.identityProviders.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['cluster', 'pageSize', 'pageToken', 'zoneId'],
+        relative_path='v1alpha/{+parent}/identityProviders',
+        request_field='',
+        request_type_name='EdgecontainerOrganizationsLocationsIdentityProvidersListRequest',
+        response_type_name='ListIdentityProvidersResponse',
+        supports_download=False,
+    )
+
+  class OrganizationsLocationsOperationsService(base_api.BaseApiService):
+    """Service class for the organizations_locations_operations resource."""
+
+    _NAME = 'organizations_locations_operations'
+
+    def __init__(self, client):
+      super(EdgecontainerV1alpha.OrganizationsLocationsOperationsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Cancel(self, request, global_params=None):
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
+
+      Args:
+        request: (EdgecontainerOrganizationsLocationsOperationsCancelRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Empty) The response message.
+      """
+      config = self.GetMethodConfig('Cancel')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Cancel.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}/operations/{operationsId}:cancel',
+        http_method='POST',
+        method_id='edgecontainer.organizations.locations.operations.cancel',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}:cancel',
+        request_field='cancelOperationRequest',
+        request_type_name='EdgecontainerOrganizationsLocationsOperationsCancelRequest',
+        response_type_name='Empty',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a long-running operation. This method indicates that the client is no longer interested in the operation result. It does not cancel the operation. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`.
+
+      Args:
+        request: (EdgecontainerOrganizationsLocationsOperationsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Empty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}/operations/{operationsId}',
+        http_method='DELETE',
+        method_id='edgecontainer.organizations.locations.operations.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='EdgecontainerOrganizationsLocationsOperationsDeleteRequest',
+        response_type_name='Empty',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets the latest state of a long-running operation. Clients can use this method to poll the operation result at intervals as recommended by the API service.
+
+      Args:
+        request: (EdgecontainerOrganizationsLocationsOperationsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}/operations/{operationsId}',
+        http_method='GET',
+        method_id='edgecontainer.organizations.locations.operations.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='EdgecontainerOrganizationsLocationsOperationsGetRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists operations that match the specified filter in the request. If the server doesn't support this method, it returns `UNIMPLEMENTED`.
+
+      Args:
+        request: (EdgecontainerOrganizationsLocationsOperationsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListOperationsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}/operations',
+        http_method='GET',
+        method_id='edgecontainer.organizations.locations.operations.list',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['filter', 'pageSize', 'pageToken', 'returnPartialSuccess'],
+        relative_path='v1alpha/{+name}/operations',
+        request_field='',
+        request_type_name='EdgecontainerOrganizationsLocationsOperationsListRequest',
+        response_type_name='ListOperationsResponse',
+        supports_download=False,
+    )
+
+  class OrganizationsLocationsZonesZonalProjectsService(base_api.BaseApiService):
+    """Service class for the organizations_locations_zones_zonalProjects resource."""
+
+    _NAME = 'organizations_locations_zones_zonalProjects'
+
+    def __init__(self, client):
+      super(EdgecontainerV1alpha.OrganizationsLocationsZonesZonalProjectsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Enable(self, request, global_params=None):
+      r"""EnableZonalProject enables consumer project on the zone.
+
+      Args:
+        request: (EdgecontainerOrganizationsLocationsZonesZonalProjectsEnableRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Enable')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Enable.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}/zones/{zonesId}/zonalProjects:enable',
+        http_method='POST',
+        method_id='edgecontainer.organizations.locations.zones.zonalProjects.enable',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['requestId', 'zonalProjectId'],
+        relative_path='v1alpha/{+parent}/zonalProjects:enable',
+        request_field='zonalProject',
+        request_type_name='EdgecontainerOrganizationsLocationsZonesZonalProjectsEnableRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""GetZonalProject gets the ZonalProject.
+
+      Args:
+        request: (EdgecontainerOrganizationsLocationsZonesZonalProjectsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ZonalProject) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}/zones/{zonesId}/zonalProjects/{zonalProjectsId}',
+        http_method='GET',
+        method_id='edgecontainer.organizations.locations.zones.zonalProjects.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='EdgecontainerOrganizationsLocationsZonesZonalProjectsGetRequest',
+        response_type_name='ZonalProject',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists ZonalProjects on the zone.
+
+      Args:
+        request: (EdgecontainerOrganizationsLocationsZonesZonalProjectsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListZonalProjectsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}/zones/{zonesId}/zonalProjects',
+        http_method='GET',
+        method_id='edgecontainer.organizations.locations.zones.zonalProjects.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha/{+parent}/zonalProjects',
+        request_field='',
+        request_type_name='EdgecontainerOrganizationsLocationsZonesZonalProjectsListRequest',
+        response_type_name='ListZonalProjectsResponse',
+        supports_download=False,
+    )
+
+  class OrganizationsLocationsZonesService(base_api.BaseApiService):
+    """Service class for the organizations_locations_zones resource."""
+
+    _NAME = 'organizations_locations_zones'
+
+    def __init__(self, client):
+      super(EdgecontainerV1alpha.OrganizationsLocationsZonesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Get(self, request, global_params=None):
+      r"""Gets details of a single Zone on which the parent organization is enabled.
+
+      Args:
+        request: (EdgecontainerOrganizationsLocationsZonesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Zone) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}/zones/{zonesId}',
+        http_method='GET',
+        method_id='edgecontainer.organizations.locations.zones.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='EdgecontainerOrganizationsLocationsZonesGetRequest',
+        response_type_name='Zone',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists Zones on which the parent organization is enabled.
+
+      Args:
+        request: (EdgecontainerOrganizationsLocationsZonesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListZonesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}/zones',
+        http_method='GET',
+        method_id='edgecontainer.organizations.locations.zones.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha/{+parent}/zones',
+        request_field='',
+        request_type_name='EdgecontainerOrganizationsLocationsZonesListRequest',
+        response_type_name='ListZonesResponse',
+        supports_download=False,
+    )
+
+  class OrganizationsLocationsService(base_api.BaseApiService):
+    """Service class for the organizations_locations resource."""
+
+    _NAME = 'organizations_locations'
+
+    def __init__(self, client):
+      super(EdgecontainerV1alpha.OrganizationsLocationsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Get(self, request, global_params=None):
+      r"""Gets information about a location.
+
+      Args:
+        request: (EdgecontainerOrganizationsLocationsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Location) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}',
+        http_method='GET',
+        method_id='edgecontainer.organizations.locations.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='EdgecontainerOrganizationsLocationsGetRequest',
+        response_type_name='Location',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists information about the supported locations for this service.
+
+      Args:
+        request: (EdgecontainerOrganizationsLocationsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListLocationsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations',
+        http_method='GET',
+        method_id='edgecontainer.organizations.locations.list',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['extraLocationTypes', 'filter', 'includeUnrevealedLocations', 'pageSize', 'pageToken'],
+        relative_path='v1alpha/{+name}/locations',
+        request_field='',
+        request_type_name='EdgecontainerOrganizationsLocationsListRequest',
+        response_type_name='ListLocationsResponse',
+        supports_download=False,
+    )
+
+  class OrganizationsService(base_api.BaseApiService):
+    """Service class for the organizations resource."""
+
+    _NAME = 'organizations'
+
+    def __init__(self, client):
+      super(EdgecontainerV1alpha.OrganizationsService, self).__init__(client)
+      self._upload_configs = {
+          }
 
   class ProjectsLocationsClustersNodePoolsService(base_api.BaseApiService):
     """Service class for the projects_locations_clusters_nodePools resource."""
@@ -493,7 +967,7 @@ class EdgecontainerV1alpha(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (EdgecontainerProjectsLocationsOperationsCancelRequest) input message
@@ -592,11 +1066,183 @@ class EdgecontainerV1alpha(base_api.BaseApiClient):
         method_id='edgecontainer.projects.locations.operations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['filter', 'pageSize', 'pageToken', 'returnPartialSuccess'],
         relative_path='v1alpha/{+name}/operations',
         request_field='',
         request_type_name='EdgecontainerProjectsLocationsOperationsListRequest',
         response_type_name='ListOperationsResponse',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsServiceAccountsService(base_api.BaseApiService):
+    """Service class for the projects_locations_serviceAccounts resource."""
+
+    _NAME = 'projects_locations_serviceAccounts'
+
+    def __init__(self, client):
+      super(EdgecontainerV1alpha.ProjectsLocationsServiceAccountsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""CreateServiceAccount creates the project service account CR in the project namespace in the cluster (infra cluster for V2, user cluster for V1).
+
+      Args:
+        request: (EdgecontainerProjectsLocationsServiceAccountsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/serviceAccounts',
+        http_method='POST',
+        method_id='edgecontainer.projects.locations.serviceAccounts.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['requestId', 'serviceAccountId'],
+        relative_path='v1alpha/{+parent}/serviceAccounts',
+        request_field='serviceAccount',
+        request_type_name='EdgecontainerProjectsLocationsServiceAccountsCreateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""DeleteServiceAccount deletes the project service account CR in the project namespace in the cluster (infra cluster for V2, user cluster for V1).
+
+      Args:
+        request: (EdgecontainerProjectsLocationsServiceAccountsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/serviceAccounts/{serviceAccountsId}',
+        http_method='DELETE',
+        method_id='edgecontainer.projects.locations.serviceAccounts.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='EdgecontainerProjectsLocationsServiceAccountsDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def GenerateKey(self, request, global_params=None):
+      r"""GenerateServiceAccountKey generates a keypair for the given service account resource.
+
+      Args:
+        request: (EdgecontainerProjectsLocationsServiceAccountsGenerateKeyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GenerateServiceAccountKeyResponse) The response message.
+      """
+      config = self.GetMethodConfig('GenerateKey')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GenerateKey.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/serviceAccounts/{serviceAccountsId}:generateKey',
+        http_method='POST',
+        method_id='edgecontainer.projects.locations.serviceAccounts.generateKey',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}:generateKey',
+        request_field='generateServiceAccountKeyRequest',
+        request_type_name='EdgecontainerProjectsLocationsServiceAccountsGenerateKeyRequest',
+        response_type_name='GenerateServiceAccountKeyResponse',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""GetServiceAccount gets the service account details.
+
+      Args:
+        request: (EdgecontainerProjectsLocationsServiceAccountsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ServiceAccount) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/serviceAccounts/{serviceAccountsId}',
+        http_method='GET',
+        method_id='edgecontainer.projects.locations.serviceAccounts.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='EdgecontainerProjectsLocationsServiceAccountsGetRequest',
+        response_type_name='ServiceAccount',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""ListServiceAccounts lists the details of all the service account resources for a project in the cluster (infra cluster for V2, user cluster for V1).
+
+      Args:
+        request: (EdgecontainerProjectsLocationsServiceAccountsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListServiceAccountsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/serviceAccounts',
+        http_method='GET',
+        method_id='edgecontainer.projects.locations.serviceAccounts.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha/{+parent}/serviceAccounts',
+        request_field='',
+        request_type_name='EdgecontainerProjectsLocationsServiceAccountsListRequest',
+        response_type_name='ListServiceAccountsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""UpdateServiceAccount updates the corresponding project service account CR in the project namespace in the cluster (infra cluster for V2, user cluster for V1).
+
+      Args:
+        request: (EdgecontainerProjectsLocationsServiceAccountsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/serviceAccounts/{serviceAccountsId}',
+        http_method='PATCH',
+        method_id='edgecontainer.projects.locations.serviceAccounts.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1alpha/{+name}',
+        request_field='serviceAccount',
+        request_type_name='EdgecontainerProjectsLocationsServiceAccountsPatchRequest',
+        response_type_name='Operation',
         supports_download=False,
     )
 
@@ -718,6 +1364,215 @@ class EdgecontainerV1alpha(base_api.BaseApiClient):
         supports_download=False,
     )
 
+  class ProjectsLocationsZonalServicesService(base_api.BaseApiService):
+    """Service class for the projects_locations_zonalServices resource."""
+
+    _NAME = 'projects_locations_zonalServices'
+
+    def __init__(self, client):
+      super(EdgecontainerV1alpha.ProjectsLocationsZonalServicesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Disable(self, request, global_params=None):
+      r"""DisableZonalService removes service access from the zone.
+
+      Args:
+        request: (EdgecontainerProjectsLocationsZonalServicesDisableRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Disable')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Disable.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/zonalServices/{zonalServicesId}:disable',
+        http_method='POST',
+        method_id='edgecontainer.projects.locations.zonalServices.disable',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}:disable',
+        request_field='disableZonalServiceRequest',
+        request_type_name='EdgecontainerProjectsLocationsZonalServicesDisableRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Enable(self, request, global_params=None):
+      r"""EnableZonalService enables a service on a zone.
+
+      Args:
+        request: (EdgecontainerProjectsLocationsZonalServicesEnableRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Enable')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Enable.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/zonalServices:enable',
+        http_method='POST',
+        method_id='edgecontainer.projects.locations.zonalServices.enable',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1alpha/{+parent}/zonalServices:enable',
+        request_field='enableZonalServiceRequest',
+        request_type_name='EdgecontainerProjectsLocationsZonalServicesEnableRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Get EnabledZonalService gets the enabled service details.
+
+      Args:
+        request: (EdgecontainerProjectsLocationsZonalServicesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ZonalService) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/zonalServices/{zonalServicesId}',
+        http_method='GET',
+        method_id='edgecontainer.projects.locations.zonalServices.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='EdgecontainerProjectsLocationsZonalServicesGetRequest',
+        response_type_name='ZonalService',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists ZonalServices in a given project and location.
+
+      Args:
+        request: (EdgecontainerProjectsLocationsZonalServicesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListZonalServicesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/zonalServices',
+        http_method='GET',
+        method_id='edgecontainer.projects.locations.zonalServices.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha/{+parent}/zonalServices',
+        request_field='',
+        request_type_name='EdgecontainerProjectsLocationsZonalServicesListRequest',
+        response_type_name='ListZonalServicesResponse',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsZonesService(base_api.BaseApiService):
+    """Service class for the projects_locations_zones resource."""
+
+    _NAME = 'projects_locations_zones'
+
+    def __init__(self, client):
+      super(EdgecontainerV1alpha.ProjectsLocationsZonesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def GetIamPolicy(self, request, global_params=None):
+      r"""GetIamPolicy gets the IAM policies for a project in the infra cluster.
+
+      Args:
+        request: (EdgecontainerProjectsLocationsZonesGetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (IamPolicy) The response message.
+      """
+      config = self.GetMethodConfig('GetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/zones/{zonesId}:getIamPolicy',
+        http_method='GET',
+        method_id='edgecontainer.projects.locations.zones.getIamPolicy',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}:getIamPolicy',
+        request_field='',
+        request_type_name='EdgecontainerProjectsLocationsZonesGetIamPolicyRequest',
+        response_type_name='IamPolicy',
+        supports_download=False,
+    )
+
+    def ListRoles(self, request, global_params=None):
+      r"""ListRoles lists the IAM roles for a project in the zone.
+
+      Args:
+        request: (EdgecontainerProjectsLocationsZonesListRolesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListRolesResponse) The response message.
+      """
+      config = self.GetMethodConfig('ListRoles')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ListRoles.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/zones/{zonesId}:roles',
+        http_method='GET',
+        method_id='edgecontainer.projects.locations.zones.listRoles',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['pageSize', 'pageToken'],
+        relative_path='v1alpha/{+parent}:roles',
+        request_field='',
+        request_type_name='EdgecontainerProjectsLocationsZonesListRolesRequest',
+        response_type_name='ListRolesResponse',
+        supports_download=False,
+    )
+
+    def SetIamPolicy(self, request, global_params=None):
+      r"""SetIamPolicy sets the IAM policy for a project in the infra cluster. It overrides the existing policy with the provided one.
+
+      Args:
+        request: (EdgecontainerProjectsLocationsZonesSetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (IamPolicy) The response message.
+      """
+      config = self.GetMethodConfig('SetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/zones/{zonesId}:setIamPolicy',
+        http_method='POST',
+        method_id='edgecontainer.projects.locations.zones.setIamPolicy',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}:setIamPolicy',
+        request_field='setIamPolicyRequest',
+        request_type_name='EdgecontainerProjectsLocationsZonesSetIamPolicyRequest',
+        response_type_name='IamPolicy',
+        supports_download=False,
+    )
+
   class ProjectsLocationsService(base_api.BaseApiService):
     """Service class for the projects_locations resource."""
 
@@ -801,7 +1656,7 @@ class EdgecontainerV1alpha(base_api.BaseApiClient):
         method_id='edgecontainer.projects.locations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'includeUnrevealedLocations', 'pageSize', 'pageToken'],
+        query_params=['extraLocationTypes', 'filter', 'includeUnrevealedLocations', 'pageSize', 'pageToken'],
         relative_path='v1alpha/{+name}/locations',
         request_field='',
         request_type_name='EdgecontainerProjectsLocationsListRequest',

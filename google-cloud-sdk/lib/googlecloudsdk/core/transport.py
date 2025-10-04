@@ -19,11 +19,13 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import abc
+import os
 import platform
 import re
 import time
 import uuid
 
+from googlecloudsdk.calliope import exceptions
 from googlecloudsdk.core import config
 from googlecloudsdk.core import log
 from googlecloudsdk.core import metrics
@@ -222,7 +224,16 @@ class RequestWrapper(six.with_metaclass(abc.ABCMeta, object)):
               LogResponse(streaming_response_body),
           )
       )
-
+    if (
+        'CLOUDSDK_CORE_DRY_RUN' in os.environ  # pylint: disable=undefined-variable
+        and os.environ['CLOUDSDK_CORE_DRY_RUN'] == '1'
+    ):
+      handlers.append(
+          Handler(
+              LogRequestDryRun(),
+              lambda *args: None,
+          )
+      )
     self.WrapRequest(http_client, handlers, response_encoding=response_encoding)
     return http_client
 
@@ -492,6 +503,20 @@ def LogRequest(redact_token=True, redact_request_body_reason=None):
   return _LogRequest
 
 
+def LogRequestDryRun():
+  """Dry run the http request.
+
+  Returns:
+    A function that can be used in a Handler.request.
+  """
+
+  def _LogRequest(request):
+    """Blocks a dry-run request."""
+    raise exceptions.DryRunError(request)
+
+  return _LogRequest
+
+
 def LogResponse(streaming_response_body=False):
   """Logs the contents of the http response.
 
@@ -579,8 +604,12 @@ def GetAndCacheArchitecture(user_platform):
   """
 
   active_config_store = config.GetConfigStore()
-  if active_config_store and active_config_store.Get('client_arch'):
-    return active_config_store.Get('client_arch')
+  try:
+    cached_arch = active_config_store.Get('client_arch')
+  except Exception:  # pylint: disable=broad-except
+    cached_arch = None
+  if active_config_store and cached_arch:
+    return cached_arch
 
   # Determine if this is an M1 Mac Python using x86_64 emulation.
   if (user_platform.operating_system == platforms.OperatingSystem.MACOSX and

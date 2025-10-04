@@ -17,6 +17,7 @@
 # AUTOGEN_CLI_VERSION: HEAD
 - release_tracks:
   - BETA
+  auto_generated: true
   hidden: true
   help_text:
     brief: Updates the parameters of a single Parallelstore instance
@@ -30,8 +31,9 @@
     params:
     - help_text: |-
         Identifier. The resource name of the instance, in the format
-        `projects/{project}/locations/{location}/instances/{instance_id}`
+        `projects/{project}/locations/{location}/instances/{instance_id}`.
       is_positional: true
+      is_primary_resource: true
       resource_spec: !REF googlecloudsdk.command_lib.parallelstore.v1beta_resources:project_location_instance
       required: true
     - arg_name: description
@@ -47,29 +49,30 @@
       help_text: |-
         Cloud Labels are a flexible and lightweight mechanism for organizing cloud
         resources into groups that reflect a customer's organizational needs and
-        deployment strategies. Cloud Labels can be used to filter collections of
-        resources. They can be used to control how resource metrics are aggregated.
-        And they can be used as arguments to policy management rules (e.g. route,
-        firewall, load balancing, etc.).
-
-         * Label keys must be between 1 and 63 characters long and must conform to
-           the following regular expression: `[a-z][a-z0-9_-]{0,62}`.
-         * Label values must be between 0 and 63 characters long and must conform
-           to the regular expression `[a-z0-9_-]{0,63}`.
-         * No more than 64 labels can be associated with a given resource.
-
-        See https://goo.gl/xmQnxf for more information on and examples of labels.
-
-        If you plan to use labels in your own code, please note that additional
-        characters may be allowed in the future. Therefore, you are advised to use
-        an internal label representation, such as JSON, which doesn't rely upon
-        specific characters being disallowed.  For example, representing labels
-        as the string:  name + "_" + value  would prove problematic if we were to
-        allow "_" in a future release.
+        deployment strategies. See
+        https://cloud.google.com/resource-manager/docs/labels-overview for details.
       clearable: true
       spec:
       - api_field: key
       - api_field: value
+    - arg_name: request-id
+      api_field: requestId
+      required: false
+      repeated: false
+      help_text: |-
+        An optional request ID to identify requests. Specify a unique request ID
+        so that if you must retry your request, the server will know to ignore
+        the request if it has already been completed. The server will guarantee
+        that for at least 60 minutes since the first request.
+
+        For example, consider a situation where you make an initial request and t
+        he request times out. If you make the request again with the same request
+        ID, the server can check if original operation with the same request ID
+        was received, and if so, will ignore the second request. This prevents
+        clients from accidentally creating duplicate commitments.
+
+        The request ID must be a valid UUID with the exception that zero UUID is
+        not supported (00000000-0000-0000-0000-000000000000).
   request:
     api_version: v1beta
     collection:

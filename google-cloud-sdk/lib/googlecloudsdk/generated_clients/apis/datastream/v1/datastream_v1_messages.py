@@ -29,18 +29,23 @@ class BackfillAllStrategy(_messages.Message):
   Specific objects can be excluded.
 
   Fields:
+    mongodbExcludedObjects: MongoDB data source objects to avoid backfilling
     mysqlExcludedObjects: MySQL data source objects to avoid backfilling.
     oracleExcludedObjects: Oracle data source objects to avoid backfilling.
     postgresqlExcludedObjects: PostgreSQL data source objects to avoid
       backfilling.
+    salesforceExcludedObjects: Salesforce data source objects to avoid
+      backfilling
     sqlServerExcludedObjects: SQLServer data source objects to avoid
       backfilling
   """
 
-  mysqlExcludedObjects = _messages.MessageField('MysqlRdbms', 1)
-  oracleExcludedObjects = _messages.MessageField('OracleRdbms', 2)
-  postgresqlExcludedObjects = _messages.MessageField('PostgresqlRdbms', 3)
-  sqlServerExcludedObjects = _messages.MessageField('SqlServerRdbms', 4)
+  mongodbExcludedObjects = _messages.MessageField('MongodbCluster', 1)
+  mysqlExcludedObjects = _messages.MessageField('MysqlRdbms', 2)
+  oracleExcludedObjects = _messages.MessageField('OracleRdbms', 3)
+  postgresqlExcludedObjects = _messages.MessageField('PostgresqlRdbms', 4)
+  salesforceExcludedObjects = _messages.MessageField('SalesforceOrg', 5)
+  sqlServerExcludedObjects = _messages.MessageField('SqlServerRdbms', 6)
 
 
 class BackfillJob(_messages.Message):
@@ -111,11 +116,20 @@ class BackfillNoneStrategy(_messages.Message):
 
 
 
+class BasicEncryption(_messages.Message):
+  r"""Message to represent the option where Datastream will enforce encryption
+  without authenticating server identity. Server certificates will be trusted
+  by default.
+  """
+
+
+
 class BigQueryDestinationConfig(_messages.Message):
   r"""BigQuery destination configuration
 
   Fields:
     appendOnly: Append only mode
+    blmtConfig: Optional. Big Lake Managed Tables (BLMT) configuration.
     dataFreshness: The guaranteed data freshness (in seconds) when querying
       tables created by the stream. Editing this field will only affect new
       tables created in the future, but existing tables will not be impacted.
@@ -127,14 +141,74 @@ class BigQueryDestinationConfig(_messages.Message):
   """
 
   appendOnly = _messages.MessageField('AppendOnly', 1)
-  dataFreshness = _messages.StringField(2)
-  merge = _messages.MessageField('Merge', 3)
-  singleTargetDataset = _messages.MessageField('SingleTargetDataset', 4)
-  sourceHierarchyDatasets = _messages.MessageField('SourceHierarchyDatasets', 5)
+  blmtConfig = _messages.MessageField('BlmtConfig', 2)
+  dataFreshness = _messages.StringField(3)
+  merge = _messages.MessageField('Merge', 4)
+  singleTargetDataset = _messages.MessageField('SingleTargetDataset', 5)
+  sourceHierarchyDatasets = _messages.MessageField('SourceHierarchyDatasets', 6)
 
 
 class BigQueryProfile(_messages.Message):
   r"""BigQuery warehouse profile."""
+
+
+class BinaryLogParser(_messages.Message):
+  r"""Configuration to use Binary Log Parser CDC technique.
+
+  Fields:
+    logFileDirectories: Use Oracle directories.
+    oracleAsmLogFileAccess: Use Oracle ASM.
+  """
+
+  logFileDirectories = _messages.MessageField('LogFileDirectories', 1)
+  oracleAsmLogFileAccess = _messages.MessageField('OracleAsmLogFileAccess', 2)
+
+
+class BinaryLogPosition(_messages.Message):
+  r"""Use Binary log position based replication."""
+
+
+class BlmtConfig(_messages.Message):
+  r"""The configuration for BLMT.
+
+  Enums:
+    FileFormatValueValuesEnum: Required. The file format.
+    TableFormatValueValuesEnum: Required. The table format.
+
+  Fields:
+    bucket: Required. The Cloud Storage bucket name.
+    connectionName: Required. The bigquery connection. Format:
+      `{project}.{location}.{name}`
+    fileFormat: Required. The file format.
+    rootPath: The root path inside the Cloud Storage bucket.
+    tableFormat: Required. The table format.
+  """
+
+  class FileFormatValueValuesEnum(_messages.Enum):
+    r"""Required. The file format.
+
+    Values:
+      FILE_FORMAT_UNSPECIFIED: Default value.
+      PARQUET: Parquet file format.
+    """
+    FILE_FORMAT_UNSPECIFIED = 0
+    PARQUET = 1
+
+  class TableFormatValueValuesEnum(_messages.Enum):
+    r"""Required. The table format.
+
+    Values:
+      TABLE_FORMAT_UNSPECIFIED: Default value.
+      ICEBERG: Iceberg table format.
+    """
+    TABLE_FORMAT_UNSPECIFIED = 0
+    ICEBERG = 1
+
+  bucket = _messages.StringField(1)
+  connectionName = _messages.StringField(2)
+  fileFormat = _messages.EnumField('FileFormatValueValuesEnum', 3)
+  rootPath = _messages.StringField(4)
+  tableFormat = _messages.EnumField('TableFormatValueValuesEnum', 5)
 
 
 class CancelOperationRequest(_messages.Message):
@@ -172,11 +246,15 @@ class ConnectionProfile(_messages.Message):
     forwardSshConnectivity: Forward SSH tunnel connectivity.
     gcsProfile: Cloud Storage ConnectionProfile configuration.
     labels: Labels.
+    mongodbProfile: MongoDB Connection Profile configuration.
     mysqlProfile: MySQL ConnectionProfile configuration.
-    name: Output only. The resource's name.
+    name: Output only. Identifier. The resource's name.
     oracleProfile: Oracle ConnectionProfile configuration.
     postgresqlProfile: PostgreSQL Connection Profile configuration.
     privateConnectivity: Private connectivity.
+    salesforceProfile: Salesforce Connection Profile configuration.
+    satisfiesPzi: Output only. Reserved for future use.
+    satisfiesPzs: Output only. Reserved for future use.
     sqlServerProfile: SQLServer Connection Profile configuration.
     staticServiceIpConnectivity: Static Service IP connectivity.
     updateTime: Output only. The update time of the resource.
@@ -212,14 +290,18 @@ class ConnectionProfile(_messages.Message):
   forwardSshConnectivity = _messages.MessageField('ForwardSshTunnelConnectivity', 4)
   gcsProfile = _messages.MessageField('GcsProfile', 5)
   labels = _messages.MessageField('LabelsValue', 6)
-  mysqlProfile = _messages.MessageField('MysqlProfile', 7)
-  name = _messages.StringField(8)
-  oracleProfile = _messages.MessageField('OracleProfile', 9)
-  postgresqlProfile = _messages.MessageField('PostgresqlProfile', 10)
-  privateConnectivity = _messages.MessageField('PrivateConnectivity', 11)
-  sqlServerProfile = _messages.MessageField('SqlServerProfile', 12)
-  staticServiceIpConnectivity = _messages.MessageField('StaticServiceIpConnectivity', 13)
-  updateTime = _messages.StringField(14)
+  mongodbProfile = _messages.MessageField('MongodbProfile', 7)
+  mysqlProfile = _messages.MessageField('MysqlProfile', 8)
+  name = _messages.StringField(9)
+  oracleProfile = _messages.MessageField('OracleProfile', 10)
+  postgresqlProfile = _messages.MessageField('PostgresqlProfile', 11)
+  privateConnectivity = _messages.MessageField('PrivateConnectivity', 12)
+  salesforceProfile = _messages.MessageField('SalesforceProfile', 13)
+  satisfiesPzi = _messages.BooleanField(14)
+  satisfiesPzs = _messages.BooleanField(15)
+  sqlServerProfile = _messages.MessageField('SqlServerProfile', 16)
+  staticServiceIpConnectivity = _messages.MessageField('StaticServiceIpConnectivity', 17)
+  updateTime = _messages.StringField(18)
 
 
 class DatasetTemplate(_messages.Message):
@@ -355,7 +437,7 @@ class DatastreamProjectsLocationsConnectionProfilesPatchRequest(_messages.Messag
     connectionProfile: A ConnectionProfile resource to be passed as the
       request body.
     force: Optional. Update the connection profile without validating it.
-    name: Output only. The resource's name.
+    name: Output only. Identifier. The resource's name.
     requestId: Optional. A request ID to identify requests. Specify a unique
       request ID so that if you must retry your request, the server will know
       to ignore the request if it has already been completed. The server will
@@ -414,6 +496,9 @@ class DatastreamProjectsLocationsListRequest(_messages.Message):
   r"""A DatastreamProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -424,10 +509,11 @@ class DatastreamProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class DatastreamProjectsLocationsOperationsCancelRequest(_messages.Message):
@@ -500,6 +586,9 @@ class DatastreamProjectsLocationsPrivateConnectionsCreateRequest(_messages.Messa
       clients from accidentally creating duplicate commitments. The request ID
       must be a valid UUID with the exception that zero UUID is not supported
       (00000000-0000-0000-0000-000000000000).
+    validateOnly: Optional. When supplied with PSC Interface config, will
+      get/create the tenant project required for the customer to allow list
+      and won't actually create the private connection.
   """
 
   force = _messages.BooleanField(1)
@@ -507,6 +596,7 @@ class DatastreamProjectsLocationsPrivateConnectionsCreateRequest(_messages.Messa
   privateConnection = _messages.MessageField('PrivateConnection', 3)
   privateConnectionId = _messages.StringField(4)
   requestId = _messages.StringField(5)
+  validateOnly = _messages.BooleanField(6)
 
 
 class DatastreamProjectsLocationsPrivateConnectionsDeleteRequest(_messages.Message):
@@ -815,7 +905,7 @@ class DatastreamProjectsLocationsStreamsPatchRequest(_messages.Message):
 
   Fields:
     force: Optional. Update the stream without validating it.
-    name: Output only. The stream's name.
+    name: Output only. Identifier. The stream's name.
     requestId: Optional. A request ID to identify requests. Specify a unique
       request ID so that if you must retry your request, the server will know
       to ignore the request if it has already been completed. The server will
@@ -886,9 +976,15 @@ class DiscoverConnectionProfileRequest(_messages.Message):
       (TRUE) or only the current level (FALSE).
     hierarchyDepth: The number of hierarchy levels below the current level to
       be retrieved.
+    mongodbCluster: MongoDB cluster to enrich with child data objects and
+      metadata.
     mysqlRdbms: MySQL RDBMS to enrich with child data objects and metadata.
     oracleRdbms: Oracle RDBMS to enrich with child data objects and metadata.
     postgresqlRdbms: PostgreSQL RDBMS to enrich with child data objects and
+      metadata.
+    salesforceOrg: Salesforce organization to enrich with child data objects
+      and metadata.
+    sqlServerRdbms: SQLServer RDBMS to enrich with child data objects and
       metadata.
   """
 
@@ -896,23 +992,32 @@ class DiscoverConnectionProfileRequest(_messages.Message):
   connectionProfileName = _messages.StringField(2)
   fullHierarchy = _messages.BooleanField(3)
   hierarchyDepth = _messages.IntegerField(4, variant=_messages.Variant.INT32)
-  mysqlRdbms = _messages.MessageField('MysqlRdbms', 5)
-  oracleRdbms = _messages.MessageField('OracleRdbms', 6)
-  postgresqlRdbms = _messages.MessageField('PostgresqlRdbms', 7)
+  mongodbCluster = _messages.MessageField('MongodbCluster', 5)
+  mysqlRdbms = _messages.MessageField('MysqlRdbms', 6)
+  oracleRdbms = _messages.MessageField('OracleRdbms', 7)
+  postgresqlRdbms = _messages.MessageField('PostgresqlRdbms', 8)
+  salesforceOrg = _messages.MessageField('SalesforceOrg', 9)
+  sqlServerRdbms = _messages.MessageField('SqlServerRdbms', 10)
 
 
 class DiscoverConnectionProfileResponse(_messages.Message):
   r"""Response from a discover request.
 
   Fields:
+    mongodbCluster: Enriched MongoDB cluster.
     mysqlRdbms: Enriched MySQL RDBMS object.
     oracleRdbms: Enriched Oracle RDBMS object.
     postgresqlRdbms: Enriched PostgreSQL RDBMS object.
+    salesforceOrg: Enriched Salesforce organization.
+    sqlServerRdbms: Enriched SQLServer RDBMS object.
   """
 
-  mysqlRdbms = _messages.MessageField('MysqlRdbms', 1)
-  oracleRdbms = _messages.MessageField('OracleRdbms', 2)
-  postgresqlRdbms = _messages.MessageField('PostgresqlRdbms', 3)
+  mongodbCluster = _messages.MessageField('MongodbCluster', 1)
+  mysqlRdbms = _messages.MessageField('MysqlRdbms', 2)
+  oracleRdbms = _messages.MessageField('OracleRdbms', 3)
+  postgresqlRdbms = _messages.MessageField('PostgresqlRdbms', 4)
+  salesforceOrg = _messages.MessageField('SalesforceOrg', 5)
+  sqlServerRdbms = _messages.MessageField('SqlServerRdbms', 6)
 
 
 class DropLargeObjects(_messages.Message):
@@ -924,6 +1029,35 @@ class Empty(_messages.Message):
   empty messages in your APIs. A typical example is to use it as the request
   or the response type of an API method. For instance: service Foo { rpc
   Bar(google.protobuf.Empty) returns (google.protobuf.Empty); }
+  """
+
+
+
+class EncryptionAndServerValidation(_messages.Message):
+  r"""Message to represent the option where Datastream will enforce encryption
+  and authenticate server identity. ca_certificate must be set if user selects
+  this option.
+
+  Fields:
+    caCertificate: Optional. Input only. PEM-encoded certificate of the CA
+      that signed the source database server's certificate.
+    serverCertificateHostname: Optional. The hostname mentioned in the Subject
+      or SAN extension of the server certificate. This field is used for
+      bypassing the hostname validation while verifying server certificate.
+      This is required for scenarios where the host name that datastream
+      connects to is different from the certificate's subject. This
+      specifically happens for private connectivity. It could also happen when
+      the customer provides a public IP in connection profile but the same is
+      not present in the server certificate.
+  """
+
+  caCertificate = _messages.StringField(1)
+  serverCertificateHostname = _messages.StringField(2)
+
+
+class EncryptionNotEnforced(_messages.Message):
+  r"""Message to represent the option where encryption is not enforced. An
+  empty message right now to allow future extensibility.
   """
 
 
@@ -1036,6 +1170,23 @@ class GcsProfile(_messages.Message):
 
   bucket = _messages.StringField(1)
   rootPath = _messages.StringField(2)
+
+
+class Gtid(_messages.Message):
+  r"""Use GTID based replication."""
+
+
+class HostAddress(_messages.Message):
+  r"""A HostAddress represents a transport end point, which is the combination
+  of an IP address or hostname and a port number.
+
+  Fields:
+    hostname: Required. Hostname for the connection.
+    port: Optional. Port for the connection.
+  """
+
+  hostname = _messages.StringField(1)
+  port = _messages.IntegerField(2, variant=_messages.Variant.INT32)
 
 
 class JsonFileFormat(_messages.Message):
@@ -1258,6 +1409,22 @@ class Location(_messages.Message):
   name = _messages.StringField(5)
 
 
+class LogFileDirectories(_messages.Message):
+  r"""Configuration to specify the Oracle directories to access the log files.
+
+  Fields:
+    archivedLogDirectory: Required. Oracle directory for archived logs.
+    onlineLogDirectory: Required. Oracle directory for online logs.
+  """
+
+  archivedLogDirectory = _messages.StringField(1)
+  onlineLogDirectory = _messages.StringField(2)
+
+
+class LogMiner(_messages.Message):
+  r"""Configuration to use LogMiner CDC method."""
+
+
 class LookupStreamObjectRequest(_messages.Message):
   r"""Request for looking up a specific stream object by its source object
   identifier.
@@ -1275,6 +1442,156 @@ class Merge(_messages.Message):
   destination table.
   """
 
+
+
+class MongodbChangeStreamPosition(_messages.Message):
+  r"""MongoDB change stream position
+
+  Fields:
+    startTime: Required. The timestamp (in epoch seconds) to start change
+      stream from.
+  """
+
+  startTime = _messages.StringField(1)
+
+
+class MongodbCluster(_messages.Message):
+  r"""MongoDB Cluster structure.
+
+  Fields:
+    databases: MongoDB databases in the cluster.
+  """
+
+  databases = _messages.MessageField('MongodbDatabase', 1, repeated=True)
+
+
+class MongodbCollection(_messages.Message):
+  r"""MongoDB Collection.
+
+  Fields:
+    collection: Collection name.
+    fields: Fields in the collection.
+  """
+
+  collection = _messages.StringField(1)
+  fields = _messages.MessageField('MongodbField', 2, repeated=True)
+
+
+class MongodbDatabase(_messages.Message):
+  r"""MongoDB Database.
+
+  Fields:
+    collections: Collections in the database.
+    database: Database name.
+  """
+
+  collections = _messages.MessageField('MongodbCollection', 1, repeated=True)
+  database = _messages.StringField(2)
+
+
+class MongodbField(_messages.Message):
+  r"""MongoDB Field.
+
+  Fields:
+    field: Field name.
+  """
+
+  field = _messages.StringField(1)
+
+
+class MongodbObjectIdentifier(_messages.Message):
+  r"""MongoDB data source object identifier.
+
+  Fields:
+    collection: Required. The collection name.
+    database: Required. The database name.
+  """
+
+  collection = _messages.StringField(1)
+  database = _messages.StringField(2)
+
+
+class MongodbProfile(_messages.Message):
+  r"""MongoDB profile.
+
+  Fields:
+    hostAddresses: Required. List of host addresses for a MongoDB cluster. For
+      SRV connection format, this list must contain exactly one DNS host
+      without a port. For Standard connection format, this list must contain
+      all the required hosts in the cluster with their respective ports.
+    password: Optional. Password for the MongoDB connection. Mutually
+      exclusive with the `secret_manager_stored_password` field.
+    replicaSet: Optional. Name of the replica set. Only needed for self hosted
+      replica set type MongoDB cluster. For SRV connection format, this field
+      must be empty. For Standard connection format, this field must be
+      specified.
+    secretManagerStoredPassword: Optional. A reference to a Secret Manager
+      resource name storing the SQLServer connection password. Mutually
+      exclusive with the `password` field.
+    srvConnectionFormat: Srv connection format.
+    sslConfig: Optional. SSL configuration for the MongoDB connection.
+    standardConnectionFormat: Standard connection format.
+    username: Required. Username for the MongoDB connection.
+  """
+
+  hostAddresses = _messages.MessageField('HostAddress', 1, repeated=True)
+  password = _messages.StringField(2)
+  replicaSet = _messages.StringField(3)
+  secretManagerStoredPassword = _messages.StringField(4)
+  srvConnectionFormat = _messages.MessageField('SrvConnectionFormat', 5)
+  sslConfig = _messages.MessageField('MongodbSslConfig', 6)
+  standardConnectionFormat = _messages.MessageField('StandardConnectionFormat', 7)
+  username = _messages.StringField(8)
+
+
+class MongodbSourceConfig(_messages.Message):
+  r"""MongoDB source configuration.
+
+  Fields:
+    excludeObjects: MongoDB collections to exclude from the stream.
+    includeObjects: MongoDB collections to include in the stream.
+    maxConcurrentBackfillTasks: Optional. Maximum number of concurrent
+      backfill tasks. The number should be non-negative and less than or equal
+      to 50. If not set (or set to 0), the system's default value is used
+  """
+
+  excludeObjects = _messages.MessageField('MongodbCluster', 1)
+  includeObjects = _messages.MessageField('MongodbCluster', 2)
+  maxConcurrentBackfillTasks = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+
+
+class MongodbSslConfig(_messages.Message):
+  r"""MongoDB SSL configuration information.
+
+  Fields:
+    caCertificate: Optional. Input only. PEM-encoded certificate of the CA
+      that signed the source database server's certificate.
+    caCertificateSet: Output only. Indicates whether the ca_certificate field
+      is set.
+    clientCertificate: Optional. Input only. PEM-encoded certificate that will
+      be used by the replica to authenticate against the source database
+      server. If this field is used then the 'client_key' and the
+      'ca_certificate' fields are mandatory.
+    clientCertificateSet: Output only. Indicates whether the
+      client_certificate field is set.
+    clientKey: Optional. Input only. PEM-encoded private key associated with
+      the Client Certificate. If this field is used then the
+      'client_certificate' and the 'ca_certificate' fields are mandatory.
+    clientKeySet: Output only. Indicates whether the client_key field is set.
+    secretManagerStoredClientKey: Optional. Input only. A reference to a
+      Secret Manager resource name storing the PEM-encoded private key
+      associated with the Client Certificate. If this field is used then the
+      'client_certificate' and the 'ca_certificate' fields are mandatory.
+      Mutually exclusive with the `client_key` field.
+  """
+
+  caCertificate = _messages.StringField(1)
+  caCertificateSet = _messages.BooleanField(2)
+  clientCertificate = _messages.StringField(3)
+  clientCertificateSet = _messages.BooleanField(4)
+  clientKey = _messages.StringField(5)
+  clientKeySet = _messages.BooleanField(6)
+  secretManagerStoredClientKey = _messages.StringField(7)
 
 
 class MostRecentStartPosition(_messages.Message):
@@ -1323,6 +1640,16 @@ class MysqlDatabase(_messages.Message):
   mysqlTables = _messages.MessageField('MysqlTable', 2, repeated=True)
 
 
+class MysqlGtidPosition(_messages.Message):
+  r"""MySQL GTID position
+
+  Fields:
+    gtidSet: Required. The gtid set to start replication from.
+  """
+
+  gtidSet = _messages.StringField(1)
+
+
 class MysqlLogPosition(_messages.Message):
   r"""MySQL log position
 
@@ -1353,8 +1680,12 @@ class MysqlProfile(_messages.Message):
 
   Fields:
     hostname: Required. Hostname for the MySQL connection.
-    password: Required. Input only. Password for the MySQL connection.
+    password: Optional. Input only. Password for the MySQL connection.
+      Mutually exclusive with the `secret_manager_stored_password` field.
     port: Port for the MySQL connection, default value is 3306.
+    secretManagerStoredPassword: Optional. A reference to a Secret Manager
+      resource name storing the MySQL connection password. Mutually exclusive
+      with the `password` field.
     sslConfig: SSL configuration for the MySQL connection.
     username: Required. Username for the MySQL connection.
   """
@@ -1362,8 +1693,9 @@ class MysqlProfile(_messages.Message):
   hostname = _messages.StringField(1)
   password = _messages.StringField(2)
   port = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  sslConfig = _messages.MessageField('MysqlSslConfig', 4)
-  username = _messages.StringField(5)
+  secretManagerStoredPassword = _messages.StringField(4)
+  sslConfig = _messages.MessageField('MysqlSslConfig', 5)
+  username = _messages.StringField(6)
 
 
 class MysqlRdbms(_messages.Message):
@@ -1380,7 +1712,9 @@ class MysqlSourceConfig(_messages.Message):
   r"""MySQL source configuration
 
   Fields:
+    binaryLogPosition: Use Binary log position based replication.
     excludeObjects: MySQL objects to exclude from the stream.
+    gtid: Use GTID based replication.
     includeObjects: MySQL objects to retrieve from the source.
     maxConcurrentBackfillTasks: Maximum number of concurrent backfill tasks.
       The number should be non negative. If not set (or set to 0), the
@@ -1390,10 +1724,12 @@ class MysqlSourceConfig(_messages.Message):
       value will be used.
   """
 
-  excludeObjects = _messages.MessageField('MysqlRdbms', 1)
-  includeObjects = _messages.MessageField('MysqlRdbms', 2)
-  maxConcurrentBackfillTasks = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  maxConcurrentCdcTasks = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  binaryLogPosition = _messages.MessageField('BinaryLogPosition', 1)
+  excludeObjects = _messages.MessageField('MysqlRdbms', 2)
+  gtid = _messages.MessageField('Gtid', 3)
+  includeObjects = _messages.MessageField('MysqlRdbms', 4)
+  maxConcurrentBackfillTasks = _messages.IntegerField(5, variant=_messages.Variant.INT32)
+  maxConcurrentCdcTasks = _messages.IntegerField(6, variant=_messages.Variant.INT32)
 
 
 class MysqlSslConfig(_messages.Message):
@@ -1404,15 +1740,15 @@ class MysqlSslConfig(_messages.Message):
       the source database server's certificate.
     caCertificateSet: Output only. Indicates whether the ca_certificate field
       is set.
-    clientCertificate: Input only. PEM-encoded certificate that will be used
-      by the replica to authenticate against the source database server. If
-      this field is used then the 'client_key' and the 'ca_certificate' fields
-      are mandatory.
+    clientCertificate: Optional. Input only. PEM-encoded certificate that will
+      be used by the replica to authenticate against the source database
+      server. If this field is used then the 'client_key' and the
+      'ca_certificate' fields are mandatory.
     clientCertificateSet: Output only. Indicates whether the
       client_certificate field is set.
-    clientKey: Input only. PEM-encoded private key associated with the Client
-      Certificate. If this field is used then the 'client_certificate' and the
-      'ca_certificate' fields are mandatory.
+    clientKey: Optional. Input only. PEM-encoded private key associated with
+      the Client Certificate. If this field is used then the
+      'client_certificate' and the 'ca_certificate' fields are mandatory.
     clientKeySet: Output only. Indicates whether the client_key field is set.
   """
 
@@ -1442,6 +1778,24 @@ class NextAvailableStartPosition(_messages.Message):
   the source.
   """
 
+
+
+class Oauth2ClientCredentials(_messages.Message):
+  r"""OAuth2 Client Credentials.
+
+  Fields:
+    clientId: Required. Client ID for Salesforce OAuth2 Client Credentials.
+    clientSecret: Optional. Client secret for Salesforce OAuth2 Client
+      Credentials. Mutually exclusive with the
+      `secret_manager_stored_client_secret` field.
+    secretManagerStoredClientSecret: Optional. A reference to a Secret Manager
+      resource name storing the Salesforce OAuth2 client_secret. Mutually
+      exclusive with the `client_secret` field.
+  """
+
+  clientId = _messages.StringField(1)
+  clientSecret = _messages.StringField(2)
+  secretManagerStoredClientSecret = _messages.StringField(3)
 
 
 class Operation(_messages.Message):
@@ -1561,8 +1915,9 @@ class OperationMetadata(_messages.Message):
     endTime: Output only. The time the operation finished running.
     requestedCancellation: Output only. Identifies whether the user has
       requested cancellation of the operation. Operations that have
-      successfully been cancelled have Operation.error value with a
-      google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      successfully been cancelled have google.longrunning.Operation.error
+      value with a google.rpc.Status.code of 1, corresponding to
+      `Code.CANCELLED`.
     statusMessage: Output only. Human-readable status of the operation, if
       any.
     target: Output only. Server-defined resource path for the target of the
@@ -1580,6 +1935,66 @@ class OperationMetadata(_messages.Message):
   target = _messages.StringField(6)
   validationResult = _messages.MessageField('ValidationResult', 7)
   verb = _messages.StringField(8)
+
+
+class OracleAsmConfig(_messages.Message):
+  r"""Configuration for Oracle Automatic Storage Management (ASM) connection.
+
+  Messages:
+    ConnectionAttributesValue: Optional. Connection string attributes
+
+  Fields:
+    asmService: Required. ASM service name for the Oracle ASM connection.
+    connectionAttributes: Optional. Connection string attributes
+    hostname: Required. Hostname for the Oracle ASM connection.
+    oracleSslConfig: Optional. SSL configuration for the Oracle connection.
+    password: Optional. Password for the Oracle ASM connection. Mutually
+      exclusive with the `secret_manager_stored_password` field.
+    port: Required. Port for the Oracle ASM connection.
+    secretManagerStoredPassword: Optional. A reference to a Secret Manager
+      resource name storing the Oracle ASM connection password. Mutually
+      exclusive with the `password` field.
+    username: Required. Username for the Oracle ASM connection.
+  """
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class ConnectionAttributesValue(_messages.Message):
+    r"""Optional. Connection string attributes
+
+    Messages:
+      AdditionalProperty: An additional property for a
+        ConnectionAttributesValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type
+        ConnectionAttributesValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a ConnectionAttributesValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  asmService = _messages.StringField(1)
+  connectionAttributes = _messages.MessageField('ConnectionAttributesValue', 2)
+  hostname = _messages.StringField(3)
+  oracleSslConfig = _messages.MessageField('OracleSslConfig', 4)
+  password = _messages.StringField(5)
+  port = _messages.IntegerField(6, variant=_messages.Variant.INT32)
+  secretManagerStoredPassword = _messages.StringField(7)
+  username = _messages.StringField(8)
+
+
+class OracleAsmLogFileAccess(_messages.Message):
+  r"""Configuration to use Oracle ASM to access the log files."""
 
 
 class OracleColumn(_messages.Message):
@@ -1630,9 +2045,14 @@ class OracleProfile(_messages.Message):
     connectionAttributes: Connection string attributes
     databaseService: Required. Database for the Oracle connection.
     hostname: Required. Hostname for the Oracle connection.
+    oracleAsmConfig: Optional. Configuration for Oracle ASM connection.
     oracleSslConfig: Optional. SSL configuration for the Oracle connection.
-    password: Required. Password for the Oracle connection.
+    password: Optional. Password for the Oracle connection. Mutually exclusive
+      with the `secret_manager_stored_password` field.
     port: Port for the Oracle connection, default value is 1521.
+    secretManagerStoredPassword: Optional. A reference to a Secret Manager
+      resource name storing the Oracle connection password. Mutually exclusive
+      with the `password` field.
     username: Required. Username for the Oracle connection.
   """
 
@@ -1665,10 +2085,12 @@ class OracleProfile(_messages.Message):
   connectionAttributes = _messages.MessageField('ConnectionAttributesValue', 1)
   databaseService = _messages.StringField(2)
   hostname = _messages.StringField(3)
-  oracleSslConfig = _messages.MessageField('OracleSslConfig', 4)
-  password = _messages.StringField(5)
-  port = _messages.IntegerField(6, variant=_messages.Variant.INT32)
-  username = _messages.StringField(7)
+  oracleAsmConfig = _messages.MessageField('OracleAsmConfig', 4)
+  oracleSslConfig = _messages.MessageField('OracleSslConfig', 5)
+  password = _messages.StringField(6)
+  port = _messages.IntegerField(7, variant=_messages.Variant.INT32)
+  secretManagerStoredPassword = _messages.StringField(8)
+  username = _messages.StringField(9)
 
 
 class OracleRdbms(_messages.Message):
@@ -1707,9 +2129,11 @@ class OracleSourceConfig(_messages.Message):
   r"""Oracle data source configuration
 
   Fields:
+    binaryLogParser: Use Binary Log Parser.
     dropLargeObjects: Drop large object values.
     excludeObjects: Oracle objects to exclude from the stream.
     includeObjects: Oracle objects to include in the stream.
+    logMiner: Use LogMiner.
     maxConcurrentBackfillTasks: Maximum number of concurrent backfill tasks.
       The number should be non-negative. If not set (or set to 0), the
       system's default value is used.
@@ -1719,12 +2143,14 @@ class OracleSourceConfig(_messages.Message):
     streamLargeObjects: Stream large object values.
   """
 
-  dropLargeObjects = _messages.MessageField('DropLargeObjects', 1)
-  excludeObjects = _messages.MessageField('OracleRdbms', 2)
-  includeObjects = _messages.MessageField('OracleRdbms', 3)
-  maxConcurrentBackfillTasks = _messages.IntegerField(4, variant=_messages.Variant.INT32)
-  maxConcurrentCdcTasks = _messages.IntegerField(5, variant=_messages.Variant.INT32)
-  streamLargeObjects = _messages.MessageField('StreamLargeObjects', 6)
+  binaryLogParser = _messages.MessageField('BinaryLogParser', 1)
+  dropLargeObjects = _messages.MessageField('DropLargeObjects', 2)
+  excludeObjects = _messages.MessageField('OracleRdbms', 3)
+  includeObjects = _messages.MessageField('OracleRdbms', 4)
+  logMiner = _messages.MessageField('LogMiner', 5)
+  maxConcurrentBackfillTasks = _messages.IntegerField(6, variant=_messages.Variant.INT32)
+  maxConcurrentCdcTasks = _messages.IntegerField(7, variant=_messages.Variant.INT32)
+  streamLargeObjects = _messages.MessageField('StreamLargeObjects', 8)
 
 
 class OracleSslConfig(_messages.Message):
@@ -1735,10 +2161,18 @@ class OracleSslConfig(_messages.Message):
       the source database server's certificate.
     caCertificateSet: Output only. Indicates whether the ca_certificate field
       has been set for this Connection-Profile.
+    serverCertificateDistinguishedName: Optional. The distinguished name (DN)
+      mentioned in the server certificate. This corresponds to
+      SSL_SERVER_CERT_DN sqlnet parameter. Refer
+      https://docs.oracle.com/en/database/oracle/oracle-
+      database/19/netrf/local-naming-parameters-in-tns-ora-
+      file.html#GUID-70AB0695-A9AA-4A94-B141-4C605236EEB7 If this field is not
+      provided, the DN matching is not enforced.
   """
 
   caCertificate = _messages.StringField(1)
   caCertificateSet = _messages.BooleanField(2)
+  serverCertificateDistinguishedName = _messages.StringField(3)
 
 
 class OracleTable(_messages.Message):
@@ -1796,8 +2230,17 @@ class PostgresqlProfile(_messages.Message):
   Fields:
     database: Required. Database for the PostgreSQL connection.
     hostname: Required. Hostname for the PostgreSQL connection.
-    password: Required. Password for the PostgreSQL connection.
+    password: Optional. Password for the PostgreSQL connection. Mutually
+      exclusive with the `secret_manager_stored_password` field.
     port: Port for the PostgreSQL connection, default value is 5432.
+    secretManagerStoredPassword: Optional. A reference to a Secret Manager
+      resource name storing the PostgreSQL connection password. Mutually
+      exclusive with the `password` field.
+    sslConfig: Optional. SSL configuration for the PostgreSQL connection. In
+      case PostgresqlSslConfig is not set, the connection will use the default
+      SSL mode, which is `prefer` (i.e. this mode will only use encryption if
+      enabled from database side, otherwise will use unencrypted
+      communication)
     username: Required. Username for the PostgreSQL connection.
   """
 
@@ -1805,7 +2248,9 @@ class PostgresqlProfile(_messages.Message):
   hostname = _messages.StringField(2)
   password = _messages.StringField(3)
   port = _messages.IntegerField(4, variant=_messages.Variant.INT32)
-  username = _messages.StringField(5)
+  secretManagerStoredPassword = _messages.StringField(5)
+  sslConfig = _messages.MessageField('PostgresqlSslConfig', 6)
+  username = _messages.StringField(7)
 
 
 class PostgresqlRdbms(_messages.Message):
@@ -1852,6 +2297,22 @@ class PostgresqlSourceConfig(_messages.Message):
   replicationSlot = _messages.StringField(5)
 
 
+class PostgresqlSslConfig(_messages.Message):
+  r"""PostgreSQL SSL configuration information.
+
+  Fields:
+    serverAndClientVerification: If this field is set, the communication will
+      be encrypted with TLS encryption and both the server identity and the
+      client identity will be authenticated.
+    serverVerification:  If this field is set, the communication will be
+      encrypted with TLS encryption and the server identity will be
+      authenticated.
+  """
+
+  serverAndClientVerification = _messages.MessageField('ServerAndClientVerification', 1)
+  serverVerification = _messages.MessageField('ServerVerification', 2)
+
+
 class PostgresqlTable(_messages.Message):
   r"""PostgreSQL table.
 
@@ -1881,7 +2342,10 @@ class PrivateConnection(_messages.Message):
     error: Output only. In case of error, the details of the error in a user-
       friendly format.
     labels: Labels.
-    name: Output only. The resource's name.
+    name: Output only. Identifier. The resource's name.
+    pscInterfaceConfig: PSC Interface Config.
+    satisfiesPzi: Output only. Reserved for future use.
+    satisfiesPzs: Output only. Reserved for future use.
     state: Output only. The state of the Private Connection.
     updateTime: Output only. The update time of the resource.
     vpcPeeringConfig: VPC Peering Config.
@@ -1937,9 +2401,12 @@ class PrivateConnection(_messages.Message):
   error = _messages.MessageField('Error', 3)
   labels = _messages.MessageField('LabelsValue', 4)
   name = _messages.StringField(5)
-  state = _messages.EnumField('StateValueValuesEnum', 6)
-  updateTime = _messages.StringField(7)
-  vpcPeeringConfig = _messages.MessageField('VpcPeeringConfig', 8)
+  pscInterfaceConfig = _messages.MessageField('PscInterfaceConfig', 6)
+  satisfiesPzi = _messages.BooleanField(7)
+  satisfiesPzs = _messages.BooleanField(8)
+  state = _messages.EnumField('StateValueValuesEnum', 9)
+  updateTime = _messages.StringField(10)
+  vpcPeeringConfig = _messages.MessageField('VpcPeeringConfig', 11)
 
 
 class PrivateConnectivity(_messages.Message):
@@ -1952,6 +2419,19 @@ class PrivateConnectivity(_messages.Message):
   """
 
   privateConnection = _messages.StringField(1)
+
+
+class PscInterfaceConfig(_messages.Message):
+  r"""The PSC Interface configuration is used to create PSC Interface between
+  Datastream and the consumer's PSC.
+
+  Fields:
+    networkAttachment: Required. Fully qualified name of the Network
+      Attachment that Datastream will connect to. Format:
+      `projects/{project}/regions/{region}/networkAttachments/{name}`
+  """
+
+  networkAttachment = _messages.StringField(1)
 
 
 class Route(_messages.Message):
@@ -1967,7 +2447,7 @@ class Route(_messages.Message):
     destinationPort: Destination port for connection
     displayName: Required. Display name.
     labels: Labels.
-    name: Output only. The resource's name.
+    name: Output only. Identifier. The resource's name.
     updateTime: Output only. The update time of the resource.
   """
 
@@ -2010,9 +2490,136 @@ class RunStreamRequest(_messages.Message):
   Fields:
     cdcStrategy: Optional. The CDC strategy of the stream. If not set, the
       system's default value will be used.
+    force: Optional. Update the stream without validating it.
   """
 
   cdcStrategy = _messages.MessageField('CdcStrategy', 1)
+  force = _messages.BooleanField(2)
+
+
+class SalesforceField(_messages.Message):
+  r"""Salesforce field.
+
+  Fields:
+    dataType: The data type.
+    name: Field name.
+    nillable: Indicates whether the field can accept nil values.
+  """
+
+  dataType = _messages.StringField(1)
+  name = _messages.StringField(2)
+  nillable = _messages.BooleanField(3)
+
+
+class SalesforceObject(_messages.Message):
+  r"""Salesforce object.
+
+  Fields:
+    fields: Salesforce fields. When unspecified as part of include objects,
+      includes everything, when unspecified as part of exclude objects,
+      excludes nothing.
+    objectName: Object name.
+  """
+
+  fields = _messages.MessageField('SalesforceField', 1, repeated=True)
+  objectName = _messages.StringField(2)
+
+
+class SalesforceObjectIdentifier(_messages.Message):
+  r"""Salesforce data source object identifier.
+
+  Fields:
+    objectName: Required. The object name.
+  """
+
+  objectName = _messages.StringField(1)
+
+
+class SalesforceOrg(_messages.Message):
+  r"""Salesforce organization structure.
+
+  Fields:
+    objects: Salesforce objects in the database server.
+  """
+
+  objects = _messages.MessageField('SalesforceObject', 1, repeated=True)
+
+
+class SalesforceProfile(_messages.Message):
+  r"""Salesforce profile
+
+  Fields:
+    domain: Required. Domain endpoint for the Salesforce connection.
+    oauth2ClientCredentials: Connected app authentication.
+    userCredentials: User-password authentication.
+  """
+
+  domain = _messages.StringField(1)
+  oauth2ClientCredentials = _messages.MessageField('Oauth2ClientCredentials', 2)
+  userCredentials = _messages.MessageField('UserCredentials', 3)
+
+
+class SalesforceSourceConfig(_messages.Message):
+  r"""Salesforce source configuration
+
+  Fields:
+    excludeObjects: Salesforce objects to exclude from the stream.
+    includeObjects: Salesforce objects to retrieve from the source.
+    pollingInterval: Required. Salesforce objects polling interval. The
+      interval at which new changes will be polled for each object. The
+      duration must be between 5 minutes and 24 hours.
+  """
+
+  excludeObjects = _messages.MessageField('SalesforceOrg', 1)
+  includeObjects = _messages.MessageField('SalesforceOrg', 2)
+  pollingInterval = _messages.StringField(3)
+
+
+class ServerAndClientVerification(_messages.Message):
+  r"""Message represents the option where Datastream will enforce the
+  encryption and authenticate the server identity as well as the client
+  identity. ca_certificate, client_certificate and client_key must be set if
+  user selects this option.
+
+  Fields:
+    caCertificate: Required. Input only. PEM-encoded server root CA
+      certificate.
+    clientCertificate: Required. Input only. PEM-encoded certificate used by
+      the source database to authenticate the client identity (i.e., the
+      Datastream's identity). This certificate is signed by either a root
+      certificate trusted by the server or one or more intermediate
+      certificates (which is stored with the leaf certificate) to link the
+      this certificate to the trusted root certificate.
+    clientKey: Optional. Input only. PEM-encoded private key associated with
+      the client certificate. This value will be used during the SSL/TLS
+      handshake, allowing the PostgreSQL server to authenticate the client's
+      identity, i.e. identity of the Datastream.
+    serverCertificateHostname: Optional. The hostname mentioned in the Subject
+      or SAN extension of the server certificate. If this field is not
+      provided, the hostname in the server certificate is not validated.
+  """
+
+  caCertificate = _messages.StringField(1)
+  clientCertificate = _messages.StringField(2)
+  clientKey = _messages.StringField(3)
+  serverCertificateHostname = _messages.StringField(4)
+
+
+class ServerVerification(_messages.Message):
+  r"""Message represents the option where Datastream will enforce the
+  encryption and authenticate the server identity. ca_certificate must be set
+  if user selects this option.
+
+  Fields:
+    caCertificate: Required. Input only. PEM-encoded server root CA
+      certificate.
+    serverCertificateHostname: Optional. The hostname mentioned in the Subject
+      or SAN extension of the server certificate. If this field is not
+      provided, the hostname in the server certificate is not validated.
+  """
+
+  caCertificate = _messages.StringField(1)
+  serverCertificateHostname = _messages.StringField(2)
 
 
 class SingleTargetDataset(_messages.Message):
@@ -2031,20 +2638,24 @@ class SourceConfig(_messages.Message):
   r"""The configuration of the stream source.
 
   Fields:
+    mongodbSourceConfig: MongoDB data source configuration.
     mysqlSourceConfig: MySQL data source configuration.
     oracleSourceConfig: Oracle data source configuration.
     postgresqlSourceConfig: PostgreSQL data source configuration.
-    sourceConnectionProfile: Required. Source connection profile resoource.
+    salesforceSourceConfig: Salesforce data source configuration.
+    sourceConnectionProfile: Required. Source connection profile resource.
       Format:
       `projects/{project}/locations/{location}/connectionProfiles/{name}`
     sqlServerSourceConfig: SQLServer data source configuration.
   """
 
-  mysqlSourceConfig = _messages.MessageField('MysqlSourceConfig', 1)
-  oracleSourceConfig = _messages.MessageField('OracleSourceConfig', 2)
-  postgresqlSourceConfig = _messages.MessageField('PostgresqlSourceConfig', 3)
-  sourceConnectionProfile = _messages.StringField(4)
-  sqlServerSourceConfig = _messages.MessageField('SqlServerSourceConfig', 5)
+  mongodbSourceConfig = _messages.MessageField('MongodbSourceConfig', 1)
+  mysqlSourceConfig = _messages.MessageField('MysqlSourceConfig', 2)
+  oracleSourceConfig = _messages.MessageField('OracleSourceConfig', 3)
+  postgresqlSourceConfig = _messages.MessageField('PostgresqlSourceConfig', 4)
+  salesforceSourceConfig = _messages.MessageField('SalesforceSourceConfig', 5)
+  sourceConnectionProfile = _messages.StringField(6)
+  sqlServerSourceConfig = _messages.MessageField('SqlServerSourceConfig', 7)
 
 
 class SourceHierarchyDatasets(_messages.Message):
@@ -2053,25 +2664,32 @@ class SourceHierarchyDatasets(_messages.Message):
 
   Fields:
     datasetTemplate: The dataset template to use for dynamic dataset creation.
+    projectId: Optional. The project id of the BigQuery dataset. If not
+      specified, the project will be inferred from the stream resource.
   """
 
   datasetTemplate = _messages.MessageField('DatasetTemplate', 1)
+  projectId = _messages.StringField(2)
 
 
 class SourceObjectIdentifier(_messages.Message):
   r"""Represents an identifier of an object in the data source.
 
   Fields:
+    mongodbIdentifier: MongoDB data source object identifier.
     mysqlIdentifier: Mysql data source object identifier.
     oracleIdentifier: Oracle data source object identifier.
     postgresqlIdentifier: PostgreSQL data source object identifier.
+    salesforceIdentifier: Salesforce data source object identifier.
     sqlServerIdentifier: SQLServer data source object identifier.
   """
 
-  mysqlIdentifier = _messages.MessageField('MysqlObjectIdentifier', 1)
-  oracleIdentifier = _messages.MessageField('OracleObjectIdentifier', 2)
-  postgresqlIdentifier = _messages.MessageField('PostgresqlObjectIdentifier', 3)
-  sqlServerIdentifier = _messages.MessageField('SqlServerObjectIdentifier', 4)
+  mongodbIdentifier = _messages.MessageField('MongodbObjectIdentifier', 1)
+  mysqlIdentifier = _messages.MessageField('MysqlObjectIdentifier', 2)
+  oracleIdentifier = _messages.MessageField('OracleObjectIdentifier', 3)
+  postgresqlIdentifier = _messages.MessageField('PostgresqlObjectIdentifier', 4)
+  salesforceIdentifier = _messages.MessageField('SalesforceObjectIdentifier', 5)
+  sqlServerIdentifier = _messages.MessageField('SqlServerObjectIdentifier', 6)
 
 
 class SpecificStartPosition(_messages.Message):
@@ -2079,12 +2697,23 @@ class SpecificStartPosition(_messages.Message):
   source.
 
   Fields:
+    mongodbChangeStreamPosition: MongoDB change stream position to start
+      replicating from.
+    mysqlGtidPosition: MySQL GTID set to start replicating from.
     mysqlLogPosition: MySQL specific log position to start replicating from.
     oracleScnPosition: Oracle SCN to start replicating from.
+    sqlServerLsnPosition: SqlServer LSN to start replicating from.
   """
 
-  mysqlLogPosition = _messages.MessageField('MysqlLogPosition', 1)
-  oracleScnPosition = _messages.MessageField('OracleScnPosition', 2)
+  mongodbChangeStreamPosition = _messages.MessageField('MongodbChangeStreamPosition', 1)
+  mysqlGtidPosition = _messages.MessageField('MysqlGtidPosition', 2)
+  mysqlLogPosition = _messages.MessageField('MysqlLogPosition', 3)
+  oracleScnPosition = _messages.MessageField('OracleScnPosition', 4)
+  sqlServerLsnPosition = _messages.MessageField('SqlServerLsnPosition', 5)
+
+
+class SqlServerChangeTables(_messages.Message):
+  r"""Configuration to use Change Tables CDC read method."""
 
 
 class SqlServerColumn(_messages.Message):
@@ -2111,6 +2740,16 @@ class SqlServerColumn(_messages.Message):
   scale = _messages.IntegerField(8, variant=_messages.Variant.INT32)
 
 
+class SqlServerLsnPosition(_messages.Message):
+  r"""SQL Server LSN position
+
+  Fields:
+    lsn: Required. Log sequence number (LSN) from where Logs will be read
+  """
+
+  lsn = _messages.StringField(1)
+
+
 class SqlServerObjectIdentifier(_messages.Message):
   r"""SQLServer data source object identifier.
 
@@ -2124,13 +2763,18 @@ class SqlServerObjectIdentifier(_messages.Message):
 
 
 class SqlServerProfile(_messages.Message):
-  r"""SQLServer database profile
+  r"""SQLServer database profile.
 
   Fields:
     database: Required. Database for the SQLServer connection.
     hostname: Required. Hostname for the SQLServer connection.
-    password: Required. Password for the SQLServer connection.
+    password: Optional. Password for the SQLServer connection. Mutually
+      exclusive with the `secret_manager_stored_password` field.
     port: Port for the SQLServer connection, default value is 1433.
+    secretManagerStoredPassword: Optional. A reference to a Secret Manager
+      resource name storing the SQLServer connection password. Mutually
+      exclusive with the `password` field.
+    sslConfig: Optional. SSL configuration for the SQLServer connection.
     username: Required. Username for the SQLServer connection.
   """
 
@@ -2138,7 +2782,9 @@ class SqlServerProfile(_messages.Message):
   hostname = _messages.StringField(2)
   password = _messages.StringField(3)
   port = _messages.IntegerField(4, variant=_messages.Variant.INT32)
-  username = _messages.StringField(5)
+  secretManagerStoredPassword = _messages.StringField(5)
+  sslConfig = _messages.MessageField('SqlServerSslConfig', 6)
+  username = _messages.StringField(7)
 
 
 class SqlServerRdbms(_messages.Message):
@@ -2167,16 +2813,39 @@ class SqlServerSourceConfig(_messages.Message):
   r"""SQLServer data source configuration
 
   Fields:
+    changeTables: CDC reader reads from change tables.
     excludeObjects: SQLServer objects to exclude from the stream.
     includeObjects: SQLServer objects to include in the stream.
     maxConcurrentBackfillTasks: Max concurrent backfill tasks.
     maxConcurrentCdcTasks: Max concurrent CDC tasks.
+    transactionLogs: CDC reader reads from transaction logs.
   """
 
-  excludeObjects = _messages.MessageField('SqlServerRdbms', 1)
-  includeObjects = _messages.MessageField('SqlServerRdbms', 2)
-  maxConcurrentBackfillTasks = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  maxConcurrentCdcTasks = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  changeTables = _messages.MessageField('SqlServerChangeTables', 1)
+  excludeObjects = _messages.MessageField('SqlServerRdbms', 2)
+  includeObjects = _messages.MessageField('SqlServerRdbms', 3)
+  maxConcurrentBackfillTasks = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  maxConcurrentCdcTasks = _messages.IntegerField(5, variant=_messages.Variant.INT32)
+  transactionLogs = _messages.MessageField('SqlServerTransactionLogs', 6)
+
+
+class SqlServerSslConfig(_messages.Message):
+  r"""SQL Server SSL configuration information.
+
+  Fields:
+    basicEncryption: If set, Datastream will enforce encryption without
+      authenticating server identity. Server certificates will be trusted by
+      default.
+    encryptionAndServerValidation: If set, Datastream will enforce encryption
+      and authenticate server identity.
+    encryptionNotEnforced: If set, Datastream will not enforce encryption. If
+      the DB server mandates encryption, then connection will be encrypted but
+      server identity will not be authenticated.
+  """
+
+  basicEncryption = _messages.MessageField('BasicEncryption', 1)
+  encryptionAndServerValidation = _messages.MessageField('EncryptionAndServerValidation', 2)
+  encryptionNotEnforced = _messages.MessageField('EncryptionNotEnforced', 3)
 
 
 class SqlServerTable(_messages.Message):
@@ -2190,6 +2859,25 @@ class SqlServerTable(_messages.Message):
 
   columns = _messages.MessageField('SqlServerColumn', 1, repeated=True)
   table = _messages.StringField(2)
+
+
+class SqlServerTransactionLogs(_messages.Message):
+  r"""Configuration to use Transaction Logs CDC read method."""
+
+
+class SrvConnectionFormat(_messages.Message):
+  r"""Srv connection format."""
+
+
+class StandardConnectionFormat(_messages.Message):
+  r"""Standard connection format.
+
+  Fields:
+    directConnection: Optional. Specifies whether the client connects directly
+      to the host[:port] in the connection URI.
+  """
+
+  directConnection = _messages.BooleanField(1)
 
 
 class StandardQueryParameters(_messages.Message):
@@ -2373,7 +3061,9 @@ class Stream(_messages.Message):
     labels: Labels.
     lastRecoveryTime: Output only. If the stream was recovered, the time of
       the last recovery. Note: This field is currently experimental.
-    name: Output only. The stream's name.
+    name: Output only. Identifier. The stream's name.
+    satisfiesPzi: Output only. Reserved for future use.
+    satisfiesPzs: Output only. Reserved for future use.
     sourceConfig: Required. Source connection profile configuration.
     state: The state of the stream.
     updateTime: Output only. The last update time of the stream.
@@ -2441,9 +3131,11 @@ class Stream(_messages.Message):
   labels = _messages.MessageField('LabelsValue', 8)
   lastRecoveryTime = _messages.StringField(9)
   name = _messages.StringField(10)
-  sourceConfig = _messages.MessageField('SourceConfig', 11)
-  state = _messages.EnumField('StateValueValuesEnum', 12)
-  updateTime = _messages.StringField(13)
+  satisfiesPzi = _messages.BooleanField(11)
+  satisfiesPzs = _messages.BooleanField(12)
+  sourceConfig = _messages.MessageField('SourceConfig', 13)
+  state = _messages.EnumField('StateValueValuesEnum', 14)
+  updateTime = _messages.StringField(15)
 
 
 class StreamLargeObjects(_messages.Message):
@@ -2459,7 +3151,7 @@ class StreamObject(_messages.Message):
     createTime: Output only. The creation time of the object.
     displayName: Required. Display name.
     errors: Output only. Active errors on the object.
-    name: Output only. The object resource's name.
+    name: Output only. Identifier. The object resource's name.
     sourceObject: The object identifier in the data source.
     updateTime: Output only. The last update time of the object.
   """
@@ -2471,6 +3163,31 @@ class StreamObject(_messages.Message):
   name = _messages.StringField(5)
   sourceObject = _messages.MessageField('SourceObjectIdentifier', 6)
   updateTime = _messages.StringField(7)
+
+
+class UserCredentials(_messages.Message):
+  r"""Username-password credentials.
+
+  Fields:
+    password: Optional. Password for the Salesforce connection. Mutually
+      exclusive with the `secret_manager_stored_password` field.
+    secretManagerStoredPassword: Optional. A reference to a Secret Manager
+      resource name storing the Salesforce connection's password. Mutually
+      exclusive with the `password` field.
+    secretManagerStoredSecurityToken: Optional. A reference to a Secret
+      Manager resource name storing the Salesforce connection's security
+      token. Mutually exclusive with the `security_token` field.
+    securityToken: Optional. Security token for the Salesforce connection.
+      Mutually exclusive with the `secret_manager_stored_security_token`
+      field.
+    username: Required. Username for the Salesforce connection.
+  """
+
+  password = _messages.StringField(1)
+  secretManagerStoredPassword = _messages.StringField(2)
+  secretManagerStoredSecurityToken = _messages.StringField(3)
+  securityToken = _messages.StringField(4)
+  username = _messages.StringField(5)
 
 
 class Validation(_messages.Message):

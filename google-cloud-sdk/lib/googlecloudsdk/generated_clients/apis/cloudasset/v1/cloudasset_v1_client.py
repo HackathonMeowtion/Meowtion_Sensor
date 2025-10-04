@@ -440,7 +440,7 @@ class CloudassetV1(base_api.BaseApiClient):
         method_id='cloudasset.otherCloudConnections.patch',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['updateMask'],
+        query_params=['optInFeatures_allEligibleFeatures', 'updateMask'],
         relative_path='v1/{+name}',
         request_field='otherCloudConnection',
         request_type_name='CloudassetOtherCloudConnectionsPatchRequest',
@@ -449,7 +449,7 @@ class CloudassetV1(base_api.BaseApiClient):
     )
 
     def Verify(self, request, global_params=None):
-      r"""Verifies the validity of an other-cloud connection, and writes the validation result into spanner if the connection exists. A connection will be considered as valid if the GCP service account can be assumed to the AWS delegated role successfully.
+      r"""Verifies the validity of an other-cloud connection, and writes the validation result into spanner if the connection exists.
 
       Args:
         request: (VerifyOtherCloudConnectionRequest) input message
@@ -789,33 +789,6 @@ class CloudassetV1(base_api.BaseApiClient):
         request_field='',
         request_type_name='CloudassetAnalyzeOrgPolicyGovernedContainersRequest',
         response_type_name='AnalyzeOrgPolicyGovernedContainersResponse',
-        supports_download=False,
-    )
-
-    def AnalyzeOrgPolicyGovernedResources(self, request, global_params=None):
-      r"""Analyzes organization policies governed resources under a scope. This RPC only returns resources of types [supported by search APIs](https://cloud.google.com/asset-inventory/docs/supported-asset-types).
-
-      Args:
-        request: (CloudassetAnalyzeOrgPolicyGovernedResourcesRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (AnalyzeOrgPolicyGovernedResourcesResponse) The response message.
-      """
-      config = self.GetMethodConfig('AnalyzeOrgPolicyGovernedResources')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    AnalyzeOrgPolicyGovernedResources.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1/{v1Id}/{v1Id1}:analyzeOrgPolicyGovernedResources',
-        http_method='GET',
-        method_id='cloudasset.analyzeOrgPolicyGovernedResources',
-        ordered_params=['scope'],
-        path_params=['scope'],
-        query_params=['constraint', 'filter', 'pageSize', 'pageToken'],
-        relative_path='v1/{+scope}:analyzeOrgPolicyGovernedResources',
-        request_field='',
-        request_type_name='CloudassetAnalyzeOrgPolicyGovernedResourcesRequest',
-        response_type_name='AnalyzeOrgPolicyGovernedResourcesResponse',
         supports_download=False,
     )
 

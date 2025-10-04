@@ -25,10 +25,12 @@ from googlecloudsdk.api_lib.util import waiter
 from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.network_connectivity import flags
 from googlecloudsdk.core import log
+from googlecloudsdk.core import properties
 from googlecloudsdk.core import resources
 
 
-@base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.GA)
 class RejectSpoke(base.Command):
   """Reject a spoke from a hub.
 
@@ -48,7 +50,10 @@ class RejectSpoke(base.Command):
     client = networkconnectivity_api.HubsClient(
         release_track=self.ReleaseTrack())
     hub_ref = args.CONCEPTS.hub.Parse()
-    op_ref = client.RejectSpoke(hub_ref, args.spoke, args.details)
+    if self.ReleaseTrack() == base.ReleaseTrack.BETA:
+      op_ref = client.RejectSpokeBeta(hub_ref, args.spoke, args.details)
+    else:
+      op_ref = client.RejectSpoke(hub_ref, args.spoke, args.details)
 
     log.status.Print('Reject spoke request issued for: [{}]'.format(
         hub_ref.Name()))
@@ -74,10 +79,10 @@ class RejectSpoke(base.Command):
 
 RejectSpoke.detailed_help = {
     'EXAMPLES':
-        """ \
+        f""" \
   To reject a spoke named ``my-spoke'' from a hub named ``my-hub'' with reason ``my-reason'', run:
 
-    $ {command} my-hub --spoke="https://www.googleapis.com/networkconnectivity/v1/projects/spoke-project/locations/global/hubs/my-spoke" --details=my-reason
+    $ {{command}} my-hub --spoke="https://networkconnectivity.{properties.VALUES.core.universe_domain.Get()}/v1/projects/spoke-project/locations/global/spokes/my-spoke" --details=my-reason
   """,
     'API REFERENCE':
         """ \

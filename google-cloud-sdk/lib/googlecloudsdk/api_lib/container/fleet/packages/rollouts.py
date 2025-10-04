@@ -15,40 +15,24 @@
 """Utilities for Package Rollouts Rollouts API."""
 
 from apitools.base.py import list_pager
-from googlecloudsdk.api_lib.util import apis
-from googlecloudsdk.command_lib.container.fleet.packages import utils
-from googlecloudsdk.core import resources
+from googlecloudsdk.api_lib.container.fleet.packages import util
+from googlecloudsdk.api_lib.util import waiter
 
-
-def GetClientInstance(no_http=False):
-  """Returns instance of generated Config Delivery gapic client."""
-  return apis.GetClientInstance(
-      'configdelivery', utils.ApiVersion(), no_http=no_http
-  )
-
-
-def GetMessagesModule(client=None):
-  """Returns generated Config Delivery gapic messages."""
-  client = client or GetClientInstance()
-  return client.MESSAGES_MODULE
-
-
-def GetRolloutURI(resource):
-  """Returns URI of Rollout for use with gapic client."""
-  rollout = resources.REGISTRY.ParseRelativeName(
-      resource.name,
-      collection='configdelivery.projects.locations.fleetPackages.rollouts',
-  )
-  return rollout.SelfLink()
+ROLLOUT_COLLECTION = 'configdelivery.projects.locations.fleetPackages.rollouts'
 
 
 class RolloutsClient(object):
   """Client for Rollouts in Config Delivery Package Rollouts API."""
 
-  def __init__(self, client=None, messages=None):
-    self.client = client or GetClientInstance()
-    self.messages = messages or GetMessagesModule(client)
+  def __init__(self, api_version, client=None, messages=None):
+    self._api_version = api_version or util.DEFAULT_API_VERSION
+    self.client = client or util.GetClientInstance(self._api_version)
+    self.messages = messages or util.GetMessagesModule(self.client)
     self._service = self.client.projects_locations_fleetPackages_rollouts
+    self.rollout_waiter = waiter.CloudOperationPollerNoResources(
+        operation_service=self.client.projects_locations_operations,
+        get_name_func=lambda x: x.name,
+    )
 
   def List(self, project, location, fleet_package, limit=None, page_size=100):
     """List Rollouts of a Fleet Package.
@@ -65,7 +49,8 @@ class RolloutsClient(object):
       Generator of matching devices.
     """
     list_request = self.messages.ConfigdeliveryProjectsLocationsFleetPackagesRolloutsListRequest(
-        parent=f'projects/{project}/locations/{location}/fleetPackages/{fleet_package}'
+        parent=f'projects/{project}/locations/{location}/fleetPackages/{fleet_package}',
+        orderBy='create_time desc',
     )
     return list_pager.YieldFromList(
         self._service,
@@ -105,14 +90,21 @@ class RolloutsClient(object):
       reason: Reason for aborting the Rollout.
 
     Returns:
-      Operation for aborting rollout.
+      None.
+
+    Raises:
+      apitools.base.py.HttpError: If the request returns an HTTP error.
     """
     fully_qualified_path = f'projects/{project}/locations/{location}/fleetPackages/{fleet_package}/rollouts/{rollout}'
     abort_req = self.messages.ConfigdeliveryProjectsLocationsFleetPackagesRolloutsAbortRequest(
         name=fully_qualified_path,
         abortRolloutRequest=self.messages.AbortRolloutRequest(reason=reason),
     )
-    return self._service.Abort(abort_req)
+    waiter.WaitFor(
+        self.rollout_waiter,
+        self._service.Abort(abort_req),
+        f'Aborting Rollout {rollout}',
+    )
 
   def Resume(self, project, location, fleet_package, rollout, reason=None):
     """Resume a suspended Rollout.
@@ -125,14 +117,21 @@ class RolloutsClient(object):
       reason: Reason for resuming the Rollout.
 
     Returns:
-      Operation for resuming rollout.
+      None.
+
+    Raises:
+      apitools.base.py.HttpError: If the request returns an HTTP error.
     """
     fully_qualified_path = f'projects/{project}/locations/{location}/fleetPackages/{fleet_package}/rollouts/{rollout}'
     resume_req = self.messages.ConfigdeliveryProjectsLocationsFleetPackagesRolloutsResumeRequest(
         name=fully_qualified_path,
         resumeRolloutRequest=self.messages.ResumeRolloutRequest(reason=reason),
     )
-    return self._service.Resume(resume_req)
+    waiter.WaitFor(
+        self.rollout_waiter,
+        self._service.Resume(resume_req),
+        f'Resuming Rollout {rollout}',
+    )
 
   def Suspend(self, project, location, fleet_package, rollout, reason=None):
     """Suspend an in-progress Rollout.
@@ -145,7 +144,10 @@ class RolloutsClient(object):
       reason: Reason for suspending the Rollout.
 
     Returns:
-      Operation for suspending rollout.
+      None.
+
+    Raises:
+      apitools.base.py.HttpError: If the request returns an HTTP error.
     """
     fully_qualified_path = f'projects/{project}/locations/{location}/fleetPackages/{fleet_package}/rollouts/{rollout}'
     suspend_req = self.messages.ConfigdeliveryProjectsLocationsFleetPackagesRolloutsSuspendRequest(
@@ -154,4 +156,8 @@ class RolloutsClient(object):
             reason=reason
         ),
     )
-    return self._service.Suspend(suspend_req)
+    waiter.WaitFor(
+        self.rollout_waiter,
+        self._service.Suspend(suspend_req),
+        f'Suspending Rollout {rollout}',
+    )

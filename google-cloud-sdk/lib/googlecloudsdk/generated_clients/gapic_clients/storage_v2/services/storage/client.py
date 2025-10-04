@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 from collections import OrderedDict
 import os
 import re
-from typing import Dict, Mapping, MutableMapping, MutableSequence, Optional, Iterable, Iterator, Sequence, Tuple, Type, Union, cast
+from typing import Dict, Callable, Mapping, MutableMapping, MutableSequence, Optional, Iterable, Iterator, Sequence, Tuple, Type, Union, cast
 import warnings
 
 from googlecloudsdk.generated_clients.gapic_clients.storage_v2 import gapic_version as package_version
@@ -32,9 +32,9 @@ from google.auth.exceptions import MutualTLSChannelError          # type: ignore
 from google.oauth2 import service_account                         # type: ignore
 
 try:
-    OptionalRetry = Union[retries.Retry, gapic_v1.method._MethodDefault]
+    OptionalRetry = Union[retries.Retry, gapic_v1.method._MethodDefault, None]
 except AttributeError:  # pragma: NO COVER
-    OptionalRetry = Union[retries.Retry, object]  # type: ignore
+    OptionalRetry = Union[retries.Retry, object, None]  # type: ignore
 
 from google.iam.v1 import iam_policy_pb2  # type: ignore
 from google.iam.v1 import policy_pb2  # type: ignore
@@ -140,10 +140,14 @@ class StorageClient(metaclass=StorageClientMeta):
 
         return api_endpoint.replace(".googleapis.com", ".mtls.googleapis.com")
 
+    # Note: DEFAULT_ENDPOINT is deprecated. Use _DEFAULT_ENDPOINT_TEMPLATE instead.
     DEFAULT_ENDPOINT = "storage.googleapis.com"
     DEFAULT_MTLS_ENDPOINT = _get_default_mtls_endpoint.__func__(  # type: ignore
         DEFAULT_ENDPOINT
     )
+
+    _DEFAULT_ENDPOINT_TEMPLATE = "storage.{UNIVERSE_DOMAIN}"
+    _DEFAULT_UNIVERSE = "googleapis.com"
 
     @classmethod
     def from_service_account_info(cls, info: dict, *args, **kwargs):
@@ -216,17 +220,6 @@ class StorageClient(metaclass=StorageClientMeta):
         return m.groupdict() if m else {}
 
     @staticmethod
-    def notification_config_path(project: str,bucket: str,notification_config: str,) -> str:
-        """Returns a fully-qualified notification_config string."""
-        return "projects/{project}/buckets/{bucket}/notificationConfigs/{notification_config}".format(project=project, bucket=bucket, notification_config=notification_config, )
-
-    @staticmethod
-    def parse_notification_config_path(path: str) -> Dict[str,str]:
-        """Parses a notification_config path into its component segments."""
-        m = re.match(r"^projects/(?P<project>.+?)/buckets/(?P<bucket>.+?)/notificationConfigs/(?P<notification_config>.+?)$", path)
-        return m.groupdict() if m else {}
-
-    @staticmethod
     def common_billing_account_path(billing_account: str, ) -> str:
         """Returns a fully-qualified billing_account string."""
         return "billingAccounts/{billing_account}".format(billing_account=billing_account, )
@@ -283,7 +276,7 @@ class StorageClient(metaclass=StorageClientMeta):
 
     @classmethod
     def get_mtls_endpoint_and_cert_source(cls, client_options: Optional[client_options_lib.ClientOptions] = None):
-        """Return the API endpoint and client cert source for mutual TLS.
+        """Deprecated. Return the API endpoint and client cert source for mutual TLS.
 
         The client cert source is determined in the following order:
         (1) if `GOOGLE_API_USE_CLIENT_CERTIFICATE` environment variable is not "true", the
@@ -313,6 +306,9 @@ class StorageClient(metaclass=StorageClientMeta):
         Raises:
             google.auth.exceptions.MutualTLSChannelError: If any errors happen.
         """
+
+        warnings.warn("get_mtls_endpoint_and_cert_source is deprecated. Use the api_endpoint property instead.",
+            DeprecationWarning)
         if client_options is None:
             client_options = client_options_lib.ClientOptions()
         use_client_cert = os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE", "false")
@@ -340,9 +336,158 @@ class StorageClient(metaclass=StorageClientMeta):
 
         return api_endpoint, client_cert_source
 
+    @staticmethod
+    def _read_environment_variables():
+        """Returns the environment variables used by the client.
+
+        Returns:
+            Tuple[bool, str, str]: returns the GOOGLE_API_USE_CLIENT_CERTIFICATE,
+            GOOGLE_API_USE_MTLS_ENDPOINT, and GOOGLE_CLOUD_UNIVERSE_DOMAIN environment variables.
+
+        Raises:
+            ValueError: If GOOGLE_API_USE_CLIENT_CERTIFICATE is not
+                any of ["true", "false"].
+            google.auth.exceptions.MutualTLSChannelError: If GOOGLE_API_USE_MTLS_ENDPOINT
+                is not any of ["auto", "never", "always"].
+        """
+        use_client_cert = os.getenv("GOOGLE_API_USE_CLIENT_CERTIFICATE", "false").lower()
+        use_mtls_endpoint = os.getenv("GOOGLE_API_USE_MTLS_ENDPOINT", "auto").lower()
+        universe_domain_env = os.getenv("GOOGLE_CLOUD_UNIVERSE_DOMAIN")
+        if use_client_cert not in ("true", "false"):
+            raise ValueError("Environment variable `GOOGLE_API_USE_CLIENT_CERTIFICATE` must be either `true` or `false`")
+        if use_mtls_endpoint not in ("auto", "never", "always"):
+            raise MutualTLSChannelError("Environment variable `GOOGLE_API_USE_MTLS_ENDPOINT` must be `never`, `auto` or `always`")
+        return use_client_cert == "true", use_mtls_endpoint, universe_domain_env
+
+    @staticmethod
+    def _get_client_cert_source(provided_cert_source, use_cert_flag):
+        """Return the client cert source to be used by the client.
+
+        Args:
+            provided_cert_source (bytes): The client certificate source provided.
+            use_cert_flag (bool): A flag indicating whether to use the client certificate.
+
+        Returns:
+            bytes or None: The client cert source to be used by the client.
+        """
+        client_cert_source = None
+        if use_cert_flag:
+            if provided_cert_source:
+                client_cert_source = provided_cert_source
+            elif mtls.has_default_client_cert_source():
+                client_cert_source = mtls.default_client_cert_source()
+        return client_cert_source
+
+    @staticmethod
+    def _get_api_endpoint(api_override, client_cert_source, universe_domain, use_mtls_endpoint):
+        """Return the API endpoint used by the client.
+
+        Args:
+            api_override (str): The API endpoint override. If specified, this is always
+                the return value of this function and the other arguments are not used.
+            client_cert_source (bytes): The client certificate source used by the client.
+            universe_domain (str): The universe domain used by the client.
+            use_mtls_endpoint (str): How to use the mTLS endpoint, which depends also on the other parameters.
+                Possible values are "always", "auto", or "never".
+
+        Returns:
+            str: The API endpoint to be used by the client.
+        """
+        if api_override is not None:
+            api_endpoint = api_override
+        elif use_mtls_endpoint == "always" or (use_mtls_endpoint == "auto" and client_cert_source):
+            _default_universe = StorageClient._DEFAULT_UNIVERSE
+            if universe_domain != _default_universe:
+                raise MutualTLSChannelError(f"mTLS is not supported in any universe other than {_default_universe}.")
+            api_endpoint = StorageClient.DEFAULT_MTLS_ENDPOINT
+        else:
+            api_endpoint = StorageClient._DEFAULT_ENDPOINT_TEMPLATE.format(UNIVERSE_DOMAIN=universe_domain)
+        return api_endpoint
+
+    @staticmethod
+    def _get_universe_domain(client_universe_domain: Optional[str], universe_domain_env: Optional[str]) -> str:
+        """Return the universe domain used by the client.
+
+        Args:
+            client_universe_domain (Optional[str]): The universe domain configured via the client options.
+            universe_domain_env (Optional[str]): The universe domain configured via the "GOOGLE_CLOUD_UNIVERSE_DOMAIN" environment variable.
+
+        Returns:
+            str: The universe domain to be used by the client.
+
+        Raises:
+            ValueError: If the universe domain is an empty string.
+        """
+        universe_domain = StorageClient._DEFAULT_UNIVERSE
+        if client_universe_domain is not None:
+            universe_domain = client_universe_domain
+        elif universe_domain_env is not None:
+            universe_domain = universe_domain_env
+        if len(universe_domain.strip()) == 0:
+            raise ValueError("Universe Domain cannot be an empty string.")
+        return universe_domain
+
+    @staticmethod
+    def _compare_universes(client_universe: str,
+                           credentials: ga_credentials.Credentials) -> bool:
+        """Returns True iff the universe domains used by the client and credentials match.
+
+        Args:
+            client_universe (str): The universe domain configured via the client options.
+            credentials (ga_credentials.Credentials): The credentials being used in the client.
+
+        Returns:
+            bool: True iff client_universe matches the universe in credentials.
+
+        Raises:
+            ValueError: when client_universe does not match the universe in credentials.
+        """
+
+        default_universe = StorageClient._DEFAULT_UNIVERSE
+        credentials_universe = getattr(credentials, "universe_domain", default_universe)
+
+        if client_universe != credentials_universe:
+            raise ValueError("The configured universe domain "
+                f"({client_universe}) does not match the universe domain "
+                f"found in the credentials ({credentials_universe}). "
+                "If you haven't configured the universe domain explicitly, "
+                f"`{default_universe}` is the default.")
+        return True
+
+    def _validate_universe_domain(self):
+        """Validates client's and credentials' universe domains are consistent.
+
+        Returns:
+            bool: True iff the configured universe domain is valid.
+
+        Raises:
+            ValueError: If the configured universe domain is not valid.
+        """
+        self._is_universe_domain_valid = (self._is_universe_domain_valid or
+            StorageClient._compare_universes(self.universe_domain, self.transport._credentials))
+        return self._is_universe_domain_valid
+
+    @property
+    def api_endpoint(self):
+        """Return the API endpoint used by the client instance.
+
+        Returns:
+            str: The API endpoint used by the client instance.
+        """
+        return self._api_endpoint
+
+    @property
+    def universe_domain(self) -> str:
+        """Return the universe domain used by the client instance.
+
+        Returns:
+            str: The universe domain used by the client instance.
+        """
+        return self._universe_domain
+
     def __init__(self, *,
             credentials: Optional[ga_credentials.Credentials] = None,
-            transport: Optional[Union[str, StorageTransport]] = None,
+            transport: Optional[Union[str, StorageTransport, Callable[..., StorageTransport]]] = None,
             client_options: Optional[Union[client_options_lib.ClientOptions, dict]] = None,
             client_info: gapic_v1.client_info.ClientInfo = DEFAULT_CLIENT_INFO,
             ) -> None:
@@ -354,28 +499,40 @@ class StorageClient(metaclass=StorageClientMeta):
                 credentials identify the application to the service; if none
                 are specified, the client will attempt to ascertain the
                 credentials from the environment.
-            transport (Union[str, StorageTransport]): The
-                transport to use. If set to None, a transport is chosen
-                automatically.
+            transport (Optional[Union[str,StorageTransport,Callable[..., StorageTransport]]]):
+                The transport to use, or a Callable that constructs and returns a new transport.
+                If a Callable is given, it will be called with the same set of initialization
+                arguments as used in the StorageTransport constructor.
+                If set to None, a transport is chosen automatically.
                 NOTE: "rest" transport functionality is currently in a
                 beta state (preview). We welcome your feedback via an
                 issue in this library's source repository.
-            client_options (Optional[Union[google.api_core.client_options.ClientOptions, dict]]): Custom options for the
-                client. It won't take effect if a ``transport`` instance is provided.
-                (1) The ``api_endpoint`` property can be used to override the
-                default endpoint provided by the client. GOOGLE_API_USE_MTLS_ENDPOINT
-                environment variable can also be used to override the endpoint:
+            client_options (Optional[Union[google.api_core.client_options.ClientOptions, dict]]):
+                Custom options for the client.
+
+                1. The ``api_endpoint`` property can be used to override the
+                default endpoint provided by the client when ``transport`` is
+                not explicitly provided. Only if this property is not set and
+                ``transport`` was not explicitly provided, the endpoint is
+                determined by the GOOGLE_API_USE_MTLS_ENDPOINT environment
+                variable, which have one of the following values:
                 "always" (always use the default mTLS endpoint), "never" (always
-                use the default regular endpoint) and "auto" (auto switch to the
-                default mTLS endpoint if client certificate is present, this is
-                the default value). However, the ``api_endpoint`` property takes
-                precedence if provided.
-                (2) If GOOGLE_API_USE_CLIENT_CERTIFICATE environment variable
+                use the default regular endpoint) and "auto" (auto-switch to the
+                default mTLS endpoint if client certificate is present; this is
+                the default value).
+
+                2. If the GOOGLE_API_USE_CLIENT_CERTIFICATE environment variable
                 is "true", then the ``client_cert_source`` property can be used
-                to provide client certificate for mutual TLS transport. If
+                to provide a client certificate for mTLS transport. If
                 not provided, the default SSL client certificate will be used if
                 present. If GOOGLE_API_USE_CLIENT_CERTIFICATE is "false" or not
                 set, no client certificate will be used.
+
+                3. The ``universe_domain`` property can be used to override the
+                default "googleapis.com" universe. Note that the ``api_endpoint``
+                property still takes precedence; and ``universe_domain`` is
+                currently not supported for mTLS.
+
             client_info (google.api_core.gapic_v1.client_info.ClientInfo):
                 The client info used to send a user-agent string along with
                 API requests. If ``None``, then default info will be used.
@@ -386,49 +543,73 @@ class StorageClient(metaclass=StorageClientMeta):
             google.auth.exceptions.MutualTLSChannelError: If mutual TLS transport
                 creation failed for any reason.
         """
-        if isinstance(client_options, dict):
-            client_options = client_options_lib.from_dict(client_options)
-        if client_options is None:
-            client_options = client_options_lib.ClientOptions()
-        client_options = cast(client_options_lib.ClientOptions, client_options)
+        self._client_options = client_options
+        if isinstance(self._client_options, dict):
+            self._client_options = client_options_lib.from_dict(self._client_options)
+        if self._client_options is None:
+            self._client_options = client_options_lib.ClientOptions()
+        self._client_options = cast(client_options_lib.ClientOptions, self._client_options)
 
-        api_endpoint, client_cert_source_func = self.get_mtls_endpoint_and_cert_source(client_options)
+        universe_domain_opt = getattr(self._client_options, 'universe_domain', None)
 
-        api_key_value = getattr(client_options, "api_key", None)
+        self._use_client_cert, self._use_mtls_endpoint, self._universe_domain_env = StorageClient._read_environment_variables()
+        self._client_cert_source = StorageClient._get_client_cert_source(self._client_options.client_cert_source, self._use_client_cert)
+        self._universe_domain = StorageClient._get_universe_domain(universe_domain_opt, self._universe_domain_env)
+        self._api_endpoint = None # updated below, depending on `transport`
+
+        # Initialize the universe domain validation.
+        self._is_universe_domain_valid = False
+
+        api_key_value = getattr(self._client_options, "api_key", None)
         if api_key_value and credentials:
             raise ValueError("client_options.api_key and credentials are mutually exclusive")
 
         # Save or instantiate the transport.
         # Ordinarily, we provide the transport, but allowing a custom transport
         # instance provides an extensibility point for unusual situations.
-        if isinstance(transport, StorageTransport):
+        transport_provided = isinstance(transport, StorageTransport)
+        if transport_provided:
             # transport is a StorageTransport instance.
-            if credentials or client_options.credentials_file or api_key_value:
+            if credentials or self._client_options.credentials_file or api_key_value:
                 raise ValueError("When providing a transport instance, "
                                  "provide its credentials directly.")
-            if client_options.scopes:
+            if self._client_options.scopes:
                 raise ValueError(
                     "When providing a transport instance, provide its scopes "
                     "directly."
                 )
-            self._transport = transport
-        else:
+            self._transport = cast(StorageTransport, transport)
+            self._api_endpoint = self._transport.host
+
+        self._api_endpoint = (self._api_endpoint or
+            StorageClient._get_api_endpoint(
+                self._client_options.api_endpoint,
+                self._client_cert_source,
+                self._universe_domain,
+                self._use_mtls_endpoint))
+
+        if not transport_provided:
             import google.auth._default  # type: ignore
 
             if api_key_value and hasattr(google.auth._default, "get_api_key_credentials"):
                 credentials = google.auth._default.get_api_key_credentials(api_key_value)
 
-            Transport = type(self).get_transport_class(transport)
-            self._transport = Transport(
+            transport_init: Union[Type[StorageTransport], Callable[..., StorageTransport]] = (
+                type(self).get_transport_class(transport)
+                if isinstance(transport, str) or transport is None
+                else cast(Callable[..., StorageTransport], transport)
+            )
+            # initialize with the provided callable or the passed in class
+            self._transport = transport_init(
                 credentials=credentials,
-                credentials_file=client_options.credentials_file,
-                host=api_endpoint,
-                scopes=client_options.scopes,
-                client_cert_source_for_mtls=client_cert_source_func,
-                quota_project_id=client_options.quota_project_id,
+                credentials_file=self._client_options.credentials_file,
+                host=self._api_endpoint,
+                scopes=self._client_options.scopes,
+                client_cert_source_for_mtls=self._client_cert_source,
+                quota_project_id=self._client_options.quota_project_id,
                 client_info=client_info,
                 always_use_jwt_access=True,
-                api_audience=client_options.api_audience,
+                api_audience=self._client_options.api_audience,
             )
 
     def delete_bucket(self,
@@ -479,17 +660,15 @@ class StorageClient(metaclass=StorageClientMeta):
                 sent along with the request as metadata.
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.DeleteBucketRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, storage.DeleteBucketRequest):
             request = storage.DeleteBucketRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -512,6 +691,9 @@ class StorageClient(metaclass=StorageClientMeta):
             metadata = tuple(metadata) + (
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
             )
+
+        # Validate the universe domain.
+        self._validate_universe_domain()
 
         # Send the request.
         rpc(
@@ -576,17 +758,15 @@ class StorageClient(metaclass=StorageClientMeta):
                 A bucket.
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([name])
         if request is not None and has_flattened_params:
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.GetBucketRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, storage.GetBucketRequest):
             request = storage.GetBucketRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -609,6 +789,9 @@ class StorageClient(metaclass=StorageClientMeta):
             metadata = tuple(metadata) + (
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
             )
+
+        # Validate the universe domain.
+        self._validate_universe_domain()
 
         # Send the request.
         response = rpc(
@@ -664,17 +847,19 @@ class StorageClient(metaclass=StorageClientMeta):
             request (Union[googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.CreateBucketRequest, dict]):
                 The request object. Request message for CreateBucket.
             parent (str):
-                Required. The project to which this
-                bucket will belong.
+                Required. The project to which this bucket will belong.
+                This field must either be empty or ``projects/_``. The
+                project ID that owns this bucket should be specified in
+                the ``bucket.project`` field.
 
                 This corresponds to the ``parent`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
             bucket (googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.Bucket):
-                Properties of the new bucket being inserted. The name of
-                the bucket is specified in the ``bucket_id`` field.
-                Populating ``bucket.name`` field will result in an
-                error. The project of the bucket must be specified in
+                Optional. Properties of the new bucket being inserted.
+                The name of the bucket is specified in the ``bucket_id``
+                field. Populating ``bucket.name`` field will result in
+                an error. The project of the bucket must be specified in
                 the ``bucket.project`` field. This field must be in
                 ``projects/{projectIdentifier}`` format,
                 {projectIdentifier} can be the project ID or project
@@ -704,17 +889,15 @@ class StorageClient(metaclass=StorageClientMeta):
                 A bucket.
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent, bucket, bucket_id])
         if request is not None and has_flattened_params:
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.CreateBucketRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, storage.CreateBucketRequest):
             request = storage.CreateBucketRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -746,6 +929,9 @@ class StorageClient(metaclass=StorageClientMeta):
             metadata = tuple(metadata) + (
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
             )
+
+        # Validate the universe domain.
+        self._validate_universe_domain()
 
         # Send the request.
         response = rpc(
@@ -821,17 +1007,15 @@ class StorageClient(metaclass=StorageClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent])
         if request is not None and has_flattened_params:
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.ListBucketsRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, storage.ListBucketsRequest):
             request = storage.ListBucketsRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -854,6 +1038,9 @@ class StorageClient(metaclass=StorageClientMeta):
             metadata = tuple(metadata) + (
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
             )
+
+        # Validate the universe domain.
+        self._validate_universe_domain()
 
         # Send the request.
         response = rpc(
@@ -932,17 +1119,15 @@ class StorageClient(metaclass=StorageClientMeta):
                 A bucket.
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([bucket])
         if request is not None and has_flattened_params:
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.LockBucketRetentionPolicyRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, storage.LockBucketRetentionPolicyRequest):
             request = storage.LockBucketRetentionPolicyRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -966,6 +1151,9 @@ class StorageClient(metaclass=StorageClientMeta):
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
             )
 
+        # Validate the universe domain.
+        self._validate_universe_domain()
+
         # Send the request.
         response = rpc(
             request,
@@ -986,7 +1174,10 @@ class StorageClient(metaclass=StorageClientMeta):
             metadata: Sequence[Tuple[str, str]] = (),
             ) -> policy_pb2.Policy:
         r"""Gets the IAM policy for a specified bucket. The ``resource``
-        field in the request should be ``projects/_/buckets/{bucket}``.
+        field in the request should be ``projects/_/buckets/{bucket}``
+        for a bucket, or
+        ``projects/_/buckets/{bucket}/managedFolders/{managedFolder}``
+        for a managed folder.
 
         .. code-block:: python
 
@@ -1093,16 +1284,16 @@ class StorageClient(metaclass=StorageClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([resource])
         if request is not None and has_flattened_params:
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
         if isinstance(request, dict):
-            # The request isn't a proto-plus wrapped type,
-            # so it must be constructed via keyword expansion.
+            # - The request isn't a proto-plus wrapped type,
+            #   so it must be constructed via keyword expansion.
             request = iam_policy_pb2.GetIamPolicyRequest(**request)
         elif not request:
             # Null request, just make one.
@@ -1121,10 +1312,18 @@ class StorageClient(metaclass=StorageClientMeta):
         if regex_match and regex_match.group("bucket"):
             header_params["bucket"] = regex_match.group("bucket")
 
+        routing_param_regex = re.compile('^(?P<bucket>projects/[^/]+/buckets/[^/]+)(?:/.*)?$')
+        regex_match = routing_param_regex.match(request.resource)
+        if regex_match and regex_match.group("bucket"):
+            header_params["bucket"] = regex_match.group("bucket")
+
         if header_params:
             metadata = tuple(metadata) + (
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
             )
+
+        # Validate the universe domain.
+        self._validate_universe_domain()
 
         # Send the request.
         response = rpc(
@@ -1146,7 +1345,10 @@ class StorageClient(metaclass=StorageClientMeta):
             metadata: Sequence[Tuple[str, str]] = (),
             ) -> policy_pb2.Policy:
         r"""Updates an IAM policy for the specified bucket. The ``resource``
-        field in the request should be ``projects/_/buckets/{bucket}``.
+        field in the request should be ``projects/_/buckets/{bucket}``
+        for a bucket, or
+        ``projects/_/buckets/{bucket}/managedFolders/{managedFolder}``
+        for a managed folder.
 
         .. code-block:: python
 
@@ -1253,16 +1455,16 @@ class StorageClient(metaclass=StorageClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([resource])
         if request is not None and has_flattened_params:
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
         if isinstance(request, dict):
-            # The request isn't a proto-plus wrapped type,
-            # so it must be constructed via keyword expansion.
+            # - The request isn't a proto-plus wrapped type,
+            #   so it must be constructed via keyword expansion.
             request = iam_policy_pb2.SetIamPolicyRequest(**request)
         elif not request:
             # Null request, just make one.
@@ -1281,10 +1483,18 @@ class StorageClient(metaclass=StorageClientMeta):
         if regex_match and regex_match.group("bucket"):
             header_params["bucket"] = regex_match.group("bucket")
 
+        routing_param_regex = re.compile('^(?P<bucket>projects/[^/]+/buckets/[^/]+)(?:/.*)?$')
+        regex_match = routing_param_regex.match(request.resource)
+        if regex_match and regex_match.group("bucket"):
+            header_params["bucket"] = regex_match.group("bucket")
+
         if header_params:
             metadata = tuple(metadata) + (
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
             )
+
+        # Validate the universe domain.
+        self._validate_universe_domain()
 
         # Send the request.
         response = rpc(
@@ -1375,16 +1585,16 @@ class StorageClient(metaclass=StorageClientMeta):
                 Response message for TestIamPermissions method.
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([resource, permissions])
         if request is not None and has_flattened_params:
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
         if isinstance(request, dict):
-            # The request isn't a proto-plus wrapped type,
-            # so it must be constructed via keyword expansion.
+            # - The request isn't a proto-plus wrapped type,
+            #   so it must be constructed via keyword expansion.
             request = iam_policy_pb2.TestIamPermissionsRequest(**request)
         elif not request:
             # Null request, just make one.
@@ -1419,6 +1629,9 @@ class StorageClient(metaclass=StorageClientMeta):
             metadata = tuple(metadata) + (
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
             )
+
+        # Validate the universe domain.
+        self._validate_universe_domain()
 
         # Send the request.
         response = rpc(
@@ -1504,17 +1717,15 @@ class StorageClient(metaclass=StorageClientMeta):
                 A bucket.
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([bucket, update_mask])
         if request is not None and has_flattened_params:
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.UpdateBucketRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, storage.UpdateBucketRequest):
             request = storage.UpdateBucketRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -1539,6 +1750,9 @@ class StorageClient(metaclass=StorageClientMeta):
             metadata = tuple(metadata) + (
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
             )
+
+        # Validate the universe domain.
+        self._validate_universe_domain()
 
         # Send the request.
         response = rpc(
@@ -1600,10 +1814,8 @@ class StorageClient(metaclass=StorageClientMeta):
                 An object.
         """
         # Create or coerce a protobuf request object.
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.ComposeObjectRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, storage.ComposeObjectRequest):
             request = storage.ComposeObjectRequest(request)
 
@@ -1622,6 +1834,9 @@ class StorageClient(metaclass=StorageClientMeta):
             metadata = tuple(metadata) + (
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
             )
+
+        # Validate the universe domain.
+        self._validate_universe_domain()
 
         # Send the request.
         response = rpc(
@@ -1644,13 +1859,28 @@ class StorageClient(metaclass=StorageClientMeta):
             timeout: Union[float, object] = gapic_v1.method.DEFAULT,
             metadata: Sequence[Tuple[str, str]] = (),
             ) -> None:
-        r"""Deletes an object and its metadata.
+        r"""Deletes an object and its metadata. Deletions are permanent if
+        versioning is not enabled for the bucket, or if the generation
+        parameter is used, or if `soft
+        delete <https://cloud.google.com/storage/docs/soft-delete>`__ is
+        not enabled for the bucket. When this API is used to delete an
+        object from a bucket that has soft delete policy enabled, the
+        object becomes soft deleted, and the ``softDeleteTime`` and
+        ``hardDeleteTime`` properties are set on the object. This API
+        cannot be used to permanently delete soft-deleted objects.
+        Soft-deleted objects are permanently deleted according to their
+        ``hardDeleteTime``.
 
-        Deletions are normally permanent when versioning is
-        disabled or whenever the generation parameter is used.
-        However, if soft delete is enabled for the bucket,
-        deleted objects can be restored using RestoreObject
-        until the soft delete retention period has passed.
+        You can use the
+        [``RestoreObject``][google.storage.v2.Storage.RestoreObject] API
+        to restore soft-deleted objects until the soft delete retention
+        period has passed.
+
+        **IAM Permissions**:
+
+        Requires ``storage.objects.delete`` `IAM
+        permission <https://cloud.google.com/iam/docs/overview#permissions>`__
+        on the bucket.
 
         .. code-block:: python
 
@@ -1696,10 +1926,10 @@ class StorageClient(metaclass=StorageClientMeta):
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
             generation (int):
-                If present, permanently deletes a
-                specific revision of this object (as
-                opposed to the latest version, the
-                default).
+                Optional. If present, permanently
+                deletes a specific revision of this
+                object (as opposed to the latest
+                version, the default).
 
                 This corresponds to the ``generation`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -1711,17 +1941,15 @@ class StorageClient(metaclass=StorageClientMeta):
                 sent along with the request as metadata.
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([bucket, object_, generation])
         if request is not None and has_flattened_params:
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.DeleteObjectRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, storage.DeleteObjectRequest):
             request = storage.DeleteObjectRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -1748,6 +1976,9 @@ class StorageClient(metaclass=StorageClientMeta):
             metadata = tuple(metadata) + (
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
             )
+
+        # Validate the universe domain.
+        self._validate_universe_domain()
 
         # Send the request.
         rpc(
@@ -1833,17 +2064,15 @@ class StorageClient(metaclass=StorageClientMeta):
                 An object.
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([bucket, object_, generation])
         if request is not None and has_flattened_params:
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.RestoreObjectRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, storage.RestoreObjectRequest):
             request = storage.RestoreObjectRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -1870,6 +2099,9 @@ class StorageClient(metaclass=StorageClientMeta):
             metadata = tuple(metadata) + (
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
             )
+
+        # Validate the universe domain.
+        self._validate_universe_domain()
 
         # Send the request.
         response = rpc(
@@ -1952,17 +2184,15 @@ class StorageClient(metaclass=StorageClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([upload_id])
         if request is not None and has_flattened_params:
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.CancelResumableWriteRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, storage.CancelResumableWriteRequest):
             request = storage.CancelResumableWriteRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -1986,6 +2216,9 @@ class StorageClient(metaclass=StorageClientMeta):
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
             )
 
+        # Validate the universe domain.
+        self._validate_universe_domain()
+
         # Send the request.
         response = rpc(
             request,
@@ -2007,7 +2240,14 @@ class StorageClient(metaclass=StorageClientMeta):
             timeout: Union[float, object] = gapic_v1.method.DEFAULT,
             metadata: Sequence[Tuple[str, str]] = (),
             ) -> storage.Object:
-        r"""Retrieves an object's metadata.
+        r"""Retrieves object metadata.
+
+        **IAM Permissions**:
+
+        Requires ``storage.objects.get`` `IAM
+        permission <https://cloud.google.com/iam/docs/overview#permissions>`__
+        on the bucket. To return object ACLs, the authenticated user
+        must also have the ``storage.objects.getIamPolicy`` permission.
 
         .. code-block:: python
 
@@ -2052,9 +2292,10 @@ class StorageClient(metaclass=StorageClientMeta):
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
             generation (int):
-                If present, selects a specific
-                revision of this object (as opposed to
-                the latest version, the default).
+                Optional. If present, selects a
+                specific revision of this object (as
+                opposed to the latest version, the
+                default).
 
                 This corresponds to the ``generation`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -2070,17 +2311,15 @@ class StorageClient(metaclass=StorageClientMeta):
                 An object.
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([bucket, object_, generation])
         if request is not None and has_flattened_params:
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.GetObjectRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, storage.GetObjectRequest):
             request = storage.GetObjectRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -2108,6 +2347,9 @@ class StorageClient(metaclass=StorageClientMeta):
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
             )
 
+        # Validate the universe domain.
+        self._validate_universe_domain()
+
         # Send the request.
         response = rpc(
             request,
@@ -2129,7 +2371,13 @@ class StorageClient(metaclass=StorageClientMeta):
             timeout: Union[float, object] = gapic_v1.method.DEFAULT,
             metadata: Sequence[Tuple[str, str]] = (),
             ) -> Iterable[storage.ReadObjectResponse]:
-        r"""Reads an object's data.
+        r"""Retrieves object data.
+
+        **IAM Permissions**:
+
+        Requires ``storage.objects.get`` `IAM
+        permission <https://cloud.google.com/iam/docs/overview#permissions>`__
+        on the bucket.
 
         .. code-block:: python
 
@@ -2177,9 +2425,10 @@ class StorageClient(metaclass=StorageClientMeta):
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
             generation (int):
-                If present, selects a specific
-                revision of this object (as opposed to
-                the latest version, the default).
+                Optional. If present, selects a
+                specific revision of this object (as
+                opposed to the latest version, the
+                default).
 
                 This corresponds to the ``generation`` field
                 on the ``request`` instance; if ``request`` is provided, this
@@ -2195,17 +2444,15 @@ class StorageClient(metaclass=StorageClientMeta):
                 Response message for ReadObject.
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([bucket, object_, generation])
         if request is not None and has_flattened_params:
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.ReadObjectRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, storage.ReadObjectRequest):
             request = storage.ReadObjectRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -2233,9 +2480,116 @@ class StorageClient(metaclass=StorageClientMeta):
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
             )
 
+        # Validate the universe domain.
+        self._validate_universe_domain()
+
         # Send the request.
         response = rpc(
             request,
+            retry=retry,
+            timeout=timeout,
+            metadata=metadata,
+        )
+
+        # Done; return the response.
+        return response
+
+    def bidi_read_object(self,
+            requests: Optional[Iterator[storage.BidiReadObjectRequest]] = None,
+            *,
+            retry: OptionalRetry = gapic_v1.method.DEFAULT,
+            timeout: Union[float, object] = gapic_v1.method.DEFAULT,
+            metadata: Sequence[Tuple[str, str]] = (),
+            ) -> Iterable[storage.BidiReadObjectResponse]:
+        r"""Reads an object's data.
+
+        This is a bi-directional API with the added support for reading
+        multiple ranges within one stream both within and across
+        multiple messages. If the server encountered an error for any of
+        the inputs, the stream will be closed with the relevant error
+        code. Because the API allows for multiple outstanding requests,
+        when the stream is closed the error response will contain a
+        BidiReadObjectRangesError proto in the error extension
+        describing the error for each outstanding read_id.
+
+        **IAM Permissions**:
+
+        Requires ``storage.objects.get``
+
+        `IAM
+        permission <https://cloud.google.com/iam/docs/overview#permissions>`__
+        on the bucket.
+
+        This API is currently in preview and is not yet available for
+        general use.
+
+        .. code-block:: python
+
+            # This snippet has been automatically generated and should be regarded as a
+            # code template only.
+            # It will require modifications to work:
+            # - It may require correct/in-range values for request initialization.
+            # - It may require specifying regional endpoints when creating the service
+            #   client as shown in:
+            #   https://googleapis.dev/python/google-api-core/latest/client_options.html
+            from googlecloudsdk.generated_clients.gapic_clients import storage_v2
+
+            def sample_bidi_read_object():
+                # Create a client
+                client = storage_v2.StorageClient()
+
+                # Initialize request argument(s)
+                request = storage_v2.BidiReadObjectRequest(
+                )
+
+                # This method expects an iterator which contains
+                # 'storage_v2.BidiReadObjectRequest' objects
+                # Here we create a generator that yields a single `request` for
+                # demonstrative purposes.
+                requests = [request]
+
+                def request_generator():
+                    for request in requests:
+                        yield request
+
+                # Make the request
+                stream = client.bidi_read_object(requests=request_generator())
+
+                # Handle the response
+                for response in stream:
+                    print(response)
+
+        Args:
+            requests (Iterator[googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.BidiReadObjectRequest]):
+                The request object iterator. Request message for BidiReadObject.
+            retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                should be retried.
+            timeout (float): The timeout for this request.
+            metadata (Sequence[Tuple[str, str]]): Strings which should be
+                sent along with the request as metadata.
+
+        Returns:
+            Iterable[googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.BidiReadObjectResponse]:
+                Response message for BidiReadObject.
+        """
+
+        # Wrap the RPC method; this adds retry and timeout information,
+        # and friendly error handling.
+        rpc = self._transport._wrapped_methods[self._transport.bidi_read_object]
+
+        header_params = {}
+
+        if header_params:
+            metadata = tuple(metadata) + (
+                gapic_v1.routing_header.to_grpc_metadata(header_params),
+            )
+
+        # Validate the universe domain.
+        self._validate_universe_domain()
+
+        # Send the request.
+        response = rpc(
+            requests,
             retry=retry,
             timeout=timeout,
             metadata=metadata,
@@ -2323,17 +2677,15 @@ class StorageClient(metaclass=StorageClientMeta):
                 An object.
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([object_, update_mask])
         if request is not None and has_flattened_params:
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.UpdateObjectRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, storage.UpdateObjectRequest):
             request = storage.UpdateObjectRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -2358,6 +2710,9 @@ class StorageClient(metaclass=StorageClientMeta):
             metadata = tuple(metadata) + (
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
             )
+
+        # Validate the universe domain.
+        self._validate_universe_domain()
 
         # Send the request.
         response = rpc(
@@ -2439,12 +2794,18 @@ class StorageClient(metaclass=StorageClientMeta):
         whether the service views the object as complete.
 
         Attempting to resume an already finalized object will result in
-        an OK status, with a WriteObjectResponse containing the
+        an OK status, with a ``WriteObjectResponse`` containing the
         finalized object's metadata.
 
         Alternatively, the BidiWriteObject operation may be used to
         write an object with controls over flushing and the ability to
         fetch the ability to determine the current persisted size.
+
+        **IAM Permissions**:
+
+        Requires ``storage.objects.create`` `IAM
+        permission <https://cloud.google.com/iam/docs/overview#permissions>`__
+        on the bucket.
 
         .. code-block:: python
 
@@ -2500,6 +2861,9 @@ class StorageClient(metaclass=StorageClientMeta):
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
         rpc = self._transport._wrapped_methods[self._transport.write_object]
+
+        # Validate the universe domain.
+        self._validate_universe_domain()
 
         # Send the request.
         response = rpc(
@@ -2593,6 +2957,9 @@ class StorageClient(metaclass=StorageClientMeta):
         # and friendly error handling.
         rpc = self._transport._wrapped_methods[self._transport.bidi_write_object]
 
+        # Validate the universe domain.
+        self._validate_universe_domain()
+
         # Send the request.
         response = rpc(
             requests,
@@ -2613,6 +2980,14 @@ class StorageClient(metaclass=StorageClientMeta):
             metadata: Sequence[Tuple[str, str]] = (),
             ) -> pagers.ListObjectsPager:
         r"""Retrieves a list of objects matching the criteria.
+
+        **IAM Permissions**:
+
+        The authenticated user requires ``storage.objects.list`` `IAM
+        permission <https://cloud.google.com/iam/docs/overview#permissions>`__
+        to use this method. To return object ACLs, the authenticated
+        user must also have the ``storage.objects.getIamPolicy``
+        permission.
 
         .. code-block:: python
 
@@ -2667,17 +3042,15 @@ class StorageClient(metaclass=StorageClientMeta):
 
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([parent])
         if request is not None and has_flattened_params:
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.ListObjectsRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, storage.ListObjectsRequest):
             request = storage.ListObjectsRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -2700,6 +3073,9 @@ class StorageClient(metaclass=StorageClientMeta):
             metadata = tuple(metadata) + (
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
             )
+
+        # Validate the universe domain.
+        self._validate_universe_domain()
 
         # Send the request.
         response = rpc(
@@ -2784,10 +3160,8 @@ class StorageClient(metaclass=StorageClientMeta):
                 A rewrite response.
         """
         # Create or coerce a protobuf request object.
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.RewriteObjectRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, storage.RewriteObjectRequest):
             request = storage.RewriteObjectRequest(request)
 
@@ -2810,6 +3184,9 @@ class StorageClient(metaclass=StorageClientMeta):
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
             )
 
+        # Validate the universe domain.
+        self._validate_universe_domain()
+
         # Send the request.
         response = rpc(
             request,
@@ -2828,9 +3205,19 @@ class StorageClient(metaclass=StorageClientMeta):
             timeout: Union[float, object] = gapic_v1.method.DEFAULT,
             metadata: Sequence[Tuple[str, str]] = (),
             ) -> storage.StartResumableWriteResponse:
-        r"""Starts a resumable write. How long the write
-        operation remains valid, and what happens when the write
-        operation becomes invalid, are service-dependent.
+        r"""Starts a resumable write operation. This method is part of the
+        `Resumable
+        upload <https://cloud.google.com/storage/docs/resumable-uploads>`__
+        feature. This allows you to upload large objects in multiple
+        chunks, which is more resilient to network interruptions than a
+        single upload. The validity duration of the write operation, and
+        the consequences of it becoming invalid, are service-dependent.
+
+        **IAM Permissions**:
+
+        Requires ``storage.objects.create`` `IAM
+        permission <https://cloud.google.com/iam/docs/overview#permissions>`__
+        on the bucket.
 
         .. code-block:: python
 
@@ -2871,10 +3258,8 @@ class StorageClient(metaclass=StorageClientMeta):
                 Response object for StartResumableWrite.
         """
         # Create or coerce a protobuf request object.
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.StartResumableWriteRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, storage.StartResumableWriteRequest):
             request = storage.StartResumableWriteRequest(request)
 
@@ -2893,6 +3278,9 @@ class StorageClient(metaclass=StorageClientMeta):
             metadata = tuple(metadata) + (
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
             )
+
+        # Validate the universe domain.
+        self._validate_universe_domain()
 
         # Send the request.
         response = rpc(
@@ -2913,20 +3301,23 @@ class StorageClient(metaclass=StorageClientMeta):
             timeout: Union[float, object] = gapic_v1.method.DEFAULT,
             metadata: Sequence[Tuple[str, str]] = (),
             ) -> storage.QueryWriteStatusResponse:
-        r"""Determines the ``persisted_size`` for an object that is being
-        written, which can then be used as the ``write_offset`` for the
-        next ``Write()`` call.
+        r"""Determines the ``persisted_size`` of an object that is being
+        written. This method is part of the `resumable
+        upload <https://cloud.google.com/storage/docs/resumable-uploads>`__
+        feature. The returned value is the size of the object that has
+        been persisted so far. The value can be used as the
+        ``write_offset`` for the next ``Write()`` call.
 
-        If the object does not exist (i.e., the object has been deleted,
-        or the first ``Write()`` has not yet reached the service), this
-        method returns the error ``NOT_FOUND``.
+        If the object does not exist, meaning if it was deleted, or the
+        first ``Write()`` has not yet reached the service, this method
+        returns the error ``NOT_FOUND``.
 
-        The client **may** call ``QueryWriteStatus()`` at any time to
-        determine how much data has been processed for this object. This
-        is useful if the client is buffering data and needs to know
-        which data can be safely evicted. For any sequence of
+        This method is useful for clients that buffer data and need to
+        know which data can be safely evicted. The client can call
+        ``QueryWriteStatus()`` at any time to determine how much data
+        has been logged for this object. For any sequence of
         ``QueryWriteStatus()`` calls for a given object name, the
-        sequence of returned ``persisted_size`` values will be
+        sequence of returned ``persisted_size`` values are
         non-decreasing.
 
         .. code-block:: python
@@ -2977,17 +3368,15 @@ class StorageClient(metaclass=StorageClientMeta):
                 Response object for QueryWriteStatus.
         """
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
         has_flattened_params = any([upload_id])
         if request is not None and has_flattened_params:
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.QueryWriteStatusRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
         if not isinstance(request, storage.QueryWriteStatusRequest):
             request = storage.QueryWriteStatusRequest(request)
             # If we have keyword arguments corresponding to fields on the
@@ -3011,6 +3400,9 @@ class StorageClient(metaclass=StorageClientMeta):
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
             )
 
+        # Validate the universe domain.
+        self._validate_universe_domain()
+
         # Send the request.
         response = rpc(
             request,
@@ -3022,16 +3414,18 @@ class StorageClient(metaclass=StorageClientMeta):
         # Done; return the response.
         return response
 
-    def get_service_account(self,
-            request: Optional[Union[storage.GetServiceAccountRequest, dict]] = None,
+    def move_object(self,
+            request: Optional[Union[storage.MoveObjectRequest, dict]] = None,
             *,
-            project: Optional[str] = None,
+            bucket: Optional[str] = None,
+            source_object: Optional[str] = None,
+            destination_object: Optional[str] = None,
             retry: OptionalRetry = gapic_v1.method.DEFAULT,
             timeout: Union[float, object] = gapic_v1.method.DEFAULT,
             metadata: Sequence[Tuple[str, str]] = (),
-            ) -> storage.ServiceAccount:
-        r"""Retrieves the name of a project's Google Cloud
-        Storage service account.
+            ) -> storage.Object:
+        r"""Moves the source object to the destination object in
+        the same bucket.
 
         .. code-block:: python
 
@@ -3044,32 +3438,43 @@ class StorageClient(metaclass=StorageClientMeta):
             #   https://googleapis.dev/python/google-api-core/latest/client_options.html
             from googlecloudsdk.generated_clients.gapic_clients import storage_v2
 
-            def sample_get_service_account():
+            def sample_move_object():
                 # Create a client
                 client = storage_v2.StorageClient()
 
                 # Initialize request argument(s)
-                request = storage_v2.GetServiceAccountRequest(
-                    project="project_value",
+                request = storage_v2.MoveObjectRequest(
+                    bucket="bucket_value",
+                    source_object="source_object_value",
+                    destination_object="destination_object_value",
                 )
 
                 # Make the request
-                response = client.get_service_account(request=request)
+                response = client.move_object(request=request)
 
                 # Handle the response
                 print(response)
 
         Args:
-            request (Union[googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.GetServiceAccountRequest, dict]):
-                The request object. Request message for
-                GetServiceAccount.
-            project (str):
-                Required. Project ID, in the format
-                of "projects/{projectIdentifier}".
-                {projectIdentifier} can be the project
-                ID or project number.
+            request (Union[googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.MoveObjectRequest, dict]):
+                The request object. Request message for MoveObject.
+            bucket (str):
+                Required. Name of the bucket in which
+                the object resides.
 
-                This corresponds to the ``project`` field
+                This corresponds to the ``bucket`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            source_object (str):
+                Required. Name of the source object.
+                This corresponds to the ``source_object`` field
+                on the ``request`` instance; if ``request`` is provided, this
+                should not be set.
+            destination_object (str):
+                Required. Name of the destination
+                object.
+
+                This corresponds to the ``destination_object`` field
                 on the ``request`` instance; if ``request`` is provided, this
                 should not be set.
             retry (google.api_core.retry.Retry): Designation of what errors, if any,
@@ -3079,971 +3484,38 @@ class StorageClient(metaclass=StorageClientMeta):
                 sent along with the request as metadata.
 
         Returns:
-            googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.ServiceAccount:
-                A service account, owned by Cloud
-                Storage, which may be used when taking
-                action on behalf of a given project, for
-                example to publish Pub/Sub notifications
-                or to retrieve security keys.
-
+            googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.Object:
+                An object.
         """
-        warnings.warn("StorageClient.get_service_account is deprecated",
-            DeprecationWarning)
-
         # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
-        has_flattened_params = any([project])
+        # - Quick check: If we got a request object, we should *not* have
+        #   gotten any keyword arguments that map to the request.
+        has_flattened_params = any([bucket, source_object, destination_object])
         if request is not None and has_flattened_params:
             raise ValueError('If the `request` argument is set, then none of '
                              'the individual field arguments should be set.')
 
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.GetServiceAccountRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
-        if not isinstance(request, storage.GetServiceAccountRequest):
-            request = storage.GetServiceAccountRequest(request)
+        # - Use the request object if provided (there's no risk of modifying the input as
+        #   there are no flattened fields), or create one.
+        if not isinstance(request, storage.MoveObjectRequest):
+            request = storage.MoveObjectRequest(request)
             # If we have keyword arguments corresponding to fields on the
             # request, apply these.
-            if project is not None:
-                request.project = project
+            if bucket is not None:
+                request.bucket = bucket
+            if source_object is not None:
+                request.source_object = source_object
+            if destination_object is not None:
+                request.destination_object = destination_object
 
         # Wrap the RPC method; this adds retry and timeout information,
         # and friendly error handling.
-        rpc = self._transport._wrapped_methods[self._transport.get_service_account]
-
-        header_params = {}
-
-        if request.project:
-            header_params["project"] = request.project
-
-        if header_params:
-            metadata = tuple(metadata) + (
-                gapic_v1.routing_header.to_grpc_metadata(header_params),
-            )
-
-        # Send the request.
-        response = rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    def create_hmac_key(self,
-            request: Optional[Union[storage.CreateHmacKeyRequest, dict]] = None,
-            *,
-            project: Optional[str] = None,
-            service_account_email: Optional[str] = None,
-            retry: OptionalRetry = gapic_v1.method.DEFAULT,
-            timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> storage.CreateHmacKeyResponse:
-        r"""Creates a new HMAC key for the given service account.
-
-        .. code-block:: python
-
-            # This snippet has been automatically generated and should be regarded as a
-            # code template only.
-            # It will require modifications to work:
-            # - It may require correct/in-range values for request initialization.
-            # - It may require specifying regional endpoints when creating the service
-            #   client as shown in:
-            #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-            from googlecloudsdk.generated_clients.gapic_clients import storage_v2
-
-            def sample_create_hmac_key():
-                # Create a client
-                client = storage_v2.StorageClient()
-
-                # Initialize request argument(s)
-                request = storage_v2.CreateHmacKeyRequest(
-                    project="project_value",
-                    service_account_email="service_account_email_value",
-                )
-
-                # Make the request
-                response = client.create_hmac_key(request=request)
-
-                # Handle the response
-                print(response)
-
-        Args:
-            request (Union[googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.CreateHmacKeyRequest, dict]):
-                The request object. Request message for CreateHmacKey.
-            project (str):
-                Required. The project that the
-                HMAC-owning service account lives in, in
-                the format of
-                "projects/{projectIdentifier}".
-                {projectIdentifier} can be the project
-                ID or project number.
-
-                This corresponds to the ``project`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            service_account_email (str):
-                Required. The service account to
-                create the HMAC for.
-
-                This corresponds to the ``service_account_email`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, str]]): Strings which should be
-                sent along with the request as metadata.
-
-        Returns:
-            googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.CreateHmacKeyResponse:
-                Create hmac response.  The only time
-                the secret for an HMAC will be returned.
-
-        """
-        warnings.warn("StorageClient.create_hmac_key is deprecated",
-            DeprecationWarning)
-
-        # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
-        has_flattened_params = any([project, service_account_email])
-        if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
-
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.CreateHmacKeyRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
-        if not isinstance(request, storage.CreateHmacKeyRequest):
-            request = storage.CreateHmacKeyRequest(request)
-            # If we have keyword arguments corresponding to fields on the
-            # request, apply these.
-            if project is not None:
-                request.project = project
-            if service_account_email is not None:
-                request.service_account_email = service_account_email
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._transport._wrapped_methods[self._transport.create_hmac_key]
-
-        header_params = {}
-
-        if request.project:
-            header_params["project"] = request.project
-
-        if header_params:
-            metadata = tuple(metadata) + (
-                gapic_v1.routing_header.to_grpc_metadata(header_params),
-            )
-
-        # Send the request.
-        response = rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    def delete_hmac_key(self,
-            request: Optional[Union[storage.DeleteHmacKeyRequest, dict]] = None,
-            *,
-            access_id: Optional[str] = None,
-            project: Optional[str] = None,
-            retry: OptionalRetry = gapic_v1.method.DEFAULT,
-            timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> None:
-        r"""Deletes a given HMAC key.  Key must be in an INACTIVE
-        state.
-
-        .. code-block:: python
-
-            # This snippet has been automatically generated and should be regarded as a
-            # code template only.
-            # It will require modifications to work:
-            # - It may require correct/in-range values for request initialization.
-            # - It may require specifying regional endpoints when creating the service
-            #   client as shown in:
-            #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-            from googlecloudsdk.generated_clients.gapic_clients import storage_v2
-
-            def sample_delete_hmac_key():
-                # Create a client
-                client = storage_v2.StorageClient()
-
-                # Initialize request argument(s)
-                request = storage_v2.DeleteHmacKeyRequest(
-                    access_id="access_id_value",
-                    project="project_value",
-                )
-
-                # Make the request
-                client.delete_hmac_key(request=request)
-
-        Args:
-            request (Union[googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.DeleteHmacKeyRequest, dict]):
-                The request object. Request object to delete a given HMAC
-                key.
-            access_id (str):
-                Required. The identifying key for the
-                HMAC to delete.
-
-                This corresponds to the ``access_id`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            project (str):
-                Required. The project that owns the
-                HMAC key, in the format of
-                "projects/{projectIdentifier}".
-                {projectIdentifier} can be the project
-                ID or project number.
-
-                This corresponds to the ``project`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, str]]): Strings which should be
-                sent along with the request as metadata.
-        """
-        warnings.warn("StorageClient.delete_hmac_key is deprecated",
-            DeprecationWarning)
-
-        # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
-        has_flattened_params = any([access_id, project])
-        if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
-
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.DeleteHmacKeyRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
-        if not isinstance(request, storage.DeleteHmacKeyRequest):
-            request = storage.DeleteHmacKeyRequest(request)
-            # If we have keyword arguments corresponding to fields on the
-            # request, apply these.
-            if access_id is not None:
-                request.access_id = access_id
-            if project is not None:
-                request.project = project
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._transport._wrapped_methods[self._transport.delete_hmac_key]
-
-        header_params = {}
-
-        if request.project:
-            header_params["project"] = request.project
-
-        if header_params:
-            metadata = tuple(metadata) + (
-                gapic_v1.routing_header.to_grpc_metadata(header_params),
-            )
-
-        # Send the request.
-        rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-    def get_hmac_key(self,
-            request: Optional[Union[storage.GetHmacKeyRequest, dict]] = None,
-            *,
-            access_id: Optional[str] = None,
-            project: Optional[str] = None,
-            retry: OptionalRetry = gapic_v1.method.DEFAULT,
-            timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> storage.HmacKeyMetadata:
-        r"""Gets an existing HMAC key metadata for the given id.
-
-        .. code-block:: python
-
-            # This snippet has been automatically generated and should be regarded as a
-            # code template only.
-            # It will require modifications to work:
-            # - It may require correct/in-range values for request initialization.
-            # - It may require specifying regional endpoints when creating the service
-            #   client as shown in:
-            #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-            from googlecloudsdk.generated_clients.gapic_clients import storage_v2
-
-            def sample_get_hmac_key():
-                # Create a client
-                client = storage_v2.StorageClient()
-
-                # Initialize request argument(s)
-                request = storage_v2.GetHmacKeyRequest(
-                    access_id="access_id_value",
-                    project="project_value",
-                )
-
-                # Make the request
-                response = client.get_hmac_key(request=request)
-
-                # Handle the response
-                print(response)
-
-        Args:
-            request (Union[googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.GetHmacKeyRequest, dict]):
-                The request object. Request object to get metadata on a
-                given HMAC key.
-            access_id (str):
-                Required. The identifying key for the
-                HMAC to delete.
-
-                This corresponds to the ``access_id`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            project (str):
-                Required. The project the HMAC key
-                lies in, in the format of
-                "projects/{projectIdentifier}".
-                {projectIdentifier} can be the project
-                ID or project number.
-
-                This corresponds to the ``project`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, str]]): Strings which should be
-                sent along with the request as metadata.
-
-        Returns:
-            googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.HmacKeyMetadata:
-                Hmac Key Metadata, which includes all
-                information other than the secret.
-
-        """
-        warnings.warn("StorageClient.get_hmac_key is deprecated",
-            DeprecationWarning)
-
-        # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
-        has_flattened_params = any([access_id, project])
-        if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
-
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.GetHmacKeyRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
-        if not isinstance(request, storage.GetHmacKeyRequest):
-            request = storage.GetHmacKeyRequest(request)
-            # If we have keyword arguments corresponding to fields on the
-            # request, apply these.
-            if access_id is not None:
-                request.access_id = access_id
-            if project is not None:
-                request.project = project
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._transport._wrapped_methods[self._transport.get_hmac_key]
-
-        header_params = {}
-
-        if request.project:
-            header_params["project"] = request.project
-
-        if header_params:
-            metadata = tuple(metadata) + (
-                gapic_v1.routing_header.to_grpc_metadata(header_params),
-            )
-
-        # Send the request.
-        response = rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    def list_hmac_keys(self,
-            request: Optional[Union[storage.ListHmacKeysRequest, dict]] = None,
-            *,
-            project: Optional[str] = None,
-            retry: OptionalRetry = gapic_v1.method.DEFAULT,
-            timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> pagers.ListHmacKeysPager:
-        r"""Lists HMAC keys under a given project with the
-        additional filters provided.
-
-        .. code-block:: python
-
-            # This snippet has been automatically generated and should be regarded as a
-            # code template only.
-            # It will require modifications to work:
-            # - It may require correct/in-range values for request initialization.
-            # - It may require specifying regional endpoints when creating the service
-            #   client as shown in:
-            #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-            from googlecloudsdk.generated_clients.gapic_clients import storage_v2
-
-            def sample_list_hmac_keys():
-                # Create a client
-                client = storage_v2.StorageClient()
-
-                # Initialize request argument(s)
-                request = storage_v2.ListHmacKeysRequest(
-                    project="project_value",
-                )
-
-                # Make the request
-                page_result = client.list_hmac_keys(request=request)
-
-                # Handle the response
-                for response in page_result:
-                    print(response)
-
-        Args:
-            request (Union[googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.ListHmacKeysRequest, dict]):
-                The request object. Request to fetch a list of HMAC keys
-                under a given project.
-            project (str):
-                Required. The project to list HMAC
-                keys for, in the format of
-                "projects/{projectIdentifier}".
-                {projectIdentifier} can be the project
-                ID or project number.
-
-                This corresponds to the ``project`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, str]]): Strings which should be
-                sent along with the request as metadata.
-
-        Returns:
-            googlecloudsdk.generated_clients.gapic_clients.storage_v2.services.storage.pagers.ListHmacKeysPager:
-                Hmac key list response with next page
-                information.
-                Iterating over this object will yield
-                results and resolve additional pages
-                automatically.
-
-        """
-        warnings.warn("StorageClient.list_hmac_keys is deprecated",
-            DeprecationWarning)
-
-        # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
-        has_flattened_params = any([project])
-        if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
-
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.ListHmacKeysRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
-        if not isinstance(request, storage.ListHmacKeysRequest):
-            request = storage.ListHmacKeysRequest(request)
-            # If we have keyword arguments corresponding to fields on the
-            # request, apply these.
-            if project is not None:
-                request.project = project
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._transport._wrapped_methods[self._transport.list_hmac_keys]
-
-        header_params = {}
-
-        if request.project:
-            header_params["project"] = request.project
-
-        if header_params:
-            metadata = tuple(metadata) + (
-                gapic_v1.routing_header.to_grpc_metadata(header_params),
-            )
-
-        # Send the request.
-        response = rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # This method is paged; wrap the response in a pager, which provides
-        # an `__iter__` convenience method.
-        response = pagers.ListHmacKeysPager(
-            method=rpc,
-            request=request,
-            response=response,
-            metadata=metadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    def update_hmac_key(self,
-            request: Optional[Union[storage.UpdateHmacKeyRequest, dict]] = None,
-            *,
-            hmac_key: Optional[storage.HmacKeyMetadata] = None,
-            update_mask: Optional[field_mask_pb2.FieldMask] = None,
-            retry: OptionalRetry = gapic_v1.method.DEFAULT,
-            timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> storage.HmacKeyMetadata:
-        r"""Updates a given HMAC key state between ACTIVE and
-        INACTIVE.
-
-        .. code-block:: python
-
-            # This snippet has been automatically generated and should be regarded as a
-            # code template only.
-            # It will require modifications to work:
-            # - It may require correct/in-range values for request initialization.
-            # - It may require specifying regional endpoints when creating the service
-            #   client as shown in:
-            #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-            from googlecloudsdk.generated_clients.gapic_clients import storage_v2
-
-            def sample_update_hmac_key():
-                # Create a client
-                client = storage_v2.StorageClient()
-
-                # Initialize request argument(s)
-                request = storage_v2.UpdateHmacKeyRequest(
-                )
-
-                # Make the request
-                response = client.update_hmac_key(request=request)
-
-                # Handle the response
-                print(response)
-
-        Args:
-            request (Union[googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.UpdateHmacKeyRequest, dict]):
-                The request object. Request object to update an HMAC key
-                state. HmacKeyMetadata.state is required
-                and the only writable field in
-                UpdateHmacKey operation. Specifying
-                fields other than state will result in
-                an error.
-            hmac_key (googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.HmacKeyMetadata):
-                Required. The HMAC key to update. If present, the
-                hmac_key's ``id`` field will be used to identify the
-                key. Otherwise, the hmac_key's access_id and project
-                fields will be used to identify the key.
-
-                This corresponds to the ``hmac_key`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            update_mask (google.protobuf.field_mask_pb2.FieldMask):
-                Update mask for hmac_key. Not specifying any fields will
-                mean only the ``state`` field is updated to the value
-                specified in ``hmac_key``.
-
-                This corresponds to the ``update_mask`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, str]]): Strings which should be
-                sent along with the request as metadata.
-
-        Returns:
-            googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.HmacKeyMetadata:
-                Hmac Key Metadata, which includes all
-                information other than the secret.
-
-        """
-        warnings.warn("StorageClient.update_hmac_key is deprecated",
-            DeprecationWarning)
-
-        # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
-        has_flattened_params = any([hmac_key, update_mask])
-        if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
-
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.UpdateHmacKeyRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
-        if not isinstance(request, storage.UpdateHmacKeyRequest):
-            request = storage.UpdateHmacKeyRequest(request)
-            # If we have keyword arguments corresponding to fields on the
-            # request, apply these.
-            if hmac_key is not None:
-                request.hmac_key = hmac_key
-            if update_mask is not None:
-                request.update_mask = update_mask
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._transport._wrapped_methods[self._transport.update_hmac_key]
-
-        header_params = {}
-
-        routing_param_regex = re.compile('^(?P<project>.*)$')
-        regex_match = routing_param_regex.match(request.hmac_key.project)
-        if regex_match and regex_match.group("project"):
-            header_params["project"] = regex_match.group("project")
-
-        if header_params:
-            metadata = tuple(metadata) + (
-                gapic_v1.routing_header.to_grpc_metadata(header_params),
-            )
-
-        # Send the request.
-        response = rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    def delete_notification_config(self,
-            request: Optional[Union[storage.DeleteNotificationConfigRequest, dict]] = None,
-            *,
-            name: Optional[str] = None,
-            retry: OptionalRetry = gapic_v1.method.DEFAULT,
-            timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> None:
-        r"""Permanently deletes a NotificationConfig.
-
-        .. code-block:: python
-
-            # This snippet has been automatically generated and should be regarded as a
-            # code template only.
-            # It will require modifications to work:
-            # - It may require correct/in-range values for request initialization.
-            # - It may require specifying regional endpoints when creating the service
-            #   client as shown in:
-            #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-            from googlecloudsdk.generated_clients.gapic_clients import storage_v2
-
-            def sample_delete_notification_config():
-                # Create a client
-                client = storage_v2.StorageClient()
-
-                # Initialize request argument(s)
-                request = storage_v2.DeleteNotificationConfigRequest(
-                    name="name_value",
-                )
-
-                # Make the request
-                client.delete_notification_config(request=request)
-
-        Args:
-            request (Union[googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.DeleteNotificationConfigRequest, dict]):
-                The request object. Request message for
-                DeleteNotificationConfig.
-            name (str):
-                Required. The parent bucket of the
-                NotificationConfig.
-
-                This corresponds to the ``name`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, str]]): Strings which should be
-                sent along with the request as metadata.
-        """
-        warnings.warn("StorageClient.delete_notification_config is deprecated",
-            DeprecationWarning)
-
-        # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
-        has_flattened_params = any([name])
-        if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
-
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.DeleteNotificationConfigRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
-        if not isinstance(request, storage.DeleteNotificationConfigRequest):
-            request = storage.DeleteNotificationConfigRequest(request)
-            # If we have keyword arguments corresponding to fields on the
-            # request, apply these.
-            if name is not None:
-                request.name = name
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._transport._wrapped_methods[self._transport.delete_notification_config]
-
-        header_params = {}
-
-        routing_param_regex = re.compile('^(?P<bucket>projects/[^/]+/buckets/[^/]+)(?:/.*)?$')
-        regex_match = routing_param_regex.match(request.name)
-        if regex_match and regex_match.group("bucket"):
-            header_params["bucket"] = regex_match.group("bucket")
-
-        if header_params:
-            metadata = tuple(metadata) + (
-                gapic_v1.routing_header.to_grpc_metadata(header_params),
-            )
-
-        # Send the request.
-        rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-    def get_notification_config(self,
-            request: Optional[Union[storage.GetNotificationConfigRequest, dict]] = None,
-            *,
-            name: Optional[str] = None,
-            retry: OptionalRetry = gapic_v1.method.DEFAULT,
-            timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> storage.NotificationConfig:
-        r"""View a NotificationConfig.
-
-        .. code-block:: python
-
-            # This snippet has been automatically generated and should be regarded as a
-            # code template only.
-            # It will require modifications to work:
-            # - It may require correct/in-range values for request initialization.
-            # - It may require specifying regional endpoints when creating the service
-            #   client as shown in:
-            #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-            from googlecloudsdk.generated_clients.gapic_clients import storage_v2
-
-            def sample_get_notification_config():
-                # Create a client
-                client = storage_v2.StorageClient()
-
-                # Initialize request argument(s)
-                request = storage_v2.GetNotificationConfigRequest(
-                    name="name_value",
-                )
-
-                # Make the request
-                response = client.get_notification_config(request=request)
-
-                # Handle the response
-                print(response)
-
-        Args:
-            request (Union[googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.GetNotificationConfigRequest, dict]):
-                The request object. Request message for
-                GetNotificationConfig.
-            name (str):
-                Required. The parent bucket of the NotificationConfig.
-                Format:
-                ``projects/{project}/buckets/{bucket}/notificationConfigs/{notificationConfig}``
-
-                This corresponds to the ``name`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, str]]): Strings which should be
-                sent along with the request as metadata.
-
-        Returns:
-            googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.NotificationConfig:
-                A directive to publish Pub/Sub
-                notifications upon changes to a bucket.
-
-        """
-        warnings.warn("StorageClient.get_notification_config is deprecated",
-            DeprecationWarning)
-
-        # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
-        has_flattened_params = any([name])
-        if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
-
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.GetNotificationConfigRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
-        if not isinstance(request, storage.GetNotificationConfigRequest):
-            request = storage.GetNotificationConfigRequest(request)
-            # If we have keyword arguments corresponding to fields on the
-            # request, apply these.
-            if name is not None:
-                request.name = name
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._transport._wrapped_methods[self._transport.get_notification_config]
-
-        header_params = {}
-
-        routing_param_regex = re.compile('^(?P<bucket>projects/[^/]+/buckets/[^/]+)(?:/.*)?$')
-        regex_match = routing_param_regex.match(request.name)
-        if regex_match and regex_match.group("bucket"):
-            header_params["bucket"] = regex_match.group("bucket")
-
-        if header_params:
-            metadata = tuple(metadata) + (
-                gapic_v1.routing_header.to_grpc_metadata(header_params),
-            )
-
-        # Send the request.
-        response = rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    def create_notification_config(self,
-            request: Optional[Union[storage.CreateNotificationConfigRequest, dict]] = None,
-            *,
-            parent: Optional[str] = None,
-            notification_config: Optional[storage.NotificationConfig] = None,
-            retry: OptionalRetry = gapic_v1.method.DEFAULT,
-            timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> storage.NotificationConfig:
-        r"""Creates a NotificationConfig for a given bucket.
-        These NotificationConfigs, when triggered, publish
-        messages to the specified Pub/Sub topics. See
-        https://cloud.google.com/storage/docs/pubsub-notifications.
-
-        .. code-block:: python
-
-            # This snippet has been automatically generated and should be regarded as a
-            # code template only.
-            # It will require modifications to work:
-            # - It may require correct/in-range values for request initialization.
-            # - It may require specifying regional endpoints when creating the service
-            #   client as shown in:
-            #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-            from googlecloudsdk.generated_clients.gapic_clients import storage_v2
-
-            def sample_create_notification_config():
-                # Create a client
-                client = storage_v2.StorageClient()
-
-                # Initialize request argument(s)
-                notification_config = storage_v2.NotificationConfig()
-                notification_config.name = "name_value"
-                notification_config.topic = "topic_value"
-                notification_config.payload_format = "payload_format_value"
-
-                request = storage_v2.CreateNotificationConfigRequest(
-                    parent="parent_value",
-                    notification_config=notification_config,
-                )
-
-                # Make the request
-                response = client.create_notification_config(request=request)
-
-                # Handle the response
-                print(response)
-
-        Args:
-            request (Union[googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.CreateNotificationConfigRequest, dict]):
-                The request object. Request message for
-                CreateNotificationConfig.
-            parent (str):
-                Required. The bucket to which this
-                NotificationConfig belongs.
-
-                This corresponds to the ``parent`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            notification_config (googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.NotificationConfig):
-                Required. Properties of the
-                NotificationConfig to be inserted.
-
-                This corresponds to the ``notification_config`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, str]]): Strings which should be
-                sent along with the request as metadata.
-
-        Returns:
-            googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.NotificationConfig:
-                A directive to publish Pub/Sub
-                notifications upon changes to a bucket.
-
-        """
-        warnings.warn("StorageClient.create_notification_config is deprecated",
-            DeprecationWarning)
-
-        # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
-        has_flattened_params = any([parent, notification_config])
-        if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
-
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.CreateNotificationConfigRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
-        if not isinstance(request, storage.CreateNotificationConfigRequest):
-            request = storage.CreateNotificationConfigRequest(request)
-            # If we have keyword arguments corresponding to fields on the
-            # request, apply these.
-            if parent is not None:
-                request.parent = parent
-            if notification_config is not None:
-                request.notification_config = notification_config
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._transport._wrapped_methods[self._transport.create_notification_config]
+        rpc = self._transport._wrapped_methods[self._transport.move_object]
 
         header_params = {}
 
         routing_param_regex = re.compile('^(?P<bucket>.*)$')
-        regex_match = routing_param_regex.match(request.parent)
+        regex_match = routing_param_regex.match(request.bucket)
         if regex_match and regex_match.group("bucket"):
             header_params["bucket"] = regex_match.group("bucket")
 
@@ -4052,133 +3524,14 @@ class StorageClient(metaclass=StorageClientMeta):
                 gapic_v1.routing_header.to_grpc_metadata(header_params),
             )
 
-        # Send the request.
-        response = rpc(
-            request,
-            retry=retry,
-            timeout=timeout,
-            metadata=metadata,
-        )
-
-        # Done; return the response.
-        return response
-
-    def list_notification_configs(self,
-            request: Optional[Union[storage.ListNotificationConfigsRequest, dict]] = None,
-            *,
-            parent: Optional[str] = None,
-            retry: OptionalRetry = gapic_v1.method.DEFAULT,
-            timeout: Union[float, object] = gapic_v1.method.DEFAULT,
-            metadata: Sequence[Tuple[str, str]] = (),
-            ) -> pagers.ListNotificationConfigsPager:
-        r"""Retrieves a list of NotificationConfigs for a given
-        bucket.
-
-        .. code-block:: python
-
-            # This snippet has been automatically generated and should be regarded as a
-            # code template only.
-            # It will require modifications to work:
-            # - It may require correct/in-range values for request initialization.
-            # - It may require specifying regional endpoints when creating the service
-            #   client as shown in:
-            #   https://googleapis.dev/python/google-api-core/latest/client_options.html
-            from googlecloudsdk.generated_clients.gapic_clients import storage_v2
-
-            def sample_list_notification_configs():
-                # Create a client
-                client = storage_v2.StorageClient()
-
-                # Initialize request argument(s)
-                request = storage_v2.ListNotificationConfigsRequest(
-                    parent="parent_value",
-                )
-
-                # Make the request
-                page_result = client.list_notification_configs(request=request)
-
-                # Handle the response
-                for response in page_result:
-                    print(response)
-
-        Args:
-            request (Union[googlecloudsdk.generated_clients.gapic_clients.storage_v2.types.ListNotificationConfigsRequest, dict]):
-                The request object. Request message for
-                ListNotifications.
-            parent (str):
-                Required. Name of a Google Cloud
-                Storage bucket.
-
-                This corresponds to the ``parent`` field
-                on the ``request`` instance; if ``request`` is provided, this
-                should not be set.
-            retry (google.api_core.retry.Retry): Designation of what errors, if any,
-                should be retried.
-            timeout (float): The timeout for this request.
-            metadata (Sequence[Tuple[str, str]]): Strings which should be
-                sent along with the request as metadata.
-
-        Returns:
-            googlecloudsdk.generated_clients.gapic_clients.storage_v2.services.storage.pagers.ListNotificationConfigsPager:
-                The result of a call to
-                ListNotificationConfigs
-                Iterating over this object will yield
-                results and resolve additional pages
-                automatically.
-
-        """
-        warnings.warn("StorageClient.list_notification_configs is deprecated",
-            DeprecationWarning)
-
-        # Create or coerce a protobuf request object.
-        # Quick check: If we got a request object, we should *not* have
-        # gotten any keyword arguments that map to the request.
-        has_flattened_params = any([parent])
-        if request is not None and has_flattened_params:
-            raise ValueError('If the `request` argument is set, then none of '
-                             'the individual field arguments should be set.')
-
-        # Minor optimization to avoid making a copy if the user passes
-        # in a storage.ListNotificationConfigsRequest.
-        # There's no risk of modifying the input as we've already verified
-        # there are no flattened fields.
-        if not isinstance(request, storage.ListNotificationConfigsRequest):
-            request = storage.ListNotificationConfigsRequest(request)
-            # If we have keyword arguments corresponding to fields on the
-            # request, apply these.
-            if parent is not None:
-                request.parent = parent
-
-        # Wrap the RPC method; this adds retry and timeout information,
-        # and friendly error handling.
-        rpc = self._transport._wrapped_methods[self._transport.list_notification_configs]
-
-        header_params = {}
-
-        routing_param_regex = re.compile('^(?P<bucket>.*)$')
-        regex_match = routing_param_regex.match(request.parent)
-        if regex_match and regex_match.group("bucket"):
-            header_params["bucket"] = regex_match.group("bucket")
-
-        if header_params:
-            metadata = tuple(metadata) + (
-                gapic_v1.routing_header.to_grpc_metadata(header_params),
-            )
+        # Validate the universe domain.
+        self._validate_universe_domain()
 
         # Send the request.
         response = rpc(
             request,
             retry=retry,
             timeout=timeout,
-            metadata=metadata,
-        )
-
-        # This method is paged; wrap the response in a pager, which provides
-        # an `__iter__` convenience method.
-        response = pagers.ListNotificationConfigsPager(
-            method=rpc,
-            request=request,
-            response=response,
             metadata=metadata,
         )
 

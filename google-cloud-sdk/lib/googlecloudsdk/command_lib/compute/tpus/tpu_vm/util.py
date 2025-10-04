@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import re
 import sys
 
 from googlecloudsdk.api_lib.compute import base_classes
@@ -25,9 +26,10 @@ from googlecloudsdk.api_lib.compute import metadata_utils
 from googlecloudsdk.api_lib.util import apis
 from googlecloudsdk.api_lib.util import waiter
 from googlecloudsdk.calliope import base
+from googlecloudsdk.calliope import exceptions
 from googlecloudsdk.command_lib.util.args import labels_util
 from googlecloudsdk.command_lib.util.args import map_util
-from googlecloudsdk.core import exceptions
+from googlecloudsdk.core import exceptions as sdk_core_exceptions
 from googlecloudsdk.core import log
 from googlecloudsdk.core import properties
 from googlecloudsdk.core import resources
@@ -35,19 +37,23 @@ from googlecloudsdk.core import resources
 import six
 
 
-class NoFieldsSpecifiedError(exceptions.Error):
+class NoFieldsSpecifiedError(sdk_core_exceptions.Error):
   """Error if no fields are specified for an update request."""
 
 
-class AttachDiskError(exceptions.Error):
+class AttachDiskError(sdk_core_exceptions.Error):
   """Error if the update request is invalid for attaching a disk."""
 
 
-class DetachDiskError(exceptions.Error):
+class DetachDiskError(sdk_core_exceptions.Error):
   """Error if the update request is invalid for detaching a disk."""
 
 
-class BootDiskConfigurationError(exceptions.Error):
+class BootDiskConfigurationError(sdk_core_exceptions.Error):
+  """Error if the boot disk configuration is invalid."""
+
+
+class WorkerIdsError(sdk_core_exceptions.Error):
   """Error if the boot disk configuration is invalid."""
 
 
@@ -196,6 +202,13 @@ def GenerateUpdateMask(api_version='v2'):
       update_mask.add('metadata')
 
     if args.IsKnownAndSpecified('attach_disk'):
+      # validates worker
+      if not args.IsKnownAndSpecified('worker'):
+        args.worker = ['all']
+      is_all_workers_specified = ValidateWorkerIdsField(args)
+      if is_all_workers_specified:
+        args.worker = []
+
       mode, source = '', ''
       for key in args.attach_disk.keys():
         if key == 'mode':
@@ -211,19 +224,36 @@ def GenerateUpdateMask(api_version='v2'):
         mode_enum = tpu_messages.AttachedDisk.ModeValueValuesEnum.READ_ONLY
       elif not mode or mode == 'read-write':
         mode_enum = tpu_messages.AttachedDisk.ModeValueValuesEnum.READ_WRITE
+        if len(args.worker) > 1:
+          raise AttachDiskError(
+              'argument --attach-disk: can only attach disks in read-write'
+              ' to at most one worker; received: ' + str(args.worker)
+          )
       else:
         raise AttachDiskError(
             'argument --attach-disk: key mode: can only attach disks in '
             'read-write or read-only mode; received: ' + mode
         )
+      # worker is de-duped and sorted.
+      worker = set(args.worker)
       disk_to_attach = tpu_messages.AttachedDisk(
           mode=mode_enum,
-          sourceDisk=source
+          sourceDisk=source,
       )
+      if api_version == 'v2alpha1':
+        disk_to_attach.workerIds = sorted(worker)
+        PreprocessDiskToAttach(request.node.dataDisks, disk_to_attach)
       request.node.dataDisks.append(disk_to_attach)
       update_mask.add('data_disks')
 
     elif args.IsKnownAndSpecified('detach_disk'):
+      # validates worker
+      if not args.IsKnownAndSpecified('worker'):
+        args.worker = ['all']
+      is_all_workers_specified = ValidateWorkerIdsField(args)
+      if is_all_workers_specified:
+        args.worker = []
+
       if not request.node.dataDisks:
         raise DetachDiskError(
             'argument --detach-disk: No data disks to detach from current TPU '
@@ -235,9 +265,16 @@ def GenerateUpdateMask(api_version='v2'):
       for i, source_disk in enumerate(source_disk_list):
         if args.detach_disk != source_disk:
           continue
-        if args.detach_disk == source_disk:
+        if is_all_workers_specified:
           del request.node.dataDisks[i]
           break
+        worker_diff = set(
+            request.node.dataDisks[i].workerIds) - set(args.worker)
+        if not worker_diff:
+          del request.node.dataDisks[i]
+          break
+        request.node.dataDisks[i].workerIds = sorted(worker_diff)
+        break
       else:
         raise DetachDiskError(
             'argument --detach-disk: The specified data disk '
@@ -356,6 +393,79 @@ def TransformGuestAttributes(response, args):
   return lst
 
 
+def PreprocessDiskToAttach(current_data_disks_list, disk_to_attach):
+  """Preprocesses and validates the disk to attach.
+
+  Validates the disk to attach is not already attached to the TPU VM with
+  different mode or same mode and worker.
+  Deletes the disk from the current_data_disks_list if it is already attached
+  to the TPU VM with same mode but different worker.
+  If the disk is currently attached to the TPU VM with same mode,
+  joins the current worker list and the new worker list.
+
+  Args:
+    current_data_disks_list: the list of data disks currently attached to the
+      TPU VM.
+    disk_to_attach: the disk to attach to the TPU VM.
+
+  Raises:
+    AttachDiskError: if the disk is already attached to the TPU VM
+      with different mode.
+    AttachDiskError: if the disk is already attached to the TPU VM with same
+      mode and worker.
+  """
+  for i, disk in enumerate(current_data_disks_list):
+    if disk.sourceDisk != disk_to_attach.sourceDisk:
+      continue
+    if (disk.mode != disk_to_attach.mode):
+      raise AttachDiskError(
+          'argument --attach-disk: the disk is already attached to the TPU '
+          'VM with different mode.'
+      )
+    if not (set(disk_to_attach.workerIds) - set(disk.workerIds)):
+      raise AttachDiskError(
+          'argument --attach-disk: the disk is already attached to '
+          'the same set of workers of TPU VM.'
+      )
+    disk_to_attach.workerIds = sorted(
+        set(disk.workerIds + disk_to_attach.workerIds))
+    # To avoid disk with same name appear twice in the list.
+    del current_data_disks_list[i]
+
+
+def ValidateWorkerIdsField(args):
+  """Checks that the worker are numberic strings only.
+
+  The only exception is "all" which is a special value that means all
+  workers. If "all" is specified return True.
+
+  Args:
+    args: the arguments for the update command.
+
+  Returns:
+    True if only one string "all" is specified in args.worker
+    False otherwise.
+
+  Raises:
+    WorkerIdsError: if the worker are not numberic strings only.
+  """
+  if len(args.worker) == 1 and args.worker[0] == 'all':
+    return True
+  for w in args.worker:
+    if w == 'all' and len(args.worker) > 1:
+      raise WorkerIdsError(
+          'argument --worker',
+          '"all" cannot be specified with other worker.',
+      )
+    if not w.isnumeric():
+      raise WorkerIdsError(
+          'argument --worker',
+          'worker must be numeric strings only or '
+          '"all". e.g. --worker=0,1,2 or --worker=all',
+      )
+  return False
+
+
 def CheckTPUVMNode(response, args):
   """Verifies that the node is a TPU VM node.
 
@@ -380,23 +490,7 @@ def ParseBootDiskConfigurations(api_version='v2'):
   """Request hook for parsing boot disk configurations."""
 
   def Process(unused_ref, args, request):
-    """Parses configurations for boot disk.
-
-    Parsing boot disk configuration if --boot-disk flag is set.
-
-    Args:
-      unused_ref: ref to the service.
-      args:  The args for this method.
-      request: The request to be made.
-
-    Returns:
-      Request with boot disk configuration fields populated.
-
-    Raises:
-      BootDiskConfigurationError: if confidential compute is enable
-        but kms-key is not provided.
-      BootDiskConfigurationError: if invalid argument name is provided.
-    """
+    """Parses configurations for boot disk."""
     if not args or not args.IsKnownAndSpecified('boot_disk'):
       return request
 
@@ -405,30 +499,131 @@ def ParseBootDiskConfigurations(api_version='v2'):
     for arg_name in args.boot_disk.keys():
       if arg_name not in [kms_key_arg_name, confidential_compute_arg_name]:
         raise BootDiskConfigurationError(
-            '--boot-disk only supports arguments: %s and %s'
-            % (confidential_compute_arg_name, kms_key_arg_name)
+            '--boot-disk only supports arguments: {} and {}'.format(
+                confidential_compute_arg_name, kms_key_arg_name
+            )
         )
 
     tpu_messages = GetMessagesModule(version=api_version)
-    enable_confidential_compute = args.boot_disk.get(
-        confidential_compute_arg_name, 'False').lower() == 'true'
+    enable_confidential_compute = (
+        args.boot_disk.get(confidential_compute_arg_name, 'False').lower()
+        == 'true'
+    )
     kms_key = args.boot_disk.get(kms_key_arg_name, None)
 
-    if enable_confidential_compute and kms_key is None:
-      raise BootDiskConfigurationError(
-          'argument --boot-disk: with confidential-compute=%s '
-          'requires kms-key; received: %s' % (
-              enable_confidential_compute, kms_key)
-      )
-    customer_encryption_key = tpu_messages.CustomerEncryptionKey(
-        kmsKeyName=kms_key
-    )
-    request.node.bootDiskConfig = tpu_messages.BootDiskConfig(
-        customerEncryptionKey=customer_encryption_key,
-        enableConfidentialCompute=enable_confidential_compute,
-    )
+    if enable_confidential_compute:
+      if api_version != 'v2alpha1':
+        raise exceptions.InvalidArgumentException(
+            '--boot-disk',
+            'confidential-compute is only available in the alpha release track.'
+        )
+      if kms_key is None:
+        raise BootDiskConfigurationError(
+            'argument --boot-disk: with confidential-compute={} '
+            'requires kms-key; received: {}'.format(
+                enable_confidential_compute, kms_key)
+        )
+
+    boot_disk_config_kwargs = {}
+    if kms_key:
+      customer_encryption_key = tpu_messages.CustomerEncryptionKey(
+          kmsKeyName=kms_key)
+      boot_disk_config_kwargs['customerEncryptionKey'] = customer_encryption_key
+
+    if api_version == 'v2alpha1' and enable_confidential_compute:
+      boot_disk_config_kwargs['enableConfidentialCompute'] = (
+          enable_confidential_compute)
+
+    if boot_disk_config_kwargs:
+      request.node.bootDiskConfig = tpu_messages.BootDiskConfig(
+          **boot_disk_config_kwargs)
+
     return request
 
+  return Process
+
+
+def SetImage(api_version='v2alpha1'):
+  """Request hook for setting the source machine image."""
+
+  def Process(unused_ref, args, request):
+    """Sets the source machine image in the request if provided."""
+    if args.IsSpecified('image'):
+      tpu_messages = GetMessagesModule(version=api_version)
+      if not request.node.bootDiskConfig:
+        request.node.bootDiskConfig = tpu_messages.BootDiskConfig()
+      request.node.bootDiskConfig.sourceImage = args.image
+    return request
+
+  return Process
+
+
+def ProjectIdToProjectNumber(project_id):
+  """Returns the Cloud project number associated with the `project_id`."""
+  crm_message_module = apis.GetMessagesModule('cloudresourcemanager', 'v1')
+  resource_manager = apis.GetClientInstance('cloudresourcemanager', 'v1')
+  req = crm_message_module.CloudresourcemanagerProjectsGetRequest(
+      projectId=project_id)
+  project = resource_manager.projects.Get(req)
+  return project.projectNumber
+
+
+def CreateReservationName(unused_ref, args, request):
+  """Request hook for creating the target reservation name.
+
+  Args:
+    unused_ref: ref to the service.
+    args: The args for this method.
+    request: The request to be made.
+
+  Returns:
+    Request with reservationName field populated.
+  """
+  short_reservation_name_pattern = '^[a-zA-Z0-9-]+$'
+  full_reservation_name_pattern = 'projects/{}/locations/{}/reservations/{}'
+  reservation_name = None
+  if args.IsKnownAndSpecified('reservation') and re.match(
+      short_reservation_name_pattern, args.reservation
+  ):
+    project_id = properties.VALUES.core.project.GetOrFail()
+    project_number = ProjectIdToProjectNumber(project_id)
+    reservation_name = full_reservation_name_pattern.format(
+        project_number, args.zone, args.reservation
+    )
+  if reservation_name:
+    request.node.schedulingConfig.reservationName = reservation_name
+  return request
+
+
+def SetProvisioningModel(api_version):
+  """Sets the provisioning model enum value."""
+  def Process(_, args, request):
+    tpu_messages = GetMessagesModule(api_version)
+    if args.spot:
+      request.node.schedulingConfig.provisioningModel = (
+          tpu_messages.SchedulingConfig.ProvisioningModelValueValuesEnum.SPOT
+      )
+      return request
+    if not args.provisioning_model:
+      request.node.schedulingConfig.provisioningModel = (
+          tpu_messages.SchedulingConfig.ProvisioningModelValueValuesEnum.STANDARD
+      )
+      return request
+    try:
+      normalized_candidate = args.provisioning_model.replace('-', '_').upper()
+      candidate_enum = (
+          tpu_messages.SchedulingConfig.ProvisioningModelValueValuesEnum(
+              normalized_candidate
+          )
+      )
+    except TypeError as e:
+      raise exceptions.InvalidArgumentException(
+          '--provisioning-model',
+          f'{args.provisioning_model} is not a valid provisioning model, must'
+          ' be one of [standard, spot, reservation-bound]',
+      ) from e
+    request.node.schedulingConfig.provisioningModel = candidate_enum
+    return request
   return Process
 
 

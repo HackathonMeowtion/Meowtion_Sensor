@@ -21,9 +21,11 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import re
+import textwrap
 
 from apitools.base.py import encoding
 from googlecloudsdk.api_lib.scc import securitycenter_client as sc_client
+from googlecloudsdk.calliope import actions
 from googlecloudsdk.calliope import arg_parsers
 from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.scc import errors
@@ -31,7 +33,6 @@ from googlecloudsdk.command_lib.util.args import resource_args
 from googlecloudsdk.command_lib.util.concepts import concept_parsers
 from googlecloudsdk.core import properties
 
-# TODO: b/312478509 - Add Deprecation warning for compare-duration.
 COMPARE_DURATION_FLAG = base.Argument(
     '--compare-duration',
     help="""
@@ -63,6 +64,14 @@ COMPARE_DURATION_FLAG = base.Argument(
       findings present at read_time. If this field is set then 'state_change'
       must be a specified field in 'group_by'. See $ gcloud topic datetimes
       for information on supported duration formats.""",
+    action=actions.DeprecationAction(
+        '--compare-duration',
+        warn=textwrap.dedent("""\
+            The --compare-duration option is deprecated.
+            For more information, [see the deprecation notice](https://cloud.google.com/security-command-center/docs/release-notes#April_15_2024)
+            on the SCC release notes page."""),
+        removed=False,
+    ),
 )
 
 EVENT_TIME_FLAG_NOT_REQUIRED = base.Argument(
@@ -116,6 +125,11 @@ STATE_FLAG = base.ChoiceArgument(
     '--state',
     help_str='State is one of: [ACTIVE, INACTIVE].',
     choices=['active', 'inactive', 'state-unspecified'],
+)
+
+FINDING_FLAG = base.Argument(
+    'finding',
+    help='ID of the finding or fully qualified identifier for the finding.'
 )
 
 
@@ -189,3 +203,22 @@ def ConvertSourceProperties(source_properties_dict):
   return encoding.DictToMessage(
       source_properties_dict, messages.Finding.SourcePropertiesValue
   )
+
+
+def AddParentGroup(parser):
+  """Adds a parent group to the parser."""
+  parent_group = parser.add_mutually_exclusive_group(required=False)
+  parent_group.add_argument(
+      '--organization',
+      help='The organization ID (e.g., 123) that contains the finding.',
+  )
+
+  parent_group.add_argument(
+      '--folder',
+      help='The folder ID (e.g., 456) that contains the finding.',
+  )
+  parent_group.add_argument(
+      '--project',
+      help='The project ID (e.g., example-project) that contains the finding.',
+  )
+  return parser

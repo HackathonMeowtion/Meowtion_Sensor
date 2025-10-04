@@ -14,9 +14,6 @@
 # limitations under the License.
 """Flags for the deploy command group."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import textwrap
 
@@ -197,10 +194,60 @@ def AddLabelsFlag(parser, resource_type):
   )
 
 
+def AddDockerVersion(parser):
+  """Adds docker version flag."""
+  parser.add_argument(
+      '--docker-version',
+      help='Version of the Docker binary.',
+      hidden=True,
+      type=str,
+  )
+
+
+def AddHelmVersion(parser):
+  """Adds helm version flag."""
+  parser.add_argument(
+      '--helm-version',
+      help='Version of the Helm binary.',
+      hidden=True,
+      type=str,
+  )
+
+
+def AddKptVersion(parser):
+  """Adds kpt version flag."""
+  parser.add_argument(
+      '--kpt-version',
+      help='Version of the Kpt binary.',
+      hidden=True,
+      type=str,
+  )
+
+
+def AddKubectlVersion(parser):
+  """Adds kubectl version flag."""
+  parser.add_argument(
+      '--kubectl-version',
+      help='Version of the Kubectl binary.',
+      hidden=True,
+      type=str,
+  )
+
+
+def AddKustomizeVersion(parser):
+  """Adds kustomize version flag."""
+  parser.add_argument(
+      '--kustomize-version',
+      help='Version of the Kustomize binary.',
+      hidden=True,
+      type=str,
+  )
+
+
 def AddSkaffoldVersion(parser):
   """Adds skaffold version flag."""
   parser.add_argument(
-      '--skaffold-version', help='Version of the Skaffold binary.'
+      '--skaffold-version', help='Version of the Skaffold binary.', type=str
   )
 
 
@@ -229,6 +276,35 @@ def AddSkaffoldFileFlag():
 
   """)
   return base.Argument('--skaffold-file', help=help_text)
+
+
+def AddDeployConfigFileFlag(hidden=True):
+  """Add --deploy-config-file flag."""
+  help_text = textwrap.dedent("""\
+  Path of the deploy config file absolute or relative to the source directory.
+
+  Examples:
+
+  Use deploy config file with relative path:
+  The current working directory is expected to be some part of the deploy config path (e.g. the current working directory could be /home/user)
+
+    $ {command} --source=/home/user/source --deploy-config-file=config/deploy-config.yaml
+
+  The deploy config file absolute file path is expected to be:
+  /home/user/source/config/deploy-config.yaml
+
+
+  Use deploy config file with absolute path and with or without source argument:
+
+
+    $ {command} --source=/home/user/source --deploy-config-file=/home/user/source/config/deploy-config.yaml
+
+    $ {command} --deploy-config-file=/home/user/source/config/deploy-config.yaml
+
+  """)
+  return base.Argument(
+      '--deploy-config-file', help=help_text, hidden=hidden
+  )
 
 
 def AddSourceFlag():
@@ -264,60 +340,18 @@ def AddCloudRunFileFlag():
   )
 
 
-def AddServicesFlag():
-  return base.Argument(
-      '--services',
-      metavar='NAME=TAG',
-      type=arg_parsers.ArgDict(),
-      hidden=True,
-      help="""
-        The flag to be used with the --from-run-container flag to specify the
-        name of the service present in a given target.
-        This will be a repeated flag.
+def AddConfigSourcesGroup(parser):
+  """Add config sources."""
+  config_group = parser.add_mutually_exclusive_group()
+  AddKubernetesFileFlag().AddToParser(config_group)
+  AddCloudRunFileFlag().AddToParser(config_group)
 
-        *target_id*::: The target_id.
-        *service*::: The name of the service in the specified target_id.
+  source_group = config_group.add_group(mutex=False)
+  AddSourceFlag().AddToParser(source_group)
 
-        For example:
-
-          $gcloud deploy releases create foo \\
-              --from-run-container=path/to/image1:v1@sha256:45db24
-              --services=dev_target:dev_service
-              --services=prod_target:prod_service
-      """,
-  )
-
-
-def AddFromRunContainerFlag():
-  return base.Argument(
-      '--from-run-container',
-      hidden=True,
-      help="""
-          The container name, which Cloud Deploy will use to
-          generate a CloudRun manifest.yaml and a skaffold.yaml file.
-          The generated Skaffold file and manifest file will be
-          available in the Google Cloud Storage source staging directory
-          after the release is complete.
-      """,
-  )
-
-
-def AddSkaffoldSources(parser):
-  """Add Skaffold sources."""
-  skaffold_source_config_group = parser.add_mutually_exclusive_group()
-  # Add a group that contains the skaffold-file and source flags to a mutex
-  # group.
-  skaffold_source_group = skaffold_source_config_group.add_group(mutex=False)
-  AddSkaffoldFileFlag().AddToParser(skaffold_source_group)
-  AddSourceFlag().AddToParser(skaffold_source_group)
-  # Add the from-k8s-manifest and --from-run-manifest flag to the mutex group.
-  AddKubernetesFileFlag().AddToParser(skaffold_source_config_group)
-  AddCloudRunFileFlag().AddToParser(skaffold_source_config_group)
-  # Add from-k8s-container and the from-run-container flag to the mutex group.
-  run_container_group = skaffold_source_config_group.add_group(mutex=False,
-                                                               hidden=True)
-  AddFromRunContainerFlag().AddToParser(run_container_group)
-  AddServicesFlag().AddToParser(run_container_group)
+  config_file_group = source_group.add_group(mutex=True)
+  AddSkaffoldFileFlag().AddToParser(config_file_group)
+  AddDeployConfigFileFlag().AddToParser(config_file_group)
 
 
 def AddDescriptionFlag(parser):
@@ -564,7 +598,7 @@ def AddDeployParametersFlag(parser, hidden=False):
   )
 
 
-def AddOverrideDeployPolicies(parser, hidden=True):
+def AddOverrideDeployPolicies(parser, hidden=False):
   """Adds override-deploy-policies flag."""
   parser.add_argument(
       '--override-deploy-policies',

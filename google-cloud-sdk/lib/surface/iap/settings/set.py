@@ -21,13 +21,7 @@ from __future__ import unicode_literals
 from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.iap import util as iap_util
 
-
-@base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.GA)
-class Set(base.Command):
-  """Set the setting for an IAP resource."""
-  detailed_help = {
-      'EXAMPLES':
-          """\
+EXAMPLES = """\
           To set the IAP setting for the resources within an organization, run:
 
             $ {command} iap_settings.yaml --organization=ORGANIZATION_ID
@@ -59,24 +53,65 @@ class Set(base.Command):
 
           To set the IAP setting for all backend services within a project, run:
 
-            $ {command} iap_settings.yaml --project=PROJECT_ID --resource-type=compute
+            $ {command} iap_settings.yaml --project=PROJECT_ID --resource-type=backend-services
 
           To set the IAP setting for a backend service within a project, run:
 
-            $ {command} iap_settings.yaml --project=PROJECT_ID --resource-type=compute --service=SERVICE_ID
+            $ {command} iap_settings.yaml --project=PROJECT_ID --resource-type=backend-services --service=SERVICE_ID
 
-          """,
+          To set the IAP setting for a region backend service within a project, run:
+
+            $ {command} iap_settings.yaml --project=PROJECT_ID --resource-type=backend-services --service=SERVICE_ID
+                --region=REGION_ID
+
+          To set the IAP setting for all forwarding rule within a project, run:
+
+            $ {command} iap_settings.yaml --project=PROJECT_ID --resource-type=forwarding-rule
+
+          To set the IAP setting for a forwarding rule within a project, run:
+
+            $ {command} iap_settings.yaml --project=PROJECT_ID --resource-type=forwarding-rule --service=SERVICE_ID
+
+          To set the IAP setting for a region forwarding rule within a project, run:
+
+            $ {command} iap_settings.yaml --project=PROJECT_ID --resource-type=forwarding-rule --service=SERVICE_ID
+              --region=REGION_ID
+          """
+
+NON_GA_EXAMPLES = EXAMPLES + """\
+
+    To set the IAP setting for the all cloud run services within a region of a project, run:
+
+      $ {command} iap_settings.yaml --project=PROJECT_ID --resource-type=cloud-run --region=REGION_ID
+
+    To set the IAP setting for a cloud run service within a project, run:
+
+      $ {command} iap_settings.yaml --project=PROJECT_ID --resource-type=cloud-run --region=REGION_ID --service=SERVICE_ID
+    """
+
+
+@base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.DefaultUniverseOnly
+class Set(base.Command):
+  """Set the setting for an IAP resource."""
+
+  detailed_help = {
+      'EXAMPLES': EXAMPLES,
   }
 
-  @staticmethod
-  def Args(parser):
+  _support_cloud_run = False
+
+  @classmethod
+  def Args(cls, parser):
     """Register flags for this command.
 
     Args:
       parser: An argparse.ArgumentParser-like object. It is mocked out in order
         to capture some information, but behaves like an ArgumentParser.
     """
-    iap_util.AddIapSettingArg(parser)
+    iap_util.AddIapSettingArg(
+        parser, support_cloud_run=cls._support_cloud_run
+    )
     iap_util.AddIapSettingFileArg(parser)
     base.URI_FLAG.RemoveFromParser(parser)
 
@@ -90,23 +125,19 @@ class Set(base.Command):
     Returns:
       The specified function with its description and configured filter
     """
-    iap_setting_ref = iap_util.ParseIapSettingsResource(self.ReleaseTrack(),
-                                                        args)
+    iap_setting_ref = iap_util.ParseIapSettingsResource(
+        self.ReleaseTrack(),
+        args,
+        self._support_cloud_run,
+    )
     return iap_setting_ref.SetIapSetting(args.setting_file)
 
 
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
-class SetALPHA(Set):
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
+class SetBeta(Set):
   """Set the setting for an IAP resource."""
+  detailed_help = {
+      'EXAMPLES': NON_GA_EXAMPLES,
+  }
 
-  @staticmethod
-  def Args(parser):
-    """Register flags for this command.
-
-    Args:
-      parser: An argparse.ArgumentParser-like object. It is mocked out in order
-        to capture some information, but behaves like an ArgumentParser.
-    """
-    iap_util.AddIapSettingArg(parser, use_region_arg=True)
-    iap_util.AddIapSettingFileArg(parser)
-    base.URI_FLAG.RemoveFromParser(parser)
+  _support_cloud_run = True

@@ -34,6 +34,7 @@ from googlecloudsdk.command_lib.storage import wildcard_iterator
 from googlecloudsdk.command_lib.storage.tasks import task_executor
 from googlecloudsdk.command_lib.storage.tasks import task_graph_executor
 from googlecloudsdk.command_lib.storage.tasks import task_status
+from googlecloudsdk.command_lib.storage.tasks.buckets import restore_bucket_task
 from googlecloudsdk.command_lib.storage.tasks.objects import bulk_restore_objects_task
 from googlecloudsdk.command_lib.storage.tasks.objects import restore_object_task
 from googlecloudsdk.core import log
@@ -41,9 +42,22 @@ from googlecloudsdk.core import log
 
 _BULK_RESTORE_FLAGS = [
     'allow_overwrite',
+    'created_after_time',
+    'created_before_time',
     'deleted_after_time',
     'deleted_before_time',
 ]
+
+_INVALID_BUCKET_RESTORE_FLAGS = [
+    'all_versions',
+    'allow_overwrite',
+    'created_after_time',
+    'created_before_time',
+    'deleted_after_time',
+    'deleted_before_time',
+    'asyncronous',
+]
+
 _SYNCHRONOUS_RESTORE_FLAGS = ['all_versions']
 
 
@@ -73,14 +87,47 @@ def _raise_if_invalid_flag_combination(args, execution_mode, invalid_flags):
       )
 
 
+def _raise_error_if_invalid_flags_for_bucket_restore(url, args):
+  """Raises error if invalid combination of flags found in user input for bucket restore.
+
+  Args:
+    url: CloudUrl object.
+    args: (parser_extensions.Namespace): User input object.
+
+  Raises:
+    Error: Flags incompatible with execution mode.
+  """
+  if _is_bucket_restore(url):
+    # Bucket restore doesn't work with flags that are specific to objects.
+    invalid_flags_found = []
+    for invalid_flag in _INVALID_BUCKET_RESTORE_FLAGS:
+      if getattr(args, invalid_flag):
+        invalid_flags_found.append(invalid_flag)
+
+    if invalid_flags_found:
+      raise errors.Error(
+          'Bucket restore does not support the following flags: {}.'
+          ' See help text with --help.'.format(', '.join(invalid_flags_found))
+      )
+
+
+def _is_bucket_restore(url):
+  return (
+      isinstance(url, storage_url.CloudUrl)
+      and url.is_bucket()
+      and not wildcard_iterator.contains_wildcard(url.url_string)
+  )
+
+
 def _url_iterator(args):
   """Extracts, validates, and yields URLs."""
   for url_string in stdin_iterator.get_urls_iterable(
       args.urls, args.read_paths_from_stdin
   ):
-    url = storage_url.storage_url_from_string(url_string)
-    # TODO(b/292075826): Remove once bucket restore supported.
-    errors_util.raise_error_if_not_cloud_object(args.command_path, url)
+    url = storage_url.storage_url_from_string(
+        url_string, is_bucket_gen_parsing_allowed=True
+    )
+    _raise_error_if_invalid_flags_for_bucket_restore(url, args)
     errors_util.raise_error_if_not_gcs(args.command_path, url)
     yield url
 
@@ -89,8 +136,6 @@ def _async_restore_task_iterator(args, user_request_args):
   """Yields non-blocking restore tasks."""
   bucket_to_globs = collections.defaultdict(list)
   for url in _url_iterator(args):
-    # TODO(b/292075826): Add exception for buckets once bucket restore
-    # is supported
     if not wildcard_iterator.contains_wildcard(url.url_string):
       log.warning(
           'Bulk restores are long operations. For restoring a single'
@@ -98,7 +143,7 @@ def _async_restore_task_iterator(args, user_request_args):
           ' without the --async flag. URL without wildcards: {}'.format(url)
       )
     bucket_to_globs[storage_url.CloudUrl(url.scheme, url.bucket_name)].append(
-        url.object_name
+        url.resource_name
     )
 
   for bucket_url, object_globs in bucket_to_globs.items():
@@ -106,6 +151,8 @@ def _async_restore_task_iterator(args, user_request_args):
         bucket_url,
         object_globs,
         allow_overwrite=args.allow_overwrite,
+        created_after_time=args.created_after_time,
+        created_before_time=args.created_before_time,
         deleted_after_time=args.deleted_after_time,
         deleted_before_time=args.deleted_before_time,
         user_request_args=user_request_args,
@@ -116,11 +163,15 @@ def _sync_restore_task_iterator(args, fields_scope, user_request_args):
   """Yields blocking restore tasks."""
   last_resource = None
   for url in _url_iterator(args):
+    if _is_bucket_restore(url):
+      yield restore_bucket_task.RestoreBucketTask(url)
+      continue
     resources = list(
         wildcard_iterator.get_wildcard_iterator(
             url.url_string,
             fields_scope=fields_scope,
             object_state=cloud_api.ObjectState.SOFT_DELETED,
+            files_only=True,
         )
     )
     if not resources:
@@ -162,18 +213,27 @@ def _restore_task_iterator(args):
   return _sync_restore_task_iterator(args, fields_scope, user_request_args)
 
 
+@base.UniverseCompatible
 class Restore(base.Command):
   """Restore one or more soft-deleted objects."""
 
   # TODO(b/292075826): Update docstring and help once bucket restore supported.
   detailed_help = {
       'DESCRIPTION': """
-      The restore command restores soft-deleted objects:
+      The restore command restores soft-deleted resources:
 
         $ {command} url...
 
       """,
       'EXAMPLES': """
+
+      Restore soft-deleted version of bucket with generations:
+
+        $ {command} gs://bucket#123
+
+      Restore several soft-deleted buckets with generations:
+
+        $ {command} gs://bucket1#123 gs://bucket2#456
 
       Restore latest soft-deleted version of object in a bucket.
 
@@ -211,6 +271,29 @@ class Restore(base.Command):
 
         $ {command} gs://bucket/**.txt --async
 
+      Restore objects created within a specific time range:
+
+        $ {command} gs://bucket/** --async \
+            --created-after-time="2023-01-01T00:00:00Z" \
+            --created-before-time="2023-01-31T23:59:59Z"
+
+      Restore objects soft-deleted within a specific time range:
+
+        $ {command} gs://bucket/** --async \
+            --deleted-after-time="2023-01-01T00:00:00Z" \
+            --deleted-before-time="2023-01-31T23:59:59Z"
+
+      Restore objects using a combination of creation and deletion time filters:
+
+          $ {command} gs://bucket/** --async --allow-overwrite \
+              --created-after-time="2023-01-01T00:00:00Z" \
+              --deleted-after-time="2023-01-01T00:00:00Z"
+
+      This command filters the objects that were live at 2023-01-01T00:00:00Z
+      and then soft-deleted afterwards. This combination of filters is
+      especially helpful if there is a period of erroneous overwrites.
+      They allow you to go back to the point just before the overwrites began.
+      You will also need to set the `--allow-overwrite` option to true.
       """,
   }
 
@@ -253,6 +336,16 @@ class Restore(base.Command):
     )
     bulk_restore_flag_group = parser.add_group(help='BULK RESTORE OPTIONS')
     bulk_restore_flag_group.add_argument(
+        '--created-after-time',
+        type=arg_parsers.Datetime.Parse,
+        help='Restores only the objects that were created after this time.',
+    )
+    bulk_restore_flag_group.add_argument(
+        '--created-before-time',
+        type=arg_parsers.Datetime.Parse,
+        help='Restores only the objects that were created before this time.',
+    )
+    bulk_restore_flag_group.add_argument(
         '--allow-overwrite',
         action='store_true',
         help=(
@@ -277,6 +370,7 @@ class Restore(base.Command):
     )
 
   def Run(self, args):
+    # TODO(b/383682645): Add support for restoring managed folders.
     task_status_queue = task_graph_executor.multiprocessing_context.Queue()
 
     if args.asyncronous:

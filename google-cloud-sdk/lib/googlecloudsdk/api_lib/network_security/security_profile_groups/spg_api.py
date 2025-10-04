@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*- #
-# Copyright 2023 Google LLC. All Rights Reserved.
+# Copyright 2024 Google LLC. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -136,7 +136,10 @@ class Client:
       security_profile_group_id,
       parent,
       description,
-      threat_prevention_profile,
+      threat_prevention_profile=None,
+      url_filtering_profile=None,
+      custom_mirroring_profile=None,
+      custom_intercept_profile=None,
       labels=None,
   ):
     """Calls the Create Security Profile Group API."""
@@ -146,6 +149,13 @@ class Client:
         threatPreventionProfile=threat_prevention_profile,
         labels=labels,
     )
+    if hasattr(security_profile_group, 'urlFilteringProfile'):
+      security_profile_group.urlFilteringProfile = url_filtering_profile
+    # v1 API doesn't have the new field yet, so don't assign it.
+    if hasattr(security_profile_group, 'customMirroringProfile'):
+      security_profile_group.customMirroringProfile = custom_mirroring_profile
+    if hasattr(security_profile_group, 'customInterceptProfile'):
+      security_profile_group.customInterceptProfile = custom_intercept_profile
 
     api_request = self.messages.NetworksecurityOrganizationsLocationsSecurityProfileGroupsCreateRequest(
         parent=parent,
@@ -159,6 +169,7 @@ class Client:
       security_profile_group_name,
       description,
       threat_prevention_profile,
+      url_filtering_profile,
       update_mask,
       labels=None,
   ):
@@ -169,6 +180,9 @@ class Client:
         threatPreventionProfile=threat_prevention_profile,
         labels=labels,
     )
+
+    if hasattr(security_profile_group, 'urlFilteringProfile'):
+      security_profile_group.urlFilteringProfile = url_filtering_profile
 
     api_request = self.messages.NetworksecurityOrganizationsLocationsSecurityProfileGroupsPatchRequest(
         name=security_profile_group_name,

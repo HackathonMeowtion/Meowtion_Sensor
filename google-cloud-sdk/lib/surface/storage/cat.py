@@ -53,6 +53,7 @@ def _range_parser(string_value):
   return arg_parsers.Range.Parse(string_value)
 
 
+@base.UniverseCompatible
 class Cat(base.Command):
   """Outputs the contents of one or more URLs to stdout."""
 
@@ -121,6 +122,7 @@ class Cat(base.Command):
     flags.add_encryption_flags(parser, command_only_reads_data=True)
 
   def Run(self, args):
+
     encryption_util.initialize_key_store(args)
     if args.url:
       storage_urls = []

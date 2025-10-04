@@ -21,6 +21,7 @@ from googlecloudsdk.command_lib.storage.insights.dataset_configs import log_util
 from googlecloudsdk.command_lib.storage.insights.dataset_configs import resource_args
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
 class DeleteLink(base.Command):
   """Delete a link to a BigQuery instance."""
@@ -31,14 +32,14 @@ class DeleteLink(base.Command):
       """,
       'EXAMPLES': """
 
-      To unlink a dataset config with config name "my-config" in location
+      To unlink a dataset config with config name "my_config" in location
       "us-central1":
 
-          $ {command} my-config --location=us-central1
+          $ {command} my_config --location=us-central1
 
       To delete a link for the same dataset config with fully specified name:
 
-          $ {command} projects/foo/locations/us-central1/datasetConfigs/my-config
+          $ {command} projects/foo/locations/us-central1/datasetConfigs/my_config
       """,
   }
 

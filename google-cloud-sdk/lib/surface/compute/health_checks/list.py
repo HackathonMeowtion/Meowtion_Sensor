@@ -24,9 +24,12 @@ from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.compute.health_checks import exceptions
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.GA)
-class List(base_classes.MultiScopeLister):
+class List(base.ListCommand):
   """List health checks in GA."""
+
+  messages = None
 
   @staticmethod
   def Args(parser):
@@ -40,10 +43,13 @@ class List(base_classes.MultiScopeLister):
         default, health checks for all protocols are listed.
         """)
 
+  def _ConvertProtocolArgsToProtocolEnumName(self, args):
+    return args.protocol.upper()
+
   def _ConvertProtocolArgToValue(self, args):
     # Get the dictionary that maps strings to numbers, e.g. "HTTP" to 0.
     protocol_dict = self.messages.HealthCheck.TypeValueValuesEnum.to_dict()
-    return protocol_dict.get(args.protocol.upper())
+    return protocol_dict.get(self._ConvertProtocolArgsToProtocolEnumName(args))
 
   def _ProtocolAllowlist(self):
     # Returns a list of allowlisted protocols.
@@ -112,9 +118,42 @@ class List(base_classes.MultiScopeLister):
     return None
 
   def Run(self, args):
+    holder = base_classes.ComputeApiHolder(self.ReleaseTrack())
+    client = holder.client
+    self.messages = client.messages
+    if args.protocol is not None:
+      self._validateProtocol(args)
     if not args.IsSpecified('format') and not args.uri:
       args.format = self._Format(args)
-    return super(List, self).Run(args)
+
+    request_data = lister.ParseMultiScopeFlags(args, holder.resources)
+
+    list_implementation = lister.MultiScopeLister(
+        client,
+        regional_service=client.apitools_client.regionHealthChecks,
+        global_service=client.apitools_client.healthChecks,
+        aggregation_service=client.apitools_client.healthChecks,
+    )
+
+    items = lister.Invoke(request_data, list_implementation)
+    if args.protocol is None:
+      return items
+
+    # Filter the resources that do not match the specified protocol.
+    health_checks = []
+    for health_check in items:
+      if health_check['type'] == self._ConvertProtocolArgsToProtocolEnumName(
+          args
+      ):
+        health_checks.append(health_check)
+    return health_checks
+
+  def _validateProtocol(self, args):
+    protocol_value = self._ConvertProtocolArgToValue(args)
+    if protocol_value not in self._ProtocolAllowlist():
+      raise exceptions.ArgumentError(
+          'Invalid health check protocol ' + args.protocol + '.'
+      )
 
   def _Format(self, args):
     columns = self._GetValidColumns(args)
@@ -173,7 +212,13 @@ class ListAlpha(List):
   def _ProtocolAllowlist(self):
     # Returns a list of Allowlisted protocols.
     allowlist = super(ListAlpha, self)._ProtocolAllowlist()
+    allowlist.append(
+        self.messages.HealthCheck.TypeValueValuesEnum.GRPC_WITH_TLS.number
+    )
     return allowlist
+
+  def _ConvertProtocolArgsToProtocolEnumName(self, args):
+    return args.protocol.upper().replace('-', '_')
 
   def _Format(self, args):
     columns = super(ListAlpha, self)._GetValidColumns(args)
@@ -186,6 +231,15 @@ class ListAlpha(List):
             'udpHealthCheck.request:label=REQUEST',
             'udpHealthCheck.response:label=RESPONSE'
         ])
+      elif (
+          protocol_value
+          == self.messages.HealthCheck.TypeValueValuesEnum.GRPC_WITH_TLS.number
+      ):
+        columns.extend([
+            'grpcTlsHealthCheck.port:label=PORT',
+            'grpcTlsHealthCheck.grpcServiceName:label=GRPC_SERVICE_NAME',
+        ])
+
     return 'table[]({columns})'.format(columns=','.join(columns))
 
 

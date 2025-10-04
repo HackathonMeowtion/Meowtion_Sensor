@@ -24,11 +24,14 @@ from googlecloudsdk.api_lib.bigtable import clusters
 from googlecloudsdk.api_lib.bigtable import util
 from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.bigtable import arguments
+from googlecloudsdk.command_lib.util.apis import arg_utils
 from googlecloudsdk.core import log
 
 
-@base.ReleaseTracks(base.ReleaseTrack.GA, base.ReleaseTrack.BETA,
-                    base.ReleaseTrack.ALPHA)
+@base.UniverseCompatible
+@base.ReleaseTracks(
+    base.ReleaseTrack.GA, base.ReleaseTrack.BETA, base.ReleaseTrack.ALPHA
+)
 class CreateCluster(base.CreateCommand):
   """Create a bigtable cluster."""
 
@@ -52,7 +55,8 @@ class CreateCluster(base.CreateCommand):
     """Register flags for this command."""
     arguments.AddClusterResourceArg(parser, 'to describe')
     arguments.ArgAdder(
-        parser).AddClusterZone().AddAsync().AddScalingArgsForClusterCreate()
+        parser
+    ).AddClusterZone().AddAsync().AddScalingArgsForClusterCreate().AddClusterNodeScalingFactor()
     arguments.AddKmsKeyResourceArg(parser, 'cluster')
 
   def Run(self, args):
@@ -83,9 +87,15 @@ class CreateCluster(base.CreateCommand):
   def _Cluster(self, args):
     msgs = util.GetAdminMessages()
     storage_type = (
-        msgs.Cluster.DefaultStorageTypeValueValuesEnum.STORAGE_TYPE_UNSPECIFIED)
+        msgs.Cluster.DefaultStorageTypeValueValuesEnum.STORAGE_TYPE_UNSPECIFIED
+    )
+    node_scaling_factor = arg_utils.ChoiceToEnum(
+        args.node_scaling_factor,
+        msgs.Cluster.NodeScalingFactorValueValuesEnum,
+    )
     cluster = msgs.Cluster(
         serveNodes=args.num_nodes,
+        nodeScalingFactor=node_scaling_factor,
         location=util.LocationUrl(args.zone),
         defaultStorageType=storage_type)
 

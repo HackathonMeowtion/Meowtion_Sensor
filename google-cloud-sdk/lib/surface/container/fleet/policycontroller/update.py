@@ -20,11 +20,12 @@ from __future__ import unicode_literals
 
 from apitools.base.protorpclite import messages
 from googlecloudsdk.command_lib.container.fleet.features import base
+from googlecloudsdk.command_lib.container.fleet.membershipfeatures import base as mf_base
 from googlecloudsdk.command_lib.container.fleet.policycontroller import command
 from googlecloudsdk.command_lib.container.fleet.policycontroller import flags
 
 
-class Update(base.UpdateCommand, command.PocoCommand):
+class Update(base.UpdateCommand, mf_base.UpdateCommand, command.PocoCommand):
   """Updates the configuration of Policy Controller Feature.
 
   Updates the configuration of the Policy Controller installation
@@ -40,6 +41,7 @@ class Update(base.UpdateCommand, command.PocoCommand):
   """
 
   feature_name = 'policycontroller'
+  mf_name = 'policycontroller'
 
   @classmethod
   def Args(cls, parser):
@@ -69,7 +71,7 @@ class Update(base.UpdateCommand, command.PocoCommand):
     parser = flags.PocoFlagParser(args, self.messages)
     specs = self.path_specs(args)
     updated_specs = {path: self.update(s, parser) for path, s in specs.items()}
-    return self.update_specs(updated_specs)
+    return self.update_specs(updated_specs, parser.use_default_cfg())
 
   def feature_cache(self, refresh: bool = False):
     """Gets and caches the current feature for this object."""

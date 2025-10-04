@@ -23,6 +23,7 @@ import abc
 import collections
 import inspect
 import io
+import sys
 
 from google.auth.transport import requests as google_auth_requests
 from google.auth.transport.requests import _MutualTlsOffloadAdapter
@@ -149,6 +150,7 @@ class HTTPAdapter(requests.adapters.HTTPAdapter):
       return
 
     context = CreateSSLContext()
+    context.load_default_certs()
 
     cert_chain_kwargs = {}
     if self._cert_info.keyfile:
@@ -204,8 +206,40 @@ def GetProxyInfo():
                                proxy_port)
 
 
+_GOOGLER_BUNDLED_PYTHON_WARNING = (
+    'Please use the installed gcloud CLI (`apt install google-cloud-cli`)\n'
+    ' This version of gcloud you are currently using will encounter issues due'
+    ' to\n changes in internal security policy enforcement in the near'
+    ' future.\n\n If this is not possible due to dev requirements, please apply'
+    ' for\n policy exemption at go/gcloud-cba-exemption-internal-version-gcloud'
+    ' using this error message to self-exempt or reach out to\n'
+    ' go/gcloud-cba-investigation for investigation.\n'
+)
+
+
 def CreateMutualTlsOffloadAdapter(certificate_config_file_path):
   return _MutualTlsOffloadAdapter(certificate_config_file_path)
+
+
+def _LinuxNonbundledPythonAndGooglerCheck():
+  """Warn users if running non-bundled Python on Linux and is a Googler.
+
+  Checks if the current OS is Linux, running Python that is not bundled and if
+  the user is a Googler. If all conditions are true, a warning message will be
+  emitted, along with returning true to bypass the mTLS code path.
+
+  Returns:
+    True if the conditions are met, False otherwise.
+  """
+  is_linux = (
+      platforms.OperatingSystem.Current() == platforms.OperatingSystem.LINUX)
+  is_bundled_python = sys.executable and 'bundled' in sys.executable
+  is_internal_user = properties.IsInternalUserCheck()
+  if is_linux and not is_bundled_python and is_internal_user:
+    log.warning(_GOOGLER_BUNDLED_PYTHON_WARNING)
+    return True
+  else:
+    return False
 
 
 def Session(
@@ -276,6 +310,7 @@ def Session(
   else:
     ca_config = context_aware.Config()
     if ca_config:
+      _LinuxNonbundledPythonAndGooglerCheck()
       if ca_config.config_type == context_aware.ConfigType.ENTERPRISE_CERTIFICATE:
         adapter = CreateMutualTlsOffloadAdapter(
             ca_config.certificate_config_file_path)

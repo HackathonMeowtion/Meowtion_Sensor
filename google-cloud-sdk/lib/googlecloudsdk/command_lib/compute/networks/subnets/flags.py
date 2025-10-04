@@ -46,6 +46,19 @@ DEFAULT_LIST_FORMAT_WITH_IPV6_FIELD = """\
       externalIpv6Prefix
     )"""
 
+DEFAULT_LIST_FORMAT_WITH_UTILIZATION_FIELD = """\
+    table(
+      name,
+      region.basename(),
+      network.basename(),
+      ipCidrRange:label=RANGE,
+      stackType,
+      ipv6AccessType,
+      internalIpv6Prefix,
+      externalIpv6Prefix,
+      utilizationDetails
+    )"""
+
 
 class SubnetworksCompleter(compute_completers.ListCommandCompleter):
 
@@ -106,26 +119,45 @@ def SubnetworkArgumentForNetworkAttachment(required=True):
       short_help='The subnetworks provided by the consumer for the producers')
 
 
+def IpCollectionArgument(required=False):
+  return compute_flags.ResourceArgument(
+      resource_name='ipCollection',
+      name='--ip-collection',
+      required=required,
+      regional_collection='compute.publicDelegatedPrefixes',
+      region_hidden=True,
+      short_help='Resource reference to a public delegated prefix.',
+      detailed_help="""
+          Resource reference to a public delegated prefix. The
+          PublicDelegatedPrefix must be a sub-prefix in
+          EXTERNAL_IPV6_SUBNETWORK_CREATION mode.
+          """
+  )
+
+
 def SubnetworkResolver():
   return compute_flags.ResourceResolver.FromMap(
-      'subnetwork', {compute_scope.ScopeEnum.REGION: 'compute.subnetworks'})
+      'subnetwork', {compute_scope.ScopeEnum.REGION: 'compute.subnetworks'}
+  )
 
 
 def AddUpdateArgs(
     parser,
     include_alpha_logging,
-    include_external_ipv6_prefix,
+    include_internal_ipv6_prefix,
     include_allow_cidr_routes_overlap,
     api_version,
+    update_purpose_to_private,
 ):
   """Add args to the parser for subnet update.
 
   Args:
     parser: The argparse parser.
     include_alpha_logging: Include alpha-specific logging args.
-    include_external_ipv6_prefix: Inlcude user assigned external IPv6 prefix.
+    include_internal_ipv6_prefix: Include user assigned internal IPv6 prefix.
     include_allow_cidr_routes_overlap: Include CIDR routes overlap args.
     api_version: The api version of the request.
+    update_purpose_to_private: Allow updating purpose to private.
   """
   messages = apis.GetMessagesModule('compute',
                                     compute_api.COMPUTE_GA_API_VERSION)
@@ -171,14 +203,28 @@ def AddUpdateArgs(
        """,
   )
 
-  if include_external_ipv6_prefix:
-    parser.add_argument(
-        '--external-ipv6-prefix',
-        help=("""
-        Set external IPv6 prefix to be allocated for this subnetwork.
+  parser.add_argument(
+      '--external-ipv6-prefix',
+      help=("""
+      The /64 external IPv6 CIDR range to assign to this subnet. The range must
+      be associated with an IPv6 BYOIP sub-prefix that is defined by the
+      --ip-collection flag. If you specify --ip-collection but not
+      --external-ipv6-prefix, a random /64 range is allocated from
+      the sub-prefix.
 
-        For example, `--external-ipv6-prefix 2600:1901:0:0:0:0:0:0/64`
-        """))
+      For example, `--external-ipv6-prefix=2600:1901:0:0:0:0:0:0/64`
+      """))
+
+  if include_internal_ipv6_prefix:
+    parser.add_argument(
+        '--internal-ipv6-prefix',
+        help=("""
+        Set internal IPv6 prefix to be allocated for this subnetwork.
+        When ULA is enabled, the prefix will be ignored.
+
+        For example, `--internal-ipv6-prefix 2600:1901:0:0:0:0:0:0/64`
+        """),
+    )
 
   updated_field.add_argument(
       '--remove-secondary-ranges',
@@ -281,17 +327,32 @@ def AddUpdateArgs(
         only applicable when the [--role=ACTIVE] flag is being used.
         """)
 
+  choices = {
+      'REGIONAL_MANAGED_PROXY':
+          'The proxy-only subnet for regional HTTP(S) load balancers. '
+  }
+  help_text = (
+      'The purpose of the subnetwork is set to REGIONAL_MANAGED_PROXY to'
+      ' migrate from the INTERNAL_HTTPS_LOAD_BALANCER purpose.'
+  )
+  if update_purpose_to_private:
+    choices['PRIVATE'] = (
+        'The default subnet type. Only PEER_MIGRATION subnets can be changed to'
+        ' PRIVATE.'
+    )
+    choices['REGIONAL_MANAGED_PROXY'] = (
+        'The proxy-only subnet for regional HTTP(S) load balancers. Only '
+        'INTERNAL_HTTPS_LOAD_BALANCER subnets can be changed to '
+        'REGIONAL_MANAGED_PROXY.'
+    )
+    help_text = (
+        'The purpose of the subnetwork can be changed in a few scenarios.'
+    )
   updated_field.add_argument(
       '--purpose',
-      choices={
-          'REGIONAL_MANAGED_PROXY':
-              'The proxy-only subnet for regional HTTP(S) load balancers.'
-      },
+      choices=choices,
       type=lambda x: x.replace('-', '_').upper(),
-      help=("""\
-      The purpose of the subnetwork is set to REGIONAL_MANAGED_PROXY to
-      migrate from the INTERNAL_HTTPS_LOAD_BALANCER purpose.
-      """))
+      help=(help_text))
 
   parser.add_argument(
       '--stack-type',

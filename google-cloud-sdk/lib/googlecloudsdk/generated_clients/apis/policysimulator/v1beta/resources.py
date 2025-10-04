@@ -38,6 +38,63 @@ class Collections(enum.Enum):
       ['foldersId', 'locationsId'],
       True
   )
+  FOLDERS_LOCATIONS_ACCESSPOLICYSIMULATIONS = (
+      'folders.locations.accessPolicySimulations',
+      '{+name}',
+      {
+          '':
+              'folders/{foldersId}/locations/{locationsId}/'
+              'accessPolicySimulations/{accessPolicySimulationsId}',
+      },
+      ['name'],
+      True
+  )
+  FOLDERS_LOCATIONS_ACCESSPOLICYSIMULATIONS_OPERATIONS = (
+      'folders.locations.accessPolicySimulations.operations',
+      '{+name}',
+      {
+          '':
+              'folders/{foldersId}/locations/{locationsId}/'
+              'accessPolicySimulations/{accessPolicySimulationsId}/'
+              'operations/{operationsId}',
+      },
+      ['name'],
+      True
+  )
+  FOLDERS_LOCATIONS_ACCESSPOLICYSIMULATIONS_RESULTS = (
+      'folders.locations.accessPolicySimulations.results',
+      '{+name}',
+      {
+          '':
+              'folders/{foldersId}/locations/{locationsId}/'
+              'accessPolicySimulations/{accessPolicySimulationsId}/results/'
+              '{resultsId}',
+      },
+      ['name'],
+      True
+  )
+  FOLDERS_LOCATIONS_ACTIVITYBACKTESTRESULTS = (
+      'folders.locations.activityBacktestResults',
+      '{+name}',
+      {
+          '':
+              'folders/{foldersId}/locations/{locationsId}/'
+              'activityBacktestResults/{activityBacktestResultsId}',
+      },
+      ['name'],
+      True
+  )
+  FOLDERS_LOCATIONS_ACTIVITYBACKTESTS = (
+      'folders.locations.activityBacktests',
+      '{+name}',
+      {
+          '':
+              'folders/{foldersId}/locations/{locationsId}/activityBacktests/'
+              '{activityBacktestsId}',
+      },
+      ['name'],
+      True
+  )
   FOLDERS_LOCATIONS_ORGPOLICYVIOLATIONSPREVIEWS = (
       'folders.locations.orgPolicyViolationsPreviews',
       'folders/{foldersId}/locations/{locationsId}/'
@@ -102,6 +159,63 @@ class Collections(enum.Enum):
       'organizations/{organizationsId}/locations/{locationsId}',
       {},
       ['organizationsId', 'locationsId'],
+      True
+  )
+  ORGANIZATIONS_LOCATIONS_ACCESSPOLICYSIMULATIONS = (
+      'organizations.locations.accessPolicySimulations',
+      '{+name}',
+      {
+          '':
+              'organizations/{organizationsId}/locations/{locationsId}/'
+              'accessPolicySimulations/{accessPolicySimulationsId}',
+      },
+      ['name'],
+      True
+  )
+  ORGANIZATIONS_LOCATIONS_ACCESSPOLICYSIMULATIONS_OPERATIONS = (
+      'organizations.locations.accessPolicySimulations.operations',
+      '{+name}',
+      {
+          '':
+              'organizations/{organizationsId}/locations/{locationsId}/'
+              'accessPolicySimulations/{accessPolicySimulationsId}/'
+              'operations/{operationsId}',
+      },
+      ['name'],
+      True
+  )
+  ORGANIZATIONS_LOCATIONS_ACCESSPOLICYSIMULATIONS_RESULTS = (
+      'organizations.locations.accessPolicySimulations.results',
+      '{+name}',
+      {
+          '':
+              'organizations/{organizationsId}/locations/{locationsId}/'
+              'accessPolicySimulations/{accessPolicySimulationsId}/results/'
+              '{resultsId}',
+      },
+      ['name'],
+      True
+  )
+  ORGANIZATIONS_LOCATIONS_ACTIVITYBACKTESTRESULTS = (
+      'organizations.locations.activityBacktestResults',
+      '{+name}',
+      {
+          '':
+              'organizations/{organizationsId}/locations/{locationsId}/'
+              'activityBacktestResults/{activityBacktestResultsId}',
+      },
+      ['name'],
+      True
+  )
+  ORGANIZATIONS_LOCATIONS_ACTIVITYBACKTESTS = (
+      'organizations.locations.activityBacktests',
+      '{+name}',
+      {
+          '':
+              'organizations/{organizationsId}/locations/{locationsId}/'
+              'activityBacktests/{activityBacktestsId}',
+      },
+      ['name'],
       True
   )
   ORGANIZATIONS_LOCATIONS_ORGPOLICYVIOLATIONSPREVIEWS = (
@@ -173,6 +287,63 @@ class Collections(enum.Enum):
       'projects/{projectsId}/locations/{locationsId}',
       {},
       ['projectsId', 'locationsId'],
+      True
+  )
+  PROJECTS_LOCATIONS_ACCESSPOLICYSIMULATIONS = (
+      'projects.locations.accessPolicySimulations',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'accessPolicySimulations/{accessPolicySimulationsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_ACCESSPOLICYSIMULATIONS_OPERATIONS = (
+      'projects.locations.accessPolicySimulations.operations',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'accessPolicySimulations/{accessPolicySimulationsId}/'
+              'operations/{operationsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_ACCESSPOLICYSIMULATIONS_RESULTS = (
+      'projects.locations.accessPolicySimulations.results',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'accessPolicySimulations/{accessPolicySimulationsId}/results/'
+              '{resultsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_ACTIVITYBACKTESTRESULTS = (
+      'projects.locations.activityBacktestResults',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'activityBacktestResults/{activityBacktestResultsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_ACTIVITYBACKTESTS = (
+      'projects.locations.activityBacktests',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'activityBacktests/{activityBacktestsId}',
+      },
+      ['name'],
       True
   )
   PROJECTS_LOCATIONS_ORGPOLICYVIOLATIONSPREVIEWS = (

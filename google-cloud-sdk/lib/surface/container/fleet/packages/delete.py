@@ -22,31 +22,24 @@ from googlecloudsdk.command_lib.util.concepts import concept_parsers
 _DETAILED_HELP = {
     'DESCRIPTION': '{description}',
     'EXAMPLES': """ \
-        To delete Fleet Package ``cert-manager-app'' in ``us-central1'', run:
+        To delete Fleet Package `cert-manager-app` in `us-central1`, run:
 
           $ {command} cert-manager-app --location=us-central1
         """,
 }
 
 
-@base.Hidden
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.GA)
 class Delete(base.DeleteCommand):
   """Delete Package Rollouts Fleet Package."""
 
   detailed_help = _DETAILED_HELP
+  _api_version = 'v1'
 
   @staticmethod
   def Args(parser):
-    parser.add_argument(
-        '--force',
-        required=False,
-        action='store_true',
-        help=(
-            'Force deletion of the Fleet Package and Releases of its'
-            ' Resource Bundle.'
-        ),
-    )
+    flags.AddForceDeleteFlag(parser, 'Fleet Package')
     concept_parsers.ConceptParser.ForResource(
         'fleet_package',
         flags.GetFleetPackageResourceSpec(),
@@ -57,10 +50,26 @@ class Delete(base.DeleteCommand):
 
   def Run(self, args):
     """Run the delete command."""
-    client = apis.FleetPackagesClient()
+    client = apis.FleetPackagesClient(self._api_version)
     return client.Delete(
         project=flags.GetProject(args),
         location=flags.GetLocation(args),
         name=args.fleet_package,
         force=args.force,
     )
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.BETA)
+class DeleteBeta(Delete):
+  """Delete Package Rollouts Fleet Package."""
+
+  _api_version = 'v1beta'
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class DeleteAlpha(Delete):
+  """Delete Package Rollouts Fleet Package."""
+
+  _api_version = 'v1alpha'

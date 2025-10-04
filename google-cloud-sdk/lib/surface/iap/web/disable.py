@@ -23,7 +23,11 @@ from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.iap import util as iap_util
 
 
-class Enable(base.Command):
+@base.ReleaseTracks(
+    base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA, base.ReleaseTrack.GA
+)
+@base.DefaultUniverseOnly
+class Disable(base.Command):
   """Disable Cloud Identity-Aware Proxy (Cloud IAP) on an IAP resource.
 
   This command disables Cloud Identity-Aware Proxy on an IAP resource. Disabling
@@ -36,14 +40,19 @@ class Enable(base.Command):
 
             $ {command} --resource-type=app-engine
 
-          To disable IAP on a backend service, run:
+          To disable IAP on a global backend service, run:
 
             $ {command} --resource-type=backend-services --service=SERVICE_ID
+
+          To disable IAP on a region backend service, run:
+
+            $ {command} --resource-type=backend-services --service=SERVICE_ID
+              --region=REGION
   """,
   }
 
-  @staticmethod
-  def Args(parser):
+  @classmethod
+  def Args(cls, parser):
     """Register flags for this command.
 
     Args:
@@ -58,7 +67,7 @@ class Enable(base.Command):
 
     Args:
       args: an argparse namespace. All the arguments that were provided to this
-          command invocation.
+        command invocation.
 
     Returns:
       The specified function with its description and configured filter.

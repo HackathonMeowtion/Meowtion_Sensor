@@ -22,6 +22,7 @@ from googlecloudsdk.calliope import base
 
 
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.GA)
+@base.UniverseCompatible
 class Instances(base.Group):
   """Manage Looker instances.
 
@@ -51,6 +52,13 @@ class Instances(base.Group):
   To update an instance with the name `my-looker-instance`, run:
 
     $ {command} update my-looker-instance --async
+
+  To restore a backup with id of `7e504e66-c389-4d8d` that
+  belongs to an instance named `my-looker-instance`, in the region
+  `us-central1`, run:
+
+  $ {command} restore my-looker-instance --backup="7e504e66-c389-4d8"
+  --region="us-central1" --async
 
   To export an instance with the name `my-looker-instance`, run:
 

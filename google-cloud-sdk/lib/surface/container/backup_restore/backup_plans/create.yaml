@@ -9,7 +9,7 @@
 
       To create a backup plan ``my-backup-plan'' in project ``my-project'' in location ``us-central1'', run:
 
-        $ {command} my-backup-plan --project=my-project --location=us-central1 --cluster=project/my-project/location/us-central1/clusters/my-cluster --all-namespaces
+        $ {command} my-backup-plan --project=my-project --location=us-central1 --cluster=projects/my-project/locations/us-central1/clusters/my-cluster --all-namespaces
 
   request:
     collection: gkebackup.projects.locations.backupPlans
@@ -35,6 +35,7 @@
     - _REF_: googlecloudsdk.command_lib.container.backup_restore.flags:backup_plan_cluster
     - _REF_: googlecloudsdk.command_lib.container.backup_restore.flags:backup_plan_description
     - _REF_: googlecloudsdk.command_lib.container.backup_restore.flags:deactivated
+    - _REF_: googlecloudsdk.command_lib.container.backup_restore.flags:backup_plan_tags
     # Retention policy
     - group:
         required: false
@@ -62,11 +63,14 @@
         - _REF_: googlecloudsdk.command_lib.container.backup_restore.flags:all_namespaces
         - _REF_: googlecloudsdk.command_lib.container.backup_restore.flags:selected_namespaces
         - _REF_: googlecloudsdk.command_lib.container.backup_restore.flags:selected_applications
+        - _REF_: googlecloudsdk.command_lib.container.backup_restore.flags:selected_namespace_labels
+    # Backup config
     - group:
         params:
         - _REF_: googlecloudsdk.command_lib.container.backup_restore.flags:include_volume_data
         - _REF_: googlecloudsdk.command_lib.container.backup_restore.flags:include_secrets
         - _REF_: googlecloudsdk.command_lib.container.backup_restore.flags:encryption_key
+        - _REF_: googlecloudsdk.command_lib.container.backup_restore.flags:permissive_mode
 
     labels:
       api_field: backupPlan.labels

@@ -31,6 +31,7 @@ from googlecloudsdk.core import log
 from googlecloudsdk.core import properties
 from googlecloudsdk.core import yaml
 from googlecloudsdk.core.console import console_io
+from googlecloudsdk.core.credentials import creds
 from googlecloudsdk.core.util import files
 import six
 
@@ -111,7 +112,7 @@ def _HandleFlowError(exc, default_help_msg):
   from googlecloudsdk.core import context_aware
   # pylint: enable=g-import-not-at-top
   if context_aware.IsContextAwareAccessDeniedError(exc):
-    log.error(context_aware.CONTEXT_AWARE_ACCESS_HELP_MSG)
+    log.error(context_aware.ContextAwareAccessError.Get())
   else:
     log.error(default_help_msg)
 
@@ -274,7 +275,7 @@ def _CreateGoogleAuthClientConfig(client_id_file=None):
 def _CreateGoogleAuthClientConfigFromProperties():
   """Creates a client config from gcloud's properties."""
   auth_uri = properties.VALUES.auth.auth_host.Get(required=True)
-  token_uri = GetTokenUri()
+  token_uri = creds.GetDefaultTokenUri()
 
   client_id = properties.VALUES.auth.client_id.Get(required=True)
   client_secret = properties.VALUES.auth.client_secret.Get(required=True)
@@ -350,9 +351,22 @@ def DoInstalledAppBrowserFlowGoogleAuth(scopes,
           'where gcloud can launch a web browser.')
     user_creds = NoBrowserHelperRunner(scopes, client_config).Run(
         partial_auth_url=remote_bootstrap, **query_params)
-  elif no_launch_browser or not can_launch_browser:
+  elif no_launch_browser:
     user_creds = RemoteLoginWithAuthProxyFlowRunner(
-        scopes, client_config, auth_proxy_redirect_uri).Run(**query_params)
+        scopes, client_config, auth_proxy_redirect_uri
+    ).Run(**query_params)
+  elif not can_launch_browser:
+    # RemoteLoginWithAuthProxyFlowrunner uses redirect_uri for https://sdk.cloud.google.com
+    # which is intended for google-owned client only.
+    # Non-google-owned clients can only use NoBrowserFlowRunner.
+    if client_id_file and not _IsGoogleOwnedClientID(client_config):
+      user_creds = NoBrowserFlowRunner(scopes, client_config).Run(
+          **query_params
+      )
+    else:
+      user_creds = RemoteLoginWithAuthProxyFlowRunner(
+          scopes, client_config, auth_proxy_redirect_uri
+      ).Run(**query_params)
   else:
     user_creds = BrowserFlowWithNoBrowserFallbackRunner(
         scopes, client_config).Run(**query_params)
@@ -368,42 +382,33 @@ def DoInstalledAppBrowserFlowGoogleAuth(scopes,
       return user_creds
 
 
-def GetClientSecretsType(client_id_file):
-  """Get the type of the client secrets file (web or installed)."""
-  invalid_file_format_msg = (
-      'Invalid file format. See '
-      'https://developers.google.com/api-client-library/'
-      'python/guide/aaa_client_secrets')
+def AssertClientSecretIsInstalledType(client_id_file):
+  """Assert that the file is a valid json file for installed application."""
+  actionable_message = (
+      'To obtain a valid client ID file, create a Desktop App following'
+      ' the steps outlined in'
+      ' https://support.google.com/cloud/answer/6158849?hl=en#zippy=%2Cnative-applications%2Cdesktop-apps.'
+  )
   try:
     obj = json.loads(files.ReadFileContents(client_id_file))
   except files.Error:
+    raise InvalidClientSecretsError(f'Cannot read file: "{client_id_file}".')
+  except json.JSONDecodeError:
     raise InvalidClientSecretsError(
-        'Cannot read file: "%s"' % client_id_file)
-  if obj is None:
-    raise InvalidClientSecretsError(invalid_file_format_msg)
+        f'Client ID file {client_id_file} is not a valid JSON file.'
+        f' {actionable_message}'
+    )
   if len(obj) != 1:
     raise InvalidClientSecretsError(
-        invalid_file_format_msg + ' '
-        'Expected a JSON object with a single property for a "web" or '
-        '"installed" application')
-  return tuple(obj)[0]
-
-
-def AssertClientSecretIsInstalledType(client_id_file):
-  client_type = GetClientSecretsType(client_id_file)
+        'Expected a JSON object with a single property for an "installed"'
+        f' application. {actionable_message}'
+    )
+  client_type = tuple(obj)[0]
   if client_type != CLIENT_SECRET_INSTALLED_TYPE:
     raise InvalidClientSecretsError(
-        'Only client IDs of type \'%s\' are allowed, but encountered '
-        'type \'%s\'' % (CLIENT_SECRET_INSTALLED_TYPE, client_type))
-
-
-def GetTokenUri():
-  """Get context dependent Token URI."""
-  if properties.VALUES.context_aware.use_client_certificate.GetBool():
-    token_uri = properties.VALUES.auth.mtls_token_host.Get(required=True)
-  else:
-    token_uri = properties.VALUES.auth.token_host.Get(required=True)
-  return token_uri
+        f"Only client IDs of type '{CLIENT_SECRET_INSTALLED_TYPE}' are allowed,"
+        f" but encountered type '{client_type}'. {actionable_message}"
+    )
 
 
 def HandleUniverseDomainConflict(new_universe_domain, account):

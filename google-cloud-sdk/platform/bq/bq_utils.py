@@ -1,32 +1,23 @@
 #!/usr/bin/env python
 """A library of functions to handle bq flags consistently."""
 
-import codecs
-import copy
-import http.client
 import json
-import logging
 import os
 import pkgutil
 import platform
+import re
 import sys
 import textwrap
-import time
-import traceback
-from typing import Any, Dict, List, Optional, TextIO
+from typing import Dict, List, Literal, Optional, TextIO
 
 from absl import app
 from absl import flags
 from google.auth import version as google_auth_version
 from google.oauth2 import credentials as google_oauth2
-import googleapiclient
 import httplib2
-import oauth2client_4_0.client
 import requests
 import urllib3
 
-from utils import bq_error
-from utils import bq_logging
 from pyglib import stringutil
 
 
@@ -38,28 +29,35 @@ _CLOUD_PLATFORM_SCOPE = 'https://www.googleapis.com/auth/cloud-platform'
 _REAUTH_SCOPE = 'https://www.googleapis.com/auth/accounts.reauth'
 
 
-_BIGQUERY_TOS_MESSAGE = (
-    'In order to get started, please visit the Google APIs Console to '
-    'create a project and agree to our Terms of Service:\n'
-    '\thttps://console.cloud.google.com/\n\n'
-    'For detailed sign-up instructions, please see our Getting Started '
-    'Guide:\n'
-    '\thttps://cloud.google.com/bigquery/docs/quickstarts/'
-    'quickstart-command-line\n\n'
-    'Once you have completed the sign-up process, please try your command '
-    'again.'
-)
 _VERSION_FILENAME = 'VERSION'
 
 
 def _GetVersion() -> str:
   """Returns content of VERSION file found in same dir as the cli binary."""
-  root = 'bq_utils'
-  # pragma pylint: disable=line-too-long
-  return stringutil.ensure_str(pkgutil.get_data(root, _VERSION_FILENAME)).strip()
+  root = __name__
+  try:
+    # pylint: disable-next=unused-variable
+    version_str = pkgutil.get_data(root, _VERSION_FILENAME)
+  except FileNotFoundError:
+    pass
+  if not version_str:
+    version_str = 'unknown-version'
+  version_str = stringutil.ensure_str(version_str).strip()
+  assert (
+      '\n' not in version_str
+  ), 'New lines are not allowed in the version string.'
+  return version_str
 
 
 VERSION_NUMBER = _GetVersion()
+
+
+def _IsTpcBinary() -> bool:
+  """Returns true if the current binary is targeting TPC."""
+  return VERSION_NUMBER.startswith('tpc-')
+
+
+IS_TPC_BINARY = _IsTpcBinary()
 
 
 def GetBigqueryRcFilename() -> Optional[str]:
@@ -71,25 +69,11 @@ def GetBigqueryRcFilename() -> Optional[str]:
   Returns:
     bigqueryrc filename as a string.
   """
-  return (
+  return (  # pytype: disable=bad-return-type
       (FLAGS['bigqueryrc'].present and FLAGS.bigqueryrc)
       or os.environ.get('BIGQUERYRC')
       or FLAGS.bigqueryrc
   )
-
-
-def GetGcloudConfigFilename() -> str:
-  """Returns the best guess for the user's gcloud configuration file."""
-  home = os.environ.get('HOME')
-  if not home:
-    return ''
-  try:
-    with open(home + '/.config/gcloud/active_config') as active_config_file:
-      active_config = active_config_file.read().strip()
-      return home + '/.config/gcloud/configurations/config_' + active_config
-  except IOError:
-    logging.warning('Could not find gcloud config file')
-    return ''
 
 
 def UpdateFlag(flag_values, flag: str, value) -> None:
@@ -99,146 +83,9 @@ def UpdateFlag(flag_values, flag: str, value) -> None:
   setattr(flag_values, flag, getattr(flag_values, flag))
 
 
-def _UseGcloudValueIfExistsAndFlagIsDefaultValue(
-    flag_values,
-    flag_name: str,
-    gcloud_config_section: Dict[str, str],
-    gcloud_property_name: str,
-):
-  """Updates flag if it's using the default and the gcloud value exists."""
-  if not gcloud_config_section:
-    return
-  if gcloud_property_name not in gcloud_config_section:
-    return
-  flag = flag_values[flag_name]
-  gcloud_value = gcloud_config_section[gcloud_property_name]
-  logging.debug('Gcloud config exists for %s', gcloud_property_name)
-  if flag.using_default_value:
-    logging.info(
-        'The `%s` flag is using a default value and a value is set in gcloud,'
-        ' using that: %s',
-        flag_name,
-        gcloud_value,
-    )
-    UpdateFlag(flag_values, flag_name, gcloud_value)
-  elif flag.value != gcloud_value:
-    logging.warning(
-        'Executing with different configuration than in gcloud.'
-        'The flag "%s" has become set to "%s" but gcloud sets "%s" as "%s".'
-        'To update the gcloud value, start from `gcloud config list`.',
-        flag_name,
-        flag.value,
-        gcloud_property_name,
-        gcloud_value,
-    )
-
-
-def ProcessGcloudConfig(flag_values) -> None:
-  """Processes the user's gcloud config and applies that configuration to BQ."""
-  gcloud_file_name = GetGcloudConfigFilename()
-  if not gcloud_file_name:
-    logging.warning('Not processing gcloud config file since it is not found')
-    return
-  try:
-    configs = _ProcessConfigSections(
-        filename=gcloud_file_name, section_names=['billing', 'auth', 'core']
-    )
-    billing_config = configs.get('billing')
-    auth_config = configs.get('auth')
-    core_config = configs.get('core')
-  except IOError:
-    logging.warning('Could not load gcloud config data')
-    return
-
-  _UseGcloudValueIfExistsAndFlagIsDefaultValue(
-      flag_values=flag_values,
-      flag_name='project_id',
-      gcloud_config_section=core_config,
-      gcloud_property_name='project',
-  )
-
-  _UseGcloudValueIfExistsAndFlagIsDefaultValue(
-      flag_values=flag_values,
-      flag_name='quota_project_id',
-      gcloud_config_section=billing_config,
-      gcloud_property_name='quota_project',
-  )
-
-  _UseGcloudValueIfExistsAndFlagIsDefaultValue(
-      flag_values=flag_values,
-      flag_name='universe_domain',
-      gcloud_config_section=core_config,
-      gcloud_property_name='universe_domain',
-  )
-
-  if not auth_config or not core_config:
-    return
-  try:
-    access_token_file = auth_config['access_token_file']
-    universe_domain = core_config['universe_domain']
-  except KeyError:
-    # This is expected if these attributes aren't in the config file.
-    return
-  if access_token_file and universe_domain:
-    if (
-        not flag_values['oauth_access_token'].using_default_value
-        or not flag_values['use_google_auth'].using_default_value
-    ):
-      logging.warning(
-          'Users gcloud config file and bigqueryrc file have incompatible'
-          ' configurations. Defaulting to the bigqueryrc file'
-      )
-      return
-
-    logging.info(
-        'Using the gcloud configuration to get TPC authorisation from'
-        ' access_token_file'
-    )
-    try:
-      with open(access_token_file) as token_file:
-        token = token_file.read().strip()
-    except IOError:
-      logging.warning(
-          'Could not open `access_token_file` file, ignoring gcloud settings'
-      )
-    else:
-      UpdateFlag(flag_values, 'oauth_access_token', token)
-      UpdateFlag(flag_values, 'use_google_auth', True)
-
-
 def ProcessBigqueryrc() -> None:
   """Updates FLAGS with values found in the bigqueryrc file."""
   ProcessBigqueryrcSection(None, FLAGS)
-
-
-def _ProcessConfigSections(
-    filename: str, section_names: List[str]
-) -> Dict[str, Dict[str, str]]:
-  """Read configuration file sections returned as a nested dictionary.
-
-  Args:
-    filename: The filename of the configuration file.
-    section_names: A list of the section names.
-
-  Returns:
-    A nested dictionary of section names to flag names and values from the file.
-  """
-
-  # TODO(b/286571605): Replace typing when python 3.5 is unsupported.
-  dictionary = {}  # type: Dict[str, Dict[str, str]]
-  if not os.path.exists(filename):
-    logging.debug('File not found: %s', filename)
-    return dictionary
-  try:
-    with open(filename) as rcfile:
-      for section_name in section_names:
-        dictionary[section_name] = _ProcessSingleConfigSection(
-            rcfile, section_name
-        )
-        rcfile.seek(0)
-  except IOError as e:
-    logging.debug('IOError opening config file %s: %s', filename, e)
-  return dictionary
 
 
 def _ProcessConfigSection(
@@ -338,9 +185,25 @@ def GetResolvedQuotaProjectID(
     quota_project_id: Optional[str],
     fallback_project_id: Optional[str],
 ) -> Optional[str]:
-  """Return the final resolved quota project ID after cross-referencing gcloud properties defined in http://google3/third_party/py/googlecloudsdk/core/properties.py;l=1647;rcl=598870349."""
+  """Return the final resolved quota project ID after cross-referencing gcloud properties."""
   if not quota_project_id and fallback_project_id:
     return fallback_project_id
+  return _GetResolvedGcloudQuotaProjectID(
+      quota_project_id=quota_project_id,
+      fallback_project_id=fallback_project_id,
+  )
+
+
+def _GetResolvedGcloudQuotaProjectID(
+    quota_project_id: Optional[str],
+    fallback_project_id: Optional[str],
+) -> Optional[str]:
+  """Return the resolved quota project ID after cross-referencing gcloud properties.
+
+  Args:
+    quota_project_id: The quota project ID to resolve.
+    fallback_project_id: The fallback project ID to use.
+  """
   if quota_project_id and quota_project_id in (
       'CURRENT_PROJECT',
       'CURRENT_PROJECT_WITH_FALLBACK',
@@ -352,33 +215,17 @@ def GetResolvedQuotaProjectID(
 
 
 def GetEffectiveQuotaProjectIDForHTTPHeader(
-    quota_project_id: str, use_google_auth: bool, credentials: Any
+    quota_project_id: str,
+    project_id: str,
+    use_google_auth: bool,
+    credentials: 'google_oauth2.Credentials',
 ) -> Optional[str]:
   """Return the effective quota project ID to be set in the API HTTP header."""
   if use_google_auth and hasattr(credentials, '_quota_project_id'):
     return credentials._quota_project_id  # pylint: disable=protected-access
-  return quota_project_id
-
-
-def GetSanitizedCredentialForDiscoveryRequest(
-    use_google_auth: bool, credentials: Any
-) -> Any:
-  """Return the sanitized input credentials used to make discovery requests.
-
-  When the credentials object is not Google Auth, return the original
-  credentials. When it's of type google.oauth2.Credentials, return a copy of the
-  original credentials without quota project ID. The returned credentials object
-  is used in bigquery_client to construct an http object for discovery requests.
-
-  Args:
-    use_google_auth: True if Google Auth credentials should be used.
-    credentials: The credentials object.
-  """
-  if use_google_auth and isinstance(credentials, google_oauth2.Credentials):
-    sanitized_credentials = copy.deepcopy(credentials)
-    sanitized_credentials._quota_project_id = None  # pylint: disable=protected-access
-    return sanitized_credentials
-  return credentials
+  return _GetResolvedGcloudQuotaProjectID(
+      quota_project_id=quota_project_id, fallback_project_id=project_id
+  )
 
 
 def GetPlatformString() -> str:
@@ -387,167 +234,6 @@ def GetPlatformString() -> str:
       platform.python_version(),
       platform.platform(),
   ])
-
-
-def ProcessError(
-    err: BaseException,
-    name: str = 'unknown',
-    message_prefix: str = 'You have encountered a bug in the BigQuery CLI.',
-) -> int:
-  """Translate an error message into some printing and a return code."""
-
-  bq_logging.ConfigurePythonLogger(FLAGS.apilog)
-  logger = logging.getLogger(__name__)
-
-  if isinstance(err, SystemExit):
-    logger.exception('An error has caused the tool to exit', exc_info=err)
-    return err.code  # sys.exit called somewhere, hopefully intentionally.
-
-  response = []
-  retcode = 1
-
-  (etype, value, tb) = sys.exc_info()
-  trace = ''.join(traceback.format_exception(etype, value, tb))
-  contact_us_msg = _GenerateContactUsMessage()
-  platform_str = GetPlatformString()
-  error_details = (
-      textwrap.dedent("""\
-     ========================================
-     == Platform ==
-       %s
-     == bq version ==
-       %s
-     == Command line ==
-       %s
-     == UTC timestamp ==
-       %s
-     == Error trace ==
-     %s
-     ========================================
-     """)
-      % (
-          platform_str,
-          stringutil.ensure_str(VERSION_NUMBER),
-          [stringutil.ensure_str(item) for item in sys.argv],
-          time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime()),
-          stringutil.ensure_str(trace),
-      )
-  )
-
-  codecs.register_error('strict', codecs.replace_errors)
-  message = bq_logging.EncodeForPrinting(err)
-  if isinstance(
-      err, (bq_error.BigqueryNotFoundError, bq_error.BigqueryDuplicateError)
-  ):
-    response.append('BigQuery error in %s operation: %s' % (name, message))
-    retcode = 2
-  elif isinstance(err, bq_error.BigqueryTermsOfServiceError):
-    response.append(str(err) + '\n')
-    response.append(_BIGQUERY_TOS_MESSAGE)
-  elif isinstance(err, bq_error.BigqueryInvalidQueryError):
-    response.append('Error in query string: %s' % (message,))
-  elif isinstance(err, bq_error.BigqueryError) and not isinstance(
-      err, bq_error.BigqueryInterfaceError
-  ):
-    response.append('BigQuery error in %s operation: %s' % (name, message))
-  elif isinstance(err, (app.UsageError, TypeError)):
-    response.append(message)
-  elif isinstance(err, SyntaxError) or isinstance(
-      err, bq_error.BigquerySchemaError
-  ):
-    response.append('Invalid input: %s' % (message,))
-  elif isinstance(err, flags.Error):
-    response.append('Error parsing command: %s' % (message,))
-  elif isinstance(err, KeyboardInterrupt):
-    response.append('')
-  else:  # pylint: disable=broad-except
-    # Errors with traceback information are printed here.
-    # The traceback module has nicely formatted the error trace
-    # for us, so we don't want to undo that via TextWrap.
-    if isinstance(err, bq_error.BigqueryInterfaceError):
-      message_prefix = (
-          'Bigquery service returned an invalid reply in %s operation: %s.'
-          '\n\n'
-          'Please make sure you are using the latest version '
-          'of the bq tool and try again. '
-          'If this problem persists, you may have encountered a bug in the '
-          'bigquery client.' % (name, message)
-      )
-    elif isinstance(err, oauth2client_4_0.client.Error):
-      message_prefix = (
-          'Authorization error. This may be a network connection problem, '
-          'so please try again. If this problem persists, the credentials '
-          'may be corrupt. Try deleting and re-creating your credentials. '
-          'You can delete your credentials using '
-          '"bq init --delete_credentials".'
-          '\n\n'
-          'If this problem still occurs, you may have encountered a bug '
-          'in the bigquery client.'
-      )
-    elif (
-        isinstance(err, http.client.HTTPException)
-        or isinstance(err, googleapiclient.errors.Error)
-        or isinstance(err, httplib2.HttpLib2Error)
-    ):
-      message_prefix = (
-          'Network connection problem encountered, please try again.'
-          '\n\n'
-          'If this problem persists, you may have encountered a bug in the '
-          'bigquery client.'
-      )
-
-    message = message_prefix + ' ' + contact_us_msg
-    wrap_error_message = True
-    if wrap_error_message:
-      message = flags.text_wrap(message)
-    print(message)
-    print(error_details)
-    response.append(
-        'Unexpected exception in %s operation: %s' % (name, message)
-    )
-
-  response_message = '\n'.join(response)
-  wrap_error_message = True
-  if wrap_error_message:
-    response_message = flags.text_wrap(response_message)
-  logger.exception(response_message, exc_info=err)
-  print(response_message)
-  return retcode
-
-
-def _GenerateContactUsMessage() -> str:
-  """Generates the Contact Us message."""
-  # pragma pylint: disable=line-too-long
-  contact_us_msg = (
-      'Please file a bug report in our '
-      'public '
-      'issue tracker:\n'
-      '  https://issuetracker.google.com/issues/new?component=187149&template=0\n'
-      'Please include a brief description of '
-      'the steps that led to this issue, as well as '
-      'any rows that can be made public from '
-      'the following information: \n\n'
-  )
-
-  # If an internal user runs the public BQ CLI, show the internal issue tracker.
-  try:
-    gcloud_properties_file = GetGcloudConfigFilename()
-    gcloud_core_properties = _ProcessConfigSection(
-        gcloud_properties_file, 'core'
-    )
-    if (
-        'account' in gcloud_core_properties
-        and '@google.com' in gcloud_core_properties['account']
-    ):
-      contact_us_msg = contact_us_msg.replace('public', 'internal').replace(
-          'https://issuetracker.google.com/issues/new?component=187149&template=0',
-          'http://b/issues/new?component=60322&template=178900',
-      )
-  except Exception:  # pylint: disable=broad-exception-caught
-    # No-op if unable to determine the active account using gcloud.
-    pass
-
-  return contact_us_msg
 
 
 def GetInfoString() -> str:
@@ -600,7 +286,9 @@ def GetInfoString() -> str:
   )
 
 
-def PrintFormattedJsonObject(obj, default_format='json'):
+def PrintFormattedJsonObject(
+    obj: object, default_format: Literal['json', 'prettyjson'] = 'json'
+):
   """Prints obj in a JSON format according to the "--format" flag.
 
   Args:
@@ -657,7 +345,7 @@ def ParseTags(tags: str) -> Dict[str, str]:
     raise app.UsageError('No tags supplied')
   tags_dict = {}
   for key_value in tags.split(','):
-    k, _, v = key_value.partition(':')
+    k, _, v = key_value.rpartition(':')
     k = k.strip()
     if not k:
       raise app.UsageError('Tag key cannot be None')
@@ -675,7 +363,8 @@ def ParseTagKeys(tag_keys: str) -> List[str]:
 
   Args:
     tag_keys: A comma separated user-supplied string representing tag keys.  It
-      is expected to be in the format "key1,key2".
+      is expected to be in the format "key1,key2" or
+      "tpczero-system:key1,tpczero-system:key2".
 
   Returns:
     A list of tag keys.
@@ -693,8 +382,6 @@ def ParseTagKeys(tag_keys: str) -> List[str]:
       raise app.UsageError('Tag key cannot be None')
     if key in tags_set:
       raise app.UsageError('Cannot specify tag key "%s" multiple times' % key)
-    if key.find(':') != -1:
-      raise app.UsageError('Specify only tag key for "%s"' % key)
     tags_set.add(key)
   return list(tags_set)
 
@@ -711,3 +398,9 @@ def GetUserAgent() -> str:
     )
   else:
     return 'bq/' + VERSION_NUMBER + ' ' + google_python_client_name
+
+
+# See go/cloud-iam-service-account-types.
+def IsServiceAccount(account: str) -> bool:
+  """Returns whether the account may be a service account based on the user-created or system-created account name."""
+  return re.fullmatch(r'^.+@(.+)(\.gserviceaccount\.com)$', account) is not None

@@ -33,6 +33,8 @@ class ReplicationsClient(object):
   def __init__(self, release_track=base.ReleaseTrack.BETA):
     if release_track == base.ReleaseTrack.BETA:
       self._adapter = BetaReplicationsAdapter()
+    elif release_track == base.ReleaseTrack.ALPHA:
+      self._adapter = AlphaReplicationsAdapter()
     elif release_track == base.ReleaseTrack.GA:
       self._adapter = ReplicationsAdapter()
     else:
@@ -96,6 +98,7 @@ class ReplicationsClient(object):
       labels=None,
       replication_schedule=None,
       destination_volume_parameters=None,
+      cluster_location=None,
   ):
     """Parse the command line arguments for Create Replication into a config.
 
@@ -106,6 +109,7 @@ class ReplicationsClient(object):
       replication_schedule: the schedule for Replication.
       destination_volume_parameters: the input parameters used for creating
         destination volume.
+      cluster_location: location of the user cluster, optional
 
     Returns:
       the configuration that will be used as the request body for creating a
@@ -119,6 +123,7 @@ class ReplicationsClient(object):
     self._adapter.ParseDestinationVolumeParameters(
         replication, destination_volume_parameters
     )
+    replication.clusterLocation = cluster_location
     return replication
 
   def ListReplications(self, volume_ref, limit=None):
@@ -180,7 +185,7 @@ class ReplicationsClient(object):
 
   def ParseUpdatedReplicationConfig(
       self, replication_config, description=None, labels=None,
-      replication_schedule=None
+      replication_schedule=None, cluster_location=None
   ):
     """Parse updates into a replication config.
 
@@ -189,13 +194,15 @@ class ReplicationsClient(object):
       description: The new description, if any.
       labels: LabelsValue message, the new labels value, if any.
       replication_schedule: The new schedule for Replication, if any.
+      cluster_location: location of the user cluster, if any.
 
     Returns:
       The replication message.
     """
     return self._adapter.ParseUpdatedReplicationConfig(
         replication_config, description=description, labels=labels,
-        replication_schedule=replication_schedule
+        replication_schedule=replication_schedule,
+        cluster_location=cluster_location,
     )
 
   def UpdateReplication(
@@ -283,6 +290,71 @@ class ReplicationsClient(object):
     )
     return self.WaitForOperation(operation_ref)
 
+  def ParseEstablishPeeringRequestConfig(
+      self,
+      peer_cluster_name,
+      peer_svm_name,
+      peer_volume_name,
+      peer_ip_addresses=None,
+  ):
+    """Parse the command line arguments for Establish Peering into a config.
+
+    Args:
+      peer_cluster_name: the name of the peer cluster.
+      peer_svm_name: the name of the peer svm.
+      peer_volume_name: the name of the peer volume.
+      peer_ip_addresses: the ip addresses of the peer cluster.
+
+    Returns:
+      the configuration that will be used as the request body for establishing
+      peering for Hybrid Replication.
+    """
+    return self._adapter.ParseEstablishPeeringRequestConfig(
+        peer_cluster_name, peer_svm_name, peer_volume_name, peer_ip_addresses
+    )
+
+  def EstablishPeering(
+      self, replication_ref, establish_peering_request_config, async_
+  ):
+    """Establish a peering for a Cloud NetApp Volume Replication.
+
+    Args:
+      replication_ref: the reference to the Replication.
+      establish_peering_request_config: the request configuration to establish
+        peering.
+      async_: bool, if False, wait for the operation to complete.
+
+    Returns:
+      an Operation or Volume message.
+    """
+    establish_op = self._adapter.EstablishPeering(
+        replication_ref, establish_peering_request_config
+    )
+    if async_:
+      return establish_op
+    operation_ref = resources.REGISTRY.ParseRelativeName(
+        establish_op.name, collection=constants.OPERATIONS_COLLECTION
+    )
+    return self.WaitForOperation(operation_ref)
+
+  def SyncReplication(self, replication_ref, async_):
+    """Sync a Cloud NetApp Volume Replication.
+
+    Args:
+      replication_ref: the reference to the Replication.
+      async_: bool, if False, wait for the operation to complete.
+
+    Returns:
+      an Operation or Volume message.
+    """
+    sync_op = self._adapter.SyncReplication(replication_ref)
+    if async_:
+      return sync_op
+    operation_ref = resources.REGISTRY.ParseRelativeName(
+        sync_op.name, collection=constants.OPERATIONS_COLLECTION
+    )
+    return self.WaitForOperation(operation_ref)
+
 
 class ReplicationsAdapter(object):
   """Adapter for the Cloud NetApp Files API Replication resource."""
@@ -321,6 +393,11 @@ class ReplicationsAdapter(object):
         parameters.shareName = val
       elif key == 'description':
         parameters.description = val
+      elif key == 'tiering_policy':
+        parameters.tieringPolicy = self.messages.TieringPolicy(
+            tierAction=val['tier-action'],
+            coolingThresholdDays=val['cooling-threshold-days'],
+        )
       else:
         log.warning('The attribute {} is not recognized.'.format(key))
     replication.destinationVolumeParameters = parameters
@@ -341,7 +418,7 @@ class ReplicationsAdapter(object):
 
   def ParseUpdatedReplicationConfig(
       self, replication_config, description=None, labels=None,
-      replication_schedule=None
+      replication_schedule=None, cluster_location=None
   ):
     """Parse update information into an updated Replication message."""
     if description is not None:
@@ -350,6 +427,8 @@ class ReplicationsAdapter(object):
       replication_config.labels = labels
     if replication_schedule is not None:
       replication_config.replicationSchedule = replication_schedule
+    if cluster_location is not None:
+      replication_config.clusterLocation = cluster_location
     return replication_config
 
   def ResumeReplication(self, replication_ref):
@@ -388,6 +467,45 @@ class ReplicationsAdapter(object):
         stop_request
     )
 
+  def ParseEstablishPeeringRequestConfig(
+      self,
+      peer_cluster_name,
+      peer_svm_name,
+      peer_volume_name,
+      peer_ip_addresses,
+  ):
+    """Parse establish peering request for the Cloud NetApp Volume Replication."""
+    establish_peering_request = self.messages.EstablishPeeringRequest(
+        peerClusterName=peer_cluster_name,
+        peerSvmName=peer_svm_name,
+        peerVolumeName=peer_volume_name,
+        peerIpAddresses=peer_ip_addresses if peer_ip_addresses else [],
+    )
+    return establish_peering_request
+
+  def EstablishPeering(self, replication_ref, establish_peering_request_config):
+    """Send a establish peering request for the Cloud NetApp Volume Replication."""
+    establish_peering_request = (
+        self.messages.NetappProjectsLocationsVolumesReplicationsEstablishPeeringRequest(
+            name=replication_ref.RelativeName(),
+            establishPeeringRequest=establish_peering_request_config,
+        )
+    )
+    return self.client.projects_locations_volumes_replications.EstablishPeering(
+        establish_peering_request
+    )
+
+  def SyncReplication(self, replication_ref):
+    """Send a sync request for the Cloud NetApp Volume Replication."""
+    sync_request = (
+        self.messages.NetappProjectsLocationsVolumesReplicationsSyncRequest(
+            name=replication_ref.RelativeName(),
+        )
+    )
+    return self.client.projects_locations_volumes_replications.Sync(
+        sync_request
+    )
+
 
 class BetaReplicationsAdapter(ReplicationsAdapter):
   """Adapter for the Beta Cloud NetApp Files API Replication resource."""
@@ -395,6 +513,20 @@ class BetaReplicationsAdapter(ReplicationsAdapter):
   def __init__(self):
     super(BetaReplicationsAdapter, self).__init__()
     self.release_track = base.ReleaseTrack.BETA
+    self.client = netapp_api_util.GetClientInstance(
+        release_track=self.release_track
+    )
+    self.messages = netapp_api_util.GetMessagesModule(
+        release_track=self.release_track
+    )
+
+
+class AlphaReplicationsAdapter(BetaReplicationsAdapter):
+  """Adapter for the Alpha Cloud NetApp Files API Replication resource."""
+
+  def __init__(self):
+    super(AlphaReplicationsAdapter, self).__init__()
+    self.release_track = base.ReleaseTrack.ALPHA
     self.client = netapp_api_util.GetClientInstance(
         release_track=self.release_track
     )

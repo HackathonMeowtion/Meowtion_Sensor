@@ -15,6 +15,24 @@ from apitools.base.py import extra_types
 package = 'vmwareengine'
 
 
+class AcceleratePrivateCloudDeletionRequest(_messages.Message):
+  r"""Request message for VmwareEngine.AcceleratePrivateCloudDeletion
+
+  Fields:
+    etag: Optional. Checksum used to ensure that the user-provided value is up
+      to date before the server processes the request. The server compares
+      provided checksum with the current checksum of the resource. If the
+      user-provided value is out of date, this request returns an `ABORTED`
+      error.
+    requestId: Optional. The request ID must be a valid UUID with the
+      exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
+  """
+
+  etag = _messages.StringField(1)
+  requestId = _messages.StringField(2)
+
+
 class Announcement(_messages.Message):
   r"""Announcement for the resources of Vmware Engine.
 
@@ -30,6 +48,7 @@ class Announcement(_messages.Message):
     activityType: Optional. Activity type of the announcement There can be
       only one active announcement for a given activity type and target
       resource.
+    cluster: A Cluster resource name.
     code: Required. Code of the announcement. Indicates the presence of a
       VMware Engine related announcement and corresponds to a related message
       in the `description` field.
@@ -43,7 +62,7 @@ class Announcement(_messages.Message):
       https://cloud.google.com/apis/design/resource_names. For example:
       `projects/my-project/locations/us-west1-a/announcements/my-announcement-
       id`
-    privateCloud: A Private Cloud full resource name.
+    privateCloud: A Private Cloud resource name.
     state: Output only. State of the resource. New values may be added to this
       enum when appropriate.
     targetResourceType: Output only. Target Resource Type defines the type of
@@ -93,15 +112,16 @@ class Announcement(_messages.Message):
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
   activityType = _messages.StringField(1)
-  code = _messages.StringField(2)
-  createTime = _messages.StringField(3)
-  description = _messages.StringField(4)
-  metadata = _messages.MessageField('MetadataValue', 5)
-  name = _messages.StringField(6)
-  privateCloud = _messages.StringField(7)
-  state = _messages.EnumField('StateValueValuesEnum', 8)
-  targetResourceType = _messages.StringField(9)
-  updateTime = _messages.StringField(10)
+  cluster = _messages.StringField(2)
+  code = _messages.StringField(3)
+  createTime = _messages.StringField(4)
+  description = _messages.StringField(5)
+  metadata = _messages.MessageField('MetadataValue', 6)
+  name = _messages.StringField(7)
+  privateCloud = _messages.StringField(8)
+  state = _messages.EnumField('StateValueValuesEnum', 9)
+  targetResourceType = _messages.StringField(10)
+  updateTime = _messages.StringField(11)
 
 
 class AnyDomainController(_messages.Message):
@@ -242,6 +262,7 @@ class AutoscalingSettings(_messages.Message):
       cluster. If not specified the default limits apply.
     minClusterNodeCount: Optional. Minimum number of nodes of any type in a
       cluster. If not specified the default limits apply.
+    scheduleId: Optional. The schedule id for the autoscale manicron job.
   """
 
   @encoding.MapUnrecognizedFields('additionalProperties')
@@ -281,6 +302,7 @@ class AutoscalingSettings(_messages.Message):
   coolDownPeriod = _messages.StringField(2)
   maxClusterNodeCount = _messages.IntegerField(3, variant=_messages.Variant.INT32)
   minClusterNodeCount = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  scheduleId = _messages.StringField(5)
 
 
 class Binding(_messages.Message):
@@ -388,8 +410,8 @@ class Cluster(_messages.Message):
     management: Output only. True if the cluster is a management cluster;
       false otherwise. There can only be one management cluster in a private
       cloud and it has to be the first one.
-    name: Output only. The resource name of this cluster. Resource names are
-      schemeless URIs that follow the conventions in
+    name: Output only. Identifier. The resource name of this cluster. Resource
+      names are schemeless URIs that follow the conventions in
       https://cloud.google.com/apis/design/resource_names. For example:
       `projects/my-project/locations/us-central1-a/privateClouds/my-
       cloud/clusters/my-cluster`
@@ -475,6 +497,9 @@ class Constraints(_messages.Message):
   ensure that `Upgrade` specific requirements are met.
 
   Fields:
+    disallowedIntervals: Output only. Output Only. A list of intervals in
+      which maintenance windows are not allowed. Any time window that overlaps
+      with any of these intervals will be considered invalid.
     minHoursDay: Output only. Minimum number of hours must be allotted for the
       upgrade activities for each selected day. This is a minimum; the upgrade
       schedule can allot more hours for the given day.
@@ -485,9 +510,10 @@ class Constraints(_messages.Message):
       reschedule an upgrade that starts within this range.
   """
 
-  minHoursDay = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  minHoursWeek = _messages.IntegerField(2, variant=_messages.Variant.INT32)
-  rescheduleDateRange = _messages.MessageField('Interval', 3)
+  disallowedIntervals = _messages.MessageField('WeeklyTimeInterval', 1, repeated=True)
+  minHoursDay = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  minHoursWeek = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  rescheduleDateRange = _messages.MessageField('Interval', 4)
 
 
 class Credentials(_messages.Message):
@@ -541,8 +567,8 @@ class DnsForwarding(_messages.Message):
       The server computes checksums based on the value of other fields in the
       request.
     forwardingRules: Required. List of domain mappings to configure
-    name: Output only. The resource name of this DNS profile. Resource names
-      are schemeless URIs that follow the conventions in
+    name: Output only. Identifier. The resource name of this DNS profile.
+      Resource names are schemeless URIs that follow the conventions in
       https://cloud.google.com/apis/design/resource_names. For example:
       `projects/my-project/locations/us-central1-a/privateClouds/my-
       cloud/dnsForwarding`
@@ -713,9 +739,9 @@ class ExternalAddress(_messages.Message):
     description: User-provided description for this resource.
     externalIp: Output only. The external IP address of a workload VM.
     internalIp: The internal IP address of a workload VM.
-    name: Output only. The resource name of this external IP address. Resource
-      names are schemeless URIs that follow the conventions in
-      https://cloud.google.com/apis/design/resource_names. For example:
+    name: Output only. Identifier. The resource name of this external IP
+      address. Resource names are schemeless URIs that follow the conventions
+      in https://cloud.google.com/apis/design/resource_names. For example:
       `projects/my-project/locations/us-central1-a/privateClouds/my-
       cloud/externalAddresses/my-address`
     state: Output only. The state of the resource.
@@ -1698,6 +1724,8 @@ class NetworkConfig(_messages.Message):
       resource name of the service VPC network this private cloud is attached
       to. The name is specified in the following form:
       `projects/{service_project_number}/global/networks/{network_id}`.
+    serviceSubnets: Optional. UserDefined service subnets of the Private
+      Cloud.
     vmwareEngineNetwork: Optional. The relative resource name of the VMware
       Engine network attached to the private cloud. Specify the name in the
       following form: `projects/{project}/locations/{location}/vmwareEngineNet
@@ -1713,8 +1741,9 @@ class NetworkConfig(_messages.Message):
   managementIpAddressLayoutVersion = _messages.IntegerField(3, variant=_messages.Variant.INT32)
   network = _messages.StringField(4)
   serviceNetwork = _messages.StringField(5)
-  vmwareEngineNetwork = _messages.StringField(6)
-  vmwareEngineNetworkCanonical = _messages.StringField(7)
+  serviceSubnets = _messages.MessageField('Subnet', 6, repeated=True)
+  vmwareEngineNetwork = _messages.StringField(7)
+  vmwareEngineNetworkCanonical = _messages.StringField(8)
 
 
 class NetworkPeering(_messages.Message):
@@ -1749,7 +1778,7 @@ class NetworkPeering(_messages.Message):
       is true. IPv4 special-use ranges
       (https://en.wikipedia.org/wiki/IPv4#Special_addresses) are always
       imported to peers and are not controlled by this field.
-    name: Output only. The resource name of the network peering.
+    name: Output only. Identifier. The resource name of the network peering.
       NetworkPeering is a global resource and location can only be global.
       Resource names are scheme-less URIs that follow the conventions in
       https://cloud.google.com/apis/design/resource_names. For example:
@@ -1804,6 +1833,8 @@ class NetworkPeering(_messages.Message):
         PowerScale Filers
       GOOGLE_CLOUD_NETAPP_VOLUMES: Peering connection used for connecting to
         Google Cloud NetApp Volumes.
+      GOOGLE_CLOUD_FILESTORE_INSTANCES: Peering connection used for connecting
+        to Google Cloud Filestore Instances.
     """
     PEER_NETWORK_TYPE_UNSPECIFIED = 0
     STANDARD = 1
@@ -1813,6 +1844,7 @@ class NetworkPeering(_messages.Message):
     THIRD_PARTY_SERVICE = 5
     DELL_POWERSCALE = 6
     GOOGLE_CLOUD_NETAPP_VOLUMES = 7
+    GOOGLE_CLOUD_FILESTORE_INSTANCES = 8
 
   class StateValueValuesEnum(_messages.Enum):
     r"""Output only. State of the network peering. This field has a value of
@@ -1872,8 +1904,8 @@ class NetworkPolicy(_messages.Message):
       `internet_access` is also enabled.
     internetAccess: Network service that allows VMware workloads to access the
       internet.
-    name: Output only. The resource name of this network policy. Resource
-      names are schemeless URIs that follow the conventions in
+    name: Output only. Identifier. The resource name of this network policy.
+      Resource names are schemeless URIs that follow the conventions in
       https://cloud.google.com/apis/design/resource_names. For example:
       `projects/my-project/locations/us-central1/networkPolicies/my-network-
       policy`
@@ -2261,6 +2293,8 @@ class PeeringRoute(_messages.Message):
       Routes of direction `INCOMING` are imported from the peer network. *
       Routes of direction `OUTGOING` are exported from the intranet VPC
       network of the VMware Engine network.
+    StateValueValuesEnum: Output only. State of the route in the peer VPC
+      network.
     TypeValueValuesEnum: Output only. Type of the route in the peer VPC
       network.
 
@@ -2281,6 +2315,7 @@ class PeeringRoute(_messages.Message):
       route. This field only applies to dynamic routes in the peer VPC
       network.
     priority: Output only. The priority of the peering route.
+    state: Output only. State of the route in the peer VPC network.
     type: Output only. Type of the route in the peer VPC network.
   """
 
@@ -2300,6 +2335,23 @@ class PeeringRoute(_messages.Message):
     DIRECTION_UNSPECIFIED = 0
     INCOMING = 1
     OUTGOING = 2
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. State of the route in the peer VPC network.
+
+    Values:
+      STATE_UNSPECIFIED: Unspecified route state. This value should never be
+        used.
+      ACCEPTED: Route accepted in incoming peered vpc
+      REJECTED_BY_CONFIG: Route rejected in incoming peered vpc
+      ACCEPTED_BY_PEER: Route accepted in outgoing peered vpc
+      REJECTED_BY_PEER_CONFIG: Route rejected in outgoing peered vpc
+    """
+    STATE_UNSPECIFIED = 0
+    ACCEPTED = 1
+    REJECTED_BY_CONFIG = 2
+    ACCEPTED_BY_PEER = 3
+    REJECTED_BY_PEER_CONFIG = 4
 
   class TypeValueValuesEnum(_messages.Enum):
     r"""Output only. Type of the route in the peer VPC network.
@@ -2323,7 +2375,8 @@ class PeeringRoute(_messages.Message):
   imported = _messages.BooleanField(3)
   nextHopRegion = _messages.StringField(4)
   priority = _messages.IntegerField(5)
-  type = _messages.EnumField('TypeValueValuesEnum', 6)
+  state = _messages.EnumField('StateValueValuesEnum', 6)
+  type = _messages.EnumField('TypeValueValuesEnum', 7)
 
 
 class Policy(_messages.Message):
@@ -2442,8 +2495,8 @@ class PrivateCloud(_messages.Message):
       cloud to provide details for the default cluster. The following fields
       can't be changed after private cloud creation:
       `ManagementCluster.clusterId`, `ManagementCluster.nodeTypeId`.
-    name: Output only. The resource name of this private cloud. Resource names
-      are schemeless URIs that follow the conventions in
+    name: Output only. Identifier. The resource name of this private cloud.
+      Resource names are schemeless URIs that follow the conventions in
       https://cloud.google.com/apis/design/resource_names. For example:
       `projects/my-project/locations/us-central1-a/privateClouds/my-cloud`
     networkConfig: Required. Network configuration of the private cloud.
@@ -2470,6 +2523,9 @@ class PrivateCloud(_messages.Message):
         process can be cancelled by using the corresponding undelete method.
       PURGING: The private cloud is irreversibly deleted and is being removed
         from the system.
+      SOFT_DELETED: The private cloud is soft deleted.
+      SOFT_DELETION_IN_PROGRESS: The private cloud is in soft deletion in
+        progress.
     """
     STATE_UNSPECIFIED = 0
     ACTIVE = 1
@@ -2478,6 +2534,8 @@ class PrivateCloud(_messages.Message):
     FAILED = 4
     DELETED = 5
     PURGING = 6
+    SOFT_DELETED = 7
+    SOFT_DELETION_IN_PROGRESS = 8
 
   class TypeValueValuesEnum(_messages.Enum):
     r"""Optional. Type of the private cloud. Defaults to STANDARD.
@@ -3039,8 +3097,8 @@ class Subnet(_messages.Message):
       the IP prefix defined above.
     ipCidrRange: The IP address range of the subnet in CIDR format
       '10.0.0.0/24'.
-    name: Output only. The resource name of this subnet. Resource names are
-      schemeless URIs that follow the conventions in
+    name: Output only. Identifier. The resource name of this subnet. Resource
+      names are schemeless URIs that follow the conventions in
       https://cloud.google.com/apis/design/resource_names. For example:
       `projects/my-project/locations/us-central1-a/privateClouds/my-
       cloud/subnets/my-subnet`
@@ -3125,13 +3183,16 @@ class TimeOfDay(_messages.Message):
   seconds. Related types are google.type.Date and `google.protobuf.Timestamp`.
 
   Fields:
-    hours: Hours of day in 24 hour format. Should be from 0 to 23. An API may
-      choose to allow the value "24:00:00" for scenarios like business closing
-      time.
-    minutes: Minutes of hour of day. Must be from 0 to 59.
-    nanos: Fractions of seconds in nanoseconds. Must be from 0 to 999,999,999.
-    seconds: Seconds of minutes of the time. Must normally be from 0 to 59. An
-      API may allow the value 60 if it allows leap-seconds.
+    hours: Hours of a day in 24 hour format. Must be greater than or equal to
+      0 and typically must be less than or equal to 23. An API may choose to
+      allow the value "24:00:00" for scenarios like business closing time.
+    minutes: Minutes of an hour. Must be greater than or equal to 0 and less
+      than or equal to 59.
+    nanos: Fractions of seconds, in nanoseconds. Must be greater than or equal
+      to 0 and less than or equal to 999,999,999.
+    seconds: Seconds of a minute. Must be greater than or equal to 0 and
+      typically must be less than or equal to 59. An API may allow the value
+      60 if it allows leap-seconds.
   """
 
   hours = _messages.IntegerField(1, variant=_messages.Variant.INT32)
@@ -3200,6 +3261,8 @@ class Upgrade(_messages.Message):
     TypeValueValuesEnum: Output only. Output Only. The type of upgrade.
 
   Fields:
+    componentUpgrades: Output only. Output Only. The list of component
+      upgrades.
     createTime: Output only. Output Only. Creation time of this resource.
     description: Output only. Output Only. The description of the upgrade.
       This is used to provide additional information about the private cloud
@@ -3212,19 +3275,20 @@ class Upgrade(_messages.Message):
       duration is only an estimate. The actual upgrade duration may vary.
     etag: The etag for the upgrade resource. If this is provided on update, it
       must match the server's etag.
-    name: Output only. The resource name of the private cloud `Upgrade`.
-      Resource names are schemeless URIs that follow the conventions in
-      https://cloud.google.com/apis/design/resource_names. For example:
-      `projects/my-project/locations/us-west1-a/privateClouds/my-
+    name: Output only. Identifier. The resource name of the private cloud
+      `Upgrade`. Resource names are schemeless URIs that follow the
+      conventions in https://cloud.google.com/apis/design/resource_names. For
+      example: `projects/my-project/locations/us-west1-a/privateClouds/my-
       cloud/upgrades/my-upgrade`
     schedule: Schedule details for the upgrade.
+    startVersion: Output only. Output Only. The start version
     state: Output only. The current state of the upgrade.
+    targetVersion: Output only. Output Only. The target version
     type: Output only. Output Only. The type of upgrade.
     uid: Output only. System-generated unique identifier for the resource.
     updateTime: Output only. Output Only. Last update time of this resource.
-    upgradeJobs: Output only. Output Only. The resource names of the jobs that
-      are part of this upgrade.
-    version: Output only. Output Only. The version to upgrade to.
+    upgradeJobs: Output only.
+    version: Output only.
   """
 
   class StateValueValuesEnum(_messages.Enum):
@@ -3268,6 +3332,7 @@ class Upgrade(_messages.Message):
         private cloud.
       SWITCH_UPGRADE: Switch upgrade.
       OTHER: The upgrade type that doesn't fall into any other category.
+      INFRASTRUCTURE_UPGRADE: Infrastructure upgrade in BM node maintenance.
     """
     TYPE_UNSPECIFIED = 0
     VSPHERE_UPGRADE = 1
@@ -3276,20 +3341,24 @@ class Upgrade(_messages.Message):
     FIRMWARE_UPGRADE = 4
     SWITCH_UPGRADE = 5
     OTHER = 6
+    INFRASTRUCTURE_UPGRADE = 7
 
-  createTime = _messages.StringField(1)
-  description = _messages.StringField(2)
-  endTime = _messages.StringField(3)
-  estimatedDuration = _messages.StringField(4)
-  etag = _messages.StringField(5)
-  name = _messages.StringField(6)
-  schedule = _messages.MessageField('Schedule', 7)
-  state = _messages.EnumField('StateValueValuesEnum', 8)
-  type = _messages.EnumField('TypeValueValuesEnum', 9)
-  uid = _messages.StringField(10)
-  updateTime = _messages.StringField(11)
-  upgradeJobs = _messages.StringField(12, repeated=True)
-  version = _messages.StringField(13)
+  componentUpgrades = _messages.MessageField('VmwareUpgradeComponent', 1, repeated=True)
+  createTime = _messages.StringField(2)
+  description = _messages.StringField(3)
+  endTime = _messages.StringField(4)
+  estimatedDuration = _messages.StringField(5)
+  etag = _messages.StringField(6)
+  name = _messages.StringField(7)
+  schedule = _messages.MessageField('Schedule', 8)
+  startVersion = _messages.StringField(9)
+  state = _messages.EnumField('StateValueValuesEnum', 10)
+  targetVersion = _messages.StringField(11)
+  type = _messages.EnumField('TypeValueValuesEnum', 12)
+  uid = _messages.StringField(13)
+  updateTime = _messages.StringField(14)
+  upgradeJobs = _messages.StringField(15, repeated=True)
+  version = _messages.StringField(16)
 
 
 class UpgradeJob(_messages.Message):
@@ -3517,9 +3586,9 @@ class VmwareEngineNetwork(_messages.Message):
       that the user-provided value is up to date before the server processes a
       request. The server computes checksums based on the value of other
       fields in the request.
-    name: Output only. The resource name of the VMware Engine network.
-      Resource names are schemeless URIs that follow the conventions in
-      https://cloud.google.com/apis/design/resource_names. For example:
+    name: Output only. Identifier. The resource name of the VMware Engine
+      network. Resource names are schemeless URIs that follow the conventions
+      in https://cloud.google.com/apis/design/resource_names. For example:
       `projects/my-project/locations/global/vmwareEngineNetworks/my-network`
     state: Output only. State of the VMware Engine network.
     type: Required. VMware Engine network type.
@@ -3570,6 +3639,80 @@ class VmwareEngineNetwork(_messages.Message):
   uid = _messages.StringField(7)
   updateTime = _messages.StringField(8)
   vpcNetworks = _messages.MessageField('VpcNetwork', 9, repeated=True)
+
+
+class VmwareUpgradeComponent(_messages.Message):
+  r"""Per component upgrade resource
+
+  Enums:
+    ComponentTypeValueValuesEnum: Output only. Type of component
+    StateValueValuesEnum: Output only. Component's upgrade state.
+
+  Fields:
+    componentType: Output only. Type of component
+    state: Output only. Component's upgrade state.
+  """
+
+  class ComponentTypeValueValuesEnum(_messages.Enum):
+    r"""Output only. Type of component
+
+    Values:
+      VMWARE_COMPONENT_TYPE_UNSPECIFIED: The default value. This value should
+        never be used.
+      VCENTER: vcenter
+      ESXI: esxi nodes + transport nodes
+      NSXT_UC: nsxt upgrade coordinator
+      NSXT_EDGE: nsxt edges cluster
+      NSXT_MGR: nsxt managers/management plane
+      HCX: hcx
+      VSAN: VSAN cluster
+      DVS: DVS switch
+      NAMESERVER_VM: Nameserver VMs
+      KMS_VM: KMS VM used for vsan encryption
+      WITNESS_VM: witness VM in case of stretch PC
+      NSXT: nsxt
+      CLUSTER: Cluster is used in case of BM
+    """
+    VMWARE_COMPONENT_TYPE_UNSPECIFIED = 0
+    VCENTER = 1
+    ESXI = 2
+    NSXT_UC = 3
+    NSXT_EDGE = 4
+    NSXT_MGR = 5
+    HCX = 6
+    VSAN = 7
+    DVS = 8
+    NAMESERVER_VM = 9
+    KMS_VM = 10
+    WITNESS_VM = 11
+    NSXT = 12
+    CLUSTER = 13
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. Component's upgrade state.
+
+    Values:
+      STATE_UNSPECIFIED: The default value. This value should never be used.
+      RUNNING: Component's upgrade is in progress
+      PAUSED: The component's upgrade is paused. Will be resumed when upgrade
+        job is resumed
+      SUCCEEDED: The component's upgrade is successfully completed
+      FAILED: The component's upgrade has failed. This will move to resume if
+        upgrade is resumed or stay as is
+      NOT_STARTED: Component's upgrade has not started yet
+      NOT_APPLICABLE: Component's upgrade is not applicable in this upgrade.
+        It will be skipped.
+    """
+    STATE_UNSPECIFIED = 0
+    RUNNING = 1
+    PAUSED = 2
+    SUCCEEDED = 3
+    FAILED = 4
+    NOT_STARTED = 5
+    NOT_APPLICABLE = 6
+
+  componentType = _messages.EnumField('ComponentTypeValueValuesEnum', 1)
+  state = _messages.EnumField('StateValueValuesEnum', 2)
 
 
 class VmwareengineProjectsLocationsAnnouncementsGetRequest(_messages.Message):
@@ -3704,6 +3847,9 @@ class VmwareengineProjectsLocationsListRequest(_messages.Message):
   r"""A VmwareengineProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -3714,10 +3860,11 @@ class VmwareengineProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class VmwareengineProjectsLocationsNetworkPeeringsCreateRequest(_messages.Message):
@@ -3845,7 +3992,7 @@ class VmwareengineProjectsLocationsNetworkPeeringsPatchRequest(_messages.Message
   r"""A VmwareengineProjectsLocationsNetworkPeeringsPatchRequest object.
 
   Fields:
-    name: Output only. The resource name of the network peering.
+    name: Output only. Identifier. The resource name of the network peering.
       NetworkPeering is a global resource and location can only be global.
       Resource names are scheme-less URIs that follow the conventions in
       https://cloud.google.com/apis/design/resource_names. For example:
@@ -4225,8 +4372,8 @@ class VmwareengineProjectsLocationsNetworkPoliciesPatchRequest(_messages.Message
   r"""A VmwareengineProjectsLocationsNetworkPoliciesPatchRequest object.
 
   Fields:
-    name: Output only. The resource name of this network policy. Resource
-      names are schemeless URIs that follow the conventions in
+    name: Output only. Identifier. The resource name of this network policy.
+      Resource names are schemeless URIs that follow the conventions in
       https://cloud.google.com/apis/design/resource_names. For example:
       `projects/my-project/locations/us-central1/networkPolicies/my-network-
       policy`
@@ -4509,8 +4656,8 @@ class VmwareengineProjectsLocationsPrivateCloudsClustersPatchRequest(_messages.M
 
   Fields:
     cluster: A Cluster resource to be passed as the request body.
-    name: Output only. The resource name of this cluster. Resource names are
-      schemeless URIs that follow the conventions in
+    name: Output only. Identifier. The resource name of this cluster. Resource
+      names are schemeless URIs that follow the conventions in
       https://cloud.google.com/apis/design/resource_names. For example:
       `projects/my-project/locations/us-central1-a/privateClouds/my-
       cloud/clusters/my-cluster`
@@ -4767,9 +4914,9 @@ class VmwareengineProjectsLocationsPrivateCloudsExternalAddressesPatchRequest(_m
   Fields:
     externalAddress: A ExternalAddress resource to be passed as the request
       body.
-    name: Output only. The resource name of this external IP address. Resource
-      names are schemeless URIs that follow the conventions in
-      https://cloud.google.com/apis/design/resource_names. For example:
+    name: Output only. Identifier. The resource name of this external IP
+      address. Resource names are schemeless URIs that follow the conventions
+      in https://cloud.google.com/apis/design/resource_names. For example:
       `projects/my-project/locations/us-central1-a/privateClouds/my-
       cloud/externalAddresses/my-address`
     requestId: Optional. A request ID to identify requests. Specify a unique
@@ -5575,8 +5722,8 @@ class VmwareengineProjectsLocationsPrivateCloudsPatchRequest(_messages.Message):
   r"""A VmwareengineProjectsLocationsPrivateCloudsPatchRequest object.
 
   Fields:
-    name: Output only. The resource name of this private cloud. Resource names
-      are schemeless URIs that follow the conventions in
+    name: Output only. Identifier. The resource name of this private cloud.
+      Resource names are schemeless URIs that follow the conventions in
       https://cloud.google.com/apis/design/resource_names. For example:
       `projects/my-project/locations/us-central1-a/privateClouds/my-cloud`
     privateCloud: A PrivateCloud resource to be passed as the request body.
@@ -5594,6 +5741,25 @@ class VmwareengineProjectsLocationsPrivateCloudsPatchRequest(_messages.Message):
   privateCloud = _messages.MessageField('PrivateCloud', 2)
   requestId = _messages.StringField(3)
   updateMask = _messages.StringField(4)
+
+
+class VmwareengineProjectsLocationsPrivateCloudsPrivateCloudDeletionNowRequest(_messages.Message):
+  r"""A
+  VmwareengineProjectsLocationsPrivateCloudsPrivateCloudDeletionNowRequest
+  object.
+
+  Fields:
+    acceleratePrivateCloudDeletionRequest: A
+      AcceleratePrivateCloudDeletionRequest resource to be passed as the
+      request body.
+    name: Required. The resource name of the private cloud in softdeletion.
+      Resource names are schemeless URIs that follow the conventions in
+      https://cloud.google.com/apis/design/resource_names. For example:
+      `projects/my-project/locations/us-central1-a/privateClouds/my-cloud`
+  """
+
+  acceleratePrivateCloudDeletionRequest = _messages.MessageField('AcceleratePrivateCloudDeletionRequest', 1)
+  name = _messages.StringField(2, required=True)
 
 
 class VmwareengineProjectsLocationsPrivateCloudsResetNsxCredentialsRequest(_messages.Message):
@@ -5746,8 +5912,8 @@ class VmwareengineProjectsLocationsPrivateCloudsSubnetsPatchRequest(_messages.Me
   r"""A VmwareengineProjectsLocationsPrivateCloudsSubnetsPatchRequest object.
 
   Fields:
-    name: Output only. The resource name of this subnet. Resource names are
-      schemeless URIs that follow the conventions in
+    name: Output only. Identifier. The resource name of this subnet. Resource
+      names are schemeless URIs that follow the conventions in
       https://cloud.google.com/apis/design/resource_names. For example:
       `projects/my-project/locations/us-central1-a/privateClouds/my-
       cloud/subnets/my-subnet`
@@ -5803,8 +5969,8 @@ class VmwareengineProjectsLocationsPrivateCloudsUpdateDnsForwardingRequest(_mess
 
   Fields:
     dnsForwarding: A DnsForwarding resource to be passed as the request body.
-    name: Output only. The resource name of this DNS profile. Resource names
-      are schemeless URIs that follow the conventions in
+    name: Output only. Identifier. The resource name of this DNS profile.
+      Resource names are schemeless URIs that follow the conventions in
       https://cloud.google.com/apis/design/resource_names. For example:
       `projects/my-project/locations/us-central1-a/privateClouds/my-
       cloud/dnsForwarding`
@@ -5951,10 +6117,10 @@ class VmwareengineProjectsLocationsPrivateCloudsUpgradesPatchRequest(_messages.M
   r"""A VmwareengineProjectsLocationsPrivateCloudsUpgradesPatchRequest object.
 
   Fields:
-    name: Output only. The resource name of the private cloud `Upgrade`.
-      Resource names are schemeless URIs that follow the conventions in
-      https://cloud.google.com/apis/design/resource_names. For example:
-      `projects/my-project/locations/us-west1-a/privateClouds/my-
+    name: Output only. Identifier. The resource name of the private cloud
+      `Upgrade`. Resource names are schemeless URIs that follow the
+      conventions in https://cloud.google.com/apis/design/resource_names. For
+      example: `projects/my-project/locations/us-west1-a/privateClouds/my-
       cloud/upgrades/my-upgrade`
     requestId: Optional. A request ID to identify requests. Specify a unique
       request ID so that if you must retry your request, the server will know
@@ -6300,9 +6466,9 @@ class VmwareengineProjectsLocationsVmwareEngineNetworksPatchRequest(_messages.Me
   r"""A VmwareengineProjectsLocationsVmwareEngineNetworksPatchRequest object.
 
   Fields:
-    name: Output only. The resource name of the VMware Engine network.
-      Resource names are schemeless URIs that follow the conventions in
-      https://cloud.google.com/apis/design/resource_names. For example:
+    name: Output only. Identifier. The resource name of the VMware Engine
+      network. Resource names are schemeless URIs that follow the conventions
+      in https://cloud.google.com/apis/design/resource_names. For example:
       `projects/my-project/locations/global/vmwareEngineNetworks/my-network`
     requestId: Optional. A request ID to identify requests. Specify a unique
       request ID so that if you must retry your request, the server will know
@@ -6371,9 +6537,85 @@ class VpcNetwork(_messages.Message):
   type = _messages.EnumField('TypeValueValuesEnum', 2)
 
 
+class WeeklyTimeInterval(_messages.Message):
+  r"""Represents a time interval, spanning across days of the week. Until
+  local timezones are supported, this interval is in UTC.
+
+  Enums:
+    EndDayValueValuesEnum: Output only. The day on which the interval ends.
+      Can be same as start day.
+    StartDayValueValuesEnum: Output only. The day on which the interval
+      starts.
+
+  Fields:
+    endDay: Output only. The day on which the interval ends. Can be same as
+      start day.
+    endTime: Output only. The time on the end day at which the interval ends.
+    startDay: Output only. The day on which the interval starts.
+    startTime: Output only. The time on the start day at which the interval
+      starts.
+  """
+
+  class EndDayValueValuesEnum(_messages.Enum):
+    r"""Output only. The day on which the interval ends. Can be same as start
+    day.
+
+    Values:
+      DAY_OF_WEEK_UNSPECIFIED: The day of the week is unspecified.
+      MONDAY: Monday
+      TUESDAY: Tuesday
+      WEDNESDAY: Wednesday
+      THURSDAY: Thursday
+      FRIDAY: Friday
+      SATURDAY: Saturday
+      SUNDAY: Sunday
+    """
+    DAY_OF_WEEK_UNSPECIFIED = 0
+    MONDAY = 1
+    TUESDAY = 2
+    WEDNESDAY = 3
+    THURSDAY = 4
+    FRIDAY = 5
+    SATURDAY = 6
+    SUNDAY = 7
+
+  class StartDayValueValuesEnum(_messages.Enum):
+    r"""Output only. The day on which the interval starts.
+
+    Values:
+      DAY_OF_WEEK_UNSPECIFIED: The day of the week is unspecified.
+      MONDAY: Monday
+      TUESDAY: Tuesday
+      WEDNESDAY: Wednesday
+      THURSDAY: Thursday
+      FRIDAY: Friday
+      SATURDAY: Saturday
+      SUNDAY: Sunday
+    """
+    DAY_OF_WEEK_UNSPECIFIED = 0
+    MONDAY = 1
+    TUESDAY = 2
+    WEDNESDAY = 3
+    THURSDAY = 4
+    FRIDAY = 5
+    SATURDAY = 6
+    SUNDAY = 7
+
+  endDay = _messages.EnumField('EndDayValueValuesEnum', 1)
+  endTime = _messages.MessageField('TimeOfDay', 2)
+  startDay = _messages.EnumField('StartDayValueValuesEnum', 3)
+  startTime = _messages.MessageField('TimeOfDay', 4)
+
+
 encoding.AddCustomJsonFieldMapping(
     StandardQueryParameters, 'f__xgafv', '$.xgafv')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    VmwareengineProjectsLocationsPrivateCloudsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    VmwareengineProjectsLocationsPrivateCloudsClustersGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    VmwareengineProjectsLocationsPrivateCloudsHcxActivationKeysGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')

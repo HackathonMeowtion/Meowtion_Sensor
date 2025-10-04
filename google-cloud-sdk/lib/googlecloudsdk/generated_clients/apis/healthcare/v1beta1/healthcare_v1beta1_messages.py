@@ -50,8 +50,9 @@ class AccessDeterminationLogConfig(_messages.Message):
         enforcement leading to the decision * Enforcement version at the time
         the applicable consents were applied * The Consent resource name * The
         timestamp of the Consent resource used for enforcement * Policy type
-        (`PATIENT` or `ADMIN`) Note that this mode adds some overhead to CRUD
-        operations.
+        (`PATIENT` or `ADMIN`) Due to the limited space for logging, this mode
+        is the same as `MINIMUM` for methods that return multiple resources
+        (such as FHIR Search).
     """
     LOG_LEVEL_UNSPECIFIED = 0
     DISABLED = 1
@@ -202,151 +203,20 @@ class AnalyzeEntitiesResponse(_messages.Message):
   relationships = _messages.MessageField('EntityMentionRelationship', 4, repeated=True)
 
 
-class Annotation(_messages.Message):
-  r"""An annotation record.
-
-  Messages:
-    CustomDataValue: Additional information for this annotation record, such
-      as annotator and verifier information or study campaign.
+class ApplyAdminConsentsErrorDetail(_messages.Message):
+  r"""Contains the error details of the unsupported admin Consent resources
+  for when the ApplyAdminConsents method fails to apply one or more Consent
+  resources.
 
   Fields:
-    annotationSource: Required. Details of the source.
-    customData: Additional information for this annotation record, such as
-      annotator and verifier information or study campaign.
-    imageAnnotation: Annotations for images. For example, bounding polygons.
-    name: Identifier. Resource name of the Annotation, of the form `projects/{
-      project_id}/locations/{location_id}/datasets/{dataset_id}/annotationStor
-      es/{annotation_store_id}/annotations/{annotation_id}`.
-    resourceAnnotation: Annotations for resource. For example, classification
-      tags.
-    textAnnotation: Annotations for sensitive texts. For example, a range that
-      describes the location of sensitive text.
+    consentErrors: The list of Consent resources that are unsupported or
+      cannot be applied and the error associated with each of them.
+    existingOperationId: The currently in progress non-validate-only
+      ApplyAdminConsents operation ID if exist.
   """
 
-  @encoding.MapUnrecognizedFields('additionalProperties')
-  class CustomDataValue(_messages.Message):
-    r"""Additional information for this annotation record, such as annotator
-    and verifier information or study campaign.
-
-    Messages:
-      AdditionalProperty: An additional property for a CustomDataValue object.
-
-    Fields:
-      additionalProperties: Additional properties of type CustomDataValue
-    """
-
-    class AdditionalProperty(_messages.Message):
-      r"""An additional property for a CustomDataValue object.
-
-      Fields:
-        key: Name of the additional property.
-        value: A string attribute.
-      """
-
-      key = _messages.StringField(1)
-      value = _messages.StringField(2)
-
-    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
-
-  annotationSource = _messages.MessageField('AnnotationSource', 1)
-  customData = _messages.MessageField('CustomDataValue', 2)
-  imageAnnotation = _messages.MessageField('ImageAnnotation', 3)
-  name = _messages.StringField(4)
-  resourceAnnotation = _messages.MessageField('ResourceAnnotation', 5)
-  textAnnotation = _messages.MessageField('SensitiveTextAnnotation', 6)
-
-
-class AnnotationConfig(_messages.Message):
-  r"""Specifies how to store annotations during de-identification operation.
-
-  Fields:
-    annotationStoreName: The name of the annotation store, in the form `projec
-      ts/{project_id}/locations/{location_id}/datasets/{dataset_id}/annotation
-      Stores/{annotation_store_id}`). * The destination annotation store must
-      be in the same project as the source data. De-identifying data across
-      multiple projects is not supported. * The destination annotation store
-      must exist when using DeidentifyDicomStore or DeidentifyFhirStore.
-      DeidentifyDataset automatically creates the destination annotation
-      store.
-    storeQuote: If set to true, the sensitive texts are included in
-      SensitiveTextAnnotation of Annotation.
-  """
-
-  annotationStoreName = _messages.StringField(1)
-  storeQuote = _messages.BooleanField(2)
-
-
-class AnnotationSource(_messages.Message):
-  r"""AnnotationSource holds the source information of the annotation.
-
-  Fields:
-    cloudHealthcareSource: Cloud Healthcare API resource.
-  """
-
-  cloudHealthcareSource = _messages.MessageField('CloudHealthcareSource', 1)
-
-
-class AnnotationStore(_messages.Message):
-  r"""An Annotation store that can store annotation resources such as labels
-  and tags for text, image and audio.
-
-  Messages:
-    LabelsValue: Optional. User-supplied key-value pairs used to organize
-      Annotation stores. Label keys must be between 1 and 63 characters long,
-      have a UTF-8 encoding of maximum 128 bytes, and must conform to the
-      following PCRE regular expression: \p{Ll}\p{Lo}{0,62} Label values must
-      be between 1 and 63 characters long, have a UTF-8 encoding of maximum
-      128 bytes, and must conform to the following PCRE regular expression:
-      [\p{Ll}\p{Lo}\p{N}_-]{0,63} No more than 64 labels can be associated
-      with a given store.
-
-  Fields:
-    labels: Optional. User-supplied key-value pairs used to organize
-      Annotation stores. Label keys must be between 1 and 63 characters long,
-      have a UTF-8 encoding of maximum 128 bytes, and must conform to the
-      following PCRE regular expression: \p{Ll}\p{Lo}{0,62} Label values must
-      be between 1 and 63 characters long, have a UTF-8 encoding of maximum
-      128 bytes, and must conform to the following PCRE regular expression:
-      [\p{Ll}\p{Lo}\p{N}_-]{0,63} No more than 64 labels can be associated
-      with a given store.
-    name: Identifier. Resource name of the Annotation store, of the form `proj
-      ects/{project_id}/locations/{location_id}/datasets/{dataset_id}/annotati
-      onStores/{annotation_store_id}`.
-  """
-
-  @encoding.MapUnrecognizedFields('additionalProperties')
-  class LabelsValue(_messages.Message):
-    r"""Optional. User-supplied key-value pairs used to organize Annotation
-    stores. Label keys must be between 1 and 63 characters long, have a UTF-8
-    encoding of maximum 128 bytes, and must conform to the following PCRE
-    regular expression: \p{Ll}\p{Lo}{0,62} Label values must be between 1 and
-    63 characters long, have a UTF-8 encoding of maximum 128 bytes, and must
-    conform to the following PCRE regular expression:
-    [\p{Ll}\p{Lo}\p{N}_-]{0,63} No more than 64 labels can be associated with
-    a given store.
-
-    Messages:
-      AdditionalProperty: An additional property for a LabelsValue object.
-
-    Fields:
-      additionalProperties: Additional properties of type LabelsValue
-    """
-
-    class AdditionalProperty(_messages.Message):
-      r"""An additional property for a LabelsValue object.
-
-      Fields:
-        key: Name of the additional property.
-        value: A string attribute.
-      """
-
-      key = _messages.StringField(1)
-      value = _messages.StringField(2)
-
-    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
-
-  labels = _messages.MessageField('LabelsValue', 1)
-  name = _messages.StringField(2)
+  consentErrors = _messages.MessageField('ConsentErrors', 1, repeated=True)
+  existingOperationId = _messages.IntegerField(2, variant=_messages.Variant.UINT64)
 
 
 class ApplyAdminConsentsRequest(_messages.Message):
@@ -778,16 +648,20 @@ class BlobStorageSettings(_messages.Message):
   blobStorageClass = _messages.EnumField('BlobStorageClassValueValuesEnum', 1)
 
 
-class BoundingPoly(_messages.Message):
-  r"""A bounding polygon for the detected image annotation.
+class BulkExportGcsDestination(_messages.Message):
+  r"""The configuration for exporting to Cloud Storage using the bulk export
+  API.
 
   Fields:
-    label: A description of this polygon.
-    vertices: List of the vertices of this polygon.
+    uriPrefix: Optional. URI for a Cloud Storage directory where the server
+      writes result files, in the format `gs://{bucket-
+      id}/{path/to/destination/dir}`. If there is no trailing slash, the
+      service appends one when composing the object path. The user is
+      responsible for creating the Cloud Storage bucket referenced in
+      `uri_prefix`.
   """
 
-  label = _messages.StringField(1)
-  vertices = _messages.MessageField('Vertex', 2, repeated=True)
+  uriPrefix = _messages.StringField(1)
 
 
 class CancelOperationRequest(_messages.Message):
@@ -968,16 +842,6 @@ class CleanTextTag(_messages.Message):
 
 
 
-class CloudHealthcareSource(_messages.Message):
-  r"""Cloud Healthcare API resource.
-
-  Fields:
-    name: Full path of a Cloud Healthcare API resource.
-  """
-
-  name = _messages.StringField(1)
-
-
 class ConfigureSearchRequest(_messages.Message):
   r"""Request to configure the search parameters for the specified FHIR store.
 
@@ -1122,9 +986,10 @@ class ConsentAccessorScope(_messages.Message):
       or a characteristic of the accessor. This can be a resource ID (such as
       `{resourceType}/{id}`) or an external URI. This value must be present.
     environment: An abstract identifier that describes the environment or
-      conditions under which the accessor is acting. Can be "*" if it applies
-      to all environments.
-    purpose: The intent of data use. Can be "*" if it applies to all purposes.
+      conditions under which the accessor is acting. If it's not specified, it
+      applies to all environments.
+    purpose: The intent of data use. If it's not specified, it applies to all
+      purposes.
   """
 
   actor = _messages.StringField(1)
@@ -1205,15 +1070,16 @@ class ConsentConfig(_messages.Message):
     accessDeterminationLogConfig: Optional. Specifies how the server logs the
       consent-aware requests. If not specified, the
       `AccessDeterminationLogConfig.LogLevel.MINIMUM` option is used.
-    accessEnforced: Optional. If set to true, when accessing FHIR resources,
-      the consent headers will be verified against consents given by patients.
-      See the ConsentEnforcementVersion for the supported consent headers.
+    accessEnforced: Optional. The default value is false. If set to true, when
+      accessing FHIR resources, the consent headers will be verified against
+      consents given by patients. See the ConsentEnforcementVersion for the
+      supported consent headers.
     consentHeaderHandling: Optional. Different options to configure the
       behaviour of the server when handling the `X-Consent-Scope` header.
-    enforcedAdminConsents: The versioned names of the enforced admin Consent
-      resource(s), in the format `projects/{project_id}/locations/{location}/d
-      atasets/{dataset_id}/fhirStores/{fhir_store_id}/fhir/Consent/{resource_i
-      d}/_history/{version_id}`. For FHIR stores with
+    enforcedAdminConsents: Output only. The versioned names of the enforced
+      admin Consent resource(s), in the format `projects/{project_id}/location
+      s/{location}/datasets/{dataset_id}/fhirStores/{fhir_store_id}/fhir/Conse
+      nt/{resource_id}/_history/{version_id}`. For FHIR stores with
       `disable_resource_versioning=true`, the format is `projects/{project_id}
       /locations/{location}/datasets/{dataset_id}/fhirStores/{fhir_store_id}/f
       hir/Consent/{resource_id}`. This field can only be updated using
@@ -1245,6 +1111,23 @@ class ConsentConfig(_messages.Message):
   consentHeaderHandling = _messages.MessageField('ConsentHeaderHandling', 3)
   enforcedAdminConsents = _messages.StringField(4, repeated=True)
   version = _messages.EnumField('VersionValueValuesEnum', 5)
+
+
+class ConsentErrors(_messages.Message):
+  r"""The Consent resource name and error.
+
+  Fields:
+    error: The error code and message.
+    name: The versioned name of the admin Consent resource, in the format `pro
+      jects/{project_id}/locations/{location}/datasets/{dataset_id}/fhirStores
+      /{fhir_store_id}/fhir/Consent/{resource_id}/_history/{version_id}`. For
+      FHIR stores with `disable_resource_versioning=true`, the format is `proj
+      ects/{project_id}/locations/{location}/datasets/{dataset_id}/fhirStores/
+      {fhir_store_id}/fhir/Consent/{resource_id}`.
+  """
+
+  error = _messages.MessageField('Status', 1)
+  name = _messages.StringField(2)
 
 
 class ConsentEvaluation(_messages.Message):
@@ -1464,16 +1347,25 @@ class Dataset(_messages.Message):
   records or medical imaging data.
 
   Fields:
+    encryptionSpec: Customer-managed encryption key spec for a Dataset. If
+      set, this Dataset and all of its sub-resources will be secured by this
+      key. If empty, the Dataset is secured by the default Google encryption
+      key.
     name: Identifier. Resource name of the dataset, of the form
       `projects/{project_id}/locations/{location_id}/datasets/{dataset_id}`.
+    satisfiesPzi: Output only. Whether the dataset satisfies zone isolation.
+    satisfiesPzs: Output only. Whether the dataset satisfies zone separation.
     timeZone: The default timezone used by this dataset. Must be a either a
       valid IANA time zone name such as "America/New_York" or empty, which
       defaults to UTC. This is used for parsing times in resources, such as
       HL7 messages, where no explicit timezone is specified.
   """
 
-  name = _messages.StringField(1)
-  timeZone = _messages.StringField(2)
+  encryptionSpec = _messages.MessageField('EncryptionSpec', 1)
+  name = _messages.StringField(2)
+  satisfiesPzi = _messages.BooleanField(3)
+  satisfiesPzs = _messages.BooleanField(4)
+  timeZone = _messages.StringField(5)
 
 
 class DateShiftConfig(_messages.Message):
@@ -1527,9 +1419,6 @@ class DeidentifyConfig(_messages.Message):
   media type or subtype. Configs are applied in a nested manner at runtime.
 
   Fields:
-    annotation: Configures how annotations, meaning that the location and
-      infoType of sensitive information findings, are created during de-
-      identification. If unspecified, no annotations are created.
     dicom: Configures de-id of application/DICOM content. Deprecated. Use
       `dicom_tag_config` instead.
     dicomTagConfig: Configures de-id of application/DICOM content.
@@ -1544,23 +1433,22 @@ class DeidentifyConfig(_messages.Message):
     text: Configures de-identification of text wherever it is found in the
       source_dataset.
     useRegionalDataProcessing: Ensures in-flight data remains in the region of
-      origin during de-identification. Using this option results in a
-      significant reduction of throughput, and is not compatible with
-      `LOCATION` or `ORGANIZATION_NAME` infoTypes. If the deprecated
-      DicomConfig or FhirConfig are used, then `LOCATION` must be excluded
-      within TextConfig, and must also be excluded within ImageConfig if image
-      redaction is required.
+      origin during de-identification. The default value is false. Using this
+      option results in a significant reduction of throughput, and is not
+      compatible with `LOCATION` or `ORGANIZATION_NAME` infoTypes. If the
+      deprecated DicomConfig or FhirConfig are used, then `LOCATION` must be
+      excluded within TextConfig, and must also be excluded within ImageConfig
+      if image redaction is required.
   """
 
-  annotation = _messages.MessageField('AnnotationConfig', 1)
-  dicom = _messages.MessageField('DicomConfig', 2)
-  dicomTagConfig = _messages.MessageField('DicomTagConfig', 3)
-  fhir = _messages.MessageField('FhirConfig', 4)
-  fhirFieldConfig = _messages.MessageField('FhirFieldConfig', 5)
-  image = _messages.MessageField('ImageConfig', 6)
-  operationMetadata = _messages.MessageField('DeidentifyOperationMetadata', 7)
-  text = _messages.MessageField('TextConfig', 8)
-  useRegionalDataProcessing = _messages.BooleanField(9)
+  dicom = _messages.MessageField('DicomConfig', 1)
+  dicomTagConfig = _messages.MessageField('DicomTagConfig', 2)
+  fhir = _messages.MessageField('FhirConfig', 3)
+  fhirFieldConfig = _messages.MessageField('FhirFieldConfig', 4)
+  image = _messages.MessageField('ImageConfig', 5)
+  operationMetadata = _messages.MessageField('DeidentifyOperationMetadata', 6)
+  text = _messages.MessageField('TextConfig', 7)
+  useRegionalDataProcessing = _messages.BooleanField(8)
 
 
 class DeidentifyDatasetRequest(_messages.Message):
@@ -1670,17 +1558,6 @@ class DeleteTag(_messages.Message):
   r"""Delete tag."""
 
 
-class Detail(_messages.Message):
-  r"""Contains multiple sensitive information findings for each resource
-  slice.
-
-  Fields:
-    findings: A Finding attribute.
-  """
-
-  findings = _messages.MessageField('Finding', 1, repeated=True)
-
-
 class DicomConfig(_messages.Message):
   r"""Specifies the parameters needed for de-identification of DICOM stores.
 
@@ -1752,6 +1629,50 @@ class DicomFilterConfig(_messages.Message):
   resourcePathsGcsUri = _messages.StringField(1)
 
 
+class DicomNotificationConfig(_messages.Message):
+  r"""Contains the configuration for DICOM notifications.
+
+  Fields:
+    pubsubTopic: Required. The
+      [Pub/Sub](https://cloud.google.com/pubsub/docs/) topic that
+      notifications of changes are published on. Supplied by the client. The
+      notification is a `PubsubMessage` with the following fields: *
+      `PubsubMessage.Data` contains the resource name. *
+      `PubsubMessage.MessageId` is the ID of this notification. It is
+      guaranteed to be unique within the topic. * `PubsubMessage.PublishTime`
+      is the time when the message was published. * `PubsubMessage.Attributes`
+      contains the following attributes: * `action`: The name of the endpoint
+      that generated the notification. Possible values are `StoreInstances`,
+      `SetBlobSettings`, `ImportDicomData`, etc. * `lastUpdatedTime`: The
+      latest timestamp when the DICOM instance was updated. * `storeName`: The
+      resource name of the DICOM store, of the form `projects/{project_id}/loc
+      ations/{location_id}/datasets/{dataset_id}/dicomStores/{dicom_store_id}`
+      . * `studyInstanceUID`: The study UID of the DICOM instance that was
+      changed. * `seriesInstanceUID`: The series UID of the DICOM instance
+      that was changed. * `sopInstanceUID`: The instance UID of the DICOM
+      instance that was changed. * `versionId`: The version ID of the DICOM
+      instance that was changed. * `modality`: The modality tag of the DICOM
+      instance that was changed. * `previousStorageClass`: The storage class
+      where the DICOM instance was previously stored if the storage class was
+      changed. * `storageClass`: The storage class where the DICOM instance is
+      currently stored. Note that notifications are only sent if the topic is
+      non-empty. [Topic
+      names](https://cloud.google.com/pubsub/docs/overview#names) must be
+      scoped to a project. The Cloud Healthcare API service account,
+      service-@gcp-sa-healthcare.iam.gserviceaccount.com, must have the
+      `pubsub.topics.publish` permission (which is typically included in
+      `roles/pubsub.publisher` role) on the given Pub/Sub topic. Not having
+      adequate permissions causes the calls that send notifications to fail
+      (https://cloud.google.com/healthcare-api/docs/permissions-healthcare-
+      api-gcp-products#dicom_fhir_and_hl7v2_store_cloud_pubsub_permissions).
+      If a notification can't be published to Pub/Sub, errors are logged to
+      Cloud Logging. For more information, see [Viewing error logs in Cloud
+      Logging](https://cloud.google.com/healthcare-api/docs/how-tos/logging).
+  """
+
+  pubsubTopic = _messages.StringField(1)
+
+
 class DicomStore(_messages.Message):
   r"""Represents a DICOM store.
 
@@ -1779,6 +1700,8 @@ class DicomStore(_messages.Message):
       dicom_store_id}`.
     notificationConfig: Notification destination for new DICOM instances.
       Supplied by the client.
+    notificationConfigs: Optional. Specifies where and whether to send
+      notifications upon changes to a DICOM store.
     streamConfigs: Optional. A list of streaming configs used to configure the
       destination of streaming exports for every DICOM instance insertion in
       this DICOM store. After a new config is added to `stream_configs`, DICOM
@@ -1821,7 +1744,8 @@ class DicomStore(_messages.Message):
   labels = _messages.MessageField('LabelsValue', 1)
   name = _messages.StringField(2)
   notificationConfig = _messages.MessageField('NotificationConfig', 3)
-  streamConfigs = _messages.MessageField('GoogleCloudHealthcareV1beta1DicomStreamConfig', 4, repeated=True)
+  notificationConfigs = _messages.MessageField('DicomNotificationConfig', 4, repeated=True)
+  streamConfigs = _messages.MessageField('GoogleCloudHealthcareV1beta1DicomStreamConfig', 5, repeated=True)
 
 
 class DicomStoreMetrics(_messages.Message):
@@ -1901,6 +1825,21 @@ class Empty(_messages.Message):
   Bar(google.protobuf.Empty) returns (google.protobuf.Empty); }
   """
 
+
+
+class EncryptionSpec(_messages.Message):
+  r"""Represents a customer-managed encryption key spec that can be applied to
+  a resource.
+
+  Fields:
+    kmsKeyName: Required. The resource name of customer-managed encryption key
+      that is used to secure a resource and its sub-resources. Only the key in
+      the same location as this dataset is allowed to be used for encryption.
+      Format is: `projects/{project}/locations/{location}/keyRings/{keyRing}/c
+      ryptoKeys/{key}`
+  """
+
+  kmsKeyName = _messages.StringField(1)
 
 
 class Entity(_messages.Message):
@@ -1987,118 +1926,6 @@ class EntityMentionRelationship(_messages.Message):
   confidence = _messages.FloatField(1)
   objectId = _messages.StringField(2)
   subjectId = _messages.StringField(3)
-
-
-class EvaluateAnnotationStoreRequest(_messages.Message):
-  r"""Request to evaluate an Annotation store against a ground truth
-  [Annotation store].
-
-  Messages:
-    EvalInfoTypeMappingValue: Optional. InfoType mapping for `eval_store`.
-      Different resources can map to the same infoType. For example,
-      `PERSON_NAME`, `PERSON`, `NAME`, and `HUMAN` are different. To map all
-      of these into a single infoType (such as `PERSON_NAME`), specify the
-      following mapping: ``` info_type_mapping["PERSON"] = "PERSON_NAME"
-      info_type_mapping["NAME"] = "PERSON_NAME" info_type_mapping["HUMAN"] =
-      "PERSON_NAME" ``` Unmentioned infoTypes, such as `DATE`, are treated as
-      identity mapping. For example: ``` info_type_mapping["DATE"] = "DATE"
-      ``` InfoTypes are case-insensitive.
-    GoldenInfoTypeMappingValue: Optional. Similar to `eval_info_type_mapping`,
-      infoType mapping for `golden_store`.
-
-  Fields:
-    bigqueryDestination: The BigQuery table where the server writes the
-      output. BigQueryDestination requires the `roles/bigquery.dataEditor` and
-      `roles/bigquery.jobUser` Cloud IAM roles.
-    evalInfoTypeMapping: Optional. InfoType mapping for `eval_store`.
-      Different resources can map to the same infoType. For example,
-      `PERSON_NAME`, `PERSON`, `NAME`, and `HUMAN` are different. To map all
-      of these into a single infoType (such as `PERSON_NAME`), specify the
-      following mapping: ``` info_type_mapping["PERSON"] = "PERSON_NAME"
-      info_type_mapping["NAME"] = "PERSON_NAME" info_type_mapping["HUMAN"] =
-      "PERSON_NAME" ``` Unmentioned infoTypes, such as `DATE`, are treated as
-      identity mapping. For example: ``` info_type_mapping["DATE"] = "DATE"
-      ``` InfoTypes are case-insensitive.
-    goldenInfoTypeMapping: Optional. Similar to `eval_info_type_mapping`,
-      infoType mapping for `golden_store`.
-    goldenStore: Required. The Annotation store to use as ground truth, in the
-      format of `projects/{project_id}/locations/{location_id}/datasets/{datas
-      et_id}/annotationStores/{annotation_store_id}`.
-    infoTypeConfig: A InfoTypeConfig attribute.
-  """
-
-  @encoding.MapUnrecognizedFields('additionalProperties')
-  class EvalInfoTypeMappingValue(_messages.Message):
-    r"""Optional. InfoType mapping for `eval_store`. Different resources can
-    map to the same infoType. For example, `PERSON_NAME`, `PERSON`, `NAME`,
-    and `HUMAN` are different. To map all of these into a single infoType
-    (such as `PERSON_NAME`), specify the following mapping: ```
-    info_type_mapping["PERSON"] = "PERSON_NAME" info_type_mapping["NAME"] =
-    "PERSON_NAME" info_type_mapping["HUMAN"] = "PERSON_NAME" ``` Unmentioned
-    infoTypes, such as `DATE`, are treated as identity mapping. For example:
-    ``` info_type_mapping["DATE"] = "DATE" ``` InfoTypes are case-insensitive.
-
-    Messages:
-      AdditionalProperty: An additional property for a
-        EvalInfoTypeMappingValue object.
-
-    Fields:
-      additionalProperties: Additional properties of type
-        EvalInfoTypeMappingValue
-    """
-
-    class AdditionalProperty(_messages.Message):
-      r"""An additional property for a EvalInfoTypeMappingValue object.
-
-      Fields:
-        key: Name of the additional property.
-        value: A string attribute.
-      """
-
-      key = _messages.StringField(1)
-      value = _messages.StringField(2)
-
-    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
-
-  @encoding.MapUnrecognizedFields('additionalProperties')
-  class GoldenInfoTypeMappingValue(_messages.Message):
-    r"""Optional. Similar to `eval_info_type_mapping`, infoType mapping for
-    `golden_store`.
-
-    Messages:
-      AdditionalProperty: An additional property for a
-        GoldenInfoTypeMappingValue object.
-
-    Fields:
-      additionalProperties: Additional properties of type
-        GoldenInfoTypeMappingValue
-    """
-
-    class AdditionalProperty(_messages.Message):
-      r"""An additional property for a GoldenInfoTypeMappingValue object.
-
-      Fields:
-        key: Name of the additional property.
-        value: A string attribute.
-      """
-
-      key = _messages.StringField(1)
-      value = _messages.StringField(2)
-
-    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
-
-  bigqueryDestination = _messages.MessageField('GoogleCloudHealthcareV1beta1AnnotationBigQueryDestination', 1)
-  evalInfoTypeMapping = _messages.MessageField('EvalInfoTypeMappingValue', 2)
-  goldenInfoTypeMapping = _messages.MessageField('GoldenInfoTypeMappingValue', 3)
-  goldenStore = _messages.StringField(4)
-  infoTypeConfig = _messages.MessageField('InfoTypeConfig', 5)
-
-
-class EvaluateAnnotationStoreResponse(_messages.Message):
-  r"""Response for successful Annotation store evaluation operations. This
-  structure is included in the response upon operation completion.
-  """
-
 
 
 class EvaluateUserConsentsRequest(_messages.Message):
@@ -2355,28 +2182,6 @@ class ExplainDataAccessResponse(_messages.Message):
   warning = _messages.StringField(2)
 
 
-class ExportAnnotationsRequest(_messages.Message):
-  r"""Request to export Annotations. The export operation is not atomic. If a
-  failure occurs, any annotations already exported are not removed.
-
-  Fields:
-    bigqueryDestination: The BigQuery output destination, which requires two
-      IAM roles: `roles/bigquery.dataEditor` and `roles/bigquery.jobUser`.
-    gcsDestination: The Cloud Storage destination, which requires the
-      `roles/storage.objectAdmin` Cloud IAM role.
-  """
-
-  bigqueryDestination = _messages.MessageField('GoogleCloudHealthcareV1beta1AnnotationBigQueryDestination', 1)
-  gcsDestination = _messages.MessageField('GoogleCloudHealthcareV1beta1AnnotationGcsDestination', 2)
-
-
-class ExportAnnotationsResponse(_messages.Message):
-  r"""Response for successful annotation export operations. This structure is
-  included in response upon operation completion.
-  """
-
-
-
 class ExportDicomDataRequest(_messages.Message):
   r"""Exports data from the specified DICOM store. If a given resource, such
   as a DICOM object with the same SOPInstance UID, already exists in the
@@ -2495,12 +2300,6 @@ class ExportResourcesHistoryRequest(_messages.Message):
       time must be specified to the second and include a time zone.
     _type: String of comma-delimited FHIR resource types. If provided, only
       resources of the specified resource type(s) are exported.
-    bigqueryDestination: The BigQuery output destination. The Cloud Healthcare
-      Service Agent requires two IAM roles on the BigQuery location:
-      `roles/bigquery.dataEditor` and `roles/bigquery.jobUser`. The output is
-      one BigQuery table per resource type. Unlike when setting
-      `BigQueryDestination` for `StreamConfig`, `ExportResources` does not
-      create BigQuery views.
     gcsDestination: The Cloud Storage output destination. The Healthcare
       Service Agent account requires the `roles/storage.objectAdmin` role on
       the Cloud Storage location. The exported outputs are organized by FHIR
@@ -2520,9 +2319,8 @@ class ExportResourcesHistoryRequest(_messages.Message):
 
   _since = _messages.StringField(1)
   _type = _messages.StringField(2)
-  bigqueryDestination = _messages.MessageField('GoogleCloudHealthcareV1beta1FhirBigQueryDestination', 3)
-  gcsDestination = _messages.MessageField('GoogleCloudHealthcareV1beta1FhirGcsDestination', 4)
-  maxResourceVersions = _messages.IntegerField(5)
+  gcsDestination = _messages.MessageField('GoogleCloudHealthcareV1beta1FhirGcsDestination', 3)
+  maxResourceVersions = _messages.IntegerField(4)
 
 
 class ExportResourcesRequest(_messages.Message):
@@ -2701,20 +2499,21 @@ class FhirNotificationConfig(_messages.Message):
       Cloud Logging. For more information, see [Viewing error logs in Cloud
       Logging](https://cloud.google.com/healthcare-api/docs/how-tos/logging).
     sendFullResource: Whether to send full FHIR resource to this Pub/Sub topic
-      for Create and Update operation. Note that setting this to true does not
-      guarantee that all resources will be sent in the format of full FHIR
-      resource. When a resource change is too large or during heavy traffic,
-      only the resource name will be sent. Clients should always check the
-      "payloadType" label from a Pub/Sub message to determine whether it needs
-      to fetch the full resource as a separate operation.
-    sendPreviousResourceOnDelete: Whether to send full FHIR resource to this
-      Pub/Sub topic for deleting FHIR resource. Note that setting this to true
-      does not guarantee that all previous resources will be sent in the
-      format of full FHIR resource. When a resource change is too large or
-      during heavy traffic, only the resource name will be sent. Clients
+      for Create and Update operation. The default value is false. Note that
+      setting this to true does not guarantee that all resources will be sent
+      in the format of full FHIR resource. When a resource change is too large
+      or during heavy traffic, only the resource name will be sent. Clients
       should always check the "payloadType" label from a Pub/Sub message to
-      determine whether it needs to fetch the full previous resource as a
-      separate operation.
+      determine whether it needs to fetch the full resource as a separate
+      operation.
+    sendPreviousResourceOnDelete: Whether to send full FHIR resource to this
+      Pub/Sub topic for deleting FHIR resource. The default value is false.
+      Note that setting this to true does not guarantee that all previous
+      resources will be sent in the format of full FHIR resource. When a
+      resource change is too large or during heavy traffic, only the resource
+      name will be sent. Clients should always check the "payloadType" label
+      from a Pub/Sub message to determine whether it needs to fetch the full
+      previous resource as a separate operation.
   """
 
   pubsubTopic = _messages.StringField(1)
@@ -2753,7 +2552,8 @@ class FhirStore(_messages.Message):
       references in complex data types will not be parsed. New stores will
       have this value set to ENABLED after a notification period. Warning:
       turning on this flag causes processing existing resources to fail if
-      they contain references to non-existent resources.
+      they contain references to non-existent resources. Cannot be disabled in
+      R5.
     VersionValueValuesEnum: Required. Immutable. The FHIR specification
       version that this FHIR store supports natively. This field is immutable
       after store creation. Requests are rejected if they contain FHIR
@@ -2771,6 +2571,12 @@ class FhirStore(_messages.Message):
       with a given store.
 
   Fields:
+    bulkExportGcsDestination: Optional. FHIR bulk export exports resources to
+      the specified Cloud Storage destination. A Cloud Storage destination is
+      a URI for a Cloud Storage directory where result files will be written.
+      Only used in the spec-defined bulk $export methods. The Cloud Healthcare
+      Service Agent requires the `roles/storage.objectAdmin` Cloud IAM role on
+      the destination.
     complexDataTypeReferenceParsing: Enable parsing of references within
       complex FHIR data types such as Extensions. If this value is set to
       ENABLED, then features like referential integrity and Bundle reference
@@ -2779,17 +2585,17 @@ class FhirStore(_messages.Message):
       data types will not be parsed. New stores will have this value set to
       ENABLED after a notification period. Warning: turning on this flag
       causes processing existing resources to fail if they contain references
-      to non-existent resources.
+      to non-existent resources. Cannot be disabled in R5.
     consentConfig: Optional. Specifies whether this store has consent
       enforcement. Not available for DSTU2 FHIR version due to absence of
-      Consent resources.
+      Consent resources. Not supported for R5 FHIR version.
     defaultSearchHandlingStrict: If true, overrides the default search
       behavior for this FHIR store to `handling=strict` which returns an error
       for unrecognized search parameters. If false, uses the FHIR
       specification default `handling=lenient` which ignores unrecognized
       search parameters. The handling can always be changed from the default
       on an individual API call by setting the HTTP header `Prefer:
-      handling=strict` or `Prefer: handling=lenient`.
+      handling=strict` or `Prefer: handling=lenient`. Defaults to false.
     disableReferentialIntegrity: Immutable. Whether to disable referential
       integrity in this FHIR store. This field is immutable after FHIR store
       creation. The default value is false, meaning that the API enforces
@@ -2800,16 +2606,18 @@ class FhirStore(_messages.Message):
       if broken references exist.
     disableResourceVersioning: Immutable. Whether to disable resource
       versioning for this FHIR store. This field can not be changed after the
-      creation of FHIR store. If set to false, which is the default behavior,
-      all write operations cause historical versions to be recorded
-      automatically. The historical versions can be fetched through the
-      history APIs, but cannot be updated. If set to true, no historical
-      versions are kept. The server sends errors for attempts to read the
-      historical versions.
-    enableHistoryModifications: Optional. Whether to allow ExecuteBundle to
-      accept history bundles, and directly insert and overwrite historical
-      resource versions into the FHIR store. If set to false, using history
-      bundles fails with an error.
+      creation of FHIR store. If set to false, all write operations cause
+      historical versions to be recorded automatically. The historical
+      versions can be fetched through the history APIs, but cannot be updated.
+      If set to true, no historical versions are kept. The server sends errors
+      for attempts to read the historical versions. Defaults to false.
+    enableHistoryModifications: Optional. Whether to allow the
+      [ImportResourcesHistory] and [ExecuteBundle] APIs to accept history
+      bundles, and directly insert and overwrite historical resource versions
+      into the FHIR store. Changing resource histories creates resource
+      interactions that have occurred in the past which clients might not
+      allow. If set to false, [ImportResourcesHistory] and [ExecuteBundle]
+      requests will return errors.
     enableUpdateCreate: Whether this FHIR store has the [updateCreate
       capability](https://www.hl7.org/fhir/capabilitystatement-
       definitions.html#CapabilityStatement.rest.resource.updateCreate). This
@@ -2820,7 +2628,8 @@ class FhirStore(_messages.Message):
       or encode any sensitive data such as patient identifiers in client-
       specified resource IDs. Those IDs are part of the FHIR resource path
       recorded in Cloud audit logs and Pub/Sub notifications. Those IDs can
-      also be contained in reference fields within other resources.
+      also be contained in reference fields within other resources. Defaults
+      to false.
     labels: User-supplied key-value pairs used to organize FHIR stores. Label
       keys must be between 1 and 63 characters long, have a UTF-8 encoding of
       maximum 128 bytes, and must conform to the following PCRE regular
@@ -2836,7 +2645,8 @@ class FhirStore(_messages.Message):
       non-empty, publish all resource modifications of this FHIR store to this
       destination. The Pub/Sub message attributes contain a map with a string
       describing the action that has triggered the notification. For example,
-      "action":"CreateResource".
+      "action":"CreateResource". Not supported in R5. Use
+      `notification_configs` instead.
     notificationConfigs: Specifies where and whether to send notifications
       upon changes to a Fhir store.
     searchConfig: Configuration for how FHIR resources can be searched.
@@ -2870,7 +2680,7 @@ class FhirStore(_messages.Message):
     parsed. New stores will have this value set to ENABLED after a
     notification period. Warning: turning on this flag causes processing
     existing resources to fail if they contain references to non-existent
-    resources.
+    resources. Cannot be disabled in R5.
 
     Values:
       COMPLEX_DATA_TYPE_REFERENCE_PARSING_UNSPECIFIED: No parsing behavior
@@ -2895,11 +2705,13 @@ class FhirStore(_messages.Message):
         2](https://www.hl7.org/fhir/DSTU2)
       STU3: Standard for Trial Use, [Release 3](https://www.hl7.org/fhir/STU3)
       R4: [Release 4](https://www.hl7.org/fhir/R4)
+      R5: [Release 5](https://www.hl7.org/fhir/R5)
     """
     VERSION_UNSPECIFIED = 0
     DSTU2 = 1
     STU3 = 2
     R4 = 3
+    R5 = 4
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
@@ -2932,21 +2744,22 @@ class FhirStore(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
-  complexDataTypeReferenceParsing = _messages.EnumField('ComplexDataTypeReferenceParsingValueValuesEnum', 1)
-  consentConfig = _messages.MessageField('ConsentConfig', 2)
-  defaultSearchHandlingStrict = _messages.BooleanField(3)
-  disableReferentialIntegrity = _messages.BooleanField(4)
-  disableResourceVersioning = _messages.BooleanField(5)
-  enableHistoryModifications = _messages.BooleanField(6)
-  enableUpdateCreate = _messages.BooleanField(7)
-  labels = _messages.MessageField('LabelsValue', 8)
-  name = _messages.StringField(9)
-  notificationConfig = _messages.MessageField('NotificationConfig', 10)
-  notificationConfigs = _messages.MessageField('FhirNotificationConfig', 11, repeated=True)
-  searchConfig = _messages.MessageField('SearchConfig', 12)
-  streamConfigs = _messages.MessageField('StreamConfig', 13, repeated=True)
-  validationConfig = _messages.MessageField('ValidationConfig', 14)
-  version = _messages.EnumField('VersionValueValuesEnum', 15)
+  bulkExportGcsDestination = _messages.MessageField('BulkExportGcsDestination', 1)
+  complexDataTypeReferenceParsing = _messages.EnumField('ComplexDataTypeReferenceParsingValueValuesEnum', 2)
+  consentConfig = _messages.MessageField('ConsentConfig', 3)
+  defaultSearchHandlingStrict = _messages.BooleanField(4)
+  disableReferentialIntegrity = _messages.BooleanField(5)
+  disableResourceVersioning = _messages.BooleanField(6)
+  enableHistoryModifications = _messages.BooleanField(7)
+  enableUpdateCreate = _messages.BooleanField(8)
+  labels = _messages.MessageField('LabelsValue', 9)
+  name = _messages.StringField(10)
+  notificationConfig = _messages.MessageField('NotificationConfig', 11)
+  notificationConfigs = _messages.MessageField('FhirNotificationConfig', 12, repeated=True)
+  searchConfig = _messages.MessageField('SearchConfig', 13)
+  streamConfigs = _messages.MessageField('StreamConfig', 14, repeated=True)
+  validationConfig = _messages.MessageField('ValidationConfig', 15)
+  version = _messages.EnumField('VersionValueValuesEnum', 16)
 
 
 class FhirStoreMetric(_messages.Message):
@@ -3038,9 +2851,7 @@ class FieldMetadata(_messages.Message):
         in TextConfig. When the specified transformation cannot be applied to
         a field, RedactConfig is used. For example, a Crypto Hash
         transformation can't be applied to a FHIR Date field.
-      INSPECT_AND_TRANSFORM: Inspect and transform any found PHI. When
-        `AnnotationConfig` is provided, annotations of PHI will be generated,
-        except for Date and Datetime.
+      INSPECT_AND_TRANSFORM: Inspect and transform any found PHI.
       DO_NOT_TRANSFORM: Do not transform.
     """
     ACTION_UNSPECIFIED = 0
@@ -3050,36 +2861,6 @@ class FieldMetadata(_messages.Message):
 
   action = _messages.EnumField('ActionValueValuesEnum', 1)
   paths = _messages.StringField(2, repeated=True)
-
-
-class FilterList(_messages.Message):
-  r"""List of infoTypes to be filtered.
-
-  Fields:
-    infoTypes: These infoTypes are based on after the `eval_info_type_mapping`
-      and `golden_info_type_mapping`.
-  """
-
-  infoTypes = _messages.StringField(1, repeated=True)
-
-
-class Finding(_messages.Message):
-  r"""A Finding object.
-
-  Fields:
-    end: Zero-based ending index of the found text, exclusively.
-    infoType: The type of information stored in this text range. For example,
-      HumanName, BirthDate, or Address.
-    quote: The snippet of the sensitive text. This field is only populated
-      during deidentification if `store_quote` is set to true in
-      DeidentifyConfig.
-    start: Zero-based starting index of the found text, inclusively.
-  """
-
-  end = _messages.IntegerField(1)
-  infoType = _messages.StringField(2)
-  quote = _messages.StringField(3)
-  start = _messages.IntegerField(4)
 
 
 class GcsDestination(_messages.Message):
@@ -3159,100 +2940,6 @@ class GcsSource(_messages.Message):
       with `.ndjson` extensions in `my-directory/` and its sub-directories. *
       `?` to match 1 character Files matching the wildcard are expected to
       contain content only, no metadata.
-  """
-
-  uri = _messages.StringField(1)
-
-
-class GoogleCloudHealthcareV1beta1AnnotationBigQueryDestination(_messages.Message):
-  r"""The BigQuery table for export.
-
-  Enums:
-    SchemaTypeValueValuesEnum: Specifies the schema format to export.
-    WriteDispositionValueValuesEnum: Determines if existing data in the
-      destination dataset is overwritten, appended to, or not written if the
-      tables contain data. If a write_disposition is specified, the `force`
-      parameter is ignored.
-
-  Fields:
-    force: Use `write_disposition` instead. If `write_disposition` is
-      specified, this parameter is ignored. force=false is equivalent to
-      write_disposition=WRITE_EMPTY and force=true is equivalent to
-      write_disposition=WRITE_TRUNCATE.
-    schemaType: Specifies the schema format to export.
-    tableUri: BigQuery URI to a table, up to 2000 characters long, must be of
-      the form bq://projectId.bqDatasetId.tableId.
-    writeDisposition: Determines if existing data in the destination dataset
-      is overwritten, appended to, or not written if the tables contain data.
-      If a write_disposition is specified, the `force` parameter is ignored.
-  """
-
-  class SchemaTypeValueValuesEnum(_messages.Enum):
-    r"""Specifies the schema format to export.
-
-    Values:
-      SCHEMA_TYPE_UNSPECIFIED: Same as SIMPLE.
-      SIMPLE: A flatterned version of Annotation.
-    """
-    SCHEMA_TYPE_UNSPECIFIED = 0
-    SIMPLE = 1
-
-  class WriteDispositionValueValuesEnum(_messages.Enum):
-    r"""Determines if existing data in the destination dataset is overwritten,
-    appended to, or not written if the tables contain data. If a
-    write_disposition is specified, the `force` parameter is ignored.
-
-    Values:
-      WRITE_DISPOSITION_UNSPECIFIED: Default behavior is the same as
-        WRITE_EMPTY.
-      WRITE_EMPTY: Only export data if the destination table is empty.
-      WRITE_TRUNCATE: Erase all existing data in a table before writing the
-        instances.
-      WRITE_APPEND: Append data to the existing table.
-    """
-    WRITE_DISPOSITION_UNSPECIFIED = 0
-    WRITE_EMPTY = 1
-    WRITE_TRUNCATE = 2
-    WRITE_APPEND = 3
-
-  force = _messages.BooleanField(1)
-  schemaType = _messages.EnumField('SchemaTypeValueValuesEnum', 2)
-  tableUri = _messages.StringField(3)
-  writeDisposition = _messages.EnumField('WriteDispositionValueValuesEnum', 4)
-
-
-class GoogleCloudHealthcareV1beta1AnnotationGcsDestination(_messages.Message):
-  r"""The Cloud Storage location for export.
-
-  Fields:
-    uriPrefix: The Cloud Storage destination to export to. URI for a Cloud
-      Storage directory where the server writes result files, in the format
-      `gs://{bucket-id}/{path/to/destination/dir}`. If there is no trailing
-      slash, the service appends one when composing the object path. The user
-      is responsible for creating the Cloud Storage bucket referenced in
-      `uri_prefix`.
-  """
-
-  uriPrefix = _messages.StringField(1)
-
-
-class GoogleCloudHealthcareV1beta1AnnotationGcsSource(_messages.Message):
-  r"""Specifies the configuration for importing data from Cloud Storage.
-
-  Fields:
-    uri: Points to a Cloud Storage URI containing file(s) with content only.
-      The URI must be in the following format: `gs://{bucket_id}/{object_id}`.
-      The URI can include wildcards in `object_id` and thus identify multiple
-      files. Supported wildcards: '*' to match 0 or more non-separator
-      characters '**' to match 0 or more characters (including separators).
-      Must be used at the end of a path and with no other wildcards in the
-      path. Can also be used with a file extension (such as .dcm), which
-      imports all files with the extension in the specified directory and its
-      sub-directories. For example, `gs://my-bucket/my-directory/**.json`
-      imports all files with .json extensions in `my-directory/` and its sub-
-      directories. '?' to match 1 character All other URI formats are invalid.
-      Files matching the wildcard are expected to contain content only, no
-      metadata.
   """
 
   uri = _messages.StringField(1)
@@ -3515,6 +3202,15 @@ class GoogleCloudHealthcareV1beta1FhirBigQueryDestination(_messages.Message):
       parameter is ignored.
 
   Fields:
+    changeDataCaptureConfig: Optional. Setting this field will enable
+      BigQuery's Change Data Capture (CDC) on the destination tables. Use this
+      field if you: - Want to only keep the latest version of each resource.
+      Updates and deletes to an existing resource will overwrite the
+      corresponding row. - Have a store with enabled history modifications and
+      want to keep the entire history of resource versions but want the
+      history to be mutable. Updates and deletes to a specific resource
+      version will overwrite the corresponding row. See
+      https://cloud.google.com/bigquery/docs/change-data-capture for details.
     datasetUri: BigQuery URI to an existing dataset, up to 2000 characters
       long, in the format `bq://projectId.bqDatasetId`.
     force: Use `write_disposition` instead. If `write_disposition` is
@@ -3545,10 +3241,49 @@ class GoogleCloudHealthcareV1beta1FhirBigQueryDestination(_messages.Message):
     WRITE_TRUNCATE = 2
     WRITE_APPEND = 3
 
-  datasetUri = _messages.StringField(1)
-  force = _messages.BooleanField(2)
-  schemaConfig = _messages.MessageField('SchemaConfig', 3)
-  writeDisposition = _messages.EnumField('WriteDispositionValueValuesEnum', 4)
+  changeDataCaptureConfig = _messages.MessageField('GoogleCloudHealthcareV1beta1FhirChangeDataCaptureConfig', 1)
+  datasetUri = _messages.StringField(2)
+  force = _messages.BooleanField(3)
+  schemaConfig = _messages.MessageField('SchemaConfig', 4)
+  writeDisposition = _messages.EnumField('WriteDispositionValueValuesEnum', 5)
+
+
+class GoogleCloudHealthcareV1beta1FhirChangeDataCaptureConfig(_messages.Message):
+  r"""BigQuery Change Data Capture configuration.
+
+  Enums:
+    HistoryModeValueValuesEnum: Optional. Configures how historical versions
+      of FHIR resources will be reflected in the destination table through
+      updates and deletes. Defaults to `HistoryMode.KEEP_LATEST_VERSION` if
+      unspecified.
+
+  Fields:
+    historyMode: Optional. Configures how historical versions of FHIR
+      resources will be reflected in the destination table through updates and
+      deletes. Defaults to `HistoryMode.KEEP_LATEST_VERSION` if unspecified.
+  """
+
+  class HistoryModeValueValuesEnum(_messages.Enum):
+    r"""Optional. Configures how historical versions of FHIR resources will be
+    reflected in the destination table through updates and deletes. Defaults
+    to `HistoryMode.KEEP_LATEST_VERSION` if unspecified.
+
+    Values:
+      HISTORY_MODE_UNSPECIFIED: Default behavior is the same as
+        KEEP_LATEST_VERSION.
+      KEEP_LATEST_VERSION: The table will have a unique entry for each
+        resource ID. Updates and deletes will overwrite the row matching the
+        resource ID if it exists in the table.
+      KEEP_ALL_VERSIONS: Historical versions of resources will be maintained.
+        However, history mutation is allowed. Updates will overwrite the row
+        matching the resource ID and version if it exists in the table. This
+        option is only supported for stores with history enabled.
+    """
+    HISTORY_MODE_UNSPECIFIED = 0
+    KEEP_LATEST_VERSION = 1
+    KEEP_ALL_VERSIONS = 2
+
+  historyMode = _messages.EnumField('HistoryModeValueValuesEnum', 1)
 
 
 class GoogleCloudHealthcareV1beta1FhirExportResourcesResponse(_messages.Message):
@@ -3612,324 +3347,6 @@ class GroupOrSegment(_messages.Message):
 
   group = _messages.MessageField('SchemaGroup', 1)
   segment = _messages.MessageField('SchemaSegment', 2)
-
-
-class HealthcareProjectsLocationsDatasetsAnnotationStoresAnnotationsCreateRequest(_messages.Message):
-  r"""A
-  HealthcareProjectsLocationsDatasetsAnnotationStoresAnnotationsCreateRequest
-  object.
-
-  Fields:
-    annotation: A Annotation resource to be passed as the request body.
-    parent: Required. The name of the Annotation store this annotation belongs
-      to. For example, `projects/my-project/locations/us-
-      central1/datasets/mydataset/annotationStores/myannotationstore`.
-  """
-
-  annotation = _messages.MessageField('Annotation', 1)
-  parent = _messages.StringField(2, required=True)
-
-
-class HealthcareProjectsLocationsDatasetsAnnotationStoresAnnotationsDeleteRequest(_messages.Message):
-  r"""A
-  HealthcareProjectsLocationsDatasetsAnnotationStoresAnnotationsDeleteRequest
-  object.
-
-  Fields:
-    name: Required. The resource name of the Annotation to delete.
-  """
-
-  name = _messages.StringField(1, required=True)
-
-
-class HealthcareProjectsLocationsDatasetsAnnotationStoresAnnotationsGetRequest(_messages.Message):
-  r"""A
-  HealthcareProjectsLocationsDatasetsAnnotationStoresAnnotationsGetRequest
-  object.
-
-  Fields:
-    name: Required. The resource name of the Annotation to retrieve.
-  """
-
-  name = _messages.StringField(1, required=True)
-
-
-class HealthcareProjectsLocationsDatasetsAnnotationStoresAnnotationsListRequest(_messages.Message):
-  r"""A
-  HealthcareProjectsLocationsDatasetsAnnotationStoresAnnotationsListRequest
-  object.
-
-  Enums:
-    ViewValueValuesEnum: Controls which fields are populated in the response.
-
-  Fields:
-    filter: Restricts Annotations returned to those matching a filter.
-      Functions available for filtering are: -
-      `matches("annotation_source.cloud_healthcare_source.name", substring)`.
-      Filter on `cloud_healthcare_source.name`. For example:
-      `matches("annotation_source.cloud_healthcare_source.name", "some
-      source")`. - `matches("annotation", substring)`. Filter on all fields of
-      annotation. For example: `matches("annotation", "some-content")`. -
-      `type("text")`, `type("image")`, `type("resource")`. Filter on the type
-      of annotation `data`.
-    pageSize: Limit on the number of Annotations to return in a single
-      response. If not specified, 100 is used. May not be larger than 1000.
-    pageToken: The next_page_token value returned from the previous List
-      request, if any.
-    parent: Required. Name of the Annotation store to retrieve Annotations
-      from.
-    view: Controls which fields are populated in the response.
-  """
-
-  class ViewValueValuesEnum(_messages.Enum):
-    r"""Controls which fields are populated in the response.
-
-    Values:
-      ANNOTATION_VIEW_UNSPECIFIED: Same as BASIC.
-      ANNOTATION_VIEW_BASIC: Only `name`, `annotation_source` and
-        `custom_data` fields are populated.
-      ANNOTATION_VIEW_FULL: All fields are populated.
-    """
-    ANNOTATION_VIEW_UNSPECIFIED = 0
-    ANNOTATION_VIEW_BASIC = 1
-    ANNOTATION_VIEW_FULL = 2
-
-  filter = _messages.StringField(1)
-  pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(3)
-  parent = _messages.StringField(4, required=True)
-  view = _messages.EnumField('ViewValueValuesEnum', 5)
-
-
-class HealthcareProjectsLocationsDatasetsAnnotationStoresAnnotationsPatchRequest(_messages.Message):
-  r"""A
-  HealthcareProjectsLocationsDatasetsAnnotationStoresAnnotationsPatchRequest
-  object.
-
-  Fields:
-    annotation: A Annotation resource to be passed as the request body.
-    name: Identifier. Resource name of the Annotation, of the form `projects/{
-      project_id}/locations/{location_id}/datasets/{dataset_id}/annotationStor
-      es/{annotation_store_id}/annotations/{annotation_id}`.
-    updateMask: Required. The update mask applies to the resource. For the
-      `FieldMask` definition, see https://developers.google.com/protocol-
-      buffers/docs/reference/google.protobuf#fieldmask
-  """
-
-  annotation = _messages.MessageField('Annotation', 1)
-  name = _messages.StringField(2, required=True)
-  updateMask = _messages.StringField(3)
-
-
-class HealthcareProjectsLocationsDatasetsAnnotationStoresCreateRequest(_messages.Message):
-  r"""A HealthcareProjectsLocationsDatasetsAnnotationStoresCreateRequest
-  object.
-
-  Fields:
-    annotationStore: A AnnotationStore resource to be passed as the request
-      body.
-    annotationStoreId: Required. The ID of the Annotation store that is being
-      created. The string must match the following regex:
-      `[\p{L}\p{N}_\-\.]{1,256}`.
-    parent: Required. The name of the dataset this Annotation store belongs
-      to.
-  """
-
-  annotationStore = _messages.MessageField('AnnotationStore', 1)
-  annotationStoreId = _messages.StringField(2)
-  parent = _messages.StringField(3, required=True)
-
-
-class HealthcareProjectsLocationsDatasetsAnnotationStoresDeleteRequest(_messages.Message):
-  r"""A HealthcareProjectsLocationsDatasetsAnnotationStoresDeleteRequest
-  object.
-
-  Fields:
-    name: Required. The resource name of the Annotation store to delete.
-  """
-
-  name = _messages.StringField(1, required=True)
-
-
-class HealthcareProjectsLocationsDatasetsAnnotationStoresEvaluateRequest(_messages.Message):
-  r"""A HealthcareProjectsLocationsDatasetsAnnotationStoresEvaluateRequest
-  object.
-
-  Fields:
-    evaluateAnnotationStoreRequest: A EvaluateAnnotationStoreRequest resource
-      to be passed as the request body.
-    name: Required. The Annotation store to compare against `golden_store`, in
-      the format of `projects/{project_id}/locations/{location_id}/datasets/{d
-      ataset_id}/annotationStores/{annotation_store_id}`.
-  """
-
-  evaluateAnnotationStoreRequest = _messages.MessageField('EvaluateAnnotationStoreRequest', 1)
-  name = _messages.StringField(2, required=True)
-
-
-class HealthcareProjectsLocationsDatasetsAnnotationStoresExportRequest(_messages.Message):
-  r"""A HealthcareProjectsLocationsDatasetsAnnotationStoresExportRequest
-  object.
-
-  Fields:
-    exportAnnotationsRequest: A ExportAnnotationsRequest resource to be passed
-      as the request body.
-    name: Required. The name of the Annotation store to export annotations to,
-      in the format of `projects/{project_id}/locations/{location_id}/datasets
-      /{dataset_id}/annotationStores/{annotation_store_id}`.
-  """
-
-  exportAnnotationsRequest = _messages.MessageField('ExportAnnotationsRequest', 1)
-  name = _messages.StringField(2, required=True)
-
-
-class HealthcareProjectsLocationsDatasetsAnnotationStoresGetIamPolicyRequest(_messages.Message):
-  r"""A HealthcareProjectsLocationsDatasetsAnnotationStoresGetIamPolicyRequest
-  object.
-
-  Fields:
-    options_requestedPolicyVersion: Optional. The maximum policy version that
-      will be used to format the policy. Valid values are 0, 1, and 3.
-      Requests specifying an invalid value will be rejected. Requests for
-      policies with any conditional role bindings must specify version 3.
-      Policies with no conditional role bindings may specify any valid value
-      or leave the field unset. The policy in the response might use the
-      policy version that you specified, or it might use a lower policy
-      version. For example, if you specify version 3, but the policy has no
-      conditional role bindings, the response uses version 1. To learn which
-      resources support conditions in their IAM policies, see the [IAM
-      documentation](https://cloud.google.com/iam/help/conditions/resource-
-      policies).
-    resource: REQUIRED: The resource for which the policy is being requested.
-      See [Resource
-      names](https://cloud.google.com/apis/design/resource_names) for the
-      appropriate value for this field.
-  """
-
-  options_requestedPolicyVersion = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  resource = _messages.StringField(2, required=True)
-
-
-class HealthcareProjectsLocationsDatasetsAnnotationStoresGetRequest(_messages.Message):
-  r"""A HealthcareProjectsLocationsDatasetsAnnotationStoresGetRequest object.
-
-  Fields:
-    name: Required. The resource name of the Annotation store to get.
-  """
-
-  name = _messages.StringField(1, required=True)
-
-
-class HealthcareProjectsLocationsDatasetsAnnotationStoresImportRequest(_messages.Message):
-  r"""A HealthcareProjectsLocationsDatasetsAnnotationStoresImportRequest
-  object.
-
-  Fields:
-    importAnnotationsRequest: A ImportAnnotationsRequest resource to be passed
-      as the request body.
-    name: Required. The name of the Annotation store to which the server
-      imports annotations, in the format `projects/{project_id}/locations/{loc
-      ation_id}/datasets/{dataset_id}/annotationStores/{annotation_store_id}`.
-  """
-
-  importAnnotationsRequest = _messages.MessageField('ImportAnnotationsRequest', 1)
-  name = _messages.StringField(2, required=True)
-
-
-class HealthcareProjectsLocationsDatasetsAnnotationStoresListRequest(_messages.Message):
-  r"""A HealthcareProjectsLocationsDatasetsAnnotationStoresListRequest object.
-
-  Fields:
-    filter: Restricts stores returned to those matching a filter. The
-      following syntax is available: * A string field value can be written as
-      text inside quotation marks, for example `"query text"`. The only valid
-      relational operation for text fields is equality (`=`), where text is
-      searched within the field, rather than having the field be equal to the
-      text. For example, `"Comment = great"` returns messages with `great` in
-      the comment field. * A number field value can be written as an integer,
-      a decimal, or an exponential. The valid relational operators for number
-      fields are the equality operator (`=`), along with the less than/greater
-      than operators (`<`, `<=`, `>`, `>=`). Note that there is no inequality
-      (`!=`) operator. You can prepend the `NOT` operator to an expression to
-      negate it. * A date field value must be written in `yyyy-mm-dd` form.
-      Fields with date and time use the RFC3339 time format. Leading zeros are
-      required for one-digit months and days. The valid relational operators
-      for date fields are the equality operator (`=`) , along with the less
-      than/greater than operators (`<`, `<=`, `>`, `>=`). Note that there is
-      no inequality (`!=`) operator. You can prepend the `NOT` operator to an
-      expression to negate it. * Multiple field query expressions can be
-      combined in one query by adding `AND` or `OR` operators between the
-      expressions. If a boolean operator appears within a quoted string, it is
-      not treated as special, it's just another part of the character string
-      to be matched. You can prepend the `NOT` operator to an expression to
-      negate it. Only filtering on labels is supported, for example
-      `labels.key=value`.
-    pageSize: Limit on the number of Annotation stores to return in a single
-      response. If not specified, 100 is used. May not be larger than 1000.
-    pageToken: The next_page_token value returned from the previous List
-      request, if any.
-    parent: Required. Name of the dataset.
-  """
-
-  filter = _messages.StringField(1)
-  pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(3)
-  parent = _messages.StringField(4, required=True)
-
-
-class HealthcareProjectsLocationsDatasetsAnnotationStoresPatchRequest(_messages.Message):
-  r"""A HealthcareProjectsLocationsDatasetsAnnotationStoresPatchRequest
-  object.
-
-  Fields:
-    annotationStore: A AnnotationStore resource to be passed as the request
-      body.
-    name: Identifier. Resource name of the Annotation store, of the form `proj
-      ects/{project_id}/locations/{location_id}/datasets/{dataset_id}/annotati
-      onStores/{annotation_store_id}`.
-    updateMask: Required. The update mask applies to the resource. For the
-      `FieldMask` definition, see https://developers.google.com/protocol-
-      buffers/docs/reference/google.protobuf#fieldmask
-  """
-
-  annotationStore = _messages.MessageField('AnnotationStore', 1)
-  name = _messages.StringField(2, required=True)
-  updateMask = _messages.StringField(3)
-
-
-class HealthcareProjectsLocationsDatasetsAnnotationStoresSetIamPolicyRequest(_messages.Message):
-  r"""A HealthcareProjectsLocationsDatasetsAnnotationStoresSetIamPolicyRequest
-  object.
-
-  Fields:
-    resource: REQUIRED: The resource for which the policy is being specified.
-      See [Resource
-      names](https://cloud.google.com/apis/design/resource_names) for the
-      appropriate value for this field.
-    setIamPolicyRequest: A SetIamPolicyRequest resource to be passed as the
-      request body.
-  """
-
-  resource = _messages.StringField(1, required=True)
-  setIamPolicyRequest = _messages.MessageField('SetIamPolicyRequest', 2)
-
-
-class HealthcareProjectsLocationsDatasetsAnnotationStoresTestIamPermissionsRequest(_messages.Message):
-  r"""A
-  HealthcareProjectsLocationsDatasetsAnnotationStoresTestIamPermissionsRequest
-  object.
-
-  Fields:
-    resource: REQUIRED: The resource for which the policy detail is being
-      requested. See [Resource
-      names](https://cloud.google.com/apis/design/resource_names) for the
-      appropriate value for this field.
-    testIamPermissionsRequest: A TestIamPermissionsRequest resource to be
-      passed as the request body.
-  """
-
-  resource = _messages.StringField(1, required=True)
-  testIamPermissionsRequest = _messages.MessageField('TestIamPermissionsRequest', 2)
 
 
 class HealthcareProjectsLocationsDatasetsConsentStoresAttributeDefinitionsCreateRequest(_messages.Message):
@@ -4770,6 +4187,7 @@ class HealthcareProjectsLocationsDatasetsDeidentifyRequest(_messages.Message):
       as the request body.
     sourceDataset: Required. Source dataset resource name. For example,
       `projects/{project_id}/locations/{location_id}/datasets/{dataset_id}`.
+      R5 FHIR stores are not supported and will be skipped.
   """
 
   deidentifyDatasetRequest = _messages.MessageField('DeidentifyDatasetRequest', 1)
@@ -4859,10 +4277,10 @@ class HealthcareProjectsLocationsDatasetsDicomStoresDicomWebStudiesSeriesInstanc
   tancesGetStorageInfoRequest object.
 
   Fields:
-    resource: Required. The path of the resource for which the storage info is
-      requested (for exaxmple for a DICOM Instance: `projects/{projectID}/loca
-      tions/{locationID}/datasets/{datasetID}/dicomStores/{dicomStoreId}/dicom
-      Web/studies/{study_uid}/series/{series_uid}/instances/{instance_uid}`)
+    resource: Required. The path of the instance to return storage info for,
+      in the form: `projects/{projectID}/locations/{locationID}/datasets/{data
+      setID}/dicomStores/{dicomStoreID}/dicomWeb/studies/{studyUID}/series/{se
+      riesUID}/instances/{instanceUID}`
   """
 
   resource = _messages.StringField(1, required=True)
@@ -5302,10 +4720,14 @@ class HealthcareProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesFrames
     parent: Required. The name of the DICOM store that is being accessed. For
       example, `projects/{project_id}/locations/{location_id}/datasets/{datase
       t_id}/dicomStores/{dicom_store_id}`.
+    viewport: Optional. The viewport setting to use as specified in https://di
+      com.nema.org/medical/dicom/current/output/chtml/part18/sect_8.3.5.html#s
+      ect_8.3.5.1.3
   """
 
   dicomWebPath = _messages.StringField(1, required=True)
   parent = _messages.StringField(2, required=True)
+  viewport = _messages.StringField(3)
 
 
 class HealthcareProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesRetrieveInstanceRequest(_messages.Message):
@@ -5353,10 +4775,33 @@ class HealthcareProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesRetrie
     parent: Required. The name of the DICOM store that is being accessed. For
       example, `projects/{project_id}/locations/{location_id}/datasets/{datase
       t_id}/dicomStores/{dicom_store_id}`.
+    viewport: Optional. The viewport setting to use as specified in https://di
+      com.nema.org/medical/dicom/current/output/chtml/part18/sect_8.3.5.html#s
+      ect_8.3.5.1.3
   """
 
   dicomWebPath = _messages.StringField(1, required=True)
   parent = _messages.StringField(2, required=True)
+  viewport = _messages.StringField(3)
+
+
+class HealthcareProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesUpdateMetadataRequest(_messages.Message):
+  r"""A HealthcareProjectsLocationsDatasetsDicomStoresStudiesSeriesInstancesUp
+  dateMetadataRequest object.
+
+  Fields:
+    dicomWebPath: Required. The path of the UpdateInstanceMetadata request
+      (for example,
+      `studies/{study_uid}/series/{series_uid}/instances/{instance_uid}`).
+    httpBody: A HttpBody resource to be passed as the request body.
+    parent: Required. The name of the DICOM store that is being accessed (for
+      example, `projects/{project_id}/locations/{location_id}/datasets/{datase
+      t_id}/dicomStores/{dicom_store_id}`).
+  """
+
+  dicomWebPath = _messages.StringField(1, required=True)
+  httpBody = _messages.MessageField('HttpBody', 2)
+  parent = _messages.StringField(3, required=True)
 
 
 class HealthcareProjectsLocationsDatasetsDicomStoresStudiesSeriesRetrieveMetadataRequest(_messages.Message):
@@ -5409,6 +4854,24 @@ class HealthcareProjectsLocationsDatasetsDicomStoresStudiesSeriesSearchForInstan
   parent = _messages.StringField(2, required=True)
 
 
+class HealthcareProjectsLocationsDatasetsDicomStoresStudiesSeriesUpdateMetadataRequest(_messages.Message):
+  r"""A HealthcareProjectsLocationsDatasetsDicomStoresStudiesSeriesUpdateMetad
+  ataRequest object.
+
+  Fields:
+    dicomWebPath: Required. The path of the UpdateSeriesMetadata request (for
+      example, `studies/{study_uid}/series/{series_uid}`).
+    httpBody: A HttpBody resource to be passed as the request body.
+    parent: Required. The name of the DICOM store that is being accessed (for
+      example, `projects/{project_id}/locations/{location_id}/datasets/{datase
+      t_id}/dicomStores/{dicom_store_id}`).
+  """
+
+  dicomWebPath = _messages.StringField(1, required=True)
+  httpBody = _messages.MessageField('HttpBody', 2)
+  parent = _messages.StringField(3, required=True)
+
+
 class HealthcareProjectsLocationsDatasetsDicomStoresStudiesStoreInstancesRequest(_messages.Message):
   r"""A
   HealthcareProjectsLocationsDatasetsDicomStoresStudiesStoreInstancesRequest
@@ -5422,6 +4885,45 @@ class HealthcareProjectsLocationsDatasetsDicomStoresStudiesStoreInstancesRequest
     parent: Required. The name of the DICOM store that is being accessed. For
       example, `projects/{project_id}/locations/{location_id}/datasets/{datase
       t_id}/dicomStores/{dicom_store_id}`.
+  """
+
+  dicomWebPath = _messages.StringField(1, required=True)
+  httpBody = _messages.MessageField('HttpBody', 2)
+  parent = _messages.StringField(3, required=True)
+
+
+class HealthcareProjectsLocationsDatasetsDicomStoresStudiesUpdateInstancesRequest(_messages.Message):
+  r"""A
+  HealthcareProjectsLocationsDatasetsDicomStoresStudiesUpdateInstancesRequest
+  object.
+
+  Fields:
+    dicomWebPath: Required. The path of the UpdateInstances DICOMweb request.
+      For example, `studies/[{study_uid}]`. Note that the `study_uid` is
+      optional.
+    httpBody: A HttpBody resource to be passed as the request body.
+    parent: Required. The name of the DICOM store that is being accessed. For
+      example, `projects/{project_id}/locations/{location_id}/datasets/{datase
+      t_id}/dicomStores/{dicom_store_id}`.
+  """
+
+  dicomWebPath = _messages.StringField(1, required=True)
+  httpBody = _messages.MessageField('HttpBody', 2)
+  parent = _messages.StringField(3, required=True)
+
+
+class HealthcareProjectsLocationsDatasetsDicomStoresStudiesUpdateMetadataRequest(_messages.Message):
+  r"""A
+  HealthcareProjectsLocationsDatasetsDicomStoresStudiesUpdateMetadataRequest
+  object.
+
+  Fields:
+    dicomWebPath: Required. The path of the UpdateStudyMetadata request (for
+      example, `studies/{study_uid}`).
+    httpBody: A HttpBody resource to be passed as the request body.
+    parent: Required. The name of the DICOM store that is being accessed (for
+      example, `projects/{project_id}/locations/{location_id}/datasets/{datase
+      t_id}/dicomStores/{dicom_store_id}`).
   """
 
   dicomWebPath = _messages.StringField(1, required=True)
@@ -5445,6 +4947,25 @@ class HealthcareProjectsLocationsDatasetsDicomStoresTestIamPermissionsRequest(_m
 
   resource = _messages.StringField(1, required=True)
   testIamPermissionsRequest = _messages.MessageField('TestIamPermissionsRequest', 2)
+
+
+class HealthcareProjectsLocationsDatasetsDicomStoresUpdateInstancesRequest(_messages.Message):
+  r"""A HealthcareProjectsLocationsDatasetsDicomStoresUpdateInstancesRequest
+  object.
+
+  Fields:
+    dicomWebPath: Required. The path of the UpdateInstances DICOMweb request.
+      For example, `studies/[{study_uid}]`. Note that the `study_uid` is
+      optional.
+    httpBody: A HttpBody resource to be passed as the request body.
+    parent: Required. The name of the DICOM store that is being accessed. For
+      example, `projects/{project_id}/locations/{location_id}/datasets/{datase
+      t_id}/dicomStores/{dicom_store_id}`.
+  """
+
+  dicomWebPath = _messages.StringField(1, required=True)
+  httpBody = _messages.MessageField('HttpBody', 2)
+  parent = _messages.StringField(3, required=True)
 
 
 class HealthcareProjectsLocationsDatasetsFhirStoresApplyAdminConsentsRequest(_messages.Message):
@@ -5477,6 +4998,43 @@ class HealthcareProjectsLocationsDatasetsFhirStoresApplyConsentsRequest(_message
 
   applyConsentsRequest = _messages.MessageField('ApplyConsentsRequest', 1)
   name = _messages.StringField(2, required=True)
+
+
+class HealthcareProjectsLocationsDatasetsFhirStoresBulkExportGroupRequest(_messages.Message):
+  r"""A HealthcareProjectsLocationsDatasetsFhirStoresBulkExportGroupRequest
+  object.
+
+  Fields:
+    _since: Optional. If provided, only resources updated after this time are
+      exported. The time uses the format YYYY-MM-DDThh:mm:ss.sss+zz:zz. For
+      example, `2015-02-07T13:28:17.239+02:00` or `2017-01-01T00:00:00Z`. The
+      time must be specified to the second and include a time zone.
+    _type: Optional. String of comma-delimited FHIR resource types. If
+      provided, only resources of the specified resource type(s) are exported.
+    name: Required. Name of the `Group` resource that is exported, in format `
+      projects/{project_id}/locations/{location_id}/datasets/{dataset_id}/fhir
+      Stores/{fhir_store_id}/fhir/Group/{group_id}`.
+    organizeOutputBy: Optional. Required. The FHIR resource type used to
+      organize exported resources. Only supports "Patient". When organized by
+      Patient resource, output files are grouped as follows: * Patient file(s)
+      containing the Patient resources. Each Patient is sequentially followed
+      by all resources the Patient references, and all resources that
+      reference the Patient (equivalent to a GetPatientEverything request). *
+      Individual files grouped by resource type for resources in the Group's
+      member field and the Group resource itself. Resources may be duplicated
+      across multiple Patients. For example, if two Patient resources
+      reference the same Organization resource, it will appear twice, once
+      after each Patient. The Group resource from the request does not appear
+      in the Patient files.
+    outputFormat: Optional. Output format of the export. This field is
+      optional and only `application/fhir+ndjson` is supported.
+  """
+
+  _since = _messages.StringField(1)
+  _type = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  organizeOutputBy = _messages.StringField(4)
+  outputFormat = _messages.StringField(5)
 
 
 class HealthcareProjectsLocationsDatasetsFhirStoresConfigureSearchRequest(_messages.Message):
@@ -5518,7 +5076,7 @@ class HealthcareProjectsLocationsDatasetsFhirStoresDeidentifyRequest(_messages.M
       passed as the request body.
     sourceStore: Required. Source FHIR store resource name. For example, `proj
       ects/{project_id}/locations/{location_id}/datasets/{dataset_id}/fhirStor
-      es/{fhir_store_id}`.
+      es/{fhir_store_id}`. R5 stores are not supported.
   """
 
   deidentifyFhirStoreRequest = _messages.MessageField('DeidentifyFhirStoreRequest', 1)
@@ -5580,6 +5138,78 @@ class HealthcareProjectsLocationsDatasetsFhirStoresExportRequest(_messages.Messa
 
   exportResourcesRequest = _messages.MessageField('ExportResourcesRequest', 1)
   name = _messages.StringField(2, required=True)
+
+
+class HealthcareProjectsLocationsDatasetsFhirStoresFhirBinaryCreateRequest(_messages.Message):
+  r"""A HealthcareProjectsLocationsDatasetsFhirStoresFhirBinaryCreateRequest
+  object.
+
+  Fields:
+    httpBody: A HttpBody resource to be passed as the request body.
+    parent: Required. The name of the FHIR store this resource belongs to.
+  """
+
+  httpBody = _messages.MessageField('HttpBody', 1)
+  parent = _messages.StringField(2, required=True)
+
+
+class HealthcareProjectsLocationsDatasetsFhirStoresFhirBinaryReadRequest(_messages.Message):
+  r"""A HealthcareProjectsLocationsDatasetsFhirStoresFhirBinaryReadRequest
+  object.
+
+  Fields:
+    name: Required. The name of the Binary resource to retrieve.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class HealthcareProjectsLocationsDatasetsFhirStoresFhirBinaryUpdateRequest(_messages.Message):
+  r"""A HealthcareProjectsLocationsDatasetsFhirStoresFhirBinaryUpdateRequest
+  object.
+
+  Fields:
+    httpBody: A HttpBody resource to be passed as the request body.
+    name: Required. The name of the resource to update.
+  """
+
+  httpBody = _messages.MessageField('HttpBody', 1)
+  name = _messages.StringField(2, required=True)
+
+
+class HealthcareProjectsLocationsDatasetsFhirStoresFhirBinaryVreadRequest(_messages.Message):
+  r"""A HealthcareProjectsLocationsDatasetsFhirStoresFhirBinaryVreadRequest
+  object.
+
+  Fields:
+    name: Required. The name of the Binary resource version to retrieve.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class HealthcareProjectsLocationsDatasetsFhirStoresFhirBulkExportRequest(_messages.Message):
+  r"""A HealthcareProjectsLocationsDatasetsFhirStoresFhirBulkExportRequest
+  object.
+
+  Fields:
+    _since: Optional. If provided, only resources updated after this time are
+      exported. The time uses the format YYYY-MM-DDThh:mm:ss.sss+zz:zz. For
+      example, `2015-02-07T13:28:17.239+02:00` or `2017-01-01T00:00:00Z`. The
+      time must be specified to the second and include a time zone.
+    _type: Optional. String of comma-delimited FHIR resource types. If
+      provided, only resources of the specified resource type(s) are exported.
+    name: Required. The name of the FHIR store to export resources from, in
+      the format `projects/{project_id}/locations/{location_id}/datasets/{data
+      set_id}/fhirStores/{fhir_store_id}`.
+    outputFormat: Optional. Output format of the export. This field is
+      optional and only `application/fhir+ndjson` is supported.
+  """
+
+  _since = _messages.StringField(1)
+  _type = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  outputFormat = _messages.StringField(4)
 
 
 class HealthcareProjectsLocationsDatasetsFhirStoresFhirCapabilitiesRequest(_messages.Message):
@@ -5648,10 +5278,11 @@ class HealthcareProjectsLocationsDatasetsFhirStoresFhirConditionalDeleteRequest(
   Fields:
     parent: Required. The name of the FHIR store this resource belongs to.
     type: Required. The FHIR resource type to delete, such as Patient or
-      Observation. For a complete list, see the FHIR Resource Index ([DSTU2](h
-      ttps://hl7.org/implement/standards/fhir/DSTU2/resourcelist.html),
-      [STU3](https://hl7.org/implement/standards/fhir/STU3/resourcelist.html),
-      [R4](https://hl7.org/implement/standards/fhir/R4/resourcelist.html)).
+      Observation. For a complete list, see the FHIR Resource Index
+      ([DSTU2](https://hl7.org/fhir/DSTU2/resourcelist.html),
+      [STU3](https://hl7.org/fhir/STU3/resourcelist.html),
+      [R4](https://hl7.org/fhir/R4/resourcelist.html),
+      [R5](https://hl7.org/fhir/R5/resourcelist.html)).
   """
 
   parent = _messages.StringField(1, required=True)
@@ -5667,10 +5298,11 @@ class HealthcareProjectsLocationsDatasetsFhirStoresFhirConditionalPatchRequest(_
     httpBody: A HttpBody resource to be passed as the request body.
     parent: Required. The name of the FHIR store this resource belongs to.
     type: Required. The FHIR resource type to update, such as Patient or
-      Observation. For a complete list, see the FHIR Resource Index ([DSTU2](h
-      ttps://hl7.org/implement/standards/fhir/DSTU2/resourcelist.html),
-      [STU3](https://hl7.org/implement/standards/fhir/STU3/resourcelist.html),
-      [R4](https://hl7.org/implement/standards/fhir/R4/resourcelist.html)).
+      Observation. For a complete list, see the FHIR Resource Index
+      ([DSTU2](https://hl7.org/fhir/DSTU2/resourcelist.html),
+      [STU3](https://hl7.org/fhir/STU3/resourcelist.html),
+      [R4](https://hl7.org/fhir/R4/resourcelist.html),
+      [R5](https://hl7.org/fhir/R5/resourcelist.html)).
   """
 
   httpBody = _messages.MessageField('HttpBody', 1)
@@ -5687,11 +5319,12 @@ class HealthcareProjectsLocationsDatasetsFhirStoresFhirConditionalUpdateRequest(
     httpBody: A HttpBody resource to be passed as the request body.
     parent: Required. The name of the FHIR store this resource belongs to.
     type: Required. The FHIR resource type to update, such as Patient or
-      Observation. For a complete list, see the FHIR Resource Index ([DSTU2](h
-      ttps://hl7.org/implement/standards/fhir/DSTU2/resourcelist.html),
-      [STU3](https://hl7.org/implement/standards/fhir/STU3/resourcelist.html),
-      [R4](https://hl7.org/implement/standards/fhir/R4/resourcelist.html)).
-      Must match the resource type in the provided content.
+      Observation. For a complete list, see the FHIR Resource Index
+      ([DSTU2](https://hl7.org/fhir/DSTU2/resourcelist.html),
+      [STU3](https://hl7.org/fhir/STU3/resourcelist.html),
+      [R4](https://hl7.org/fhir/R4/resourcelist.html),
+      [R5](https://hl7.org/fhir/R5/resourcelist.html)). Must match the
+      resource type in the provided content.
   """
 
   httpBody = _messages.MessageField('HttpBody', 1)
@@ -5719,11 +5352,12 @@ class HealthcareProjectsLocationsDatasetsFhirStoresFhirCreateRequest(_messages.M
     httpBody: A HttpBody resource to be passed as the request body.
     parent: Required. The name of the FHIR store this resource belongs to.
     type: Required. The FHIR resource type to create, such as Patient or
-      Observation. For a complete list, see the FHIR Resource Index ([DSTU2](h
-      ttps://hl7.org/implement/standards/fhir/DSTU2/resourcelist.html),
-      [STU3](https://hl7.org/implement/standards/fhir/STU3/resourcelist.html),
-      [R4](https://hl7.org/implement/standards/fhir/R4/resourcelist.html)).
-      Must match the resource type in the provided content.
+      Observation. For a complete list, see the FHIR Resource Index
+      ([DSTU2](https://hl7.org/fhir/DSTU2/resourcelist.html),
+      [STU3](https://hl7.org/fhir/STU3/resourcelist.html),
+      [R4](https://hl7.org/fhir/R4/resourcelist.html),
+      [R5](https://hl7.org/fhir/R5/resourcelist.html)). Must match the
+      resource type in the provided content.
   """
 
   httpBody = _messages.MessageField('HttpBody', 1)
@@ -5739,6 +5373,40 @@ class HealthcareProjectsLocationsDatasetsFhirStoresFhirDeleteRequest(_messages.M
   """
 
   name = _messages.StringField(1, required=True)
+
+
+class HealthcareProjectsLocationsDatasetsFhirStoresFhirEncounterEverythingRequest(_messages.Message):
+  r"""A
+  HealthcareProjectsLocationsDatasetsFhirStoresFhirEncounterEverythingRequest
+  object.
+
+  Fields:
+    _count: Optional. Maximum number of resources in a page. If not specified,
+      100 is used. May not be larger than 1000.
+    _page_token: Optional. Used to retrieve the next or previous page of
+      results when using pagination. Set `_page_token` to the value of
+      _page_token set in next or previous page links' url. Next and previous
+      page are returned in the response bundle's links field, where
+      `link.relation` is "previous" or "next". Omit `_page_token` if no
+      previous request has been made.
+    _since: Optional. If provided, only resources updated after this time are
+      returned. The time uses the format YYYY-MM-DDThh:mm:ss.sss+zz:zz. For
+      example, `2015-02-07T13:28:17.239+02:00` or `2017-01-01T00:00:00Z`. The
+      time must be specified to the second and include a time zone.
+    _type: Optional. String of comma-delimited FHIR resource types. If
+      provided, only resources of the specified resource type(s) are returned.
+      Specifying multiple `_type` parameters isn't supported. For example, the
+      result of `_type=Observation&_type=Encounter` is undefined. Use
+      `_type=Observation,Encounter` instead.
+    name: Required. Name of the Encounter resource for which the information
+      is required.
+  """
+
+  _count = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  _page_token = _messages.StringField(2)
+  _since = _messages.StringField(3)
+  _type = _messages.StringField(4)
+  name = _messages.StringField(5, required=True)
 
 
 class HealthcareProjectsLocationsDatasetsFhirStoresFhirExecuteBundleRequest(_messages.Message):
@@ -5944,18 +5612,19 @@ class HealthcareProjectsLocationsDatasetsFhirStoresFhirResourceValidateRequest(_
     httpBody: A HttpBody resource to be passed as the request body.
     parent: Required. The name of the FHIR store that holds the profiles being
       used for validation.
-    profile: Required. The canonical URL of a profile that this resource
+    profile: Optional. The canonical URL of a profile that this resource
       should be validated against. For example, to validate a Patient resource
       against the US Core Patient profile this parameter would be
       `http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient`. A
       StructureDefinition with this canonical URL must exist in the FHIR
       store.
     type: Required. The FHIR resource type of the resource being validated.
-      For a complete list, see the FHIR Resource Index ([DSTU2](http://hl7.org
-      /implement/standards/fhir/DSTU2/resourcelist.html),
-      [STU3](http://hl7.org/implement/standards/fhir/STU3/resourcelist.html),
-      or [R4](http://hl7.org/implement/standards/fhir/R4/resourcelist.html)).
-      Must match the resource type in the provided content.
+      For a complete list, see the FHIR Resource Index
+      ([DSTU2](https://hl7.org/fhir/DSTU2/resourcelist.html),
+      [STU3](https://hl7.org/fhir/STU3/resourcelist.html),
+      [R4](https://hl7.org/fhir/R4/resourcelist.html), or
+      [R5](https://hl7.org/fhir/R5/resourcelist.html)). Must match the
+      resource type in the provided content.
   """
 
   httpBody = _messages.MessageField('HttpBody', 1)
@@ -5983,11 +5652,12 @@ class HealthcareProjectsLocationsDatasetsFhirStoresFhirSearchTypeRequest(_messag
 
   Fields:
     parent: Required. Name of the FHIR store to retrieve resources from.
-    resourceType: Required. The FHIR resource type to search, such as Patient
-      or Observation. For a complete list, see the FHIR Resource Index ([DSTU2
-      ](https://hl7.org/implement/standards/fhir/DSTU2/resourcelist.html),
-      [STU3](https://hl7.org/implement/standards/fhir/STU3/resourcelist.html),
-      [R4](https://hl7.org/implement/standards/fhir/R4/resourcelist.html)).
+    resourceType: Optional. The FHIR resource type to search, such as Patient
+      or Observation. For a complete list, see the FHIR Resource Index
+      ([DSTU2](https://hl7.org/fhir/DSTU2/resourcelist.html),
+      [STU3](https://hl7.org/fhir/STU3/resourcelist.html),
+      [R4](https://hl7.org/fhir/R4/resourcelist.html),
+      [R5](https://hl7.org/fhir/R5/resourcelist.html)).
     searchResourcesRequest: A SearchResourcesRequest resource to be passed as
       the request body.
   """
@@ -6138,6 +5808,32 @@ class HealthcareProjectsLocationsDatasetsFhirStoresListRequest(_messages.Message
   pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
   pageToken = _messages.StringField(3)
   parent = _messages.StringField(4, required=True)
+
+
+class HealthcareProjectsLocationsDatasetsFhirStoresOperationsDeleteFhirOperationRequest(_messages.Message):
+  r"""A HealthcareProjectsLocationsDatasetsFhirStoresOperationsDeleteFhirOpera
+  tionRequest object.
+
+  Fields:
+    name: Required. Name of the operation to be deleted, in the format `projec
+      ts/{project_id}/locations/{location_id}/datasets/{dataset_id}/fhirStores
+      /{fhir_store_id}/operations/{operation_id}`.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class HealthcareProjectsLocationsDatasetsFhirStoresOperationsGetFhirOperationStatusRequest(_messages.Message):
+  r"""A HealthcareProjectsLocationsDatasetsFhirStoresOperationsGetFhirOperatio
+  nStatusRequest object.
+
+  Fields:
+    name: Required. Name of the operation to query, in the format `projects/{p
+      roject_id}/locations/{location_id}/datasets/{dataset_id}/fhirStores/{fhi
+      r_store_id}/operations/{operation_id}`.
+  """
+
+  name = _messages.StringField(1, required=True)
 
 
 class HealthcareProjectsLocationsDatasetsFhirStoresPatchRequest(_messages.Message):
@@ -6655,6 +6351,21 @@ class HealthcareProjectsLocationsDatasetsHl7V2StoresPatchRequest(_messages.Messa
   updateMask = _messages.StringField(3)
 
 
+class HealthcareProjectsLocationsDatasetsHl7V2StoresRollbackRequest(_messages.Message):
+  r"""A HealthcareProjectsLocationsDatasetsHl7V2StoresRollbackRequest object.
+
+  Fields:
+    name: Required. The name of the HL7v2 store to rollback, in the format of
+      "projects/{project_id}/locations/{location_id}/datasets/{dataset_id}
+      /hl7V2Stores/{hl7v2_store_id}".
+    rollbackHl7V2MessagesRequest: A RollbackHl7V2MessagesRequest resource to
+      be passed as the request body.
+  """
+
+  name = _messages.StringField(1, required=True)
+  rollbackHl7V2MessagesRequest = _messages.MessageField('RollbackHl7V2MessagesRequest', 2)
+
+
 class HealthcareProjectsLocationsDatasetsHl7V2StoresSetIamPolicyRequest(_messages.Message):
   r"""A HealthcareProjectsLocationsDatasetsHl7V2StoresSetIamPolicyRequest
   object.
@@ -6809,6 +6520,9 @@ class HealthcareProjectsLocationsListRequest(_messages.Message):
   r"""A HealthcareProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -6819,10 +6533,11 @@ class HealthcareProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class HealthcareProjectsLocationsServicesNlpAnalyzeEntitiesRequest(_messages.Message):
@@ -7163,20 +6878,6 @@ class Image(_messages.Message):
   rawBytes = _messages.BytesField(2)
 
 
-class ImageAnnotation(_messages.Message):
-  r"""Image annotation.
-
-  Fields:
-    boundingPolys: The list of polygons outlining the sensitive regions in the
-      image.
-    frameIndex: 0-based index of the image frame. For example, an image frame
-      in a DICOM instance.
-  """
-
-  boundingPolys = _messages.MessageField('BoundingPoly', 1, repeated=True)
-  frameIndex = _messages.IntegerField(2, variant=_messages.Variant.INT32)
-
-
 class ImageConfig(_messages.Message):
   r"""Specifies how to handle de-identification of image pixels.
 
@@ -7227,27 +6928,6 @@ class ImageConfig(_messages.Message):
   additionalInfoTypes = _messages.StringField(1, repeated=True)
   excludeInfoTypes = _messages.StringField(2, repeated=True)
   textRedactionMode = _messages.EnumField('TextRedactionModeValueValuesEnum', 3)
-
-
-class ImportAnnotationsRequest(_messages.Message):
-  r"""Request to import Annotations. The Annotations to be imported must have
-  client-supplied resource names which indicate the annotation resource. The
-  import operation is not atomic. If a failure occurs, any annotations already
-  imported are not removed.
-
-  Fields:
-    gcsSource: A GoogleCloudHealthcareV1beta1AnnotationGcsSource attribute.
-  """
-
-  gcsSource = _messages.MessageField('GoogleCloudHealthcareV1beta1AnnotationGcsSource', 1)
-
-
-class ImportAnnotationsResponse(_messages.Message):
-  r"""Final response of importing Annotations in successful case. This
-  structure is included in the response. It is only included when the
-  operation finishes.
-  """
-
 
 
 class ImportDicomDataRequest(_messages.Message):
@@ -7392,30 +7072,6 @@ class ImportResourcesRequest(_messages.Message):
   gcsSource = _messages.MessageField('GoogleCloudHealthcareV1beta1FhirGcsSource', 2)
 
 
-class InfoTypeConfig(_messages.Message):
-  r"""Specifies how to use infoTypes for evaluation. For example, a user might
-  only want to evaluate `PERSON`, `LOCATION`, and `AGE`.
-
-  Fields:
-    evaluateList: A FilterList attribute.
-    ignoreList: A FilterList attribute.
-    strictMatching: If `TRUE`, infoTypes described by `filter` are used for
-      evaluation. Otherwise, infoTypes are not considered for evaluation. For
-      example: * Annotated text: "Toronto is a location" * Finding 1:
-      `{"infoType": "PERSON", "quote": "Toronto", "start": 0, "end": 7}` *
-      Finding 2: `{"infoType": "CITY", "quote": "Toronto", "start": 0, "end":
-      7}` * Finding 3: `{}` * Ground truth: `{"infoType": "LOCATION", "quote":
-      "Toronto", "start": 0, "end": 7}` When `strict_matching` is `TRUE`: *
-      Finding 1: 1 false positive * Finding 2: 1 false positive * Finding 3: 1
-      false negative When `strict_matching` is `FALSE`: * Finding 1: 1 true
-      positive * Finding 2: 1 true positive * Finding 3: 1 false negative
-  """
-
-  evaluateList = _messages.MessageField('FilterList', 1)
-  ignoreList = _messages.MessageField('FilterList', 2)
-  strictMatching = _messages.BooleanField(3)
-
-
 class InfoTypeTransformation(_messages.Message):
   r"""A transformation to apply to text that is identified as a specific
   info_type.
@@ -7512,35 +7168,6 @@ class LinkedEntity(_messages.Message):
   """
 
   entityId = _messages.StringField(1)
-
-
-class ListAnnotationStoresResponse(_messages.Message):
-  r"""Lists the Annotation stores in the given dataset.
-
-  Fields:
-    annotationStores: The returned Annotation stores. Won't be more Annotation
-      stores than the value of page_size in the request.
-    nextPageToken: Token to retrieve the next page of results or empty if
-      there are no more results in the list.
-  """
-
-  annotationStores = _messages.MessageField('AnnotationStore', 1, repeated=True)
-  nextPageToken = _messages.StringField(2)
-
-
-class ListAnnotationsResponse(_messages.Message):
-  r"""Lists the Annotations in the specified Annotation store.
-
-  Fields:
-    annotations: The returned Annotations. Won't be more values than the value
-      of page_size in the request. See `AnnotationView` in the request for
-      populated fields.
-    nextPageToken: Token to retrieve the next page of results or empty if
-      there are no more results in the list.
-  """
-
-  annotations = _messages.MessageField('Annotation', 1, repeated=True)
-  nextPageToken = _messages.StringField(2)
 
 
 class ListAttributeDefinitionsResponse(_messages.Message):
@@ -8461,16 +8088,6 @@ class ResetTag(_messages.Message):
   r"""Reset tag to a placeholder value."""
 
 
-class ResourceAnnotation(_messages.Message):
-  r"""Resource level annotation.
-
-  Fields:
-    label: A description of the annotation record.
-  """
-
-  label = _messages.StringField(1)
-
-
 class Resources(_messages.Message):
   r"""A list of FHIR resources.
 
@@ -8621,6 +8238,76 @@ class RollbackFhirResourcesResponse(_messages.Message):
   """
 
   fhirStore = _messages.StringField(1)
+
+
+class RollbackHL7MessagesFilteringFields(_messages.Message):
+  r"""Filtering fields for an HL7v2 rollback. Currently only supports a list
+  of operation ids to roll back.
+
+  Fields:
+    operationIds: Optional. A list of operation IDs to roll back.
+  """
+
+  operationIds = _messages.IntegerField(1, repeated=True, variant=_messages.Variant.UINT64)
+
+
+class RollbackHl7V2MessagesRequest(_messages.Message):
+  r"""Point in time recovery rollback request.
+
+  Enums:
+    ChangeTypeValueValuesEnum: Optional. CREATE/UPDATE/DELETE/ALL for
+      reverting all txns of a certain type.
+
+  Fields:
+    changeType: Optional. CREATE/UPDATE/DELETE/ALL for reverting all txns of a
+      certain type.
+    excludeRollbacks: Optional. Specifies whether to exclude earlier
+      rollbacks.
+    filteringFields: Optional. Parameters for filtering.
+    force: Optional. When enabled, changes will be reverted without explicit
+      confirmation.
+    inputGcsObject: Optional. Cloud storage object containing list of
+      {resourceId} lines, identifying resources to be reverted
+    resultGcsBucket: Required. Bucket to deposit result
+    rollbackTime: Required. Times point to rollback to.
+  """
+
+  class ChangeTypeValueValuesEnum(_messages.Enum):
+    r"""Optional. CREATE/UPDATE/DELETE/ALL for reverting all txns of a certain
+    type.
+
+    Values:
+      CHANGE_TYPE_UNSPECIFIED: When unspecified, revert all transactions
+      ALL: All transactions
+      CREATE: Revert only CREATE transactions
+      UPDATE: Revert only Update transactions
+      DELETE: Revert only Delete transactions
+    """
+    CHANGE_TYPE_UNSPECIFIED = 0
+    ALL = 1
+    CREATE = 2
+    UPDATE = 3
+    DELETE = 4
+
+  changeType = _messages.EnumField('ChangeTypeValueValuesEnum', 1)
+  excludeRollbacks = _messages.BooleanField(2)
+  filteringFields = _messages.MessageField('RollbackHL7MessagesFilteringFields', 3)
+  force = _messages.BooleanField(4)
+  inputGcsObject = _messages.StringField(5)
+  resultGcsBucket = _messages.StringField(6)
+  rollbackTime = _messages.StringField(7)
+
+
+class RollbackHl7V2MessagesResponse(_messages.Message):
+  r"""Final response of rollback FHIR resources request.
+
+  Fields:
+    hl7v2Store: The name of the HL7v2 store to rollback, in the format of
+      "projects/{project_id}/locations/{location_id}/datasets/{dataset_id}
+      /hl7v2Stores/{fhir_store_id}".
+  """
+
+  hl7v2Store = _messages.StringField(1)
 
 
 class SchemaConfig(_messages.Message):
@@ -8831,11 +8518,12 @@ class SearchResourcesRequest(_messages.Message):
   r"""Request to search the resources in the specified FHIR store.
 
   Fields:
-    resourceType: Required. The FHIR resource type to search, such as Patient
-      or Observation. For a complete list, see the FHIR Resource Index ([DSTU2
-      ](https://hl7.org/implement/standards/fhir/DSTU2/resourcelist.html),
-      [STU3](https://hl7.org/implement/standards/fhir/STU3/resourcelist.html),
-      [R4](https://hl7.org/implement/standards/fhir/R4/resourcelist.html)).
+    resourceType: Optional. The FHIR resource type to search, such as Patient
+      or Observation. For a complete list, see the FHIR Resource Index
+      ([DSTU2](https://hl7.org/fhir/DSTU2/resourcelist.html),
+      [STU3](https://hl7.org/fhir/STU3/resourcelist.html),
+      [R4](https://hl7.org/fhir/R4/resourcelist.html),
+      [R5](https://hl7.org/fhir/R5/resourcelist.html)).
   """
 
   resourceType = _messages.StringField(1)
@@ -8909,50 +8597,6 @@ class Segment(_messages.Message):
   fields = _messages.MessageField('FieldsValue', 1)
   segmentId = _messages.StringField(2)
   setId = _messages.StringField(3)
-
-
-class SensitiveTextAnnotation(_messages.Message):
-  r"""A TextAnnotation specifies a text range that includes sensitive
-  information.
-
-  Messages:
-    DetailsValue: Maps from a resource slice. For example, FHIR resource field
-      path to a set of sensitive text findings. For example,
-      Appointment.Narrative text1 --> {findings_1, findings_2, findings_3}
-
-  Fields:
-    details: Maps from a resource slice. For example, FHIR resource field path
-      to a set of sensitive text findings. For example, Appointment.Narrative
-      text1 --> {findings_1, findings_2, findings_3}
-  """
-
-  @encoding.MapUnrecognizedFields('additionalProperties')
-  class DetailsValue(_messages.Message):
-    r"""Maps from a resource slice. For example, FHIR resource field path to a
-    set of sensitive text findings. For example, Appointment.Narrative text1
-    --> {findings_1, findings_2, findings_3}
-
-    Messages:
-      AdditionalProperty: An additional property for a DetailsValue object.
-
-    Fields:
-      additionalProperties: Additional properties of type DetailsValue
-    """
-
-    class AdditionalProperty(_messages.Message):
-      r"""An additional property for a DetailsValue object.
-
-      Fields:
-        key: Name of the additional property.
-        value: A Detail attribute.
-      """
-
-      key = _messages.StringField(1)
-      value = _messages.MessageField('Detail', 2)
-
-    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
-
-  details = _messages.MessageField('DetailsValue', 1)
 
 
 class SeriesMetrics(_messages.Message):
@@ -9182,10 +8826,9 @@ class StorageInfo(_messages.Message):
     blobStorageInfo: Info about the data stored in blob storage for the
       resource.
     referencedResource: The resource whose storage info is returned. For
-      example, to specify the resource path of a DICOM Instance: `projects/{pr
-      ojectID}/locations/{locationID}/datasets/{datasetID}/dicomStores/{dicom_
-      store_id}/dicomWeb/studi/{study_uid}/series/{series_uid}/instances/{inst
-      ance_uid}`
+      example: `projects/{projectID}/locations/{locationID}/datasets/{datasetI
+      D}/dicomStores/{dicomStoreID}/dicomWeb/studies/{studyUID}/series/{series
+      UID}/instances/{instanceUID}`
     structuredStorageInfo: Info about the data stored in structured storage
       for the resource.
   """
@@ -9233,20 +8876,22 @@ class StreamConfig(_messages.Message):
       resources. After this field is added, all subsequent
       creates/updates/patches to the source store will be de-identified using
       the provided configuration and applied to the destination store.
-      Importing resources to the source store will not trigger the streaming.
-      If the source store already contains resources when this option is
-      enabled, those resources will not be copied to the destination store
-      unless they are subsequently updated. This may result in invalid
-      references in the destination store. Before adding this config, you must
-      grant the healthcare.fhirResources.update permission on the destination
-      store to your project's **Cloud Healthcare Service Agent** [service
-      account](https://cloud.google.com/healthcare/docs/how-tos/permissions-
-      healthcare-api-gcp-products#the_cloud_healthcare_service_agent). The
-      destination store must set enable_update_create to true. The destination
-      store must have disable_referential_integrity set to true. If a resource
-      cannot be de-identified, errors will be logged to Cloud Logging (see
-      [Viewing error logs in Cloud
-      Logging](https://cloud.google.com/healthcare/docs/how-tos/logging)).
+      Resources deleted from the source store will be deleted from the
+      destination store. Importing resources to the source store will not
+      trigger the streaming. If the source store already contains resources
+      when this option is enabled, those resources will not be copied to the
+      destination store unless they are subsequently updated. This may result
+      in invalid references in the destination store. Before adding this
+      config, you must grant the healthcare.fhirResources.update permission on
+      the destination store to your project's **Cloud Healthcare Service
+      Agent** [service account](https://cloud.google.com/healthcare/docs/how-
+      tos/permissions-healthcare-api-gcp-
+      products#the_cloud_healthcare_service_agent). The destination store must
+      set enable_update_create to true. The destination store must have
+      disable_referential_integrity set to true. If a resource cannot be de-
+      identified, errors will be logged to Cloud Logging (see [Viewing error
+      logs in Cloud Logging](https://cloud.google.com/healthcare/docs/how-
+      tos/logging)). Not supported for R5 stores.
     resourceTypes: Supply a FHIR resource type (such as "Patient" or
       "Observation"). See https://www.hl7.org/fhir/valueset-resource-
       types.html for a list of all FHIR resource types. The server treats an
@@ -9464,6 +9109,19 @@ class Type(_messages.Message):
   primitive = _messages.EnumField('PrimitiveValueValuesEnum', 3)
 
 
+class UpdateSeriesMetadataResponse(_messages.Message):
+  r"""UpdateSeriesMetadataResponse is the LRO response for
+  UpdateSeriesMetadata.
+  """
+
+
+
+class UpdateStudyMetadataResponse(_messages.Message):
+  r"""UpdateStudyMetadataResponse is the LRO response for UpdateStudyMetadata.
+  """
+
+
+
 class UserDataMapping(_messages.Message):
   r"""Maps a resource to the associated user and Attributes.
 
@@ -9496,26 +9154,29 @@ class ValidationConfig(_messages.Message):
 
   Fields:
     disableFhirpathValidation: Whether to disable FHIRPath validation for
-      incoming resources. Set this to true to disable checking incoming
-      resources for conformance against FHIRPath requirement defined in the
-      FHIR specification. This property only affects resource types that do
-      not have profiles configured for them, any rules in enabled
-      implementation guides will still be enforced.
+      incoming resources. The default value is false. Set this to true to
+      disable checking incoming resources for conformance against FHIRPath
+      requirement defined in the FHIR specification. This property only
+      affects resource types that do not have profiles configured for them,
+      any rules in enabled implementation guides will still be enforced.
     disableProfileValidation: Whether to disable profile validation for this
-      FHIR store. Set this to true to disable checking incoming resources for
-      conformance against StructureDefinitions in this FHIR store.
+      FHIR store. The default value is false. Set this to true to disable
+      checking incoming resources for conformance against StructureDefinitions
+      in this FHIR store.
     disableReferenceTypeValidation: Whether to disable reference type
-      validation for incoming resources. Set this to true to disable checking
-      incoming resources for conformance against reference type requirement
-      defined in the FHIR specification. This property only affects resource
-      types that do not have profiles configured for them, any rules in
-      enabled implementation guides will still be enforced.
+      validation for incoming resources. The default value is false. Set this
+      to true to disable checking incoming resources for conformance against
+      reference type requirement defined in the FHIR specification. This
+      property only affects resource types that do not have profiles
+      configured for them, any rules in enabled implementation guides will
+      still be enforced.
     disableRequiredFieldValidation: Whether to disable required fields
-      validation for incoming resources. Set this to true to disable checking
-      incoming resources for conformance against required fields requirement
-      defined in the FHIR specification. This property only affects resource
-      types that do not have profiles configured for them, any rules in
-      enabled implementation guides will still be enforced.
+      validation for incoming resources. The default value is false. Set this
+      to true to disable checking incoming resources for conformance against
+      required fields requirement defined in the FHIR specification. This
+      property only affects resource types that do not have profiles
+      configured for them, any rules in enabled implementation guides will
+      still be enforced.
     enabledImplementationGuides: A list of ImplementationGuide URLs in this
       FHIR store that are used to configure the profiles to use for
       validation. For example, to use the US Core profiles for validation, set
@@ -9555,21 +9216,21 @@ class VersionSource(_messages.Message):
   value = _messages.StringField(2)
 
 
-class Vertex(_messages.Message):
-  r"""A 2D coordinate in an image. The origin is the top-left.
-
-  Fields:
-    x: X coordinate.
-    y: Y coordinate.
-  """
-
-  x = _messages.FloatField(1, variant=_messages.Variant.FLOAT)
-  y = _messages.FloatField(2, variant=_messages.Variant.FLOAT)
-
-
 encoding.AddCustomJsonFieldMapping(
     StandardQueryParameters, 'f__xgafv', '$.xgafv')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    HealthcareProjectsLocationsDatasetsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    HealthcareProjectsLocationsDatasetsConsentStoresGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    HealthcareProjectsLocationsDatasetsDataMapperWorkspacesGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    HealthcareProjectsLocationsDatasetsDicomStoresGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    HealthcareProjectsLocationsDatasetsFhirStoresGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    HealthcareProjectsLocationsDatasetsHl7V2StoresGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')

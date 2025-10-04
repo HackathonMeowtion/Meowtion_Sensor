@@ -15,31 +15,12 @@
 """Utilities for Package Rollouts ResourceBundle API."""
 
 from apitools.base.py import list_pager
-from googlecloudsdk.api_lib.util import apis
+from googlecloudsdk.api_lib.container.fleet.packages import util
 from googlecloudsdk.api_lib.util import waiter
-from googlecloudsdk.core import resources
 
 _LIST_REQUEST_BATCH_SIZE_ATTRIBUTE = 'pageSize'
 
-
-def GetClientInstance(no_http=False):
-  """Returns instance of generated Config Delivery gapic client."""
-  return apis.GetClientInstance('configdelivery', 'v1alpha', no_http=no_http)
-
-
-def GetMessagesModule(client=None):
-  """Returns generated Config Delivery gapic messages."""
-  client = client or GetClientInstance()
-  return client.MESSAGES_MODULE
-
-
-def GetResourceBundleURI(resource):
-  """Returns URI of ResourceBundle for use with gapic client."""
-  resource_bundle = resources.REGISTRY.ParseRelativeName(
-      resource.name,
-      collection='configdelivery.projects.locations.resourceBundles',
-  )
-  return resource_bundle.SelfLink()
+RESOURCE_BUNDLE_COLLECTION = 'configdelivery.projects.locations.resourceBundles'
 
 
 def _ParentPath(project, location):
@@ -53,9 +34,10 @@ def _FullyQualifiedPath(project, location, name):
 class ResourceBundlesClient(object):
   """Client for ResourceBundles in Config Delivery Package Rollouts API."""
 
-  def __init__(self, client=None, messages=None):
-    self.client = client or GetClientInstance()
-    self.messages = messages or GetMessagesModule(client)
+  def __init__(self, api_version, client=None, messages=None):
+    self._api_version = api_version or util.DEFAULT_API_VERSION
+    self.client = client or util.GetClientInstance(self._api_version)
+    self.messages = messages or util.GetMessagesModule(self.client)
     self._service = self.client.projects_locations_resourceBundles
     self.resource_bundle_waiter = waiter.CloudOperationPollerNoResources(
         operation_service=self.client.projects_locations_operations,
@@ -110,10 +92,9 @@ class ResourceBundlesClient(object):
         parent=_ParentPath(project, location),
         resourceBundleId=name,
     )
-    create_operation = self._service.Create(create_request)
     result = waiter.WaitFor(
         self.resource_bundle_waiter,
-        create_operation,
+        self._service.Create(create_request),
         f'Creating ResourceBundle {name}',
     )
     return result
@@ -134,7 +115,11 @@ class ResourceBundlesClient(object):
     delete_req = self.messages.ConfigdeliveryProjectsLocationsResourceBundlesDeleteRequest(
         name=fully_qualified_path, force=force
     )
-    return self._service.Delete(delete_req)
+    return waiter.WaitFor(
+        self.resource_bundle_waiter,
+        self._service.Delete(delete_req),
+        f'Deleting ResourceBundle {name}',
+    )
 
   def Describe(self, project, location, name):
     """Describe a ResourceBundle resource.
@@ -186,4 +171,8 @@ class ResourceBundlesClient(object):
         name=fully_qualified_path,
         updateMask=update_mask,
     )
-    return self._service.Patch(update_request)
+    return waiter.WaitFor(
+        self.resource_bundle_waiter,
+        self._service.Patch(update_request),
+        f'Updating ResourceBundle {name}',
+    )

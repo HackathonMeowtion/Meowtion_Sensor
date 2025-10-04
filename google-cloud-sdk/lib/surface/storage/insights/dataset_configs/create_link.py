@@ -21,6 +21,7 @@ from googlecloudsdk.command_lib.storage.insights.dataset_configs import log_util
 from googlecloudsdk.command_lib.storage.insights.dataset_configs import resource_args
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
 class CreateLink(base.Command):
   """Create a link to a BigQuery instance."""
@@ -32,13 +33,13 @@ class CreateLink(base.Command):
       'EXAMPLES': """
 
       To create a link to the customer BigQuery instance for config name:
-      "my-config" in location "us-central1":
+      "my_config" in location "us-central1":
 
-          $ {command} my-config --location=us-central1
+          $ {command} my_config --location=us-central1
 
       To create a link for the same dataset config with fully specified name:
 
-          $ {command} projects/foo/locations/us-central1/datasetConfigs/my-config
+          $ {command} projects/foo/locations/us-central1/datasetConfigs/my_config
       """,
   }
 

@@ -25,8 +25,8 @@ from googlecloudsdk.command_lib.resource_manager import tag_arguments as argumen
 from googlecloudsdk.command_lib.resource_manager import tag_utils
 
 
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA,
-                    base.ReleaseTrack.GA)
+@base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.DefaultUniverseOnly
 class List(base.ListCommand):
   r"""Lists TagValues under the specified parent resource.
 
@@ -37,28 +37,39 @@ class List(base.ListCommand):
         $ {command} --parent=123/env
   """
 
+  tag_value_parent = None
+
   @staticmethod
   def Args(parser):
     arguments.AddParentArgToParser(
         parser,
-        message=("Parent of the TagValue in either in the form of "
-                 "tagKeys/{id} or {org_id}/{tagkey_short_name}"))
+        message=(
+            "Parent of the TagValue in either in the form of "
+            "tagKeys/{id} or {org_id}/{tagkey_short_name}"
+        ),
+    )
     parser.display_info.AddFormat("table(name:sort=1, short_name, description)")
 
   def Run(self, args):
     service = tags.TagValuesService()
     messages = tags.TagMessages()
 
-    if args.parent.find("tagKeys/") == 0:
-      tag_key = args.parent
+    if self.tag_value_parent is not None:
+      list_request = messages.CloudresourcemanagerTagValuesListRequest(
+          parent=self.tag_value_parent,
+          pageSize=args.page_size,
+      )
     else:
-      tag_key = tag_utils.GetNamespacedResource(
-          args.parent, tag_utils.TAG_KEYS
-      ).name
+      if args.parent.find("tagKeys/") == 0:
+        tag_key = args.parent
+      else:
+        tag_key = tag_utils.GetNamespacedResource(
+            args.parent, tag_utils.TAG_KEYS
+        ).name
+      list_request = messages.CloudresourcemanagerTagValuesListRequest(
+          parent=tag_key, pageSize=args.page_size
+      )
 
-    list_request = messages.CloudresourcemanagerTagValuesListRequest(
-        parent=tag_key, pageSize=args.page_size
-    )
     return list_pager.YieldFromList(
         service,
         list_request,
@@ -66,3 +77,20 @@ class List(base.ListCommand):
         batch_size=args.page_size,
         field="tagValues",
     )
+
+
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
+@base.DefaultUniverseOnly
+class ListAlpha(List):
+  r"""Lists TagValues under the specified parent resource.
+
+  ## EXAMPLES
+
+  To list all the TagValues under ``organizations/123/env'', run:
+
+        $ {command} --parent=123/env
+  """
+
+  def Run(self, args):
+    self.tag_value_parent = tag_utils.GetTagValueParent(args.parent)
+    return super().Run(args)

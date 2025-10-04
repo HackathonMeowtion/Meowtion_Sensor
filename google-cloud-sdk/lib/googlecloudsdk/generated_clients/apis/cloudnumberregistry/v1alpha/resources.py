@@ -41,6 +41,39 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_LOCATIONS_CUSTOMRANGES = (
+      'projects.locations.customRanges',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/customRanges/'
+              '{customRangesId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_DISCOVEREDRANGES = (
+      'projects.locations.discoveredRanges',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'discoveredRanges/{discoveredRangesId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_IPAMADMINSCOPES = (
+      'projects.locations.ipamAdminScopes',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/ipamAdminScopes/'
+              '{ipamAdminScopesId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS_LOCATIONS_OPERATIONS = (
       'projects.locations.operations',
       '{+name}',
@@ -52,6 +85,17 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_LOCATIONS_REALMS = (
+      'projects.locations.realms',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/realms/'
+              '{realmsId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS_LOCATIONS_REGISTRYBOOKS = (
       'projects.locations.registryBooks',
       '{+name}',
@@ -59,33 +103,6 @@ class Collections(enum.Enum):
           '':
               'projects/{projectsId}/locations/{locationsId}/registryBooks/'
               '{registryBooksId}',
-      },
-      ['name'],
-      True
-  )
-  PROJECTS_LOCATIONS_REGISTRYBOOKS_HISTORICALEVENTS = (
-      'projects.locations.registryBooks.historicalEvents',
-      'projects/{projectsId}/locations/{locationsId}/registryBooks/'
-      '{registryBooksId}/historicalEvents',
-      {},
-      ['projectsId', 'locationsId', 'registryBooksId'],
-      True
-  )
-  PROJECTS_LOCATIONS_REGISTRYBOOKS_NODEEVENTS = (
-      'projects.locations.registryBooks.nodeEvents',
-      'projects/{projectsId}/locations/{locationsId}/registryBooks/'
-      '{registryBooksId}/nodeEvents',
-      {},
-      ['projectsId', 'locationsId', 'registryBooksId'],
-      True
-  )
-  PROJECTS_LOCATIONS_REGISTRYBOOKS_REGISTRYNODES = (
-      'projects.locations.registryBooks.registryNodes',
-      '{+name}',
-      {
-          '':
-              'projects/{projectsId}/locations/{locationsId}/registryBooks/'
-              '{registryBooksId}/registryNodes/{registryNodesId}',
       },
       ['name'],
       True

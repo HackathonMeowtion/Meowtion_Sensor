@@ -170,17 +170,18 @@ def AddFunctionMemoryAndCpuFlags(parser):
   and 8192MB.
 
   Allowed values for GCF 2nd gen are in the format: <number><unit> with allowed units
-  of "k", "M", "G", "Ki", "Mi", "Gi". Ending 'b' or 'B' is allowed.
+  of "k", "M", "G", "Ki", "Mi", "Gi". Ending 'b' or 'B' is allowed, but both are
+  interpreted as bytes as opposed to bits.
 
-  Examples: 100000k, 128M, 10Mb, 1024Mi, 750K, 4Gi.
+  Examples: 1000000K, 1000000Ki, 256Mb, 512M, 1024Mi, 2G, 4Gi.
 
   By default, a new function is limited to 256MB of memory. When
   deploying an update to an existing function, the function keeps its old
   memory limit unless you specify this flag."""
   group = parser.add_group(required=False)
   cpu_help_text = """\
-    The number of available CPUs to set. Only valid when `--gen2`
-    and `--memory=MEMORY` are specified.
+    The number of available CPUs to set. Only valid when
+    `--memory=MEMORY` is specified.
 
     Examples: .5, 2, 2.0, 2000m.
 
@@ -272,8 +273,7 @@ def AddAllowUnauthenticatedFlag(parser):
 
 def AddServeAllTrafficLatestRevisionFlag(parser):
   help_text = (
-      'If specified, latest function revision will be served all traffic. '
-      'This is only relevant when `--gen2` is provided.'
+      'If specified, latest function revision will be served all traffic.'
   )
   parser.add_argument(
       '--serve-all-traffic-latest-revision',
@@ -575,6 +575,12 @@ def AddMaxInstancesFlag(parser):
       action='store_true',
       help="""\
         Clears the maximum instances setting for the function.
+
+        If it's any 2nd gen function or a 1st gen HTTP function, this flag sets
+        maximum instances  to 0, which means there is no limit to maximum
+        instances. If it's an event-driven 1st gen function, this flag sets
+        maximum instances to 3000, which is the default value for 1st gen
+        functions.
       """,
   )
 
@@ -653,7 +659,7 @@ def AddTriggerFlagGroup(parser):
               eventarc_flags.ChannelResourceSpec(),
               """\
               The channel to use in the trigger for third-party event sources.
-              This is only relevant when `--gen2` is provided.""",
+              """,
               flag_name_overrides={'location': ''},
               group=eventarc_trigger_group,
               hidden=True,
@@ -672,8 +678,7 @@ def AddTriggerFlagGroup(parser):
       The Eventarc matching criteria for the trigger. The criteria can be
       specified either as a single comma-separated argument or as multiple
       arguments. The filters must include the ``type'' attribute, as well as any
-      other attributes that are expected for the chosen type. This is only
-      relevant when `--gen2` is provided.
+      other attributes that are expected for the chosen type.
       """,
   )
   eventarc_trigger_group.add_argument(
@@ -684,7 +689,7 @@ def AddTriggerFlagGroup(parser):
       help="""\
       The Eventarc matching criteria for the trigger in path pattern format.
       The criteria can be specified as a single comma-separated argument or as
-      multiple arguments. This is only relevant when `--gen2` is provided.
+      multiple arguments.
 
       The provided attribute/value pair will be used with the
       `match-path-pattern` operator to configure the trigger, see
@@ -797,8 +802,7 @@ def AddTriggerLocationFlag(parser):
       '--trigger-location',
       help=(
           'The location of the trigger, which must be a region or multi-'
-          'region where the relevant events originate. This is only '
-          'relevant when `--gen2` is provided.'
+          'region where the relevant events originate.'
       ),
       completer=LocationsCompleter,
   )
@@ -830,20 +834,25 @@ def GetFunctionResourceSpec():
   )
 
 
-def AddFunctionResourceArg(parser, verb, required=True):
-  """Adds a Cloud function resource argument.
+def AddFunctionResourceArg(
+    parser, verb='', help_text_override='', required=True
+):
+  """Adds a Cloud Function resource argument.
 
   NOTE: May be used only if it's the only resource arg in the command.
-
   Args:
     parser: the argparse parser for the command.
-    verb: str, the verb to describe the resource, such as 'to update'.
+    verb: (Optional) str, the verb to describe the resource, such as 'to
+      update'.
+    help_text_override: (Optional)str, the help text to use for the resource
+      argument. If override is providded, verb will be ignored.
     required: bool, whether the argument is required.
   """
+  help_text = help_text_override or 'The Cloud Function name {}.'.format(verb)
   concept_parsers.ConceptParser.ForResource(
       'NAME',
       GetFunctionResourceSpec(),
-      'The Cloud function name {}.'.format(verb),
+      help_text,
       required=required,
   ).AddToParser(parser)
 
@@ -857,7 +866,7 @@ def AddServiceAccountFlag(parser):
       running function, and determines what permissions the function has.
 
       If not provided, the function will use the project's default service
-      account.
+      account for Compute Engine.
       """,
   )
 
@@ -873,8 +882,6 @@ def AddRunServiceAccountFlag(parser):
 
       If not provided, the function will use the project's default service
       account for Compute Engine.
-
-      This is only relevant when `--gen2` is provided.
       """,
   )
 
@@ -888,8 +895,6 @@ def AddTriggerServiceAccountFlag(parser):
 
       If not provided, the function will use the project's default service
       account for Compute Engine.
-
-      This is only relevant when `--gen2` is provided.
       """,
   )
 
@@ -950,7 +955,13 @@ def AddIgnoreFileFlag(parser):
   parser.add_argument(
       '--ignore-file',
       help=(
-          'Override the .gcloudignore file and use the specified file instead.'
+          'Override the .gcloudignore file in the source directory and use the'
+          ' specified file instead. By default, the source directory is your'
+          ' current directory. Note that it could be changed by the --source'
+          ' flag, in which case your .gcloudignore file will be searched in the'
+          ' overridden directory.  For example, `--ignore-file=.mygcloudignore`'
+          ' combined with `--source=./mydir` would point to'
+          ' `./mydir/.mygcloudignore`'
       ),
   )
 
@@ -965,9 +976,10 @@ def AddRuntimeUpdatePolicy(parser, track):
   ):
     parser.add_argument(
         '--runtime-update-policy',
+        choices=RUNTIME_UPDATE_POLICY_MAPPING.values(),
         help="""\
-        Runtime update policy for the 1st Gen function being deployed.
-        The option `on-deploy` is used by default.
+        Runtime update policy for the function being deployed. The option
+        `automatic` is used by default.
       """,
     )
 
@@ -981,11 +993,14 @@ def AddDockerRegistryFlags(parser):
       help_str="""\
         Docker Registry to use for storing the function's Docker images.
         The option `artifact-registry` is used by default.
-
-        Warning: Artifact Registry and Container Registry have different image
-        storage costs. For more details, please see
-        https://cloud.google.com/functions/pricing#deployment_costs
       """,
+      action=actions.DeprecationAction('--docker-registry', warn="""\
+        With the general transition from Container Registry to
+        Artifact Registry, the option to specify docker registry is deprecated.
+        All container image storage and management will automatically
+        transition to Artifact Registry.
+        For more information, see
+        https://cloud.google.com/artifact-registry/docs/transition/transition-from-gcr""")
   )
   docker_registry_arg.AddToParser(parser)
 
@@ -1037,6 +1052,11 @@ def AddDockerRepositoryFlags(parser):
         must be an Artifact Registry Docker repository present in the `same`
         project and location as the Cloud Function.
 
+        **Preview:** for 2nd gen functions, a Docker Artifact registry
+        repository in a different project and/or location may be used.
+        Additional requirements apply, see
+        https://cloud.google.com/functions/docs/building#image_registry
+
         The repository name should match one of these patterns:
 
         * `projects/${PROJECT}/locations/${LOCATION}/repositories/${REPOSITORY}`,
@@ -1062,16 +1082,28 @@ def AddConcurrencyFlag(parser):
       help=(
           'Set the maximum number of concurrent requests allowed per'
           ' container instance. Leave concurrency unspecified to receive the'
-          ' server default value. Only applicable when the `--gen2` flag is'
-          ' provided.'
+          ' server default value.'
       ),
   )
 
 
 def AddUpgradeFlags(parser):
   """Adds upgrade related function flags."""
-  upgrade_group = parser.add_group(mutex=True)
-  upgrade_group.add_argument(
+  upgrade_group = parser.add_group(
+      mutex=True,
+      help="""\
+      Upgrade a 1st gen Cloud Function to the 2nd gen environment.
+      You must specify one of the following flags:
+      - `--setup-config` and optionally `--trigger-service-account`,
+      - `--redirect-traffic`,
+      - `--rollback-traffic`,
+      - `--commit`,
+      - `--abort`.
+  """,
+  )
+
+  setup_config_group = upgrade_group.add_argument_group()
+  setup_config_group.add_argument(
       '--setup-config',
       action='store_true',
       help=(
@@ -1079,6 +1111,8 @@ def AddUpgradeFlags(parser):
           " the function's code and configuration."
       ),
   )
+  AddTriggerServiceAccountFlag(setup_config_group)
+
   upgrade_group.add_argument(
       '--redirect-traffic',
       action='store_true',
@@ -1130,15 +1164,46 @@ def _ValidateJsonOrRaiseError(data, arg_name):
     )
 
 
-def AddBuildServiceAccountFlag(parser, track):
-  if track in (base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA):
-    parser.add_argument(
-        '--build-service-account',
-        help="""\
-            IAM service account whose credentials will be used for the build step.
-            Must be of the format projects/${PROJECT_ID}/serviceAccounts/${ACCOUNT_EMAIL_ADDRESS}.
+def AddBuildServiceAccountFlag(parser):
+  """Adds flags for configuring the build service account for Cloud Function."""
+  mutex_group = parser.add_group(mutex=True)
+  mutex_group.add_argument(
+      '--build-service-account',
+      help="""\
+          IAM service account whose credentials will be used for the build step.
+          Must be of the format projects/${PROJECT_ID}/serviceAccounts/${ACCOUNT_EMAIL_ADDRESS}.
 
-            If not provided, the function will use the project's default
-            service account for Cloud Build.
-        """,
-    )
+          If not provided, the function will use the project's default
+          service account for Cloud Build.
+      """,
+  )
+  mutex_group.add_argument(
+      '--clear-build-service-account',
+      action='store_true',
+      help="""\
+          Clears the build service account field.
+      """,
+  )
+
+
+def AddBinaryAuthorizationMutexGroup(parser):
+  """Add flag for specifying Binary Authorization Policy to the parser."""
+  mutex_group = parser.add_group(mutex=True)
+  mutex_group.add_argument(
+      '--binary-authorization',
+      help="""\
+        Name of the Binary Authorization policy that the function image should
+        be checked against when deploying to Cloud Run.
+
+        Example: default
+
+        The flag is only applicable to 2nd gen functions.
+      """,
+  )
+  mutex_group.add_argument(
+      '--clear-binary-authorization',
+      action='store_true',
+      help="""\
+        Clears the Binary Authorization policy field.
+      """,
+  )

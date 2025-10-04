@@ -34,8 +34,7 @@ def AddParentNicNameArg(parser):
       '--parent-nic-name',
       type=str,
       help="""
-        Name of the parent network interface of a VLAN based network interface.
-        If this field is specified, vlan must be set.
+        Name of the parent network interface of a dynamic network interface.
       """,
   )
 
@@ -45,9 +44,8 @@ def AddVlanArg(parser):
       '--vlan',
       type=int,
       help="""
-        VLAN tag of a VLAN based network interface, must be in range from 2 to
-        4094 inclusively. This field is mandatory if the parent network
-        interface name is set.
+        VLAN tag of a dynamic network interface, must be  an integer in the
+        range from 2 to 255 inclusively.
       """,
   )
 
@@ -147,11 +145,30 @@ def AddStackTypeArg(parser):
           'IPV4_IPV6': (
               'The network interface can have both IPv4 and IPv6 addresses.'
           ),
+          'IPV6_ONLY': 'The network interface will be assigned IPv6 addresses.',
       },
       type=arg_utils.ChoiceToEnumName,
       help=(
-          'The stack type for the default network interface. Determines if '
-          'IPv6 is enabled on the default network interface.'
+          'The stack type for the network interface. Determines if IPv6 is'
+          ' enabled on the network interface.'
+      ),
+  )
+
+
+def AddIgmpQueryArg(parser):
+  parser.add_argument(
+      '--igmp-query',
+      choices={
+          'IGMP_QUERY_V2': 'IGMP Query V2 on the network interface is enabled.',
+          'IGMP_QUERY_DISABLED': (
+              'IGMP Query on the network interface is disabled.'
+          ),
+      },
+      type=arg_utils.ChoiceToEnumName,
+      help=(
+          'Determines if the'
+          ' Compute Engine instance can receive and respond to IGMP query'
+          ' packets on the specified network interface.'
       ),
   )
 
@@ -216,8 +233,8 @@ def AddExternalIpv6AddressArg(parser):
       type=str,
       help="""
         Assigns the given external IPv6 address to an instance.
-        The address must be the first IP in the range. This option is applicable
-        only to dual-stack instances with stack-type=IPV4_ONLY.
+        The address must be the first IP in the range. This option is not
+        applicable to instances with stack-type=IPV4_ONLY.
       """,
   )
 
@@ -282,5 +299,15 @@ def AddIpv6PrefixLengthArg(parser):
         The prefix length of the external IPv6 address range. This flag should be used together
         with `--ipv6-address`. Currently only `/96` is supported and the default value
         is `96`.
+      """,
+  )
+
+
+def AddNetworkAttachmentArg(parser):
+  parser.add_argument(
+      '--network-attachment',
+      type=str,
+      help="""
+        The network attachment URL this network interface should connect to.
       """,
   )

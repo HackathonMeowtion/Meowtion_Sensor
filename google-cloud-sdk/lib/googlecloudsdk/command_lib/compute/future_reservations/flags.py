@@ -44,7 +44,7 @@ def GetClearNamePrefixFlag():
   )
 
 
-def GetTotalCountFlag(required=True):
+def GetTotalCountFlag(required=False):
   """Gets the --total-count flag."""
   help_text = """\
   The total number of instances for which capacity assurance is requested at a
@@ -237,6 +237,129 @@ def GetRequireSpecificReservationFlag():
   )
 
 
+def GetReservationNameFlag():
+  """--reservation-name flag."""
+  help_text = """\
+  Name of reservations where the capacity is provisioned at the time of
+  delivery of  future reservations. If the reservation with the given name
+  does not exist already, it is created automatically at the time of Approval
+  with INACTIVE state till specified start-time. Either provide the
+  reservation_name or a name_prefix.
+  """
+  return base.Argument(
+      '--reservation-name',
+      type=str,
+      help=help_text,
+  )
+
+
+def GetDeploymentTypeFlag():
+  """--deployment-type flag."""
+  help_text = """\
+  The deployment type for the reserved capacity.
+  """
+  return base.Argument(
+      '--deployment-type',
+      choices={
+          'DENSE': 'DENSE mode is for densely deployed reservation blocks.',
+          'FLEXIBLE': (
+              'FLEXIBLE mode is for highly flexible, logical reservation'
+              ' blocks.'
+          ),
+      },
+      help=help_text,
+  )
+
+
+def GetCommitmentNameHelpText():
+  help_text = """\
+  Name of commitment covering the delivered reservation at the time of delivery
+  of future reservations. If not specified, it takes the name of the future
+  reservation.
+  """
+  return help_text
+
+
+def GetCommitmentPlanHelpText():
+  help_text = """\
+  The plan for this commitment to be created, which determines duration and
+  discount rate. The currently supported plans are TWELVE_MONTH (1 year), and
+  THIRTY_SIX_MONTH (3 years).
+  """
+  return help_text
+
+
+def GetPreviousCommitmentTermsHelpText():
+  help_text = """\
+  Applicable only if future reservation will deliver to an existing reservation
+  with a ramp plan. When set to EXTEND, all associated parent Committed Used
+  Discount's end-date/term will be extended to the end-time of this future
+  reservation. Default is to extend previous commitment's time to the end_time
+  of the reservation.
+  """
+  return help_text
+
+
+def GetSchedulingTypeFlag():
+  """--scheduling-type flag."""
+  help_text = """\
+  Maintenance for the reserved capacity.
+  """
+  return base.Argument(
+      '--scheduling-type',
+      choices={
+          'GROUPED': (
+              'In GROUPED mode, maintenance on all reserved instances is'
+              ' synchronized.'
+          ),
+          'INDEPENDENT': (
+              'In INDEPENDENT mode, maintenance is not synchronized for this'
+              ' reservation, and each instance has its own maintenance window.'
+          ),
+      },
+      help=help_text,
+  )
+
+
+def GetReservationModeFlag():
+  """--reservation-mode flag."""
+  help_text = """\
+  The mode of the reservation.
+  """
+  return base.Argument(
+      '--reservation-mode',
+      choices={
+          'CALENDAR': (
+              'This indicates to create a future reservation in calendar mode,'
+              ' which is ideal for reserving GPU VMs. The auto-created'
+              ' reservations for the future reservation are automatically'
+              ' deleted at the end of the reservation period.'
+          ),
+          'DEFAULT': (
+              'This indicates to create a standard future reservation. If you'
+              ' want to automatically delete the auto-created reservations,'
+              ' then you must use the --auto-delete-auto-created-reservations'
+              ' flag.'
+          ),
+      },
+      help=help_text,
+  )
+
+
+def GetEnableEmergentMaintenanceFlag():
+  """--emergent-maintenance flag."""
+  help_text = """\
+  Emergent maintenance flag for the reservation, which enrolls all the
+  underlying vms, hosts and SB infrastructure to receive emergent maintenance
+  notifications in advance.
+  """
+  return base.Argument(
+      '--enable-emergent-maintenance',
+      action=arg_parsers.StoreTrueFalseAction,
+      help=help_text,
+  )
+
+
 def AddCreateFlags(
     parser,
     support_location_hint=False,
@@ -247,6 +370,10 @@ def AddCreateFlags(
     support_local_ssd_count=False,
     support_auto_delete=False,
     support_require_specific_reservation=False,
+    support_gsc=False,
+    support_cuds=False,
+    support_dws_gpu=False,
+    support_dws_tpu=False,
 ):
   """Adds all flags needed for the create command."""
   GetNamePrefixFlag().AddToParser(parser)
@@ -257,16 +384,18 @@ def AddCreateFlags(
   if support_planning_status:
     GetPlanningStatusFlag().AddToParser(parser)
 
-  specific_sku_properties_group = base.ArgumentGroup(
-      'Manage the instance properties for the auto-created reservations. You'
-      ' must either provide a source instance template or define the instance'
-      ' properties.',
+  reservation_properties_group = base.ArgumentGroup(
+      'To create a future reservation request, specify the properties of the'
+      ' resources that you want to reserve and when you want to start using'
+      ' them. After the request is approved, Compute Engine automatically'
+      ' creates reservations for your requested resources at your specified'
+      ' start time.',
       required=True,
       mutex=True,
   )
 
   if support_instance_template:
-    specific_sku_properties_group.AddArgument(
+    reservation_properties_group.AddArgument(
         reservation_flags.GetSourceInstanceTemplateFlag()
     )
 
@@ -294,8 +423,23 @@ def AddCreateFlags(
         instance_flags.AddMaintenanceInterval()
     )
 
-  specific_sku_properties_group.AddArgument(instance_properties_group)
-  specific_sku_properties_group.AddToParser(parser)
+  if support_dws_tpu:
+    aggregate_reservation_group = base.ArgumentGroup(
+        'You must define the version and number of TPUs to reserve.'
+    )
+    aggregate_reservation_group.AddArgument(
+        reservation_flags.GetTpuVersion()
+    )
+    aggregate_reservation_group.AddArgument(
+        reservation_flags.GetChipCount()
+    )
+    aggregate_reservation_group.AddArgument(
+        reservation_flags.GetWorkloadType()
+    )
+    reservation_properties_group.AddArgument(aggregate_reservation_group)
+
+  reservation_properties_group.AddArgument(instance_properties_group)
+  reservation_properties_group.AddToParser(parser)
 
   if support_share_setting:
     share_group = base.ArgumentGroup(
@@ -308,6 +452,17 @@ def AddCreateFlags(
   if support_auto_delete:
     AddAutoDeleteFlags(parser)
 
+  if support_gsc:
+    GetReservationNameFlag().AddToParser(parser)
+    GetDeploymentTypeFlag().AddToParser(parser)
+    GetSchedulingTypeFlag().AddToParser(parser)
+
+  if support_cuds:
+    AddCommitmentInfoFlags(parser)
+
+  if support_dws_gpu:
+    GetReservationModeFlag().AddToParser(parser)
+
 
 def AddUpdateFlags(
     parser,
@@ -318,6 +473,9 @@ def AddUpdateFlags(
     support_share_setting=False,
     support_auto_delete=False,
     support_require_specific_reservation=False,
+    support_gsc=False,
+    support_cuds=False,
+    support_emergent_maintenance=False,
 ):
   """Adds all flags needed for the update command."""
 
@@ -392,6 +550,17 @@ def AddUpdateFlags(
   if support_require_specific_reservation:
     GetRequireSpecificReservationFlag().AddToParser(parser)
 
+  if support_gsc:
+    GetReservationNameFlag().AddToParser(parser)
+    GetDeploymentTypeFlag().AddToParser(parser)
+    GetSchedulingTypeFlag().AddToParser(parser)
+
+  if support_cuds:
+    AddCommitmentInfoFlags(parser)
+
+  if support_emergent_maintenance:
+    GetEnableEmergentMaintenanceFlag().AddToParser(parser)
+
 
 def AddAutoDeleteFlags(parser, is_update=False):
   """Adds all flags needed for the modifying the auto-delete properties."""
@@ -432,4 +601,26 @@ def AddTimeWindowFlags(parser, time_window_requird=False):
   end_time_window_group.add_argument('--end-time', help=GetEndTimeHelpText())
   end_time_window_group.add_argument(
       '--duration', type=int, help=GetDurationHelpText()
+  )
+
+
+def AddCommitmentInfoFlags(parser):
+  """Adds all flags needed for the modifying the commitment info properties."""
+
+  commitment_info_group = parser.add_group(
+      help='Manage the commitment info properties',
+      required=False,
+  )
+  commitment_info_group.add_argument(
+      '--commitment-name', type=str, help=GetCommitmentNameHelpText()
+  )
+  commitment_info_group.add_argument(
+      '--commitment-plan',
+      choices=['TWELVE_MONTH', 'THIRTY_SIX_MONTH'],
+      help=GetCommitmentPlanHelpText(),
+  )
+  commitment_info_group.add_argument(
+      '--previous-commitment-terms',
+      choices=['EXTEND'],
+      help=GetPreviousCommitmentTermsHelpText(),
   )

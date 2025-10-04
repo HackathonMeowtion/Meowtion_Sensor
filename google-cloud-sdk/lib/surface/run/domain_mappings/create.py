@@ -36,9 +36,13 @@ DOMAIN_MAPPINGS_HELP_DOCS_URL = ('https://cloud.google.com/run/docs/'
                                  'mapping-custom-domains/')
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Create(base.Command):
   """Create domain mappings for Cloud Run for Anthos."""
+
+  # Hide GA command because only used by Cloud Run for Anthos
+  hidden = True
 
   detailed_help = {
       'DESCRIPTION':

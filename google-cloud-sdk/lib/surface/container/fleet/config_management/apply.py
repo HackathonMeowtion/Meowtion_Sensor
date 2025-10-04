@@ -18,112 +18,138 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import apitools
+from googlecloudsdk import api_lib
+from googlecloudsdk import core
+from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.container.fleet import resources
+from googlecloudsdk.command_lib.container.fleet.config_management import command
 from googlecloudsdk.command_lib.container.fleet.config_management import utils
-from googlecloudsdk.command_lib.container.fleet.features import base
-from googlecloudsdk.command_lib.container.fleet.policycontroller import constants
-from googlecloudsdk.core import exceptions
-from googlecloudsdk.core import yaml
+from googlecloudsdk.command_lib.container.fleet.features import base as fleet_base
+from googlecloudsdk.command_lib.container.fleet.membershipfeatures import base as mf_base
+from googlecloudsdk.command_lib.container.fleet.membershipfeatures import convert
 
 # Pull out the example text so the example command can be one line without the
 # py linter complaining. The docgen tool properly breaks it into multiple lines.
 EXAMPLES = r"""
-    To apply a YAML config file to a membership, prepare
+    To apply the [fleet-default membership configuration](https://cloud.google.com/kubernetes-engine/fleet-management/docs/manage-features)
+    to `MEMBERSHIP_NAME`, run:
+
+    $ {command} --membership=MEMBERSHIP_NAME --origin=FLEET
+
+    To apply a membership configuration as a YAML file, prepare
     [apply-spec.yaml](https://cloud.google.com/anthos-config-management/docs/reference/gcloud-apply-fields#example_gcloud_apply_spec) then run:
 
       $ {command} --membership=MEMBERSHIP_NAME --config=APPLY-SPEC.YAML --version=VERSION
 """
 
 
-class Apply(base.UpdateCommand):
-  """Update a Config Management Feature Spec.
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
+@base.DefaultUniverseOnly
+class Apply(fleet_base.UpdateCommand, mf_base.UpdateCommand, command.Common):
+  """Update a Config Management feature spec.
 
-  Update a user-specified config file to a ConfigManagement Custom Resource.
-  The config file should be a .yaml file, all eligible fields are listed in
-  https://cloud.google.com/anthos-config-management/docs/reference/gcloud-apply-fields
+  Update a membership configuration for the Config Management feature in a
+  fleet. This command errors if the Config Management feature is not enabled on
+  the fleet.
   """
 
   detailed_help = {'EXAMPLES': EXAMPLES}
 
-  feature_name = 'configmanagement'
+  feature_name = utils.CONFIG_MANAGEMENT_FEATURE_NAME
+  mf_name = utils.CONFIG_MANAGEMENT_FEATURE_NAME
 
   @classmethod
   def Args(cls, parser):
     resources.AddMembershipResourceArg(parser)
-    parser.add_argument(
-        '--config',
-        type=str,
-        help='The path to config-management.yaml.',
+    spec_group = parser.add_group(
         required=True,
+        mutex=True,
+        help=('Update the membership configuration either to the [fleet-default'
+              ' membership configuration]('
+              'https://cloud.google.com/kubernetes-engine/fleet-management/docs/manage-features)'
+              ' with `--origin` or to a user-provided configuration with'
+              ' `--config` and `--version`.'),
     )
-    parser.add_argument(
-        '--version', type=str, help='The version of ACM to install.'
+    spec_group.add_argument(
+        '--origin',
+        choices=['FLEET'],
+        help=('Updates the configuration of the target membership to the'
+              ' current [fleet-default membership configuration]('
+              'https://cloud.google.com/kubernetes-engine/fleet-management/docs/manage-features).'
+              ' Errors if fleet-default membership configuration is not'
+              ' enabled; see the `enable` command for more details.'),
+    )
+    config_group = spec_group.add_group(
+        help=('Provide the entire membership configuration to update with'
+              ' `--config` and `--version`.')
+    )
+    config_group.add_argument(
+        '--config',
+        required=True,
+        help=('Path to YAML file that contains the configuration to update the'
+              ' target membership to.'
+              ' The file accepts the [following fields]('
+              'https://cloud.google.com/anthos-config-management/docs/reference'
+              '/gcloud-apply-fields).'),
+    )
+    config_group.add_argument(
+        '--version',
+        help=('Version of Config Management.'
+              ' Equivalent to the [`spec.version`]('
+              'https://cloud.google.com/anthos-config-management/docs/reference'
+              '/gcloud-apply-fields#common)'
+              ' field in the `--config` file.'
+              ' Provides `--config` with a version in the absence of'
+              ' `spec.version`.'
+              ' Cannot specify this flag without `--config`; cannot set both'
+              ' this flag and `spec.version`.'
+              ' See [`spec.version`]('
+              'https://cloud.google.com/anthos-config-management/docs/reference'
+              '/gcloud-apply-fields#common)'
+              ' for more details.')
     )
 
   def Run(self, args):
-    utils.enable_poco_api_if_disabled(self.Project())
+    # Initialize and defend against more than 1 call to Run.
+    self.__feature_cache = None
 
-    # check static yaml fields before query membership
-    try:
-      loaded_cm = yaml.load_path(args.config)
-    except yaml.Error as e:
-      raise exceptions.Error(
-          'Invalid config yaml file {}'.format(args.config), e
-      )
-    _validate_meta(loaded_cm)
-
-    membership = base.ParseMembership(
+    self.membership = fleet_base.ParseMembership(
         args, prompt=True, autoselect=True, search=True
     )
-
-    config_sync = _parse_config_sync(loaded_cm, self.messages)
-    policy_controller = _parse_policy_controller(loaded_cm, self.messages)
-    hierarchy_controller_config = _parse_hierarchy_controller_config(
-        loaded_cm, self.messages
-    )
-
-    upgrades = loaded_cm.get('spec', {}).get(utils.UPGRADES, '')
-    validate_upgrades(upgrades)
-    version = args.version
-    if upgrades != utils.UPGRADES_AUTO and not version:
-      version = self._get_backfill_version(membership)
-    cluster = loaded_cm.get('spec', {}).get('cluster', '')
-    spec = self.messages.MembershipFeatureSpec(
-        configmanagement=self.messages.ConfigManagementMembershipSpec(
-            version=version,
-            cluster=cluster,
-            management=self.upgradesFromStr(upgrades),
-            configSync=config_sync,
-            policyController=policy_controller,
-            hierarchyController=hierarchy_controller_config,
-        )
-    )
-    spec_map = {membership: spec}
-
-    # UpdateFeature uses patch method to update membership_configs map,
-    # there's no need to get the existing feature spec
-    patch = self.messages.Feature(
-        membershipSpecs=self.hubclient.ToMembershipSpecs(spec_map)
-    )
-    self.Update(['membership_specs'], patch)
-
-  def upgradesFromStr(self, upgrades):
-    """Convert the string `upgrades` to an enum in the ACM Fleet Feature API.
-
-    Args:
-      upgrades: a string.
-
-    Returns:
-      an enum represent the field `management` in the ACM Fleet Feature API.
-    """
-    if upgrades == utils.UPGRADES_AUTO:
-      return self.messages.ConfigManagementMembershipSpec.ManagementValueValuesEnum(
-          utils.MANAGEMENT_AUTOMATIC
+    feature_spec = self.messages.MembershipFeatureSpec()
+    if args.origin:
+      feature_spec.origin = self.messages.Origin(
+          type=self.messages.Origin.TypeValueValuesEnum.FLEET
       )
     else:
-      return self.messages.ConfigManagementMembershipSpec.ManagementValueValuesEnum(
-          utils.MANAGEMENT_MANUAL
-      )
+      cm = self.parse_config_management(args.config)
+      if cm.version and args.version:
+        raise core.exceptions.Error(
+            'Cannot set version in multiple flags: --version={} and the version'
+            ' field in --config has value {}'.format(args.version, cm.version)
+        )
+      if args.version:
+        cm.version = args.version
+      if (not cm.version and
+          cm.management !=
+          self.messages.ConfigManagementMembershipSpec.ManagementValueValuesEnum.MANAGEMENT_AUTOMATIC):
+        cm.version = self._get_backfill_version(self.membership)
+      feature_spec.configmanagement = cm
+    self._update_membership(feature_spec)
+
+  # Not strictly necessary yet, but helps communicate that we only GetFeature
+  # once per execution.
+  def _get_feature_cache(self):
+    """Gets the Config Management feature at most once per command execution.
+
+    Returns:
+      Cached Config Management feature.
+    """
+    if self.__feature_cache is None:
+      # Raises a comprehensible error if feature not enabled.
+      self.__feature_cache = self.GetFeature()
+    return self.__feature_cache
 
   def _get_backfill_version(self, membership):
     """Get the value the version field in FeatureSpec should be set to.
@@ -135,322 +161,29 @@ class Apply(base.UpdateCommand):
       version: A string denoting the version field in MembershipConfig
     Raises: Error, if retrieving FeatureSpec of FeatureState fails
     """
-    f = self.GetFeature()
+    f = self._get_feature_cache()
     return utils.get_backfill_version_from_feature(f, membership)
 
+  def _update_membership(self, feature_spec):
+    """Update the spec of the target membership to feature_spec.
 
-def validate_upgrades(upgrades):
-  """Validate the string `upgrades`.
+    Args:
+      feature_spec: gkehub API MembershipFeatureSpec to update to.
 
-  Args:
-    upgrades: a string.
-
-  Raises: Error, if upgrades is invalid.
-  """
-  legal_fields = [
-      utils.UPGRADES_AUTO,
-      utils.UPGRADES_MANUAL,
-      utils.UPGRADES_EMPTY,
-  ]
-  valid_values = ' '.join(f"'{field}'" for field in legal_fields)
-  if upgrades not in legal_fields:
-    raise exceptions.Error(
-        'The valid values of field .spec.{} are: {}'.format(
-            utils.UPGRADES, valid_values
+    Returns:
+      Updated feature or membership feature, for projects migrated to v2 by Hub.
+    """
+    try:
+      if not feature_spec.origin:
+        membershipfeature = convert.ToV2MembershipFeature(
+            self, self.membership, self.mf_name, feature_spec
         )
-    )
-
-
-def _validate_meta(configmanagement):
-  """Validate the parsed configmanagement yaml.
-
-  Args:
-    configmanagement: The dict loaded from yaml.
-  """
-  if not isinstance(configmanagement, dict):
-    raise exceptions.Error('Invalid ConfigManagement template.')
-  if configmanagement.get('applySpecVersion') != 1:
-    raise exceptions.Error(
-        'Only "applySpecVersion: 1" is supported. To use a later version,'
-        'please fetch the config by running\n'
-        'gcloud container fleet config-management fetch-for-apply'
-    )
-
-  if 'spec' not in configmanagement:
-    raise exceptions.Error('Missing required field .spec')
-  spec = configmanagement['spec']
-  legal_fields = {
-      utils.CONFIG_SYNC,
-      utils.POLICY_CONTROLLER,
-      utils.HNC,
-      utils.CLUSTER,
-      utils.UPGRADES,
-  }
-  for field in spec:
-    if field not in legal_fields:
-      raise exceptions.Error(
-          'Please remove illegal field .spec.{}'.format(field)
-      )
-
-
-def _parse_config_sync(configmanagement, msg):
-  """Load ConfigSync configuration with the parsed configmanagement yaml.
-
-  Args:
-    configmanagement: dict, The data loaded from the config-management.yaml
-      given by user.
-    msg: The Hub messages package.
-
-  Returns:
-    config_sync: The ConfigSync configuration holds configmanagement.spec.git
-    or configmanagement.spec.oci being used in MembershipConfigs
-  Raises: Error, if required fields are missing from .spec or unsupported fields
-    are included in .spec
-  """
-
-  if (
-      'spec' not in configmanagement
-      or utils.CONFIG_SYNC not in configmanagement['spec']
-  ):
-    return None
-  spec_source = configmanagement['spec'][utils.CONFIG_SYNC]
-  for field in spec_source:
-    if (
-        field
-        not in yaml.load(utils.APPLY_SPEC_VERSION_1)['spec'][utils.CONFIG_SYNC]
-    ):
-      raise exceptions.Error(
-          'The field .spec.{}.{}'.format(utils.CONFIG_SYNC, field)
-          + ' is unrecognized in this applySpecVersion. Please remove.'
-      )
-
-  config_sync = msg.ConfigManagementConfigSync()
-  # missing `enabled: true` will enable configSync
-  config_sync.enabled = True
-  if 'enabled' in spec_source:
-    config_sync.enabled = spec_source['enabled']
-  # Default to use sourceType 'git' if not specified
-  source_type = spec_source.get('sourceType', 'git')
-  if source_type == 'oci':
-    config_sync.oci = _parse_oci_config(spec_source, msg)
-  else:
-    config_sync.git = _parse_git_config(spec_source, msg)
-  if 'sourceFormat' in spec_source:
-    config_sync.sourceFormat = spec_source['sourceFormat']
-  if 'preventDrift' in spec_source:
-    config_sync.preventDrift = spec_source['preventDrift']
-  if 'metricsGcpServiceAccountEmail' in spec_source:
-    config_sync.metricsGcpServiceAccountEmail = spec_source[
-        'metricsGcpServiceAccountEmail'
-    ]
-
-  return config_sync
-
-
-def _parse_git_config(spec_source, msg):
-  """Load GitConfig with the parsed config_sync yaml.
-
-  Args:
-    spec_source: The config_sync dict loaded from the config-management.yaml
-      given by user.
-    msg: The Hub messages package.
-
-  Returns:
-    git_config: The GitConfig configuration being used in MembershipConfigs
-  """
-
-  git_config = msg.ConfigManagementGitConfig()
-  if 'syncWait' in spec_source:
-    git_config.syncWaitSecs = spec_source['syncWait']
-  for field in [
-      'policyDir',
-      'secretType',
-      'syncBranch',
-      'syncRepo',
-      'syncRev',
-      'httpsProxy',
-      'gcpServiceAccountEmail',
-  ]:
-    if field in spec_source:
-      setattr(git_config, field, spec_source[field])
-  return git_config
-
-
-def _parse_oci_config(spec_source, msg):
-  """Load OciConfig with the parsed config_sync yaml.
-
-  Args:
-    spec_source: The config_sync dict loaded from the config-management.yaml
-      given by user.
-    msg: The Hub messages package.
-
-  Returns:
-    oci_config: The OciConfig being used in MembershipConfigs
-  """
-
-  oci_config = msg.ConfigManagementOciConfig()
-  if 'syncWait' in spec_source:
-    oci_config.syncWaitSecs = spec_source['syncWait']
-  for field in [
-      'policyDir',
-      'secretType',
-      'syncRepo',
-      'gcpServiceAccountEmail',
-  ]:
-    if field in spec_source:
-      setattr(oci_config, field, spec_source[field])
-  return oci_config
-
-
-def _parse_policy_controller(configmanagement, msg):
-  """Load PolicyController with the parsed config-management.yaml.
-
-  Args:
-    configmanagement: dict, The data loaded from the config-management.yaml
-      given by user.
-    msg: The Hub messages package.
-
-  Returns:
-    policy_controller: The Policy Controller configuration for
-    MembershipConfigs, filled in the data parsed from
-    configmanagement.spec.policyController
-  Raises: Error, if Policy Controller `enabled` is missing or not a boolean
-  """
-
-  if (
-      'spec' not in configmanagement
-      or 'policyController' not in configmanagement['spec']
-  ):
-    return None
-
-  spec_policy_controller = configmanagement['spec']['policyController']
-  # Required field
-  if (
-      configmanagement['spec']['policyController'] is None
-      or 'enabled' not in spec_policy_controller
-  ):
-    raise exceptions.Error(
-        'Missing required field .spec.policyController.enabled'
-    )
-  enabled = spec_policy_controller['enabled']
-  if not isinstance(enabled, bool):
-    raise exceptions.Error(
-        'policyController.enabled should be `true` or `false`'
-    )
-
-  policy_controller = msg.ConfigManagementPolicyController()
-  # When the policyController is set to be enabled, policy_controller will
-  # be filled with the valid fields set in spec_policy_controller, which
-  # were mapped from the config-management.yaml
-  for field in spec_policy_controller:
-    if field not in [
-        'enabled',
-        'templateLibraryInstalled',
-        'auditIntervalSeconds',
-        'referentialRulesEnabled',
-        'exemptableNamespaces',
-        'logDeniesEnabled',
-        'mutationEnabled',
-        'monitoring',
-    ]:
-      raise exceptions.Error(
-          'Please remove illegal field .spec.policyController.{}'.format(field)
-      )
-    if field == 'monitoring':
-      monitoring = _build_monitoring_msg(spec_policy_controller[field], msg)
-      setattr(policy_controller, field, monitoring)
-    else:
-      setattr(policy_controller, field, spec_policy_controller[field])
-
-  return policy_controller
-
-
-def _parse_hierarchy_controller_config(configmanagement, msg):
-  """Load HierarchyController with the parsed config-management.yaml.
-
-  Args:
-    configmanagement: dict, The data loaded from the config-management.yaml
-      given by user.
-    msg: The Hub messages package.
-
-  Returns:
-    hierarchy_controller: The Hierarchy Controller configuration for
-    MembershipConfigs, filled in the data parsed from
-    configmanagement.spec.hierarchyController
-  Raises: Error, if Hierarchy Controller `enabled` set to false but also has
-    other fields present in the config
-  """
-
-  if (
-      'spec' not in configmanagement
-      or 'hierarchyController' not in configmanagement['spec']
-  ):
-    return None
-
-  spec = configmanagement['spec']['hierarchyController']
-  # Required field
-  if spec is None or 'enabled' not in spec:
-    raise exceptions.Error(
-        'Missing required field .spec.hierarchyController.enabled'
-    )
-  enabled = spec['enabled']
-  if not isinstance(enabled, bool):
-    raise exceptions.Error(
-        'hierarchyController.enabled should be `true` or `false`'
-    )
-
-  config_proto = msg.ConfigManagementHierarchyControllerConfig()
-  # When the hierarchyController is set to be enabled, hierarchy_controller will
-  # be filled with the valid fields set in spec, which
-  # were mapped from the config-management.yaml
-  for field in spec:
-    if field not in [
-        'enabled',
-        'enablePodTreeLabels',
-        'enableHierarchicalResourceQuota',
-    ]:
-      raise exceptions.Error(
-          'Please remove illegal field .spec.hierarchyController{}'.format(
-              field
-          )
-      )
-    setattr(config_proto, field, spec[field])
-
-  return config_proto
-
-
-def _build_monitoring_msg(spec_monitoring, msg):
-  """Build PolicyControllerMonitoring message from the parsed spec.
-
-  Args:
-    spec_monitoring: dict, The monitoring data loaded from the
-      config-management.yaml given by user.
-    msg: The Hub messages package.
-
-  Returns:
-    monitoring: The Policy Controller Monitoring configuration for
-    MembershipConfigs, filled in the data parsed from
-    configmanagement.spec.policyController.monitoring
-  Raises: Error, if Policy Controller Monitoring Backend is not recognized
-  """
-  backends = spec_monitoring.get('backends', [])
-  if not backends:
-    return None
-
-  # n.b. Policy Controller is the source of truth for supported backends.
-  converter = constants.monitoring_backend_converter(msg)
-
-  def convert(backend):
-    result = converter.get(backend.lower())
-    if not result:
-      raise exceptions.Error(
-          'policyController.monitoring.backend {} is not recognized'.format(
-              backend
-          )
-      )
-    return result
-
-  monitoring_backends = [convert(backend) for backend in backends]
-  monitoring = msg.ConfigManagementPolicyControllerMonitoring()
-  monitoring.backends = monitoring_backends
-  return monitoring
+        return self.UpdateV2(self.membership, ['spec'], membershipfeature)
+      else:
+        return self.Update(['membership_specs'], self.messages.Feature(
+            membershipSpecs=self.hubclient.ToMembershipSpecs({
+                self.membership: feature_spec
+            })
+        ))
+    except apitools.base.py.exceptions.HttpError as e:
+      raise api_lib.util.exceptions.HttpException(e, '{message}')

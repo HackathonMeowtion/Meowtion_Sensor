@@ -41,8 +41,8 @@ DETAILED_HELP = {
 }
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
-@base.Hidden
 class SetIamPolicy(base.Command):
   """Set IAM policy for a view."""
 

@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from googlecloudsdk.calliope import arg_parsers
+from googlecloudsdk.calliope import base
 from googlecloudsdk.calliope import parser_arguments
 from googlecloudsdk.calliope.concepts import concepts
 from googlecloudsdk.calliope.concepts import multitype
@@ -26,6 +27,7 @@ from googlecloudsdk.command_lib.secrets import completers as secrets_completers
 from googlecloudsdk.command_lib.util.concepts import concept_parsers
 from googlecloudsdk.command_lib.util.concepts import presentation_specs
 from googlecloudsdk.core import resources
+
 
 # Args
 
@@ -114,12 +116,24 @@ def AddReplicaLocation(parser, positional=False, **kwargs):
       **kwargs)
 
 
-def AddSecret(parser, purpose, positional=False, **kwargs):
+def AddSecret(parser, purpose='', positional=False, help_text=None, **kwargs):
+  """Add secret resource argument to the parser.
+
+  Args:
+    parser: The parser to add the argument to.
+    purpose: The purpose of the secret, used to generate the help text.
+    positional: Whether the argument is positional.
+    help_text: The help text to use for the argument.
+    **kwargs: Extra arguments.
+  """
+  if help_text is None:  # NOMUTANTS--no good way to test
+    help_text = 'The secret {}.'.format(purpose)
   concept_parsers.ConceptParser.ForResource(
       name=_ArgOrFlag('secret', positional),
       resource_spec=GetSecretResourceSpec(),
-      group_help='The secret {}.'.format(purpose),
-      **kwargs).AddToParser(parser)
+      group_help=help_text,
+      **kwargs,
+  ).AddToParser(parser)
 
 
 def AddVersion(parser, purpose, positional=False, **kwargs):
@@ -282,7 +296,7 @@ def AddUpdateRegionalKmsKey(
       positional : Whether the argument is positional.
       **kwargs: Extra arguments.
   """
-  group = parser.add_group(mutex=True, help='regional kms key.', hidden=True)
+  group = parser.add_group(mutex=True, help='regional kms key.')
   group.add_argument(
       _ArgOrFlag('regional-kms-key-name', positional),
       metavar='REGIONAL-KMS-KEY-NAME',
@@ -364,7 +378,8 @@ def AddUpdateRotationGroup(parser):
       _ArgOrFlag('remove-rotation-period', False),
       action='store_true',
       help=(
-          'If set, removes the rotation period, cancelling all rotations except for the next one.'
+          'If set, removes the rotation period, cancelling all rotations '
+          'except for the next one.'
       ))
   group.add_argument(
       _ArgOrFlag('remove-rotation-schedule', False),
@@ -372,24 +387,28 @@ def AddUpdateRotationGroup(parser):
       help=('If set, removes rotation policy from a secret.'))
 
 
-def AddSecretEtag(parser):
+def AddSecretEtag(parser, action):
   """Add flag for specifying the current secret etag."""
   parser.add_argument(
       _ArgOrFlag('etag', False),
       metavar='ETAG',
       help=(
-          'Current entity tag (ETag) of the secret. If this flag is defined, the secret is updated only if the ETag provided matched the current secret\'s ETag.'
-      ))
+          'Current entity tag (ETag) of the secret. If specified, the secret is'
+          ' {action} only if the ETag provided matches the current secret\'s '
+          'ETag.'
+      ).format(action=action))
 
 
-def AddVersionEtag(parser):
+def AddVersionEtag(parser, action):
   """Add flag for specifying the current secret version etag."""
   parser.add_argument(
       _ArgOrFlag('etag', False),
       metavar='ETAG',
       help=(
-          'Current entity tag (ETag) of the secret version. If this flag is defined, the version is updated only if the ETag provided matched the current version\'s ETag.'
-      ))
+          'Current entity tag (ETag) of the secret version. If specified, the '
+          'version is {action} only if the ETag provided matches the current '
+          'version\'s ETag.'
+      ).format(action=action))
 
 
 def AddRegionalKmsKeyName(parser, positional=False, **kwargs):
@@ -401,7 +420,6 @@ def AddRegionalKmsKeyName(parser, positional=False, **kwargs):
           'Regional KMS key with which to encrypt and decrypt the secret. Only '
           'valid for regional secrets.'
       ),
-      hidden=True,
       **kwargs,
   )
 
@@ -692,3 +710,31 @@ def MakeGetUriFunc(collection: str, api_version: str = 'v1'):
     return parsed.SelfLink()
 
   return _GetUri
+
+
+def GetTagsArg():
+  """Makes the base.Argument for --tags flag."""
+  help_parts = [
+      'List of tags KEY=VALUE pairs to bind.',
+      'Each item must be expressed as',
+      '`<tag-key-namespaced-name>=<tag-value-short-name>`.\n',
+      'Example: `123/environment=production,123/costCenter=marketing`\n',
+  ]
+  return base.Argument(
+      '--tags',
+      metavar='KEY=VALUE',
+      type=arg_parsers.ArgDict(),
+      action=arg_parsers.UpdateAction,
+      help='\n'.join(help_parts),
+  )
+
+
+def GetTagsFromArgs(args, tags_message, tags_arg_name='tags'):
+  """Makes the tags message object."""
+  tags = getattr(args, tags_arg_name)
+  if not tags:
+    return None
+  # Sorted for test stability
+  return tags_message(additionalProperties=[
+      tags_message.AdditionalProperty(key=key, value=value)
+      for key, value in sorted(tags.items())])

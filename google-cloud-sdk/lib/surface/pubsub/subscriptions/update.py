@@ -28,7 +28,17 @@ from googlecloudsdk.command_lib.util.args import labels_util
 from googlecloudsdk.core import log
 
 
-def _Args(parser, enable_push_to_cps=False):
+def _Args(
+    parser,
+    enable_push_to_cps=False,
+):
+  """Adds the arguments for this command.
+
+  Args:
+    parser: the parser for the command.
+    enable_push_to_cps: whether or not to enable Pubsub Export config flags
+      support.
+  """
   resource_args.AddSubscriptionResourceArg(parser, 'to update.')
   flags.AddSubscriptionSettingsFlags(
       parser,
@@ -36,8 +46,10 @@ def _Args(parser, enable_push_to_cps=False):
       enable_push_to_cps=enable_push_to_cps,
   )
   labels_util.AddUpdateLabelsFlags(parser)
+  flags.AddMessageTransformsFlags(parser, is_update=True)
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Update(base.UpdateCommand):
   """Updates an existing Cloud Pub/Sub subscription."""
@@ -55,9 +67,9 @@ class Update(base.UpdateCommand):
     """This is what gets called when the user runs this command.
 
     Args:
-      args: an argparse namespace. All the arguments that were provided to this
+      args: An argparse namespace. All the arguments that were provided to this
         command invocation.
-      enable_push_to_cps: whether or not to enable Pubsub Export config flags
+      enable_push_to_cps: Whether or not to enable Pubsub Export config flags
         support.
 
     Returns:
@@ -117,6 +129,9 @@ class Update(base.UpdateCommand):
     use_table_schema = getattr(args, 'use_table_schema', None)
     write_metadata = getattr(args, 'write_metadata', None)
     drop_unknown_fields = getattr(args, 'drop_unknown_fields', None)
+    bigquery_service_account_email = getattr(
+        args, 'bigquery_service_account_email', None
+    )
     cloud_storage_bucket = getattr(args, 'cloud_storage_bucket', None)
     cloud_storage_file_prefix = getattr(args, 'cloud_storage_file_prefix', None)
     cloud_storage_file_suffix = getattr(args, 'cloud_storage_file_suffix', None)
@@ -126,6 +141,9 @@ class Update(base.UpdateCommand):
     cloud_storage_max_bytes = getattr(args, 'cloud_storage_max_bytes', None)
     cloud_storage_max_duration = getattr(
         args, 'cloud_storage_max_duration', None
+    )
+    cloud_storage_max_messages = getattr(
+        args, 'cloud_storage_max_messages', None
     )
     if args.IsSpecified('cloud_storage_max_duration'):
       cloud_storage_max_duration = util.FormatDuration(
@@ -137,8 +155,14 @@ class Update(base.UpdateCommand):
     cloud_storage_output_format = None
     if cloud_storage_output_format_list:
       cloud_storage_output_format = cloud_storage_output_format_list[0]
+    cloud_storage_use_topic_schema = getattr(
+        args, 'cloud_storage_use_topic_schema', None
+    )
     cloud_storage_write_metadata = getattr(
         args, 'cloud_storage_write_metadata', None
+    )
+    cloud_storage_service_account_email = getattr(
+        args, 'cloud_storage_service_account_email', None
     )
     pubsub_export_topic = (
         getattr(args, 'pubsub_export_topic', None)
@@ -158,6 +182,9 @@ class Update(base.UpdateCommand):
     enable_exactly_once_delivery = getattr(
         args, 'enable_exactly_once_delivery', None
     )
+
+    message_transforms_file = getattr(args, 'message_transforms_file', None)
+    clear_message_transforms = getattr(args, 'clear_message_transforms', None)
 
     try:
       result = client.Patch(
@@ -181,6 +208,7 @@ class Update(base.UpdateCommand):
           use_table_schema=use_table_schema,
           write_metadata=write_metadata,
           drop_unknown_fields=drop_unknown_fields,
+          bigquery_service_account_email=bigquery_service_account_email,
           clear_bigquery_config=clear_bigquery_config,
           cloud_storage_bucket=cloud_storage_bucket,
           cloud_storage_file_prefix=cloud_storage_file_prefix,
@@ -188,13 +216,18 @@ class Update(base.UpdateCommand):
           cloud_storage_file_datetime_format=cloud_storage_file_datetime_format,
           cloud_storage_max_bytes=cloud_storage_max_bytes,
           cloud_storage_max_duration=cloud_storage_max_duration,
+          cloud_storage_max_messages=cloud_storage_max_messages,
           cloud_storage_output_format=cloud_storage_output_format,
+          cloud_storage_use_topic_schema=cloud_storage_use_topic_schema,
           cloud_storage_write_metadata=cloud_storage_write_metadata,
+          cloud_storage_service_account_email=cloud_storage_service_account_email,
           clear_cloud_storage_config=clear_cloud_storage_config,
           clear_push_no_wrapper_config=clear_push_no_wrapper_config,
           pubsub_export_topic=pubsub_export_topic,
           pubsub_export_topic_region=pubsub_export_topic_region,
           clear_pubsub_export_config=clear_pubsub_export_config,
+          message_transforms_file=message_transforms_file,
+          clear_message_transforms=clear_message_transforms,
       )
     except subscriptions.NoFieldsSpecifiedError:
       if not any(
@@ -209,7 +242,7 @@ class Update(base.UpdateCommand):
     return result
 
 
-@base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.ALPHA)
+@base.ReleaseTracks(base.ReleaseTrack.BETA)
 class UpdateBeta(Update):
   """Updates an existing Cloud Pub/Sub subscription."""
 
@@ -222,5 +255,13 @@ class UpdateBeta(Update):
 
   @exceptions.CatchHTTPErrorRaiseHTTPException()
   def Run(self, args):
-    flags.ValidateSubscriptionArgsUseUniverseSupportedFeatures(args)
     return super(UpdateBeta, self).Run(args, enable_push_to_cps=True)
+
+
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class UpdateAlpha(UpdateBeta):
+  """Updates an existing Cloud Pub/Sub subscription."""
+
+  @classmethod
+  def Args(cls, parser):
+    super(UpdateAlpha, cls).Args(parser)

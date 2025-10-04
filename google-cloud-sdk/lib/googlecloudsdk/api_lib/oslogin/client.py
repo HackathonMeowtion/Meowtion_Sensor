@@ -18,6 +18,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from typing import Optional
+
 from googlecloudsdk.api_lib.util import apis
 from googlecloudsdk.api_lib.util import apis_util
 from googlecloudsdk.calliope import base
@@ -123,8 +125,14 @@ class OsloginClient(object):
 
     self.client.users_projects.Delete(message)
 
-  def ImportSshPublicKey(self, user, public_key, expiration_time=None,
-                         include_security_keys=False):
+  def ImportSshPublicKey(
+      self,
+      user,
+      public_key,
+      expiration_time=None,
+      include_security_keys=False,
+      region: Optional[str] = None,
+  ):
     """Upload an SSH public key to the user's login profile.
 
     Args:
@@ -132,6 +140,8 @@ class OsloginClient(object):
       public_key: str, An SSH public key.
       expiration_time: int, microseconds since epoch.
       include_security_keys: bool, If true, return security key information.
+      region: str, The region to which to make sure the key is imported.
+
     Returns:
       The login profile for the user.
     """
@@ -141,11 +151,15 @@ class OsloginClient(object):
         key=public_key,
         expirationTimeUsec=expiration_time)
 
+    regions = [region] if region else []
+
     if self.version == 'v1':
       message = import_request(
           parent='users/{0}'.format(user),
           projectId=self.project,
-          sshPublicKey=public_key_message)
+          sshPublicKey=public_key_message,
+          regions=regions,
+      )
     else:
       if include_security_keys:
         view = import_request.ViewValueValuesEnum.SECURITY_KEY
@@ -156,7 +170,9 @@ class OsloginClient(object):
           parent='users/{0}'.format(user),
           projectId=self.project,
           sshPublicKey=public_key_message,
-          view=view)
+          regions=regions,
+          view=view,
+      )
 
     res = self.client.users.ImportSshPublicKey(message)
     return res
@@ -235,3 +251,101 @@ class OsloginClient(object):
         signSshPublicKeyRequest=public_key_message,
     )
     return self.client.users_projects_zones.SignSshPublicKey(message)
+
+  def SignSshPublicKeyForInstance(
+      self,
+      public_key,
+      project_id,
+      region,
+      service_account='',
+      compute_instance=None,
+      app_engine_instance=None,
+  ):
+    """Sign an SSH public key scoped to a given instance.
+
+    Args:
+      public_key: str, An SSH public key.
+      project_id: str, The project ID associated with the VM.
+      region: str, The region where the signed SSH public key may be used.
+      service_account: str, The service account associated with the VM.
+      compute_instance: str, The Compute instance to sign the SSH public key
+        for. Only one of compute_instance or app_engine_instance should be
+        specified. The format for this field is
+        'projects/{project}/zones/{zone}/instances/{instance_id}'.
+      app_engine_instance: str, The App Engine instance to sign the SSH public
+        key for. Only one of compute_instance or app_engine_instance should be
+        specified. The format for this field is
+        'services/{service}/versions/{version}/instances/{instance}'.
+
+    Raises:
+      ValueError: If both or neither compute_instance and
+        app_engine_instance are specified.
+
+    Returns:
+      A signed SSH public key.
+    """
+    if (compute_instance and app_engine_instance) or (
+        not compute_instance and not app_engine_instance
+    ):
+      raise ValueError(
+          'Exactly one of compute_instance or app_engine_instance must be'
+          ' specified.'
+      )
+    request_kwargs = {
+        'sshPublicKey': public_key,
+        'serviceAccount': service_account,
+        'computeInstance': compute_instance,
+        'appEngineInstance': app_engine_instance,
+    }
+    message_kwargs = {
+        'parent': 'projects/{0}/locations/{1}'.format(project_id, region),
+    }
+    if self.version == 'v1alpha':
+      request = self.messages.GoogleCloudOsloginControlplaneRegionalV1alphaSignSshPublicKeyRequest(
+          **request_kwargs
+      )
+      message = self.messages.OsloginProjectsLocationsSignSshPublicKeyRequest(
+          **message_kwargs,
+          googleCloudOsloginControlplaneRegionalV1alphaSignSshPublicKeyRequest=request,
+      )
+    else:
+      request = self.messages.GoogleCloudOsloginControlplaneRegionalV1betaSignSshPublicKeyRequest(
+          **request_kwargs
+      )
+      message = self.messages.OsloginProjectsLocationsSignSshPublicKeyRequest(
+          **message_kwargs,
+          googleCloudOsloginControlplaneRegionalV1betaSignSshPublicKeyRequest=request,
+      )
+    return self.client.projects_locations.SignSshPublicKey(message)
+
+  def ProvisionPosixAccount(
+      self, user, project_id, region: Optional[str] = None
+  ):
+    """Provision a POSIX account for a given user.
+
+    ProvisionPosixAccount is a regional read if the user has the correct
+    POSIX account. Otherwise, it is a global write that waits on replication
+    to the provided region before returning success.
+
+    Args:
+      user: str, The email address of the OS Login user.
+      project_id: str, The project ID associated with the VM.
+      region: str, The regions to wait to be written to before returning a
+        response.
+
+    Returns:
+      The user's provisioned POSIX account for the given project.
+    """
+    regions = [region] if region else []
+    provision_body = self.messages.ProvisionPosixAccountRequest(regions=regions)
+
+    name = 'users/{0}/projects/{1}'.format(user, project_id)
+
+    provision_request = (
+        self.messages.OsloginUsersProjectsProvisionPosixAccountRequest(
+            name=name, provisionPosixAccountRequest=provision_body
+        )
+    )
+
+    res = self.client.users_projects.ProvisionPosixAccount(provision_request)
+    return res

@@ -69,21 +69,23 @@ class AptRepository(_messages.Message):
   publicRepository = _messages.MessageField('GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigAptRepositoryPublicRepository', 3)
 
 
-class ArtifactregistryMediaDownloadRequest(_messages.Message):
-  r"""A ArtifactregistryMediaDownloadRequest object.
-
-  Fields:
-    name: Required. The name of the file to download.
-  """
-
-  name = _messages.StringField(1, required=True)
-
-
 class ArtifactregistryProjectsGetProjectSettingsRequest(_messages.Message):
   r"""A ArtifactregistryProjectsGetProjectSettingsRequest object.
 
   Fields:
     name: Required. The name of the projectSettings resource.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class ArtifactregistryProjectsLocationsGetPlatformLogsConfigRequest(_messages.Message):
+  r"""A ArtifactregistryProjectsLocationsGetPlatformLogsConfigRequest object.
+
+  Fields:
+    name: Required. The name of the platform logs config resource:
+      projects/{project}/locations/{location}/platformLogsConfig projects/{pro
+      ject}/locations/{location}/repositories/{repository}/platformLogsConfig
   """
 
   name = _messages.StringField(1, required=True)
@@ -113,6 +115,9 @@ class ArtifactregistryProjectsLocationsListRequest(_messages.Message):
   r"""A ArtifactregistryProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Unless explicitly documented otherwise,
+      don't use this unsupported field which is primarily intended for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -123,10 +128,11 @@ class ArtifactregistryProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class ArtifactregistryProjectsLocationsOperationsGetRequest(_messages.Message):
@@ -229,6 +235,21 @@ class ArtifactregistryProjectsLocationsRepositoriesAttachmentsListRequest(_messa
   parent = _messages.StringField(4, required=True)
 
 
+class ArtifactregistryProjectsLocationsRepositoriesCopyRepositoryRequest(_messages.Message):
+  r"""A ArtifactregistryProjectsLocationsRepositoriesCopyRepositoryRequest
+  object.
+
+  Fields:
+    copyRepositoryRequest: A CopyRepositoryRequest resource to be passed as
+      the request body.
+    destinationRepository: Required. Repository to copy to. Format:
+      projects/{project}/locations/{location}/repositories/{repository}
+  """
+
+  copyRepositoryRequest = _messages.MessageField('CopyRepositoryRequest', 1)
+  destinationRepository = _messages.StringField(2, required=True)
+
+
 class ArtifactregistryProjectsLocationsRepositoriesCreateRequest(_messages.Message):
   r"""A ArtifactregistryProjectsLocationsRepositoriesCreateRequest object.
 
@@ -285,7 +306,8 @@ class ArtifactregistryProjectsLocationsRepositoriesDockerImagesListRequest(_mess
       containing "fff", it could either be package ID or version ID that
       contains "fff".
     orderBy: The field to order the results by.
-    pageSize: The maximum number of artifacts to return.
+    pageSize: The maximum number of artifacts to return. Maximum page size is
+      1,000.
     pageToken: The next_page_token value returned from a previous list
       request, if any.
     parent: Required. The name of the parent resource whose docker images will
@@ -299,12 +321,38 @@ class ArtifactregistryProjectsLocationsRepositoriesDockerImagesListRequest(_mess
   parent = _messages.StringField(5, required=True)
 
 
+class ArtifactregistryProjectsLocationsRepositoriesExportArtifactRequest(_messages.Message):
+  r"""A ArtifactregistryProjectsLocationsRepositoriesExportArtifactRequest
+  object.
+
+  Fields:
+    exportArtifactRequest: A ExportArtifactRequest resource to be passed as
+      the request body.
+    repository: Required. The repository of the artifact to export. Format:
+      projects/{project}/locations/{location}/repositories/{repository}
+  """
+
+  exportArtifactRequest = _messages.MessageField('ExportArtifactRequest', 1)
+  repository = _messages.StringField(2, required=True)
+
+
 class ArtifactregistryProjectsLocationsRepositoriesFilesDeleteRequest(_messages.Message):
   r"""A ArtifactregistryProjectsLocationsRepositoriesFilesDeleteRequest
   object.
 
   Fields:
     name: Required. The name of the file to delete.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class ArtifactregistryProjectsLocationsRepositoriesFilesDownloadRequest(_messages.Message):
+  r"""A ArtifactregistryProjectsLocationsRepositoriesFilesDownloadRequest
+  object.
+
+  Fields:
+    name: Required. The name of the file to download.
   """
 
   name = _messages.StringField(1, required=True)
@@ -326,14 +374,38 @@ class ArtifactregistryProjectsLocationsRepositoriesFilesListRequest(_messages.Me
   Fields:
     filter: An expression for filtering the results of the request. Filter
       rules are case insensitive. The fields eligible for filtering are: *
-      `name` * `owner` An example of using a filter: *
-      `name="projects/p1/locations/us-
-      central1/repositories/repo1/files/a/b/*"` --> Files with an ID starting
-      with "a/b/". * `owner="projects/p1/locations/us-
-      central1/repositories/repo1/packages/pkg1/versions/1.0"` --> Files owned
-      by the version `1.0` in package `pkg1`.
+      `name` * `owner` * `annotations` Examples of using a filter: To filter
+      the results of your request to files with the name `my_file.txt` in
+      project `my-project` in the `us-central` region, in repository `my-
+      repo`, append the following filter expression to your request: *
+      `name="projects/my-project/locations/us-central1/repositories/my-
+      repo/files/my-file.txt"` You can also use wildcards to match any number
+      of characters before or after the value: * `name="projects/my-
+      project/locations/us-central1/repositories/my-repo/files/my-*"` *
+      `name="projects/my-project/locations/us-central1/repositories/my-
+      repo/files/*file.txt"` * `name="projects/my-project/locations/us-
+      central1/repositories/my-repo/files/*file*"` To filter the results of
+      your request to files owned by the version `1.0` in package `pkg1`,
+      append the following filter expression to your request: *
+      `owner="projects/my-project/locations/us-central1/repositories/my-
+      repo/packages/my-package/versions/1.0"` To filter the results of your
+      request to files with the annotation key-value pair [`external_link`:
+      `external_link_value`], append the following filter expression to your
+      request: * `"annotations.external_link:external_link_value"` To filter
+      just for a specific annotation key `external_link`, append the following
+      filter expression to your request: * `"annotations.external_link"` If
+      the annotation key or value contains special characters, you can escape
+      them by surrounding the value with backticks. For example, to filter the
+      results of your request to files with the annotation key-value pair
+      [`external.link`:`https://example.com/my-file`], append the following
+      filter expression to your request: * ``
+      "annotations.`external.link`:`https://example.com/my-file`" `` You can
+      also filter with annotations with a wildcard to match any number of
+      characters before or after the value: * ``
+      "annotations.*_link:`*example.com*`" ``
     orderBy: The field to order the results by.
-    pageSize: The maximum number of files to return.
+    pageSize: The maximum number of files to return. Maximum page size is
+      1,000.
     pageToken: The next_page_token value returned from a previous list
       request, if any.
     parent: Required. The name of the repository whose files will be listed.
@@ -345,6 +417,26 @@ class ArtifactregistryProjectsLocationsRepositoriesFilesListRequest(_messages.Me
   pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
   pageToken = _messages.StringField(4)
   parent = _messages.StringField(5, required=True)
+
+
+class ArtifactregistryProjectsLocationsRepositoriesFilesPatchRequest(_messages.Message):
+  r"""A ArtifactregistryProjectsLocationsRepositoriesFilesPatchRequest object.
+
+  Fields:
+    googleDevtoolsArtifactregistryV1File: A
+      GoogleDevtoolsArtifactregistryV1File resource to be passed as the
+      request body.
+    name: The name of the file, for example: `projects/p1/locations/us-
+      central1/repositories/repo1/files/a%2Fb%2Fc.txt`. If the file ID part
+      contains slashes, they are escaped.
+    updateMask: Required. The update mask applies to the resource. For the
+      `FieldMask` definition, see https://developers.google.com/protocol-
+      buffers/docs/reference/google.protobuf#fieldmask
+  """
+
+  googleDevtoolsArtifactregistryV1File = _messages.MessageField('GoogleDevtoolsArtifactregistryV1File', 1)
+  name = _messages.StringField(2, required=True)
+  updateMask = _messages.StringField(3)
 
 
 class ArtifactregistryProjectsLocationsRepositoriesFilesUploadRequest(_messages.Message):
@@ -403,6 +495,20 @@ class ArtifactregistryProjectsLocationsRepositoriesGetIamPolicyRequest(_messages
 
   options_requestedPolicyVersion = _messages.IntegerField(1, variant=_messages.Variant.INT32)
   resource = _messages.StringField(2, required=True)
+
+
+class ArtifactregistryProjectsLocationsRepositoriesGetPlatformLogsConfigRequest(_messages.Message):
+  r"""A
+  ArtifactregistryProjectsLocationsRepositoriesGetPlatformLogsConfigRequest
+  object.
+
+  Fields:
+    name: Required. The name of the platform logs config resource:
+      projects/{project}/locations/{location}/platformLogsConfig projects/{pro
+      ject}/locations/{location}/repositories/{repository}/platformLogsConfig
+  """
+
+  name = _messages.StringField(1, required=True)
 
 
 class ArtifactregistryProjectsLocationsRepositoriesGetRequest(_messages.Message):
@@ -481,6 +587,18 @@ class ArtifactregistryProjectsLocationsRepositoriesListRequest(_messages.Message
   r"""A ArtifactregistryProjectsLocationsRepositoriesListRequest object.
 
   Fields:
+    filter: Optional. An expression for filtering the results of the request.
+      Filter rules are case insensitive. The fields eligible for filtering
+      are: * `name` Examples of using a filter: To filter the results of your
+      request to repositories with the name `my-repo` in project `my-project`
+      in the `us-central` region, append the following filter expression to
+      your request: * `name="projects/my-project/locations/us-
+      central1/repositories/my-repo"` You can also use wildcards to match any
+      number of characters before or after the value: * `name="projects/my-
+      project/locations/us-central1/repositories/my-*"` * `name="projects/my-
+      project/locations/us-central1/repositories/*repo"` * `name="projects/my-
+      project/locations/us-central1/repositories/*repo*"`
+    orderBy: Optional. The field to order the results by.
     pageSize: The maximum number of repositories to return. Maximum page size
       is 1,000.
     pageToken: The next_page_token value returned from a previous list
@@ -489,9 +607,11 @@ class ArtifactregistryProjectsLocationsRepositoriesListRequest(_messages.Message
       be listed.
   """
 
-  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(2)
-  parent = _messages.StringField(3, required=True)
+  filter = _messages.StringField(1)
+  orderBy = _messages.StringField(2)
+  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(4)
+  parent = _messages.StringField(5, required=True)
 
 
 class ArtifactregistryProjectsLocationsRepositoriesMavenArtifactsGetRequest(_messages.Message):
@@ -510,7 +630,8 @@ class ArtifactregistryProjectsLocationsRepositoriesMavenArtifactsListRequest(_me
   object.
 
   Fields:
-    pageSize: The maximum number of artifacts to return.
+    pageSize: The maximum number of artifacts to return. Maximum page size is
+      1,000.
     pageToken: The next_page_token value returned from a previous list
       request, if any.
     parent: Required. The name of the parent resource whose maven artifacts
@@ -538,7 +659,8 @@ class ArtifactregistryProjectsLocationsRepositoriesNpmPackagesListRequest(_messa
   object.
 
   Fields:
-    pageSize: The maximum number of artifacts to return.
+    pageSize: The maximum number of artifacts to return. Maximum page size is
+      1,000.
     pageToken: The next_page_token value returned from a previous list
       request, if any.
     parent: Required. The name of the parent resource whose npm packages will
@@ -579,14 +701,33 @@ class ArtifactregistryProjectsLocationsRepositoriesPackagesListRequest(_messages
   Fields:
     filter: Optional. An expression for filtering the results of the request.
       Filter rules are case insensitive. The fields eligible for filtering
-      are: * `name` Examples of using a filter: *
-      `name="projects/p1/locations/us-
-      central1/repositories/repo1/packages/a%2Fb%2F*"` --> packages with an ID
-      starting with "a/b/". * `name="projects/p1/locations/us-
-      central1/repositories/repo1/packages/*%2Fb%2Fc"` --> packages with an ID
-      ending with "/b/c". * `name="projects/p1/locations/us-
-      central1/repositories/repo1/packages/*%2Fb%2F*"` --> packages with an ID
-      containing "/b/".
+      are: * `name` * `annotations` Examples of using a filter: To filter the
+      results of your request to packages with the name `my-package` in
+      project `my-project` in the `us-central` region, in repository `my-
+      repo`, append the following filter expression to your request: *
+      `name="projects/my-project/locations/us-central1/repositories/my-
+      repo/packages/my-package"` You can also use wildcards to match any
+      number of characters before or after the value: * `name="projects/my-
+      project/locations/us-central1/repositories/my-repo/packages/my-*"` *
+      `name="projects/my-project/locations/us-central1/repositories/my-
+      repo/packages/*package"` * `name="projects/my-project/locations/us-
+      central1/repositories/my-repo/packages/*pack*"` To filter the results of
+      your request to packages with the annotation key-value pair
+      [`external_link`: `external_link_value`], append the following filter
+      expression to your request": *
+      `"annotations.external_link:external_link_value"` To filter the results
+      just for a specific annotation key `external_link`, append the following
+      filter expression to your request: * `"annotations.external_link"` If
+      the annotation key or value contains special characters, you can escape
+      them by surrounding the value with backticks. For example, to filter the
+      results of your request to packages with the annotation key-value pair
+      [`external.link`:`https://example.com/my-package`], append the following
+      filter expression to your request: * ``
+      "annotations.`external.link`:`https://example.com/my-package`" `` You
+      can also filter with annotations with a wildcard to match any number of
+      characters before or after the value: * ``
+      "annotations.*_link:`*example.com*`" ``
+    orderBy: Optional. The field to order the results by.
     pageSize: The maximum number of packages to return. Maximum page size is
       1,000.
     pageToken: The next_page_token value returned from a previous list
@@ -596,9 +737,10 @@ class ArtifactregistryProjectsLocationsRepositoriesPackagesListRequest(_messages
   """
 
   filter = _messages.StringField(1)
-  pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(3)
-  parent = _messages.StringField(4, required=True)
+  orderBy = _messages.StringField(2)
+  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(4)
+  parent = _messages.StringField(5, required=True)
 
 
 class ArtifactregistryProjectsLocationsRepositoriesPackagesPatchRequest(_messages.Message):
@@ -664,12 +806,24 @@ class ArtifactregistryProjectsLocationsRepositoriesPackagesTagsListRequest(_mess
   Fields:
     filter: An expression for filtering the results of the request. Filter
       rules are case insensitive. The fields eligible for filtering are: *
-      `version` An example of using a filter: *
-      `version="projects/p1/locations/us-
-      central1/repositories/repo1/packages/pkg1/versions/1.0"` --> Tags that
-      are applied to the version `1.0` in package `pkg1`.
+      `name` * `version` Examples of using a filter: To filter the results of
+      your request to tags with the name `my-tag` in package `my-package` in
+      repository `my-repo` in project "`y-project` in the us-central region,
+      append the following filter expression to your request: *
+      `name="projects/my-project/locations/us-central1/repositories/my-
+      repo/packages/my-package/tags/my-tag"` You can also use wildcards to
+      match any number of characters before or after the value: *
+      `name="projects/my-project/locations/us-central1/repositories/my-
+      repo/packages/my-package/tags/my*"` * `name="projects/my-
+      project/locations/us-central1/repositories/my-repo/packages/my-
+      package/tags/*tag"` * `name="projects/my-project/locations/us-
+      central1/repositories/my-repo/packages/my-package/tags/*tag*"` To filter
+      the results of your request to tags applied to the version `1.0` in
+      package `my-package`, append the following filter expression to your
+      request: * `version="projects/my-project/locations/us-
+      central1/repositories/my-repo/packages/my-package/versions/1.0"`
     pageSize: The maximum number of tags to return. Maximum page size is
-      10,000.
+      1,000.
     pageToken: The next_page_token value returned from a previous list
       request, if any.
     parent: The name of the parent package whose tags will be listed. For
@@ -774,6 +928,35 @@ class ArtifactregistryProjectsLocationsRepositoriesPackagesVersionsListRequest(_
     ViewValueValuesEnum: The view that should be returned in the response.
 
   Fields:
+    filter: Optional. An expression for filtering the results of the request.
+      Filter rules are case insensitive. The fields eligible for filtering
+      are: * `name` * `annotations` Examples of using a filter: To filter the
+      results of your request to versions with the name `my-version` in
+      project `my-project` in the `us-central` region, in repository `my-
+      repo`, append the following filter expression to your request: *
+      `name="projects/my-project/locations/us-central1/repositories/my-
+      repo/packages/my-package/versions/my-version"` You can also use
+      wildcards to match any number of characters before or after the value: *
+      `name="projects/my-project/locations/us-central1/repositories/my-
+      repo/packages/my-package/versions/*version"` * `name="projects/my-
+      project/locations/us-central1/repositories/my-repo/packages/my-
+      package/versions/my*"` * `name="projects/my-project/locations/us-
+      central1/repositories/my-repo/packages/my-package/versions/*version*"`
+      To filter the results of your request to versions with the annotation
+      key-value pair [`external_link`: `external_link_value`], append the
+      following filter expression to your request: *
+      `"annotations.external_link:external_link_value"` To filter just for a
+      specific annotation key `external_link`, append the following filter
+      expression to your request: * `"annotations.external_link"` If the
+      annotation key or value contains special characters, you can escape them
+      by surrounding the value with backticks. For example, to filter the
+      results of your request to versions with the annotation key-value pair
+      [`external.link`:`https://example.com/my-version`], append the following
+      filter expression to your request: * ``
+      "annotations.`external.link`:`https://example.com/my-version`" `` You
+      can also filter with annotations with a wildcard to match any number of
+      characters before or after the value: * ``
+      "annotations.*_link:`*example.com*`" ``
     orderBy: Optional. The field to order the results by.
     pageSize: The maximum number of versions to return. Maximum page size is
       1,000.
@@ -797,11 +980,32 @@ class ArtifactregistryProjectsLocationsRepositoriesPackagesVersionsListRequest(_
     BASIC = 1
     FULL = 2
 
-  orderBy = _messages.StringField(1)
-  pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(3)
-  parent = _messages.StringField(4, required=True)
-  view = _messages.EnumField('ViewValueValuesEnum', 5)
+  filter = _messages.StringField(1)
+  orderBy = _messages.StringField(2)
+  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(4)
+  parent = _messages.StringField(5, required=True)
+  view = _messages.EnumField('ViewValueValuesEnum', 6)
+
+
+class ArtifactregistryProjectsLocationsRepositoriesPackagesVersionsPatchRequest(_messages.Message):
+  r"""A
+  ArtifactregistryProjectsLocationsRepositoriesPackagesVersionsPatchRequest
+  object.
+
+  Fields:
+    name: The name of the version, for example: `projects/p1/locations/us-
+      central1/repositories/repo1/packages/pkg1/versions/art1`. If the package
+      or version ID parts contain slashes, the slashes are escaped.
+    updateMask: The update mask applies to the resource. For the `FieldMask`
+      definition, see https://developers.google.com/protocol-
+      buffers/docs/reference/google.protobuf#fieldmask
+    version: A Version resource to be passed as the request body.
+  """
+
+  name = _messages.StringField(1, required=True)
+  updateMask = _messages.StringField(2)
+  version = _messages.MessageField('Version', 3)
 
 
 class ArtifactregistryProjectsLocationsRepositoriesPatchRequest(_messages.Message):
@@ -809,7 +1013,8 @@ class ArtifactregistryProjectsLocationsRepositoriesPatchRequest(_messages.Messag
 
   Fields:
     name: The name of the repository, for example: `projects/p1/locations/us-
-      central1/repositories/repo1`.
+      central1/repositories/repo1`. For each location in a project, repository
+      names must be unique.
     repository: A Repository resource to be passed as the request body.
     updateMask: The update mask applies to the resource. For the `FieldMask`
       definition, see https://developers.google.com/protocol-
@@ -837,7 +1042,8 @@ class ArtifactregistryProjectsLocationsRepositoriesPythonPackagesListRequest(_me
   object.
 
   Fields:
-    pageSize: The maximum number of artifacts to return.
+    pageSize: The maximum number of artifacts to return. Maximum page size is
+      1,000.
     pageToken: The next_page_token value returned from a previous list
       request, if any.
     parent: Required. The name of the parent resource whose python packages
@@ -906,7 +1112,7 @@ class ArtifactregistryProjectsLocationsRepositoriesRulesListRequest(_messages.Me
 
   Fields:
     pageSize: The maximum number of rules to return. Maximum page size is
-      10,000.
+      1,000.
     pageToken: The next_page_token value returned from a previous list
       request, if any.
     parent: Required. The name of the parent repository whose rules will be
@@ -926,8 +1132,8 @@ class ArtifactregistryProjectsLocationsRepositoriesRulesPatchRequest(_messages.M
     googleDevtoolsArtifactregistryV1Rule: A
       GoogleDevtoolsArtifactregistryV1Rule resource to be passed as the
       request body.
-    name: The name of the rule, for example: "projects/p1/locations/us-
-      central1/repositories/repo1/rules/rule1".
+    name: The name of the rule, for example: `projects/p1/locations/us-
+      central1/repositories/repo1/rules/rule1`.
     updateMask: The update mask applies to the resource. For the `FieldMask`
       definition, see https://developers.google.com/protocol-
       buffers/docs/reference/google.protobuf#fieldmask
@@ -972,6 +1178,27 @@ class ArtifactregistryProjectsLocationsRepositoriesTestIamPermissionsRequest(_me
   testIamPermissionsRequest = _messages.MessageField('TestIamPermissionsRequest', 2)
 
 
+class ArtifactregistryProjectsLocationsRepositoriesUpdatePlatformLogsConfigRequest(_messages.Message):
+  r"""A
+  ArtifactregistryProjectsLocationsRepositoriesUpdatePlatformLogsConfigRequest
+  object.
+
+  Fields:
+    name: Identifier. The name of the project's or repository's platform logs
+      config. Always in one of the forms:
+      projects/{projectID}/locations/{location}/platformLogsConfig projects/{p
+      rojectID}/locations/{location}/repositories/{repository}/platformLogsCon
+      fig
+    platformLogsConfig: A PlatformLogsConfig resource to be passed as the
+      request body.
+    updateMask: Optional. Field mask to support partial updates.
+  """
+
+  name = _messages.StringField(1, required=True)
+  platformLogsConfig = _messages.MessageField('PlatformLogsConfig', 2)
+  updateMask = _messages.StringField(3)
+
+
 class ArtifactregistryProjectsLocationsRepositoriesYumArtifactsImportRequest(_messages.Message):
   r"""A ArtifactregistryProjectsLocationsRepositoriesYumArtifactsImportRequest
   object.
@@ -1000,6 +1227,26 @@ class ArtifactregistryProjectsLocationsRepositoriesYumArtifactsUploadRequest(_me
 
   parent = _messages.StringField(1, required=True)
   uploadYumArtifactRequest = _messages.MessageField('UploadYumArtifactRequest', 2)
+
+
+class ArtifactregistryProjectsLocationsUpdatePlatformLogsConfigRequest(_messages.Message):
+  r"""A ArtifactregistryProjectsLocationsUpdatePlatformLogsConfigRequest
+  object.
+
+  Fields:
+    name: Identifier. The name of the project's or repository's platform logs
+      config. Always in one of the forms:
+      projects/{projectID}/locations/{location}/platformLogsConfig projects/{p
+      rojectID}/locations/{location}/repositories/{repository}/platformLogsCon
+      fig
+    platformLogsConfig: A PlatformLogsConfig resource to be passed as the
+      request body.
+    updateMask: Optional. Field mask to support partial updates.
+  """
+
+  name = _messages.StringField(1, required=True)
+  platformLogsConfig = _messages.MessageField('PlatformLogsConfig', 2)
+  updateMask = _messages.StringField(3)
 
 
 class ArtifactregistryProjectsLocationsUpdateVpcscConfigRequest(_messages.Message):
@@ -1037,32 +1284,36 @@ class ArtifactregistryProjectsUpdateProjectSettingsRequest(_messages.Message):
 
 class Attachment(_messages.Message):
   r"""An Attachment refers to additional metadata that can be attached to
-  artifacts in ArtifactRegistry. An attachment consists of one or more files.
+  artifacts in Artifact Registry. An attachment consists of one or more files.
 
   Messages:
     AnnotationsValue: Optional. User annotations. These attributes can only be
       set and used by the user, and not by Artifact Registry. See
       https://google.aip.dev/128#annotations for more details such as format
-      and size limitations. Client specified annotations.
+      and size limitations.
 
   Fields:
     annotations: Optional. User annotations. These attributes can only be set
       and used by the user, and not by Artifact Registry. See
       https://google.aip.dev/128#annotations for more details such as format
-      and size limitations. Client specified annotations.
+      and size limitations.
     attachmentNamespace: The namespace this attachment belongs to. E.g. If an
-      Attachment is created by artifact analysis, namespace is set to
-      artifactanalysis.googleapis.com.
+      attachment is created by artifact analysis, namespace is set to
+      `artifactanalysis.googleapis.com`.
     createTime: Output only. The time when the attachment was created.
-    files: Required. The files that blong to this Attachment. If the file ID
-      part contains slashes, they are escaped. E.g. "projects/p1/locations/us-
-      central1/repositories/repo1/files/sha:".
+    files: Required. The files that belong to this attachment. If the file ID
+      part contains slashes, they are escaped. E.g. `projects/p1/locations/us-
+      central1/repositories/repo1/files/sha:`.
     name: The name of the attachment. E.g.
-      "projects/p1/locations/us/repositories/repo/attachments/sbom".
+      `projects/p1/locations/us/repositories/repo/attachments/sbom`.
+    ociVersionName: Output only. The name of the OCI version that this
+      attachment created. Only populated for Docker attachments. E.g.
+      `projects/p1/locations/us-
+      central1/repositories/repo1/packages/p1/versions/v1`.
     target: Required. The target the attachment is for, can be a Version,
-      Package or Repository. E.g. "projects/p1/locations/us-
-      central1/repositories/repo1/packages/p1/versions/v1".
-    type: Type of Attachment. E.g. application/vnd.spdx+jsonn
+      Package or Repository. E.g. `projects/p1/locations/us-
+      central1/repositories/repo1/packages/p1/versions/v1`.
+    type: Type of attachment. E.g. `application/vnd.spdx+json`
     updateTime: Output only. The time when the attachment was last updated.
   """
 
@@ -1071,7 +1322,7 @@ class Attachment(_messages.Message):
     r"""Optional. User annotations. These attributes can only be set and used
     by the user, and not by Artifact Registry. See
     https://google.aip.dev/128#annotations for more details such as format and
-    size limitations. Client specified annotations.
+    size limitations.
 
     Messages:
       AdditionalProperty: An additional property for a AnnotationsValue
@@ -1099,9 +1350,10 @@ class Attachment(_messages.Message):
   createTime = _messages.StringField(3)
   files = _messages.StringField(4, repeated=True)
   name = _messages.StringField(5)
-  target = _messages.StringField(6)
-  type = _messages.StringField(7)
-  updateTime = _messages.StringField(8)
+  ociVersionName = _messages.StringField(6)
+  target = _messages.StringField(7)
+  type = _messages.StringField(8)
+  updateTime = _messages.StringField(9)
 
 
 class BatchDeleteVersionsMetadata(_messages.Message):
@@ -1118,8 +1370,9 @@ class BatchDeleteVersionsRequest(_messages.Message):
   r"""The request to delete multiple versions across a repository.
 
   Fields:
-    names: Required. The names of the versions to delete. A maximum of 10000
-      versions can be deleted in a batch.
+    names: Required. The names of the versions to delete. The maximum number
+      of versions deleted per batch is determined by the service and is
+      dependent on the available resources in the region.
     validateOnly: If true, the request is performed without deleting data,
       following AIP-163.
   """
@@ -1304,12 +1557,89 @@ class CleanupPolicyMostRecentVersions(_messages.Message):
   packageNamePrefixes = _messages.StringField(2, repeated=True)
 
 
+class CommonRemoteRepository(_messages.Message):
+  r"""Common remote repository settings type.
+
+  Fields:
+    uri: Required. A common public repository base for remote repository.
+  """
+
+  uri = _messages.StringField(1)
+
+
+class CopyRepositoryMetadata(_messages.Message):
+  r"""The metadata for a copy repository long running operation, to understand
+  the progress of the repo copy.
+
+  Fields:
+    copyStartTime: The time that the request was received, and the time we
+      will copy from. Artifacts pushed after this time will not be copied.
+    destinationRepository: Repository being copied to. Format:
+      projects/{project}/locations/{location}/repositories/{repository}
+    packagesCopiedCount: The total number of packages successfully copied.
+    sourceRepository: Repository being copied from. Format:
+      projects/{project}/locations/{location}/repositories/{repository}
+    totalPackagesCount: The total number of packages in the repository.
+    totalVersionsCount: The total number of versions in the repository. You
+      can use this field to calculate the progress of the repository copy:
+      Progress % = (versions_copied_count / total_versions_count) * 100
+    versionsCopiedCount: The total number of versions successfully copied.
+  """
+
+  copyStartTime = _messages.StringField(1)
+  destinationRepository = _messages.StringField(2)
+  packagesCopiedCount = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  sourceRepository = _messages.StringField(4)
+  totalPackagesCount = _messages.IntegerField(5, variant=_messages.Variant.INT32)
+  totalVersionsCount = _messages.IntegerField(6, variant=_messages.Variant.INT32)
+  versionsCopiedCount = _messages.IntegerField(7, variant=_messages.Variant.INT32)
+
+
+class CopyRepositoryRequest(_messages.Message):
+  r"""The request for copying from another repository.
+
+  Fields:
+    sourceRepository: Required. Repository to copy from. Format:
+      projects/{project}/locations/{location}/repositories/{repository}
+  """
+
+  sourceRepository = _messages.StringField(1)
+
+
+class CopyRepositoryResponse(_messages.Message):
+  r"""The response for copying from another repository.
+
+  Fields:
+    copyStartTime: The time that the request was received, and the time we
+      will copy from. Artifacts pushed after this time will not be copied.
+    destinationRepository: Repository copied to. Format:
+      projects/{project}/locations/{location}/repositories/{repository}
+    packagesCopiedCount: The total number of packages successfully copied.
+      This equals the number of packages in the source repository.
+    sourceRepository: Repository copied from. Format:
+      projects/{project}/locations/{location}/repositories/{repository}
+    versionsCopiedCount: The total number of versions successfully copied.
+      This equals the number of versions in the source repository.
+  """
+
+  copyStartTime = _messages.StringField(1)
+  destinationRepository = _messages.StringField(2)
+  packagesCopiedCount = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  sourceRepository = _messages.StringField(4)
+  versionsCopiedCount = _messages.IntegerField(5, variant=_messages.Variant.INT32)
+
+
 class DockerImage(_messages.Message):
   r"""DockerImage represents a docker artifact. The following fields are
   returned as untyped metadata in the Version resource, using camelcase keys
   (i.e. metadata.imageSizeBytes): * imageSizeBytes * mediaType * buildTime
 
   Fields:
+    artifactType: ArtifactType type of this image, e.g.
+      application/vnd.example+type". If the `subject` is set and no
+      `artifactType `is given, the `mediaType` will be considered as the
+      `artifactType`. This field is returned as the `metadata.artifactType`
+      field in the Version resource.
     buildTime: The time this image was built. This field is returned as the
       'metadata.buildTime' field in the Version resource. The build time is
       returned to the client as an RFC 3339 string, which can be easily used
@@ -1321,13 +1651,15 @@ class DockerImage(_messages.Message):
       returned as the 'metadata.mediaType' field in the Version resource.
     name: Required. registry_location, project_id, repository_name and image
       id forms a unique image
-      name:`projects//locations//repository//dockerImages/`. For example,
+      name:`projects//locations//repositories//dockerImages/`. For example,
       "projects/test-project/locations/us-west4/repositories/test-
       repo/dockerImages/ nginx@sha256:e9954c1fc875017be1c3e36eca16be2d9e9bccc4
       bf072163515467d6a823c7cf", where "us-west4" is the registry_location,
       "test-project" is the project_id, "test-repo" is the repository_name and
       "nginx@sha256:e9954c1fc875017be1c3e36eca16be2d9e9bccc4bf072163515467d6a8
       23c7cf" is the image's digest.
+    subjectDigest: Digest of the subject if provided. This field is returned
+      as the `metadata.subjectDigest` field in the Version resource.
     tags: Tags attached to this image.
     updateTime: Output only. The time when the docker image was last updated.
     uploadTime: Time the image was uploaded.
@@ -1336,14 +1668,16 @@ class DockerImage(_messages.Message):
       be1c3e36eca16be2d9e9bccc4bf072163515467d6a823c7cf
   """
 
-  buildTime = _messages.StringField(1)
-  imageSizeBytes = _messages.IntegerField(2)
-  mediaType = _messages.StringField(3)
-  name = _messages.StringField(4)
-  tags = _messages.StringField(5, repeated=True)
-  updateTime = _messages.StringField(6)
-  uploadTime = _messages.StringField(7)
-  uri = _messages.StringField(8)
+  artifactType = _messages.StringField(1)
+  buildTime = _messages.StringField(2)
+  imageSizeBytes = _messages.IntegerField(3)
+  mediaType = _messages.StringField(4)
+  name = _messages.StringField(5)
+  subjectDigest = _messages.StringField(6)
+  tags = _messages.StringField(7, repeated=True)
+  updateTime = _messages.StringField(8)
+  uploadTime = _messages.StringField(9)
+  uri = _messages.StringField(10)
 
 
 class DockerRepository(_messages.Message):
@@ -1400,6 +1734,63 @@ class Empty(_messages.Message):
   Bar(google.protobuf.Empty) returns (google.protobuf.Empty); }
   """
 
+
+
+class ExportArtifactMetadata(_messages.Message):
+  r"""The LRO metadata for exporting an artifact.
+
+  Fields:
+    exportedFiles: The exported artifact files.
+  """
+
+  exportedFiles = _messages.MessageField('ExportedFile', 1, repeated=True)
+
+
+class ExportArtifactRequest(_messages.Message):
+  r"""The request for exporting an artifact to a destination.
+
+  Fields:
+    gcsPath: The Cloud Storage path to export the artifact to. Should start
+      with the bucket name, and optionally have a directory path. Examples:
+      `dst_bucket`, `dst_bucket/sub_dir`. Existing objects with the same path
+      will be overwritten.
+    sourceTag: The artifact tag to export. Format:projects/{project}/locations
+      /{location}/repositories/{repository}/packages/{package}/tags/{tag}
+    sourceVersion: Required. The artifact version to export. Format: projects/
+      {project}/locations/{location}/repositories/{repository}/packages/{packa
+      ge}/versions/{version}
+  """
+
+  gcsPath = _messages.StringField(1)
+  sourceTag = _messages.StringField(2)
+  sourceVersion = _messages.StringField(3)
+
+
+class ExportArtifactResponse(_messages.Message):
+  r"""The response for exporting an artifact to a destination.
+
+  Fields:
+    exportedVersion: The exported version. Should be the same as the request
+      version with fingerprint resource name.
+  """
+
+  exportedVersion = _messages.MessageField('Version', 1)
+
+
+class ExportedFile(_messages.Message):
+  r"""The exported artifact file.
+
+  Fields:
+    gcsObjectPath: Cloud Storage Object path of the exported file. Examples:
+      `dst_bucket/file1`, `dst_bucket/sub_dir/file1`
+    hashes: The hashes of the file content.
+    name: Name of the exported artifact file. Format:
+      `projects/p1/locations/us/repositories/repo1/files/file1`
+  """
+
+  gcsObjectPath = _messages.StringField(1)
+  hashes = _messages.MessageField('Hash', 2, repeated=True)
+  name = _messages.StringField(3)
 
 
 class Expr(_messages.Message):
@@ -1502,26 +1893,56 @@ class GoogleDevtoolsArtifactregistryV1File(_messages.Message):
   r"""Files store content that is potentially associated with Packages or
   Versions.
 
+  Messages:
+    AnnotationsValue: Optional. Client specified annotations.
+
   Fields:
+    annotations: Optional. Client specified annotations.
     createTime: Output only. The time when the File was created.
     fetchTime: Output only. The time when the last attempt to refresh the
       file's data was made. Only set when the repository is remote.
     hashes: The hashes of the file content.
-    name: The name of the file, for example: "projects/p1/locations/us-
-      central1/repositories/repo1/files/a%2Fb%2Fc.txt". If the file ID part
+    name: The name of the file, for example: `projects/p1/locations/us-
+      central1/repositories/repo1/files/a%2Fb%2Fc.txt`. If the file ID part
       contains slashes, they are escaped.
     owner: The name of the Package or Version that owns this file, if any.
     sizeBytes: The size of the File in bytes.
     updateTime: Output only. The time when the File was last updated.
   """
 
-  createTime = _messages.StringField(1)
-  fetchTime = _messages.StringField(2)
-  hashes = _messages.MessageField('Hash', 3, repeated=True)
-  name = _messages.StringField(4)
-  owner = _messages.StringField(5)
-  sizeBytes = _messages.IntegerField(6)
-  updateTime = _messages.StringField(7)
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class AnnotationsValue(_messages.Message):
+    r"""Optional. Client specified annotations.
+
+    Messages:
+      AdditionalProperty: An additional property for a AnnotationsValue
+        object.
+
+    Fields:
+      additionalProperties: Additional properties of type AnnotationsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a AnnotationsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  annotations = _messages.MessageField('AnnotationsValue', 1)
+  createTime = _messages.StringField(2)
+  fetchTime = _messages.StringField(3)
+  hashes = _messages.MessageField('Hash', 4, repeated=True)
+  name = _messages.StringField(5)
+  owner = _messages.StringField(6)
+  sizeBytes = _messages.IntegerField(7)
+  updateTime = _messages.StringField(8)
 
 
 class GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigAptRepositoryArtifactRegistryRepository(_messages.Message):
@@ -1736,29 +2157,31 @@ class GoogleDevtoolsArtifactregistryV1RemoteRepositoryConfigYumRepositoryPublicR
 
 
 class GoogleDevtoolsArtifactregistryV1Rule(_messages.Message):
-  r"""Rules point to a version and represent an alternative name that can be
-  used to access the version.
+  r"""A rule defines the deny or allow action of the operation it applies to
+  and the conditions required for the rule to apply. You can set one rule for
+  an entire repository and one rule for each package within.
 
   Enums:
-    ActionValueValuesEnum: What action this rule would make.
+    ActionValueValuesEnum: The action this rule takes.
     OperationValueValuesEnum:
 
   Fields:
-    action: What action this rule would make.
-    condition: Optional. CEL expression. If not provided, the rule matches all
-      the objects.
-    name: The name of the rule, for example: "projects/p1/locations/us-
-      central1/repositories/repo1/rules/rule1".
+    action: The action this rule takes.
+    condition: Optional. A CEL expression for conditions that must be met in
+      order for the rule to apply. If not provided, the rule matches all
+      objects.
+    name: The name of the rule, for example: `projects/p1/locations/us-
+      central1/repositories/repo1/rules/rule1`.
     operation: A OperationValueValuesEnum attribute.
-    packageId: If empty, this rule is targeting all the packages inside the
-      repository. If provided, the rule will only be applied to the package.
+    packageId: The package ID the rule applies to. If empty, this rule applies
+      to all packages inside the repository.
   """
 
   class ActionValueValuesEnum(_messages.Enum):
-    r"""What action this rule would make.
+    r"""The action this rule takes.
 
     Values:
-      ACTION_UNSPECIFIED: Action not specified, treated as allow.
+      ACTION_UNSPECIFIED: Action not specified.
       ALLOW: Allow the operation.
       DENY: Deny the operation.
     """
@@ -1772,9 +2195,11 @@ class GoogleDevtoolsArtifactregistryV1Rule(_messages.Message):
     Values:
       OPERATION_UNSPECIFIED: Operation not specified.
       DOWNLOAD: Download operation.
+      TAG_MUTATION: Tag Mutation operation.
     """
     OPERATION_UNSPECIFIED = 0
     DOWNLOAD = 1
+    TAG_MUTATION = 2
 
   action = _messages.EnumField('ActionValueValuesEnum', 1)
   condition = _messages.MessageField('Expr', 2)
@@ -1984,7 +2409,7 @@ class ListAttachmentsResponse(_messages.Message):
   r"""The response from listing attachments.
 
   Fields:
-    attachments: The Attachments returned.
+    attachments: The attachments returned.
     nextPageToken: The token to retrieve the next page of attachments, or
       empty if there are no more attachments to return.
   """
@@ -2309,6 +2734,30 @@ class MavenRepositoryConfig(_messages.Message):
   versionPolicy = _messages.EnumField('VersionPolicyValueValuesEnum', 2)
 
 
+class NetworkConfig(_messages.Message):
+  r"""Config for the routing/network configuration of the repository.
+
+  Fields:
+    alternativeHostname: Optional. An alternative hostname that a repository
+      can be accessed through. Routing a host to AR needs to be handled
+      externally via PSC NEGs. Only 1 project per region may use a given
+      alternative hostname.
+    isDefault: Optional. Whether this is the default repository for the
+      alternative hostname. Only 1 repository per hostname may be marked as
+      the default. This repository will only be defaulted to if no path prefix
+      is matched, allowing the customer to pull images from a hostname without
+      a project or path prefix in the request path.
+    prefix: Optional. A path prefix the repo can be accessed through, to
+      differentiate multiple repositories using the same alternative hostname.
+      If the customer does not set this value, it will default to the repo
+      name.
+  """
+
+  alternativeHostname = _messages.StringField(1)
+  isDefault = _messages.BooleanField(2)
+  prefix = _messages.StringField(3)
+
+
 class NpmPackage(_messages.Message):
   r"""NpmPackage represents an npm artifact.
 
@@ -2525,6 +2974,77 @@ class Package(_messages.Message):
   updateTime = _messages.StringField(5)
 
 
+class PlatformLogsConfig(_messages.Message):
+  r"""The platform logs config for a project or a repository.
+
+  Enums:
+    LoggingStateValueValuesEnum: Optional. The state of the platform logs:
+      enabled or disabled.
+    SeverityLevelValueValuesEnum: Optional. The severity level for the logs.
+      Logs will be generated if their severity level is >= than the value of
+      the severity level mentioned here.
+
+  Fields:
+    loggingState: Optional. The state of the platform logs: enabled or
+      disabled.
+    name: Identifier. The name of the project's or repository's platform logs
+      config. Always in one of the forms:
+      projects/{projectID}/locations/{location}/platformLogsConfig projects/{p
+      rojectID}/locations/{location}/repositories/{repository}/platformLogsCon
+      fig
+    severityLevel: Optional. The severity level for the logs. Logs will be
+      generated if their severity level is >= than the value of the severity
+      level mentioned here.
+  """
+
+  class LoggingStateValueValuesEnum(_messages.Enum):
+    r"""Optional. The state of the platform logs: enabled or disabled.
+
+    Values:
+      LOGGING_STATE_UNSPECIFIED: Platform logs settings for the parent
+        resource haven't been set. This is the default state or when the user
+        clears the settings for the parent.
+      ENABLED: Platform logs are enabled.
+      DISABLED: Platform logs are disabled.
+    """
+    LOGGING_STATE_UNSPECIFIED = 0
+    ENABLED = 1
+    DISABLED = 2
+
+  class SeverityLevelValueValuesEnum(_messages.Enum):
+    r"""Optional. The severity level for the logs. Logs will be generated if
+    their severity level is >= than the value of the severity level mentioned
+    here.
+
+    Values:
+      SEVERITY_LEVEL_UNSPECIFIED: No severity level specified, meaning
+        everything is being logged.
+      DEBUG: Debug or trace information.
+      INFO: Routine information, such as ongoing status or performance.
+      NOTICE: Normal but significant events, such as start up, shut down, or a
+        configuration change.
+      WARNING: Warning events that might cause problems.
+      ERROR: Error events that are likely to cause problems.
+      CRITICAL: Critical events that cause more severe problems or outages.
+      ALERT: Alert events that require a person must take an action
+        immediately.
+      EMERGENCY: One or more systems are unusable.
+    """
+    SEVERITY_LEVEL_UNSPECIFIED = 0
+    DEBUG = 1
+    INFO = 2
+    NOTICE = 3
+    WARNING = 4
+    ERROR = 5
+    CRITICAL = 6
+    ALERT = 7
+    EMERGENCY = 8
+
+  loggingState = _messages.EnumField('LoggingStateValueValuesEnum', 1)
+  name = _messages.StringField(2)
+  severityLevel = _messages.EnumField('SeverityLevelValueValuesEnum', 3)
+
+
 class Policy(_messages.Message):
   r"""An Identity and Access Management (IAM) policy, which specifies access
   controls for Google Cloud resources. A `Policy` is a collection of
@@ -2614,7 +3134,8 @@ class ProjectSettings(_messages.Message):
     name: The name of the project's settings. Always of the form:
       projects/{project-id}/projectSettings In update request: never set In
       response: always set
-    pullPercent: A integer attribute.
+    pullPercent: The percentage of pull traffic to redirect from GCR to AR
+      when using partial redirection.
   """
 
   class LegacyRedirectionStateValueValuesEnum(_messages.Enum):
@@ -2715,6 +3236,8 @@ class RemoteRepositoryConfig(_messages.Message):
 
   Fields:
     aptRepository: Specific settings for an Apt remote repository.
+    commonRepository: Common remote repository settings. Used as the remote
+      repository upstream URL.
     deleteNotFoundCacheFiles: Optional. If files are removed from the remote
       host, should they also be removed from the Artifact Registry repository
       when requested? Only supported for docker, maven, and python
@@ -2723,6 +3246,9 @@ class RemoteRepositoryConfig(_messages.Message):
       to avoid making a HEAD/GET request to validate a remote repo and any
       supplied upstream credentials.
     dockerRepository: Specific settings for a Docker remote repository.
+    enableIngestionAttestation: Optional. option to generate a signed
+      ingestion attestation for externally pulled files in remote
+      repositories.
     goRepository: Specific settings for a Go remote repository.
     mavenRepository: Specific settings for a Maven remote repository.
     npmRepository: Specific settings for an Npm remote repository.
@@ -2747,18 +3273,20 @@ class RemoteRepositoryConfig(_messages.Message):
     CACHE_LAYER = 2
 
   aptRepository = _messages.MessageField('AptRepository', 1)
-  deleteNotFoundCacheFiles = _messages.BooleanField(2)
-  description = _messages.StringField(3)
-  disableUpstreamValidation = _messages.BooleanField(4)
-  dockerRepository = _messages.MessageField('DockerRepository', 5)
-  goRepository = _messages.MessageField('GoRepository', 6)
-  mavenRepository = _messages.MessageField('MavenRepository', 7)
-  npmRepository = _messages.MessageField('NpmRepository', 8)
-  pythonRepository = _messages.MessageField('PythonRepository', 9)
-  remoteType = _messages.EnumField('RemoteTypeValueValuesEnum', 10)
-  serviceDirectoryConfig = _messages.MessageField('ServiceDirectoryConfig', 11)
-  upstreamCredentials = _messages.MessageField('UpstreamCredentials', 12)
-  yumRepository = _messages.MessageField('YumRepository', 13)
+  commonRepository = _messages.MessageField('CommonRemoteRepository', 2)
+  deleteNotFoundCacheFiles = _messages.BooleanField(3)
+  description = _messages.StringField(4)
+  disableUpstreamValidation = _messages.BooleanField(5)
+  dockerRepository = _messages.MessageField('DockerRepository', 6)
+  enableIngestionAttestation = _messages.BooleanField(7)
+  goRepository = _messages.MessageField('GoRepository', 8)
+  mavenRepository = _messages.MessageField('MavenRepository', 9)
+  npmRepository = _messages.MessageField('NpmRepository', 10)
+  pythonRepository = _messages.MessageField('PythonRepository', 11)
+  remoteType = _messages.EnumField('RemoteTypeValueValuesEnum', 12)
+  serviceDirectoryConfig = _messages.MessageField('ServiceDirectoryConfig', 13)
+  upstreamCredentials = _messages.MessageField('UpstreamCredentials', 14)
+  yumRepository = _messages.MessageField('YumRepository', 15)
 
 
 class Repository(_messages.Message):
@@ -2790,10 +3318,8 @@ class Repository(_messages.Message):
       from deleting versions in this repository.
     createTime: Output only. The time when the repository was created.
     description: The user-provided description of the repository.
-    disallowUnspecifiedMode: Optional. If this is true, aunspecified repo type
-      will be treated as error. Is used for new repo types that don't have any
-      specific fields. Right now is used by AOSS team when creating repos for
-      customers.
+    disallowUnspecifiedMode: Optional. If this is true, an unspecified repo
+      type will be treated as error rather than defaulting to standard.
     dockerConfig: Docker repository config contains repository level
       configuration for the repositories of docker type.
     format: Optional. The format of packages that are stored in the
@@ -2811,10 +3337,15 @@ class Repository(_messages.Message):
       configuration for the repositories of maven type.
     mode: Optional. The mode of the repository.
     name: The name of the repository, for example: `projects/p1/locations/us-
-      central1/repositories/repo1`.
+      central1/repositories/repo1`. For each location in a project, repository
+      names must be unique.
+    networkConfig: Optional. Config for the routing/network configuration of
+      the repository.
+    registryUri: Output only. The repository endpoint, for example: `us-
+      docker.pkg.dev/my-proj/my-repo`.
     remoteRepositoryConfig: Configuration specific for a Remote Repository.
-    satisfiesPzs: Output only. If set, the repository satisfies physical zone
-      separation.
+    satisfiesPzi: Output only. Whether or not this repository satisfies PZI.
+    satisfiesPzs: Output only. Whether or not this repository satisfies PZS.
     sbomConfig: Optional. Config and state for sbom generation for resources
       within this Repository.
     sizeBytes: Output only. The size, in bytes, of all artifact storage in
@@ -2841,6 +3372,8 @@ class Repository(_messages.Message):
       KFP: Kubeflow Pipelines package format.
       GO: Go package format.
       GENERIC: Generic package format.
+      RUBY: Ruby package format.
+      CONDA: Conda package format.
     """
     FORMAT_UNSPECIFIED = 0
     DOCKER = 1
@@ -2853,6 +3386,8 @@ class Repository(_messages.Message):
     KFP = 8
     GO = 9
     GENERIC = 10
+    RUBY = 11
+    CONDA = 12
 
   class ModeValueValuesEnum(_messages.Enum):
     r"""Optional. The mode of the repository.
@@ -2866,12 +3401,14 @@ class Repository(_messages.Message):
         source.
       AOSS_REPOSITORY: An AOSS repository provides artifacts from AOSS
         upstreams.
+      ASSURED_OSS_REPOSITORY: Replacement of AOSS_REPOSITORY.
     """
     MODE_UNSPECIFIED = 0
     STANDARD_REPOSITORY = 1
     VIRTUAL_REPOSITORY = 2
     REMOTE_REPOSITORY = 3
     AOSS_REPOSITORY = 4
+    ASSURED_OSS_REPOSITORY = 5
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class CleanupPoliciesValue(_messages.Message):
@@ -2940,13 +3477,16 @@ class Repository(_messages.Message):
   mavenConfig = _messages.MessageField('MavenRepositoryConfig', 10)
   mode = _messages.EnumField('ModeValueValuesEnum', 11)
   name = _messages.StringField(12)
-  remoteRepositoryConfig = _messages.MessageField('RemoteRepositoryConfig', 13)
-  satisfiesPzs = _messages.BooleanField(14)
-  sbomConfig = _messages.MessageField('SbomConfig', 15)
-  sizeBytes = _messages.IntegerField(16)
-  updateTime = _messages.StringField(17)
-  virtualRepositoryConfig = _messages.MessageField('VirtualRepositoryConfig', 18)
-  vulnerabilityScanningConfig = _messages.MessageField('VulnerabilityScanningConfig', 19)
+  networkConfig = _messages.MessageField('NetworkConfig', 13)
+  registryUri = _messages.StringField(14)
+  remoteRepositoryConfig = _messages.MessageField('RemoteRepositoryConfig', 15)
+  satisfiesPzi = _messages.BooleanField(16)
+  satisfiesPzs = _messages.BooleanField(17)
+  sbomConfig = _messages.MessageField('SbomConfig', 18)
+  sizeBytes = _messages.IntegerField(19)
+  updateTime = _messages.StringField(20)
+  virtualRepositoryConfig = _messages.MessageField('VirtualRepositoryConfig', 21)
+  vulnerabilityScanningConfig = _messages.MessageField('VulnerabilityScanningConfig', 22)
 
 
 class SbomConfig(_messages.Message):
@@ -3158,8 +3698,8 @@ class Tag(_messages.Message):
       have characters in [a-zA-Z0-9\-._~:@], anything else must be URL
       encoded.
     version: The name of the version the tag refers to, for example:
-      "projects/p1/locations/us-
-      central1/repositories/repo1/packages/pkg1/versions/sha256:5243811" If
+      `projects/p1/locations/us-
+      central1/repositories/repo1/packages/pkg1/versions/sha256:5243811` If
       the package or version ID parts contain slashes, the slashes are
       escaped.
   """
@@ -3264,30 +3804,23 @@ class UploadGenericArtifactRequest(_messages.Message):
 
   Fields:
     filename: The name of the file of the generic artifact to be uploaded.
-      E.g. "example-file.zip" The filename should only include letters,
-      numbers, and url safe characters, i.e. [a-zA-Z0-9-_.~@].
-    name: Deprecated. Use package_id, version_id and filename instead. The
-      resource name of the generic artifact. E.g. "projects/math/locations/us/
-      repositories/operations/genericArtifacts/addition/1.0.0/add.py"
+      E.g. `example-file.zip` The filename is limited to letters, numbers, and
+      url safe characters, i.e. [a-zA-Z0-9-_.~@].
     packageId: The ID of the package of the generic artifact. If the package
-      does not exist, a new package will be created. E.g. "pkg-1" The
-      package_id must start with a letter, end with a letter or number, only
-      contain letters, numbers, hyphens and periods i.e. [a-z0-9-.], and
-      cannot exceed 256 characters.
+      does not exist, a new package will be created. The `package_id` should
+      start and end with a letter or number, only contain letters, numbers,
+      hyphens, underscores, and periods, and not exceed 256 characters.
     versionId: The ID of the version of the generic artifact. If the version
-      does not exist, a new version will be created. E.g."1.0.0" The
-      version_id must start and end with a letter or number, can only contain
-      lowercase letters, numbers, hyphens and periods, i.e. [a-z0-9-.] and
-      cannot exceed a total of 128 characters. While "latest" is a well-known
-      name for the latest version of a package, it is not yet supported and is
-      reserved for future use. Creating a version called "latest" is not
-      allowed.
+      does not exist, a new version will be created. The version_id must start
+      and end with a letter or number, can only contain lowercase letters,
+      numbers, the following characters [-.+~:], i.e.[a-z0-9-.+~:] and cannot
+      exceed a total of 128 characters. Creating a version called `latest` is
+      not allowed.
   """
 
   filename = _messages.StringField(1)
-  name = _messages.StringField(2)
-  packageId = _messages.StringField(3)
-  versionId = _messages.StringField(4)
+  packageId = _messages.StringField(2)
+  versionId = _messages.StringField(3)
 
 
 class UploadGoModuleMediaResponse(_messages.Message):
@@ -3475,26 +4008,56 @@ class Version(_messages.Message):
   to a version in many package management schemes.
 
   Messages:
+    AnnotationsValue: Optional. Client specified annotations.
     MetadataValue: Output only. Repository-specific Metadata stored against
       this version. The fields returned are defined by the underlying
       repository-specific resource. Currently, the resources could be:
       DockerImage MavenArtifact
 
   Fields:
+    annotations: Optional. Client specified annotations.
     createTime: The time when the version was created.
     description: Optional. Description of the version, as specified in its
       metadata.
+    fingerprints: Output only. Immutable reference for the version, calculated
+      based on the version's content. Currently we only support dirsum_sha256
+      hash algorithm. Additional hash algorithms may be added in the future.
     metadata: Output only. Repository-specific Metadata stored against this
       version. The fields returned are defined by the underlying repository-
       specific resource. Currently, the resources could be: DockerImage
       MavenArtifact
-    name: The name of the version, for example: "projects/p1/locations/us-
-      central1/repositories/repo1/packages/pkg1/versions/art1". If the package
+    name: The name of the version, for example: `projects/p1/locations/us-
+      central1/repositories/repo1/packages/pkg1/versions/art1`. If the package
       or version ID parts contain slashes, the slashes are escaped.
     relatedTags: Output only. A list of related tags. Will contain up to 100
       tags that reference this version.
     updateTime: The time when the version was last updated.
   """
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class AnnotationsValue(_messages.Message):
+    r"""Optional. Client specified annotations.
+
+    Messages:
+      AdditionalProperty: An additional property for a AnnotationsValue
+        object.
+
+    Fields:
+      additionalProperties: Additional properties of type AnnotationsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a AnnotationsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class MetadataValue(_messages.Message):
@@ -3522,12 +4085,14 @@ class Version(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
-  createTime = _messages.StringField(1)
-  description = _messages.StringField(2)
-  metadata = _messages.MessageField('MetadataValue', 3)
-  name = _messages.StringField(4)
-  relatedTags = _messages.MessageField('Tag', 5, repeated=True)
-  updateTime = _messages.StringField(6)
+  annotations = _messages.MessageField('AnnotationsValue', 1)
+  createTime = _messages.StringField(2)
+  description = _messages.StringField(3)
+  fingerprints = _messages.MessageField('Hash', 4, repeated=True)
+  metadata = _messages.MessageField('MetadataValue', 5)
+  name = _messages.StringField(6)
+  relatedTags = _messages.MessageField('Tag', 7, repeated=True)
+  updateTime = _messages.StringField(8)
 
 
 class VirtualRepositoryConfig(_messages.Message):
@@ -3557,8 +4122,7 @@ class VulnerabilityScanningConfig(_messages.Message):
       vulnerability scanning disabled.
     enablementState: Output only. State of feature enablement, combining
       repository enablement config and API enablement state.
-    enablementStateReason: Output only. Reason for the repository state and
-      potential actions to activate it.
+    enablementStateReason: Output only. Reason for the repository state.
     lastEnableTime: Output only. The last time this repository config was
       enabled.
   """
@@ -3568,14 +4132,12 @@ class VulnerabilityScanningConfig(_messages.Message):
     scanning disabled.
 
     Values:
-      ENABLEMENT_CONFIG_UNSPECIFIED: Unspecified config was not set. This will
-        be interpreted as DISABLED. On Repository creation, UNSPECIFIED
-        vulnerability scanning will be defaulted to INHERITED.
-      INHERITED: Inherited indicates the repository is allowed for
-        vulnerability scanning, however the actual state will be inherited
-        from the API enablement state.
-      DISABLED: Disabled indicates the repository will not perform
-        vulnerability scanning.
+      ENABLEMENT_CONFIG_UNSPECIFIED: Not set. This will be treated as
+        INHERITED for Docker repositories and DISABLED for non-Docker
+        repositories.
+      INHERITED: Scanning is Enabled, but dependent on API enablement.
+      DISABLED: No automatic vulnerability scanning will be performed for this
+        repository.
     """
     ENABLEMENT_CONFIG_UNSPECIFIED = 0
     INHERITED = 1
@@ -3592,11 +4154,14 @@ class VulnerabilityScanningConfig(_messages.Message):
       SCANNING_DISABLED: Vulnerability scanning is disabled for this
         repository.
       SCANNING_ACTIVE: Vulnerability scanning is active for this repository.
+      ACTIVE_VIA_SCC: Vulnerability scanning is active for this repository via
+        SCC entitlement.
     """
     ENABLEMENT_STATE_UNSPECIFIED = 0
     SCANNING_UNSUPPORTED = 1
     SCANNING_DISABLED = 2
     SCANNING_ACTIVE = 3
+    ACTIVE_VIA_SCC = 4
 
   enablementConfig = _messages.EnumField('EnablementConfigValueValuesEnum', 1)
   enablementState = _messages.EnumField('EnablementStateValueValuesEnum', 2)
@@ -3657,3 +4222,5 @@ encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    ArtifactregistryProjectsLocationsRepositoriesGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')

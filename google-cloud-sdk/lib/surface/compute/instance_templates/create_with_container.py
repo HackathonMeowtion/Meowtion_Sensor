@@ -32,32 +32,48 @@ from googlecloudsdk.command_lib.compute import completers
 from googlecloudsdk.command_lib.compute import flags
 from googlecloudsdk.command_lib.compute.instance_templates import flags as instance_templates_flags
 from googlecloudsdk.command_lib.compute.instances import flags as instances_flags
+from googlecloudsdk.command_lib.compute.resource_policies import flags as maintenance_flags
 from googlecloudsdk.command_lib.util.args import labels_util
 from googlecloudsdk.core import log
 
 
-def _Args(parser,
-          release_track,
-          container_mount_enabled=False,
-          enable_guest_accelerators=False,
-          support_multi_writer=True,
-          support_region_instance_template=False):
+def _Args(
+    parser,
+    release_track,
+    container_mount_enabled=False,
+    enable_guest_accelerators=False,
+    support_multi_writer=True,
+    support_region_instance_template=False,
+    support_specific_then_x_affinity=False,
+    support_disk_labels=False,
+    support_ipv6_only=False,
+    support_flex_start=False,
+    support_skip_guest_os_shutdown=False,
+):
   """Add flags shared by all release tracks."""
   parser.display_info.AddFormat(instance_templates_flags.DEFAULT_LIST_FORMAT)
   metadata_utils.AddMetadataArgs(parser)
   instances_flags.AddDiskArgs(
-      parser, container_mount_enabled=container_mount_enabled)
+      parser, container_mount_enabled=container_mount_enabled
+  )
   instances_flags.AddCreateDiskArgs(
       parser,
       container_mount_enabled=container_mount_enabled,
-      support_multi_writer=support_multi_writer)
+      support_multi_writer=support_multi_writer,
+      support_disk_labels=support_disk_labels,
+  )
   if release_track == base.ReleaseTrack.ALPHA:
     instances_flags.AddLocalSsdArgsWithSize(parser)
   elif release_track == base.ReleaseTrack.BETA:
     instances_flags.AddLocalSsdArgs(parser)
   instances_flags.AddCanIpForwardArgs(parser)
   instances_flags.AddContainerMountDiskFlag(parser)
-  instances_flags.AddAddressArgs(parser, instances=False, containers=True)
+  instances_flags.AddAddressArgs(
+      parser,
+      instances=False,
+      containers=True,
+      support_ipv6_only=support_ipv6_only,
+  )
   instances_flags.AddMachineTypeArgs(parser)
   deprecate_maintenance_policy = release_track in [base.ReleaseTrack.ALPHA]
   instances_flags.AddMaintenancePolicyArgs(parser, deprecate_maintenance_policy)
@@ -77,32 +93,78 @@ def _Args(parser,
   instances_flags.AddIPv6PrefixLengthArgs(parser)
   labels_util.AddCreateLabelsFlags(parser)
   instances_flags.AddPrivateNetworkIpArgs(parser)
+  instances_flags.AddStackTypeArgs(parser, support_ipv6_only)
+  instances_flags.AddIpv6NetworkTierArgs(parser)
+  instances_flags.AddInternalIPv6AddressArgs(parser)
+  instances_flags.AddInternalIPv6PrefixLengthArgs(parser)
+  maintenance_flags.AddResourcePoliciesArgs(
+      parser, 'added to', 'instance-template'
+  )
+  instances_flags.AddReservationAffinityGroup(
+      parser,
+      group_text="""Specifies the reservation for instances created from this template.""",
+      affinity_text="""The type of reservation for instances created from this template.""",
+      support_specific_then_x_affinity=support_specific_then_x_affinity,
+  )
+  instances_flags.AddProvisioningModelVmArgs(
+      parser, support_flex_start=support_flex_start
+  )
 
   if enable_guest_accelerators:
     instances_flags.AddAcceleratorArgs(parser)
 
   flags.AddRegionFlag(
-      parser, resource_type='instance template', operation_type='create')
+      parser, resource_type='instance template', operation_type='create'
+  )
 
   if support_region_instance_template:
     parser.add_argument(
-        '--subnet-region', help='Specifies the region of the subnetwork.')
+        '--subnet-region', help='Specifies the region of the subnetwork.'
+    )
 
   parser.add_argument(
       '--description',
-      help='Specifies a textual description for the instance template.')
+      help='Specifies a textual description for the instance template.',
+  )
 
   CreateWithContainer.InstanceTemplateArg = (
-      instance_templates_flags.MakeInstanceTemplateArg())
+      instance_templates_flags.MakeInstanceTemplateArg()
+  )
   CreateWithContainer.InstanceTemplateArg.AddArgument(
-      parser, operation_type='create')
+      parser, operation_type='create'
+  )
 
   parser.display_info.AddCacheUpdater(completers.InstanceTemplatesCompleter)
+  if support_skip_guest_os_shutdown:
+    instances_flags.AddSkipGuestOsShutdownArgs(parser)
 
 
+@base.Deprecate(
+    is_removed=False,
+    warning=(
+        'The option to deploy a container during VM creation using the'
+        ' container startup agent is deprecated. Use alternative services to'
+        ' run containers on your VMs. Learn more at'
+        ' https://cloud.google.com/compute/docs/containers/migrate-containers.'
+    ),
+    error=(
+        'The option to deploy a container during VM creation using the'
+        ' container startup agent is deprecated. Use alternative services to'
+        ' run containers on your VMs. Learn more at'
+        ' https://cloud.google.com/compute/docs/containers/migrate-containers.'
+    ),
+)
+# TODO(b/305707695):Change @base.DefaultUniverseOnly to
+# @base.UniverseCompatible once b/305707695 is fixed.
+# See go/gcloud-cli-running-tpc-tests.
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class CreateWithContainer(base.CreateCommand):
   """Command for creating VM instance templates hosting Docker images."""
+
+  _support_specific_then_x_affinity = False
+  _support_disk_labels = False
+  _support_skip_guest_os_shutdown = True
 
   @staticmethod
   def Args(parser):
@@ -111,18 +173,26 @@ class CreateWithContainer(base.CreateCommand):
         base.ReleaseTrack.GA,
         container_mount_enabled=True,
         support_multi_writer=False,
-        support_region_instance_template=False)
+        support_region_instance_template=False,
+        support_specific_then_x_affinity=False,
+        support_disk_labels=False,
+        support_ipv6_only=True,
+        support_skip_guest_os_shutdown=True,
+    )
     instances_flags.AddPrivateIpv6GoogleAccessArgForTemplate(
-        parser, utils.COMPUTE_GA_API_VERSION)
+        parser, utils.COMPUTE_GA_API_VERSION
+    )
 
   def _ValidateArgs(self, args):
     instances_flags.ValidateKonletArgs(args)
     instances_flags.ValidateDiskCommonFlags(args)
     instances_flags.ValidateServiceAccountAndScopeArgs(args)
     instances_flags.ValidateNicFlags(args)
+    instances_flags.ValidateReservationAffinityGroup(args)
     if instance_utils.UseExistingBootDisk(args.disk or []):
       raise exceptions.InvalidArgumentException(
-          '--disk', 'Boot disk specified for containerized VM.')
+          '--disk', 'Boot disk specified for containerized VM.'
+      )
 
   def _GetBootDiskSize(self, args):
     boot_disk_size_gb = utils.BytesToGb(args.boot_disk_size)
@@ -131,18 +201,26 @@ class CreateWithContainer(base.CreateCommand):
 
   def _GetInstanceTemplateRef(self, args, holder):
     return CreateWithContainer.InstanceTemplateArg.ResolveAsResource(
-        args, holder.resources)
+        args, holder.resources
+    )
 
-  def _GetUserMetadata(self,
-                       args,
-                       client,
-                       instance_template_ref,
-                       container_mount_disk_enabled=False,
-                       container_mount_disk=None):
+  def _GetUserMetadata(
+      self,
+      args,
+      client,
+      instance_template_ref,
+      container_mount_disk_enabled=False,
+      container_mount_disk=None,
+  ):
     user_metadata = instance_utils.GetValidatedMetadata(args, client)
     return containers_utils.CreateKonletMetadataMessage(
-        client.messages, args, instance_template_ref.Name(), user_metadata,
-        container_mount_disk_enabled, container_mount_disk)
+        client.messages,
+        args,
+        instance_template_ref.Name(),
+        user_metadata,
+        container_mount_disk_enabled,
+        container_mount_disk,
+    )
 
   def _GetNetworkInterfaces(self, args, client, holder):
     if args.network_interface:
@@ -151,17 +229,20 @@ class CreateWithContainer(base.CreateCommand):
           scope_lister=flags.GetDefaultScopeLister(client),
           messages=client.messages,
           network_interface_arg=args.network_interface,
-          subnet_region=args.region)
+          subnet_region=args.region,
+      )
     stack_type = getattr(args, 'stack_type', None)
     ipv6_network_tier = getattr(args, 'ipv6_network_tier', None)
     ipv6_address = getattr(args, 'ipv6_address', None)
     ipv6_prefix_length = getattr(args, 'ipv6_prefix_length', None)
     external_ipv6_address = getattr(args, 'external_ipv6_address', None)
-    external_ipv6_prefix_length = getattr(args, 'external_ipv6_prefix_length',
-                                          None)
+    external_ipv6_prefix_length = getattr(
+        args, 'external_ipv6_prefix_length', None
+    )
     internal_ipv6_address = getattr(args, 'internal_ipv6_address', None)
-    internal_ipv6_prefix_length = getattr(args, 'internal_ipv6_prefix_length',
-                                          None)
+    internal_ipv6_prefix_length = getattr(
+        args, 'internal_ipv6_prefix_length', None
+    )
     return [
         instance_template_utils.CreateNetworkInterfaceMessage(
             resources=holder.resources,
@@ -171,9 +252,11 @@ class CreateWithContainer(base.CreateCommand):
             private_ip=args.private_network_ip,
             subnet_region=args.region,
             subnet=args.subnet,
-            address=(instance_template_utils.EPHEMERAL_ADDRESS
-                     if not args.no_address and not args.address else
-                     args.address),
+            address=(
+                instance_template_utils.EPHEMERAL_ADDRESS
+                if not args.no_address and not args.address
+                else args.address
+            ),
             network_tier=getattr(args, 'network_tier', None),
             stack_type=stack_type,
             ipv6_network_tier=ipv6_network_tier,
@@ -182,15 +265,24 @@ class CreateWithContainer(base.CreateCommand):
             external_ipv6_address=external_ipv6_address,
             external_ipv6_prefix_length=external_ipv6_prefix_length,
             internal_ipv6_address=internal_ipv6_address,
-            internal_ipv6_prefix_length=internal_ipv6_prefix_length)
+            internal_ipv6_prefix_length=internal_ipv6_prefix_length,
+        )
     ]
 
   def _GetScheduling(self, args, client):
+    skip_guest_os_shutdown = None
+    if self._support_skip_guest_os_shutdown and args.IsKnownAndSpecified(
+        'skip_guest_os_shutdown'
+    ):
+      skip_guest_os_shutdown = args.skip_guest_os_shutdown
     return instance_utils.CreateSchedulingMessage(
         messages=client.messages,
         maintenance_policy=args.maintenance_policy,
         preemptible=args.preemptible,
-        restart_on_failure=args.restart_on_failure)
+        provisioning_model=args.provisioning_model,
+        restart_on_failure=args.restart_on_failure,
+        skip_guest_os_shutdown=skip_guest_os_shutdown,
+    )
 
   def _GetServiceAccounts(self, args, client):
     if args.no_service_account:
@@ -200,22 +292,29 @@ class CreateWithContainer(base.CreateCommand):
     return instance_utils.CreateServiceAccountMessages(
         messages=client.messages,
         scopes=[] if args.no_scopes else args.scopes,
-        service_account=service_account)
+        service_account=service_account,
+    )
 
   def _GetImageUri(self, args, client, holder, instance_template_ref):
-    if (args.IsSpecified('image') or args.IsSpecified('image_family') or
-        args.IsSpecified('image_project')):
+    if (
+        args.IsSpecified('image')
+        or args.IsSpecified('image_family')
+        or args.IsSpecified('image_project')
+    ):
       image_expander = image_utils.ImageExpander(client, holder.resources)
       image_uri, _ = image_expander.ExpandImageFlag(
           user_project=instance_template_ref.project,
           image=args.image,
           image_family=args.image_family,
-          image_project=args.image_project)
+          image_project=args.image_project,
+      )
       if holder.resources.Parse(image_uri).project != 'cos-cloud':
-        log.warning('This container deployment mechanism requires a '
-                    'Container-Optimized OS image in order to work. Select an '
-                    'image from a cos-cloud project (cos-stable, cos-beta, '
-                    'cos-dev image families).')
+        log.warning(
+            'This container deployment mechanism requires a '
+            'Container-Optimized OS image in order to work. Select an '
+            'image from a cos-cloud project (cos-stable, cos-beta, '
+            'cos-dev image families).'
+        )
     else:
       image_uri = containers_utils.ExpandKonletCosImageFlag(client)
     return image_uri
@@ -226,20 +325,25 @@ class CreateWithContainer(base.CreateCommand):
         custom_cpu=args.custom_cpu,
         custom_memory=args.custom_memory,
         ext=getattr(args, 'custom_extensions', None),
-        vm_type=getattr(args, 'custom_vm_type', None))
+        vm_type=getattr(args, 'custom_vm_type', None),
+    )
 
-  def _GetDisks(self,
-                args,
-                client,
-                holder,
-                instance_template_ref,
-                image_uri,
-                match_container_mount_disks=False):
+  def _GetDisks(
+      self,
+      args,
+      client,
+      holder,
+      instance_template_ref,
+      image_uri,
+      match_container_mount_disks=False,
+  ):
     boot_disk_size_gb = self._GetBootDiskSize(args)
     # create boot disk through args.boot_disk_device_name
     create_boot_disk = not (
-        instance_utils.UseExistingBootDisk((args.disk or []) +
-                                           (args.create_disk or [])))
+        instance_utils.UseExistingBootDisk(
+            (args.disk or []) + (args.create_disk or [])
+        )
+    )
     return instance_template_utils.CreateDiskMessages(
         args,
         client,
@@ -249,6 +353,7 @@ class CreateWithContainer(base.CreateCommand):
         boot_disk_size_gb,
         create_boot_disk=create_boot_disk,
         match_container_mount_disks=match_container_mount_disks,
+        support_disk_labels=self._support_disk_labels,
     )
 
   def Run(self, args):
@@ -265,15 +370,18 @@ class CreateWithContainer(base.CreateCommand):
 
     holder = base_classes.ComputeApiHolder(self.ReleaseTrack())
     container_mount_disk = instances_flags.GetValidatedContainerMountDisk(
-        holder, args.container_mount_disk, args.disk, args.create_disk)
+        holder, args.container_mount_disk, args.disk, args.create_disk
+    )
 
     client = holder.client
     instance_template_ref = self._GetInstanceTemplateRef(args, holder)
     image_uri = self._GetImageUri(args, client, holder, instance_template_ref)
     labels = containers_utils.GetLabelsMessageWithCosVersion(
-        None, image_uri, holder.resources, client.messages.InstanceProperties)
+        None, image_uri, holder.resources, client.messages.InstanceProperties
+    )
     argument_labels = labels_util.ParseCreateArgs(
-        args, client.messages.InstanceProperties.LabelsValue)
+        args, client.messages.InstanceProperties.LabelsValue
+    )
     if argument_labels:
       labels.additionalProperties.extend(argument_labels.additionalProperties)
     metadata = self._GetUserMetadata(
@@ -281,7 +389,8 @@ class CreateWithContainer(base.CreateCommand):
         client,
         instance_template_ref,
         container_mount_disk_enabled=True,
-        container_mount_disk=container_mount_disk)
+        container_mount_disk=container_mount_disk,
+    )
     network_interfaces = self._GetNetworkInterfaces(args, client, holder)
     scheduling = self._GetScheduling(args, client)
     service_accounts = self._GetServiceAccounts(args, client)
@@ -292,13 +401,16 @@ class CreateWithContainer(base.CreateCommand):
         holder,
         instance_template_ref,
         image_uri,
-        match_container_mount_disks=True)
+        match_container_mount_disks=True,
+    )
     confidential_instance_config = (
         create_utils.BuildConfidentialInstanceConfigMessage(
             messages=client.messages,
             args=args,
-            support_confidential_compute_type=False,
-            support_confidential_compute_type_tdx=False))
+            support_confidential_compute_type=True,
+            support_confidential_compute_type_tdx=True,
+        )
+    )
 
     properties = client.messages.InstanceProperties(
         machineType=machine_type,
@@ -314,16 +426,29 @@ class CreateWithContainer(base.CreateCommand):
         tags=containers_utils.CreateTagsMessage(client.messages, args.tags),
     )
 
+    if args.resource_policies:
+      properties.resourcePolicies = args.resource_policies
+
     if args.private_ipv6_google_access_type is not None:
       properties.privateIpv6GoogleAccess = (
           instances_flags.GetPrivateIpv6GoogleAccessTypeFlagMapperForTemplate(
-              client.messages).GetEnumForChoice(
-                  args.private_ipv6_google_access_type))
+              client.messages
+          ).GetEnumForChoice(args.private_ipv6_google_access_type)
+      )
 
-    shielded_instance_config_message = create_utils.BuildShieldedInstanceConfigMessage(
-        messages=client.messages, args=args)
+    shielded_instance_config_message = (
+        create_utils.BuildShieldedInstanceConfigMessage(
+            messages=client.messages, args=args
+        )
+    )
     if shielded_instance_config_message:
       properties.shieldedInstanceConfig = shielded_instance_config_message
+
+    properties.reservationAffinity = instance_utils.GetReservationAffinity(
+        args,
+        client,
+        support_specific_then_x_affinity=self._support_specific_then_x_affinity,
+    )
 
     request = client.messages.ComputeInstanceTemplatesInsertRequest(
         instanceTemplate=client.messages.InstanceTemplate(
@@ -331,15 +456,21 @@ class CreateWithContainer(base.CreateCommand):
             description=args.description,
             name=instance_template_ref.Name(),
         ),
-        project=instance_template_ref.project)
+        project=instance_template_ref.project,
+    )
 
-    return client.MakeRequests([(client.apitools_client.instanceTemplates,
-                                 'Insert', request)])
+    return client.MakeRequests(
+        [(client.apitools_client.instanceTemplates, 'Insert', request)]
+    )
 
 
 @base.ReleaseTracks(base.ReleaseTrack.BETA)
 class CreateWithContainerBeta(CreateWithContainer):
   """Command for creating VM instance templates hosting Docker images."""
+
+  _support_specific_then_x_affinity = True
+  _support_disk_labels = True
+  _support_skip_guest_os_shutdown = True
 
   @staticmethod
   def Args(parser):
@@ -348,9 +479,16 @@ class CreateWithContainerBeta(CreateWithContainer):
         base.ReleaseTrack.BETA,
         container_mount_enabled=True,
         enable_guest_accelerators=True,
-        support_region_instance_template=False)
+        support_region_instance_template=False,
+        support_specific_then_x_affinity=True,
+        support_disk_labels=True,
+        support_ipv6_only=True,
+        support_flex_start=True,
+        support_skip_guest_os_shutdown=True,
+    )
     instances_flags.AddPrivateIpv6GoogleAccessArgForTemplate(
-        parser, utils.COMPUTE_BETA_API_VERSION)
+        parser, utils.COMPUTE_BETA_API_VERSION
+    )
 
   def _ValidateArgs(self, args):
     super(CreateWithContainerBeta, self)._ValidateArgs(args)
@@ -370,14 +508,17 @@ class CreateWithContainerBeta(CreateWithContainer):
 
     holder = base_classes.ComputeApiHolder(self.ReleaseTrack())
     container_mount_disk = instances_flags.GetValidatedContainerMountDisk(
-        holder, args.container_mount_disk, args.disk, args.create_disk)
+        holder, args.container_mount_disk, args.disk, args.create_disk
+    )
     client = holder.client
     instance_template_ref = self._GetInstanceTemplateRef(args, holder)
     image_uri = self._GetImageUri(args, client, holder, instance_template_ref)
     labels = containers_utils.GetLabelsMessageWithCosVersion(
-        None, image_uri, holder.resources, client.messages.InstanceProperties)
+        None, image_uri, holder.resources, client.messages.InstanceProperties
+    )
     argument_labels = labels_util.ParseCreateArgs(
-        args, client.messages.InstanceProperties.LabelsValue)
+        args, client.messages.InstanceProperties.LabelsValue
+    )
     if argument_labels:
       labels.additionalProperties.extend(argument_labels.additionalProperties)
 
@@ -386,7 +527,8 @@ class CreateWithContainerBeta(CreateWithContainer):
         client,
         instance_template_ref,
         container_mount_disk_enabled=True,
-        container_mount_disk=container_mount_disk)
+        container_mount_disk=container_mount_disk,
+    )
     network_interfaces = self._GetNetworkInterfaces(args, client, holder)
     scheduling = self._GetScheduling(args, client)
     service_accounts = self._GetServiceAccounts(args, client)
@@ -397,16 +539,21 @@ class CreateWithContainerBeta(CreateWithContainer):
         holder,
         instance_template_ref,
         image_uri,
-        match_container_mount_disks=True)
+        match_container_mount_disks=True,
+    )
     confidential_instance_config = (
         create_utils.BuildConfidentialInstanceConfigMessage(
             messages=client.messages,
             args=args,
             support_confidential_compute_type=True,
-            support_confidential_compute_type_tdx=True))
+            support_confidential_compute_type_tdx=True,
+        )
+    )
     guest_accelerators = (
         instance_template_utils.CreateAcceleratorConfigMessages(
-            client.messages, getattr(args, 'accelerator', None)))
+            client.messages, getattr(args, 'accelerator', None)
+        )
+    )
 
     properties = client.messages.InstanceProperties(
         machineType=machine_type,
@@ -420,18 +567,32 @@ class CreateWithContainerBeta(CreateWithContainer):
         serviceAccounts=service_accounts,
         scheduling=scheduling,
         tags=containers_utils.CreateTagsMessage(client.messages, args.tags),
-        guestAccelerators=guest_accelerators)
+        guestAccelerators=guest_accelerators,
+    )
+
+    if args.resource_policies:
+      properties.resourcePolicies = args.resource_policies
 
     if args.private_ipv6_google_access_type is not None:
       properties.privateIpv6GoogleAccess = (
           instances_flags.GetPrivateIpv6GoogleAccessTypeFlagMapperForTemplate(
-              client.messages).GetEnumForChoice(
-                  args.private_ipv6_google_access_type))
+              client.messages
+          ).GetEnumForChoice(args.private_ipv6_google_access_type)
+      )
 
-    shielded_instance_config_message = create_utils.BuildShieldedInstanceConfigMessage(
-        messages=client.messages, args=args)
+    shielded_instance_config_message = (
+        create_utils.BuildShieldedInstanceConfigMessage(
+            messages=client.messages, args=args
+        )
+    )
     if shielded_instance_config_message:
       properties.shieldedInstanceConfig = shielded_instance_config_message
+
+    properties.reservationAffinity = instance_utils.GetReservationAffinity(
+        args,
+        client,
+        support_specific_then_x_affinity=self._support_specific_then_x_affinity,
+    )
 
     request = client.messages.ComputeInstanceTemplatesInsertRequest(
         instanceTemplate=client.messages.InstanceTemplate(
@@ -439,15 +600,22 @@ class CreateWithContainerBeta(CreateWithContainer):
             description=args.description,
             name=instance_template_ref.Name(),
         ),
-        project=instance_template_ref.project)
+        project=instance_template_ref.project,
+    )
 
-    return client.MakeRequests([(client.apitools_client.instanceTemplates,
-                                 'Insert', request)])
+    return client.MakeRequests(
+        [(client.apitools_client.instanceTemplates, 'Insert', request)]
+    )
 
 
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
 class CreateWithContainerAlpha(CreateWithContainerBeta):
   """Command for creating VM instance templates hosting Docker images."""
+
+  _support_specific_then_x_affinity = True
+  _support_disk_labels = True
+  _support_ipv6_only = True
+  _support_skip_guest_os_shutdown = True
 
   @staticmethod
   def Args(parser):
@@ -456,16 +624,19 @@ class CreateWithContainerAlpha(CreateWithContainerBeta):
         base.ReleaseTrack.ALPHA,
         container_mount_enabled=True,
         enable_guest_accelerators=True,
-        support_region_instance_template=True)
+        support_region_instance_template=True,
+        support_specific_then_x_affinity=True,
+        support_disk_labels=True,
+        support_ipv6_only=True,
+        support_flex_start=True,
+        support_skip_guest_os_shutdown=True,
+    )
     instances_flags.AddLocalNvdimmArgs(parser)
     instances_flags.AddPrivateIpv6GoogleAccessArgForTemplate(
-        parser, utils.COMPUTE_ALPHA_API_VERSION)
-    instances_flags.AddStackTypeArgs(parser)
-    instances_flags.AddIpv6NetworkTierArgs(parser)
+        parser, utils.COMPUTE_ALPHA_API_VERSION
+    )
     instances_flags.AddIPv6AddressAlphaArgs(parser)
     instances_flags.AddIPv6PrefixLengthAlphaArgs(parser)
-    instances_flags.AddInternalIPv6AddressArgs(parser)
-    instances_flags.AddInternalIPv6PrefixLengthArgs(parser)
 
   def Run(self, args):
     """Issues an InstanceTemplates.Insert request.
@@ -481,15 +652,18 @@ class CreateWithContainerAlpha(CreateWithContainerBeta):
 
     holder = base_classes.ComputeApiHolder(self.ReleaseTrack())
     container_mount_disk = instances_flags.GetValidatedContainerMountDisk(
-        holder, args.container_mount_disk, args.disk, args.create_disk)
+        holder, args.container_mount_disk, args.disk, args.create_disk
+    )
 
     client = holder.client
     instance_template_ref = self._GetInstanceTemplateRef(args, holder)
     image_uri = self._GetImageUri(args, client, holder, instance_template_ref)
     labels = containers_utils.GetLabelsMessageWithCosVersion(
-        None, image_uri, holder.resources, client.messages.InstanceProperties)
+        None, image_uri, holder.resources, client.messages.InstanceProperties
+    )
     argument_labels = labels_util.ParseCreateArgs(
-        args, client.messages.InstanceProperties.LabelsValue)
+        args, client.messages.InstanceProperties.LabelsValue
+    )
     if argument_labels:
       labels.additionalProperties.extend(argument_labels.additionalProperties)
 
@@ -498,7 +672,8 @@ class CreateWithContainerAlpha(CreateWithContainerBeta):
         client,
         instance_template_ref,
         container_mount_disk_enabled=True,
-        container_mount_disk=container_mount_disk)
+        container_mount_disk=container_mount_disk,
+    )
     network_interfaces = self._GetNetworkInterfaces(args, client, holder)
     scheduling = self._GetScheduling(args, client)
     service_accounts = self._GetServiceAccounts(args, client)
@@ -509,16 +684,21 @@ class CreateWithContainerAlpha(CreateWithContainerBeta):
         holder,
         instance_template_ref,
         image_uri,
-        match_container_mount_disks=True)
+        match_container_mount_disks=True,
+    )
     confidential_instance_config = (
         create_utils.BuildConfidentialInstanceConfigMessage(
             messages=client.messages,
             args=args,
             support_confidential_compute_type=True,
-            support_confidential_compute_type_tdx=True))
+            support_confidential_compute_type_tdx=True,
+        )
+    )
     guest_accelerators = (
         instance_template_utils.CreateAcceleratorConfigMessages(
-            client.messages, getattr(args, 'accelerator', None)))
+            client.messages, getattr(args, 'accelerator', None)
+        )
+    )
 
     properties = client.messages.InstanceProperties(
         machineType=machine_type,
@@ -532,18 +712,32 @@ class CreateWithContainerAlpha(CreateWithContainerBeta):
         serviceAccounts=service_accounts,
         scheduling=scheduling,
         tags=containers_utils.CreateTagsMessage(client.messages, args.tags),
-        guestAccelerators=guest_accelerators)
+        guestAccelerators=guest_accelerators,
+    )
+
+    if args.resource_policies is not None:
+      properties.resourcePolicies = args.resource_policies
 
     if args.private_ipv6_google_access_type is not None:
       properties.privateIpv6GoogleAccess = (
           instances_flags.GetPrivateIpv6GoogleAccessTypeFlagMapperForTemplate(
-              client.messages).GetEnumForChoice(
-                  args.private_ipv6_google_access_type))
+              client.messages
+          ).GetEnumForChoice(args.private_ipv6_google_access_type)
+      )
 
-    shielded_instance_config_message = create_utils.BuildShieldedInstanceConfigMessage(
-        messages=client.messages, args=args)
+    shielded_instance_config_message = (
+        create_utils.BuildShieldedInstanceConfigMessage(
+            messages=client.messages, args=args
+        )
+    )
     if shielded_instance_config_message:
       properties.shieldedInstanceConfig = shielded_instance_config_message
+
+    properties.reservationAffinity = instance_utils.GetReservationAffinity(
+        args,
+        client,
+        support_specific_then_x_affinity=self._support_specific_then_x_affinity,
+    )
 
     request = client.messages.ComputeInstanceTemplatesInsertRequest(
         instanceTemplate=client.messages.InstanceTemplate(
@@ -551,20 +745,20 @@ class CreateWithContainerAlpha(CreateWithContainerBeta):
             description=args.description,
             name=instance_template_ref.Name(),
         ),
-        project=instance_template_ref.project)
+        project=instance_template_ref.project,
+    )
 
-    return client.MakeRequests([(client.apitools_client.instanceTemplates,
-                                 'Insert', request)])
+    return client.MakeRequests(
+        [(client.apitools_client.instanceTemplates, 'Insert', request)]
+    )
 
 
 CreateWithContainer.detailed_help = {
-    'brief':
-        """\
+    'brief': """\
     Creates a Compute Engine a virtual machine instance template that runs
     a Docker container.
     """,
-    'DESCRIPTION':
-        """\
+    'DESCRIPTION': """\
         *{command}* creates a Compute Engine virtual
         machine instance template that runs a container image. To create
         an instance template named 'instance-template-1' that runs the
@@ -575,8 +769,7 @@ CreateWithContainer.detailed_help = {
 
         For more examples, refer to the *EXAMPLES* section below.
         """,
-    'EXAMPLES':
-        """\
+    'EXAMPLES': """\
         To create a template named 'instance-template-1' that runs the
         gcr.io/google-containers/busybox image and executes 'echo "Hello world"'
         as a command, run:
@@ -591,5 +784,5 @@ CreateWithContainer.detailed_help = {
           $ {command} instance-template-1 \
             --container-image=gcr.io/google-containers/busybox \
             --container-privileged
-        """
+        """,
 }

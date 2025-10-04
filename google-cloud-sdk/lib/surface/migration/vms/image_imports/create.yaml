@@ -1,4 +1,4 @@
-- release_tracks: [ALPHA]
+- release_tracks: [ALPHA, GA]
   help_text:
     brief: import Virtual Disk images to Google Compute Engine.
     description: |
@@ -21,7 +21,7 @@
   request:
     collection: vmmigration.projects.locations.imageImports
     modify_request_hooks:
-    - googlecloudsdk.command_lib.migration.vms.hooks:FixCreateImageImportRequest
+    - googlecloudsdk.command_lib.migration.vms.image_import.hooks:FixCreateDiskImageImportRequest
 
   arguments:
     resource:
@@ -29,22 +29,25 @@
       spec: !REF googlecloudsdk.command_lib.migration.vms.resources:imageImport
 
     params:
-    - _REF_: googlecloudsdk.command_lib.migration.vms.flags:source_file
-    - _REF_: googlecloudsdk.command_lib.migration.vms.flags:image_name
-    - _REF_: googlecloudsdk.command_lib.migration.vms.flags:target_project
-    - _REF_: googlecloudsdk.command_lib.migration.vms.flags:description
-    - _REF_: googlecloudsdk.command_lib.migration.vms.flags:family_name
-    - _REF_: googlecloudsdk.command_lib.migration.vms.flags:labels
-    - _REF_: googlecloudsdk.command_lib.migration.vms.flags:additional_licenses
-    - _REF_: googlecloudsdk.command_lib.migration.vms.flags:single_region_storage
-    - _REF_: googlecloudsdk.command_lib.migration.vms.flags:kms_key
+    - _REF_: googlecloudsdk.command_lib.migration.vms.image_import.flags:source_file
+    - _REF_: googlecloudsdk.command_lib.migration.vms.image_import.disk_image_import.flags:image_name
+    - _REF_: googlecloudsdk.command_lib.migration.vms.image_import.disk_image_import.flags:target_project
+    - _REF_: googlecloudsdk.command_lib.migration.vms.image_import.disk_image_import.flags:description
+    - _REF_: googlecloudsdk.command_lib.migration.vms.image_import.disk_image_import.flags:family_name
+    - _REF_: googlecloudsdk.command_lib.migration.vms.image_import.disk_image_import.flags:labels
+    - _REF_: googlecloudsdk.command_lib.migration.vms.image_import.disk_image_import.flags:additional_licenses
+    - _REF_: googlecloudsdk.command_lib.migration.vms.image_import.disk_image_import.flags:single_region_storage
+    - _REF_: googlecloudsdk.command_lib.migration.vms.image_import.flags:kms_key
     - group:
         help_text: OS adaptation parameters
         required: false
         mutex: true
         params:
-        - _REF_: googlecloudsdk.command_lib.migration.vms.flags:skip_os_adaptation
+        - _REF_: googlecloudsdk.command_lib.migration.vms.image_import.disk_image_import.flags:skip_os_adaptation
         - group:
             params:
-            - _REF_: googlecloudsdk.command_lib.migration.vms.flags:generalize
-            - _REF_: googlecloudsdk.command_lib.migration.vms.flags:license_type
+            - _REF_: googlecloudsdk.command_lib.migration.vms.image_import.disk_image_import.flags:generalize
+            - _REF_: googlecloudsdk.command_lib.migration.vms.image_import.disk_image_import.flags:license_type
+            - _REF_: googlecloudsdk.command_lib.migration.vms.image_import.disk_image_import.flags:boot_conversion
+            - _REF_: googlecloudsdk.command_lib.migration.vms.image_import.disk_image_import.flags:adaptation_modifiers
+            - _REF_: googlecloudsdk.command_lib.migration.vms.image_import.disk_image_import.flags:rootfs_uuid

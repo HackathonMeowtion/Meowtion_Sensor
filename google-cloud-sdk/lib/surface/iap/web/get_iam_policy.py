@@ -23,7 +23,8 @@ from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.iap import util as iap_util
 
 
-@base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.GA)
+@base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.DefaultUniverseOnly
 class GetIamPolicy(base.ListCommand):
   """Get IAM policy for an IAP IAM resource.
 
@@ -73,18 +74,30 @@ class GetIamPolicy(base.ListCommand):
           resources within a backend service, run:
 
             $ {command} --resource-type=backend-services --service=SERVICE_ID
+
+          To get the IAM policy for the web accesses to the IAP protected
+          resources within a regional backend service, run:
+
+            $ {command} --resource-type=backend-services --service=SERVICE_ID
+              --region=REGION
+
   """,
   }
 
-  @staticmethod
-  def Args(parser):
+  _support_cloud_run = False
+
+  @classmethod
+  def Args(cls, parser):
     """Register flags for this command.
 
     Args:
       parser: An argparse.ArgumentParser-like object. It is mocked out in order
           to capture some information, but behaves like an ArgumentParser.
     """
-    iap_util.AddIapIamResourceArgs(parser)
+    iap_util.AddIapIamResourceArgs(
+        parser,
+        support_cloud_run=cls._support_cloud_run,
+    )
     base.URI_FLAG.RemoveFromParser(parser)
 
   def Run(self, args):
@@ -97,12 +110,15 @@ class GetIamPolicy(base.ListCommand):
     Returns:
       The specified function with its description and configured filter.
     """
-    iap_iam_ref = iap_util.ParseIapIamResource(self.ReleaseTrack(), args)
+    iap_iam_ref = iap_util.ParseIapIamResource(
+        self.ReleaseTrack(),
+        args,
+        self._support_cloud_run)
     return iap_iam_ref.GetIamPolicy()
 
 
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
-class GetIamPolicyALPHA(GetIamPolicy):
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
+class GetIamPolicyAlpha(GetIamPolicy):
   """Get IAM policy for an IAP IAM resource.
 
   *{command}* displays the IAM policy associated with an IAP IAM
@@ -113,13 +129,4 @@ class GetIamPolicyALPHA(GetIamPolicy):
   $ {parent_command} set-iam-policy for additional details.
   """
 
-  @staticmethod
-  def Args(parser):
-    """Register flags for this command.
-
-    Args:
-      parser: An argparse.ArgumentParser-like object. It is mocked out in order
-        to capture some information, but behaves like an ArgumentParser.
-    """
-    iap_util.AddIapIamResourceArgs(parser, use_region_arg=True)
-    base.URI_FLAG.RemoveFromParser(parser)
+  _support_cloud_run = True

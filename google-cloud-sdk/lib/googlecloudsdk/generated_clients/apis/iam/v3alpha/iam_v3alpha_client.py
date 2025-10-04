@@ -39,19 +39,19 @@ class IamV3alpha(base_api.BaseApiClient):
         default_global_params=default_global_params,
         additional_http_headers=additional_http_headers,
         response_encoding=response_encoding)
+    self.folders_locations_accessPolicies = self.FoldersLocationsAccessPoliciesService(self)
     self.folders_locations_operations = self.FoldersLocationsOperationsService(self)
-    self.folders_locations_policies = self.FoldersLocationsPoliciesService(self)
     self.folders_locations_policyBindings = self.FoldersLocationsPolicyBindingsService(self)
     self.folders_locations = self.FoldersLocationsService(self)
     self.folders = self.FoldersService(self)
+    self.organizations_locations_accessPolicies = self.OrganizationsLocationsAccessPoliciesService(self)
     self.organizations_locations_operations = self.OrganizationsLocationsOperationsService(self)
-    self.organizations_locations_policies = self.OrganizationsLocationsPoliciesService(self)
     self.organizations_locations_policyBindings = self.OrganizationsLocationsPolicyBindingsService(self)
     self.organizations_locations_principalAccessBoundaryPolicies = self.OrganizationsLocationsPrincipalAccessBoundaryPoliciesService(self)
     self.organizations_locations = self.OrganizationsLocationsService(self)
     self.organizations = self.OrganizationsService(self)
+    self.projects_locations_accessPolicies = self.ProjectsLocationsAccessPoliciesService(self)
     self.projects_locations_operations = self.ProjectsLocationsOperationsService(self)
-    self.projects_locations_policies = self.ProjectsLocationsPoliciesService(self)
     self.projects_locations_policyBindings = self.ProjectsLocationsPolicyBindingsService(self)
     self.projects_locations_policyPorters_translations_sourcePolicies = self.ProjectsLocationsPolicyPortersTranslationsSourcePoliciesService(self)
     self.projects_locations_policyPorters_translations_translatedPolicies = self.ProjectsLocationsPolicyPortersTranslationsTranslatedPoliciesService(self)
@@ -60,6 +60,178 @@ class IamV3alpha(base_api.BaseApiClient):
     self.projects_locations = self.ProjectsLocationsService(self)
     self.projects = self.ProjectsService(self)
     self.searchApplicablePolicies = self.SearchApplicablePoliciesService(self)
+
+  class FoldersLocationsAccessPoliciesService(base_api.BaseApiService):
+    """Service class for the folders_locations_accessPolicies resource."""
+
+    _NAME = 'folders_locations_accessPolicies'
+
+    def __init__(self, client):
+      super(IamV3alpha.FoldersLocationsAccessPoliciesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates an access policy, and returns a long running operation.
+
+      Args:
+        request: (IamFoldersLocationsAccessPoliciesCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v3alpha/folders/{foldersId}/locations/{locationsId}/accessPolicies',
+        http_method='POST',
+        method_id='iam.folders.locations.accessPolicies.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['accessPolicyId', 'validateOnly'],
+        relative_path='v3alpha/{+parent}/accessPolicies',
+        request_field='googleIamV3alphaAccessPolicy',
+        request_type_name='IamFoldersLocationsAccessPoliciesCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes an access policy.
+
+      Args:
+        request: (IamFoldersLocationsAccessPoliciesDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v3alpha/folders/{foldersId}/locations/{locationsId}/accessPolicies/{accessPoliciesId}',
+        http_method='DELETE',
+        method_id='iam.folders.locations.accessPolicies.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['etag', 'force', 'validateOnly'],
+        relative_path='v3alpha/{+name}',
+        request_field='',
+        request_type_name='IamFoldersLocationsAccessPoliciesDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets an access policy.
+
+      Args:
+        request: (IamFoldersLocationsAccessPoliciesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleIamV3alphaAccessPolicy) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v3alpha/folders/{foldersId}/locations/{locationsId}/accessPolicies/{accessPoliciesId}',
+        http_method='GET',
+        method_id='iam.folders.locations.accessPolicies.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v3alpha/{+name}',
+        request_field='',
+        request_type_name='IamFoldersLocationsAccessPoliciesGetRequest',
+        response_type_name='GoogleIamV3alphaAccessPolicy',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists access policies.
+
+      Args:
+        request: (IamFoldersLocationsAccessPoliciesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleIamV3alphaListAccessPoliciesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v3alpha/folders/{foldersId}/locations/{locationsId}/accessPolicies',
+        http_method='GET',
+        method_id='iam.folders.locations.accessPolicies.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['pageSize', 'pageToken'],
+        relative_path='v3alpha/{+parent}/accessPolicies',
+        request_field='',
+        request_type_name='IamFoldersLocationsAccessPoliciesListRequest',
+        response_type_name='GoogleIamV3alphaListAccessPoliciesResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates an access policy.
+
+      Args:
+        request: (IamFoldersLocationsAccessPoliciesPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v3alpha/folders/{foldersId}/locations/{locationsId}/accessPolicies/{accessPoliciesId}',
+        http_method='PATCH',
+        method_id='iam.folders.locations.accessPolicies.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['validateOnly'],
+        relative_path='v3alpha/{+name}',
+        request_field='googleIamV3alphaAccessPolicy',
+        request_type_name='IamFoldersLocationsAccessPoliciesPatchRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def SearchPolicyBindings(self, request, global_params=None):
+      r"""Returns all policy bindings that bind a specific policy if a user has searchPolicyBindings permission on that policy.
+
+      Args:
+        request: (IamFoldersLocationsAccessPoliciesSearchPolicyBindingsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleIamV3alphaSearchAccessPolicyBindingsResponse) The response message.
+      """
+      config = self.GetMethodConfig('SearchPolicyBindings')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SearchPolicyBindings.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v3alpha/folders/{foldersId}/locations/{locationsId}/accessPolicies/{accessPoliciesId}:searchPolicyBindings',
+        http_method='GET',
+        method_id='iam.folders.locations.accessPolicies.searchPolicyBindings',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['pageSize', 'pageToken'],
+        relative_path='v3alpha/{+name}:searchPolicyBindings',
+        request_field='',
+        request_type_name='IamFoldersLocationsAccessPoliciesSearchPolicyBindingsRequest',
+        response_type_name='GoogleIamV3alphaSearchAccessPolicyBindingsResponse',
+        supports_download=False,
+    )
 
   class FoldersLocationsOperationsService(base_api.BaseApiService):
     """Service class for the folders_locations_operations resource."""
@@ -94,151 +266,6 @@ class IamV3alpha(base_api.BaseApiClient):
         relative_path='v3alpha/{+name}',
         request_field='',
         request_type_name='IamFoldersLocationsOperationsGetRequest',
-        response_type_name='GoogleLongrunningOperation',
-        supports_download=False,
-    )
-
-  class FoldersLocationsPoliciesService(base_api.BaseApiService):
-    """Service class for the folders_locations_policies resource."""
-
-    _NAME = 'folders_locations_policies'
-
-    def __init__(self, client):
-      super(IamV3alpha.FoldersLocationsPoliciesService, self).__init__(client)
-      self._upload_configs = {
-          }
-
-    def Create(self, request, global_params=None):
-      r"""Creates a policy, and returns a long running operation.
-
-      Args:
-        request: (IamFoldersLocationsPoliciesCreateRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleLongrunningOperation) The response message.
-      """
-      config = self.GetMethodConfig('Create')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Create.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v3alpha/folders/{foldersId}/locations/{locationsId}/policies',
-        http_method='POST',
-        method_id='iam.folders.locations.policies.create',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['policyId', 'validateOnly'],
-        relative_path='v3alpha/{+parent}/policies',
-        request_field='googleIamV3alphaV3Policy',
-        request_type_name='IamFoldersLocationsPoliciesCreateRequest',
-        response_type_name='GoogleLongrunningOperation',
-        supports_download=False,
-    )
-
-    def Delete(self, request, global_params=None):
-      r"""Deletes a policy. Policies with references to policy bindings can't be deleted unless `force` field is set to `true`, or these policy bindings are deleted.
-
-      Args:
-        request: (IamFoldersLocationsPoliciesDeleteRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleLongrunningOperation) The response message.
-      """
-      config = self.GetMethodConfig('Delete')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Delete.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v3alpha/folders/{foldersId}/locations/{locationsId}/policies/{policiesId}',
-        http_method='DELETE',
-        method_id='iam.folders.locations.policies.delete',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=['etag', 'force', 'validateOnly'],
-        relative_path='v3alpha/{+name}',
-        request_field='',
-        request_type_name='IamFoldersLocationsPoliciesDeleteRequest',
-        response_type_name='GoogleLongrunningOperation',
-        supports_download=False,
-    )
-
-    def Get(self, request, global_params=None):
-      r"""Gets a policy.
-
-      Args:
-        request: (IamFoldersLocationsPoliciesGetRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleIamV3alphaV3Policy) The response message.
-      """
-      config = self.GetMethodConfig('Get')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Get.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v3alpha/folders/{foldersId}/locations/{locationsId}/policies/{policiesId}',
-        http_method='GET',
-        method_id='iam.folders.locations.policies.get',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=[],
-        relative_path='v3alpha/{+name}',
-        request_field='',
-        request_type_name='IamFoldersLocationsPoliciesGetRequest',
-        response_type_name='GoogleIamV3alphaV3Policy',
-        supports_download=False,
-    )
-
-    def List(self, request, global_params=None):
-      r"""Lists policies.
-
-      Args:
-        request: (IamFoldersLocationsPoliciesListRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleIamV3alphaListPoliciesResponse) The response message.
-      """
-      config = self.GetMethodConfig('List')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    List.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v3alpha/folders/{foldersId}/locations/{locationsId}/policies',
-        http_method='GET',
-        method_id='iam.folders.locations.policies.list',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['pageSize', 'pageToken'],
-        relative_path='v3alpha/{+parent}/policies',
-        request_field='',
-        request_type_name='IamFoldersLocationsPoliciesListRequest',
-        response_type_name='GoogleIamV3alphaListPoliciesResponse',
-        supports_download=False,
-    )
-
-    def Patch(self, request, global_params=None):
-      r"""Updates a policy.
-
-      Args:
-        request: (IamFoldersLocationsPoliciesPatchRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleLongrunningOperation) The response message.
-      """
-      config = self.GetMethodConfig('Patch')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Patch.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v3alpha/folders/{foldersId}/locations/{locationsId}/policies/{policiesId}',
-        http_method='PATCH',
-        method_id='iam.folders.locations.policies.patch',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=['updateMask', 'validateOnly'],
-        relative_path='v3alpha/{+name}',
-        request_field='googleIamV3alphaV3Policy',
-        request_type_name='IamFoldersLocationsPoliciesPatchRequest',
         response_type_name='GoogleLongrunningOperation',
         supports_download=False,
     )
@@ -281,7 +308,7 @@ class IamV3alpha(base_api.BaseApiClient):
     )
 
     def Delete(self, request, global_params=None):
-      r"""Deletes a policy binding. Callers will need the IAM permissions on both the policy and target. Once the binding is deleted, the policy no longer applies to the target.
+      r"""Deletes a policy binding and returns a long-running operation. Callers will need the IAM permissions on both the policy and target. Once the binding is deleted, the policy no longer applies to the target.
 
       Args:
         request: (IamFoldersLocationsPolicyBindingsDeleteRequest) input message
@@ -362,7 +389,7 @@ class IamV3alpha(base_api.BaseApiClient):
     )
 
     def Patch(self, request, global_params=None):
-      r"""Updates a policy binding. Callers will need the IAM permissions on the policy and target in the binding to update, and the IAM permission to remove the existing policy from the binding. Target is immutable and cannot be updated. Once the binding is updated, the new policy is applied to the target.
+      r"""Updates a policy binding and returns a long-running operation. Callers will need the IAM permissions on the policy and target in the binding to update. Target and policy are immutable and cannot be updated.
 
       Args:
         request: (IamFoldersLocationsPolicyBindingsPatchRequest) input message
@@ -407,7 +434,7 @@ class IamV3alpha(base_api.BaseApiClient):
         method_id='iam.folders.locations.policyBindings.searchTargetPolicyBindings',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['pageSize', 'pageToken', 'target'],
+        query_params=['filter', 'pageSize', 'pageToken', 'target'],
         relative_path='v3alpha/{+parent}/policyBindings:searchTargetPolicyBindings',
         request_field='',
         request_type_name='IamFoldersLocationsPolicyBindingsSearchTargetPolicyBindingsRequest',
@@ -425,60 +452,6 @@ class IamV3alpha(base_api.BaseApiClient):
       self._upload_configs = {
           }
 
-    def Get(self, request, global_params=None):
-      r"""Gets information about a location.
-
-      Args:
-        request: (IamFoldersLocationsGetRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleCloudLocationLocation) The response message.
-      """
-      config = self.GetMethodConfig('Get')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Get.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v3alpha/folders/{foldersId}/locations/{locationsId}',
-        http_method='GET',
-        method_id='iam.folders.locations.get',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=[],
-        relative_path='v3alpha/{+name}',
-        request_field='',
-        request_type_name='IamFoldersLocationsGetRequest',
-        response_type_name='GoogleCloudLocationLocation',
-        supports_download=False,
-    )
-
-    def ListLocations(self, request, global_params=None):
-      r"""Lists information about the supported locations for this service.
-
-      Args:
-        request: (IamFoldersLocationsListLocationsRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleCloudLocationListLocationsResponse) The response message.
-      """
-      config = self.GetMethodConfig('ListLocations')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    ListLocations.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v3alpha/folders/{foldersId}/locations/{locationsId}',
-        http_method='GET',
-        method_id='iam.folders.locations.listLocations',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=['filter', 'pageSize', 'pageToken'],
-        relative_path='v3alpha/{+name}',
-        request_field='',
-        request_type_name='IamFoldersLocationsListLocationsRequest',
-        response_type_name='GoogleCloudLocationListLocationsResponse',
-        supports_download=False,
-    )
-
   class FoldersService(base_api.BaseApiService):
     """Service class for the folders resource."""
 
@@ -488,6 +461,178 @@ class IamV3alpha(base_api.BaseApiClient):
       super(IamV3alpha.FoldersService, self).__init__(client)
       self._upload_configs = {
           }
+
+  class OrganizationsLocationsAccessPoliciesService(base_api.BaseApiService):
+    """Service class for the organizations_locations_accessPolicies resource."""
+
+    _NAME = 'organizations_locations_accessPolicies'
+
+    def __init__(self, client):
+      super(IamV3alpha.OrganizationsLocationsAccessPoliciesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates an access policy, and returns a long running operation.
+
+      Args:
+        request: (IamOrganizationsLocationsAccessPoliciesCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v3alpha/organizations/{organizationsId}/locations/{locationsId}/accessPolicies',
+        http_method='POST',
+        method_id='iam.organizations.locations.accessPolicies.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['accessPolicyId', 'validateOnly'],
+        relative_path='v3alpha/{+parent}/accessPolicies',
+        request_field='googleIamV3alphaAccessPolicy',
+        request_type_name='IamOrganizationsLocationsAccessPoliciesCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes an access policy.
+
+      Args:
+        request: (IamOrganizationsLocationsAccessPoliciesDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v3alpha/organizations/{organizationsId}/locations/{locationsId}/accessPolicies/{accessPoliciesId}',
+        http_method='DELETE',
+        method_id='iam.organizations.locations.accessPolicies.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['etag', 'force', 'validateOnly'],
+        relative_path='v3alpha/{+name}',
+        request_field='',
+        request_type_name='IamOrganizationsLocationsAccessPoliciesDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets an access policy.
+
+      Args:
+        request: (IamOrganizationsLocationsAccessPoliciesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleIamV3alphaAccessPolicy) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v3alpha/organizations/{organizationsId}/locations/{locationsId}/accessPolicies/{accessPoliciesId}',
+        http_method='GET',
+        method_id='iam.organizations.locations.accessPolicies.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v3alpha/{+name}',
+        request_field='',
+        request_type_name='IamOrganizationsLocationsAccessPoliciesGetRequest',
+        response_type_name='GoogleIamV3alphaAccessPolicy',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists access policies.
+
+      Args:
+        request: (IamOrganizationsLocationsAccessPoliciesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleIamV3alphaListAccessPoliciesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v3alpha/organizations/{organizationsId}/locations/{locationsId}/accessPolicies',
+        http_method='GET',
+        method_id='iam.organizations.locations.accessPolicies.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['pageSize', 'pageToken'],
+        relative_path='v3alpha/{+parent}/accessPolicies',
+        request_field='',
+        request_type_name='IamOrganizationsLocationsAccessPoliciesListRequest',
+        response_type_name='GoogleIamV3alphaListAccessPoliciesResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates an access policy.
+
+      Args:
+        request: (IamOrganizationsLocationsAccessPoliciesPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v3alpha/organizations/{organizationsId}/locations/{locationsId}/accessPolicies/{accessPoliciesId}',
+        http_method='PATCH',
+        method_id='iam.organizations.locations.accessPolicies.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['validateOnly'],
+        relative_path='v3alpha/{+name}',
+        request_field='googleIamV3alphaAccessPolicy',
+        request_type_name='IamOrganizationsLocationsAccessPoliciesPatchRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def SearchPolicyBindings(self, request, global_params=None):
+      r"""Returns all policy bindings that bind a specific policy if a user has searchPolicyBindings permission on that policy.
+
+      Args:
+        request: (IamOrganizationsLocationsAccessPoliciesSearchPolicyBindingsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleIamV3alphaSearchAccessPolicyBindingsResponse) The response message.
+      """
+      config = self.GetMethodConfig('SearchPolicyBindings')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SearchPolicyBindings.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v3alpha/organizations/{organizationsId}/locations/{locationsId}/accessPolicies/{accessPoliciesId}:searchPolicyBindings',
+        http_method='GET',
+        method_id='iam.organizations.locations.accessPolicies.searchPolicyBindings',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['pageSize', 'pageToken'],
+        relative_path='v3alpha/{+name}:searchPolicyBindings',
+        request_field='',
+        request_type_name='IamOrganizationsLocationsAccessPoliciesSearchPolicyBindingsRequest',
+        response_type_name='GoogleIamV3alphaSearchAccessPolicyBindingsResponse',
+        supports_download=False,
+    )
 
   class OrganizationsLocationsOperationsService(base_api.BaseApiService):
     """Service class for the organizations_locations_operations resource."""
@@ -522,151 +667,6 @@ class IamV3alpha(base_api.BaseApiClient):
         relative_path='v3alpha/{+name}',
         request_field='',
         request_type_name='IamOrganizationsLocationsOperationsGetRequest',
-        response_type_name='GoogleLongrunningOperation',
-        supports_download=False,
-    )
-
-  class OrganizationsLocationsPoliciesService(base_api.BaseApiService):
-    """Service class for the organizations_locations_policies resource."""
-
-    _NAME = 'organizations_locations_policies'
-
-    def __init__(self, client):
-      super(IamV3alpha.OrganizationsLocationsPoliciesService, self).__init__(client)
-      self._upload_configs = {
-          }
-
-    def Create(self, request, global_params=None):
-      r"""Creates a policy, and returns a long running operation.
-
-      Args:
-        request: (IamOrganizationsLocationsPoliciesCreateRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleLongrunningOperation) The response message.
-      """
-      config = self.GetMethodConfig('Create')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Create.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v3alpha/organizations/{organizationsId}/locations/{locationsId}/policies',
-        http_method='POST',
-        method_id='iam.organizations.locations.policies.create',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['policyId', 'validateOnly'],
-        relative_path='v3alpha/{+parent}/policies',
-        request_field='googleIamV3alphaV3Policy',
-        request_type_name='IamOrganizationsLocationsPoliciesCreateRequest',
-        response_type_name='GoogleLongrunningOperation',
-        supports_download=False,
-    )
-
-    def Delete(self, request, global_params=None):
-      r"""Deletes a policy. Policies with references to policy bindings can't be deleted unless `force` field is set to `true`, or these policy bindings are deleted.
-
-      Args:
-        request: (IamOrganizationsLocationsPoliciesDeleteRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleLongrunningOperation) The response message.
-      """
-      config = self.GetMethodConfig('Delete')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Delete.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v3alpha/organizations/{organizationsId}/locations/{locationsId}/policies/{policiesId}',
-        http_method='DELETE',
-        method_id='iam.organizations.locations.policies.delete',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=['etag', 'force', 'validateOnly'],
-        relative_path='v3alpha/{+name}',
-        request_field='',
-        request_type_name='IamOrganizationsLocationsPoliciesDeleteRequest',
-        response_type_name='GoogleLongrunningOperation',
-        supports_download=False,
-    )
-
-    def Get(self, request, global_params=None):
-      r"""Gets a policy.
-
-      Args:
-        request: (IamOrganizationsLocationsPoliciesGetRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleIamV3alphaV3Policy) The response message.
-      """
-      config = self.GetMethodConfig('Get')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Get.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v3alpha/organizations/{organizationsId}/locations/{locationsId}/policies/{policiesId}',
-        http_method='GET',
-        method_id='iam.organizations.locations.policies.get',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=[],
-        relative_path='v3alpha/{+name}',
-        request_field='',
-        request_type_name='IamOrganizationsLocationsPoliciesGetRequest',
-        response_type_name='GoogleIamV3alphaV3Policy',
-        supports_download=False,
-    )
-
-    def List(self, request, global_params=None):
-      r"""Lists policies.
-
-      Args:
-        request: (IamOrganizationsLocationsPoliciesListRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleIamV3alphaListPoliciesResponse) The response message.
-      """
-      config = self.GetMethodConfig('List')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    List.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v3alpha/organizations/{organizationsId}/locations/{locationsId}/policies',
-        http_method='GET',
-        method_id='iam.organizations.locations.policies.list',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['pageSize', 'pageToken'],
-        relative_path='v3alpha/{+parent}/policies',
-        request_field='',
-        request_type_name='IamOrganizationsLocationsPoliciesListRequest',
-        response_type_name='GoogleIamV3alphaListPoliciesResponse',
-        supports_download=False,
-    )
-
-    def Patch(self, request, global_params=None):
-      r"""Updates a policy.
-
-      Args:
-        request: (IamOrganizationsLocationsPoliciesPatchRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleLongrunningOperation) The response message.
-      """
-      config = self.GetMethodConfig('Patch')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Patch.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v3alpha/organizations/{organizationsId}/locations/{locationsId}/policies/{policiesId}',
-        http_method='PATCH',
-        method_id='iam.organizations.locations.policies.patch',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=['updateMask', 'validateOnly'],
-        relative_path='v3alpha/{+name}',
-        request_field='googleIamV3alphaV3Policy',
-        request_type_name='IamOrganizationsLocationsPoliciesPatchRequest',
         response_type_name='GoogleLongrunningOperation',
         supports_download=False,
     )
@@ -709,7 +709,7 @@ class IamV3alpha(base_api.BaseApiClient):
     )
 
     def Delete(self, request, global_params=None):
-      r"""Deletes a policy binding. Callers will need the IAM permissions on both the policy and target. Once the binding is deleted, the policy no longer applies to the target.
+      r"""Deletes a policy binding and returns a long-running operation. Callers will need the IAM permissions on both the policy and target. Once the binding is deleted, the policy no longer applies to the target.
 
       Args:
         request: (IamOrganizationsLocationsPolicyBindingsDeleteRequest) input message
@@ -790,7 +790,7 @@ class IamV3alpha(base_api.BaseApiClient):
     )
 
     def Patch(self, request, global_params=None):
-      r"""Updates a policy binding. Callers will need the IAM permissions on the policy and target in the binding to update, and the IAM permission to remove the existing policy from the binding. Target is immutable and cannot be updated. Once the binding is updated, the new policy is applied to the target.
+      r"""Updates a policy binding and returns a long-running operation. Callers will need the IAM permissions on the policy and target in the binding to update. Target and policy are immutable and cannot be updated.
 
       Args:
         request: (IamOrganizationsLocationsPolicyBindingsPatchRequest) input message
@@ -835,7 +835,7 @@ class IamV3alpha(base_api.BaseApiClient):
         method_id='iam.organizations.locations.policyBindings.searchTargetPolicyBindings',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['pageSize', 'pageToken', 'target'],
+        query_params=['filter', 'pageSize', 'pageToken', 'target'],
         relative_path='v3alpha/{+parent}/policyBindings:searchTargetPolicyBindings',
         request_field='',
         request_type_name='IamOrganizationsLocationsPolicyBindingsSearchTargetPolicyBindingsRequest',
@@ -1025,60 +1025,6 @@ class IamV3alpha(base_api.BaseApiClient):
       self._upload_configs = {
           }
 
-    def Get(self, request, global_params=None):
-      r"""Gets information about a location.
-
-      Args:
-        request: (IamOrganizationsLocationsGetRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleCloudLocationLocation) The response message.
-      """
-      config = self.GetMethodConfig('Get')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Get.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v3alpha/organizations/{organizationsId}/locations/{locationsId}',
-        http_method='GET',
-        method_id='iam.organizations.locations.get',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=[],
-        relative_path='v3alpha/{+name}',
-        request_field='',
-        request_type_name='IamOrganizationsLocationsGetRequest',
-        response_type_name='GoogleCloudLocationLocation',
-        supports_download=False,
-    )
-
-    def ListLocations(self, request, global_params=None):
-      r"""Lists information about the supported locations for this service.
-
-      Args:
-        request: (IamOrganizationsLocationsListLocationsRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleCloudLocationListLocationsResponse) The response message.
-      """
-      config = self.GetMethodConfig('ListLocations')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    ListLocations.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v3alpha/organizations/{organizationsId}/locations/{locationsId}',
-        http_method='GET',
-        method_id='iam.organizations.locations.listLocations',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=['filter', 'pageSize', 'pageToken'],
-        relative_path='v3alpha/{+name}',
-        request_field='',
-        request_type_name='IamOrganizationsLocationsListLocationsRequest',
-        response_type_name='GoogleCloudLocationListLocationsResponse',
-        supports_download=False,
-    )
-
   class OrganizationsService(base_api.BaseApiService):
     """Service class for the organizations resource."""
 
@@ -1088,6 +1034,178 @@ class IamV3alpha(base_api.BaseApiClient):
       super(IamV3alpha.OrganizationsService, self).__init__(client)
       self._upload_configs = {
           }
+
+  class ProjectsLocationsAccessPoliciesService(base_api.BaseApiService):
+    """Service class for the projects_locations_accessPolicies resource."""
+
+    _NAME = 'projects_locations_accessPolicies'
+
+    def __init__(self, client):
+      super(IamV3alpha.ProjectsLocationsAccessPoliciesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates an access policy, and returns a long running operation.
+
+      Args:
+        request: (IamProjectsLocationsAccessPoliciesCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v3alpha/projects/{projectsId}/locations/{locationsId}/accessPolicies',
+        http_method='POST',
+        method_id='iam.projects.locations.accessPolicies.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['accessPolicyId', 'validateOnly'],
+        relative_path='v3alpha/{+parent}/accessPolicies',
+        request_field='googleIamV3alphaAccessPolicy',
+        request_type_name='IamProjectsLocationsAccessPoliciesCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes an access policy.
+
+      Args:
+        request: (IamProjectsLocationsAccessPoliciesDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v3alpha/projects/{projectsId}/locations/{locationsId}/accessPolicies/{accessPoliciesId}',
+        http_method='DELETE',
+        method_id='iam.projects.locations.accessPolicies.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['etag', 'force', 'validateOnly'],
+        relative_path='v3alpha/{+name}',
+        request_field='',
+        request_type_name='IamProjectsLocationsAccessPoliciesDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets an access policy.
+
+      Args:
+        request: (IamProjectsLocationsAccessPoliciesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleIamV3alphaAccessPolicy) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v3alpha/projects/{projectsId}/locations/{locationsId}/accessPolicies/{accessPoliciesId}',
+        http_method='GET',
+        method_id='iam.projects.locations.accessPolicies.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v3alpha/{+name}',
+        request_field='',
+        request_type_name='IamProjectsLocationsAccessPoliciesGetRequest',
+        response_type_name='GoogleIamV3alphaAccessPolicy',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists access policies.
+
+      Args:
+        request: (IamProjectsLocationsAccessPoliciesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleIamV3alphaListAccessPoliciesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v3alpha/projects/{projectsId}/locations/{locationsId}/accessPolicies',
+        http_method='GET',
+        method_id='iam.projects.locations.accessPolicies.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['pageSize', 'pageToken'],
+        relative_path='v3alpha/{+parent}/accessPolicies',
+        request_field='',
+        request_type_name='IamProjectsLocationsAccessPoliciesListRequest',
+        response_type_name='GoogleIamV3alphaListAccessPoliciesResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates an access policy.
+
+      Args:
+        request: (IamProjectsLocationsAccessPoliciesPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v3alpha/projects/{projectsId}/locations/{locationsId}/accessPolicies/{accessPoliciesId}',
+        http_method='PATCH',
+        method_id='iam.projects.locations.accessPolicies.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['validateOnly'],
+        relative_path='v3alpha/{+name}',
+        request_field='googleIamV3alphaAccessPolicy',
+        request_type_name='IamProjectsLocationsAccessPoliciesPatchRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def SearchPolicyBindings(self, request, global_params=None):
+      r"""Returns all policy bindings that bind a specific policy if a user has searchPolicyBindings permission on that policy.
+
+      Args:
+        request: (IamProjectsLocationsAccessPoliciesSearchPolicyBindingsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleIamV3alphaSearchAccessPolicyBindingsResponse) The response message.
+      """
+      config = self.GetMethodConfig('SearchPolicyBindings')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SearchPolicyBindings.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v3alpha/projects/{projectsId}/locations/{locationsId}/accessPolicies/{accessPoliciesId}:searchPolicyBindings',
+        http_method='GET',
+        method_id='iam.projects.locations.accessPolicies.searchPolicyBindings',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['pageSize', 'pageToken'],
+        relative_path='v3alpha/{+name}:searchPolicyBindings',
+        request_field='',
+        request_type_name='IamProjectsLocationsAccessPoliciesSearchPolicyBindingsRequest',
+        response_type_name='GoogleIamV3alphaSearchAccessPolicyBindingsResponse',
+        supports_download=False,
+    )
 
   class ProjectsLocationsOperationsService(base_api.BaseApiService):
     """Service class for the projects_locations_operations resource."""
@@ -1122,151 +1240,6 @@ class IamV3alpha(base_api.BaseApiClient):
         relative_path='v3alpha/{+name}',
         request_field='',
         request_type_name='IamProjectsLocationsOperationsGetRequest',
-        response_type_name='GoogleLongrunningOperation',
-        supports_download=False,
-    )
-
-  class ProjectsLocationsPoliciesService(base_api.BaseApiService):
-    """Service class for the projects_locations_policies resource."""
-
-    _NAME = 'projects_locations_policies'
-
-    def __init__(self, client):
-      super(IamV3alpha.ProjectsLocationsPoliciesService, self).__init__(client)
-      self._upload_configs = {
-          }
-
-    def Create(self, request, global_params=None):
-      r"""Creates a policy, and returns a long running operation.
-
-      Args:
-        request: (IamProjectsLocationsPoliciesCreateRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleLongrunningOperation) The response message.
-      """
-      config = self.GetMethodConfig('Create')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Create.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v3alpha/projects/{projectsId}/locations/{locationsId}/policies',
-        http_method='POST',
-        method_id='iam.projects.locations.policies.create',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['policyId', 'validateOnly'],
-        relative_path='v3alpha/{+parent}/policies',
-        request_field='googleIamV3alphaV3Policy',
-        request_type_name='IamProjectsLocationsPoliciesCreateRequest',
-        response_type_name='GoogleLongrunningOperation',
-        supports_download=False,
-    )
-
-    def Delete(self, request, global_params=None):
-      r"""Deletes a policy. Policies with references to policy bindings can't be deleted unless `force` field is set to `true`, or these policy bindings are deleted.
-
-      Args:
-        request: (IamProjectsLocationsPoliciesDeleteRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleLongrunningOperation) The response message.
-      """
-      config = self.GetMethodConfig('Delete')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Delete.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v3alpha/projects/{projectsId}/locations/{locationsId}/policies/{policiesId}',
-        http_method='DELETE',
-        method_id='iam.projects.locations.policies.delete',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=['etag', 'force', 'validateOnly'],
-        relative_path='v3alpha/{+name}',
-        request_field='',
-        request_type_name='IamProjectsLocationsPoliciesDeleteRequest',
-        response_type_name='GoogleLongrunningOperation',
-        supports_download=False,
-    )
-
-    def Get(self, request, global_params=None):
-      r"""Gets a policy.
-
-      Args:
-        request: (IamProjectsLocationsPoliciesGetRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleIamV3alphaV3Policy) The response message.
-      """
-      config = self.GetMethodConfig('Get')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Get.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v3alpha/projects/{projectsId}/locations/{locationsId}/policies/{policiesId}',
-        http_method='GET',
-        method_id='iam.projects.locations.policies.get',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=[],
-        relative_path='v3alpha/{+name}',
-        request_field='',
-        request_type_name='IamProjectsLocationsPoliciesGetRequest',
-        response_type_name='GoogleIamV3alphaV3Policy',
-        supports_download=False,
-    )
-
-    def List(self, request, global_params=None):
-      r"""Lists policies.
-
-      Args:
-        request: (IamProjectsLocationsPoliciesListRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleIamV3alphaListPoliciesResponse) The response message.
-      """
-      config = self.GetMethodConfig('List')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    List.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v3alpha/projects/{projectsId}/locations/{locationsId}/policies',
-        http_method='GET',
-        method_id='iam.projects.locations.policies.list',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['pageSize', 'pageToken'],
-        relative_path='v3alpha/{+parent}/policies',
-        request_field='',
-        request_type_name='IamProjectsLocationsPoliciesListRequest',
-        response_type_name='GoogleIamV3alphaListPoliciesResponse',
-        supports_download=False,
-    )
-
-    def Patch(self, request, global_params=None):
-      r"""Updates a policy.
-
-      Args:
-        request: (IamProjectsLocationsPoliciesPatchRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleLongrunningOperation) The response message.
-      """
-      config = self.GetMethodConfig('Patch')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Patch.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v3alpha/projects/{projectsId}/locations/{locationsId}/policies/{policiesId}',
-        http_method='PATCH',
-        method_id='iam.projects.locations.policies.patch',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=['updateMask', 'validateOnly'],
-        relative_path='v3alpha/{+name}',
-        request_field='googleIamV3alphaV3Policy',
-        request_type_name='IamProjectsLocationsPoliciesPatchRequest',
         response_type_name='GoogleLongrunningOperation',
         supports_download=False,
     )
@@ -1309,7 +1282,7 @@ class IamV3alpha(base_api.BaseApiClient):
     )
 
     def Delete(self, request, global_params=None):
-      r"""Deletes a policy binding. Callers will need the IAM permissions on both the policy and target. Once the binding is deleted, the policy no longer applies to the target.
+      r"""Deletes a policy binding and returns a long-running operation. Callers will need the IAM permissions on both the policy and target. Once the binding is deleted, the policy no longer applies to the target.
 
       Args:
         request: (IamProjectsLocationsPolicyBindingsDeleteRequest) input message
@@ -1390,7 +1363,7 @@ class IamV3alpha(base_api.BaseApiClient):
     )
 
     def Patch(self, request, global_params=None):
-      r"""Updates a policy binding. Callers will need the IAM permissions on the policy and target in the binding to update, and the IAM permission to remove the existing policy from the binding. Target is immutable and cannot be updated. Once the binding is updated, the new policy is applied to the target.
+      r"""Updates a policy binding and returns a long-running operation. Callers will need the IAM permissions on the policy and target in the binding to update. Target and policy are immutable and cannot be updated.
 
       Args:
         request: (IamProjectsLocationsPolicyBindingsPatchRequest) input message
@@ -1435,7 +1408,7 @@ class IamV3alpha(base_api.BaseApiClient):
         method_id='iam.projects.locations.policyBindings.searchTargetPolicyBindings',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['pageSize', 'pageToken', 'target'],
+        query_params=['filter', 'pageSize', 'pageToken', 'target'],
         relative_path='v3alpha/{+parent}/policyBindings:searchTargetPolicyBindings',
         request_field='',
         request_type_name='IamProjectsLocationsPolicyBindingsSearchTargetPolicyBindingsRequest',
@@ -1897,60 +1870,6 @@ class IamV3alpha(base_api.BaseApiClient):
       super(IamV3alpha.ProjectsLocationsService, self).__init__(client)
       self._upload_configs = {
           }
-
-    def Get(self, request, global_params=None):
-      r"""Gets information about a location.
-
-      Args:
-        request: (IamProjectsLocationsGetRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleCloudLocationLocation) The response message.
-      """
-      config = self.GetMethodConfig('Get')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Get.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v3alpha/projects/{projectsId}/locations/{locationsId}',
-        http_method='GET',
-        method_id='iam.projects.locations.get',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=[],
-        relative_path='v3alpha/{+name}',
-        request_field='',
-        request_type_name='IamProjectsLocationsGetRequest',
-        response_type_name='GoogleCloudLocationLocation',
-        supports_download=False,
-    )
-
-    def List(self, request, global_params=None):
-      r"""Lists information about the supported locations for this service.
-
-      Args:
-        request: (IamProjectsLocationsListRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleCloudLocationListLocationsResponse) The response message.
-      """
-      config = self.GetMethodConfig('List')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    List.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v3alpha/projects/{projectsId}/locations',
-        http_method='GET',
-        method_id='iam.projects.locations.list',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=['filter', 'pageSize', 'pageToken'],
-        relative_path='v3alpha/{+name}/locations',
-        request_field='',
-        request_type_name='IamProjectsLocationsListRequest',
-        response_type_name='GoogleCloudLocationListLocationsResponse',
-        supports_download=False,
-    )
 
   class ProjectsService(base_api.BaseApiService):
     """Service class for the projects resource."""

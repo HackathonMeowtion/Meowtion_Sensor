@@ -24,26 +24,22 @@ For more information about the token endpoint, see
 """
 
 import datetime
+import http.client as http_client
 import json
-
-import six
-from six.moves import http_client
-from six.moves import urllib
+import urllib
 
 from google.auth import _exponential_backoff
 from google.auth import _helpers
+from google.auth import credentials
 from google.auth import exceptions
 from google.auth import jwt
+from google.auth import metrics
 from google.auth import transport
 
 _URLENCODED_CONTENT_TYPE = "application/x-www-form-urlencoded"
 _JSON_CONTENT_TYPE = "application/json"
 _JWT_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:jwt-bearer"
 _REFRESH_GRANT_TYPE = "refresh_token"
-_IAM_IDTOKEN_ENDPOINT = (
-    "https://iamcredentials.googleapis.com/v1/"
-    + "projects/-/serviceAccounts/{}:generateIdToken"
-)
 
 
 def _handle_error_response(response_data, retryable_error):
@@ -60,7 +56,7 @@ def _handle_error_response(response_data, retryable_error):
 
     retryable_error = retryable_error if retryable_error else False
 
-    if isinstance(response_data, six.string_types):
+    if isinstance(response_data, str):
         raise exceptions.RefreshError(response_data, retryable=retryable_error)
     try:
         error_details = "{}: {}".format(
@@ -94,9 +90,7 @@ def _can_retry(status_code, response_data):
         error_desc = response_data.get("error_description") or ""
         error_code = response_data.get("error") or ""
 
-        if not isinstance(error_code, six.string_types) or not isinstance(
-            error_desc, six.string_types
-        ):
+        if not isinstance(error_code, str) or not isinstance(error_desc, str):
             return False
 
         # Per Oauth 2.0 RFC https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2.1
@@ -146,6 +140,7 @@ def _token_endpoint_request_no_throw(
     access_token=None,
     use_json=False,
     can_retry=True,
+    headers=None,
     **kwargs
 ):
     """Makes a request to the OAuth 2.0 authorization server's token endpoint.
@@ -161,6 +156,7 @@ def _token_endpoint_request_no_throw(
         use_json (Optional(bool)): Use urlencoded format or json format for the
             content type. The default value is False.
         can_retry (bool): Enable or disable request retry behavior.
+        headers (Optional[Mapping[str, str]]): The headers for the request.
         kwargs: Additional arguments passed on to the request method. The
             kwargs will be passed to `requests.request` method, see:
             https://docs.python-requests.org/en/latest/api/#requests.request.
@@ -176,25 +172,32 @@ def _token_endpoint_request_no_throw(
           is retryable.
     """
     if use_json:
-        headers = {"Content-Type": _JSON_CONTENT_TYPE}
+        headers_to_use = {"Content-Type": _JSON_CONTENT_TYPE}
         body = json.dumps(body).encode("utf-8")
     else:
-        headers = {"Content-Type": _URLENCODED_CONTENT_TYPE}
+        headers_to_use = {"Content-Type": _URLENCODED_CONTENT_TYPE}
         body = urllib.parse.urlencode(body).encode("utf-8")
 
     if access_token:
-        headers["Authorization"] = "Bearer {}".format(access_token)
+        headers_to_use["Authorization"] = "Bearer {}".format(access_token)
 
-    def _perform_request():
+    if headers:
+        headers_to_use.update(headers)
+
+    response_data = {}
+    retryable_error = False
+
+    retries = _exponential_backoff.ExponentialBackoff()
+    for _ in retries:
         response = request(
-            method="POST", url=token_uri, headers=headers, body=body, **kwargs
+            method="POST", url=token_uri, headers=headers_to_use, body=body, **kwargs
         )
         response_body = (
             response.data.decode("utf-8")
             if hasattr(response.data, "decode")
             else response.data
         )
-        response_data = ""
+
         try:
             # response_body should be a JSON
             response_data = json.loads(response_body)
@@ -208,18 +211,8 @@ def _token_endpoint_request_no_throw(
             status_code=response.status, response_data=response_data
         )
 
-        return False, response_data, retryable_error
-
-    request_succeeded, response_data, retryable_error = _perform_request()
-
-    if request_succeeded or not retryable_error or not can_retry:
-        return request_succeeded, response_data, retryable_error
-
-    retries = _exponential_backoff.ExponentialBackoff()
-    for _ in retries:
-        request_succeeded, response_data, retryable_error = _perform_request()
-        if request_succeeded or not retryable_error:
-            return request_succeeded, response_data, retryable_error
+        if not can_retry or not retryable_error:
+            return False, response_data, retryable_error
 
     return False, response_data, retryable_error
 
@@ -231,6 +224,7 @@ def _token_endpoint_request(
     access_token=None,
     use_json=False,
     can_retry=True,
+    headers=None,
     **kwargs
 ):
     """Makes a request to the OAuth 2.0 authorization server's token endpoint.
@@ -245,6 +239,7 @@ def _token_endpoint_request(
         use_json (Optional(bool)): Use urlencoded format or json format for the
             content type. The default value is False.
         can_retry (bool): Enable or disable request retry behavior.
+        headers (Optional[Mapping[str, str]]): The headers for the request.
         kwargs: Additional arguments passed on to the request method. The
             kwargs will be passed to `requests.request` method, see:
             https://docs.python-requests.org/en/latest/api/#requests.request.
@@ -268,6 +263,7 @@ def _token_endpoint_request(
         access_token=access_token,
         use_json=use_json,
         can_retry=can_retry,
+        headers=headers,
         **kwargs
     )
     if not response_status_ok:
@@ -301,7 +297,13 @@ def jwt_grant(request, token_uri, assertion, can_retry=True):
     body = {"assertion": assertion, "grant_type": _JWT_GRANT_TYPE}
 
     response_data = _token_endpoint_request(
-        request, token_uri, body, can_retry=can_retry
+        request,
+        token_uri,
+        body,
+        can_retry=can_retry,
+        headers={
+            metrics.API_CLIENT_HEADER: metrics.token_request_access_token_sa_assertion()
+        },
     )
 
     try:
@@ -310,19 +312,27 @@ def jwt_grant(request, token_uri, assertion, can_retry=True):
         new_exc = exceptions.RefreshError(
             "No access token in response.", response_data, retryable=False
         )
-        six.raise_from(new_exc, caught_exc)
+        raise new_exc from caught_exc
 
     expiry = _parse_expiry(response_data)
 
     return access_token, expiry, response_data
 
 
-def call_iam_generate_id_token_endpoint(request, signer_email, audience, access_token):
+def call_iam_generate_id_token_endpoint(
+    request,
+    iam_id_token_endpoint,
+    signer_email,
+    audience,
+    access_token,
+    universe_domain=credentials.DEFAULT_UNIVERSE_DOMAIN,
+):
     """Call iam.generateIdToken endpoint to get ID token.
 
     Args:
         request (google.auth.transport.Request): A callable used to make
             HTTP requests.
+        iam_id_token_endpoint (str): The IAM ID token endpoint to use.
         signer_email (str): The signer email used to form the IAM
             generateIdToken endpoint.
         audience (str): The audience for the ID token.
@@ -335,7 +345,9 @@ def call_iam_generate_id_token_endpoint(request, signer_email, audience, access_
 
     response_data = _token_endpoint_request(
         request,
-        _IAM_IDTOKEN_ENDPOINT.format(signer_email),
+        iam_id_token_endpoint.replace(
+            credentials.DEFAULT_UNIVERSE_DOMAIN, universe_domain
+        ).format(signer_email),
         body,
         access_token=access_token,
         use_json=True,
@@ -347,7 +359,7 @@ def call_iam_generate_id_token_endpoint(request, signer_email, audience, access_
         new_exc = exceptions.RefreshError(
             "No ID token in response.", response_data, retryable=False
         )
-        six.raise_from(new_exc, caught_exc)
+        raise new_exc from caught_exc
 
     payload = jwt.decode(id_token, verify=False)
     expiry = datetime.datetime.utcfromtimestamp(payload["exp"])
@@ -384,7 +396,13 @@ def id_token_jwt_grant(request, token_uri, assertion, can_retry=True):
     body = {"assertion": assertion, "grant_type": _JWT_GRANT_TYPE}
 
     response_data = _token_endpoint_request(
-        request, token_uri, body, can_retry=can_retry
+        request,
+        token_uri,
+        body,
+        can_retry=can_retry,
+        headers={
+            metrics.API_CLIENT_HEADER: metrics.token_request_id_token_sa_assertion()
+        },
     )
 
     try:
@@ -393,7 +411,7 @@ def id_token_jwt_grant(request, token_uri, assertion, can_retry=True):
         new_exc = exceptions.RefreshError(
             "No ID token in response.", response_data, retryable=False
         )
-        six.raise_from(new_exc, caught_exc)
+        raise new_exc from caught_exc
 
     payload = jwt.decode(id_token, verify=False)
     expiry = datetime.datetime.utcfromtimestamp(payload["exp"])
@@ -424,7 +442,7 @@ def _handle_refresh_grant_response(response_data, refresh_token):
         new_exc = exceptions.RefreshError(
             "No access token in response.", response_data, retryable=False
         )
-        six.raise_from(new_exc, caught_exc)
+        raise new_exc from caught_exc
 
     refresh_token = response_data.get("refresh_token", refresh_token)
     expiry = _parse_expiry(response_data)

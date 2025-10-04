@@ -93,7 +93,7 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
     )
 
     def Create(self, request, global_params=None):
-      r"""Creates a new grant in a given project and location.
+      r"""Creates a grant in a given project, folder, or organization and location.
 
       Args:
         request: (PrivilegedaccessmanagerFoldersLocationsEntitlementsGrantsCreateRequest) input message
@@ -254,6 +254,33 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def Withdraw(self, request, global_params=None):
+      r"""`WithdrawGrant` is used to immediately withdraw the grant. This method can be called when the grant is in a non-terminal state.
+
+      Args:
+        request: (PrivilegedaccessmanagerFoldersLocationsEntitlementsGrantsWithdrawRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Withdraw')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Withdraw.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/folders/{foldersId}/locations/{locationsId}/entitlements/{entitlementsId}/grants/{grantsId}:withdraw',
+        http_method='POST',
+        method_id='privilegedaccessmanager.folders.locations.entitlements.grants.withdraw',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}:withdraw',
+        request_field='withdrawGrantRequest',
+        request_type_name='PrivilegedaccessmanagerFoldersLocationsEntitlementsGrantsWithdrawRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
   class FoldersLocationsEntitlementsService(base_api.BaseApiService):
     """Service class for the folders_locations_entitlements resource."""
 
@@ -265,7 +292,7 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
           }
 
     def Create(self, request, global_params=None):
-      r"""Creates a new entitlement in a given project/folder/organization and location.
+      r"""Creates a new entitlement in a given project, folder, organization, and in a given location.
 
       Args:
         request: (PrivilegedaccessmanagerFoldersLocationsEntitlementsCreateRequest) input message
@@ -292,7 +319,7 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
     )
 
     def Delete(self, request, global_params=None):
-      r"""Deletes a single entitlement. This method can only be called when there are no in-progress (ACTIVE/ACTIVATING/REVOKING) grants under the entitlement.
+      r"""Deletes a single entitlement. This method can only be called when there are no in-progress (`ACTIVE`/`ACTIVATING`/`REVOKING`) grants under the entitlement.
 
       Args:
         request: (PrivilegedaccessmanagerFoldersLocationsEntitlementsDeleteRequest) input message
@@ -346,7 +373,7 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
     )
 
     def List(self, request, global_params=None):
-      r"""Lists entitlements in a given project/folder/organization and location.
+      r"""Lists the entitlements in a given project, folder, organization, and in a given location.
 
       Args:
         request: (PrivilegedaccessmanagerFoldersLocationsEntitlementsListRequest) input message
@@ -528,7 +555,7 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
           }
 
     def CheckOnboardingStatus(self, request, global_params=None):
-      r"""CheckOnboardingStatus reports the onboarding status for a project/folder/organization. Any findings reported by this API need to be fixed before PAM can be used on the resource.
+      r"""`CheckOnboardingStatus` reports the onboarding status for a project, folder, or organization. Any findings reported by this API need to be fixed before PAM can be used on the resource.
 
       Args:
         request: (PrivilegedaccessmanagerFoldersLocationsCheckOnboardingStatusRequest) input message
@@ -551,6 +578,60 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
         request_field='',
         request_type_name='PrivilegedaccessmanagerFoldersLocationsCheckOnboardingStatusRequest',
         response_type_name='CheckOnboardingStatusResponse',
+        supports_download=False,
+    )
+
+    def EffectiveSettings(self, request, global_params=None):
+      r"""`FetchEffectiveSettings` returns the effective PAM Settings for the given project, folder, or organization.
+
+      Args:
+        request: (PrivilegedaccessmanagerFoldersLocationsEffectiveSettingsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (FetchEffectiveSettingsResponse) The response message.
+      """
+      config = self.GetMethodConfig('EffectiveSettings')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    EffectiveSettings.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/folders/{foldersId}/locations/{locationsId}:effectiveSettings',
+        http_method='GET',
+        method_id='privilegedaccessmanager.folders.locations.effectiveSettings',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1alpha/{+parent}:effectiveSettings',
+        request_field='',
+        request_type_name='PrivilegedaccessmanagerFoldersLocationsEffectiveSettingsRequest',
+        response_type_name='FetchEffectiveSettingsResponse',
+        supports_download=False,
+    )
+
+    def FetchEffectiveSettings(self, request, global_params=None):
+      r"""`FetchEffectiveSettings` returns the effective PAM Settings for the given project, folder, or organization.
+
+      Args:
+        request: (PrivilegedaccessmanagerFoldersLocationsFetchEffectiveSettingsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (FetchEffectiveSettingsResponse) The response message.
+      """
+      config = self.GetMethodConfig('FetchEffectiveSettings')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    FetchEffectiveSettings.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/folders/{foldersId}/locations/{locationsId}:fetchEffectiveSettings',
+        http_method='GET',
+        method_id='privilegedaccessmanager.folders.locations.fetchEffectiveSettings',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1alpha/{+parent}:fetchEffectiveSettings',
+        request_field='',
+        request_type_name='PrivilegedaccessmanagerFoldersLocationsFetchEffectiveSettingsRequest',
+        response_type_name='FetchEffectiveSettingsResponse',
         supports_download=False,
     )
 
@@ -581,6 +662,33 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def GetSettings(self, request, global_params=None):
+      r"""`GetSettings` returns the PAM Settings for the given project, folder, or organization.
+
+      Args:
+        request: (PrivilegedaccessmanagerFoldersLocationsGetSettingsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Settings) The response message.
+      """
+      config = self.GetMethodConfig('GetSettings')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetSettings.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/folders/{foldersId}/locations/{locationsId}/settings',
+        http_method='GET',
+        method_id='privilegedaccessmanager.folders.locations.getSettings',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='PrivilegedaccessmanagerFoldersLocationsGetSettingsRequest',
+        response_type_name='Settings',
+        supports_download=False,
+    )
+
     def List(self, request, global_params=None):
       r"""Lists information about the supported locations for this service.
 
@@ -600,7 +708,7 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
         method_id='privilegedaccessmanager.folders.locations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['extraLocationTypes', 'filter', 'pageSize', 'pageToken'],
         relative_path='v1alpha/{+name}/locations',
         request_field='',
         request_type_name='PrivilegedaccessmanagerFoldersLocationsListRequest',
@@ -608,30 +716,30 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
         supports_download=False,
     )
 
-    def SetupService(self, request, global_params=None):
-      r"""SetupService sets up PAM service for a GCP project/folder/organization. This needs to be done before entitlements parented under the project/folder/organization can be created.
+    def UpdateSettings(self, request, global_params=None):
+      r"""`UpdateSettings` updates the PAM Settings resource specified in the request. Updated fields in the settings need to be specified in an update mask. The following fields are not supported for updates: * Settings name * Create time * Update time * Etag.
 
       Args:
-        request: (PrivilegedaccessmanagerFoldersLocationsSetupServiceRequest) input message
+        request: (PrivilegedaccessmanagerFoldersLocationsUpdateSettingsRequest) input message
         global_params: (StandardQueryParameters, default: None) global arguments
       Returns:
-        (SetupServiceResponse) The response message.
+        (Operation) The response message.
       """
-      config = self.GetMethodConfig('SetupService')
+      config = self.GetMethodConfig('UpdateSettings')
       return self._RunMethod(
           config, request, global_params=global_params)
 
-    SetupService.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/folders/{foldersId}/locations/{locationsId}:setupService',
-        http_method='POST',
-        method_id='privilegedaccessmanager.folders.locations.setupService',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=[],
-        relative_path='v1alpha/{+parent}:setupService',
-        request_field='setupServiceRequest',
-        request_type_name='PrivilegedaccessmanagerFoldersLocationsSetupServiceRequest',
-        response_type_name='SetupServiceResponse',
+    UpdateSettings.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/folders/{foldersId}/locations/{locationsId}/settings',
+        http_method='PATCH',
+        method_id='privilegedaccessmanager.folders.locations.updateSettings',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1alpha/{+name}',
+        request_field='settings',
+        request_type_name='PrivilegedaccessmanagerFoldersLocationsUpdateSettingsRequest',
+        response_type_name='Operation',
         supports_download=False,
     )
 
@@ -683,7 +791,7 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
     )
 
     def Create(self, request, global_params=None):
-      r"""Creates a new grant in a given project and location.
+      r"""Creates a grant in a given project, folder, or organization and location.
 
       Args:
         request: (PrivilegedaccessmanagerOrganizationsLocationsEntitlementsGrantsCreateRequest) input message
@@ -844,6 +952,33 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def Withdraw(self, request, global_params=None):
+      r"""`WithdrawGrant` is used to immediately withdraw the grant. This method can be called when the grant is in a non-terminal state.
+
+      Args:
+        request: (PrivilegedaccessmanagerOrganizationsLocationsEntitlementsGrantsWithdrawRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Withdraw')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Withdraw.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}/entitlements/{entitlementsId}/grants/{grantsId}:withdraw',
+        http_method='POST',
+        method_id='privilegedaccessmanager.organizations.locations.entitlements.grants.withdraw',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}:withdraw',
+        request_field='withdrawGrantRequest',
+        request_type_name='PrivilegedaccessmanagerOrganizationsLocationsEntitlementsGrantsWithdrawRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
   class OrganizationsLocationsEntitlementsService(base_api.BaseApiService):
     """Service class for the organizations_locations_entitlements resource."""
 
@@ -855,7 +990,7 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
           }
 
     def Create(self, request, global_params=None):
-      r"""Creates a new entitlement in a given project/folder/organization and location.
+      r"""Creates a new entitlement in a given project, folder, organization, and in a given location.
 
       Args:
         request: (PrivilegedaccessmanagerOrganizationsLocationsEntitlementsCreateRequest) input message
@@ -882,7 +1017,7 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
     )
 
     def Delete(self, request, global_params=None):
-      r"""Deletes a single entitlement. This method can only be called when there are no in-progress (ACTIVE/ACTIVATING/REVOKING) grants under the entitlement.
+      r"""Deletes a single entitlement. This method can only be called when there are no in-progress (`ACTIVE`/`ACTIVATING`/`REVOKING`) grants under the entitlement.
 
       Args:
         request: (PrivilegedaccessmanagerOrganizationsLocationsEntitlementsDeleteRequest) input message
@@ -936,7 +1071,7 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
     )
 
     def List(self, request, global_params=None):
-      r"""Lists entitlements in a given project/folder/organization and location.
+      r"""Lists the entitlements in a given project, folder, organization, and in a given location.
 
       Args:
         request: (PrivilegedaccessmanagerOrganizationsLocationsEntitlementsListRequest) input message
@@ -1118,7 +1253,7 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
           }
 
     def CheckOnboardingStatus(self, request, global_params=None):
-      r"""CheckOnboardingStatus reports the onboarding status for a project/folder/organization. Any findings reported by this API need to be fixed before PAM can be used on the resource.
+      r"""`CheckOnboardingStatus` reports the onboarding status for a project, folder, or organization. Any findings reported by this API need to be fixed before PAM can be used on the resource.
 
       Args:
         request: (PrivilegedaccessmanagerOrganizationsLocationsCheckOnboardingStatusRequest) input message
@@ -1141,6 +1276,60 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
         request_field='',
         request_type_name='PrivilegedaccessmanagerOrganizationsLocationsCheckOnboardingStatusRequest',
         response_type_name='CheckOnboardingStatusResponse',
+        supports_download=False,
+    )
+
+    def EffectiveSettings(self, request, global_params=None):
+      r"""`FetchEffectiveSettings` returns the effective PAM Settings for the given project, folder, or organization.
+
+      Args:
+        request: (PrivilegedaccessmanagerOrganizationsLocationsEffectiveSettingsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (FetchEffectiveSettingsResponse) The response message.
+      """
+      config = self.GetMethodConfig('EffectiveSettings')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    EffectiveSettings.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}:effectiveSettings',
+        http_method='GET',
+        method_id='privilegedaccessmanager.organizations.locations.effectiveSettings',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1alpha/{+parent}:effectiveSettings',
+        request_field='',
+        request_type_name='PrivilegedaccessmanagerOrganizationsLocationsEffectiveSettingsRequest',
+        response_type_name='FetchEffectiveSettingsResponse',
+        supports_download=False,
+    )
+
+    def FetchEffectiveSettings(self, request, global_params=None):
+      r"""`FetchEffectiveSettings` returns the effective PAM Settings for the given project, folder, or organization.
+
+      Args:
+        request: (PrivilegedaccessmanagerOrganizationsLocationsFetchEffectiveSettingsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (FetchEffectiveSettingsResponse) The response message.
+      """
+      config = self.GetMethodConfig('FetchEffectiveSettings')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    FetchEffectiveSettings.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}:fetchEffectiveSettings',
+        http_method='GET',
+        method_id='privilegedaccessmanager.organizations.locations.fetchEffectiveSettings',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1alpha/{+parent}:fetchEffectiveSettings',
+        request_field='',
+        request_type_name='PrivilegedaccessmanagerOrganizationsLocationsFetchEffectiveSettingsRequest',
+        response_type_name='FetchEffectiveSettingsResponse',
         supports_download=False,
     )
 
@@ -1171,6 +1360,33 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def GetSettings(self, request, global_params=None):
+      r"""`GetSettings` returns the PAM Settings for the given project, folder, or organization.
+
+      Args:
+        request: (PrivilegedaccessmanagerOrganizationsLocationsGetSettingsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Settings) The response message.
+      """
+      config = self.GetMethodConfig('GetSettings')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetSettings.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}/settings',
+        http_method='GET',
+        method_id='privilegedaccessmanager.organizations.locations.getSettings',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='PrivilegedaccessmanagerOrganizationsLocationsGetSettingsRequest',
+        response_type_name='Settings',
+        supports_download=False,
+    )
+
     def List(self, request, global_params=None):
       r"""Lists information about the supported locations for this service.
 
@@ -1190,7 +1406,7 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
         method_id='privilegedaccessmanager.organizations.locations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['extraLocationTypes', 'filter', 'pageSize', 'pageToken'],
         relative_path='v1alpha/{+name}/locations',
         request_field='',
         request_type_name='PrivilegedaccessmanagerOrganizationsLocationsListRequest',
@@ -1198,30 +1414,30 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
         supports_download=False,
     )
 
-    def SetupService(self, request, global_params=None):
-      r"""SetupService sets up PAM service for a GCP project/folder/organization. This needs to be done before entitlements parented under the project/folder/organization can be created.
+    def UpdateSettings(self, request, global_params=None):
+      r"""`UpdateSettings` updates the PAM Settings resource specified in the request. Updated fields in the settings need to be specified in an update mask. The following fields are not supported for updates: * Settings name * Create time * Update time * Etag.
 
       Args:
-        request: (PrivilegedaccessmanagerOrganizationsLocationsSetupServiceRequest) input message
+        request: (PrivilegedaccessmanagerOrganizationsLocationsUpdateSettingsRequest) input message
         global_params: (StandardQueryParameters, default: None) global arguments
       Returns:
-        (SetupServiceResponse) The response message.
+        (Operation) The response message.
       """
-      config = self.GetMethodConfig('SetupService')
+      config = self.GetMethodConfig('UpdateSettings')
       return self._RunMethod(
           config, request, global_params=global_params)
 
-    SetupService.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}:setupService',
-        http_method='POST',
-        method_id='privilegedaccessmanager.organizations.locations.setupService',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=[],
-        relative_path='v1alpha/{+parent}:setupService',
-        request_field='setupServiceRequest',
-        request_type_name='PrivilegedaccessmanagerOrganizationsLocationsSetupServiceRequest',
-        response_type_name='SetupServiceResponse',
+    UpdateSettings.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}/settings',
+        http_method='PATCH',
+        method_id='privilegedaccessmanager.organizations.locations.updateSettings',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1alpha/{+name}',
+        request_field='settings',
+        request_type_name='PrivilegedaccessmanagerOrganizationsLocationsUpdateSettingsRequest',
+        response_type_name='Operation',
         supports_download=False,
     )
 
@@ -1273,7 +1489,7 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
     )
 
     def Create(self, request, global_params=None):
-      r"""Creates a new grant in a given project and location.
+      r"""Creates a grant in a given project, folder, or organization and location.
 
       Args:
         request: (PrivilegedaccessmanagerProjectsLocationsEntitlementsGrantsCreateRequest) input message
@@ -1434,6 +1650,33 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def Withdraw(self, request, global_params=None):
+      r"""`WithdrawGrant` is used to immediately withdraw the grant. This method can be called when the grant is in a non-terminal state.
+
+      Args:
+        request: (PrivilegedaccessmanagerProjectsLocationsEntitlementsGrantsWithdrawRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Withdraw')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Withdraw.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/entitlements/{entitlementsId}/grants/{grantsId}:withdraw',
+        http_method='POST',
+        method_id='privilegedaccessmanager.projects.locations.entitlements.grants.withdraw',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}:withdraw',
+        request_field='withdrawGrantRequest',
+        request_type_name='PrivilegedaccessmanagerProjectsLocationsEntitlementsGrantsWithdrawRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
   class ProjectsLocationsEntitlementsService(base_api.BaseApiService):
     """Service class for the projects_locations_entitlements resource."""
 
@@ -1445,7 +1688,7 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
           }
 
     def Create(self, request, global_params=None):
-      r"""Creates a new entitlement in a given project/folder/organization and location.
+      r"""Creates a new entitlement in a given project, folder, organization, and in a given location.
 
       Args:
         request: (PrivilegedaccessmanagerProjectsLocationsEntitlementsCreateRequest) input message
@@ -1472,7 +1715,7 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
     )
 
     def Delete(self, request, global_params=None):
-      r"""Deletes a single entitlement. This method can only be called when there are no in-progress (ACTIVE/ACTIVATING/REVOKING) grants under the entitlement.
+      r"""Deletes a single entitlement. This method can only be called when there are no in-progress (`ACTIVE`/`ACTIVATING`/`REVOKING`) grants under the entitlement.
 
       Args:
         request: (PrivilegedaccessmanagerProjectsLocationsEntitlementsDeleteRequest) input message
@@ -1526,7 +1769,7 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
     )
 
     def List(self, request, global_params=None):
-      r"""Lists entitlements in a given project/folder/organization and location.
+      r"""Lists the entitlements in a given project, folder, organization, and in a given location.
 
       Args:
         request: (PrivilegedaccessmanagerProjectsLocationsEntitlementsListRequest) input message
@@ -1708,7 +1951,7 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
           }
 
     def CheckOnboardingStatus(self, request, global_params=None):
-      r"""CheckOnboardingStatus reports the onboarding status for a project/folder/organization. Any findings reported by this API need to be fixed before PAM can be used on the resource.
+      r"""`CheckOnboardingStatus` reports the onboarding status for a project, folder, or organization. Any findings reported by this API need to be fixed before PAM can be used on the resource.
 
       Args:
         request: (PrivilegedaccessmanagerProjectsLocationsCheckOnboardingStatusRequest) input message
@@ -1731,6 +1974,60 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
         request_field='',
         request_type_name='PrivilegedaccessmanagerProjectsLocationsCheckOnboardingStatusRequest',
         response_type_name='CheckOnboardingStatusResponse',
+        supports_download=False,
+    )
+
+    def EffectiveSettings(self, request, global_params=None):
+      r"""`FetchEffectiveSettings` returns the effective PAM Settings for the given project, folder, or organization.
+
+      Args:
+        request: (PrivilegedaccessmanagerProjectsLocationsEffectiveSettingsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (FetchEffectiveSettingsResponse) The response message.
+      """
+      config = self.GetMethodConfig('EffectiveSettings')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    EffectiveSettings.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}:effectiveSettings',
+        http_method='GET',
+        method_id='privilegedaccessmanager.projects.locations.effectiveSettings',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1alpha/{+parent}:effectiveSettings',
+        request_field='',
+        request_type_name='PrivilegedaccessmanagerProjectsLocationsEffectiveSettingsRequest',
+        response_type_name='FetchEffectiveSettingsResponse',
+        supports_download=False,
+    )
+
+    def FetchEffectiveSettings(self, request, global_params=None):
+      r"""`FetchEffectiveSettings` returns the effective PAM Settings for the given project, folder, or organization.
+
+      Args:
+        request: (PrivilegedaccessmanagerProjectsLocationsFetchEffectiveSettingsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (FetchEffectiveSettingsResponse) The response message.
+      """
+      config = self.GetMethodConfig('FetchEffectiveSettings')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    FetchEffectiveSettings.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}:fetchEffectiveSettings',
+        http_method='GET',
+        method_id='privilegedaccessmanager.projects.locations.fetchEffectiveSettings',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1alpha/{+parent}:fetchEffectiveSettings',
+        request_field='',
+        request_type_name='PrivilegedaccessmanagerProjectsLocationsFetchEffectiveSettingsRequest',
+        response_type_name='FetchEffectiveSettingsResponse',
         supports_download=False,
     )
 
@@ -1761,6 +2058,33 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def GetSettings(self, request, global_params=None):
+      r"""`GetSettings` returns the PAM Settings for the given project, folder, or organization.
+
+      Args:
+        request: (PrivilegedaccessmanagerProjectsLocationsGetSettingsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Settings) The response message.
+      """
+      config = self.GetMethodConfig('GetSettings')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetSettings.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/settings',
+        http_method='GET',
+        method_id='privilegedaccessmanager.projects.locations.getSettings',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='PrivilegedaccessmanagerProjectsLocationsGetSettingsRequest',
+        response_type_name='Settings',
+        supports_download=False,
+    )
+
     def List(self, request, global_params=None):
       r"""Lists information about the supported locations for this service.
 
@@ -1780,7 +2104,7 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
         method_id='privilegedaccessmanager.projects.locations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['extraLocationTypes', 'filter', 'pageSize', 'pageToken'],
         relative_path='v1alpha/{+name}/locations',
         request_field='',
         request_type_name='PrivilegedaccessmanagerProjectsLocationsListRequest',
@@ -1788,30 +2112,30 @@ class PrivilegedaccessmanagerV1alpha(base_api.BaseApiClient):
         supports_download=False,
     )
 
-    def SetupService(self, request, global_params=None):
-      r"""SetupService sets up PAM service for a GCP project/folder/organization. This needs to be done before entitlements parented under the project/folder/organization can be created.
+    def UpdateSettings(self, request, global_params=None):
+      r"""`UpdateSettings` updates the PAM Settings resource specified in the request. Updated fields in the settings need to be specified in an update mask. The following fields are not supported for updates: * Settings name * Create time * Update time * Etag.
 
       Args:
-        request: (PrivilegedaccessmanagerProjectsLocationsSetupServiceRequest) input message
+        request: (PrivilegedaccessmanagerProjectsLocationsUpdateSettingsRequest) input message
         global_params: (StandardQueryParameters, default: None) global arguments
       Returns:
-        (SetupServiceResponse) The response message.
+        (Operation) The response message.
       """
-      config = self.GetMethodConfig('SetupService')
+      config = self.GetMethodConfig('UpdateSettings')
       return self._RunMethod(
           config, request, global_params=global_params)
 
-    SetupService.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}:setupService',
-        http_method='POST',
-        method_id='privilegedaccessmanager.projects.locations.setupService',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=[],
-        relative_path='v1alpha/{+parent}:setupService',
-        request_field='setupServiceRequest',
-        request_type_name='PrivilegedaccessmanagerProjectsLocationsSetupServiceRequest',
-        response_type_name='SetupServiceResponse',
+    UpdateSettings.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/settings',
+        http_method='PATCH',
+        method_id='privilegedaccessmanager.projects.locations.updateSettings',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1alpha/{+name}',
+        request_field='settings',
+        request_type_name='PrivilegedaccessmanagerProjectsLocationsUpdateSettingsRequest',
+        response_type_name='Operation',
         supports_download=False,
     )
 

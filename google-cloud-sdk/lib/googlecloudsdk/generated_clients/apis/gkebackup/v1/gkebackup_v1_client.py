@@ -39,15 +39,294 @@ class GkebackupV1(base_api.BaseApiClient):
         default_global_params=default_global_params,
         additional_http_headers=additional_http_headers,
         response_encoding=response_encoding)
+    self.projects_locations_backupChannels_backupPlanAssociations = self.ProjectsLocationsBackupChannelsBackupPlanAssociationsService(self)
+    self.projects_locations_backupChannels_backupPlanBindings = self.ProjectsLocationsBackupChannelsBackupPlanBindingsService(self)
+    self.projects_locations_backupChannels = self.ProjectsLocationsBackupChannelsService(self)
     self.projects_locations_backupPlans_backups_volumeBackups = self.ProjectsLocationsBackupPlansBackupsVolumeBackupsService(self)
     self.projects_locations_backupPlans_backups = self.ProjectsLocationsBackupPlansBackupsService(self)
     self.projects_locations_backupPlans = self.ProjectsLocationsBackupPlansService(self)
     self.projects_locations_operations = self.ProjectsLocationsOperationsService(self)
+    self.projects_locations_restoreChannels_restorePlanAssociations = self.ProjectsLocationsRestoreChannelsRestorePlanAssociationsService(self)
+    self.projects_locations_restoreChannels_restorePlanBindings = self.ProjectsLocationsRestoreChannelsRestorePlanBindingsService(self)
+    self.projects_locations_restoreChannels = self.ProjectsLocationsRestoreChannelsService(self)
     self.projects_locations_restorePlans_restores_volumeRestores = self.ProjectsLocationsRestorePlansRestoresVolumeRestoresService(self)
     self.projects_locations_restorePlans_restores = self.ProjectsLocationsRestorePlansRestoresService(self)
     self.projects_locations_restorePlans = self.ProjectsLocationsRestorePlansService(self)
     self.projects_locations = self.ProjectsLocationsService(self)
     self.projects = self.ProjectsService(self)
+
+  class ProjectsLocationsBackupChannelsBackupPlanAssociationsService(base_api.BaseApiService):
+    """Service class for the projects_locations_backupChannels_backupPlanAssociations resource."""
+
+    _NAME = 'projects_locations_backupChannels_backupPlanAssociations'
+
+    def __init__(self, client):
+      super(GkebackupV1.ProjectsLocationsBackupChannelsBackupPlanAssociationsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Get(self, request, global_params=None):
+      r"""Retrieve the details of a single BackupPlanAssociation.
+
+      Args:
+        request: (GkebackupProjectsLocationsBackupChannelsBackupPlanAssociationsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (BackupPlanAssociation) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/backupChannels/{backupChannelsId}/backupPlanAssociations/{backupPlanAssociationsId}',
+        http_method='GET',
+        method_id='gkebackup.projects.locations.backupChannels.backupPlanAssociations.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}',
+        request_field='',
+        request_type_name='GkebackupProjectsLocationsBackupChannelsBackupPlanAssociationsGetRequest',
+        response_type_name='BackupPlanAssociation',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists BackupPlanAssociations in a given location.
+
+      Args:
+        request: (GkebackupProjectsLocationsBackupChannelsBackupPlanAssociationsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListBackupPlanAssociationsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/backupChannels/{backupChannelsId}/backupPlanAssociations',
+        http_method='GET',
+        method_id='gkebackup.projects.locations.backupChannels.backupPlanAssociations.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1/{+parent}/backupPlanAssociations',
+        request_field='',
+        request_type_name='GkebackupProjectsLocationsBackupChannelsBackupPlanAssociationsListRequest',
+        response_type_name='ListBackupPlanAssociationsResponse',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsBackupChannelsBackupPlanBindingsService(base_api.BaseApiService):
+    """Service class for the projects_locations_backupChannels_backupPlanBindings resource."""
+
+    _NAME = 'projects_locations_backupChannels_backupPlanBindings'
+
+    def __init__(self, client):
+      super(GkebackupV1.ProjectsLocationsBackupChannelsBackupPlanBindingsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Get(self, request, global_params=None):
+      r"""Retrieve the details of a single BackupPlanBinding.
+
+      Args:
+        request: (GkebackupProjectsLocationsBackupChannelsBackupPlanBindingsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (BackupPlanBinding) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/backupChannels/{backupChannelsId}/backupPlanBindings/{backupPlanBindingsId}',
+        http_method='GET',
+        method_id='gkebackup.projects.locations.backupChannels.backupPlanBindings.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}',
+        request_field='',
+        request_type_name='GkebackupProjectsLocationsBackupChannelsBackupPlanBindingsGetRequest',
+        response_type_name='BackupPlanBinding',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists BackupPlanBindings in a given location.
+
+      Args:
+        request: (GkebackupProjectsLocationsBackupChannelsBackupPlanBindingsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListBackupPlanBindingsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/backupChannels/{backupChannelsId}/backupPlanBindings',
+        http_method='GET',
+        method_id='gkebackup.projects.locations.backupChannels.backupPlanBindings.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1/{+parent}/backupPlanBindings',
+        request_field='',
+        request_type_name='GkebackupProjectsLocationsBackupChannelsBackupPlanBindingsListRequest',
+        response_type_name='ListBackupPlanBindingsResponse',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsBackupChannelsService(base_api.BaseApiService):
+    """Service class for the projects_locations_backupChannels resource."""
+
+    _NAME = 'projects_locations_backupChannels'
+
+    def __init__(self, client):
+      super(GkebackupV1.ProjectsLocationsBackupChannelsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new BackupChannel in a given location.
+
+      Args:
+        request: (GkebackupProjectsLocationsBackupChannelsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/backupChannels',
+        http_method='POST',
+        method_id='gkebackup.projects.locations.backupChannels.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['backupChannelId'],
+        relative_path='v1/{+parent}/backupChannels',
+        request_field='backupChannel',
+        request_type_name='GkebackupProjectsLocationsBackupChannelsCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes an existing BackupChannel.
+
+      Args:
+        request: (GkebackupProjectsLocationsBackupChannelsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/backupChannels/{backupChannelsId}',
+        http_method='DELETE',
+        method_id='gkebackup.projects.locations.backupChannels.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['etag', 'force'],
+        relative_path='v1/{+name}',
+        request_field='',
+        request_type_name='GkebackupProjectsLocationsBackupChannelsDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Retrieve the details of a single BackupChannel.
+
+      Args:
+        request: (GkebackupProjectsLocationsBackupChannelsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (BackupChannel) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/backupChannels/{backupChannelsId}',
+        http_method='GET',
+        method_id='gkebackup.projects.locations.backupChannels.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}',
+        request_field='',
+        request_type_name='GkebackupProjectsLocationsBackupChannelsGetRequest',
+        response_type_name='BackupChannel',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists BackupChannels in a given location.
+
+      Args:
+        request: (GkebackupProjectsLocationsBackupChannelsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListBackupChannelsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/backupChannels',
+        http_method='GET',
+        method_id='gkebackup.projects.locations.backupChannels.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1/{+parent}/backupChannels',
+        request_field='',
+        request_type_name='GkebackupProjectsLocationsBackupChannelsListRequest',
+        response_type_name='ListBackupChannelsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Update a BackupChannel.
+
+      Args:
+        request: (GkebackupProjectsLocationsBackupChannelsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/backupChannels/{backupChannelsId}',
+        http_method='PATCH',
+        method_id='gkebackup.projects.locations.backupChannels.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1/{+name}',
+        request_field='backupChannel',
+        request_type_name='GkebackupProjectsLocationsBackupChannelsPatchRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
 
   class ProjectsLocationsBackupPlansBackupsVolumeBackupsService(base_api.BaseApiService):
     """Service class for the projects_locations_backupPlans_backups_volumeBackups resource."""
@@ -358,7 +637,7 @@ class GkebackupV1(base_api.BaseApiClient):
         method_id='gkebackup.projects.locations.backupPlans.backups.list',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken', 'returnPartialSuccess'],
         relative_path='v1/{+parent}/backups',
         request_field='',
         request_type_name='GkebackupProjectsLocationsBackupPlansBackupsListRequest',
@@ -684,7 +963,7 @@ class GkebackupV1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (GkebackupProjectsLocationsOperationsCancelRequest) input message
@@ -788,6 +1067,279 @@ class GkebackupV1(base_api.BaseApiClient):
         request_field='',
         request_type_name='GkebackupProjectsLocationsOperationsListRequest',
         response_type_name='GoogleLongrunningListOperationsResponse',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsRestoreChannelsRestorePlanAssociationsService(base_api.BaseApiService):
+    """Service class for the projects_locations_restoreChannels_restorePlanAssociations resource."""
+
+    _NAME = 'projects_locations_restoreChannels_restorePlanAssociations'
+
+    def __init__(self, client):
+      super(GkebackupV1.ProjectsLocationsRestoreChannelsRestorePlanAssociationsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Get(self, request, global_params=None):
+      r"""Retrieve the details of a single RestorePlanAssociation.
+
+      Args:
+        request: (GkebackupProjectsLocationsRestoreChannelsRestorePlanAssociationsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (RestorePlanAssociation) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/restoreChannels/{restoreChannelsId}/restorePlanAssociations/{restorePlanAssociationsId}',
+        http_method='GET',
+        method_id='gkebackup.projects.locations.restoreChannels.restorePlanAssociations.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}',
+        request_field='',
+        request_type_name='GkebackupProjectsLocationsRestoreChannelsRestorePlanAssociationsGetRequest',
+        response_type_name='RestorePlanAssociation',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists RestorePlanAssociations in a given location.
+
+      Args:
+        request: (GkebackupProjectsLocationsRestoreChannelsRestorePlanAssociationsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListRestorePlanAssociationsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/restoreChannels/{restoreChannelsId}/restorePlanAssociations',
+        http_method='GET',
+        method_id='gkebackup.projects.locations.restoreChannels.restorePlanAssociations.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1/{+parent}/restorePlanAssociations',
+        request_field='',
+        request_type_name='GkebackupProjectsLocationsRestoreChannelsRestorePlanAssociationsListRequest',
+        response_type_name='ListRestorePlanAssociationsResponse',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsRestoreChannelsRestorePlanBindingsService(base_api.BaseApiService):
+    """Service class for the projects_locations_restoreChannels_restorePlanBindings resource."""
+
+    _NAME = 'projects_locations_restoreChannels_restorePlanBindings'
+
+    def __init__(self, client):
+      super(GkebackupV1.ProjectsLocationsRestoreChannelsRestorePlanBindingsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Get(self, request, global_params=None):
+      r"""Retrieve the details of a single RestorePlanBinding.
+
+      Args:
+        request: (GkebackupProjectsLocationsRestoreChannelsRestorePlanBindingsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (RestorePlanBinding) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/restoreChannels/{restoreChannelsId}/restorePlanBindings/{restorePlanBindingsId}',
+        http_method='GET',
+        method_id='gkebackup.projects.locations.restoreChannels.restorePlanBindings.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}',
+        request_field='',
+        request_type_name='GkebackupProjectsLocationsRestoreChannelsRestorePlanBindingsGetRequest',
+        response_type_name='RestorePlanBinding',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists RestorePlanBindings in a given location.
+
+      Args:
+        request: (GkebackupProjectsLocationsRestoreChannelsRestorePlanBindingsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListRestorePlanBindingsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/restoreChannels/{restoreChannelsId}/restorePlanBindings',
+        http_method='GET',
+        method_id='gkebackup.projects.locations.restoreChannels.restorePlanBindings.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1/{+parent}/restorePlanBindings',
+        request_field='',
+        request_type_name='GkebackupProjectsLocationsRestoreChannelsRestorePlanBindingsListRequest',
+        response_type_name='ListRestorePlanBindingsResponse',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsRestoreChannelsService(base_api.BaseApiService):
+    """Service class for the projects_locations_restoreChannels resource."""
+
+    _NAME = 'projects_locations_restoreChannels'
+
+    def __init__(self, client):
+      super(GkebackupV1.ProjectsLocationsRestoreChannelsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new RestoreChannel in a given location.
+
+      Args:
+        request: (GkebackupProjectsLocationsRestoreChannelsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/restoreChannels',
+        http_method='POST',
+        method_id='gkebackup.projects.locations.restoreChannels.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['restoreChannelId'],
+        relative_path='v1/{+parent}/restoreChannels',
+        request_field='restoreChannel',
+        request_type_name='GkebackupProjectsLocationsRestoreChannelsCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes an existing RestoreChannel.
+
+      Args:
+        request: (GkebackupProjectsLocationsRestoreChannelsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/restoreChannels/{restoreChannelsId}',
+        http_method='DELETE',
+        method_id='gkebackup.projects.locations.restoreChannels.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['etag'],
+        relative_path='v1/{+name}',
+        request_field='',
+        request_type_name='GkebackupProjectsLocationsRestoreChannelsDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Retrieve the details of a single RestoreChannel.
+
+      Args:
+        request: (GkebackupProjectsLocationsRestoreChannelsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (RestoreChannel) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/restoreChannels/{restoreChannelsId}',
+        http_method='GET',
+        method_id='gkebackup.projects.locations.restoreChannels.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}',
+        request_field='',
+        request_type_name='GkebackupProjectsLocationsRestoreChannelsGetRequest',
+        response_type_name='RestoreChannel',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists RestoreChannels in a given location.
+
+      Args:
+        request: (GkebackupProjectsLocationsRestoreChannelsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListRestoreChannelsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/restoreChannels',
+        http_method='GET',
+        method_id='gkebackup.projects.locations.restoreChannels.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1/{+parent}/restoreChannels',
+        request_field='',
+        request_type_name='GkebackupProjectsLocationsRestoreChannelsListRequest',
+        response_type_name='ListRestoreChannelsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Update a RestoreChannel.
+
+      Args:
+        request: (GkebackupProjectsLocationsRestoreChannelsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/restoreChannels/{restoreChannelsId}',
+        http_method='PATCH',
+        method_id='gkebackup.projects.locations.restoreChannels.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1/{+name}',
+        request_field='restoreChannel',
+        request_type_name='GkebackupProjectsLocationsRestoreChannelsPatchRequest',
+        response_type_name='GoogleLongrunningOperation',
         supports_download=False,
     )
 
@@ -1444,7 +1996,7 @@ class GkebackupV1(base_api.BaseApiClient):
         method_id='gkebackup.projects.locations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['extraLocationTypes', 'filter', 'pageSize', 'pageToken'],
         relative_path='v1/{+name}/locations',
         request_field='',
         request_type_name='GkebackupProjectsLocationsListRequest',

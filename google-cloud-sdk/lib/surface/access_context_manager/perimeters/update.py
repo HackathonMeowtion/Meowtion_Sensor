@@ -25,6 +25,7 @@ from googlecloudsdk.command_lib.accesscontextmanager import policies
 from googlecloudsdk.command_lib.util.args import repeated
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.GA)
 class UpdatePerimetersGA(base.UpdateCommand):
   """Update an existing access zone."""
@@ -46,6 +47,14 @@ class UpdatePerimetersGA(base.UpdateCommand):
     result = repeated.CachedResult.FromFunc(client.Get, perimeter_ref)
     policies.ValidateAccessPolicyArg(perimeter_ref, args)
 
+    vpc_accessible_services_config = None
+    vpc_yaml_flag_used = False
+    if self._API_VERSION == 'v1alpha':
+      vpc_accessible_services_config, vpc_yaml_flag_used = (
+          perimeters.ParseUpdateVpcAccessibleServicesArgs(
+              args, 'vpc-accessible-services'
+          )
+      )
     return self.Patch(
         client=client,
         args=args,
@@ -62,15 +71,19 @@ class UpdatePerimetersGA(base.UpdateCommand):
         vpc_allowed_services=perimeters.ParseVpcRestriction(
             args, result, self._API_VERSION),
         enable_vpc_accessible_services=args.enable_vpc_accessible_services,
+        vpc_yaml_flag_used=vpc_yaml_flag_used,
+        vpc_accessible_services_config=vpc_accessible_services_config,
         ingress_policies=perimeters.ParseUpdateDirectionalPoliciesArgs(
             args, 'ingress-policies'),
         egress_policies=perimeters.ParseUpdateDirectionalPoliciesArgs(
-            args, 'egress-policies'))
+            args, 'egress-policies'),
+        etag=args.etag)
 
   def Patch(self, client, args, result, perimeter_ref, description, title,
             perimeter_type, resources, restricted_services, levels,
             vpc_allowed_services, enable_vpc_accessible_services,
-            ingress_policies, egress_policies):
+            vpc_yaml_flag_used, vpc_accessible_services_config,
+            ingress_policies, egress_policies, etag):
     return client.Patch(
         perimeter_ref,
         description=description,
@@ -81,8 +94,11 @@ class UpdatePerimetersGA(base.UpdateCommand):
         levels=levels,
         vpc_allowed_services=vpc_allowed_services,
         enable_vpc_accessible_services=enable_vpc_accessible_services,
+        vpc_yaml_flag_used=vpc_yaml_flag_used,
+        vpc_accessible_services_config=vpc_accessible_services_config,
         ingress_policies=ingress_policies,
-        egress_policies=egress_policies)
+        egress_policies=egress_policies,
+        etag=etag)
 
 
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)

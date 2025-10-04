@@ -39,17 +39,15 @@ DETAILED_HELP = {
 }
 
 
-@base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.GA)
+@base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.DefaultUniverseOnly
 class Create(base.CreateCommand):
   """Create a Compute Engine managed instance group resize request."""
 
   detailed_help = DETAILED_HELP
 
   @classmethod
-  def Args(cls, parser):
-    instance_groups_flags.MakeZonalInstanceGroupManagerArg().AddArgument(parser)
-    rr_flags.AddOutputFormat(parser, base.ReleaseTrack.BETA)
-
+  def _AddArgsGaCommon(cls, parser):
     parser.add_argument(
         '--resize-request',
         metavar='RESIZE_REQUEST_NAME',
@@ -58,21 +56,31 @@ class Create(base.CreateCommand):
         help="""The name of the resize request to create.""",
     )
     parser.add_argument(
-        '--resize-by',
-        type=int,
-        required=True,
-        help="""The number of VMs to resize managed instance group by.""",
-    )
-    parser.add_argument(
         '--requested-run-duration',
         type=arg_parsers.Duration(),
-        required=True,
+        required=False,
         help="""The time you need the requested VMs to run before being
         automatically deleted. The value must be formatted as the number of
         days, hours, minutes, or seconds followed by `d`, `h`, `m`, and `s`
         respectively. For example, specify `30m` for a duration of 30
         minutes or `1d2h3m4s` for 1 day, 2 hours, 3 minutes, and 4 seconds.
-        The value must be between `10m` (10 minutes) and `7d` (7 days).""",
+        The value must be between `10m` (10 minutes) and `7d` (7 days).
+
+        If you want the managed instance group to consume a reservation or use
+        FLEX_START provisioning model, then this flag is optional. Otherwise,
+        it's required.""",
+    )
+
+  @classmethod
+  def Args(cls, parser):
+    instance_groups_flags.MakeZonalInstanceGroupManagerArg().AddArgument(parser)
+    rr_flags.AddOutputFormat(parser, cls.ReleaseTrack())
+    cls._AddArgsGaCommon(parser)
+    parser.add_argument(
+        '--resize-by',
+        type=int,
+        required=True,
+        help="""The number of VMs to resize managed instance group by.""",
     )
 
   def Run(self, args):
@@ -84,10 +92,25 @@ class Create(base.CreateCommand):
     Returns:
       List containing the created resize request.
     """
-    holder = base_classes.ComputeApiHolder(self.ReleaseTrack())
-    client = holder.client
 
+    holder = base_classes.ComputeApiHolder(self.ReleaseTrack())
     resource_arg = instance_groups_flags.MakeZonalInstanceGroupManagerArg()
+    igm_ref = self._GetIgmRef(args, holder, resource_arg)
+
+    requested_run_duration = None
+    if args.IsKnownAndSpecified('requested_run_duration'):
+      requested_run_duration = holder.client.messages.Duration(
+          seconds=args.requested_run_duration
+      )
+
+    resize_request = holder.client.messages.InstanceGroupManagerResizeRequest(
+        name=args.resize_request,
+        resizeBy=args.resize_by,
+        requestedRunDuration=requested_run_duration,
+    )
+    return self._MakeRequest(holder.client, igm_ref, resize_request)
+
+  def _GetIgmRef(self, args, holder, resource_arg):
     default_scope = compute_scope.ScopeEnum.ZONE
     scope_lister = flags.GetDefaultScopeLister(holder.client)
     igm_ref = resource_arg.ResolveAsResource(
@@ -96,15 +119,9 @@ class Create(base.CreateCommand):
         default_scope=default_scope,
         scope_lister=scope_lister,
     )
+    return igm_ref
 
-    resize_request = client.messages.InstanceGroupManagerResizeRequest(
-        name=args.resize_request,
-        resizeBy=args.resize_by,
-        requestedRunDuration=client.messages.Duration(
-            seconds=args.requested_run_duration
-        ),
-    )
-
+  def _MakeRequest(self, client, igm_ref, resize_request):
     request = (
         client.messages.ComputeInstanceGroupManagerResizeRequestsInsertRequest(
             instanceGroupManager=igm_ref.Name(),
@@ -120,36 +137,134 @@ class Create(base.CreateCommand):
     )])
 
 
+@base.ReleaseTracks(base.ReleaseTrack.BETA)
+class CreateBeta(Create):
+  """Create a Compute Engine managed instance group resize request."""
+
+  @classmethod
+  def Args(cls, parser):
+    instance_groups_flags.MULTISCOPE_INSTANCE_GROUP_MANAGER_ARG.AddArgument(
+        parser
+    )
+    rr_flags.AddOutputFormat(parser, cls.ReleaseTrack())
+    cls._AddArgsGaCommon(parser)
+    resize_by_instances_group = parser.add_group(mutex=True, required=True)
+    resize_by_instances_group.add_argument(
+        '--resize-by',
+        type=int,
+        help="""The number of instances to create with this resize request.
+        Instances have automatically-generated names. The group's target size
+        increases by this number.""",
+    )
+    resize_by_instances_group.add_argument(
+        '--instances',
+        type=arg_parsers.ArgList(min_length=1),
+        metavar='INSTANCE',
+        help="""A comma-separated list of instance names. The number of names
+        you provide determines the number of instances to create with this
+        resize request. The group's target size increases by this count.""",
+    )
+
+  def Run(self, args):
+    """Creates and issues an instanceGroupManagerResizeRequests.insert request.
+    """
+
+    holder = base_classes.ComputeApiHolder(self.ReleaseTrack())
+    resource_arg = instance_groups_flags.MULTISCOPE_INSTANCE_GROUP_MANAGER_ARG
+    igm_ref = self._GetIgmRef(args, holder, resource_arg)
+
+    requested_run_duration = None
+    if args.IsKnownAndSpecified('requested_run_duration'):
+      requested_run_duration = holder.client.messages.Duration(
+          seconds=args.requested_run_duration
+      )
+
+    resize_by = None
+    instances = []
+    if args.IsKnownAndSpecified('resize_by'):
+      resize_by = args.resize_by
+    else:
+      instances = args.instances
+
+    resize_request = holder.client.messages.InstanceGroupManagerResizeRequest(
+        name=args.resize_request,
+        resizeBy=resize_by,
+        instances=self._CreatePerInstanceConfigList(holder, instances),
+        requestedRunDuration=requested_run_duration,
+    )
+
+    return self._MakeRequest(holder.client, igm_ref, resize_request)
+
+  def _MakeRequest(self, client, igm_ref, resize_request):
+    if igm_ref.Collection() == 'compute.instanceGroupManagers':
+      return client.MakeRequests([(
+          client.apitools_client.instanceGroupManagerResizeRequests,
+          'Insert',
+          client.messages.ComputeInstanceGroupManagerResizeRequestsInsertRequest(
+              instanceGroupManager=igm_ref.Name(),
+              instanceGroupManagerResizeRequest=resize_request,
+              project=igm_ref.project,
+              zone=igm_ref.zone,
+          ),
+      )])
+    if igm_ref.Collection() == 'compute.regionInstanceGroupManagers':
+      return client.MakeRequests([(
+          client.apitools_client.regionInstanceGroupManagerResizeRequests,
+          'Insert',
+          client.messages.ComputeRegionInstanceGroupManagerResizeRequestsInsertRequest(
+              instanceGroupManager=igm_ref.Name(),
+              instanceGroupManagerResizeRequest=resize_request,
+              project=igm_ref.project,
+              region=igm_ref.region,
+          ),
+      )])
+    raise ValueError('Unknown reference type {0}'.format(igm_ref.Collection()))
+
+  def _CreatePerInstanceConfigList(self, holder, instances):
+    """Creates a list of per instance configs for the given instances."""
+    return [
+        holder.client.messages.PerInstanceConfig(name=instance)
+        for instance in instances
+    ]
+
+
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
-class CreateAlpha(base.CreateCommand):
+class CreateAlpha(CreateBeta):
   """Create a Compute Engine managed instance group resize request."""
 
   detailed_help = DETAILED_HELP
 
   @classmethod
   def Args(cls, parser):
-    instance_groups_flags.MakeZonalInstanceGroupManagerArg().AddArgument(parser)
-    rr_flags.AddOutputFormat(parser, base.ReleaseTrack.ALPHA)
-
-    parser.add_argument(
-        '--resize-request',
-        metavar='RESIZE_REQUEST_NAME',
-        type=str,
-        required=True,
-        help="""The name of the resize request to create.""",
+    instance_groups_flags.MULTISCOPE_INSTANCE_GROUP_MANAGER_ARG.AddArgument(
+        parser
     )
+    rr_flags.AddOutputFormat(parser, cls.ReleaseTrack())
+    cls._AddArgsGaCommon(parser)
 
-    count_resize_by_group = parser.add_group(mutex=True, required=True)
-    count_resize_by_group.add_argument(
+    count_resize_by_instances_group = parser.add_group(
+        mutex=True, required=True
+    )
+    count_resize_by_instances_group.add_argument(
         '--count',
         type=int,
         hidden=True,
         help="""(ALPHA only) The number of VMs to create.""",
     )
-    count_resize_by_group.add_argument(
+    count_resize_by_instances_group.add_argument(
         '--resize-by',
         type=int,
-        help="""The number of VMs to resize managed instance group by.""",
+        help="""The number of instances to create with this resize request.
+        Instances have automatically-generated names. The group's target size
+        increases by this number.""",
+    )
+    count_resize_by_instances_group.add_argument(
+        '--instances',
+        type=arg_parsers.ArgList(min_length=1),
+        metavar='INSTANCE',
+        help="""A comma-separated list of instance names. The number of names
+        you provide determines the number of instances to create with this
+        resize request. The group's target size increases by this count.""",
     )
 
     valid_until_group = parser.add_group(
@@ -166,18 +281,6 @@ class CreateAlpha(base.CreateCommand):
         help="""Absolute deadline for waiting for capacity in RFC3339 text format.""",
     )
 
-    parser.add_argument(
-        '--requested-run-duration',
-        type=arg_parsers.Duration(),
-        required=False,
-        help="""The time you need the requested VMs to run before being
-        automatically deleted. The value must be formatted as the number of
-        days, hours, minutes, or seconds followed by `d`, `h`, `m`, and `s`
-        respectively. For example, specify `30m` for a duration of 30
-        minutes or `1d2h3m4s` for 1 day, 2 hours, 3 minutes, and 4 seconds.
-        The value must be between `10m` (10 minutes) and `7d` (7 days).""",
-    )
-
   def Run(self, args):
     """Creates and issues an instanceGroupManagerResizeRequests.insert request.
 
@@ -188,26 +291,17 @@ class CreateAlpha(base.CreateCommand):
       List containing the created resize request with its queuing policy.
     """
     holder = base_classes.ComputeApiHolder(self.ReleaseTrack())
-    client = holder.client
-
-    resource_arg = instance_groups_flags.MakeZonalInstanceGroupManagerArg()
-    default_scope = compute_scope.ScopeEnum.ZONE
-    scope_lister = flags.GetDefaultScopeLister(holder.client)
-    igm_ref = resource_arg.ResolveAsResource(
-        args,
-        holder.resources,
-        default_scope=default_scope,
-        scope_lister=scope_lister,
-    )
+    resource_arg = instance_groups_flags.MULTISCOPE_INSTANCE_GROUP_MANAGER_ARG
+    igm_ref = self._GetIgmRef(args, holder, resource_arg)
 
     if args.IsKnownAndSpecified('valid_until_duration'):
-      queuing_policy = client.messages.QueuingPolicy(
-          validUntilDuration=client.messages.Duration(
+      queuing_policy = holder.client.messages.QueuingPolicy(
+          validUntilDuration=holder.client.messages.Duration(
               seconds=args.valid_until_duration
           )
       )
     elif args.IsKnownAndSpecified('valid_until_time'):
-      queuing_policy = client.messages.QueuingPolicy(
+      queuing_policy = holder.client.messages.QueuingPolicy(
           validUntilTime=times.FormatDateTime(args.valid_until_time)
       )
     else:
@@ -215,35 +309,24 @@ class CreateAlpha(base.CreateCommand):
 
     requested_run_duration = None
     if args.IsKnownAndSpecified('requested_run_duration'):
-      requested_run_duration = client.messages.Duration(
+      requested_run_duration = holder.client.messages.Duration(
           seconds=args.requested_run_duration
       )
 
+    resize_by = None
+    instances = []
     if args.IsKnownAndSpecified('resize_by'):
-      resize_request = client.messages.InstanceGroupManagerResizeRequest(
-          name=args.resize_request,
-          queuingPolicy=queuing_policy,
-          requestedRunDuration=requested_run_duration,
-          resizeBy=args.resize_by,
-      )
+      resize_by = args.resize_by
+    elif args.IsKnownAndSpecified('count'):
+      resize_by = args.count
     else:
-      resize_request = client.messages.InstanceGroupManagerResizeRequest(
-          name=args.resize_request,
-          queuingPolicy=queuing_policy,
-          requestedRunDuration=requested_run_duration,
-          resizeBy=args.count,
-      )
+      instances = args.instances
 
-    request = (
-        client.messages.ComputeInstanceGroupManagerResizeRequestsInsertRequest(
-            instanceGroupManager=igm_ref.Name(),
-            instanceGroupManagerResizeRequest=resize_request,
-            project=igm_ref.project,
-            zone=igm_ref.zone,
-        )
+    resize_request = holder.client.messages.InstanceGroupManagerResizeRequest(
+        name=args.resize_request,
+        resizeBy=resize_by,
+        instances=self._CreatePerInstanceConfigList(holder, instances),
+        queuingPolicy=queuing_policy,
+        requestedRunDuration=requested_run_duration,
     )
-    return client.MakeRequests([(
-        client.apitools_client.instanceGroupManagerResizeRequests,
-        'Insert',
-        request,
-    )])
+    return self._MakeRequest(holder.client, igm_ref, resize_request)

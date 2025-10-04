@@ -14,50 +14,31 @@
 # limitations under the License.
 """Utilities for parsing the cloud deploy resource to yaml definition."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import collections
+import dataclasses
+import datetime
+import enum
 import re
+from typing import Any, Callable, Optional
 
+from apitools.base.py import encoding
+from dateutil import parser
+from googlecloudsdk.api_lib.util import messages as messages_util
 from googlecloudsdk.command_lib.deploy import automation_util
-from googlecloudsdk.command_lib.deploy import deploy_util
+from googlecloudsdk.command_lib.deploy import custom_target_type_util
+from googlecloudsdk.command_lib.deploy import delivery_pipeline_util
+from googlecloudsdk.command_lib.deploy import deploy_policy_util
 from googlecloudsdk.command_lib.deploy import exceptions
 from googlecloudsdk.command_lib.deploy import target_util
-from googlecloudsdk.command_lib.util.apis import arg_utils
 from googlecloudsdk.core import properties
 from googlecloudsdk.core import resources
+from googlecloudsdk.core.resource import resource_property
+import jsonschema
 
 PIPELINE_UPDATE_MASK = '*,labels'
-DELIVERY_PIPELINE_KIND_V1BETA1 = 'DeliveryPipeline'
-TARGET_KIND_V1BETA1 = 'Target'
-AUTOMATION_KIND = 'Automation'
-CUSTOM_TARGET_TYPE_KIND = 'CustomTargetType'
-DEPLOY_POLICY_KIND = 'DeployPolicy'
 API_VERSION_V1BETA1 = 'deploy.cloud.google.com/v1beta1'
 API_VERSION_V1 = 'deploy.cloud.google.com/v1'
-USAGE_CHOICES = ['RENDER', 'DEPLOY']
-ACTION_CHOICES = [
-    'ADVANCE',
-    'APPROVE',
-    'CANCEL',
-    'CREATE',
-    'IGNORE_JOB',
-    'RETRY_JOB',
-    'ROLLBACK',
-    'TERMINATE_JOBRUN',
-]
-DAY_OF_WEEK_CHOICES = [
-    'MONDAY',
-    'TUESDAY',
-    'WEDNESDAY',
-    'THURSDAY',
-    'FRIDAY',
-    'SATURDAY',
-    'SUNDAY',
-]
-INVOKER_CHOICES = ['USER', 'DEPLOY_AUTOMATION']
 # If changing these fields also change them in the UI code.
 NAME_FIELD = 'name'
 ADVANCE_ROLLOUT_FIELD = 'advanceRollout'
@@ -68,36 +49,62 @@ LABELS_FIELD = 'labels'
 ANNOTATIONS_FIELD = 'annotations'
 SELECTOR_FIELD = 'selector'
 RULES_FIELD = 'rules'
-TARGET_ID_FIELD = 'targetId'
 ID_FIELD = 'id'
 ADVANCE_ROLLOUT_RULE_FIELD = 'advanceRolloutRule'
 PROMOTE_RELEASE_RULE_FIELD = 'promoteReleaseRule'
 REPAIR_ROLLOUT_RULE_FIELD = 'repairRolloutRule'
-RESTRICT_ROLLOUT_FIELD = 'restrictRollouts'
+TIMED_PROMOTE_RELEASE_RULE_FIELD = 'timedPromoteReleaseRule'
 DESTINATION_TARGET_ID_FIELD = 'destinationTargetId'
 SOURCE_PHASES_FIELD = 'sourcePhases'
+PHASES_FIELD = 'phases'
 DESTINATION_PHASE_FIELD = 'destinationPhase'
+DISABLE_ROLLBACK_IF_ROLLOUT_PENDING = 'disableRollbackIfRolloutPending'
 TARGET_FIELD = 'target'
-METADATA_FIELDS = [ANNOTATIONS_FIELD, LABELS_FIELD]
+METADATA_FIELDS = [ANNOTATIONS_FIELD, LABELS_FIELD, NAME_FIELD]
 EXCLUDE_FIELDS = [
     'createTime',
+    'customTargetTypeId',
     'etag',
+    'targetId',
     'uid',
     'updateTime',
-    NAME_FIELD,
 ] + METADATA_FIELDS
 JOBS_FIELD = 'jobs'
 RETRY_FIELD = 'retry'
 ATTEMPTS_FIELD = 'attempts'
 ROLLBACK_FIELD = 'rollback'
-REPAIR_MODE_FIELD = 'repairModes'
+REPAIR_PHASES_FIELD = 'repairPhases'
 BACKOFF_MODE_FIELD = 'backoffMode'
-BACKOFF_CHOICES = ['BACKOFF_MODE_LINEAR', 'BACKOFF_MODE_EXPONENTIAL']
-BACKOFF_CHOICES_SHORT = ['LINEAR', 'EXPONENTIAL']
-TARGETS_FIELD = 'targets'
+SCHEDULE_FIELD = 'schedule'
+TIME_ZONE_FIELD = 'timeZone'
+LABELS_FIELD = 'labels'
 
 
-def ParseDeployConfig(messages, manifests, region):
+@enum.unique
+class ResourceKind(enum.Enum):
+  TARGET = 'Target'
+  DELIVERY_PIPELINE = 'DeliveryPipeline'
+  AUTOMATION = 'Automation'
+  CUSTOM_TARGET_TYPE = 'CustomTargetType'
+  DEPLOY_POLICY = 'DeployPolicy'
+
+  def __str__(self):
+    return self.value
+
+
+@dataclasses.dataclass
+class _TransformContext:
+  kind: ResourceKind
+  name: str
+  project: str
+  region: str
+  manifest: dict[str, Any]
+  field: str
+
+
+def ParseDeployConfig(
+    messages: list[Any], manifests: list[dict[str, Any]], region: str
+) -> dict[ResourceKind, list[Any]]:
   """Parses the declarative definition of the resources into message.
 
   Args:
@@ -106,404 +113,707 @@ def ParseDeployConfig(messages, manifests, region):
     region: str, location ID.
 
   Returns:
-    A dictionary of resource kind and message.
+    A dictionary of ResourceKind and list of messages.
   Raises:
     exceptions.CloudDeployConfigError, if the declarative definition is
     incorrect.
   """
-  resource_dict = {
-      DELIVERY_PIPELINE_KIND_V1BETA1: [],
-      TARGET_KIND_V1BETA1: [],
-      AUTOMATION_KIND: [],
-      CUSTOM_TARGET_TYPE_KIND: [],
-      DEPLOY_POLICY_KIND: [],
-  }
   project = properties.VALUES.core.project.GetOrFail()
-  _ValidateConfig(manifests)
-  for manifest in manifests:
-    _ParseV1Config(
-        messages, manifest['kind'], manifest, project, region, resource_dict
+
+  manifests_with_metadata = collections.defaultdict(list)
+  for i, manifest in enumerate(manifests):
+    kind = _GetKind(manifest, i)
+    name = _GetName(manifest, i)
+    manifests_with_metadata[(kind, name)].append(manifest)
+
+  _CheckDuplicateResourceNames(manifests_with_metadata)
+
+  resources_by_kind = collections.defaultdict(list)
+  for (kind, name), manifests in manifests_with_metadata.items():
+    resources_by_kind[kind].append(
+        # Thanks to _CheckDuplicateResourceNames(), we know manifests has
+        # exactly one element.
+        _ParseManifest(kind, name, manifests[0], project, region, messages)
     )
-
-  return resource_dict
-
-
-def _ValidateConfig(manifests):
-  """Validates the manifests.
-
-  Args:
-     manifests: [str], the list of parsed resource yaml definitions.
-
-  Raises:
-    exceptions.CloudDeployConfigError, if there are errors in the manifests
-    (e.g. required field is missing, duplicate resource names).
-  """
-  resource_type_to_names = collections.defaultdict(list)
-  for manifest in manifests:
-    api_version = manifest.get('apiVersion')
-    if not api_version:
-      raise exceptions.CloudDeployConfigError(
-          'missing required field .apiVersion'
-      )
-    resource_type = manifest.get('kind')
-    if resource_type is None:
-      raise exceptions.CloudDeployConfigError('missing required field .kind')
-    api_version = manifest['apiVersion']
-    if api_version not in {API_VERSION_V1BETA1, API_VERSION_V1}:
-      raise exceptions.CloudDeployConfigError(
-          'api version {} not supported'.format(api_version)
-      )
-    metadata = manifest.get('metadata')
-    if not metadata or not metadata.get(NAME_FIELD):
-      raise exceptions.CloudDeployConfigError(
-          'missing required field .metadata.name in {}'.format(
-              manifest.get('kind')
-          )
-      )
-    # Populate a dictionary with resource_type: [names].
-    # E.g. [TARGET: "target1, target2"]
-    resource_type_to_names[resource_type].append(metadata.get(NAME_FIELD))
-  _CheckDuplicateResourceNames(resource_type_to_names)
+  return resources_by_kind
 
 
-def _CheckDuplicateResourceNames(resource_type_to_names):
-  """Checks if there are any duplicate resource names per resource type.
+def _GetKind(manifest: dict[str, Any], doc_index: int) -> ResourceKind:
+  """Parses the kind of a resource."""
+  api_version = manifest.get('apiVersion')
+  if not api_version:
+    raise exceptions.CloudDeployConfigError.for_unnamed_manifest(
+        doc_index, 'missing required field "apiVersion"'
+    )
+  if api_version not in {API_VERSION_V1BETA1, API_VERSION_V1}:
+    raise exceptions.CloudDeployConfigError.for_unnamed_manifest(
+        doc_index, f'api version "{api_version}" not supported'
+    )
+  kind = manifest.get('kind')
+  if kind is None:
+    raise exceptions.CloudDeployConfigError.for_unnamed_manifest(
+        doc_index, 'missing required field "kind"'
+    )
+  # In Python 3.12+ we can just use `if kind not in ResourceKind`
+  if kind not in [str(r) for r in ResourceKind]:
+    raise exceptions.CloudDeployConfigError.for_unnamed_manifest(
+        doc_index, f'kind "{kind}" not supported'
+    )
+  return ResourceKind(kind)
 
-  Args:
-     resource_type_to_names: dict[str,[str]], dict of resource type and names.
 
-  Raises:
-    exceptions.CloudDeployConfigError, if there are duplicate names for a given
-    resource type.
-  """
+def _GetName(manifest: dict[str, Any], doc_index: int) -> str:
+  """Parses the name of a resource."""
+  metadata = manifest.get('metadata')
+  if not metadata or not metadata.get(NAME_FIELD):
+    raise exceptions.CloudDeployConfigError.for_unnamed_manifest(
+        doc_index, 'missing required field "metadata.name"'
+    )
+  return metadata['name']
+
+
+def _CheckDuplicateResourceNames(
+    manifests_by_name_and_kind: dict[tuple[ResourceKind, str], list[Any]],
+) -> None:
+  """Checks if there are any duplicate resource names per resource type."""
+  dups = collections.defaultdict(list)
+  for (kind, name), manifests in manifests_by_name_and_kind.items():
+    if len(manifests) > 1:
+      dups[kind].append(name)
   errors = []
-  for k, names in resource_type_to_names.items():
-    dups = set()
-    # For a given resource type, iterate through the resource names and check
-    # for duplicates.
-    for name in names:
-      if names.count(name) > 1:
-        dups.add(name)
-    if dups:
-      errors.append('{} has duplicate name(s): {}'.format(k, dups))
+  for kind, names in dups.items():
+    errors.append(f'{kind} has duplicate name(s): {names}')
   if errors:
     raise exceptions.CloudDeployConfigError(errors)
 
 
-def _ParseV1Config(messages, kind, manifest, project, region, resource_dict):
-  """Parses the Cloud Deploy v1 and v1beta1 resource specifications into message.
+def _RemoveApiVersionAndKind(
+    value: dict[str, Any], transform_context: _TransformContext
+) -> None:
+  """Removes the apiVersion and kind fields from the manifest."""
+  del value
+  del transform_context.manifest['apiVersion']
+  del transform_context.manifest['kind']
 
-       This specification version is KRM complied and should be used after
-       private review.
 
-  Args:
-     messages: module containing the definitions of messages for Cloud Deploy.
-     kind: str, name of the resource schema.
-     manifest: dict[str,str], cloud deploy resource yaml definition.
-     project: str, gcp project.
-     region: str, ID of the location.
-     resource_dict: dict[str,optional[message]], a dictionary of resource kind
-       and message.
-
-  Raises:
-    exceptions.CloudDeployConfigError, if the declarative definition is
-    incorrect.
-  """
-  metadata = manifest.get('metadata')
-  if kind == DELIVERY_PIPELINE_KIND_V1BETA1:
-    resource_type = deploy_util.ResourceType.DELIVERY_PIPELINE
-    resource, resource_ref = _CreateDeliveryPipelineResource(
-        messages, metadata[NAME_FIELD], project, region
-    )
-  elif kind == TARGET_KIND_V1BETA1:
-    resource_type = deploy_util.ResourceType.TARGET
-    resource, resource_ref = _CreateTargetResource(
-        messages, metadata[NAME_FIELD], project, region
-    )
-  elif kind == AUTOMATION_KIND:
-    resource_type = deploy_util.ResourceType.AUTOMATION
-    resource, resource_ref = _CreateAutomationResource(
-        messages, metadata[NAME_FIELD], project, region
-    )
-  elif kind == CUSTOM_TARGET_TYPE_KIND:
-    resource_type = deploy_util.ResourceType.CUSTOM_TARGET_TYPE
-    resource, resource_ref = _CreateCustomTargetTypeResource(
-        messages, metadata[NAME_FIELD], project, region
-    )
-  elif kind == DEPLOY_POLICY_KIND:
-    resource_type = deploy_util.ResourceType.DEPLOY_POLICY
-    resource, resource_ref = _CreateDeployPolicyResource(
-        messages, metadata[NAME_FIELD], project, region
-    )
-  else:
-    raise exceptions.CloudDeployConfigError(
-        'kind {} not supported'.format(kind)
-    )
-
+def _MetadataYamlToProto(
+    metadata: dict[str, Any], transform_context: _TransformContext
+) -> None:
+  """Moves the fields in metadata to the top level of the manifest."""
+  manifest = transform_context.manifest
+  manifest[ANNOTATIONS_FIELD] = metadata.get(ANNOTATIONS_FIELD)
+  manifest[LABELS_FIELD] = metadata.get(LABELS_FIELD)
+  # I think allowing description in metadata was an accident, not intentional...
+  # It's supposed to be a top level field. But even some of our own tests do
+  # this, so I think we have to assume customers might have too.
+  if 'description' in metadata:
+    manifest['description'] = metadata['description']
+  name = metadata.get(NAME_FIELD)
+  resource_ref = _ref_creators[transform_context.kind](
+      name, transform_context.project, transform_context.region
+  )
+  # Name() does _not_ return the resource name. It returns the part of the name
+  # after the resource type. For example, for targets, it returns everything
+  # after `/targets/`. So this tells us if the user provided an invalid resource
+  # ID, which would lead to a confusing error when we try to call the API.
   if '/' in resource_ref.Name():
-    raise exceptions.CloudDeployConfigError(
-        'resource ID "{}" contains /.'.format(resource_ref.Name())
+    raise exceptions.CloudDeployConfigError.for_resource_field(
+        transform_context.kind,
+        name,
+        'metadata.name',
+        f'invalid resource ID "{resource_ref.Name()}"',
     )
-
-  for field in manifest:
-    if field not in ['apiVersion', 'kind', 'metadata', 'deliveryPipeline']:
-      value = manifest.get(field)
-      if field == 'executionConfigs':
-        SetExecutionConfig(messages, resource, resource_ref, value)
-        continue
-      if field == 'deployParameters' and kind == TARGET_KIND_V1BETA1:
-        SetDeployParametersForTarget(messages, resource, resource_ref, value)
-        continue
-      if field == 'customTarget' and kind == TARGET_KIND_V1BETA1:
-        SetCustomTarget(resource, value, project, region)
-        continue
-      if field == 'serialPipeline' and kind == DELIVERY_PIPELINE_KIND_V1BETA1:
-        serial_pipeline = manifest.get('serialPipeline')
-        _EnsureIsType(
-            serial_pipeline,
-            dict,
-            'failed to parse pipeline {}, serialPipeline is defined incorrectly'
-            .format(resource_ref.Name()),
-        )
-        stages = serial_pipeline.get('stages')
-        _EnsureIsType(
-            stages,
-            list,
-            'failed to parse pipeline {}, stages are defined incorrectly'
-            .format(resource_ref.Name()),
-        )
-        for stage in stages:
-          SetDeployParametersForPipelineStage(messages, resource_ref, stage)
-      if field == SELECTOR_FIELD and kind == AUTOMATION_KIND:
-        SetAutomationSelector(messages, resource, value)
-        continue
-      if field == RULES_FIELD and kind == AUTOMATION_KIND:
-        SetAutomationRules(messages, resource, resource_ref, value)
-        continue
-      if field == RULES_FIELD and kind == DEPLOY_POLICY_KIND:
-        rules = manifest.get('rules')
-        _EnsureIsType(
-            rules,
-            list,
-            'failed to parse deploy policy {}, rules are defined incorrectly'
-            .format(resource_ref.Name()),
-        )
-        SetPolicyRules(messages, resource, rules)
-        continue
-      if field == 'selectors' and kind == DEPLOY_POLICY_KIND:
-        selectors = manifest.get('selectors')
-        _EnsureIsType(
-            selectors,
-            list,
-            'failed to parse deploy policy {}, selectors are defined'
-            ' incorrectly'.format(resource_ref.Name()),
-        )
-      setattr(resource, field, value)
-
-  # Sets the properties in metadata.
-  for field in metadata:
-    if field not in [NAME_FIELD, ANNOTATIONS_FIELD, LABELS_FIELD]:
-      setattr(resource, field, metadata.get(field))
-  deploy_util.SetMetadata(
-      messages,
-      resource,
-      resource_type,
-      metadata.get(ANNOTATIONS_FIELD),
-      metadata.get(LABELS_FIELD),
-  )
-
-  resource_dict[kind].append(resource)
+  manifest[NAME_FIELD] = resource_ref.RelativeName()
+  del manifest['metadata']
 
 
-def SetPolicyRules(messages, policy, rules):
-  """Sets the rules field of cloud deploy policy message.
+def _ConvertLabelsToSnakeCase(
+    labels: dict[str, str], transform_context: _TransformContext
+) -> dict[str, str]:
+  """Convert labels from camelCase to snake_case."""
+  del transform_context
+  # See go/unified-cloud-labels-proposal.
+  return {resource_property.ConvertToSnakeCase(k): v for k, v in labels.items()}
 
-  Args:
-    messages: module containing the definitions of messages for Cloud Deploy.
-    policy:  googlecloudsdk.generated_clients.apis.clouddeploy.DeployPolicy
-      message.
-    rules: [googlecloudsdk.generated_clients.apis.clouddeploy.PolicyRule], list
-      of PolicyRule messages.
 
-  Raises:
-    arg_parsers.ArgumentTypeError: if usage is not a valid enum.
-  """
-  # Go through each rule and parse the restrictRollouts field.
-  for pv_rule in rules:
-    restrict_rollout_message = messages.RestrictRollout()
-    if pv_rule.get(RESTRICT_ROLLOUT_FIELD):
-      restrict_rollout = pv_rule.get(RESTRICT_ROLLOUT_FIELD)
-      _SetRestrictRollout(
-          messages, restrict_rollout_message, restrict_rollout, policy
+def _UpdateOldAutomationSelector(
+    selector: dict[str, Any], transform_context: _TransformContext
+) -> dict[str, Any]:
+  """Converts an old automation selector to the new format."""
+  targets = []
+  for target in selector:
+    targets.append(target[TARGET_FIELD])
+  transform_context.manifest['selector'] = {'targets': targets}
+
+
+def _RenameOldAutomationRules(
+    rule: dict[str, Any], transform_context: _TransformContext
+) -> dict[str, Any]:
+  """Renames the old automation rule fields to the new format."""
+  del transform_context
+  if PROMOTE_RELEASE_FIELD in rule:
+    rule[PROMOTE_RELEASE_RULE_FIELD] = rule[PROMOTE_RELEASE_FIELD]
+    del rule[PROMOTE_RELEASE_FIELD]
+  if ADVANCE_ROLLOUT_FIELD in rule:
+    rule[ADVANCE_ROLLOUT_RULE_FIELD] = rule[ADVANCE_ROLLOUT_FIELD]
+    del rule[ADVANCE_ROLLOUT_FIELD]
+  if REPAIR_ROLLOUT_FIELD in rule:
+    rule[REPAIR_ROLLOUT_RULE_FIELD] = rule[REPAIR_ROLLOUT_FIELD]
+    del rule[REPAIR_ROLLOUT_FIELD]
+  return rule
+
+
+def _ConvertAutomationRuleNameFieldToId(
+    rule: dict[str, Any], transform_context: _TransformContext
+) -> dict[str, Any]:
+  """Move the name field to the id field."""
+  if rule is not None and NAME_FIELD in rule:
+    if ID_FIELD in rule:
+      raise exceptions.CloudDeployConfigError.for_resource(
+          transform_context.kind,
+          transform_context.name,
+          'automation rule has both name and id fields',
       )
-    else:
-      policy.rules.append(pv_rule)
+    rule[ID_FIELD] = rule[NAME_FIELD]
+    del rule[NAME_FIELD]
+  return rule
 
 
-def _SetRestrictRollout(
-    messages, restrict_rollout_message, restrict_rollout, policy
-):
-  """Sets the restrictRollout field of cloud deploy policy message.
+def _AddEmptyRepairAutomationRetryMessage(
+    repair_phase: dict[str, Any], transform_context: _TransformContext
+) -> dict[str, Any]:
+  """Add an empty retry field if it's defined in the manifest but set to None."""
+  del transform_context
+  if RETRY_FIELD in repair_phase and repair_phase[RETRY_FIELD] is None:
+    repair_phase[RETRY_FIELD] = {}
+  return repair_phase
+
+
+def _ConvertRepairAutomationBackoffModeEnumValuesToProtoFormat(
+    value: str, transform_context
+) -> str:
+  """Converts the backoffMode values to the proto enum names."""
+  del transform_context
+
+  if not value.startswith('BACKOFF_MODE_'):
+    return 'BACKOFF_MODE_' + value
+
+
+def _ConvertAutomationWaitMinToSec(
+    wait: str, transform_context: _TransformContext
+) -> str:
+  """Converts the wait time from (for example) "5m" to "300s"."""
+  del transform_context
+  if not re.fullmatch(r'\d+m', wait):
+    raise exceptions.AutomationWaitFormatError()
+  mins = wait[:-1]
+  # convert the minute to second
+  seconds = int(mins) * 60
+  return '%ss' % seconds
+
+
+def _ConvertPolicyOneTimeWindowToProtoFormat(
+    value: dict[str, Any], transform_context: _TransformContext
+) -> dict[str, Any]:
+  """Converts the one time window to proto format."""
+  proto_format = {}
+  if value.get('start'):
+    _SetDateTimeFields(value['start'], 'start', proto_format, transform_context)
+  if value.get('end'):
+    _SetDateTimeFields(value['end'], 'end', proto_format, transform_context)
+  # Any other (unknown) fields will cause errors in the proto conversion so we
+  # don't need to check for them here.
+  return proto_format
+
+
+def _SetDateTimeFields(
+    date_str: str,
+    field_name: str,
+    proto_format: dict[str, str],
+    transform_context: _TransformContext,
+) -> None:
+  """Convert the date string to proto format and set those fields in proto_format."""
+  try:
+    date_time = parser.isoparse(date_str)
+  except ValueError:
+    raise exceptions.CloudDeployConfigError.for_resource_field(
+        transform_context.kind,
+        transform_context.name,
+        field_name,
+        'invalid date string: "{date_str}". Must be a valid date in ISO 8601'
+        ' format (e.g. {field_name}: "2024-12-24 17:00)',
+    )
+  except TypeError:
+    raise exceptions.CloudDeployConfigError.for_resource_field(
+        transform_context.kind,
+        transform_context.name,
+        field_name,
+        'invalid date string: {date_str}. Make sure to put quotes around the'
+        ' date string (e.g. {field_name}: "2024-09-27 18:30:31.123") so that it'
+        ' is interpreted as a string and not a yaml timestamp.',
+    )
+  if date_time.tzinfo is not None:
+    raise exceptions.CloudDeployConfigError.for_resource_field(
+        transform_context.kind,
+        transform_context.name,
+        field_name,
+        'invalid date string: {date_str}. Do not include a timezone or timezone'
+        ' offset in the date string. Specify the timezone in the timeZone'
+        ' field.',
+    )
+  date_obj = {
+      'year': date_time.year,
+      'month': date_time.month,
+      'day': date_time.day,
+  }
+  time_obj = {
+      'hours': date_time.hour,
+      'minutes': date_time.minute,
+      'seconds': date_time.second,
+      'nanos': date_time.microsecond * 1000,
+  }
+  date_field = f'{field_name}Date'
+  proto_format[date_field] = date_obj
+  time_field = f'{field_name}Time'
+  proto_format[time_field] = time_obj
+
+
+def _ConvertPolicyWeeklyWindowTimes(
+    value: str, transform_context: _TransformContext
+) -> dict[str, str]:
+  """Convert the weekly window times to proto format."""
+  # First, check if the hour is 24. If so replace with 00, because
+  # fromisoformat() doesn't support 24.
+  hour_24 = False
+  if value.startswith('24:'):
+    hour_24 = True
+    value = value.replace('24', '00', 1)
+  try:
+    time_obj = datetime.time.fromisoformat(value)
+  except ValueError:
+    raise exceptions.CloudDeployConfigError.for_resource_field(
+        transform_context.kind,
+        transform_context.name,
+        transform_context.field,
+        f'invalid time string: "{value}"',
+    )
+  hour_value = time_obj.hour
+  if hour_24:
+    hour_value = 24
+  return {
+      'hours': hour_value,
+      'minutes': time_obj.minute,
+      'seconds': time_obj.second,
+      'nanos': time_obj.microsecond * 1000,
+  }
+
+
+def _ReplaceCustomTargetType(
+    value: str, transform_context: _TransformContext
+) -> str:
+  """Converts a custom target type ID or name to a resource name.
+
+  This is handled specially because we allow providing either the ID or name for
+  the custom target type referenced. When the ID is provided we need to
+  construct the name.
 
   Args:
-    messages: module containing the definitions of messages for Cloud Deploy.
-    restrict_rollout_message:
-      googlecloudsdk.generated_clients.apis.clouddeploy.RestrictRollout
-      message.
-    restrict_rollout: value of the restrictRollout field in the manifest.
-    policy:  googlecloudsdk.generated_clients.apis.clouddeploy.DeployPolicy
-      message.
+    value: the current value of the customTargetType field.
+    transform_context: _TransformContext, data about the current parsing
+      context.
 
-  Raises:
-    arg_parsers.ArgumentTypeError: if usage is not a valid enum.
+  Returns:
+    The custom target type resource name.
   """
-  for field in restrict_rollout:
-    # The value of actions and invoker are enums, so they need special
-    # treatment. timeWindow also needs special treatment because it has an
-    # enum within it.
-    if field != 'actions' and field != 'invoker' and field != 'timeWindow':
-      # If the field doesn't need special treatment (e.g. timeZone) set it
-      # on the restrictRollout message.
-      setattr(restrict_rollout_message, field, restrict_rollout.get(field))
+  # If field contains '/' then we assume it's the name instead of the ID. No
+  # adjustments required.
+  if '/' in value:
+    return value
 
-  actions = restrict_rollout.get('actions', [])
-  for action in actions:
-    restrict_rollout_message.actions.append(
-        # converts a string literal in restrictRollout.actions to an Enum.
-        arg_utils.ChoiceToEnum(
-            action,
-            messages.RestrictRollout.ActionsValueListEntryValuesEnum,
-            valid_choices=ACTION_CHOICES,
-        )
-    )
-
-  invokers = restrict_rollout.get('invoker', [])
-  for invoker in invokers:
-    restrict_rollout_message.invoker.append(
-        # converts a string literal in restrictRollout.invoker to an Enum.
-        arg_utils.ChoiceToEnum(
-            invoker,
-            messages.RestrictRollout.InvokerValueListEntryValuesEnum,
-            valid_choices=INVOKER_CHOICES,
-        )
-    )
-  # Parse and set the timeWindow field on the restrictRollout message.
-  time_window = restrict_rollout.get('timeWindow')
-  time_window_message = messages.TimeWindow()
-  _SetTimeWindow(messages, time_window_message, time_window)
-  restrict_rollout_message.timeWindow = time_window_message
-  # Set the restrictRollout field on the policy rule message.
-  policy_rule_message = messages.PolicyRule()
-  policy_rule_message.restrictRollouts = restrict_rollout_message
-  policy.rules.append(policy_rule_message)
+  return custom_target_type_util.CustomTargetTypeReference(
+      value, transform_context.project, transform_context.region
+  ).RelativeName()
 
 
-def _SetTimeWindow(messages, time_window_message, time_window):
-  """Sets the timeWindow field of cloud deploy resource message.
+@dataclasses.dataclass
+class TransformConfig:
+  """Represents a field that needs transformation during parsing.
+
+  Attributes:
+    kinds: The ResourceKinds that this transformation applies to.
+    fields: A dot separated list of fields that require special handling. These
+      are relative to the top level of the manifest and can contain `[]` to
+      represent an array field.
+    replace: A function that is called when the field is encountered. The return
+      value will be used in place of the original value.
+    move: A function that is called when the field is encountered. This is used
+      for fields that should be moved to a different location in the manifest.
+      The function should modify the transform_context.manifest in place.
+    schema: An optional JSON schema that is used to validate the field.
+  """
+
+  kinds: set[ResourceKind]
+  # A dot separated list of fields that require special handling.
+  fields: dict[str]
+  # One of `replace` or `move` must be set. The first argument is the value of
+  # the field specified in `fields`.
+  # If `replace` is set, the function should return the new value and the
+  # parsing code will handle the substitution.
+  # If `move` is set, the function should modify the transform_context.manifest
+  # in place and the parsing code will skip the field.
+  replace: Optional[Callable[[Any, _TransformContext], Any]] = None
+  move: Optional[Callable[[Any, _TransformContext], None]] = None
+  schema: Optional[dict[str, Any]] = None
+
+
+_PARSE_TRANSFORMS = [
+    TransformConfig(
+        kinds=set(ResourceKind),
+        fields=['apiVersion'],
+        move=_RemoveApiVersionAndKind,
+    ),
+    TransformConfig(
+        kinds=set(ResourceKind),
+        fields=['metadata'],
+        move=_MetadataYamlToProto,
+        schema={
+            'type': 'object',
+            'required': ['name'],
+            'properties': {
+                'name': {'type': 'string'},
+                'description': {'type': 'string'},
+                'annotations': {
+                    'type': 'object',
+                    'additionalProperties': {'type': 'string'},
+                },
+                'labels': {
+                    'type': 'object',
+                    'additionalProperties': {'type': 'string'},
+                },
+            },
+            'additionalProperties': False,
+        },
+    ),
+    TransformConfig(
+        kinds=set(ResourceKind),
+        fields=['labels'],
+        replace=_ConvertLabelsToSnakeCase,
+        schema={'type': 'object', 'additionalProperties': {'type': 'string'}},
+    ),
+    TransformConfig(
+        kinds=[ResourceKind.AUTOMATION],
+        fields=['selector[]'],
+        move=_UpdateOldAutomationSelector,
+        schema={
+            'type': 'array',
+            'items': {
+                'type': 'object',
+                'properties': {'target': {'type': 'object'}},
+                'required': ['target'],
+                'additionalProperties': True,
+            },
+        },
+    ),
+    TransformConfig(
+        kinds=[ResourceKind.AUTOMATION],
+        fields=['rules[]'],
+        replace=_RenameOldAutomationRules,
+    ),
+    TransformConfig(
+        kinds=[ResourceKind.AUTOMATION],
+        fields=[
+            'rules[].repairRolloutRule',
+            'rules[].advanceRolloutRule',
+            'rules[].promoteReleaseRule',
+            'rules[].timedPromoteReleaseRule',
+        ],
+        replace=_ConvertAutomationRuleNameFieldToId,
+    ),
+    TransformConfig(
+        kinds=[ResourceKind.AUTOMATION],
+        fields=['rules[].repairRolloutRule.repairPhases[]'],
+        replace=_AddEmptyRepairAutomationRetryMessage,
+    ),
+    TransformConfig(
+        kinds=[ResourceKind.AUTOMATION],
+        fields=['rules[].repairRolloutRule.repairPhases[].retry.backoffMode'],
+        replace=_ConvertRepairAutomationBackoffModeEnumValuesToProtoFormat,
+        schema={'type': 'string'},
+    ),
+    TransformConfig(
+        kinds=[ResourceKind.AUTOMATION],
+        fields=[
+            'rules[].repairRolloutRule.repairPhases[].retry.wait',
+            'rules[].advanceRolloutRule.wait',
+            'rules[].promoteReleaseRule.wait',
+        ],
+        replace=_ConvertAutomationWaitMinToSec,
+        schema={'type': 'string'},
+    ),
+    TransformConfig(
+        kinds=[ResourceKind.DEPLOY_POLICY],
+        fields=['rules[].rolloutRestriction.timeWindows.oneTimeWindows[]'],
+        replace=_ConvertPolicyOneTimeWindowToProtoFormat,
+    ),
+    TransformConfig(
+        kinds=[ResourceKind.DEPLOY_POLICY],
+        fields=[
+            'rules[].rolloutRestriction.timeWindows.weeklyWindows[].startTime',
+            'rules[].rolloutRestriction.timeWindows.weeklyWindows[].endTime',
+        ],
+        replace=_ConvertPolicyWeeklyWindowTimes,
+        schema={'type': 'string'},
+    ),
+    TransformConfig(
+        kinds=[ResourceKind.TARGET],
+        fields=['customTarget.customTargetType'],
+        replace=_ReplaceCustomTargetType,
+        schema={'type': 'string'},
+    ),
+]
+
+
+_ref_creators = {
+    ResourceKind.AUTOMATION: automation_util.AutomationReference,
+    ResourceKind.CUSTOM_TARGET_TYPE: (
+        custom_target_type_util.CustomTargetTypeReference
+    ),
+    ResourceKind.DELIVERY_PIPELINE: (
+        delivery_pipeline_util.DeliveryPipelineReference
+    ),
+    ResourceKind.DEPLOY_POLICY: deploy_policy_util.DeployPolicyReference,
+    ResourceKind.TARGET: target_util.TargetReference,
+}
+
+_message_types = {
+    ResourceKind.AUTOMATION: lambda messages: messages.Automation,
+    ResourceKind.CUSTOM_TARGET_TYPE: lambda messages: messages.CustomTargetType,
+    ResourceKind.DELIVERY_PIPELINE: lambda messages: messages.DeliveryPipeline,
+    ResourceKind.DEPLOY_POLICY: lambda messages: messages.DeployPolicy,
+    ResourceKind.TARGET: lambda messages: messages.Target,
+}
+
+
+def _ParseManifest(
+    kind: ResourceKind,
+    name: str,
+    manifest: dict[str, Any],
+    project: str,
+    region: str,
+    messages: list[Any],
+) -> Any:
+  """Parses a v1beta1/v1 config manifest into a message using proto transforms.
+
+  The parser calls a series of transforms on the manifest dictionary to convert
+  it into a form expected by the proto message definitions. This transformed
+  dictionary is then passed to `messages_util.DictToMessageWithErrorCheck` to
+  convert it into the actual proto message.
 
   Args:
-    messages: module containing the definitions of messages for Cloud Deploy.
-    time_window_message:
-      googlecloudsdk.generated_clients.apis.clouddeploy.TimeWindow message.
-    time_window: value of the timeWindow field.
+    kind: str, The kind of the resource (e.g., 'Target').
+    name: str, The name of the resource.
+    manifest: dict[str, Any], The cloud deploy resource YAML definition as a
+      dict.
+    project: str, The GCP project ID.
+    region: str, The ID of the location.
+    messages: The module containing the definitions of messages for Cloud
+      Deploy.
+
+  Returns:
+    The parsed resource as a message object (e.g., messages.Target), or an
+    empty dictionary if the kind is not TARGET_KIND_V1BETA1.
 
   Raises:
-    arg_parsers.ArgumentTypeError: if usage is not a valid enum.
+    exceptions.CloudDeployConfigError: If there are errors in the manifest
+      because of invalid data.
   """
-  for f in time_window:
-    # ranges has an enum within it, so it needs special treatment.
-    if f != 'ranges':
-      setattr(time_window_message, f, time_window.get(f))
-  ranges = time_window.get('ranges', [])
-  for r in ranges:
-    range_message = messages.Range()
-    for field in r:
-      if field != 'dayOfWeek':
-        setattr(range_message, field, r.get(field))
-    days_of_week = r.get('dayOfWeek') or []
-    for d in days_of_week:
-      range_message.dayOfWeek.append(
-          # converts a string literal in ranges.dayOfWeek to an Enum.
-          arg_utils.ChoiceToEnum(
-              d,
-              messages.Range.DayOfWeekValueListEntryValuesEnum,
-              valid_choices=DAY_OF_WEEK_CHOICES,
-          )
+  ApplyTransforms(manifest, _PARSE_TRANSFORMS, kind, name, project, region)
+  try:
+    resource = messages_util.DictToMessageWithErrorCheck(
+        manifest, _message_types[kind](messages)
+    )
+  except messages_util.DecodeError as e:
+    raise exceptions.CloudDeployConfigError.for_resource(
+        kind, name, str(e)
+    ) from e
+  return resource
+
+
+def AddApiVersionAndKind(
+    value: Any, transform_context: _TransformContext
+) -> None:
+  """Adds the API version and kind to the manifest."""
+  del value
+  transform_context.manifest['apiVersion'] = API_VERSION_V1
+  transform_context.manifest['kind'] = transform_context.kind.value
+
+
+def _RemoveField(value: Any, transform_context: _TransformContext) -> None:
+  """Removes the field from the manifest."""
+  del value
+  del transform_context.manifest[transform_context.field]
+
+
+def _MetadataProtoToYaml(
+    value: Any, transform_context: _TransformContext
+) -> None:
+  """Converts the metadata proto to YAML."""
+  del value
+  transform_context.manifest['metadata'] = {}
+  for k in METADATA_FIELDS:
+    if k in transform_context.manifest:
+      transform_context.manifest['metadata'][k] = (
+          transform_context.manifest.get(k)
       )
-    time_window_message.ranges.append(range_message)
 
 
-def _CreateTargetResource(messages, target_name_or_id, project, region):
-  """Creates target resource with full target name and the resource reference."""
-  resource = messages.Target()
-  resource_ref = target_util.TargetReference(target_name_or_id, project, region)
-  resource.name = resource_ref.RelativeName()
+def _ConvertAutomationWaitSecToMin(
+    wait: str, transform_context: _TransformContext
+) -> str:
+  del transform_context
+  if not wait:
+    return wait
+  seconds = wait[:-1]
+  # convert the minute to second
+  mins = int(seconds) // 60
+  return '%sm' % mins
 
-  return resource, resource_ref
 
-
-def _CreateDeliveryPipelineResource(
-    messages, delivery_pipeline_name, project, region
-):
-  """Creates delivery pipeline resource with full delivery pipeline name and the resource reference."""
-  resource = messages.DeliveryPipeline()
-  resource_ref = resources.REGISTRY.Parse(
-      delivery_pipeline_name,
-      collection='clouddeploy.projects.locations.deliveryPipelines',
-      params={
-          'projectsId': project,
-          'locationsId': region,
-          'deliveryPipelinesId': delivery_pipeline_name,
-      },
+def ConvertPolicyOneTimeWindowToYamlFormat(
+    one_time_window: dict[str, Any], transform_context: _TransformContext
+) -> dict[str, Any]:
+  """Exports the oneTimeWindows field of the Deploy Policy resource."""
+  one_time = {}
+  start_date_time = _DateTimeIsoString(
+      one_time_window['startDate'],
+      one_time_window['startTime'],
+      transform_context,
   )
-  resource.name = resource_ref.RelativeName()
-
-  return resource, resource_ref
-
-
-def _CreateAutomationResource(messages, name, project, region):
-  resource = messages.Automation()
-  resource_ref = automation_util.AutomationReference(name, project, region)
-  resource.name = resource_ref.RelativeName()
-
-  return resource, resource_ref
-
-
-def _CreateCustomTargetTypeResource(messages, name, project, region):
-  """Creates custom target type resource with full name and the resource reference."""
-  resource = messages.CustomTargetType()
-  resource_ref = resources.REGISTRY.Parse(
-      name,
-      collection='clouddeploy.projects.locations.customTargetTypes',
-      params={
-          'projectsId': project,
-          'locationsId': region,
-          'customTargetTypesId': name,
-      },
+  end_date_time = _DateTimeIsoString(
+      one_time_window['endDate'], one_time_window['endTime'], transform_context
   )
-  resource.name = resource_ref.RelativeName()
-
-  return resource, resource_ref
-
-
-def _CreateDeployPolicyResource(messages, name, project, region):
-  """Creates deploy policy resource with full name and the resource reference."""
-  resource = messages.DeployPolicy()
-  resource_ref = resources.REGISTRY.Parse(
-      name,
-      collection='clouddeploy.projects.locations.deployPolicies',
-      params={
-          'projectsId': project,
-          'locationsId': region,
-          'deployPoliciesId': name,
-      },
-  )
-  resource.name = resource_ref.RelativeName()
-
-  return resource, resource_ref
+  one_time['start'] = start_date_time
+  one_time['end'] = end_date_time
+  return one_time
 
 
-def ProtoToManifest(resource, resource_ref, kind):
+def _DateTimeIsoString(
+    date_obj: dict[str, str],
+    time_obj: dict[str, str],
+    transform_context: _TransformContext,
+) -> str:
+  """Converts a date and time to a string."""
+  date_str = _FormatDate(date_obj)
+  time_str = ConvertTimeProtoToString(time_obj, transform_context)
+  return f'{date_str} {time_str}'
+
+
+def _FormatDate(date: dict[str, str]) -> str:
+  """Converts a date object to a string."""
+  return f"{date['year']:04}-{date['month']:02}-{date['day']:02}"
+
+
+def ConvertTimeProtoToString(
+    time_obj: dict[str, str], transform_context: _TransformContext
+) -> str:
+  """Converts a time object to a string."""
+  del transform_context
+  hours = time_obj.get('hours') or 0
+  minutes = time_obj.get('minutes') or 0
+  time_str = f'{hours:02}:{minutes:02}'
+  if time_obj.get('seconds') or time_obj.get('nanos'):
+    seconds = time_obj.get('seconds') or 0
+    time_str += f':{seconds:02}'
+  if time_obj.get('nanos'):
+    millis = time_obj.get('nanos') / 1000000
+    time_str += f'.{millis:03.0f}'
+  return time_str
+
+
+_EXPORT_TRANSFORMS = [
+    TransformConfig(
+        kinds=set(ResourceKind),
+        # Using the always-present `name` field to make sure this transform is
+        # always applied.
+        fields=['name'],
+        move=AddApiVersionAndKind,
+    ),
+    TransformConfig(
+        kinds=set(ResourceKind) - set([ResourceKind.AUTOMATION]),
+        fields=['name'],
+        # Strip everything before the last `/` character
+        replace=lambda value, transform_context: re.sub(r'.*/', '', value),
+    ),
+    TransformConfig(
+        kinds=[ResourceKind.AUTOMATION],
+        fields=['name'],
+        replace=lambda value, transform_context: re.sub(
+            # Keep only the deliveryPipeline ID and the automation ID:
+            #   projects/.../locations/.../deliveryPipelines/foo/automations/bar
+            # becomes:
+            #   foo/bar
+            r'.*/deliveryPipelines/([^/]+)/automations/',
+            '\\1/',
+            value,
+        ),
+    ),
+    TransformConfig(
+        kinds=set(ResourceKind),
+        fields=['name'],
+        move=_MetadataProtoToYaml,
+    ),
+    TransformConfig(
+        kinds=set(ResourceKind),
+        fields=EXCLUDE_FIELDS,
+        move=_RemoveField,
+    ),
+    TransformConfig(
+        kinds=[ResourceKind.AUTOMATION],
+        fields=[
+            'rules[].advanceRolloutRule.wait',
+            'rules[].promoteReleaseRule.wait',
+            'rules[].repairRolloutRule.repairPhases[].retry.wait',
+        ],
+        replace=_ConvertAutomationWaitSecToMin,
+    ),
+    TransformConfig(
+        kinds=[ResourceKind.AUTOMATION],
+        fields=[
+            'rules[].repairRolloutRule.repairPhases[].retry.backoffMode',
+        ],
+        replace=lambda value, transform_context: value.removeprefix(
+            'BACKOFF_MODE_'
+        ),
+    ),
+    TransformConfig(
+        kinds=[ResourceKind.AUTOMATION],
+        fields=[
+            'rules[].repairRolloutRule.repairPhases[].retry.attempts',
+        ],
+        # apitools converts this to a string, annoyingly. Presumably because
+        # it's an int64 field and Python doesn't support ints that big? But the
+        # server caps it at 10 anyway.
+        replace=lambda value, transform_context: int(value),
+    ),
+    TransformConfig(
+        kinds=[ResourceKind.DEPLOY_POLICY],
+        fields=['rules[].rolloutRestriction.timeWindows.oneTimeWindows[]'],
+        replace=ConvertPolicyOneTimeWindowToYamlFormat,
+    ),
+    TransformConfig(
+        kinds=[ResourceKind.DEPLOY_POLICY],
+        fields=[
+            'rules[].rolloutRestriction.timeWindows.weeklyWindows[].startTime',
+            'rules[].rolloutRestriction.timeWindows.weeklyWindows[].endTime',
+        ],
+        replace=ConvertTimeProtoToString,
+    ),
+]
+
+
+def ProtoToManifest(
+    resource: Any, resource_ref: resources.Resource, kind: ResourceKind
+) -> dict[str, Any]:
   """Converts a resource message to a cloud deploy resource manifest.
 
   The manifest can be applied by 'deploy apply' command.
@@ -516,454 +826,226 @@ def ProtoToManifest(resource, resource_ref, kind):
   Returns:
     A dictionary that represents the cloud deploy resource.
   """
-  manifest = collections.OrderedDict(
-      apiVersion=API_VERSION_V1, kind=kind, metadata={}
+  manifest = encoding.MessageToDict(resource)
+  ApplyTransforms(
+      manifest,
+      _EXPORT_TRANSFORMS,
+      kind,
+      resource_ref.Name(),
+      resource_ref.projectsId,
+      resource_ref.locationsId,
   )
-
-  for k in METADATA_FIELDS:
-    v = getattr(resource, k)
-    # Skips the 'zero' values in the message.
-    if v:
-      manifest['metadata'][k] = v
-  # Sets the name to resource ID instead of the full name.
-  if kind == AUTOMATION_KIND:
-    manifest['metadata'][NAME_FIELD] = (
-        resource_ref.AsDict()['deliveryPipelinesId'] + '/' + resource_ref.Name()
-    )
-  else:
-    manifest['metadata'][NAME_FIELD] = resource_ref.Name()
-
-  for f in resource.all_fields():
-    if f.name in EXCLUDE_FIELDS:
-      continue
-    v = getattr(resource, f.name)
-    # Skips the 'zero' values in the message.
-    if v:
-      if f.name == SELECTOR_FIELD and kind == AUTOMATION_KIND:
-        ExportAutomationSelector(manifest, v)
-        continue
-      if f.name == RULES_FIELD and kind == AUTOMATION_KIND:
-        ExportAutomationRules(manifest, v)
-        continue
-      manifest[f.name] = v
-
   return manifest
 
 
-def SetExecutionConfig(messages, target, target_ref, execution_configs):
-  """Sets the executionConfigs field of cloud deploy resource message.
+def ApplyTransforms(
+    manifest: dict[str, Any],
+    transforms: list[TransformConfig],
+    kind: str,
+    name: str,
+    project: str,
+    region: str,
+) -> None:
+  """Applies a set of transformations to the manifest."""
+  for transform in transforms:
+    if kind not in transform.kinds:
+      continue
+    for field_name in transform.fields:
+      value = _GetValue(field_name, manifest)
+      if value:
+        transform_context = _TransformContext(
+            kind,
+            name,
+            project,
+            region,
+            manifest,
+            _GetFinalFieldName(field_name),
+        )
+        if transform.replace:
+          new_value = _TransformNestedListData(
+              value,
+              lambda data, current_field=transform, current_transform_context=transform_context: current_field.replace(
+                  data, current_transform_context
+              ),
+              transform_context,
+              transform.schema,
+          )
+          _SetValue(manifest, field_name, new_value)
+        else:
+          if transform.schema:
+            try:
+              jsonschema.validate(schema=transform.schema, instance=value)
+            except jsonschema.exceptions.ValidationError as e:
+              raise exceptions.CloudDeployConfigError.for_resource_field(
+                  kind, name, field_name, e.message
+              ) from e
+          transform.move(value, transform_context)
+
+
+def _GetValue(path: str, manifest: dict[str, Any]) -> Any:
+  """Gets the value at a dot-separated path in a dictionary.
+
+  If the path contains [], it returns a list of values at the path. If the path
+  contains multiple [], it will return nested lists. None values will appear
+  where there are missing values.
 
   Args:
-    messages: module containing the definitions of messages for Cloud Deploy.
-    target:  googlecloudsdk.generated_clients.apis.clouddeploy.Target message.
-    target_ref: protorpc.messages.Message, target resource object.
-    execution_configs:
-      [googlecloudsdk.generated_clients.apis.clouddeploy.ExecutionConfig], list
-      of ExecutionConfig messages.
+    path: str, The dot-separated path to the value.
+    manifest: dict, The dictionary to search.
+
+  Returns:
+    The value at the path, or None if it doesn't exist.
+  """
+  if '[]' in path:
+    pre, post = path.split('[]', 1)
+    post = post.lstrip('.')
+    current_list = _GetValue(pre, manifest)
+    if not isinstance(current_list, list):
+      return None  # Path before [] did not lead to a list
+
+    results = []
+    if not post:  # If there's no path after [], return the list items
+      return current_list
+
+    for item in current_list:
+      result = _GetValue(post, item)
+      results.append(result)
+    return results
+
+  keys = path.split('.')
+  current = manifest
+  for key in keys:
+    if isinstance(current, dict) and key in current:
+      current = current[key]
+    elif isinstance(current, list):
+      # Handle cases where a list is encountered but not specified with []
+      return [_GetValue(key, item) for item in current]
+    else:
+      return None
+  return current
+
+
+def _TransformNestedListData(
+    data: Any,
+    func: Callable[[Any], Any],
+    transform_context: _TransformContext = None,
+    schema: Optional[Any] = None,
+) -> Any:
+  """Recursively applies a function to elements in a nested structure (lists or single items).
+
+  Args:
+    data: The nested structure to process.
+    func: The callable to apply to non-list, non-None elements.
+    transform_context: The parse context for the data.
+    schema: the schema for the data
+
+  Returns:
+    A new nested structure with the function applied.
+  """
+  if data is None:
+    return None
+  if isinstance(data, list):
+    new_list = []
+    for item in data:
+      new_list.append(
+          _TransformNestedListData(item, func, transform_context, schema)
+      )
+    return new_list
+  else:
+    if schema:
+      try:
+        jsonschema.validate(schema=schema, instance=data)
+      except jsonschema.exceptions.ValidationError as e:
+        raise exceptions.CloudDeployConfigError.for_resource_field(
+            transform_context.kind,
+            transform_context.name,
+            transform_context.field,
+            e.message,
+        ) from e
+    return func(data)
+
+
+def _SetValue(manifest: dict[str, Any], path: str, value: Any) -> None:
+  """Sets the value at a dot-separated path in a dictionary.
+
+  If value is None, deletes the value at path.
+  If path contains [], it updates elements within the list. Since this is a
+  companion to _GetValue, it processes nested lists the same way.
+
+  Args:
+    manifest: dict, The dictionary to update.
+    path: str, The dot-separated path to the value.
+    value: Any, The value to set, or None to delete.
 
   Raises:
-    arg_parsers.ArgumentTypeError: if usage is not a valid enum.
+    exceptions.ManifestTransformException: a mismatch between the provided path
+      and the structure of the manifest or the value being set.
   """
-  _EnsureIsType(
-      execution_configs,
-      list,
-      'failed to parse target {}, executionConfigs are defined incorrectly'
-      .format(target_ref.Name()),
-  )
-  for config in execution_configs:
-    execution_config_message = messages.ExecutionConfig()
-    for field in config:
-      # the value of usages field has enum, which needs special treatment.
-      if field != 'usages':
-        setattr(execution_config_message, field, config.get(field))
-    usages = config.get('usages') or []
-    for usage in usages:
-      execution_config_message.usages.append(
-          # converts a string literal in executionConfig.usages to an Enum.
-          arg_utils.ChoiceToEnum(
-              usage,
-              messages.ExecutionConfig.UsagesValueListEntryValuesEnum,
-              valid_choices=USAGE_CHOICES,
-          )
+  if '[]' in path:
+    pre, post = path.split('[]', 1)
+    post = post.lstrip('.')
+    current_list = _GetValue(pre, manifest)
+
+    if not isinstance(current_list, list):
+      raise exceptions.ManifestTransformException(
+          f'Path "{pre}" did not lead to a list in _SetValue for path "{path}"'
       )
 
-    target.executionConfigs.append(execution_config_message)
+    if not post:
+      # If post is empty, replace the current list with the new value
+      if not isinstance(value, list):
+        raise exceptions.ManifestTransformException(
+            f'New value must be a list to replace list at "{pre}"'
+        )
+      # This is tricky. We need to replace the list in the parent.
+      keys = pre.split('.')
+      parent = manifest
+      for key in keys[:-1]:
+        parent = parent[key]
+      parent[keys[-1]] = value
+      return
 
-
-def SetDeployParametersForPipelineStage(messages, pipeline_ref, stage):
-  """Sets the deployParameter field of cloud deploy delivery pipeline stage message.
-
-  Args:
-   messages: module containing the definitions of messages for Cloud Deploy.
-   pipeline_ref: protorpc.messages.Message, delivery pipeline resource object.
-   stage: dict[str,str], cloud deploy stage yaml definition.
-  """
-
-  deploy_parameters = stage.get('deployParameters')
-  if deploy_parameters is None:
-    return
-
-  _EnsureIsType(
-      deploy_parameters,
-      list,
-      'failed to parse stages of pipeline {}, deployParameters are defined'
-      ' incorrectly'.format(pipeline_ref.Name()),
-  )
-  dps_message = getattr(messages, 'DeployParameters')
-  dps_values = []
-
-  for dp in deploy_parameters:
-    dps_value = dps_message()
-    values = dp.get('values')
-    if values:
-      values_message = dps_message.ValuesValue
-      values_dict = values_message()
-      _EnsureIsType(
-          values,
-          dict,
-          'failed to parse stages of pipeline {}, deployParameter values are'
-          'defined incorrectly'.format(pipeline_ref.Name()),
+    if not isinstance(value, list):
+      raise exceptions.ManifestTransformException(
+          f'New value must be a list when path "{path}" contains []'
       )
-      for key, value in values.items():
-        values_dict.additionalProperties.append(
-            values_message.AdditionalProperty(key=key, value=value)
-        )
-      dps_value.values = values_dict
+    if len(current_list) != len(value):
+      raise exceptions.ManifestTransformException(
+          f'List length mismatch: len(current_list)={len(current_list)},'
+          f' len(value)={len(value)} for path "{path}"'
+      )
 
-    match_target_labels = dp.get('matchTargetLabels')
-    if match_target_labels:
-      mtls_message = dps_message.MatchTargetLabelsValue
-      mtls_dict = mtls_message()
-
-      for key, value in match_target_labels.items():
-        mtls_dict.additionalProperties.append(
-            mtls_message.AdditionalProperty(key=key, value=value)
-        )
-      dps_value.matchTargetLabels = mtls_dict
-
-    dps_values.append(dps_value)
-
-  stage['deployParameters'] = dps_values
-
-
-def SetDeployParametersForTarget(
-    messages, target, target_ref, deploy_parameters
-):
-  """Sets the deployParameters field of cloud deploy target message.
-
-  Args:
-   messages: module containing the definitions of messages for Cloud Deploy.
-   target: googlecloudsdk.generated_clients.apis.clouddeploy.Target message.
-   target_ref: protorpc.messages.Message, target resource object.
-   deploy_parameters: dict[str,str], a dict of deploy parameters (key,value)
-     pairs.
-  """
-
-  _EnsureIsType(
-      deploy_parameters,
-      dict,
-      'failed to parse target {}, deployParameters are defined incorrectly'
-      .format(target_ref.Name()),
-  )
-
-  dps_message = getattr(
-      messages, deploy_util.ResourceType.TARGET.value
-  ).DeployParametersValue
-  dps_value = dps_message()
-  for key, value in deploy_parameters.items():
-    dps_value.additionalProperties.append(
-        dps_message.AdditionalProperty(key=key, value=value)
-    )
-  target.deployParameters = dps_value
-
-
-def SetCustomTarget(target, custom_target, project, region):
-  """Sets the customTarget field of cloud deploy target message.
-
-  This is handled specially because we allow providing either the ID or name for
-  the custom target type referenced. When the ID is provided we need to
-  construct the name.
-
-  Args:
-    target: googlecloudsdk.generated_clients.apis.clouddeploy.Target message.
-    custom_target:
-      googlecloudsdk.generated_clients.apis.clouddeploy.CustomTarget message.
-    project: str, gcp project.
-    region: str, ID of the location.
-  """
-  custom_target_type = custom_target.get('customTargetType')
-  # If field contains '/' then we assume it's the name instead of the ID. No
-  # adjustments required.
-  if '/' in custom_target_type:
-    target.customTarget = custom_target
+    for i, item in enumerate(current_list):
+      current_value = value[i]
+      if current_value is None:
+        continue
+      _SetValue(item, post, current_value)
     return
 
-  custom_target_type_resource_ref = resources.REGISTRY.Parse(
-      None,
-      collection='clouddeploy.projects.locations.customTargetTypes',
-      params={
-          'projectsId': project,
-          'locationsId': region,
-          'customTargetTypesId': custom_target_type,
-      },
-  )
-  custom_target['customTargetType'] = (
-      custom_target_type_resource_ref.RelativeName()
-  )
-  target.customTarget = custom_target
+  keys = path.split('.')
+  current = manifest
+  for key in keys[:-1]:
+    if key not in current:
+      # Path doesn't exist, do nothing.
+      return
+    if not isinstance(current[key], dict):
+      raise exceptions.ManifestTransformException(
+          f'Value at key "{key}" is not a dictionary for path "{path}"'
+      )
+    current = current[key]
 
-
-def SetAutomationSelector(messages, automation, selectors):
-  """Sets the selectors field of cloud deploy automation resource message.
-
-  Args:
-    messages: module containing the definitions of messages for Cloud Deploy.
-    automation:  googlecloudsdk.generated_clients.apis.clouddeploy.Automation
-      message.
-    selectors:
-      [googlecloudsdk.generated_clients.apis.clouddeploy.TargetAttributes], list
-      of TargetAttributes messages.
-  """
-
-  automation.selector = messages.AutomationResourceSelector()
-  # check this first because it's the recommended format for selector.
-  if not isinstance(selectors, list):
-    for target_attribute in selectors.get(TARGETS_FIELD):
-      _AddTargetAttribute(messages, automation.selector, target_attribute)
+  last_key = keys[-1]
+  if value is None:
+    if last_key in current:
+      del current[last_key]
   else:
-    for selector in selectors:
-      message = selector.get(TARGET_FIELD)
-      _AddTargetAttribute(messages, automation.selector, message)
+    current[last_key] = value
 
 
-def SetAutomationRules(messages, automation, automation_ref, rules):
-  """Sets the rules field of cloud deploy automation resource message.
-
-  Args:
-    messages: module containing the definitions of messages for Cloud Deploy.
-    automation:  googlecloudsdk.generated_clients.apis.clouddeploy.Automation
-      message.
-    automation_ref: protorpc.messages.Message, automation resource object.
-    rules: [automation rule message], list of messages that are usd to create
-      googlecloudsdk.generated_clients.apis.clouddeploy.AutomationRule messages.
-  """
-  _EnsureIsType(
-      rules,
-      list,
-      'failed to parse automation {}, rules are defined incorrectly'.format(
-          automation_ref.Name()
-      ),
-  )
-
-  for rule in rules:
-    automation_rule = messages.AutomationRule()
-    if rule.get(PROMOTE_RELEASE_RULE_FIELD) or rule.get(PROMOTE_RELEASE_FIELD):
-      message = rule.get(PROMOTE_RELEASE_RULE_FIELD) or rule.get(
-          PROMOTE_RELEASE_FIELD
-      )
-      promote_release = messages.PromoteReleaseRule(
-          id=message.get(ID_FIELD) or message.get(NAME_FIELD),
-          wait=_WaitMinToSec(message.get(WAIT_FIELD)),
-          destinationTargetId=message.get(DESTINATION_TARGET_ID_FIELD),
-          destinationPhase=message.get(DESTINATION_PHASE_FIELD),
-      )
-      automation_rule.promoteReleaseRule = promote_release
-    if rule.get(ADVANCE_ROLLOUT_RULE_FIELD) or rule.get(ADVANCE_ROLLOUT_FIELD):
-      message = rule.get(ADVANCE_ROLLOUT_RULE_FIELD) or rule.get(
-          ADVANCE_ROLLOUT_FIELD
-      )
-      advance_rollout = messages.AdvanceRolloutRule(
-          id=message.get(ID_FIELD) or message.get(NAME_FIELD),
-          wait=_WaitMinToSec(message.get(WAIT_FIELD)),
-          sourcePhases=message.get(SOURCE_PHASES_FIELD) or [],
-      )
-      automation_rule.advanceRolloutRule = advance_rollout
-    if rule.get(REPAIR_ROLLOUT_RULE_FIELD) or rule.get(REPAIR_ROLLOUT_FIELD):
-      message = rule.get(REPAIR_ROLLOUT_RULE_FIELD) or rule.get(
-          REPAIR_ROLLOUT_FIELD
-      )
-      automation_rule.repairRolloutRule = messages.RepairRolloutRule(
-          id=message.get(ID_FIELD) or message.get(NAME_FIELD),
-          sourcePhases=message.get(SOURCE_PHASES_FIELD) or [],
-          jobs=message.get(JOBS_FIELD) or [],
-          repairModes=_ParseRepairMode(
-              messages, message.get(REPAIR_MODE_FIELD) or []
-          ),
-      )
-    automation.rules.append(automation_rule)
-
-
-def ExportAutomationSelector(manifest, resource_selector):
-  """Exports the selector field of the Automation resource.
-
-  Args:
-    manifest: A dictionary that represents the cloud deploy Automation resource.
-    resource_selector:
-      googlecloudsdk.generated_clients.apis.clouddeploy.AutomationResourceSelector
-      message.
-  """
-  manifest[SELECTOR_FIELD] = []
-  for selector in getattr(resource_selector, 'targets'):
-    manifest[SELECTOR_FIELD].append({TARGET_FIELD: selector})
-
-
-def ExportAutomationRules(manifest, rules):
-  """Exports the selector field of the Automation resource.
-
-  Args:
-    manifest: A dictionary that represents the cloud deploy Automation resource.
-    rules: [googlecloudsdk.generated_clients.apis.clouddeploy.AutomationRule],
-      list of AutomationRule message.
-  """
-  manifest[RULES_FIELD] = []
-  for rule in rules:
-    resource = {}
-    if getattr(rule, PROMOTE_RELEASE_RULE_FIELD):
-      message = getattr(rule, PROMOTE_RELEASE_RULE_FIELD)
-      promote = {}
-      resource[PROMOTE_RELEASE_FIELD] = promote
-      promote[NAME_FIELD] = getattr(message, ID_FIELD)
-      if getattr(message, DESTINATION_TARGET_ID_FIELD):
-        promote[DESTINATION_TARGET_ID_FIELD] = getattr(
-            message, DESTINATION_TARGET_ID_FIELD
-        )
-      if getattr(message, DESTINATION_PHASE_FIELD):
-        promote[DESTINATION_PHASE_FIELD] = getattr(
-            message, DESTINATION_PHASE_FIELD
-        )
-      if getattr(message, WAIT_FIELD):
-        promote[WAIT_FIELD] = _WaitSecToMin(getattr(message, WAIT_FIELD))
-    if getattr(rule, ADVANCE_ROLLOUT_RULE_FIELD):
-      advance = {}
-      resource[ADVANCE_ROLLOUT_FIELD] = advance
-      message = getattr(rule, ADVANCE_ROLLOUT_RULE_FIELD)
-      advance[NAME_FIELD] = getattr(message, ID_FIELD)
-      if getattr(message, SOURCE_PHASES_FIELD):
-        advance[SOURCE_PHASES_FIELD] = getattr(message, SOURCE_PHASES_FIELD)
-      if getattr(message, WAIT_FIELD):
-        advance[WAIT_FIELD] = _WaitSecToMin(getattr(message, WAIT_FIELD))
-    if getattr(rule, REPAIR_ROLLOUT_RULE_FIELD):
-      repair = {}
-      resource[REPAIR_ROLLOUT_FIELD] = repair
-      message = getattr(rule, REPAIR_ROLLOUT_RULE_FIELD)
-      repair[NAME_FIELD] = getattr(message, ID_FIELD)
-      if getattr(message, SOURCE_PHASES_FIELD):
-        repair[SOURCE_PHASES_FIELD] = getattr(message, SOURCE_PHASES_FIELD)
-      if getattr(message, JOBS_FIELD):
-        repair[JOBS_FIELD] = getattr(message, JOBS_FIELD)
-      if getattr(message, REPAIR_MODE_FIELD):
-        repair[REPAIR_MODE_FIELD] = _ExportRepairMode(
-            getattr(message, REPAIR_MODE_FIELD)
-        )
-
-    manifest[RULES_FIELD].append(resource)
-
-
-def _WaitMinToSec(wait):
-  if not wait:
-    return wait
-  if not re.fullmatch(r'\d+m', wait):
-    raise exceptions.AutomationWaitFormatError()
-  mins = wait[:-1]
-  # convert the minute to second
-  seconds = int(mins) * 60
-  return '%ss' % seconds
-
-
-def _WaitSecToMin(wait):
-  if not wait:
-    return wait
-  seconds = wait[:-1]
-  # convert the minute to second
-  mins = int(seconds) // 60
-  return '%sm' % mins
-
-
-def _EnsureIsType(value, t, msg):
-  if not isinstance(value, t):
-    raise exceptions.CloudDeployConfigError(msg)
-
-
-def _ParseRepairMode(messages, modes):
-  """Parses RepairMode of the Automation resource."""
-  modes_pb = []
-  for m in modes:
-    mode = messages.RepairMode()
-    if RETRY_FIELD in m:
-      mode.retry = messages.Retry()
-      retry = m.get(RETRY_FIELD)
-      if retry:
-        mode.retry.attempts = retry.get(ATTEMPTS_FIELD)
-        mode.retry.wait = _WaitMinToSec(retry.get(WAIT_FIELD))
-        mode.retry.backoffMode = _ParseBackoffMode(
-            messages, retry.get(BACKOFF_MODE_FIELD)
-        )
-    if ROLLBACK_FIELD in m:
-      mode.rollback = messages.Rollback()
-      rollback = m.get(ROLLBACK_FIELD)
-      if rollback:
-        mode.rollback.destinationPhase = rollback.get(DESTINATION_PHASE_FIELD)
-    modes_pb.append(mode)
-
-  return modes_pb
-
-
-def _ParseBackoffMode(messages, backoff):
-  """Parses BackoffMode of the Automation resource."""
-  if not backoff:
-    return backoff
-  if backoff in BACKOFF_CHOICES_SHORT:
-    backoff = 'BACKOFF_MODE_' + backoff
-  return arg_utils.ChoiceToEnum(
-      backoff,
-      messages.Retry.BackoffModeValueValuesEnum,
-      valid_choices=BACKOFF_CHOICES,
-  )
-
-
-def _ExportRepairMode(repair_modes):
-  """Exports RepairMode of the Automation resource."""
-  modes = []
-  for m in repair_modes:
-    mode = {}
-    if getattr(m, RETRY_FIELD):
-      retry = {}
-      mode[RETRY_FIELD] = retry
-      message = getattr(m, RETRY_FIELD)
-      if getattr(message, WAIT_FIELD):
-        retry[WAIT_FIELD] = _WaitSecToMin(getattr(message, WAIT_FIELD))
-      if getattr(message, ATTEMPTS_FIELD):
-        retry[ATTEMPTS_FIELD] = getattr(message, ATTEMPTS_FIELD)
-      if getattr(message, BACKOFF_MODE_FIELD):
-        retry[BACKOFF_MODE_FIELD] = getattr(
-            message, BACKOFF_MODE_FIELD
-        ).name.split('_')[2]
-    if getattr(m, ROLLBACK_FIELD):
-      message = getattr(m, ROLLBACK_FIELD)
-      rollback = {}
-      mode[ROLLBACK_FIELD] = rollback
-      if getattr(message, DESTINATION_PHASE_FIELD):
-        rollback[DESTINATION_PHASE_FIELD] = getattr(
-            message, DESTINATION_PHASE_FIELD
-        )
-    modes.append(mode)
-
-  return modes
-
-
-def _AddTargetAttribute(messages, resource_selector, message):
-  """Add a new TargetAttribute to the resource selector resource."""
-  target_attribute = messages.TargetAttribute()
-  for field in message:
-    value = message.get(field)
-    if field == ID_FIELD:
-      setattr(target_attribute, field, value)
-    if field == LABELS_FIELD:
-      deploy_util.SetMetadata(
-          messages,
-          target_attribute,
-          deploy_util.ResourceType.TARGET_ATTRIBUTE,
-          None,
-          value,
-      )
-    resource_selector.targets.append(target_attribute)
+def _GetFinalFieldName(path: str) -> str:
+  """Returns the final field name from a dot-separated path."""
+  keys = path.split('.')
+  final_field_name = keys[-1]
+  if final_field_name.endswith('[]'):
+    final_field_name = final_field_name.removesuffix('[]')
+  return final_field_name

@@ -27,6 +27,7 @@ from googlecloudsdk.core.console import console_io
 
 
 @base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.GA)
+@base.DefaultUniverseOnly
 class Cancel(base.Command):
   """Cancels all jobs that match the command line arguments."""
 
@@ -37,7 +38,11 @@ class Cancel(base.Command):
     parser.add_argument(
         '--force',
         action='store_true',
-        help='Forcibly cancels a Dataflow job, leaking any VMs the Dataflow job created. Regular cancel must have been attempted at least 30 minutes ago for a job to be force cancelled.',
+        help=(
+            'Forcibly cancels a Dataflow job. Regular cancel must have been'
+            ' attempted at least 30 minutes prior for a job to be force'
+            ' cancelled.'
+        ),
     )
 
   def Run(self, args):
@@ -61,7 +66,9 @@ class Cancel(base.Command):
         log.status.Print('Cancelled job [{0}]'.format(job_ref.jobId))
       except exceptions.HttpException as error:
         log.status.Print(
-            'Failed to cancel job [{0}]: {1} Please ensure you have permission '
-            "to access the job and the `--region` flag, {2}, matches the job\'s"
-            ' region.'.format(job_ref.jobId, error.payload.status_message,
-                              job_ref.location))
+            'Failed to cancel job [{0}]: {1} Ensure that you have permission '
+            'to access the job and that the `--region` flag, {2}, matches the'
+            " job's region.".format(
+                job_ref.jobId, error.payload.status_message, job_ref.location
+            )
+        )

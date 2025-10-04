@@ -174,11 +174,14 @@ class AndroidModel(_messages.Message):
   r"""A description of an Android device tests may be run on.
 
   Enums:
+    AccessDeniedReasonsValueListEntryValuesEnum:
     FormValueValuesEnum: Whether this device is virtual or physical.
     FormFactorValueValuesEnum: Whether this device is a phone, tablet,
       wearable, etc.
 
   Fields:
+    accessDeniedReasons: Reasons for access denial. This model is accessible
+      if this list is empty, otherwise the model is viewable only.
     brand: The company that this device is branded with. Example: "Google",
       "Samsung".
     codename: The name of the industrial design. This corresponds to
@@ -187,6 +190,7 @@ class AndroidModel(_messages.Message):
     formFactor: Whether this device is a phone, tablet, wearable, etc.
     id: The unique opaque id for this model. Use this for invoking the
       TestExecutionService.
+    labInfo: Output only. Lab info of this device.
     lowFpsVideoRecording: True if and only if tests with this model are
       recorded by stitching together screenshots. See
       use_low_spec_video_recording in device config.
@@ -210,6 +214,18 @@ class AndroidModel(_messages.Message):
     thumbnailUrl: URL of a thumbnail image (photo) of the device.
   """
 
+  class AccessDeniedReasonsValueListEntryValuesEnum(_messages.Enum):
+    r"""AccessDeniedReasonsValueListEntryValuesEnum enum type.
+
+    Values:
+      ACCESS_DENIED_REASON_UNSPECIFIED: Do not use. For proto versioning only.
+      EULA_NOT_ACCEPTED: The model is for viewing purposes only. Access and
+        utilization require acceptance of an End User License Agreement
+        (EULA).
+    """
+    ACCESS_DENIED_REASON_UNSPECIFIED = 0
+    EULA_NOT_ACCEPTED = 1
+
   class FormFactorValueValuesEnum(_messages.Enum):
     r"""Whether this device is a phone, tablet, wearable, etc.
 
@@ -218,11 +234,19 @@ class AndroidModel(_messages.Message):
       PHONE: This device has the shape of a phone.
       TABLET: This device has the shape of a tablet.
       WEARABLE: This device has the shape of a watch or other wearable.
+      TV: This device has a television form factor.
+      AUTOMOTIVE: This device has an automotive form factor.
+      DESKTOP: This device has a desktop form factor.
+      XR: This device has an Extended Reality form factor.
     """
     DEVICE_FORM_FACTOR_UNSPECIFIED = 0
     PHONE = 1
     TABLET = 2
     WEARABLE = 3
+    TV = 4
+    AUTOMOTIVE = 5
+    DESKTOP = 6
+    XR = 7
 
   class FormValueValuesEnum(_messages.Enum):
     r"""Whether this device is virtual or physical.
@@ -240,22 +264,24 @@ class AndroidModel(_messages.Message):
     PHYSICAL = 2
     EMULATOR = 3
 
-  brand = _messages.StringField(1)
-  codename = _messages.StringField(2)
-  form = _messages.EnumField('FormValueValuesEnum', 3)
-  formFactor = _messages.EnumField('FormFactorValueValuesEnum', 4)
-  id = _messages.StringField(5)
-  lowFpsVideoRecording = _messages.BooleanField(6)
-  manufacturer = _messages.StringField(7)
-  name = _messages.StringField(8)
-  perVersionInfo = _messages.MessageField('PerAndroidVersionInfo', 9, repeated=True)
-  screenDensity = _messages.IntegerField(10, variant=_messages.Variant.INT32)
-  screenX = _messages.IntegerField(11, variant=_messages.Variant.INT32)
-  screenY = _messages.IntegerField(12, variant=_messages.Variant.INT32)
-  supportedAbis = _messages.StringField(13, repeated=True)
-  supportedVersionIds = _messages.StringField(14, repeated=True)
-  tags = _messages.StringField(15, repeated=True)
-  thumbnailUrl = _messages.StringField(16)
+  accessDeniedReasons = _messages.EnumField('AccessDeniedReasonsValueListEntryValuesEnum', 1, repeated=True)
+  brand = _messages.StringField(2)
+  codename = _messages.StringField(3)
+  form = _messages.EnumField('FormValueValuesEnum', 4)
+  formFactor = _messages.EnumField('FormFactorValueValuesEnum', 5)
+  id = _messages.StringField(6)
+  labInfo = _messages.MessageField('LabInfo', 7)
+  lowFpsVideoRecording = _messages.BooleanField(8)
+  manufacturer = _messages.StringField(9)
+  name = _messages.StringField(10)
+  perVersionInfo = _messages.MessageField('PerAndroidVersionInfo', 11, repeated=True)
+  screenDensity = _messages.IntegerField(12, variant=_messages.Variant.INT32)
+  screenX = _messages.IntegerField(13, variant=_messages.Variant.INT32)
+  screenY = _messages.IntegerField(14, variant=_messages.Variant.INT32)
+  supportedAbis = _messages.StringField(15, repeated=True)
+  supportedVersionIds = _messages.StringField(16, repeated=True)
+  tags = _messages.StringField(17, repeated=True)
+  thumbnailUrl = _messages.StringField(18)
 
 
 class AndroidRoboTest(_messages.Message):
@@ -423,7 +449,8 @@ class ApkManifest(_messages.Message):
     targetSdkVersion: Specifies the API Level on which the application is
       designed to run.
     usesFeature: Feature usage tags defined in the manifest.
-    usesPermission: Permissions declared to be used by the application
+    usesPermission: A string attribute.
+    usesPermissionTags: Permissions declared to be used by the application
     versionCode: Version number used internally by the app.
     versionName: Version number shown to users.
   """
@@ -438,8 +465,23 @@ class ApkManifest(_messages.Message):
   targetSdkVersion = _messages.IntegerField(8, variant=_messages.Variant.INT32)
   usesFeature = _messages.MessageField('UsesFeature', 9, repeated=True)
   usesPermission = _messages.StringField(10, repeated=True)
-  versionCode = _messages.IntegerField(11)
-  versionName = _messages.StringField(12)
+  usesPermissionTags = _messages.MessageField('UsesPermissionTag', 11, repeated=True)
+  versionCode = _messages.IntegerField(12)
+  versionName = _messages.StringField(13)
+
+
+class ApkSplits(_messages.Message):
+  r"""A single dynamic feature apk.
+
+  Fields:
+    bundleSplits: A list of .apk files generated by bundletool to install to
+      the device under test as a single android app with adb install-multiple.
+      If specified, requires one or more bundle_splits. The first split
+      specified represents the base APK, while subsequent splits represent
+      feature apks.
+  """
+
+  bundleSplits = _messages.MessageField('FileReference', 1, repeated=True)
 
 
 class AppBundle(_messages.Message):
@@ -449,10 +491,13 @@ class AppBundle(_messages.Message):
   building App Bundles.
 
   Fields:
+    apks: .apk files generated by bundletool to install as a single android
+      app.
     bundleLocation: .aab file representing the app bundle under test.
   """
 
-  bundleLocation = _messages.MessageField('FileReference', 1)
+  apks = _messages.MessageField('ApkSplits', 1)
+  bundleLocation = _messages.MessageField('FileReference', 2)
 
 
 class CancelDeviceSessionRequest(_messages.Message):
@@ -940,11 +985,19 @@ class IosModel(_messages.Message):
       PHONE: This device has the shape of a phone.
       TABLET: This device has the shape of a tablet.
       WEARABLE: This device has the shape of a watch or other wearable.
+      TV: This device has a television form factor.
+      AUTOMOTIVE: This device has an automotive form factor.
+      DESKTOP: This device has a desktop form factor.
+      XR: This device has an Extended Reality form factor.
     """
     DEVICE_FORM_FACTOR_UNSPECIFIED = 0
     PHONE = 1
     TABLET = 2
     WEARABLE = 3
+    TV = 4
+    AUTOMOTIVE = 5
+    DESKTOP = 6
+    XR = 7
 
   deviceCapabilities = _messages.StringField(1, repeated=True)
   formFactor = _messages.EnumField('FormFactorValueValuesEnum', 2)
@@ -968,7 +1021,8 @@ class IosRoboTest(_messages.Message):
       test.
     roboScript: An optional Roboscript to customize the crawl. See
       https://firebase.google.com/docs/test-lab/android/robo-scripts-reference
-      for more information about Roboscripts.
+      for more information about Roboscripts. The maximum allowed file size of
+      the roboscript is 10MiB.
   """
 
   appBundleId = _messages.StringField(1)
@@ -1082,6 +1136,20 @@ class IosXcTest(_messages.Message):
   testsZip = _messages.MessageField('FileReference', 3)
   xcodeVersion = _messages.StringField(4)
   xctestrun = _messages.MessageField('FileReference', 5)
+
+
+class LabInfo(_messages.Message):
+  r"""Lab specific information for a device.
+
+  Fields:
+    name: Lab name where the device is hosted. If empty, the device is hosted
+      in a Google owned lab.
+    regionCode: The Unicode country/region code (CLDR) of the lab where the
+      device is hosted. E.g. "US" for United States, "CH" for Switzerland.
+  """
+
+  name = _messages.StringField(1)
+  regionCode = _messages.StringField(2)
 
 
 class LauncherActivityIntent(_messages.Message):
@@ -1358,15 +1426,14 @@ class RegularFile(_messages.Message):
     devicePath: Required. Where to put the content on the device. Must be an
       absolute, allowlisted path. If the file exists, it will be replaced. The
       following device-side directories and any of their subdirectories are
-      allowlisted: ${EXTERNAL_STORAGE}, /sdcard, or /storage
-      ${ANDROID_DATA}/local/tmp, or /data/local/tmp Specifying a path outside
-      of these directory trees is invalid. The paths /sdcard and /data will be
-      made available and treated as implicit path substitutions. E.g. if
-      /sdcard on a particular device does not map to external storage, the
-      system will replace it with the external storage path prefix for that
-      device and copy the file there. It is strongly advised to use the
-      Environment API in app and test code to access files on the device in a
-      portable way.
+      allowlisted: ${EXTERNAL_STORAGE}, /sdcard ${ANDROID_DATA}/local/tmp, or
+      /data/local/tmp Specifying a path outside of these directory trees is
+      invalid. The paths /sdcard and /data will be made available and treated
+      as implicit path substitutions. E.g. if /sdcard on a particular device
+      does not map to external storage, the system will replace it with the
+      external storage path prefix for that device and copy the file there. It
+      is strongly advised to use the Environment API in app and test code to
+      access files on the device in a portable way.
   """
 
   content = _messages.MessageField('FileReference', 1)
@@ -2272,6 +2339,8 @@ class TestingTestEnvironmentCatalogGetRequest(_messages.Message):
 
   Fields:
     environmentType: Required. The type of environment that should be listed.
+    includeViewableModels: Optional. Whether to include viewable only models
+      in the response. This is only applicable for Android models.
     projectId: For authorization, the cloud project requesting the
       TestEnvironmentCatalog.
   """
@@ -2297,7 +2366,8 @@ class TestingTestEnvironmentCatalogGetRequest(_messages.Message):
     DEVICE_IP_BLOCKS = 5
 
   environmentType = _messages.EnumField('EnvironmentTypeValueValuesEnum', 1, required=True)
-  projectId = _messages.StringField(2)
+  includeViewableModels = _messages.BooleanField(2)
+  projectId = _messages.StringField(3)
 
 
 class ToolResultsExecution(_messages.Message):
@@ -2398,6 +2468,20 @@ class UsesFeature(_messages.Message):
   name = _messages.StringField(2)
 
 
+class UsesPermissionTag(_messages.Message):
+  r"""The tag within a manifest.
+  https://developer.android.com/guide/topics/manifest/uses-permission-
+  element.html
+
+  Fields:
+    maxSdkVersion: The android:name value
+    name: The android:name value
+  """
+
+  maxSdkVersion = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  name = _messages.StringField(2)
+
+
 class XcodeVersion(_messages.Message):
   r"""An Xcode version that an iOS version is compatible with.
 
@@ -2416,3 +2500,5 @@ encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    TestingApplicationDetailServiceGetApkDetailsRequest, 'bundleLocation_gcsPath', 'bundleLocation.gcsPath')

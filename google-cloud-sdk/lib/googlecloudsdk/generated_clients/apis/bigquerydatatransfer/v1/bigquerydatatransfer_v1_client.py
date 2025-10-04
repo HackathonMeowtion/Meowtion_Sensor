@@ -533,7 +533,7 @@ class BigquerydatatransferV1(base_api.BaseApiClient):
     )
 
     def StartManualRuns(self, request, global_params=None):
-      r"""Start manual transfer runs to be executed now with schedule_time equal to current time. The transfer runs can be created for a time range where the run_time is between start_time (inclusive) and end_time (exclusive), or for a specific run_time.
+      r"""Manually initiates transfer runs. You can schedule these runs in two ways: 1. For a specific point in time using the 'requested_run_time' parameter. 2. For a period between 'start_time' (inclusive) and 'end_time' (exclusive). If scheduling a single run, it is set to execute immediately (schedule_time equals the current time). When scheduling multiple runs within a time range, the first run starts now, and subsequent runs are delayed by 15 seconds each.
 
       Args:
         request: (BigquerydatatransferProjectsLocationsTransferConfigsStartManualRunsRequest) input message
@@ -642,7 +642,7 @@ class BigquerydatatransferV1(base_api.BaseApiClient):
         method_id='bigquerydatatransfer.projects.locations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['extraLocationTypes', 'filter', 'pageSize', 'pageToken'],
         relative_path='v1/{+name}/locations',
         request_field='',
         request_type_name='BigquerydatatransferProjectsLocationsListRequest',
@@ -978,7 +978,7 @@ class BigquerydatatransferV1(base_api.BaseApiClient):
     )
 
     def StartManualRuns(self, request, global_params=None):
-      r"""Start manual transfer runs to be executed now with schedule_time equal to current time. The transfer runs can be created for a time range where the run_time is between start_time (inclusive) and end_time (exclusive), or for a specific run_time.
+      r"""Manually initiates transfer runs. You can schedule these runs in two ways: 1. For a specific point in time using the 'requested_run_time' parameter. 2. For a period between 'start_time' (inclusive) and 'end_time' (exclusive). If scheduling a single run, it is set to execute immediately (schedule_time equals the current time). When scheduling multiple runs within a time range, the first run starts now, and subsequent runs are delayed by 15 seconds each.
 
       Args:
         request: (BigquerydatatransferProjectsTransferConfigsStartManualRunsRequest) input message

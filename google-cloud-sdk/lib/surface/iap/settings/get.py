@@ -21,13 +21,7 @@ from __future__ import unicode_literals
 from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.iap import util as iap_util
 
-
-@base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.GA)
-class Get(base.Command):
-  """Get the setting for an IAP resource."""
-  detailed_help = {
-      'EXAMPLES':
-          """\
+EXAMPLES = """\
           To get the IAP setting for the resources within an organization, run:
 
             $ {command} --organization=ORGANIZATION_ID
@@ -59,24 +53,67 @@ class Get(base.Command):
 
           To get the IAP setting for all backend services within a project, run:
 
-            $ {command} --project=PROJECT_ID --resource-type=compute
+            $ {command} --project=PROJECT_ID --resource-type=backend-services
 
           To get the IAP setting for a backend service within a project, run:
 
-            $ {command} --project=PROJECT_ID --resource-type=compute --service=SERVICE_ID
+            $ {command} --project=PROJECT_ID --resource-type=backend-services --service=SERVICE_ID
 
-          """,
+          To get the IAP setting for a regional backend service within a project, run:
+
+            $ {command} --project=PROJECT_ID --resource-type=backend-services --service=SERVICE_ID
+              --region=REGION_ID
+
+          To get the IAP setting for all forwarding rules within a project, run:
+
+            $ {command} --project=PROJECT_ID --resource-type=forwarding-rule
+
+          To get the IAP setting for a forwarding rule within a project, run:
+
+            $ {command} --project=PROJECT_ID --resource-type=forwarding-rule --service=SERVICE_ID
+
+          To get the IAP setting for a regional forwarding rule within a project, run:
+
+            $ {command} --project=PROJECT_ID --resource-type=forwarding-rule --service=SERVICE_ID
+              --region=REGION_ID
+
+          """
+
+NON_GA_EXAMPLES = EXAMPLES + """\
+
+          To get the IAP setting for all Cloud Run services within a region of a project, run:
+
+            $ {command} --project=PROJECT_ID --resource-type=cloud-run --region=REGION_ID
+
+          To get the IAP setting for a Cloud Run service within a project, run:
+
+            $ {command} --project=PROJECT_ID --resource-type=cloud-run --region=REGION_ID --service=SERVICE_ID
+
+          """
+
+
+@base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.DefaultUniverseOnly
+class Get(base.Command):
+  """Get the setting for an IAP resource."""
+
+  detailed_help = {
+      'EXAMPLES': EXAMPLES,
   }
 
-  @staticmethod
-  def Args(parser):
+  _support_cloud_run = False
+
+  @classmethod
+  def Args(cls, parser):
     """Register flags for this command.
 
     Args:
       parser: An argparse.ArgumentParser-like object. It is mocked out in order
         to capture some information, but behaves like an ArgumentParser.
     """
-    iap_util.AddIapSettingArg(parser)
+    iap_util.AddIapSettingArg(
+        parser, support_cloud_run=cls._support_cloud_run,
+    )
     base.URI_FLAG.RemoveFromParser(parser)
 
   def Run(self, args):
@@ -89,22 +126,19 @@ class Get(base.Command):
     Returns:
       The IAP setting for the IAP resource.
     """
-    iap_setting_ref = iap_util.ParseIapSettingsResource(self.ReleaseTrack(),
-                                                        args)
+    iap_setting_ref = iap_util.ParseIapSettingsResource(
+        self.ReleaseTrack(),
+        args,
+        self._support_cloud_run,
+    )
     return iap_setting_ref.GetIapSetting()
 
 
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
-class GetALPHA(Get):
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
+class GetBeta(Get):
   """Get the setting for an IAP resource."""
+  detailed_help = {
+      'EXAMPLES': NON_GA_EXAMPLES,
+  }
 
-  @staticmethod
-  def Args(parser):
-    """Register flags for this command.
-
-    Args:
-      parser: An argparse.ArgumentParser-like object. It is mocked out in order
-        to capture some information, but behaves like an ArgumentParser.
-    """
-    iap_util.AddIapSettingArg(parser, use_region_arg=True)
-    base.URI_FLAG.RemoveFromParser(parser)
+  _support_cloud_run = True

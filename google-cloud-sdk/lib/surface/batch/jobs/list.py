@@ -26,6 +26,7 @@ from googlecloudsdk.command_lib.batch import resource_args
 from googlecloudsdk.core import properties
 
 
+@base.UniverseCompatible
 class List(base.ListCommand):
   """List jobs for a specified Batch project/location.
 
@@ -51,7 +52,8 @@ class List(base.ListCommand):
     resource_args.AddLocationResourceArgs(parser)
     base.URI_FLAG.RemoveFromParser(parser)
     parser.display_info.AddFormat(
-        'table(name, name.segment(3):label=LOCATION, status.state)')
+        'table(name, name.segment(3):label=LOCATION, status.state)'
+    )
 
   def Run(self, args):
     release_track = self.ReleaseTrack()
@@ -69,8 +71,9 @@ class List(base.ListCommand):
         client.messages.BatchProjectsLocationsJobsListRequest(
             parent=parent,
             pageSize=args.page_size,
-            filter=args.filter),
+        ),
         batch_size=args.page_size,
         field='jobs',
         limit=args.limit,
-        batch_size_attribute='pageSize')
+        batch_size_attribute='pageSize',
+    )

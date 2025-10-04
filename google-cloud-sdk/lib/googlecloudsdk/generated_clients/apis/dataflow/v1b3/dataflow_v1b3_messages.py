@@ -232,6 +232,61 @@ class BigTableIODetails(_messages.Message):
   tableId = _messages.StringField(3)
 
 
+class BoundedTrie(_messages.Message):
+  r"""The message type used for encoding metrics of type bounded trie.
+
+  Fields:
+    bound: The maximum number of elements to store before truncation.
+    root: A compact representation of all the elements in this trie.
+    singleton: A more efficient representation for metrics consisting of a
+      single value.
+  """
+
+  bound = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  root = _messages.MessageField('BoundedTrieNode', 2)
+  singleton = _messages.StringField(3, repeated=True)
+
+
+class BoundedTrieNode(_messages.Message):
+  r"""A single node in a BoundedTrie.
+
+  Messages:
+    ChildrenValue: Children of this node. Must be empty if truncated is true.
+
+  Fields:
+    children: Children of this node. Must be empty if truncated is true.
+    truncated: Whether this node has been truncated. A truncated leaf
+      represents possibly many children with the same prefix.
+  """
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class ChildrenValue(_messages.Message):
+    r"""Children of this node. Must be empty if truncated is true.
+
+    Messages:
+      AdditionalProperty: An additional property for a ChildrenValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type ChildrenValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a ChildrenValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A BoundedTrieNode attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.MessageField('BoundedTrieNode', 2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  children = _messages.MessageField('ChildrenValue', 1)
+  truncated = _messages.BooleanField(2)
+
+
 class BucketOptions(_messages.Message):
   r"""`BucketOptions` describes the bucket boundaries used in the histogram.
 
@@ -514,10 +569,11 @@ class CounterStructuredNameAndMetadata(_messages.Message):
 
 
 class CounterUpdate(_messages.Message):
-  r"""An update to a Counter sent from a worker.
+  r"""An update to a Counter sent from a worker. Next ID: 17
 
   Fields:
     boolean: Boolean value for And, Or.
+    boundedTrie: Bounded trie data
     cumulative: True if this counter is reported as the total cumulative
       aggregate value accumulated since the worker started working on this
       WorkItem. By default this is false, indicating that this counter is
@@ -541,20 +597,21 @@ class CounterUpdate(_messages.Message):
   """
 
   boolean = _messages.BooleanField(1)
-  cumulative = _messages.BooleanField(2)
-  distribution = _messages.MessageField('DistributionUpdate', 3)
-  floatingPoint = _messages.FloatField(4)
-  floatingPointList = _messages.MessageField('FloatingPointList', 5)
-  floatingPointMean = _messages.MessageField('FloatingPointMean', 6)
-  integer = _messages.MessageField('SplitInt64', 7)
-  integerGauge = _messages.MessageField('IntegerGauge', 8)
-  integerList = _messages.MessageField('IntegerList', 9)
-  integerMean = _messages.MessageField('IntegerMean', 10)
-  internal = _messages.MessageField('extra_types.JsonValue', 11)
-  nameAndKind = _messages.MessageField('NameAndKind', 12)
-  shortId = _messages.IntegerField(13)
-  stringList = _messages.MessageField('StringList', 14)
-  structuredNameAndMetadata = _messages.MessageField('CounterStructuredNameAndMetadata', 15)
+  boundedTrie = _messages.MessageField('BoundedTrie', 2)
+  cumulative = _messages.BooleanField(3)
+  distribution = _messages.MessageField('DistributionUpdate', 4)
+  floatingPoint = _messages.FloatField(5)
+  floatingPointList = _messages.MessageField('FloatingPointList', 6)
+  floatingPointMean = _messages.MessageField('FloatingPointMean', 7)
+  integer = _messages.MessageField('SplitInt64', 8)
+  integerGauge = _messages.MessageField('IntegerGauge', 9)
+  integerList = _messages.MessageField('IntegerList', 10)
+  integerMean = _messages.MessageField('IntegerMean', 11)
+  internal = _messages.MessageField('extra_types.JsonValue', 12)
+  nameAndKind = _messages.MessageField('NameAndKind', 13)
+  shortId = _messages.IntegerField(14)
+  stringList = _messages.MessageField('StringList', 15)
+  structuredNameAndMetadata = _messages.MessageField('CounterStructuredNameAndMetadata', 16)
 
 
 class CreateJobFromTemplateRequest(_messages.Message):
@@ -892,6 +949,18 @@ class DataflowFlexTemplateConfig(_messages.Message):
   launchOptions = _messages.MessageField('LaunchOptionsValue', 3)
   parameters = _messages.MessageField('ParametersValue', 4)
   transformNameMappings = _messages.MessageField('TransformNameMappingsValue', 5)
+
+
+class DataflowGaugeValue(_messages.Message):
+  r"""The gauge value of a metric.
+
+  Fields:
+    measuredTime: The timestamp when the gauge was recorded.
+    value: The value of the gauge.
+  """
+
+  measuredTime = _messages.StringField(1)
+  value = _messages.IntegerField(2)
 
 
 class DataflowHistogramValue(_messages.Message):
@@ -1703,6 +1772,25 @@ class DataflowProjectsLocationsJobsDebugGetConfigRequest(_messages.Message):
   projectId = _messages.StringField(4, required=True)
 
 
+class DataflowProjectsLocationsJobsDebugGetWorkerStacktracesRequest(_messages.Message):
+  r"""A DataflowProjectsLocationsJobsDebugGetWorkerStacktracesRequest object.
+
+  Fields:
+    getWorkerStacktracesRequest: A GetWorkerStacktracesRequest resource to be
+      passed as the request body.
+    jobId: The job for which to get stacktraces.
+    location: The [regional endpoint]
+      (https://cloud.google.com/dataflow/docs/concepts/regional-endpoints)
+      that contains the job specified by job_id.
+    projectId: The project id.
+  """
+
+  getWorkerStacktracesRequest = _messages.MessageField('GetWorkerStacktracesRequest', 1)
+  jobId = _messages.StringField(2, required=True)
+  location = _messages.StringField(3, required=True)
+  projectId = _messages.StringField(4, required=True)
+
+
 class DataflowProjectsLocationsJobsDebugSendCaptureRequest(_messages.Message):
   r"""A DataflowProjectsLocationsJobsDebugSendCaptureRequest object.
 
@@ -2381,8 +2469,8 @@ class DebugOptions(_messages.Message):
   Fields:
     dataSampling: Configuration options for sampling elements from a running
       pipeline.
-    enableHotKeyLogging: When true, enables the logging of the literal hot key
-      to the user's Cloud Logging.
+    enableHotKeyLogging: Optional. When true, enables the logging of the
+      literal hot key to the user's Cloud Logging.
   """
 
   dataSampling = _messages.MessageField('DataSamplingConfig', 1)
@@ -2707,8 +2795,8 @@ class Environment(_messages.Message):
   r"""Describes the environment in which a Dataflow Job runs.
 
   Enums:
-    FlexResourceSchedulingGoalValueValuesEnum: Which Flexible Resource
-      Scheduling mode to run in.
+    FlexResourceSchedulingGoalValueValuesEnum: Optional. Which Flexible
+      Resource Scheduling mode to run in.
     ShuffleModeValueValuesEnum: Output only. The shuffle mode used for the
       job.
     StreamingModeValueValuesEnum: Optional. Specifies the Streaming Engine
@@ -2734,25 +2822,25 @@ class Environment(_messages.Message):
       unknown or unspecified, the service will attempt to choose a reasonable
       default. This should be in the form of the API service name, e.g.
       "compute.googleapis.com".
-    dataset: The dataset for the current project where various workflow
-      related tables are stored. The supported resource type is: Google
-      BigQuery: bigquery.googleapis.com/{dataset}
-    debugOptions: Any debugging options to be supplied to the job.
+    dataset: Optional. The dataset for the current project where various
+      workflow related tables are stored. The supported resource type is:
+      Google BigQuery: bigquery.googleapis.com/{dataset}
+    debugOptions: Optional. Any debugging options to be supplied to the job.
     experiments: The list of experiments to enable. This field should be used
       for SDK related experiments and not for service related experiments. The
       proper field for service related experiments is service_options.
-    flexResourceSchedulingGoal: Which Flexible Resource Scheduling mode to run
-      in.
+    flexResourceSchedulingGoal: Optional. Which Flexible Resource Scheduling
+      mode to run in.
     internalExperiments: Experimental settings.
     sdkPipelineOptions: The Cloud Dataflow SDK pipeline options specified by
       the user. These options are passed through the service and are used to
       recreate the SDK pipeline options on the worker in a language agnostic
       and platform independent way.
-    serviceAccountEmail: Identity to run virtual machines as. Defaults to the
-      default account.
-    serviceKmsKeyName: If set, contains the Cloud KMS key identifier used to
-      encrypt data at rest, AKA a Customer Managed Encryption Key (CMEK).
-      Format:
+    serviceAccountEmail: Optional. Identity to run virtual machines as.
+      Defaults to the default account.
+    serviceKmsKeyName: Optional. If set, contains the Cloud KMS key identifier
+      used to encrypt data at rest, AKA a Customer Managed Encryption Key
+      (CMEK). Format:
       projects/PROJECT_ID/locations/LOCATION/keyRings/KEY_RING/cryptoKeys/KEY
     serviceOptions: Optional. The list of service options to enable. This
       field should be used for service related experiments only. These
@@ -2775,6 +2863,8 @@ class Environment(_messages.Message):
       The supported resource type is: Google Cloud Storage:
       storage.googleapis.com/{bucket}/{object}
       bucket.storage.googleapis.com/{object}
+    usePublicIps: Optional. True when any worker pool that uses public IPs is
+      present.
     useStreamingEngineResourceBasedBilling: Output only. Whether the job uses
       the Streaming Engine resource-based billing model.
     userAgent: A description of the process that generated the request.
@@ -2782,12 +2872,12 @@ class Environment(_messages.Message):
       service are required in order to run the job.
     workerPools: The worker pools. At least one "harness" worker pool must be
       specified in order for the job to have workers.
-    workerRegion: The Compute Engine region
+    workerRegion: Optional. The Compute Engine region
       (https://cloud.google.com/compute/docs/regions-zones/regions-zones) in
       which worker processing should occur, e.g. "us-west1". Mutually
       exclusive with worker_zone. If neither worker_region nor worker_zone is
       specified, default to the control plane's region.
-    workerZone: The Compute Engine zone
+    workerZone: Optional. The Compute Engine zone
       (https://cloud.google.com/compute/docs/regions-zones/regions-zones) in
       which worker processing should occur, e.g. "us-west1-a". Mutually
       exclusive with worker_region. If neither worker_region nor worker_zone
@@ -2796,7 +2886,7 @@ class Environment(_messages.Message):
   """
 
   class FlexResourceSchedulingGoalValueValuesEnum(_messages.Enum):
-    r"""Which Flexible Resource Scheduling mode to run in.
+    r"""Optional. Which Flexible Resource Scheduling mode to run in.
 
     Values:
       FLEXRS_UNSPECIFIED: Run in the default mode.
@@ -2958,12 +3048,13 @@ class Environment(_messages.Message):
   shuffleMode = _messages.EnumField('ShuffleModeValueValuesEnum', 11)
   streamingMode = _messages.EnumField('StreamingModeValueValuesEnum', 12)
   tempStoragePrefix = _messages.StringField(13)
-  useStreamingEngineResourceBasedBilling = _messages.BooleanField(14)
-  userAgent = _messages.MessageField('UserAgentValue', 15)
-  version = _messages.MessageField('VersionValue', 16)
-  workerPools = _messages.MessageField('WorkerPool', 17, repeated=True)
-  workerRegion = _messages.StringField(18)
-  workerZone = _messages.StringField(19)
+  usePublicIps = _messages.BooleanField(14)
+  useStreamingEngineResourceBasedBilling = _messages.BooleanField(15)
+  userAgent = _messages.MessageField('UserAgentValue', 16)
+  version = _messages.MessageField('VersionValue', 17)
+  workerPools = _messages.MessageField('WorkerPool', 18, repeated=True)
+  workerRegion = _messages.StringField(19)
+  workerZone = _messages.StringField(20)
 
 
 class ExecutionStageState(_messages.Message):
@@ -3033,6 +3124,8 @@ class ExecutionStageState(_messages.Message):
         indicates that the batch job's associated resources are currently
         being cleaned up after a successful run. Currently, this is an opt-in
         feature, please reach out to Cloud support team if you are interested.
+      JOB_STATE_PAUSING: `JOB_STATE_PAUSING` is not implemented yet.
+      JOB_STATE_PAUSED: `JOB_STATE_PAUSED` is not implemented yet.
     """
     JOB_STATE_UNKNOWN = 0
     JOB_STATE_STOPPED = 1
@@ -3047,6 +3140,8 @@ class ExecutionStageState(_messages.Message):
     JOB_STATE_CANCELLING = 10
     JOB_STATE_QUEUED = 11
     JOB_STATE_RESOURCE_CLEANING_UP = 12
+    JOB_STATE_PAUSING = 13
+    JOB_STATE_PAUSED = 14
 
   currentStateTime = _messages.StringField(1)
   executionStageName = _messages.StringField(2)
@@ -3146,7 +3241,6 @@ class FlattenInstruction(_messages.Message):
 
 class FlexTemplateRuntimeEnvironment(_messages.Message):
   r"""The environment values to be set at runtime for flex template.
-  LINT.IfChange
 
   Enums:
     AutoscalingAlgorithmValueValuesEnum: The algorithm to use for autoscaling
@@ -3170,6 +3264,8 @@ class FlexTemplateRuntimeEnvironment(_messages.Message):
 
   Fields:
     additionalExperiments: Additional experiment flags for the job.
+    additionalPipelineOptions: Optional. Additional pipeline option flags for
+      the job.
     additionalUserLabels: Additional user labels to be specified for the job.
       Keys and values must follow the restrictions specified in the [labeling
       restrictions](https://cloud.google.com/compute/docs/labeling-
@@ -3337,30 +3433,31 @@ class FlexTemplateRuntimeEnvironment(_messages.Message):
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
   additionalExperiments = _messages.StringField(1, repeated=True)
-  additionalUserLabels = _messages.MessageField('AdditionalUserLabelsValue', 2)
-  autoscalingAlgorithm = _messages.EnumField('AutoscalingAlgorithmValueValuesEnum', 3)
-  diskSizeGb = _messages.IntegerField(4, variant=_messages.Variant.INT32)
-  dumpHeapOnOom = _messages.BooleanField(5)
-  enableLauncherVmSerialPortLogging = _messages.BooleanField(6)
-  enableStreamingEngine = _messages.BooleanField(7)
-  flexrsGoal = _messages.EnumField('FlexrsGoalValueValuesEnum', 8)
-  ipConfiguration = _messages.EnumField('IpConfigurationValueValuesEnum', 9)
-  kmsKeyName = _messages.StringField(10)
-  launcherMachineType = _messages.StringField(11)
-  machineType = _messages.StringField(12)
-  maxWorkers = _messages.IntegerField(13, variant=_messages.Variant.INT32)
-  network = _messages.StringField(14)
-  numWorkers = _messages.IntegerField(15, variant=_messages.Variant.INT32)
-  saveHeapDumpsToGcsPath = _messages.StringField(16)
-  sdkContainerImage = _messages.StringField(17)
-  serviceAccountEmail = _messages.StringField(18)
-  stagingLocation = _messages.StringField(19)
-  streamingMode = _messages.EnumField('StreamingModeValueValuesEnum', 20)
-  subnetwork = _messages.StringField(21)
-  tempLocation = _messages.StringField(22)
-  workerRegion = _messages.StringField(23)
-  workerZone = _messages.StringField(24)
-  zone = _messages.StringField(25)
+  additionalPipelineOptions = _messages.StringField(2, repeated=True)
+  additionalUserLabels = _messages.MessageField('AdditionalUserLabelsValue', 3)
+  autoscalingAlgorithm = _messages.EnumField('AutoscalingAlgorithmValueValuesEnum', 4)
+  diskSizeGb = _messages.IntegerField(5, variant=_messages.Variant.INT32)
+  dumpHeapOnOom = _messages.BooleanField(6)
+  enableLauncherVmSerialPortLogging = _messages.BooleanField(7)
+  enableStreamingEngine = _messages.BooleanField(8)
+  flexrsGoal = _messages.EnumField('FlexrsGoalValueValuesEnum', 9)
+  ipConfiguration = _messages.EnumField('IpConfigurationValueValuesEnum', 10)
+  kmsKeyName = _messages.StringField(11)
+  launcherMachineType = _messages.StringField(12)
+  machineType = _messages.StringField(13)
+  maxWorkers = _messages.IntegerField(14, variant=_messages.Variant.INT32)
+  network = _messages.StringField(15)
+  numWorkers = _messages.IntegerField(16, variant=_messages.Variant.INT32)
+  saveHeapDumpsToGcsPath = _messages.StringField(17)
+  sdkContainerImage = _messages.StringField(18)
+  serviceAccountEmail = _messages.StringField(19)
+  stagingLocation = _messages.StringField(20)
+  streamingMode = _messages.EnumField('StreamingModeValueValuesEnum', 21)
+  subnetwork = _messages.StringField(22)
+  tempLocation = _messages.StringField(23)
+  workerRegion = _messages.StringField(24)
+  workerZone = _messages.StringField(25)
+  zone = _messages.StringField(26)
 
 
 class FloatingPointList(_messages.Message):
@@ -3383,6 +3480,29 @@ class FloatingPointMean(_messages.Message):
 
   count = _messages.MessageField('SplitInt64', 1)
   sum = _messages.FloatField(2)
+
+
+class GPUUsage(_messages.Message):
+  r"""Information about the GPU usage on the worker.
+
+  Fields:
+    timestamp: Required. Timestamp of the measurement.
+    utilization: Required. Utilization info about the GPU.
+  """
+
+  timestamp = _messages.StringField(1)
+  utilization = _messages.MessageField('GPUUtilization', 2)
+
+
+class GPUUtilization(_messages.Message):
+  r"""Utilization details about the GPU.
+
+  Fields:
+    rate: Required. GPU utilization rate of any kernel over the last sample
+      period in the range of [0, 1].
+  """
+
+  rate = _messages.FloatField(1)
 
 
 class GetDebugConfigRequest(_messages.Message):
@@ -3444,6 +3564,27 @@ class GetTemplateResponse(_messages.Message):
   runtimeMetadata = _messages.MessageField('RuntimeMetadata', 2)
   status = _messages.MessageField('Status', 3)
   templateType = _messages.EnumField('TemplateTypeValueValuesEnum', 4)
+
+
+class GetWorkerStacktracesRequest(_messages.Message):
+  r"""Request to get worker stacktraces from debug capture.
+
+  Fields:
+    workerId: The worker for which to get stacktraces. The returned
+      stacktraces will be for the SDK harness running on this worker.
+  """
+
+  workerId = _messages.StringField(1)
+
+
+class GetWorkerStacktracesResponse(_messages.Message):
+  r"""Response to get worker stacktraces from debug capture.
+
+  Fields:
+    sdks: Repeated as unified worker may have multiple SDK processes.
+  """
+
+  sdks = _messages.MessageField('Sdk', 1, repeated=True)
 
 
 class Histogram(_messages.Message):
@@ -3674,8 +3815,9 @@ class Job(_messages.Message):
       \p{Ll}\p{Lo}{0,62} * Values must conform to regexp:
       [\p{Ll}\p{Lo}\p{N}_-]{0,63} * Both keys and values are additionally
       constrained to be <= 128 bytes in size.
-    TransformNameMappingValue: The map of transform name prefixes of the job
-      to be replaced to the corresponding name prefixes of the new job.
+    TransformNameMappingValue: Optional. The map of transform name prefixes of
+      the job to be replaced to the corresponding name prefixes of the new
+      job.
 
   Fields:
     clientRequestId: The client's unique identifier of the job, re-used across
@@ -3709,7 +3851,7 @@ class Job(_messages.Message):
       \p{Ll}\p{Lo}{0,62} * Values must conform to regexp:
       [\p{Ll}\p{Lo}\p{N}_-]{0,63} * Both keys and values are additionally
       constrained to be <= 128 bytes in size.
-    location: The [regional endpoint]
+    location: Optional. The [regional endpoint]
       (https://cloud.google.com/dataflow/docs/concepts/regional-endpoints)
       that contains this job.
     name: Optional. The user-specified Dataflow job name. Only one active job
@@ -3745,6 +3887,8 @@ class Job(_messages.Message):
       requests.
     satisfiesPzs: Reserved for future use. This field is set only in responses
       from the server; it is ignored if it is set in any requests.
+    serviceResources: Output only. Resources used by the Dataflow Service to
+      run the job.
     stageStates: This field may be mutated by the Cloud Dataflow service;
       callers cannot mutate it.
     startTime: The timestamp when the job was started (transitioned to
@@ -3763,8 +3907,8 @@ class Job(_messages.Message):
       The supported files are: Google Cloud Storage:
       storage.googleapis.com/{bucket}/{object}
       bucket.storage.googleapis.com/{object}
-    transformNameMapping: The map of transform name prefixes of the job to be
-      replaced to the corresponding name prefixes of the new job.
+    transformNameMapping: Optional. The map of transform name prefixes of the
+      job to be replaced to the corresponding name prefixes of the new job.
     type: Optional. The type of Dataflow job.
   """
 
@@ -3826,6 +3970,8 @@ class Job(_messages.Message):
         indicates that the batch job's associated resources are currently
         being cleaned up after a successful run. Currently, this is an opt-in
         feature, please reach out to Cloud support team if you are interested.
+      JOB_STATE_PAUSING: `JOB_STATE_PAUSING` is not implemented yet.
+      JOB_STATE_PAUSED: `JOB_STATE_PAUSED` is not implemented yet.
     """
     JOB_STATE_UNKNOWN = 0
     JOB_STATE_STOPPED = 1
@@ -3840,6 +3986,8 @@ class Job(_messages.Message):
     JOB_STATE_CANCELLING = 10
     JOB_STATE_QUEUED = 11
     JOB_STATE_RESOURCE_CLEANING_UP = 12
+    JOB_STATE_PAUSING = 13
+    JOB_STATE_PAUSED = 14
 
   class RequestedStateValueValuesEnum(_messages.Enum):
     r"""The job's requested state. Applies to `UpdateJob` requests. Set
@@ -3900,6 +4048,8 @@ class Job(_messages.Message):
         indicates that the batch job's associated resources are currently
         being cleaned up after a successful run. Currently, this is an opt-in
         feature, please reach out to Cloud support team if you are interested.
+      JOB_STATE_PAUSING: `JOB_STATE_PAUSING` is not implemented yet.
+      JOB_STATE_PAUSED: `JOB_STATE_PAUSED` is not implemented yet.
     """
     JOB_STATE_UNKNOWN = 0
     JOB_STATE_STOPPED = 1
@@ -3914,6 +4064,8 @@ class Job(_messages.Message):
     JOB_STATE_CANCELLING = 10
     JOB_STATE_QUEUED = 11
     JOB_STATE_RESOURCE_CLEANING_UP = 12
+    JOB_STATE_PAUSING = 13
+    JOB_STATE_PAUSED = 14
 
   class TypeValueValuesEnum(_messages.Enum):
     r"""Optional. The type of Dataflow job.
@@ -3960,8 +4112,8 @@ class Job(_messages.Message):
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class TransformNameMappingValue(_messages.Message):
-    r"""The map of transform name prefixes of the job to be replaced to the
-    corresponding name prefixes of the new job.
+    r"""Optional. The map of transform name prefixes of the job to be replaced
+    to the corresponding name prefixes of the new job.
 
     Messages:
       AdditionalProperty: An additional property for a
@@ -4005,13 +4157,14 @@ class Job(_messages.Message):
   runtimeUpdatableParams = _messages.MessageField('RuntimeUpdatableParams', 18)
   satisfiesPzi = _messages.BooleanField(19)
   satisfiesPzs = _messages.BooleanField(20)
-  stageStates = _messages.MessageField('ExecutionStageState', 21, repeated=True)
-  startTime = _messages.StringField(22)
-  steps = _messages.MessageField('Step', 23, repeated=True)
-  stepsLocation = _messages.StringField(24)
-  tempFiles = _messages.StringField(25, repeated=True)
-  transformNameMapping = _messages.MessageField('TransformNameMappingValue', 26)
-  type = _messages.EnumField('TypeValueValuesEnum', 27)
+  serviceResources = _messages.MessageField('ServiceResources', 21)
+  stageStates = _messages.MessageField('ExecutionStageState', 22, repeated=True)
+  startTime = _messages.StringField(23)
+  steps = _messages.MessageField('Step', 24, repeated=True)
+  stepsLocation = _messages.StringField(25)
+  tempFiles = _messages.StringField(26, repeated=True)
+  transformNameMapping = _messages.MessageField('TransformNameMappingValue', 27)
+  type = _messages.EnumField('TypeValueValuesEnum', 28)
 
 
 class JobExecutionDetails(_messages.Message):
@@ -4505,6 +4658,8 @@ class LeaseWorkItemRequest(_messages.Message):
     location: The [regional endpoint]
       (https://cloud.google.com/dataflow/docs/concepts/regional-endpoints)
       that contains the WorkItem's job.
+    projectNumber: Optional. The project number of the project this worker
+      belongs to.
     requestedLeaseDuration: The initial lease period.
     unifiedWorkerRequest: Untranslated bag-of-bytes WorkRequest from
       UnifiedWorker.
@@ -4543,11 +4698,12 @@ class LeaseWorkItemRequest(_messages.Message):
 
   currentWorkerTime = _messages.StringField(1)
   location = _messages.StringField(2)
-  requestedLeaseDuration = _messages.StringField(3)
-  unifiedWorkerRequest = _messages.MessageField('UnifiedWorkerRequestValue', 4)
-  workItemTypes = _messages.StringField(5, repeated=True)
-  workerCapabilities = _messages.StringField(6, repeated=True)
-  workerId = _messages.StringField(7)
+  projectNumber = _messages.IntegerField(3)
+  requestedLeaseDuration = _messages.StringField(4)
+  unifiedWorkerRequest = _messages.MessageField('UnifiedWorkerRequestValue', 5)
+  workItemTypes = _messages.StringField(6, repeated=True)
+  workerCapabilities = _messages.StringField(7, repeated=True)
+  workerId = _messages.StringField(8)
 
 
 class LeaseWorkItemResponse(_messages.Message):
@@ -4811,6 +4967,10 @@ class MetricUpdate(_messages.Message):
   r"""Describes the state of a metric.
 
   Fields:
+    boundedTrie: Worker-computed aggregate value for the "Trie" aggregation
+      kind. The only possible value type is a BoundedTrieNode. Introduced this
+      field to avoid breaking older SDKs when Dataflow service starts to
+      populate the `bounded_trie` field.
     cumulative: True if this metric is reported as the total cumulative
       aggregate value accumulated since the worker started working on this
       WorkItem. By default this is false, indicating that this metric is
@@ -4840,24 +5000,28 @@ class MetricUpdate(_messages.Message):
       Double, and Boolean.
     set: Worker-computed aggregate value for the "Set" aggregation kind. The
       only possible value type is a list of Values whose type can be Long,
-      Double, or String, according to the metric's type. All Values in the
-      list must be of the same type.
+      Double, String, or BoundedTrie according to the metric's type. All
+      Values in the list must be of the same type.
+    trie: Worker-computed aggregate value for the "Trie" aggregation kind. The
+      only possible value type is a BoundedTrieNode.
     updateTime: Timestamp associated with the metric value. Optional when
       workers are reporting work progress; it will be filled in responses from
       the metrics API.
   """
 
-  cumulative = _messages.BooleanField(1)
-  distribution = _messages.MessageField('extra_types.JsonValue', 2)
-  gauge = _messages.MessageField('extra_types.JsonValue', 3)
-  internal = _messages.MessageField('extra_types.JsonValue', 4)
-  kind = _messages.StringField(5)
-  meanCount = _messages.MessageField('extra_types.JsonValue', 6)
-  meanSum = _messages.MessageField('extra_types.JsonValue', 7)
-  name = _messages.MessageField('MetricStructuredName', 8)
-  scalar = _messages.MessageField('extra_types.JsonValue', 9)
-  set = _messages.MessageField('extra_types.JsonValue', 10)
-  updateTime = _messages.StringField(11)
+  boundedTrie = _messages.MessageField('extra_types.JsonValue', 1)
+  cumulative = _messages.BooleanField(2)
+  distribution = _messages.MessageField('extra_types.JsonValue', 3)
+  gauge = _messages.MessageField('extra_types.JsonValue', 4)
+  internal = _messages.MessageField('extra_types.JsonValue', 5)
+  kind = _messages.StringField(6)
+  meanCount = _messages.MessageField('extra_types.JsonValue', 7)
+  meanSum = _messages.MessageField('extra_types.JsonValue', 8)
+  name = _messages.MessageField('MetricStructuredName', 9)
+  scalar = _messages.MessageField('extra_types.JsonValue', 10)
+  set = _messages.MessageField('extra_types.JsonValue', 11)
+  trie = _messages.MessageField('extra_types.JsonValue', 12)
+  updateTime = _messages.StringField(13)
 
 
 class MetricValue(_messages.Message):
@@ -4869,6 +5033,7 @@ class MetricValue(_messages.Message):
   Fields:
     metric: Base name for this metric.
     metricLabels: Optional. Set of metric labels for this metric.
+    valueGauge64: Non-cumulative int64 value of this metric.
     valueHistogram: Histogram value of this metric.
     valueInt64: Integer value of this metric.
   """
@@ -4900,8 +5065,9 @@ class MetricValue(_messages.Message):
 
   metric = _messages.StringField(1)
   metricLabels = _messages.MessageField('MetricLabelsValue', 2)
-  valueHistogram = _messages.MessageField('DataflowHistogramValue', 3)
-  valueInt64 = _messages.IntegerField(4)
+  valueGauge64 = _messages.MessageField('DataflowGaugeValue', 3)
+  valueHistogram = _messages.MessageField('DataflowHistogramValue', 4)
+  valueInt64 = _messages.IntegerField(5)
 
 
 class ModifyTemplateVersionLabelRequest(_messages.Message):
@@ -5374,9 +5540,14 @@ class ParameterMetadata(_messages.Message):
       BOOLEAN: The parameter specifies a boolean input.
       ENUM: The parameter specifies an enum input.
       NUMBER: The parameter specifies a number input.
-      KAFKA_TOPIC: The parameter specifies the fully-qualified name of an
+      KAFKA_TOPIC: Deprecated. Please use KAFKA_READ_TOPIC instead.
+      KAFKA_READ_TOPIC: The parameter specifies the fully-qualified name of an
         Apache Kafka topic. This can be either a Google Managed Kafka topic or
         a non-managed Kafka topic.
+      KAFKA_WRITE_TOPIC: The parameter specifies the fully-qualified name of
+        an Apache Kafka topic. This can be an existing Google Managed Kafka
+        topic, the name for a new Google Managed Kafka topic, or an existing
+        non-managed Kafka topic.
     """
     DEFAULT = 0
     TEXT = 1
@@ -5399,6 +5570,8 @@ class ParameterMetadata(_messages.Message):
     ENUM = 18
     NUMBER = 19
     KAFKA_TOPIC = 20
+    KAFKA_READ_TOPIC = 21
+    KAFKA_WRITE_TOPIC = 22
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class CustomMetadataValue(_messages.Message):
@@ -5715,6 +5888,8 @@ class ReportWorkItemStatusRequest(_messages.Message):
     location: The [regional endpoint]
       (https://cloud.google.com/dataflow/docs/concepts/regional-endpoints)
       that contains the WorkItem's job.
+    projectNumber: Optional. The project number of the project which owns the
+      WorkItem's job.
     unifiedWorkerRequest: Untranslated bag-of-bytes WorkProgressUpdateRequest
       from UnifiedWorker.
     workItemStatuses: The order is unimportant, except that the order of the
@@ -5755,9 +5930,10 @@ class ReportWorkItemStatusRequest(_messages.Message):
 
   currentWorkerTime = _messages.StringField(1)
   location = _messages.StringField(2)
-  unifiedWorkerRequest = _messages.MessageField('UnifiedWorkerRequestValue', 3)
-  workItemStatuses = _messages.MessageField('WorkItemStatus', 4, repeated=True)
-  workerId = _messages.StringField(5)
+  projectNumber = _messages.IntegerField(3)
+  unifiedWorkerRequest = _messages.MessageField('UnifiedWorkerRequestValue', 4)
+  workItemStatuses = _messages.MessageField('WorkItemStatus', 5, repeated=True)
+  workerId = _messages.StringField(6)
 
 
 class ReportWorkItemStatusResponse(_messages.Message):
@@ -5835,6 +6011,7 @@ class ResourceUtilizationReport(_messages.Message):
   Fields:
     containers: Per container information. Key: container name.
     cpuTime: CPU utilization samples.
+    gpuUsage: Optional. GPU usage samples.
     memoryInfo: Memory utilization samples.
   """
 
@@ -5864,7 +6041,8 @@ class ResourceUtilizationReport(_messages.Message):
 
   containers = _messages.MessageField('ContainersValue', 1)
   cpuTime = _messages.MessageField('CPUTime', 2, repeated=True)
-  memoryInfo = _messages.MessageField('MemInfo', 3, repeated=True)
+  gpuUsage = _messages.MessageField('GPUUsage', 3, repeated=True)
+  memoryInfo = _messages.MessageField('MemInfo', 4, repeated=True)
 
 
 class ResourceUtilizationReportResponse(_messages.Message):
@@ -5899,7 +6077,7 @@ class RollbackDeploymentRequest(_messages.Message):
 
 
 class RuntimeEnvironment(_messages.Message):
-  r"""The environment values to set at runtime. LINT.IfChange
+  r"""The environment values to set at runtime.
 
   Enums:
     IpConfigurationValueValuesEnum: Optional. Configuration for VM IPs.
@@ -5922,6 +6100,8 @@ class RuntimeEnvironment(_messages.Message):
   Fields:
     additionalExperiments: Optional. Additional experiment flags for the job,
       specified with the `--experiments` option.
+    additionalPipelineOptions: Optional. Additional pipeline option flags for
+      the job.
     additionalUserLabels: Optional. Additional user labels to be specified for
       the job. Keys and values should follow the restrictions specified in the
       [labeling restrictions](https://cloud.google.com/compute/docs/labeling-
@@ -6046,23 +6226,24 @@ class RuntimeEnvironment(_messages.Message):
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
   additionalExperiments = _messages.StringField(1, repeated=True)
-  additionalUserLabels = _messages.MessageField('AdditionalUserLabelsValue', 2)
-  bypassTempDirValidation = _messages.BooleanField(3)
-  diskSizeGb = _messages.IntegerField(4, variant=_messages.Variant.INT32)
-  enableStreamingEngine = _messages.BooleanField(5)
-  ipConfiguration = _messages.EnumField('IpConfigurationValueValuesEnum', 6)
-  kmsKeyName = _messages.StringField(7)
-  machineType = _messages.StringField(8)
-  maxWorkers = _messages.IntegerField(9, variant=_messages.Variant.INT32)
-  network = _messages.StringField(10)
-  numWorkers = _messages.IntegerField(11, variant=_messages.Variant.INT32)
-  serviceAccountEmail = _messages.StringField(12)
-  streamingMode = _messages.EnumField('StreamingModeValueValuesEnum', 13)
-  subnetwork = _messages.StringField(14)
-  tempLocation = _messages.StringField(15)
-  workerRegion = _messages.StringField(16)
-  workerZone = _messages.StringField(17)
-  zone = _messages.StringField(18)
+  additionalPipelineOptions = _messages.StringField(2, repeated=True)
+  additionalUserLabels = _messages.MessageField('AdditionalUserLabelsValue', 3)
+  bypassTempDirValidation = _messages.BooleanField(4)
+  diskSizeGb = _messages.IntegerField(5, variant=_messages.Variant.INT32)
+  enableStreamingEngine = _messages.BooleanField(6)
+  ipConfiguration = _messages.EnumField('IpConfigurationValueValuesEnum', 7)
+  kmsKeyName = _messages.StringField(8)
+  machineType = _messages.StringField(9)
+  maxWorkers = _messages.IntegerField(10, variant=_messages.Variant.INT32)
+  network = _messages.StringField(11)
+  numWorkers = _messages.IntegerField(12, variant=_messages.Variant.INT32)
+  serviceAccountEmail = _messages.StringField(13)
+  streamingMode = _messages.EnumField('StreamingModeValueValuesEnum', 14)
+  subnetwork = _messages.StringField(15)
+  tempLocation = _messages.StringField(16)
+  workerRegion = _messages.StringField(17)
+  workerZone = _messages.StringField(18)
+  zone = _messages.StringField(19)
 
 
 class RuntimeMetadata(_messages.Message):
@@ -6119,14 +6300,28 @@ class SDKInfo(_messages.Message):
       JAVA: Java.
       PYTHON: Python.
       GO: Go.
+      YAML: YAML.
     """
     UNKNOWN = 0
     JAVA = 1
     PYTHON = 2
     GO = 3
+    YAML = 4
 
   language = _messages.EnumField('LanguageValueValuesEnum', 1)
   version = _messages.StringField(2)
+
+
+class Sdk(_messages.Message):
+  r"""A structured representation of an SDK.
+
+  Fields:
+    sdkId: The SDK harness id.
+    stacks: The stacktraces for the processes running on the SDK harness.
+  """
+
+  sdkId = _messages.StringField(1)
+  stacks = _messages.MessageField('Stack', 2, repeated=True)
 
 
 class SdkBug(_messages.Message):
@@ -6372,6 +6567,17 @@ class SeqMapTaskOutputInfo(_messages.Message):
 
   sink = _messages.MessageField('Sink', 1)
   tag = _messages.StringField(2)
+
+
+class ServiceResources(_messages.Message):
+  r"""Resources used by the Dataflow Service to run the job.
+
+  Fields:
+    zones: Output only. List of Cloud Zones being used by the Dataflow Service
+      for this job. Example: us-central1-c
+  """
+
+  zones = _messages.StringField(1, repeated=True)
 
 
 class ShellTask(_messages.Message):
@@ -6935,6 +7141,26 @@ class SplitInt64(_messages.Message):
   lowBits = _messages.IntegerField(2, variant=_messages.Variant.UINT32)
 
 
+class Stack(_messages.Message):
+  r"""A structuredstacktrace for a process running on the worker.
+
+  Fields:
+    stackContent: The raw stack trace.
+    threadCount: With java thread dumps we may get collapsed stacks e.g., N
+      threads in stack "". Instead of having to copy over the same stack trace
+      N times, this int field captures this.
+    threadName: Thread name. For example, "CommitThread-0,10,main"
+    threadState: The state of the thread. For example, "WAITING".
+    timestamp: Timestamp at which the stack was captured.
+  """
+
+  stackContent = _messages.StringField(1)
+  threadCount = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  threadName = _messages.StringField(3)
+  threadState = _messages.StringField(4)
+  timestamp = _messages.StringField(5)
+
+
 class StageExecutionDetails(_messages.Message):
   r"""Information about the workers and work items within a stage.
 
@@ -7459,8 +7685,14 @@ class StreamingConfigTask(_messages.Message):
       harness to windmill.
     maxWorkItemCommitBytes: Maximum size for work item commit supported
       windmill storage layer.
+    operationalLimits: Operational limits for the streaming job. Can be used
+      by the worker to validate outputs sent to the backend.
     streamingComputationConfigs: Set of computation configuration information.
     userStepToStateFamilyNameMap: Map from user step names to state families.
+    userWorkerRunnerV1Settings: Binary encoded proto to control runtime
+      behavior of the java runner v1 user worker.
+    userWorkerRunnerV2Settings: Binary encoded proto to control runtime
+      behavior of the runner v2 user worker.
     windmillServiceEndpoint: If present, the worker must use this endpoint to
       communicate with Windmill Service dispatchers, otherwise the worker must
       continue to use whatever endpoint it had been using.
@@ -7499,10 +7731,38 @@ class StreamingConfigTask(_messages.Message):
   commitStreamChunkSizeBytes = _messages.IntegerField(1)
   getDataStreamChunkSizeBytes = _messages.IntegerField(2)
   maxWorkItemCommitBytes = _messages.IntegerField(3)
-  streamingComputationConfigs = _messages.MessageField('StreamingComputationConfig', 4, repeated=True)
-  userStepToStateFamilyNameMap = _messages.MessageField('UserStepToStateFamilyNameMapValue', 5)
-  windmillServiceEndpoint = _messages.StringField(6)
-  windmillServicePort = _messages.IntegerField(7)
+  operationalLimits = _messages.MessageField('StreamingOperationalLimits', 4)
+  streamingComputationConfigs = _messages.MessageField('StreamingComputationConfig', 5, repeated=True)
+  userStepToStateFamilyNameMap = _messages.MessageField('UserStepToStateFamilyNameMapValue', 6)
+  userWorkerRunnerV1Settings = _messages.BytesField(7)
+  userWorkerRunnerV2Settings = _messages.BytesField(8)
+  windmillServiceEndpoint = _messages.StringField(9)
+  windmillServicePort = _messages.IntegerField(10)
+
+
+class StreamingOperationalLimits(_messages.Message):
+  r"""Operational limits imposed on streaming jobs by the backend.
+
+  Fields:
+    maxBagElementBytes: The maximum size for an element in bag state.
+    maxGlobalDataBytes: The maximum size for an element in global data.
+    maxKeyBytes: The maximum size allowed for a key.
+    maxProductionOutputBytes: The maximum size for a single output element.
+    maxSortedListElementBytes: The maximum size for an element in sorted list
+      state.
+    maxSourceStateBytes: The maximum size for a source state update.
+    maxTagBytes: The maximum size for a state tag.
+    maxValueBytes: The maximum size for a value state field.
+  """
+
+  maxBagElementBytes = _messages.IntegerField(1)
+  maxGlobalDataBytes = _messages.IntegerField(2)
+  maxKeyBytes = _messages.IntegerField(3)
+  maxProductionOutputBytes = _messages.IntegerField(4)
+  maxSortedListElementBytes = _messages.IntegerField(5)
+  maxSourceStateBytes = _messages.IntegerField(6)
+  maxTagBytes = _messages.IntegerField(7)
+  maxValueBytes = _messages.IntegerField(8)
 
 
 class StreamingScalingReport(_messages.Message):
@@ -7714,6 +7974,7 @@ class TemplateMetadata(_messages.Message):
       supports at least once mode.
     supportsExactlyOnce: Optional. Indicates if the streaming template
       supports exactly once mode.
+    yamlDefinition: Optional. For future use.
   """
 
   defaultStreamingMode = _messages.StringField(1)
@@ -7723,6 +7984,7 @@ class TemplateMetadata(_messages.Message):
   streaming = _messages.BooleanField(5)
   supportsAtLeastOnce = _messages.BooleanField(6)
   supportsExactlyOnce = _messages.BooleanField(7)
+  yamlDefinition = _messages.StringField(8)
 
 
 class TemplateVersion(_messages.Message):
@@ -8801,3 +9063,11 @@ encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    DataflowProjectsLocationsTemplatesLaunchRequest, 'dynamicTemplate_gcsPath', 'dynamicTemplate.gcsPath')
+encoding.AddCustomJsonFieldMapping(
+    DataflowProjectsLocationsTemplatesLaunchRequest, 'dynamicTemplate_stagingLocation', 'dynamicTemplate.stagingLocation')
+encoding.AddCustomJsonFieldMapping(
+    DataflowProjectsTemplatesLaunchRequest, 'dynamicTemplate_gcsPath', 'dynamicTemplate.gcsPath')
+encoding.AddCustomJsonFieldMapping(
+    DataflowProjectsTemplatesLaunchRequest, 'dynamicTemplate_stagingLocation', 'dynamicTemplate.stagingLocation')

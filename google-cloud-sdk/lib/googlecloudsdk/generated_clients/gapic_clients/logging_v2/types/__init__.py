@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,10 @@
 # limitations under the License.
 #
 from .log_entry import (
+    AppHub,
+    AppHubApplication,
+    AppHubService,
+    AppHubWorkload,
     LogEntry,
     LogEntryOperation,
     LogEntrySourceLocation,
@@ -45,12 +49,14 @@ from .logging_config import (
     CreateBucketRequest,
     CreateExclusionRequest,
     CreateLinkRequest,
+    CreateLogScopeRequest,
     CreateSavedQueryRequest,
     CreateSinkRequest,
     CreateViewRequest,
     DeleteBucketRequest,
     DeleteExclusionRequest,
     DeleteLinkRequest,
+    DeleteLogScopeRequest,
     DeleteSavedQueryRequest,
     DeleteSinkRequest,
     DeleteViewRequest,
@@ -58,6 +64,8 @@ from .logging_config import (
     GetCmekSettingsRequest,
     GetExclusionRequest,
     GetLinkRequest,
+    GetLogScopeRequest,
+    GetSavedQueryRequest,
     GetSettingsRequest,
     GetSinkRequest,
     GetViewRequest,
@@ -70,6 +78,8 @@ from .logging_config import (
     ListExclusionsResponse,
     ListLinksRequest,
     ListLinksResponse,
+    ListLogScopesRequest,
+    ListLogScopesResponse,
     ListRecentQueriesRequest,
     ListRecentQueriesResponse,
     ListSavedQueriesRequest,
@@ -82,6 +92,7 @@ from .logging_config import (
     LogBucket,
     LogExclusion,
     LoggingQuery,
+    LogScope,
     LogSink,
     LogView,
     OpsAnalyticsQuery,
@@ -92,6 +103,8 @@ from .logging_config import (
     UpdateBucketRequest,
     UpdateCmekSettingsRequest,
     UpdateExclusionRequest,
+    UpdateLogScopeRequest,
+    UpdateSavedQueryRequest,
     UpdateSettingsRequest,
     UpdateSinkRequest,
     UpdateViewRequest,
@@ -110,6 +123,10 @@ from .logging_metrics import (
 )
 
 __all__ = (
+    'AppHub',
+    'AppHubApplication',
+    'AppHubService',
+    'AppHubWorkload',
     'LogEntry',
     'LogEntryOperation',
     'LogEntrySourceLocation',
@@ -137,12 +154,14 @@ __all__ = (
     'CreateBucketRequest',
     'CreateExclusionRequest',
     'CreateLinkRequest',
+    'CreateLogScopeRequest',
     'CreateSavedQueryRequest',
     'CreateSinkRequest',
     'CreateViewRequest',
     'DeleteBucketRequest',
     'DeleteExclusionRequest',
     'DeleteLinkRequest',
+    'DeleteLogScopeRequest',
     'DeleteSavedQueryRequest',
     'DeleteSinkRequest',
     'DeleteViewRequest',
@@ -150,6 +169,8 @@ __all__ = (
     'GetCmekSettingsRequest',
     'GetExclusionRequest',
     'GetLinkRequest',
+    'GetLogScopeRequest',
+    'GetSavedQueryRequest',
     'GetSettingsRequest',
     'GetSinkRequest',
     'GetViewRequest',
@@ -162,6 +183,8 @@ __all__ = (
     'ListExclusionsResponse',
     'ListLinksRequest',
     'ListLinksResponse',
+    'ListLogScopesRequest',
+    'ListLogScopesResponse',
     'ListRecentQueriesRequest',
     'ListRecentQueriesResponse',
     'ListSavedQueriesRequest',
@@ -174,6 +197,7 @@ __all__ = (
     'LogBucket',
     'LogExclusion',
     'LoggingQuery',
+    'LogScope',
     'LogSink',
     'LogView',
     'OpsAnalyticsQuery',
@@ -184,6 +208,8 @@ __all__ = (
     'UpdateBucketRequest',
     'UpdateCmekSettingsRequest',
     'UpdateExclusionRequest',
+    'UpdateLogScopeRequest',
+    'UpdateSavedQueryRequest',
     'UpdateSettingsRequest',
     'UpdateSinkRequest',
     'UpdateViewRequest',

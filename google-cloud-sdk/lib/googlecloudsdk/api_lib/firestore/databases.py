@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*- #
-# Copyright 2023 Google LLC. All Rights Reserved.
+# Copyright 2025 Google LLC. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -49,9 +49,11 @@ def CreateDatabase(
     location,
     database,
     database_type,
+    database_edition,
     delete_protection_state,
     pitr_state,
     cmek_config,
+    tags=None,
 ):
   """Performs a Firestore Admin v1 Database Creation.
 
@@ -60,24 +62,31 @@ def CreateDatabase(
     location: the database location to create, a string.
     database: the database id to create, a string.
     database_type: the database type, an Enum.
+    database_edition: the database edition, an Enum.
     delete_protection_state: the value for deleteProtectionState, an Enum.
     pitr_state: the value for PitrState, an Enum.
-    cmek_config: the CMEK config used to encrypt the database, an object
+    cmek_config: the CMEK config used to encrypt the database, an object.
+    tags: the tags to attach to the database, a key-value dictionary, or None.
 
   Returns:
     an Operation.
   """
   messages = api_utils.GetMessages()
+  tags_value = api_utils.ParseTagsForTagsValue(
+      tags, messages.GoogleFirestoreAdminV1Database.TagsValue
+  )
   return _GetDatabaseService().Create(
       messages.FirestoreProjectsDatabasesCreateRequest(
           parent='projects/{}'.format(project),
           databaseId=database,
           googleFirestoreAdminV1Database=messages.GoogleFirestoreAdminV1Database(
               type=database_type,
+              databaseEdition=database_edition,
               locationId=location,
               deleteProtectionState=delete_protection_state,
               pointInTimeRecoveryEnablement=pitr_state,
               cmekConfig=cmek_config,
+              tags=tags_value,
           ),
       )
   )
@@ -103,11 +112,12 @@ def DeleteDatabase(project, database, etag):
   )
 
 
-def ListDatabases(project):
+def ListDatabases(project, show_deleted):
   """Lists all Firestore databases under the project.
 
   Args:
     project: the project ID to list databases, a string.
+    show_deleted: if true, also returns deleted resources, a boolean.
 
   Returns:
     a List of Databases.
@@ -117,7 +127,8 @@ def ListDatabases(project):
       _GetDatabaseService()
       .List(
           messages.FirestoreProjectsDatabasesListRequest(
-              parent='projects/{}'.format(project)
+              parent='projects/{}'.format(project),
+              showDeleted=True if show_deleted else None,
           )
       )
       .databases
@@ -126,47 +137,82 @@ def ListDatabases(project):
 
 def RestoreDatabase(
     project,
-    destination_database,
     source_backup,
-    source_database,
-    snapshot_time,
+    destination_database,
+    encryption_config,
+    tags=None,
 ):
-  """Restores a Firestore database from either a backup or a snapshot.
+  """Restores a Firestore database from a backup.
 
   Args:
     project: the project ID to list databases, a string.
-    destination_database: the database to restore to, a string.
     source_backup: the backup to restore from, a string.
-    source_database: the source database which the snapshot belongs to, a
-      string.
-    snapshot_time: the version of source database to restore from, a string in
-      google-datetime format.
+    destination_database: the database to restore to, a string.
+    encryption_config: the encryption config to use for the restored database,
+      an optional object.
+    tags: the tags to attach to the database, a key-value dictionary.
 
   Returns:
     an Operation.
   """
   messages = api_utils.GetMessages()
-  if source_backup:
-    return _GetDatabaseService().Restore(
-        messages.FirestoreProjectsDatabasesRestoreRequest(
-            parent='projects/{}'.format(project),
-            googleFirestoreAdminV1RestoreDatabaseRequest=messages.GoogleFirestoreAdminV1RestoreDatabaseRequest(
-                backup=source_backup,
-                databaseId=destination_database,
-            ),
-        )
-    )
-
-  restore_from_snapshot = messages.GoogleFirestoreAdminV1DatabaseSnapshot(
-      database=source_database,
-      snapshotTime=snapshot_time,
+  tags_value = api_utils.ParseTagsForTagsValue(
+      tags, messages.GoogleFirestoreAdminV1RestoreDatabaseRequest.TagsValue
   )
+  restore_request = messages.GoogleFirestoreAdminV1RestoreDatabaseRequest(
+      backup=source_backup,
+      databaseId=destination_database,
+      encryptionConfig=encryption_config,
+      tags=tags_value,
+  )
+
   return _GetDatabaseService().Restore(
       messages.FirestoreProjectsDatabasesRestoreRequest(
           parent='projects/{}'.format(project),
-          googleFirestoreAdminV1RestoreDatabaseRequest=messages.GoogleFirestoreAdminV1RestoreDatabaseRequest(
-              databaseId=destination_database,
-              databaseSnapshot=restore_from_snapshot,
-          ),
+          googleFirestoreAdminV1RestoreDatabaseRequest=restore_request,
+      )
+  )
+
+
+def CloneDatabase(
+    project,
+    source_database,
+    snapshot_time,
+    destination_database,
+    encryption_config,
+    tags=None,
+):
+  """Clones one Firestore database from another.
+
+  Args:
+    project: the project ID containing the source database, a string.
+    source_database: the resource name of the database to clone, a string.
+    snapshot_time: the timestamp at which to clone, a DateTime.
+    destination_database: the database to clone to, a string.
+    encryption_config: the encryption config to use for the cloned database, an
+      optional object.
+    tags: the tags to attach to the database, a key-value dictionary, or None.
+
+  Returns:
+    an Operation.
+  """
+  messages = api_utils.GetMessages()
+  tags_value = api_utils.ParseTagsForTagsValue(
+      tags, messages.GoogleFirestoreAdminV1CloneDatabaseRequest.TagsValue
+  )
+  clone_request = messages.GoogleFirestoreAdminV1CloneDatabaseRequest(
+      pitrSnapshot=messages.GoogleFirestoreAdminV1PitrSnapshot(
+          database=source_database,
+          snapshotTime=snapshot_time,
+      ),
+      databaseId=destination_database,
+      encryptionConfig=encryption_config,
+      tags=tags_value,
+  )
+
+  return _GetDatabaseService().Clone(
+      messages.FirestoreProjectsDatabasesCloneRequest(
+          parent='projects/{}'.format(project),
+          googleFirestoreAdminV1CloneDatabaseRequest=clone_request,
       )
   )

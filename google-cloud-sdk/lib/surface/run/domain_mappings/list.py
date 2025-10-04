@@ -30,9 +30,13 @@ from googlecloudsdk.command_lib.util.concepts import concept_parsers
 from googlecloudsdk.command_lib.util.concepts import presentation_specs
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class List(commands.List):
   """Lists domain mappings for Cloud Run for Anthos."""
+
+  # Hide GA command because only used by Cloud Run for Anthos
+  hidden = True
 
   detailed_help = {
       'DESCRIPTION':
@@ -52,15 +56,16 @@ class List(commands.List):
   @classmethod
   def CommonArgs(cls, parser):
     # Flags specific to connecting to a cluster
-    cluster_group = flags.GetClusterArgGroup(parser)
     namespace_presentation = presentation_specs.ResourcePresentationSpec(
         '--namespace',
         resource_args.GetNamespaceResourceSpec(),
         'Namespace to list domain mappings in.',
         required=True,
-        prefixes=False)
+        prefixes=False,
+        hidden=True,
+    )
     concept_parsers.ConceptParser(
-        [namespace_presentation]).AddToParser(cluster_group)
+        [namespace_presentation]).AddToParser(parser)
 
     parser.display_info.AddFormat(
         """table(

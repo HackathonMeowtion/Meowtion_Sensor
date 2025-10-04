@@ -19,18 +19,22 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from googlecloudsdk.api_lib.container.fleet import util
+from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.container.fleet import resources
 from googlecloudsdk.command_lib.container.fleet.config_management import utils
-from googlecloudsdk.command_lib.container.fleet.features import base
+from googlecloudsdk.command_lib.container.fleet.features import base as features_base
+from googlecloudsdk.command_lib.container.fleet.membershipfeatures import base as mf_base
+from googlecloudsdk.command_lib.container.fleet.membershipfeatures import convert
 from googlecloudsdk.core import log
 from googlecloudsdk.core.console import console_io
 
 
-class Upgrade(base.UpdateCommand):
-  """Upgrade the version of the Config Management Feature.
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
+class Upgrade(features_base.UpdateCommand, mf_base.UpdateCommand):
+  """Upgrade the version of the Config Management feature.
 
   Upgrade a specified membership to any supported version of the Config
-  Management Feature.
+  Management feature.
 
   ## EXAMPLES
 
@@ -39,7 +43,8 @@ class Upgrade(base.UpdateCommand):
     $ {command} --membership=MEMBERSHIP_NAME --version=VERSION
   """
 
-  feature_name = 'configmanagement'
+  feature_name = utils.CONFIG_MANAGEMENT_FEATURE_NAME
+  mf_name = utils.CONFIG_MANAGEMENT_FEATURE_NAME
 
   @classmethod
   def Args(cls, parser):
@@ -52,11 +57,9 @@ class Upgrade(base.UpdateCommand):
     )
 
   def Run(self, args):
-    utils.enable_poco_api_if_disabled(self.Project())
-
     f = self.GetFeature()
     new_version = args.version
-    membership = base.ParseMembership(
+    membership = features_base.ParseMembership(
         args, prompt=True, autoselect=True, search=True
     )
     _, cluster_v = utils.versions_for_member(f, membership)
@@ -64,7 +67,7 @@ class Upgrade(base.UpdateCommand):
     if not self._validate_versions(membership, cluster_v, new_version):
       return
     console_io.PromptContinue(
-        'You are about to change the {} Feature for membership {} from version'
+        'You are about to change the {} feature for membership {} from version'
         ' "{}" to version "{}".'.format(
             self.feature.display_name, membership, cluster_v, new_version
         ),
@@ -86,17 +89,16 @@ class Upgrade(base.UpdateCommand):
     patch.configmanagement.version = new_version
 
     membership_key = membership
-    f = self.messages.Feature(
-        membershipSpecs=self.hubclient.ToMembershipSpecs(
-            {membership_key: patch}
-        )
+
+    membershipfeature = convert.ToV2MembershipFeature(
+        self, membership_key, self.mf_name, patch
     )
-    self.Update(['membershipSpecs'], f)
+    self.UpdateV2(membership_key, ['spec'], membershipfeature)
 
   def _validate_versions(self, membership, cluster_v, new_v):
     if cluster_v == new_v:
       log.status.Print(
-          'Membership {} already has version {} of the {} Feature installed.'
+          'Membership {} already has version {} of the {} feature installed.'
           .format(membership, cluster_v, self.feature.display_name)
       )
       return False

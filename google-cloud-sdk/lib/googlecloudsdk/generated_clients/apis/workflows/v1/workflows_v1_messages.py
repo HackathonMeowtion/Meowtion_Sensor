@@ -432,6 +432,8 @@ class Workflow(_messages.Message):
       logging to apply to calls and call responses during executions of this
       workflow. If both the workflow and the execution specify a logging
       level, the execution level takes precedence.
+    ExecutionHistoryLevelValueValuesEnum: Optional. Describes the execution
+      history level to apply to this workflow.
     StateValueValuesEnum: Output only. State of the workflow deployment.
 
   Messages:
@@ -441,12 +443,18 @@ class Workflow(_messages.Message):
       dashes. Label keys must start with a letter. International characters
       are allowed. This is a workflow-wide field and is not tied to a specific
       revision.
+    TagsValue: Optional. Input only. Immutable. Tags associated with this
+      workflow.
     UserEnvVarsValue: Optional. User-defined environment variables associated
       with this workflow revision. This map has a maximum length of 20. Each
       string can take up to 4KiB. Keys cannot be empty strings and cannot
       start with "GOOGLE" or "WORKFLOWS".
 
   Fields:
+    allKmsKeys: Output only. A list of all KMS crypto keys used to encrypt or
+      decrypt the data associated with the workflow.
+    allKmsKeysVersions: Output only. A list of all KMS crypto key versions
+      used to encrypt or decrypt the data associated with the workflow.
     callLogLevel: Optional. Describes the level of platform logging to apply
       to calls and call responses during executions of this workflow. If both
       the workflow and the execution specify a logging level, the execution
@@ -459,9 +467,15 @@ class Workflow(_messages.Message):
       ey} Using `-` as a wildcard for the `{project}` or not providing one at
       all will infer the project from the account. If not provided, data
       associated with the workflow will not be CMEK-encrypted.
+    cryptoKeyVersion: Output only. The resource name of a KMS crypto key
+      version used to encrypt or decrypt the data associated with the
+      workflow. Format: projects/{project}/locations/{location}/keyRings/{keyR
+      ing}/cryptoKeys/{cryptoKey}/cryptoKeyVersions/{cryptoKeyVersion}
     description: Description of the workflow provided by the user. Must be at
       most 1000 Unicode characters long. This is a workflow-wide field and is
       not tied to a specific revision.
+    executionHistoryLevel: Optional. Describes the execution history level to
+      apply to this workflow.
     labels: Labels associated with this workflow. Labels can contain at most
       64 entries. Keys and values can be no longer than 63 characters and can
       only contain lowercase letters, numeric characters, underscores, and
@@ -493,6 +507,7 @@ class Workflow(_messages.Message):
     stateError: Output only. Error regarding the state of the workflow. For
       example, this field will have error details if the execution data is
       unavailable due to revoked KMS key permissions.
+    tags: Optional. Input only. Immutable. Tags associated with this workflow.
     updateTime: Output only. The timestamp for when the workflow was last
       updated. This is a workflow-wide field and is not tied to a specific
       revision.
@@ -520,6 +535,19 @@ class Workflow(_messages.Message):
     LOG_ALL_CALLS = 1
     LOG_ERRORS_ONLY = 2
     LOG_NONE = 3
+
+  class ExecutionHistoryLevelValueValuesEnum(_messages.Enum):
+    r"""Optional. Describes the execution history level to apply to this
+    workflow.
+
+    Values:
+      EXECUTION_HISTORY_LEVEL_UNSPECIFIED: The default/unset value.
+      EXECUTION_HISTORY_BASIC: Enable execution history basic feature.
+      EXECUTION_HISTORY_DETAILED: Enable execution history detailed feature.
+    """
+    EXECUTION_HISTORY_LEVEL_UNSPECIFIED = 0
+    EXECUTION_HISTORY_BASIC = 1
+    EXECUTION_HISTORY_DETAILED = 2
 
   class StateValueValuesEnum(_messages.Enum):
     r"""Output only. State of the workflow deployment.
@@ -562,6 +590,30 @@ class Workflow(_messages.Message):
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
   @encoding.MapUnrecognizedFields('additionalProperties')
+  class TagsValue(_messages.Message):
+    r"""Optional. Input only. Immutable. Tags associated with this workflow.
+
+    Messages:
+      AdditionalProperty: An additional property for a TagsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type TagsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a TagsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
   class UserEnvVarsValue(_messages.Message):
     r"""Optional. User-defined environment variables associated with this
     workflow revision. This map has a maximum length of 20. Each string can
@@ -589,20 +641,25 @@ class Workflow(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
-  callLogLevel = _messages.EnumField('CallLogLevelValueValuesEnum', 1)
-  createTime = _messages.StringField(2)
-  cryptoKeyName = _messages.StringField(3)
-  description = _messages.StringField(4)
-  labels = _messages.MessageField('LabelsValue', 5)
-  name = _messages.StringField(6)
-  revisionCreateTime = _messages.StringField(7)
-  revisionId = _messages.StringField(8)
-  serviceAccount = _messages.StringField(9)
-  sourceContents = _messages.StringField(10)
-  state = _messages.EnumField('StateValueValuesEnum', 11)
-  stateError = _messages.MessageField('StateError', 12)
-  updateTime = _messages.StringField(13)
-  userEnvVars = _messages.MessageField('UserEnvVarsValue', 14)
+  allKmsKeys = _messages.StringField(1, repeated=True)
+  allKmsKeysVersions = _messages.StringField(2, repeated=True)
+  callLogLevel = _messages.EnumField('CallLogLevelValueValuesEnum', 3)
+  createTime = _messages.StringField(4)
+  cryptoKeyName = _messages.StringField(5)
+  cryptoKeyVersion = _messages.StringField(6)
+  description = _messages.StringField(7)
+  executionHistoryLevel = _messages.EnumField('ExecutionHistoryLevelValueValuesEnum', 8)
+  labels = _messages.MessageField('LabelsValue', 9)
+  name = _messages.StringField(10)
+  revisionCreateTime = _messages.StringField(11)
+  revisionId = _messages.StringField(12)
+  serviceAccount = _messages.StringField(13)
+  sourceContents = _messages.StringField(14)
+  state = _messages.EnumField('StateValueValuesEnum', 15)
+  stateError = _messages.MessageField('StateError', 16)
+  tags = _messages.MessageField('TagsValue', 17)
+  updateTime = _messages.StringField(18)
+  userEnvVars = _messages.MessageField('UserEnvVarsValue', 19)
 
 
 class WorkflowsProjectsLocationsGetRequest(_messages.Message):
@@ -619,6 +676,9 @@ class WorkflowsProjectsLocationsListRequest(_messages.Message):
   r"""A WorkflowsProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -629,10 +689,11 @@ class WorkflowsProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class WorkflowsProjectsLocationsOperationsDeleteRequest(_messages.Message):

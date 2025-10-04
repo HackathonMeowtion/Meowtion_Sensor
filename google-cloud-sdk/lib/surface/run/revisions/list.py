@@ -31,6 +31,7 @@ from googlecloudsdk.command_lib.util.concepts import presentation_specs
 from googlecloudsdk.core import log
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.GA)
 class List(commands.List):
   """List available revisions."""
@@ -49,15 +50,15 @@ class List(commands.List):
   @classmethod
   def CommonArgs(cls, parser):
     # Flags specific to connecting to a cluster
-    cluster_group = flags.GetClusterArgGroup(parser)
     namespace_presentation = presentation_specs.ResourcePresentationSpec(
         '--namespace',
         resource_args.GetNamespaceResourceSpec(),
         'Namespace to list revisions in.',
         required=True,
-        prefixes=False)
-    concept_parsers.ConceptParser(
-        [namespace_presentation]).AddToParser(cluster_group)
+        prefixes=False,
+        hidden=True,
+    )
+    concept_parsers.ConceptParser([namespace_presentation]).AddToParser(parser)
 
     # Flags not specific to any platform
     flags.AddServiceFlag(parser)
@@ -81,21 +82,46 @@ class List(commands.List):
   def Args(cls, parser):
     cls.CommonArgs(parser)
 
+  def _FilterWorkerPoolRevisions(self, revisions):
+    """Filters out revisions that are worker pool revisions.
+
+    Per discussion with jmahood@, we want to make sure that all resources are
+    self-contained, so none of the describe/list commands should mix the
+    resource type.
+
+    Args:
+      revisions: List of revisions to filter.
+
+    Returns:
+      List of revisions that are service revisions.
+    """
+    return list(filter(lambda rev: rev.worker_pool_name is None, revisions))
+
   def Run(self, args):
     """List available revisions."""
+    label_selector = None
     service_name = args.service
     conn_context = connection_context.GetConnectionContext(
-        args, flags.Product.RUN, self.ReleaseTrack())
+        args, flags.Product.RUN, self.ReleaseTrack()
+    )
     namespace_ref = args.CONCEPTS.namespace.Parse()
     with serverless_operations.Connect(conn_context) as client:
       self.SetCompleteApiEndpoint(conn_context.endpoint)
       if platforms.GetPlatform() != platforms.PLATFORM_MANAGED:
         location_msg = ' in [{}]'.format(conn_context.cluster_location)
-        log.status.Print('For cluster [{cluster}]{zone}:'.format(
-            cluster=conn_context.cluster_name,
-            zone=location_msg if conn_context.cluster_location else ''))
-      for rev in client.ListRevisions(namespace_ref, service_name,
-                                      args.limit, args.page_size):
+        log.status.Print(
+            'For cluster [{cluster}]{zone}:'.format(
+                cluster=conn_context.cluster_name,
+                zone=location_msg if conn_context.cluster_location else '',
+            )
+        )
+      if service_name is not None:
+        label_selector = 'serving.knative.dev/service = {}'.format(service_name)
+      for rev in self._FilterWorkerPoolRevisions(
+          client.ListRevisions(
+              namespace_ref, label_selector, args.limit, args.page_size
+          )
+      ):
         yield rev
 
 
@@ -106,5 +132,6 @@ class AlphaList(List):
   @classmethod
   def Args(cls, parser):
     cls.CommonArgs(parser)
+
 
 AlphaList.__doc__ = List.__doc__

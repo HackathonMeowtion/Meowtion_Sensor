@@ -18,7 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from googlecloudsdk.api_lib.network_security.security_profiles.threat_prevention import sp_api
+from googlecloudsdk.api_lib.network_security.security_profiles import tpp_api
 from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.network_security import sp_flags
 from googlecloudsdk.command_lib.util.args import labels_util
@@ -27,7 +27,7 @@ from googlecloudsdk.core import log
 
 DETAILED_HELP = {
     'DESCRIPTION': """
-          Add severities or threat-ids to existing
+          Add antivirus, severities, or threat-ids to existing
           threat prevention profile with intended action on each specified.
           Check the updates of add-override command by using `gcloud network-security
           security-profiles threat-prevention list-override my-security-profile`.
@@ -54,13 +54,14 @@ DETAILED_HELP = {
 @base.ReleaseTracks(
     base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA, base.ReleaseTrack.GA
 )
+@base.DefaultUniverseOnly
 class AddOverride(base.UpdateCommand):
   """Add overrides to Threat Prevention Profile."""
 
   @classmethod
   def Args(cls, parser):
     sp_flags.AddSecurityProfileResource(parser, cls.ReleaseTrack())
-    sp_flags.AddSeverityorThreatIDArg(parser, required=True)
+    sp_flags.AddSeverityorThreatIDorAntivirusArg(parser, required=True)
     sp_flags.AddActionArg(parser, required=True)
     labels_util.AddUpdateLabelsFlags(parser)
     base.ASYNC_FLAG.AddToParser(parser)
@@ -70,7 +71,7 @@ class AddOverride(base.UpdateCommand):
     return client.GetSecurityProfile(security_profile.RelativeName()).labels
 
   def Run(self, args):
-    client = sp_api.Client(self.ReleaseTrack())
+    client = tpp_api.Client(self.ReleaseTrack())
     security_profile = args.CONCEPTS.security_profile.Parse()
     is_async = args.async_
 
@@ -97,9 +98,15 @@ class AddOverride(base.UpdateCommand):
       action = args.action
       for threat in threats:
         overrides.append({'threatId': threat, 'action': action})
+    elif args.IsSpecified('antivirus'):
+      update_mask = 'antivirusOverrides'
+      protocols = args.antivirus
+      action = args.action
+      for protocol in protocols:
+        overrides.append({'protocol': protocol, 'action': action})
     else:
       raise core_exceptions.Error(
-          'Either --severities or --threat-ids must be specified'
+          'Either --antivirus, --severities, or --threat-ids must be specified'
       )
 
     if args.location != 'global':

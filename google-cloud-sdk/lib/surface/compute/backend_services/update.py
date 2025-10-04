@@ -71,13 +71,10 @@ class UpdateHelper(object):
   def Args(
       cls,
       parser,
-      support_failover,
-      support_client_only,
-      support_subsetting,
       support_subsetting_subset_size,
-      support_unspecified_protocol,
-      support_advanced_load_balancing,
-      support_ip_address_selection_policy,
+      support_ip_port_dynamic_forwarding,
+      support_zonal_affinity,
+      support_allow_multinetwork,
   ):
     """Add all arguments for updating a backend service."""
 
@@ -109,10 +106,7 @@ class UpdateHelper(object):
     cls.EDGE_SECURITY_POLICY_ARG.AddArgument(parser)
     flags.AddTimeout(parser, default=None)
     flags.AddPortName(parser)
-    flags.AddProtocol(
-        parser,
-        default=None,
-        support_unspecified_protocol=support_unspecified_protocol)
+    flags.AddProtocol(parser, default=None)
 
     flags.AddConnectionDrainingTimeout(parser)
     flags.AddEnableCdn(parser)
@@ -121,20 +115,20 @@ class UpdateHelper(object):
     flags.AddCacheKeyIncludeQueryString(parser, default=None)
     flags.AddCacheKeyQueryStringList(parser)
     flags.AddCacheKeyExtendedCachingArgs(parser)
-    flags.AddSessionAffinity(parser, support_client_only=support_client_only)
-    flags.AddAffinityCookieTtl(parser)
+    flags.AddSessionAffinity(
+        parser,
+        support_stateful_affinity=True,
+    )
+    flags.AddAffinityCookie(parser, support_stateful_affinity=True)
     signed_url_flags.AddSignedUrlCacheMaxAge(
         parser, required=False, unspecified_help='')
-    if support_subsetting:
-      flags.AddSubsettingPolicy(parser)
-      if support_subsetting_subset_size:
-        flags.AddSubsettingSubsetSize(parser)
+    flags.AddSubsettingPolicy(parser)
+    if support_subsetting_subset_size:
+      flags.AddSubsettingSubsetSize(parser)
 
-    if support_failover:
-      flags.AddConnectionDrainOnFailover(parser, default=None)
-      flags.AddDropTrafficIfUnhealthy(parser, default=None)
-      flags.AddFailoverRatio(parser)
-
+    flags.AddConnectionDrainOnFailover(parser, default=None)
+    flags.AddDropTrafficIfUnhealthy(parser, default=None)
+    flags.AddFailoverRatio(parser)
     flags.AddEnableLogging(parser)
     flags.AddLoggingSampleRate(parser)
     flags.AddLoggingOptional(parser)
@@ -146,36 +140,38 @@ class UpdateHelper(object):
     cdn_flags.AddCdnPolicyArgs(parser, 'backend service', update_command=True)
 
     flags.AddConnectionTrackingPolicy(parser)
-
     flags.AddCompressionMode(parser)
 
-    if support_advanced_load_balancing:
-      flags.AddServiceLoadBalancingPolicy(
-          parser, required=False, is_update=True)
+    flags.AddServiceLoadBalancingPolicy(parser, required=False, is_update=True)
 
     flags.AddServiceBindings(parser, required=False, is_update=True)
-
     flags.AddLocalityLbPolicy(parser)
+    flags.AddIpAddressSelectionPolicy(parser)
+    flags.AddExternalMigration(parser)
 
-    if support_ip_address_selection_policy:
-      flags.AddIpAddressSelectionPolicy(parser)
+    flags.AddBackendServiceTlsSettings(parser, add_clear_argument=True)
+    flags.AddBackendServiceCustomMetrics(parser, add_clear_argument=True)
+    if support_ip_port_dynamic_forwarding:
+      flags.AddIpPortDynamicForwarding(parser)
+    if support_zonal_affinity:
+      flags.AddZonalAffinity(parser)
+    if support_allow_multinetwork:
+      flags.AddAllowMultinetwork(parser)
 
   def __init__(
       self,
-      support_failover,
-      support_subsetting,
       support_subsetting_subset_size,
-      support_ip_address_selection_policy,
-      support_advanced_load_balancing=False,
+      support_ip_port_dynamic_forwarding=False,
+      support_zonal_affinity=False,
+      support_allow_multinetwork=False,
       release_track=None,
   ):
-    self._support_failover = support_failover
-    self._support_subsetting = support_subsetting
     self._support_subsetting_subset_size = support_subsetting_subset_size
-    self._support_ip_address_selection_policy = (
-        support_ip_address_selection_policy
+    self._support_ip_port_dynamic_forwarding = (
+        support_ip_port_dynamic_forwarding
     )
-    self._support_advanced_load_balancing = support_advanced_load_balancing
+    self._support_zonal_affinity = support_zonal_affinity
+    self._support_allow_multinetwork = support_allow_multinetwork
     self._release_track = release_track
 
   def Modify(self, client, resources, args, existing, backend_service_ref):
@@ -240,17 +236,19 @@ class UpdateHelper(object):
       replacement.sessionAffinity = (
           client.messages.BackendService.SessionAffinityValueValuesEnum(
               args.session_affinity))
+      # strongSessionAffinityCookie only usable with STRONG_COOKIE_AFFINITY.
+      if args.session_affinity != 'STRONG_COOKIE_AFFINITY':
+        cleared_fields.append('strongSessionAffinityCookie')
 
-    if args.affinity_cookie_ttl is not None:
-      replacement.affinityCookieTtlSec = args.affinity_cookie_ttl
+    backend_services_utils.ApplyAffinityCookieArgs(client, args, replacement)
 
     if args.connection_draining_timeout is not None:
       replacement.connectionDraining = client.messages.ConnectionDraining(
           drainingTimeoutSec=args.connection_draining_timeout)
 
-    if self._support_subsetting:
-      backend_services_utils.ApplySubsettingArgs(
-          client, args, replacement, self._support_subsetting_subset_size)
+    backend_services_utils.ApplySubsettingArgs(
+        client, args, replacement, self._support_subsetting_subset_size
+    )
 
     if args.locality_lb_policy is not None:
       replacement.localityLbPolicy = (
@@ -276,10 +274,8 @@ class UpdateHelper(object):
     self._ApplyIapArgs(client, args.iap, existing, replacement)
 
     backend_services_utils.ApplyFailoverPolicyArgs(
-        client.messages,
-        args,
-        replacement,
-        support_failover=self._support_failover)
+        client.messages, args, replacement
+    )
 
     backend_services_utils.ApplyLogConfigArgs(
         client.messages,
@@ -288,16 +284,16 @@ class UpdateHelper(object):
         cleared_fields=cleared_fields,
     )
 
-    if self._support_advanced_load_balancing:
-      if args.service_lb_policy is not None:
-        replacement.serviceLbPolicy = reference_utils.BuildServiceLbPolicyUrl(
-            project_name=backend_service_ref.project,
-            location=location,
-            policy_name=args.service_lb_policy,
-            release_track=self._release_track)
-      if args.no_service_lb_policy is not None:
-        replacement.serviceLbPolicy = None
-        cleared_fields.append('serviceLbPolicy')
+    if args.service_lb_policy is not None:
+      replacement.serviceLbPolicy = reference_utils.BuildServiceLbPolicyUrl(
+          project_name=backend_service_ref.project,
+          location=location,
+          policy_name=args.service_lb_policy,
+          release_track=self._release_track,
+      )
+    if args.no_service_lb_policy is not None:
+      replacement.serviceLbPolicy = None
+      cleared_fields.append('serviceLbPolicy')
 
     if args.service_bindings is not None:
       replacement.serviceBindings = [
@@ -309,11 +305,55 @@ class UpdateHelper(object):
       replacement.serviceBindings = []
       cleared_fields.append('serviceBindings')
 
-    if self._support_ip_address_selection_policy:
-      backend_services_utils.ApplyIpAddressSelectionPolicyArgs(
-          client, args, replacement
+    backend_services_utils.ApplyIpAddressSelectionPolicyArgs(
+        client, args, replacement
+    )
+    if args.external_managed_migration_state is not None:
+      replacement.externalManagedMigrationState = client.messages.BackendService.ExternalManagedMigrationStateValueValuesEnum(
+          args.external_managed_migration_state
       )
-
+    if args.external_managed_migration_testing_percentage is not None:
+      replacement.externalManagedMigrationTestingPercentage = (
+          args.external_managed_migration_testing_percentage
+      )
+    if args.clear_external_managed_migration_state is not None:
+      replacement.externalManagedMigrationState = None
+      replacement.externalManagedMigrationTestingPercentage = None
+      cleared_fields.append('externalManagedMigrationState')
+      cleared_fields.append('externalManagedMigrationTestingPercentage')
+    if args.load_balancing_scheme is not None:
+      replacement.loadBalancingScheme = (
+          client.messages.BackendService.LoadBalancingSchemeValueValuesEnum(
+              args.load_balancing_scheme
+          )
+      )
+    if args.tls_settings is not None:
+      backend_services_utils.ApplyTlsSettingsArgs(
+          client,
+          args,
+          replacement,
+          backend_service_ref.project,
+          location,
+          self._release_track,
+      )
+    if args.no_tls_settings is not None:
+      replacement.tlsSettings = None
+      cleared_fields.append('tlsSettings')
+    if args.custom_metrics:
+      replacement.customMetrics = args.custom_metrics
+    if args.custom_metrics_file:
+      replacement.customMetrics = args.custom_metrics_file
+    if args.clear_custom_metrics:
+      replacement.customMetrics = []
+      cleared_fields.append('customMetrics')
+    if self._support_ip_port_dynamic_forwarding:
+      backend_services_utils.IpPortDynamicForwarding(client, args, replacement)
+    if self._support_zonal_affinity:
+      backend_services_utils.ZonalAffinity(client, args, replacement)
+    if self._support_allow_multinetwork and args.IsSpecified(
+        'allow_multinetwork'
+    ):
+      replacement.allowMultinetwork = args.allow_multinetwork
     return replacement, cleared_fields
 
   def ValidateArgs(self, args):
@@ -341,13 +381,9 @@ class UpdateHelper(object):
         args.IsSpecified('edge_security_policy'),
         args.IsSpecified('session_affinity'),
         args.IsSpecified('timeout'),
-        args.IsSpecified('connection_drain_on_failover')
-        if self._support_failover
-        else False,
-        args.IsSpecified('drop_traffic_if_unhealthy')
-        if self._support_failover
-        else False,
-        args.IsSpecified('failover_ratio') if self._support_failover else False,
+        args.IsSpecified('connection_drain_on_failover'),
+        args.IsSpecified('drop_traffic_if_unhealthy'),
+        args.IsSpecified('failover_ratio'),
         args.IsSpecified('enable_logging'),
         args.IsSpecified('logging_sample_rate'),
         args.IsSpecified('logging_optional'),
@@ -355,9 +391,7 @@ class UpdateHelper(object):
         args.IsSpecified('health_checks'),
         args.IsSpecified('https_health_checks'),
         args.IsSpecified('no_health_checks'),
-        args.IsSpecified('subsetting_policy')
-        if self._support_subsetting
-        else False,
+        args.IsSpecified('subsetting_policy'),
         args.IsSpecified('subsetting_subset_size')
         if self._support_subsetting_subset_size
         else False,
@@ -383,17 +417,32 @@ class UpdateHelper(object):
         args.IsSpecified('idle_timeout_sec'),
         args.IsSpecified('enable_strong_affinity'),
         args.IsSpecified('compression_mode'),
-        args.IsSpecified('service_lb_policy')
-        if self._support_advanced_load_balancing
-        else False,
-        args.IsSpecified('no_service_lb_policy')
-        if self._support_advanced_load_balancing
-        else False,
+        args.IsSpecified('service_lb_policy'),
+        args.IsSpecified('no_service_lb_policy'),
         args.IsSpecified('service_bindings'),
         args.IsSpecified('no_service_bindings'),
         args.IsSpecified('locality_lb_policy'),
-        args.IsSpecified('ip_address_selection_policy')
-        if self._support_ip_address_selection_policy
+        args.IsSpecified('ip_address_selection_policy'),
+        args.IsSpecified('external_managed_migration_state'),
+        args.IsSpecified('external_managed_migration_testing_percentage'),
+        args.IsSpecified('clear_external_managed_migration_state'),
+        args.IsSpecified('load_balancing_scheme'),
+        args.IsSpecified('tls_settings'),
+        args.IsSpecified('no_tls_settings'),
+        args.IsSpecified('custom_metrics'),
+        args.IsSpecified('custom_metrics_file'),
+        args.IsSpecified('clear_custom_metrics'),
+        args.IsSpecified('ip_port_dynamic_forwarding')
+        if self._support_ip_port_dynamic_forwarding
+        else False,
+        args.IsSpecified('zonal_affinity_spillover')
+        if self._support_zonal_affinity
+        else False,
+        args.IsSpecified('zonal_affinity_spillover_ratio')
+        if self._support_zonal_affinity
+        else False,
+        args.IsSpecified('allow_multinetwork')
+        if self._support_allow_multinetwork
         else False,
     ]):
       raise compute_exceptions.UpdatePropertyError(
@@ -404,7 +453,6 @@ class UpdateHelper(object):
 
     if (
         backend_service_ref.Collection() == 'compute.backendServices'
-        and self._support_failover
         and replacement.failoverPolicy
         ):
       raise exceptions.InvalidArgumentException(
@@ -549,6 +597,7 @@ class UpdateHelper(object):
             edge_security_policy_result)
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class UpdateGA(base.UpdateCommand):
   """Update a backend service.
@@ -556,38 +605,29 @@ class UpdateGA(base.UpdateCommand):
   *{command}* is used to update backend services.
   """
 
-  _support_failover = True
-  _support_client_only = True
-  _support_unspecified_protocol = True
-  _support_subsetting = True
   _support_subsetting_subset_size = False
-  _support_advanced_load_balancing = False
-  _support_ip_address_selection_policy = False
+  _support_ip_port_dynamic_forwarding = False
+  _support_zonal_affinity = False
+  _support_allow_multinetwork = False
 
   @classmethod
   def Args(cls, parser):
     UpdateHelper.Args(
         parser,
-        support_failover=cls._support_failover,
-        support_client_only=cls._support_client_only,
-        support_subsetting=cls._support_subsetting,
         support_subsetting_subset_size=cls._support_subsetting_subset_size,
-        support_unspecified_protocol=cls._support_unspecified_protocol,
-        support_advanced_load_balancing=cls._support_advanced_load_balancing,
-        support_ip_address_selection_policy=(
-            cls._support_ip_address_selection_policy
-        ),
+        support_ip_port_dynamic_forwarding=cls._support_ip_port_dynamic_forwarding,
+        support_zonal_affinity=cls._support_zonal_affinity,
+        support_allow_multinetwork=cls._support_allow_multinetwork,
     )
 
   def Run(self, args):
     """Issues requests necessary to update the Backend Services."""
     holder = base_classes.ComputeApiHolder(self.ReleaseTrack())
     return UpdateHelper(
-        self._support_failover,
-        self._support_subsetting,
         self._support_subsetting_subset_size,
-        self._support_ip_address_selection_policy,
-        support_advanced_load_balancing=self._support_advanced_load_balancing,
+        support_ip_port_dynamic_forwarding=self._support_ip_port_dynamic_forwarding,
+        support_zonal_affinity=self._support_zonal_affinity,
+        support_allow_multinetwork=self._support_allow_multinetwork,
         release_track=self.ReleaseTrack(),
     ).Run(args, holder)
 
@@ -599,12 +639,10 @@ class UpdateBeta(UpdateGA):
   *{command}* is used to update backend services.
   """
 
-  _support_client_only = True
-  _support_unspecified_protocol = True
-  _support_subsetting = True
   _support_subsetting_subset_size = True
-  _support_advanced_load_balancing = True
-  _support_ip_address_selection_policy = True
+  _support_ip_port_dynamic_forwarding = True
+  _support_zonal_affinity = True
+  _support_allow_multinetwork = False
 
 
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
@@ -614,9 +652,7 @@ class UpdateAlpha(UpdateBeta):
   *{command}* is used to update backend services.
   """
 
-  _support_client_only = True
-  _support_unspecified_protocol = True
-  _support_subsetting = True
   _support_subsetting_subset_size = True
-  _support_advanced_load_balancing = True
-  _support_ip_address_selection_policy = True
+  _support_ip_port_dynamic_forwarding = True
+  _support_zonal_affinity = True
+  _support_allow_multinetwork = True

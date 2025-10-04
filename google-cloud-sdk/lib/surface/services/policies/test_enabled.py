@@ -16,7 +16,6 @@
 from googlecloudsdk.api_lib.services import serviceusage
 from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.services import common_flags
-from googlecloudsdk.core import log
 from googlecloudsdk.core import properties
 
 _PROJECT_RESOURCE = 'projects/%s'
@@ -26,8 +25,9 @@ _SERVICE = 'services/%s'
 
 
 # TODO(b/321801975) make command public after suv2 launch.
+@base.UniverseCompatible
 @base.Hidden
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
 class TestEnabled(base.Command):
   """Test a value against the result of merging consumer policies in the resource hierarchy.
 
@@ -74,20 +74,8 @@ class TestEnabled(base.Command):
 
     # If enableRules is empty that means service is not enabled.
     if response.enableRules:
-      log.status.Print(
-          'service %s is ENABLED for resource %s\n'
-          % (
-              args.service,
-              resource_name,
-          )
-      )
-      return response
-
+      return f'Service {args.service} is ENABLED for resource {resource_name}.'
     else:
-      log.status.Print(
-          'service %s is NOT ENABLED for resource %s'
-          % (
-              args.service,
-              resource_name,
-          )
+      return (
+          f'Service {args.service} is NOT ENABLED for resource {resource_name}.'
       )

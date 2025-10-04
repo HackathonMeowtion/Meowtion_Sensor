@@ -1315,8 +1315,8 @@ class GoogleCloudPolicytroubleshooterIamV3betaExplainedDenyResource(_messages.Me
 
 
 class GoogleCloudPolicytroubleshooterIamV3betaExplainedPABBindingAndPolicy(_messages.Message):
-  r"""Details about how a Principal Access Boundary binding and policy
-  contributes to the Principal Access Boundary explanation, with annotations
+  r"""Details about how a principal access boundary binding and policy
+  contributes to the principal access boundary explanation, with annotations
   to indicate how the binding and policy contribute to the overall access
   state.
 
@@ -1324,7 +1324,7 @@ class GoogleCloudPolicytroubleshooterIamV3betaExplainedPABBindingAndPolicy(_mess
     BindingAndPolicyAccessStateValueValuesEnum: Output only. Indicates whether
       the principal is allowed to access the specified resource based on
       evaluating the binding and policy.
-    RelevanceValueValuesEnum: The relevance of this Principal Access Boundary
+    RelevanceValueValuesEnum: The relevance of this principal access boundary
       binding and policy to the overall access state.
 
   Fields:
@@ -1332,14 +1332,14 @@ class GoogleCloudPolicytroubleshooterIamV3betaExplainedPABBindingAndPolicy(_mess
       is allowed to access the specified resource based on evaluating the
       binding and policy.
     explainedPolicy: Optional. Details about how this policy contributes to
-      the Principal Access Boundary explanation, with annotations to indicate
+      the principal access boundary explanation, with annotations to indicate
       how the policy contributes to the overall access state. If the caller
       doesn't have permission to view the policy in the binding, this field is
       omitted.
     explainedPolicyBinding: Details about how this binding contributes to the
-      Principal Access Boundary explanation, with annotations to indicate how
+      principal access boundary explanation, with annotations to indicate how
       the binding contributes to the overall access state.
-    relevance: The relevance of this Principal Access Boundary binding and
+    relevance: The relevance of this principal access boundary binding and
       policy to the overall access state.
   """
 
@@ -1354,10 +1354,13 @@ class GoogleCloudPolicytroubleshooterIamV3betaExplainedPABBindingAndPolicy(_mess
       PAB_ACCESS_STATE_NOT_ALLOWED: The PAB component doesn't allow the
         principal's access to the specified resource.
       PAB_ACCESS_STATE_NOT_ENFORCED: The PAB component is not enforced on the
-        principal, or the specified resource. This state refers to 2 specific
-        scenarios: - The service that the specified resource belongs to is not
-        enforced by PAB at the policy version. - The binding doesn't apply to
-        the principal, hence the policy is not enforced as a result.
+        principal, or the specified resource. This state refers to the
+        following scenarios: - IAM doesn't enforce the specified permission at
+        the PAB policy's [enforcement
+        version](https://cloud.google.com/iam/help/pab/enforcement-versions),
+        so the PAB policy can't block access. - The binding doesn't apply to
+        the principal, so the policy is not enforced. - The PAB policy doesn't
+        have any rules
       PAB_ACCESS_STATE_UNKNOWN_INFO: The sender of the request does not have
         access to the PAB component, or the relevant data to explain the PAB
         component.
@@ -1369,7 +1372,7 @@ class GoogleCloudPolicytroubleshooterIamV3betaExplainedPABBindingAndPolicy(_mess
     PAB_ACCESS_STATE_UNKNOWN_INFO = 4
 
   class RelevanceValueValuesEnum(_messages.Enum):
-    r"""The relevance of this Principal Access Boundary binding and policy to
+    r"""The relevance of this principal access boundary binding and policy to
     the overall access state.
 
     Values:
@@ -1392,7 +1395,7 @@ class GoogleCloudPolicytroubleshooterIamV3betaExplainedPABBindingAndPolicy(_mess
 
 
 class GoogleCloudPolicytroubleshooterIamV3betaExplainedPABPolicy(_messages.Message):
-  r"""Details about how a Principal Access Boundary policy contributes to the
+  r"""Details about how a principal access boundary policy contributes to the
   explanation, with annotations to indicate how the policy contributes to the
   overall access state.
 
@@ -1403,14 +1406,14 @@ class GoogleCloudPolicytroubleshooterIamV3betaExplainedPABPolicy(_messages.Messa
       access state.
 
   Fields:
-    explainedRules: List of Principal Access Boundary rules that were
+    explainedRules: List of principal access boundary rules that were
       explained to check the principal's access to specified resource, with
       annotations to indicate how each rule contributes to the overall access
       state.
     policy: The policy that is explained.
     policyAccessState: Output only. Indicates whether the policy allows access
       to the specified resource.
-    policyVersion: Output only. Explanation of the Principal Access Boundary
+    policyVersion: Output only. Explanation of the principal access boundary
       policy's version.
     relevance: The relevance of this policy to the overall access state.
   """
@@ -1426,10 +1429,13 @@ class GoogleCloudPolicytroubleshooterIamV3betaExplainedPABPolicy(_messages.Messa
       PAB_ACCESS_STATE_NOT_ALLOWED: The PAB component doesn't allow the
         principal's access to the specified resource.
       PAB_ACCESS_STATE_NOT_ENFORCED: The PAB component is not enforced on the
-        principal, or the specified resource. This state refers to 2 specific
-        scenarios: - The service that the specified resource belongs to is not
-        enforced by PAB at the policy version. - The binding doesn't apply to
-        the principal, hence the policy is not enforced as a result.
+        principal, or the specified resource. This state refers to the
+        following scenarios: - IAM doesn't enforce the specified permission at
+        the PAB policy's [enforcement
+        version](https://cloud.google.com/iam/help/pab/enforcement-versions),
+        so the PAB policy can't block access. - The binding doesn't apply to
+        the principal, so the policy is not enforced. - The PAB policy doesn't
+        have any rules
       PAB_ACCESS_STATE_UNKNOWN_INFO: The sender of the request does not have
         access to the PAB component, or the relevant data to explain the PAB
         component.
@@ -1464,7 +1470,7 @@ class GoogleCloudPolicytroubleshooterIamV3betaExplainedPABPolicy(_messages.Messa
 
 
 class GoogleCloudPolicytroubleshooterIamV3betaExplainedPABPolicyVersion(_messages.Message):
-  r"""Details about how a Principal Access Boundary policy's version
+  r"""Details about how a principal access boundary policy's version
   contributes to the policy's enforcement state.
 
   Enums:
@@ -1485,11 +1491,11 @@ class GoogleCloudPolicytroubleshooterIamV3betaExplainedPABPolicyVersion(_message
 
     Values:
       PAB_POLICY_ENFORCEMENT_STATE_UNSPECIFIED: An error occurred when
-        checking whether a Principal Access Boundary policy is enforced based
+        checking whether a principal access boundary policy is enforced based
         on its version.
-      PAB_POLICY_ENFORCEMENT_STATE_ENFORCED: The Principal Access Boundary
+      PAB_POLICY_ENFORCEMENT_STATE_ENFORCED: The principal access boundary
         policy is enforced based on its version.
-      PAB_POLICY_ENFORCEMENT_STATE_NOT_ENFORCED: The Principal Access Boundary
+      PAB_POLICY_ENFORCEMENT_STATE_NOT_ENFORCED: The principal access boundary
         policy is not enforced based on its version.
     """
     PAB_POLICY_ENFORCEMENT_STATE_UNSPECIFIED = 0
@@ -1501,7 +1507,7 @@ class GoogleCloudPolicytroubleshooterIamV3betaExplainedPABPolicyVersion(_message
 
 
 class GoogleCloudPolicytroubleshooterIamV3betaExplainedPABRule(_messages.Message):
-  r"""Details about how a Principal Access Boundary rule contributes to the
+  r"""Details about how a principal access boundary rule contributes to the
   explanation, with annotations to indicate how the rule contributes to the
   overall access state.
 
@@ -1591,10 +1597,13 @@ class GoogleCloudPolicytroubleshooterIamV3betaExplainedPABRule(_messages.Message
       PAB_ACCESS_STATE_NOT_ALLOWED: The PAB component doesn't allow the
         principal's access to the specified resource.
       PAB_ACCESS_STATE_NOT_ENFORCED: The PAB component is not enforced on the
-        principal, or the specified resource. This state refers to 2 specific
-        scenarios: - The service that the specified resource belongs to is not
-        enforced by PAB at the policy version. - The binding doesn't apply to
-        the principal, hence the policy is not enforced as a result.
+        principal, or the specified resource. This state refers to the
+        following scenarios: - IAM doesn't enforce the specified permission at
+        the PAB policy's [enforcement
+        version](https://cloud.google.com/iam/help/pab/enforcement-versions),
+        so the PAB policy can't block access. - The binding doesn't apply to
+        the principal, so the policy is not enforced. - The PAB policy doesn't
+        have any rules
       PAB_ACCESS_STATE_UNKNOWN_INFO: The sender of the request does not have
         access to the PAB component, or the relevant data to explain the PAB
         component.
@@ -1735,33 +1744,33 @@ class GoogleCloudPolicytroubleshooterIamV3betaExplainedPolicyBinding(_messages.M
 
 
 class GoogleCloudPolicytroubleshooterIamV3betaPABPolicyExplanation(_messages.Message):
-  r"""Details about how the relevant Principal Access Boundary policies affect
+  r"""Details about how the relevant principal access boundary policies affect
   the overall access state.
 
   Enums:
     PrincipalAccessBoundaryAccessStateValueValuesEnum: Output only. Indicates
       whether the principal is allowed to access specified resource, based on
-      evaluating all applicable Principal Access Boundary bindings and
+      evaluating all applicable principal access boundary bindings and
       policies.
-    RelevanceValueValuesEnum: The relevance of the Principal Access Boundary
+    RelevanceValueValuesEnum: The relevance of the principal access boundary
       access state to the overall access state.
 
   Fields:
-    explainedBindingsAndPolicies: List of Principal Access Boundary policies
+    explainedBindingsAndPolicies: List of principal access boundary policies
       and bindings that are applicable to the principal's access state, with
       annotations to indicate how each binding and policy contributes to the
       overall access state.
     principalAccessBoundaryAccessState: Output only. Indicates whether the
       principal is allowed to access specified resource, based on evaluating
-      all applicable Principal Access Boundary bindings and policies.
-    relevance: The relevance of the Principal Access Boundary access state to
+      all applicable principal access boundary bindings and policies.
+    relevance: The relevance of the principal access boundary access state to
       the overall access state.
   """
 
   class PrincipalAccessBoundaryAccessStateValueValuesEnum(_messages.Enum):
     r"""Output only. Indicates whether the principal is allowed to access
-    specified resource, based on evaluating all applicable Principal Access
-    Boundary bindings and policies.
+    specified resource, based on evaluating all applicable principal access
+    boundary bindings and policies.
 
     Values:
       PAB_ACCESS_STATE_UNSPECIFIED: Not specified.
@@ -1770,10 +1779,13 @@ class GoogleCloudPolicytroubleshooterIamV3betaPABPolicyExplanation(_messages.Mes
       PAB_ACCESS_STATE_NOT_ALLOWED: The PAB component doesn't allow the
         principal's access to the specified resource.
       PAB_ACCESS_STATE_NOT_ENFORCED: The PAB component is not enforced on the
-        principal, or the specified resource. This state refers to 2 specific
-        scenarios: - The service that the specified resource belongs to is not
-        enforced by PAB at the policy version. - The binding doesn't apply to
-        the principal, hence the policy is not enforced as a result.
+        principal, or the specified resource. This state refers to the
+        following scenarios: - IAM doesn't enforce the specified permission at
+        the PAB policy's [enforcement
+        version](https://cloud.google.com/iam/help/pab/enforcement-versions),
+        so the PAB policy can't block access. - The binding doesn't apply to
+        the principal, so the policy is not enforced. - The PAB policy doesn't
+        have any rules
       PAB_ACCESS_STATE_UNKNOWN_INFO: The sender of the request does not have
         access to the PAB component, or the relevant data to explain the PAB
         component.
@@ -1785,7 +1797,7 @@ class GoogleCloudPolicytroubleshooterIamV3betaPABPolicyExplanation(_messages.Mes
     PAB_ACCESS_STATE_UNKNOWN_INFO = 4
 
   class RelevanceValueValuesEnum(_messages.Enum):
-    r"""The relevance of the Principal Access Boundary access state to the
+    r"""The relevance of the principal access boundary access state to the
     overall access state.
 
     Values:
@@ -1812,9 +1824,13 @@ class GoogleCloudPolicytroubleshooterIamV3betaTroubleshootIamPolicyRequest(_mess
   Fields:
     accessTuple: The information to use for checking whether a principal has a
       permission for a resource.
+    resolveUnknowns: Optional. When true, the troubleshooter will use
+      internal-only mechanisms to resolve an 'UNKNOWN' access state to a more
+      definitive 'CAN_ACCESS' or 'CANNOT_ACCESS' state.
   """
 
   accessTuple = _messages.MessageField('GoogleCloudPolicytroubleshooterIamV3betaAccessTuple', 1)
+  resolveUnknowns = _messages.BooleanField(2)
 
 
 class GoogleCloudPolicytroubleshooterIamV3betaTroubleshootIamPolicyResponse(_messages.Message):
@@ -1835,8 +1851,8 @@ class GoogleCloudPolicytroubleshooterIamV3betaTroubleshootIamPolicyResponse(_mes
     overallAccessState: Indicates whether the principal has the specified
       permission for the specified resource, based on evaluating all types of
       the applicable IAM policies.
-    pabPolicyExplanation: An explanation of how the applicable Principal
-      Access Boundary policies affect the final access state.
+    pabPolicyExplanation: An explanation of how the applicable principal
+      access boundary policies affect the final access state.
   """
 
   class OverallAccessStateValueValuesEnum(_messages.Enum):
@@ -2058,15 +2074,23 @@ class GoogleIamV1Condition(_messages.Message):
         cloud region) - 'self:prod-region' (i.e., allow connections from
         clients that are in the same prod region) - 'guardians' (i.e., allow
         connections from its guardian realms. See go/security-realms-
-        glossary#guardian for more information.) - 'self' [DEPRECATED] (i.e.,
-        allow connections from clients that are in the same security realm,
-        which is currently but not guaranteed to be campus-sized) - a realm
-        (e.g., 'campus-abc') - a realm group (e.g., 'realms-for-borg-cell-xx',
-        see: go/realm-groups) A match is determined by a realm group
-        membership check performed by a RealmAclRep object (go/realm-acl-
-        howto). It is not permitted to grant access based on the *absence* of
-        a realm, so realm conditions can only be used in a "positive" context
-        (e.g., ALLOW/IN or DENY/NOT_IN).
+        glossary#guardian for more information.) - 'cryto_core_guardians'
+        (i.e., allow connections from its crypto core guardian realms. See
+        go/security-realms-glossary#guardian for more information.) Crypto
+        Core coverage is a super-set of Default coverage, containing
+        information about coverage between higher tier data centers (e.g.,
+        YAWNs). Most services should use Default coverage and only use Crypto
+        Core coverage if the service is involved in greenfield turnup of new
+        higher tier data centers (e.g., credential infrastructure, machine/job
+        management systems, etc.). - 'self' [DEPRECATED] (i.e., allow
+        connections from clients that are in the same security realm, which is
+        currently but not guaranteed to be campus-sized) - a realm (e.g.,
+        'campus-abc') - a realm group (e.g., 'realms-for-borg-cell-xx', see:
+        go/realm-groups) A match is determined by a realm group membership
+        check performed by a RealmAclRep object (go/realm-acl-howto). It is
+        not permitted to grant access based on the *absence* of a realm, so
+        realm conditions can only be used in a "positive" context (e.g.,
+        ALLOW/IN or DENY/NOT_IN).
       APPROVER: An approver (distinct from the requester) that has authorized
         this request. When used with IN, the condition indicates that one of
         the approvers associated with the request matches the specified
@@ -2087,8 +2111,10 @@ class GoogleIamV1Condition(_messages.Message):
         CREDS_TYPE_EMERGENCY is supported. It is not permitted to grant access
         based on the *absence* of a credentials type, so the conditions can
         only be used in a "positive" context (e.g., ALLOW/IN or DENY/NOT_IN).
-      CREDS_ASSERTION: EXPERIMENTAL -- DO NOT USE. The conditions can only be
-        used in a "positive" context (e.g., ALLOW/IN or DENY/NOT_IN).
+      CREDS_ASSERTION: Properties of the credentials supplied with this
+        request. See http://go/rpcsp-credential-assertions?polyglot=rpcsp-v1-0
+        The conditions can only be used in a "positive" context (e.g.,
+        ALLOW/IN or DENY/NOT_IN).
     """
     NO_ATTR = 0
     AUTHORITY = 1
@@ -2391,7 +2417,7 @@ class GoogleIamV1Rule(_messages.Message):
       the PRINCIPAL/AUTHORITY_SELECTOR is in none of the entries. The format
       for in and not_in entries can be found at in the Local IAM documentation
       (see go/local-iam#features).
-    permissions: A permission is a string of form '..' (e.g.,
+    permissions: A permission is a string of form `..` (e.g.,
       'storage.buckets.list'). A value of '*' matches all permissions, and a
       verb part of '*' (e.g., 'storage.buckets.*') matches all verbs.
   """
@@ -2473,8 +2499,8 @@ class GoogleIamV2DenyRule(_messages.Message):
       `{service_fqdn}/{resource}.{verb}`, where `{service_fqdn}` is the fully
       qualified domain name for the service. For example,
       `iam.googleapis.com/roles.list`.
-    deniedPrincipals: The identities that are prevented from using one or more
-      permissions on Google Cloud resources. This field can contain the
+    deniedPrincipals:  The identities that are prevented from using one or
+      more permissions on Google Cloud resources. This field can contain the
       following values: * `principal://goog/subject/{email_id}`: A specific
       Google Account. Includes Gmail, Cloud Identity, and Google Workspace
       user accounts. For example,
@@ -2510,7 +2536,14 @@ class GoogleIamV2DenyRule(_messages.Message):
       attribute_name}/{attribute_value}`: All identities in a workload
       identity pool with a certain attribute. * `principalSet://iam.googleapis
       .com/projects/{project_number}/locations/global/workloadIdentityPools/{p
-      ool_id}/*`: All identities in a workload identity pool. *
+      ool_id}/*`: All identities in a workload identity pool. * `principalSet:
+      //cloudresourcemanager.googleapis.com/[projects|folders|organizations]/{
+      project_number|folder_number|org_number}/type/ServiceAccount`: All
+      service accounts grouped under a resource (project, folder, or
+      organization). * `principalSet://cloudresourcemanager.googleapis.com/[pr
+      ojects|folders|organizations]/{project_number|folder_number|org_number}/
+      type/ServiceAgent`: All service agents grouped under a resource
+      (project, folder, or organization). *
       `deleted:principal://goog/subject/{email_id}?uid={uid}`: A specific
       Google Account that was deleted recently. For example,
       `deleted:principal://goog/subject/alice@example.com?uid=1234567890`. If
@@ -2654,62 +2687,61 @@ class GoogleIamV2PolicyRule(_messages.Message):
 
 
 class GoogleIamV3PolicyBinding(_messages.Message):
-  r"""IAM policy binding
+  r"""IAM policy binding resource.
 
   Enums:
     PolicyKindValueValuesEnum: Immutable. The kind of the policy to attach in
-      this binding: + When the policy is empty, this field must be set. + When
-      the policy is set, this field + can be left empty and will be set to the
-      policy kind, or + must set to the input policy kind
+      this binding. This field must be one of the following: - Left empty
+      (will be automatically set to the policy kind) - The input policy kind
 
   Messages:
-    AnnotationsValue: Optional. User defined annotations. See
+    AnnotationsValue: Optional. User-defined annotations. See
       https://google.aip.dev/148#annotations for more details such as format
       and size limitations
 
   Fields:
-    annotations: Optional. User defined annotations. See
+    annotations: Optional. User-defined annotations. See
       https://google.aip.dev/148#annotations for more details such as format
       and size limitations
-    condition: Optional. Condition can either be a principal condition or a
-      resource condition. It depends on the type of target, the policy it is
-      attached to, and/or the expression itself. When set, the `expression`
-      field in the `Expr` must include from 1 to 10 subexpressions, joined by
-      the "||"(Logical OR), "&&"(Logical AND) or "!"(Logical NOT) operators.
-      Allowed operations for principal.type: - `principal.type == ` -
-      `principal.type != ` - `principal.type in []` Allowed operations for
-      principal.subject: - `principal.subject == ` - `principal.subject != ` -
-      `principal.subject in []` - `principal.subject.startsWith()` -
-      `principal.subject.endsWith()` Supported principal types are Workspace,
-      Workforce Pool, Workload Pool and Service Account. Allowed string must
-      be one of: - iam.googleapis.com/WorkspaceIdentity -
+    condition: Optional. The condition to apply to the policy binding. When
+      set, the `expression` field in the `Expr` must include from 1 to 10
+      subexpressions, joined by the "||"(Logical OR), "&&"(Logical AND) or
+      "!"(Logical NOT) operators and cannot contain more than 250 characters.
+      The condition is currently only supported when bound to policies of kind
+      principal access boundary. When the bound policy is a principal access
+      boundary policy, the only supported attributes in any subexpression are
+      `principal.type` and `principal.subject`. An example expression is:
+      "principal.type == 'iam.googleapis.com/ServiceAccount'" or
+      "principal.subject == 'bob@example.com'". Allowed operations for
+      `principal.subject`: - `principal.subject == ` - `principal.subject != `
+      - `principal.subject in []` - `principal.subject.startsWith()` -
+      `principal.subject.endsWith()` Allowed operations for `principal.type`:
+      - `principal.type == ` - `principal.type != ` - `principal.type in []`
+      Supported principal types are Workspace, Workforce Pool, Workload Pool
+      and Service Account. Allowed string must be one of: -
+      iam.googleapis.com/WorkspaceIdentity -
       iam.googleapis.com/WorkforcePoolIdentity -
       iam.googleapis.com/WorkloadPoolIdentity -
-      iam.googleapis.com/ServiceAccount When the bound policy is a Principal
-      Access Boundary policy, each subexpression must be of the form
-      `principal.type == ` or `principal.subject == ''`. An example expression
-      is: "principal.type == 'iam.googleapis.com/ServiceAccount'" or
-      "principal.subject == 'bob@acme.com'".
+      iam.googleapis.com/ServiceAccount
     createTime: Output only. The time when the policy binding was created.
     displayName: Optional. The description of the policy binding. Must be less
       than or equal to 63 characters.
     etag: Optional. The etag for the policy binding. If this is provided on
       update, it must match the server's etag.
-    name: Identifier. The resource name of the policy binding. The binding
-      parent is the closest CRM resource (i.e., Project, Folder or
-      Organization) to the binding target. Format: `projects/{project_id}/loca
-      tions/{location}/policyBindings/{policy_binding_id}` `projects/{project_
-      number}/locations/{location}/policyBindings/{policy_binding_id}` `folder
-      s/{folder_id}/locations/{location}/policyBindings/{policy_binding_id}` `
-      organizations/{organization_id}/locations/{location}/policyBindings/{pol
-      icy_binding_id}`
+    name: Identifier. The name of the policy binding, in the format
+      `{binding_parent/locations/{location}/policyBindings/{policy_binding_id}
+      `. The binding parent is the closest Resource Manager resource (project,
+      folder, or organization) to the binding target. Format: * `projects/{pro
+      ject_id}/locations/{location}/policyBindings/{policy_binding_id}` * `pro
+      jects/{project_number}/locations/{location}/policyBindings/{policy_bindi
+      ng_id}` * `folders/{folder_id}/locations/{location}/policyBindings/{poli
+      cy_binding_id}` * `organizations/{organization_id}/locations/{location}/
+      policyBindings/{policy_binding_id}`
     policy: Required. Immutable. The resource name of the policy to be bound.
-      The binding parent and policy must belong to the same Organization (or
-      Project).
-    policyKind: Immutable. The kind of the policy to attach in this binding: +
-      When the policy is empty, this field must be set. + When the policy is
-      set, this field + can be left empty and will be set to the policy kind,
-      or + must set to the input policy kind
+      The binding parent and policy must belong to the same organization.
+    policyKind: Immutable. The kind of the policy to attach in this binding.
+      This field must be one of the following: - Left empty (will be
+      automatically set to the policy kind) - The input policy kind
     policyUid: Output only. The globally unique ID of the policy to be bound.
     target: Required. Immutable. Target is the full resource name of the
       resource to which the policy will be bound. Immutable once set.
@@ -2720,21 +2752,23 @@ class GoogleIamV3PolicyBinding(_messages.Message):
   """
 
   class PolicyKindValueValuesEnum(_messages.Enum):
-    r"""Immutable. The kind of the policy to attach in this binding: + When
-    the policy is empty, this field must be set. + When the policy is set,
-    this field + can be left empty and will be set to the policy kind, or +
-    must set to the input policy kind
+    r"""Immutable. The kind of the policy to attach in this binding. This
+    field must be one of the following: - Left empty (will be automatically
+    set to the policy kind) - The input policy kind
 
     Values:
       POLICY_KIND_UNSPECIFIED: Unspecified policy kind; Not a valid state
       PRINCIPAL_ACCESS_BOUNDARY: Principal access boundary policy kind
+      ACCESS: Access policy kind. Keep behind visibility label until Access
+        Policy launch.
     """
     POLICY_KIND_UNSPECIFIED = 0
     PRINCIPAL_ACCESS_BOUNDARY = 1
+    ACCESS = 2
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class AnnotationsValue(_messages.Message):
-    r"""Optional. User defined annotations. See
+    r"""Optional. User-defined annotations. See
     https://google.aip.dev/148#annotations for more details such as format and
     size limitations
 
@@ -2779,19 +2813,33 @@ class GoogleIamV3PolicyBindingTarget(_messages.Message):
 
   Fields:
     principalSet: Immutable. Full Resource Name used for principal access
-      boundary policy bindings Examples: Organization:
-      "//cloudresourcemanager.googleapis.com/organizations/ORGANIZATION_ID"
-      Folder: "//cloudresourcemanager.googleapis.com/folders/FOLDER_ID"
-      Project: "//cloudresourcemanager.googleapis.com/projects/PROJECT_NUMBER"
-      "//cloudresourcemanager.googleapis.com/projects/PROJECT_ID" Workload
-      Identity Pool: "//iam.googleapis.com/projects/PROJECT_NUMBER/locations/L
-      OCATION/workloadIdentityPools/WORKLOAD_POOL_ID" Workforce Identity:
-      "//iam.googleapis.com/locations/global/workforcePools/WORKFORCE_POOL_ID"
-      Workspace Identity:
-      "//iam.googleapis.com/locations/global/workspace/WORKSPACE_ID"
+      boundary policy bindings. The principal set must be directly parented by
+      the policy binding's parent or same as the parent if the target is a
+      project/folder/organization. Examples: * For binding's parented by an
+      organization: * Organization:
+      `//cloudresourcemanager.googleapis.com/organizations/ORGANIZATION_ID` *
+      Workforce Identity:
+      `//iam.googleapis.com/locations/global/workforcePools/WORKFORCE_POOL_ID`
+      * Workspace Identity:
+      `//iam.googleapis.com/locations/global/workspace/WORKSPACE_ID` * For
+      binding's parented by a folder: * Folder:
+      `//cloudresourcemanager.googleapis.com/folders/FOLDER_ID` * For
+      binding's parented by a project: * Project: *
+      `//cloudresourcemanager.googleapis.com/projects/PROJECT_NUMBER` *
+      `//cloudresourcemanager.googleapis.com/projects/PROJECT_ID` * Workload
+      Identity Pool: `//iam.googleapis.com/projects/PROJECT_NUMBER/locations/L
+      OCATION/workloadIdentityPools/WORKLOAD_POOL_ID`
+    resource: Immutable. Full Resource Name used for access policy bindings
+      Examples: * Organization:
+      `//cloudresourcemanager.googleapis.com/organizations/ORGANIZATION_ID` *
+      Folder: `//cloudresourcemanager.googleapis.com/folders/FOLDER_ID` *
+      Project: *
+      `//cloudresourcemanager.googleapis.com/projects/PROJECT_NUMBER` *
+      `//cloudresourcemanager.googleapis.com/projects/PROJECT_ID`
   """
 
   principalSet = _messages.StringField(1)
+  resource = _messages.StringField(2)
 
 
 class GoogleIamV3PrincipalAccessBoundaryPolicy(_messages.Message):
@@ -2863,11 +2911,12 @@ class GoogleIamV3PrincipalAccessBoundaryPolicyDetails(_messages.Message):
   r"""Principal access boundary policy details
 
   Fields:
-    enforcementVersion: Optional. The version number that indicates which GCP
-      services are included in the enforcement (e.g. "latest", "1", ...). If
-      empty, the PAB policy version will be set to the current latest version,
-      and this version won't get updated when new versions are released.
-    rules: Required. A list of principal access boundary policy rules.
+    enforcementVersion: Optional. The version number (for example, `1` or
+      `latest`) that indicates which permissions are able to be blocked by the
+      policy. If empty, the PAB policy version will be set to the most recent
+      version number at the time of the policy's creation.
+    rules: Required. A list of principal access boundary policy rules. The
+      number of rules in a policy is limited to 500.
   """
 
   enforcementVersion = _messages.StringField(1)
@@ -2887,13 +2936,15 @@ class GoogleIamV3PrincipalAccessBoundaryPolicyRule(_messages.Message):
       policy rule. Must be less than or equal to 256 characters.
     effect: Required. The access relationship of principals to the resources
       in this rule.
-    resources: Required. A list of Cloud Resource Manager resources. The
-      resource and all the descendants are included. The following resource
-      names are supported: * Organization, such as
-      "//cloudresourcemanager.googleapis.com/organizations/123". * Folder,
-      such as "//cloudresourcemanager.googleapis.com/folders/123". * Project,
-      such as "//cloudresourcemanager.googleapis.com/projects/123" or
-      "//cloudresourcemanager.googleapis.com/projects/my-project-id".
+    resources: Required. A list of Resource Manager resources. If a resource
+      is listed in the rule, then the rule applies for that resource and its
+      descendants. The number of resources in a policy is limited to 500
+      across all rules in the policy. The following resource types are
+      supported: * Organizations, such as
+      `//cloudresourcemanager.googleapis.com/organizations/123`. * Folders,
+      such as `//cloudresourcemanager.googleapis.com/folders/123`. * Projects,
+      such as `//cloudresourcemanager.googleapis.com/projects/123` or
+      `//cloudresourcemanager.googleapis.com/projects/my-project-id`.
   """
 
   class EffectValueValuesEnum(_messages.Enum):

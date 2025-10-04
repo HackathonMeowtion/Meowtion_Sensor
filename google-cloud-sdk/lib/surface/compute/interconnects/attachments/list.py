@@ -25,6 +25,10 @@ from googlecloudsdk.core import properties
 from googlecloudsdk.core.resource import resource_projection_spec
 
 
+@base.UniverseCompatible
+@base.ReleaseTracks(
+    base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA, base.ReleaseTrack.GA
+)
 class List(base.ListCommand):
   """List InterconnectAttachments."""
 
@@ -38,7 +42,8 @@ class List(base.ListCommand):
           region.basename(),
           type.basename(),
           interconnect.basename(),
-          router.basename()
+          router.basename(),
+          attachmentGroup.basename()
         )
     """)
 
@@ -63,9 +68,10 @@ class List(base.ListCommand):
         symbols=display_info.transforms, aliases=display_info.aliases)
     args.filter, filter_expr = filter_rewrite.Rewriter().Rewrite(
         args.filter, defaults=defaults)
-
     request = messages.ComputeInterconnectAttachmentsAggregatedListRequest(
         project=project, filter=filter_expr)
+    if hasattr(request, 'returnPartialSuccess'):
+      request.returnPartialSuccess = True
 
     # TODO(b/34871930): Write and use helper for handling listing.
     interconnect_attachments_lists, next_page_token = self._GetListPage(

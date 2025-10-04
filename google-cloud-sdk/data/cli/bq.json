@@ -1,5 +1,5 @@
 {
-  "CLI_VERSION": "2.1.4",
+  "CLI_VERSION": "2.1.24",
   "VERSION": "1",
   "capsule": "",
   "commands": {
@@ -89,8 +89,8 @@
       "positionals": [],
       "release": "GA",
       "sections": {
-        "DESCRIPTION": "Get the IAM policy for a resource.\n\nGets the IAM policy for a dataset, table or\nconnection resource, and prints it to stdout. The\npolicy is in JSON format.\n\nUsage: get-iam-policy <identifier>\n",
-        "EXAMPLES": "bq get-iam-policy ds.table1\nbq get-iam-policy --project_id=proj -t ds.table1\nbq get-iam-policy proj:ds.table1\n"
+        "DESCRIPTION": "Get the IAM policy for a resource.\n\nGets the IAM policy for a dataset, table, routine,\nconnection, or reservation resource, and prints it to\nstdout. The policy is in JSON format.\n\nUsage: get-iam-policy <identifier>\n",
+        "EXAMPLES": "bq get-iam-policy ds.table1\nbq get-iam-policy --project_id=proj -t ds.table1\nbq get-iam-policy proj:ds.table1\nbq get-iam-policy --reservation proj:ds.reservation1\n"
       }
     },
     "head": {
@@ -213,7 +213,7 @@
       "release": "GA",
       "sections": {
         "DESCRIPTION": "List the objects contained in the named collection.\n\nList the objects in the named project or dataset. A\ntrailing : or . can be used to signify a project or\ndataset.\n* With -j, show the jobs in the named project.\n* With -p, show all projects.\n",
-        "EXAMPLES": "bq ls\nbq ls -j proj\nbq ls -p -n 1000\nbq ls mydataset\nbq ls -a\nbq ls -m mydataset\nbq ls --routines mydataset\nbq ls --row_access_policies mytable (requires\nwhitelisting)\nbq ls --filter labels.color:red\nbq ls --filter 'labels.color:red labels.size:*'\nbq ls --transfer_config --transfer_location='us'\n--filter='dataSourceIds:play,adwords'\nbq ls --transfer_run\n--filter='states:SUCCESSED,PENDING'\n--run_attempt='LATEST'\nprojects/p/locations/l/transferConfigs/c\nbq ls --transfer_log\n--message_type='messageTypes:INFO,ERROR'\nprojects/p/locations/l/transferConfigs/c/runs/r\nbq ls --capacity_commitment --project_id=proj\n--location='us'\nbq ls --reservation --project_id=proj --location='us'\nbq ls --reservation_assignment --project_id=proj\n--location='us'\nbq ls --reservation_assignment --project_id=proj\n--location='us'\n<reservation_id>\nbq ls --connection --project_id=proj --location=us\n"
+        "EXAMPLES": "bq ls\nbq ls -j proj\nbq ls -j --filter:'states:RUNNING,PENDING' proj\nbq ls -p -n 1000\nbq ls mydataset\nbq ls -a\nbq ls -m mydataset\nbq ls --routines mydataset\nbq ls --row_access_policies mytable (requires\nwhitelisting)\nbq ls --filter labels.color:red\nbq ls --filter 'labels.color:red labels.size:*'\nbq ls --transfer_config --transfer_location='us'\n--filter='dataSourceIds:play,adwords'\nbq ls --transfer_run\n--filter='states:SUCCEEDED,PENDING'\n--run_attempt='LATEST'\nprojects/p/locations/l/transferConfigs/c\nbq ls --transfer_log\n--message_type='messageTypes:INFO,ERROR'\nprojects/p/locations/l/transferConfigs/c/runs/r\nbq ls --capacity_commitment --project_id=proj\n--location='us'\nbq ls --reservation --project_id=proj --location='us'\nbq ls --reservation_assignment --project_id=proj\n--location='us'\nbq ls --reservation_assignment --project_id=proj\n--location='us'\n<reservation_id>\nbq ls --reservation_group --project_id=proj\n--location='us'\nbq ls --connection --project_id=proj --location=us\nbq ls --migration_workflow --project_id=proj\n--location=us\n"
       }
     },
     "mk": {
@@ -231,7 +231,7 @@
       "release": "GA",
       "sections": {
         "DESCRIPTION": "Create a dataset, table, view, or transfer\nconfiguration with this name.\n\nSee 'bq help mk' for more information.\n",
-        "EXAMPLES": "bq mk new_dataset\nbq mk new_dataset.new_table\nbq --dataset_id=new_dataset mk table\nbq mk -t new_dataset.newtable\nname:integer,value:string\nbq mk --view='select 1 as num' new_dataset.newview\n(--view_udf_resource=path/to/file.js)\nbq mk --materialized_view='select sum(x) as sum_x\nfrom dataset.table'\nnew_dataset.newview\nbq mk -d --data_location=EU new_dataset\nbq mk -d --source_dataset=src_dataset new_dataset\n(requires allowlisting)\nbq mk -d\n--external_source=aws-\nglue://<aws_arn_of_glue_database>\n--connection_id=<connection>\nnew_dataset\nbq mk --transfer_config --target_dataset=dataset\n--display_name=name\n-p='{\"param\":\"value\"}' --data_source=source\n--schedule_start_time={schedule_start_time}\n--schedule_end_time={schedule_end_time}\nbq mk --transfer_run --start_time={start_time}\n--end_time={end_time}\nprojects/p/locations/l/transferConfigs/c\nbq mk --transfer_run --run_time={run_time}\nprojects/p/locations/l/transferConfigs/c\nbq mk --reservation --project_id=project\n--location=us reservation_name\nbq mk --reservation_assignment\n--reservation_id=project:us.dev\n--job_type=QUERY --assignee_type=PROJECT\n--assignee_id=myproject\nbq mk --reservation_assignment\n--reservation_id=project:us.dev\n--job_type=QUERY --assignee_type=FOLDER\n--assignee_id=123\nbq mk --reservation_assignment\n--reservation_id=project:us.dev\n--job_type=QUERY --assignee_type=ORGANIZATION\n--assignee_id=456\nbq mk --connection --connection_type='CLOUD_SQL'\n--properties='{\"instanceId\" : \"instance\",\n\"database\" : \"db\", \"type\" : \"MYSQL\" }'\n--connection_credential='{\"username\":\"u\",\n\"password\":\"p\"}'\n--project_id=proj --location=us --display_name=name\nnew_connection\n"
+        "EXAMPLES": "bq mk new_dataset\nbq mk new_dataset.new_table\nbq --dataset_id=new_dataset mk table\nbq mk -t new_dataset.newtable\nname:integer,value:string\nbq mk --view='select 1 as num' new_dataset.newview\n(--view_udf_resource=path/to/file.js)\nbq mk --materialized_view='select sum(x) as sum_x\nfrom dataset.table'\nnew_dataset.newview\nbq mk -d --data_location=EU new_dataset\nbq mk -d --source_dataset=src_dataset new_dataset\n(requires allowlisting)\nbq mk -d\n--external_source=aws-\nglue://<aws_arn_of_glue_database>\n--connection_id=<connection>\nnew_dataset\nbq mk --transfer_config --target_dataset=dataset\n--display_name=name\n-p='{\"param\":\"value\"}' --data_source=source\n--schedule_start_time={schedule_start_time}\n--schedule_end_time={schedule_end_time}\nbq mk --transfer_run --start_time={start_time}\n--end_time={end_time}\nprojects/p/locations/l/transferConfigs/c\nbq mk --transfer_run --run_time={run_time}\nprojects/p/locations/l/transferConfigs/c\nbq mk --reservation --project_id=project\n--location=us reservation_name\nbq mk --reservation_assignment\n--reservation_id=project:us.dev\n--job_type=QUERY --assignee_type=PROJECT\n--assignee_id=myproject\nbq mk --reservation_assignment\n--reservation_id=project:us.dev\n--job_type=QUERY --assignee_type=FOLDER\n--assignee_id=123\nbq mk --reservation_assignment\n--reservation_id=project:us.dev\n--job_type=QUERY --assignee_type=ORGANIZATION\n--assignee_id=456\nbq mk --reservation_group --project_id=project\n--location=us\nreservation_group_name\nbq mk --connection --connection_type='CLOUD_SQL'\n--properties='{\"instanceId\" : \"instance\",\n\"database\" : \"db\", \"type\" : \"MYSQL\" }'\n--connection_credential='{\"username\":\"u\",\n\"password\":\"p\"}'\n--project_id=proj --location=us --display_name=name\nnew_connection\nbq mk --row_access_policy --policy_id=new_policy\n--target_table='existing_dataset.existing_table'\n--grantees='user:user1@google.com,group:group1@google\n.com'\n--filter_predicate='Region=\"US\"'\nbq mk --source=file.json\nbq mk --migration_workflow --location=us\n--config_file=file.json\n"
       }
     },
     "mkdef": {
@@ -321,7 +321,7 @@
       "release": "GA",
       "sections": {
         "DESCRIPTION": "Delete the resource described by the identifier.\n\nAlways requires an identifier, unlike the show and ls\ncommands. By default, also requires confirmation\nbefore deleting. Supports the -d -t flags to signify\nthat the identifier is a dataset or table.\n* With -f, don't ask for confirmation before\ndeleting.\n* With -r, remove all tables in the named dataset.\n",
-        "EXAMPLES": "bq rm ds.table\nbq rm -m ds.model\nbq rm --routine ds.routine\nbq rm -r -f old_dataset\nbq rm --transfer_config=projects/p/locations/l/transf\nerConfigs/c\nbq rm --connection --project_id=proj --location=us\ncon\nbq rm --capacity_commitment\nproj:US.capacity_commitment_id\nbq rm --reservation --project_id=proj --location=us\nreservation_name\nbq rm --reservation_assignment --project_id=proj\n--location=us\nassignment_name\n"
+        "EXAMPLES": "bq rm ds.table\nbq rm -m ds.model\nbq rm --routine ds.routine\nbq rm -r -f old_dataset\nbq rm --transfer_config=projects/p/locations/l/transf\nerConfigs/c\nbq rm --connection --project_id=proj --location=us\ncon\nbq rm --capacity_commitment\nproj:US.capacity_commitment_id\nbq rm --reservation --project_id=proj --location=us\nreservation_name\nbq rm --reservation_assignment --project_id=proj\n--location=us\nassignment_name\nbq rm --reservation_group --project_id=proj\n--location=us\nreservation_group_name\n"
       }
     },
     "set-iam-policy": {
@@ -338,8 +338,8 @@
       "positionals": [],
       "release": "GA",
       "sections": {
-        "DESCRIPTION": "Set the IAM policy for a resource.\n\nSets the IAM policy for a dataset, table or\nconnection resource. After setting the policy, the\nnew policy is printed to stdout. Policies are in JSON\nformat.\n\nIf the 'etag' field is present in the policy, it must\nmatch the value in the current policy, which can be\nobtained with 'bq get-iam-policy'. Otherwise this\ncommand will fail. This feature allows users to\nprevent concurrent updates.\n\nUsage: set-iam-policy <identifier> <filename>\n",
-        "EXAMPLES": "bq set-iam-policy ds.table1 /tmp/policy.json\nbq set-iam-policy --project_id=proj -t ds.table1\n/tmp/policy.json\nbq set-iam-policy proj:ds.table1 /tmp/policy.json\n"
+        "DESCRIPTION": "Set the IAM policy for a resource.\n\nSets the IAM policy for a dataset, table, routine,\nconnection, or reservation resource. After setting\nthe policy, the new policy is printed to stdout.\nPolicies are in JSON format.\n\nIf the 'etag' field is present in the policy, it must\nmatch the value in the current policy, which can be\nobtained with 'bq get-iam-policy'. Otherwise this\ncommand will fail. This feature allows users to\nprevent concurrent updates.\n\nUsage: set-iam-policy <identifier> <filename>\n",
+        "EXAMPLES": "bq set-iam-policy ds.table1 /tmp/policy.json\nbq set-iam-policy --project_id=proj -t ds.table1\n/tmp/policy.json\nbq set-iam-policy proj:ds.table1 /tmp/policy.json\nbq set-iam-policy --reservation proj:ds.reservation1\n/tmp/policy.json\n"
       }
     },
     "shell": {
@@ -374,7 +374,7 @@
       "release": "GA",
       "sections": {
         "DESCRIPTION": "Show all information about an object.\n",
-        "EXAMPLES": "bq show -j <job_id>\nbq show dataset\nbq show [--schema] dataset.table\nbq show [--view] dataset.view\nbq show [--materialized_view]\ndataset.materialized_view\nbq show -m ds.model\nbq show --routine ds.routine\nbq show --transfer_config\nprojects/p/locations/l/transferConfigs/c\nbq show --transfer_run\nprojects/p/locations/l/transferConfigs/c/runs/r\nbq show --encryption_service_account\nbq show --connection --project_id=project\n--location=us connection\nbq show --capacity_commitment\nproject:US.capacity_commitment_id\nbq show --reservation --location=US\n--project_id=project reservation_name\nbq show --reservation_assignment --project_id=project\n--location=US\n--assignee_type=PROJECT --assignee_id=myproject\n--job_type=QUERY\nbq show --reservation_assignment --project_id=project\n--location=US\n--assignee_type=FOLDER --assignee_id=123\n--job_type=QUERY\nbq show --reservation_assignment --project_id=project\n--location=US\n--assignee_type=ORGANIZATION --assignee_id=456\n--job_type=QUERY\n"
+        "EXAMPLES": "bq show -j <job_id>\nbq show dataset\nbq show [--schema] dataset.table\nbq show [--view] dataset.view\nbq show [--materialized_view]\ndataset.materialized_view\nbq show -m ds.model\nbq show --routine ds.routine\nbq show --transfer_config\nprojects/p/locations/l/transferConfigs/c\nbq show --transfer_run\nprojects/p/locations/l/transferConfigs/c/runs/r\nbq show --encryption_service_account\nbq show --connection --project_id=project\n--location=us connection\nbq show --capacity_commitment\nproject:US.capacity_commitment_id\nbq show --reservation --location=US\n--project_id=project reservation_name\nbq show --reservation_assignment --project_id=project\n--location=US\n--assignee_type=PROJECT --assignee_id=myproject\n--job_type=QUERY\nbq show --reservation_assignment --project_id=project\n--location=US\n--assignee_type=FOLDER --assignee_id=123\n--job_type=QUERY\nbq show --reservation_assignment --project_id=project\n--location=US\n--assignee_type=ORGANIZATION --assignee_id=456\n--job_type=QUERY\nbq show --reservation_group --location=US\n--project_id=project\nreservation_group_name\nbq show --migration_workflow\nprojects/p/locations/l/workflows/workflow_id\n"
       }
     },
     "truncate": {
@@ -395,6 +395,24 @@
         "EXAMPLES": "bq truncate project_id:dataset\nbq truncate --overwrite project_id:dataset\n--timestamp 123456789\nbq truncate --skip_fully_replicated_tables=false\nproject_id:dataset\n"
       }
     },
+    "undelete": {
+      "capsule": "",
+      "commands": {},
+      "flags": {},
+      "groups": {},
+      "is_group": false,
+      "is_hidden": false,
+      "path": [
+        "bq",
+        "undelete"
+      ],
+      "positionals": [],
+      "release": "GA",
+      "sections": {
+        "DESCRIPTION": "Undelete the dataset described by identifier.\n\nAlways requires an identifier, unlike the show and ls\ncommands. By default, also requires confirmation\nbefore undeleting. Supports:\n- timestamp[int]: This signifies the timestamp\nversion of the dataset that\nneeds to be restored, this should be in milliseconds\n",
+        "EXAMPLES": "bq undelete dataset\nbq undelete --timestamp 1714720875568 dataset\n"
+      }
+    },
     "update": {
       "capsule": "",
       "commands": {},
@@ -410,7 +428,7 @@
       "release": "GA",
       "sections": {
         "DESCRIPTION": "Updates a dataset, table, view or transfer\nconfiguration with this name.\n\nSee 'bq help update' for more information.\n",
-        "EXAMPLES": "bq update --description \"Dataset description\"\nexisting_dataset\nbq update --description \"My table\"\nexisting_dataset.existing_table\nbq update --description \"My model\" -m\nexisting_dataset.existing_model\nbq update -t existing_dataset.existing_table\nname:integer,value:string\nbq update --destination_kms_key\nprojects/p/locations/l/keyRings/r/cryptoKeys/k\nexisting_dataset.existing_table\nbq update --view='select 1 as num'\nexisting_dataset.existing_view\n(--view_udf_resource=path/to/file.js)\nbq update --transfer_config --display_name=name\n-p='{\"param\":\"value\"}'\nprojects/p/locations/l/transferConfigs/c\nbq update --transfer_config --target_dataset=dataset\n--refresh_window_days=5 --update_credentials\nprojects/p/locations/l/transferConfigs/c\nbq update --reservation --location=US\n--project_id=my-project\n--bi_reservation_size=2G\nbq update --capacity_commitment --location=US\n--project_id=my-project\n--plan=MONTHLY --renewal_plan=FLEX commitment_id\nbq update --capacity_commitment --location=US\n--project_id=my-project\n--split --slots=500 commitment_id\nbq update --capacity_commitment --location=US\n--project_id=my-project\n--merge commitment_id1,commitment_id2\nbq update --reservation_assignment\n--destination_reservation_id=proj:US.new_reservation\nproj:US.old_reservation.assignment_id\nbq update --connection_credential='{\"username\":\"u\",\n\"password\":\"p\"}'\n--location=US --project_id=my-project\nexisting_connection\n"
+        "EXAMPLES": "bq update --description \"Dataset description\"\nexisting_dataset\nbq update --description \"My table\"\nexisting_dataset.existing_table\nbq update --description \"My model\" -m\nexisting_dataset.existing_model\nbq update -t existing_dataset.existing_table\nname:integer,value:string\nbq update --destination_kms_key\nprojects/p/locations/l/keyRings/r/cryptoKeys/k\nexisting_dataset.existing_table\nbq update --view='select 1 as num'\nexisting_dataset.existing_view\n(--view_udf_resource=path/to/file.js)\nbq update --transfer_config --display_name=name\n-p='{\"param\":\"value\"}'\nprojects/p/locations/l/transferConfigs/c\nbq update --transfer_config --target_dataset=dataset\n--refresh_window_days=5 --update_credentials\nprojects/p/locations/l/transferConfigs/c\nbq update --reservation --location=US\n--project_id=my-project\n--bi_reservation_size=2G\nbq update --capacity_commitment --location=US\n--project_id=my-project\n--plan=MONTHLY --renewal_plan=FLEX commitment_id\nbq update --capacity_commitment --location=US\n--project_id=my-project\n--split --slots=500 commitment_id\nbq update --capacity_commitment --location=US\n--project_id=my-project\n--merge commitment_id1,commitment_id2\nbq update --reservation_assignment\n--destination_reservation_id=proj:US.new_reservation\nproj:US.old_reservation.assignment_id\nbq update --connection_credential='{\"username\":\"u\",\n\"password\":\"p\"}'\n--location=US --project_id=my-project\nexisting_connection\nbq update --row_access_policy\n--policy_id=existing_policy\n--target_table='existing_dataset.existing_table'\n--grantees='user:user1@google.com,group:group1@google\n.com'\n--filter_predicate='Region=\"US\"'\n"
       }
     },
     "version": {
@@ -450,10 +468,24 @@
     }
   },
   "flags": {
+    "--alpha": {
+      "attr": {},
+      "category": "",
+      "default": "''",
+      "description": "<none|query_max_slots|reservation_groups>: Naming an alpha feature with this flag will cause it be used.; repeat this option to specify a list of values",
+      "group": "",
+      "is_global": true,
+      "is_hidden": false,
+      "is_required": false,
+      "name": "--alpha",
+      "nargs": "1",
+      "type": "string",
+      "value": "VALUE"
+    },
     "--api": {
       "attr": {},
       "category": "",
-      "default": "'https://www.googleapis.com'",
+      "default": "'https://bigquery.googleapis.com'",
       "description": "API endpoint to talk to.",
       "group": "",
       "is_global": true,
@@ -482,7 +514,7 @@
       "attr": {},
       "category": "",
       "default": "",
-      "description": "Log all API requests and responses to the file specified by this flag. Also accepts \"stdout\" and \"stderr\". Specifying the empty string will direct to stdout.",
+      "description": "Log all API requests and responses to the file or directory specified by this flag. Also accepts \"stdout\" and \"stderr\". Specifying the empty string will direct to stdout.",
       "group": "",
       "is_global": true,
       "is_hidden": false,
@@ -492,11 +524,25 @@
       "type": "string",
       "value": "VALUE"
     },
+    "--bigquery_discovery_api_key": {
+      "attr": {},
+      "category": "",
+      "default": "",
+      "description": "API key to use for discovery doc requests.",
+      "group": "",
+      "is_global": true,
+      "is_hidden": false,
+      "is_required": false,
+      "name": "--bigquery_discovery_api_key",
+      "nargs": "1",
+      "type": "string",
+      "value": "VALUE"
+    },
     "--bigqueryrc": {
       "attr": {},
       "category": "",
       "default": "'/user/forge-00/.bigqueryrc'",
-      "description": "Path to configuration file. The configuration file specifies new defaults for any flags, and can be overrridden by specifying the flag on the command line. If the --bigqueryrc flag is not specified, the BIGQUERYRC environment variable is used. If that is not specified, the path \"~/.bigqueryrc\" is used.",
+      "description": "Path to configuration file. The configuration file specifies new defaults for any flags, and can be overridden by specifying the flag on the command line. If the --bigqueryrc flag is not specified, the BIGQUERYRC environment variable is used. If that is not specified, the path \"~/.bigqueryrc\" is used.",
       "group": "",
       "is_global": true,
       "is_hidden": false,
@@ -580,7 +626,7 @@
       "attr": {},
       "category": "",
       "default": "'true'",
-      "description": "When set to true, requests new OAuth token with GDrive scope. When set to false, requests new OAuth token without GDrive scope.",
+      "description": "When set to true, requests new OAuth token with GDrive scope. When set to false, requests new OAuth token without GDrive scope. Unless authenticated with a service account, to use this flag, the use_google_auth flag must be set to false.",
       "group": "",
       "is_global": true,
       "is_hidden": false,
@@ -817,13 +863,27 @@
     "--proxy_username": {
       "attr": {},
       "category": "",
-      "default": "'true'",
-      "description": "The user name to use when authenticating with proxy host. -q,--[no]quiet: If True, ignore status updates while jobs are running. -sync,--[no]synchronous_mode: If True, wait for command completion before returning, and use the job completion status for error codes. If False, simply create the job, and use the success of job creation as the error code.",
+      "default": "'false'",
+      "description": "The user name to use when authenticating with proxy host. -q,--[no]quiet: If True, ignore status updates while jobs are running.",
       "group": "",
       "is_global": true,
       "is_hidden": false,
       "is_required": false,
       "name": "--proxy_username",
+      "nargs": "1",
+      "type": "string",
+      "value": "VALUE"
+    },
+    "--request_reason": {
+      "attr": {},
+      "category": "",
+      "default": "'true'",
+      "description": "A reason for making the request intended to be recorded in audit logging. -sync,--[no]synchronous_mode: If True, wait for command completion before returning, and use the job completion status for error codes. If False, simply create the job, and use the success of job creation as the error code.",
+      "group": "",
+      "is_global": true,
+      "is_hidden": false,
+      "is_required": false,
+      "name": "--request_reason",
       "nargs": "1",
       "type": "string",
       "value": "VALUE"

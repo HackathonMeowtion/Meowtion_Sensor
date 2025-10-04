@@ -155,37 +155,53 @@ class AuditLogConfig(_messages.Message):
   logType = _messages.EnumField('LogTypeValueValuesEnum', 2)
 
 
+class AutoscalingConfig(_messages.Message):
+  r"""Represents the autoscaling configuration of a metastore service.
+
+  Fields:
+    autoscalingEnabled: Optional. Whether or not autoscaling is enabled for
+      this service.
+    autoscalingFactor: Output only. The scaling factor of a service with
+      autoscaling enabled.
+    limitConfig: Optional. The LimitConfig of the service.
+  """
+
+  autoscalingEnabled = _messages.BooleanField(1)
+  autoscalingFactor = _messages.FloatField(2, variant=_messages.Variant.FLOAT)
+  limitConfig = _messages.MessageField('LimitConfig', 3)
+
+
 class AuxiliaryVersionConfig(_messages.Message):
   r"""Configuration information for the auxiliary service versions.
 
   Messages:
-    ConfigOverridesValue: A mapping of Hive metastore configuration key-value
-      pairs to apply to the auxiliary Hive metastore (configured in hive-
-      site.xml) in addition to the primary version's overrides. If keys are
-      present in both the auxiliary version's overrides and the primary
+    ConfigOverridesValue: Optional. A mapping of Hive metastore configuration
+      key-value pairs to apply to the auxiliary Hive metastore (configured in
+      hive-site.xml) in addition to the primary version's overrides. If keys
+      are present in both the auxiliary version's overrides and the primary
       version's overrides, the value from the auxiliary version's overrides
       takes precedence.
 
   Fields:
-    configOverrides: A mapping of Hive metastore configuration key-value pairs
-      to apply to the auxiliary Hive metastore (configured in hive-site.xml)
-      in addition to the primary version's overrides. If keys are present in
-      both the auxiliary version's overrides and the primary version's
-      overrides, the value from the auxiliary version's overrides takes
-      precedence.
+    configOverrides: Optional. A mapping of Hive metastore configuration key-
+      value pairs to apply to the auxiliary Hive metastore (configured in
+      hive-site.xml) in addition to the primary version's overrides. If keys
+      are present in both the auxiliary version's overrides and the primary
+      version's overrides, the value from the auxiliary version's overrides
+      takes precedence.
     networkConfig: Output only. The network configuration contains the
       endpoint URI(s) of the auxiliary Hive metastore service.
-    version: The Hive metastore version of the auxiliary service. It must be
-      less than the primary Hive metastore service's version.
+    version: Optional. The Hive metastore version of the auxiliary service. It
+      must be less than the primary Hive metastore service's version.
   """
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class ConfigOverridesValue(_messages.Message):
-    r"""A mapping of Hive metastore configuration key-value pairs to apply to
-    the auxiliary Hive metastore (configured in hive-site.xml) in addition to
-    the primary version's overrides. If keys are present in both the auxiliary
-    version's overrides and the primary version's overrides, the value from
-    the auxiliary version's overrides takes precedence.
+    r"""Optional. A mapping of Hive metastore configuration key-value pairs to
+    apply to the auxiliary Hive metastore (configured in hive-site.xml) in
+    addition to the primary version's overrides. If keys are present in both
+    the auxiliary version's overrides and the primary version's overrides, the
+    value from the auxiliary version's overrides takes precedence.
 
     Messages:
       AdditionalProperty: An additional property for a ConfigOverridesValue
@@ -252,11 +268,11 @@ class Backup(_messages.Message):
 
   Fields:
     createTime: Output only. The time when the backup was started.
-    description: The description of the backup.
+    description: Optional. The description of the backup.
     endTime: Output only. The time when the backup finished creating.
-    name: Immutable. The relative resource name of the backup, in the
-      following form:projects/{project_number}/locations/{location_id}/service
-      s/{service_id}/backups/{backup_id}
+    name: Immutable. Identifier. The relative resource name of the backup, in
+      the following form:projects/{project_number}/locations/{location_id}/ser
+      vices/{service_id}/backups/{backup_id}
     restoringServices: Output only. Services that are restoring from the
       backup.
     serviceRevision: Output only. The revision of the service at the time of
@@ -289,6 +305,63 @@ class Backup(_messages.Message):
   restoringServices = _messages.StringField(5, repeated=True)
   serviceRevision = _messages.MessageField('Service', 6)
   state = _messages.EnumField('StateValueValuesEnum', 7)
+
+
+class BigQueryMetastoreMigrationConfig(_messages.Message):
+  r"""Specifies the configuration required for migrating to BigQuery Metastore
+  service.
+
+  Enums:
+    DesiredMigrationStateValueValuesEnum: Required. The desired state of the
+      migration. Note that this also reflects the current state of the
+      migration. If an attempt to update to a new desired state fails, the
+      migration will revert to the previous state.
+
+  Fields:
+    bigqueryDatasetLocation: Required. The location where the BigQuery
+      resources (e.g. datasets, tables, etc.) should be created (e.g. us-
+      central1, us, eu, etc.)
+    bigqueryProjectId: Required. The project ID where the BigQuery resources
+      (e.g. datasets, tables, etc.) should be created.
+    desiredMigrationState: Required. The desired state of the migration. Note
+      that this also reflects the current state of the migration. If an
+      attempt to update to a new desired state fails, the migration will
+      revert to the previous state.
+  """
+
+  class DesiredMigrationStateValueValuesEnum(_messages.Enum):
+    r"""Required. The desired state of the migration. Note that this also
+    reflects the current state of the migration. If an attempt to update to a
+    new desired state fails, the migration will revert to the previous state.
+
+    Values:
+      DESIRED_MIGRATION_STATE_UNSPECIFIED: The default value. This value is
+        unused.
+      MIGRATE: By setting the desired migration state to MIGRATE, metadata
+        updates in Dataproc Metastore will be replicated to the BigQuery
+        Metastore service, ensuring that it remains consistently synchronized
+        with Dataproc Metastore. Note that this includes initial backfill of
+        existing metadata.
+      CUTOVER: By setting the desired migration state to CUTOVER, all metadata
+        requests are routed to BigQuery Metastore service and Dataproc
+        Metastore only functions as a proxy. This state can be considered as
+        the completion of the migration.
+      CANCEL: By setting the desired migration state to CANCEL, the migration
+        is effectively cancelled. If the previous migration state was MIGRATE,
+        then replication to BigQuery Metastore will be cancelled. If the
+        previous state was CUTOVER, then metadata requests will now be served
+        from Dataproc Metastore instead of BigQuery Metastore. Note that
+        existing metadata changes replicated to BigQuery Metastore service are
+        not rolled back.
+    """
+    DESIRED_MIGRATION_STATE_UNSPECIFIED = 0
+    MIGRATE = 1
+    CUTOVER = 2
+    CANCEL = 3
+
+  bigqueryDatasetLocation = _messages.StringField(1)
+  bigqueryProjectId = _messages.StringField(2)
+  desiredMigrationState = _messages.EnumField('DesiredMigrationStateValueValuesEnum', 3)
 
 
 class Binding(_messages.Message):
@@ -374,8 +447,118 @@ class Binding(_messages.Message):
   role = _messages.StringField(3)
 
 
+class CancelMigrationRequest(_messages.Message):
+  r"""Request message for DataprocMetastore.CancelMigration."""
+
+
 class CancelOperationRequest(_messages.Message):
   r"""The request message for Operations.CancelOperation."""
+
+
+class CdcConfig(_messages.Message):
+  r"""Configuration information to start the Change Data Capture (CDC) streams
+  from customer database to backend database of Dataproc Metastore.
+
+  Fields:
+    bucket: Optional. The bucket to write the intermediate stream event data
+      in. The bucket name must be without any prefix like "gs://". See the
+      bucket naming requirements
+      (https://cloud.google.com/storage/docs/buckets#naming). This field is
+      optional. If not set, the Artifacts Cloud Storage bucket will be used.
+    password: Required. Input only. The password for the user that Datastream
+      service should use for the MySQL connection. This field is not returned
+      on request.
+    reverseProxySubnet: Required. The URL of the subnetwork resource to create
+      the VM instance hosting the reverse proxy in. More context in
+      https://cloud.google.com/datastream/docs/private-connectivity#reverse-
+      csql-proxy The subnetwork should reside in the network provided in the
+      request that Datastream will peer to and should be in the same region as
+      Datastream, in the following format.
+      projects/{project_id}/regions/{region_id}/subnetworks/{subnetwork_id}
+    rootPath: Optional. The root path inside the Cloud Storage bucket. The
+      stream event data will be written to this path. The default value is
+      /migration.
+    subnetIpRange: Required. A /29 CIDR IP range for peering with datastream.
+    username: Required. The username that the Datastream service should use
+      for the MySQL connection.
+    vpcNetwork: Required. Fully qualified name of the Cloud SQL instance's VPC
+      network or the shared VPC network that Datastream will peer to, in the
+      following format:
+      projects/{project_id}/locations/global/networks/{network_id}. More
+      context in https://cloud.google.com/datastream/docs/network-
+      connectivity-options#privateconnectivity
+  """
+
+  bucket = _messages.StringField(1)
+  password = _messages.StringField(2)
+  reverseProxySubnet = _messages.StringField(3)
+  rootPath = _messages.StringField(4)
+  subnetIpRange = _messages.StringField(5)
+  username = _messages.StringField(6)
+  vpcNetwork = _messages.StringField(7)
+
+
+class CloudSQLConnectionConfig(_messages.Message):
+  r"""Configuration information to establish customer database connection
+  before the cutover phase of migration
+
+  Fields:
+    hiveDatabaseName: Required. The hive database name.
+    instanceConnectionName: Required. Cloud SQL database connection name
+      (project_id:region:instance_name)
+    ipAddress: Required. The private IP address of the Cloud SQL instance.
+    natSubnet: Required. The relative resource name of the subnetwork to be
+      used for Private Service Connect. Note that this cannot be a regular
+      subnet and is used only for NAT.
+      (https://cloud.google.com/vpc/docs/about-vpc-hosted-services#psc-
+      subnets) This subnet is used to publish the SOCKS5 proxy service. The
+      subnet size must be at least /29 and it should reside in a network
+      through which the Cloud SQL instance is accessible. The resource name
+      should be in the format,
+      projects/{project_id}/regions/{region_id}/subnetworks/{subnetwork_id}
+    password: Required. Input only. The password for the user that Dataproc
+      Metastore service will be using to connect to the database. This field
+      is not returned on request.
+    port: Required. The network port of the database.
+    proxySubnet: Required. The relative resource name of the subnetwork to
+      deploy the SOCKS5 proxy service in. The subnetwork should reside in a
+      network through which the Cloud SQL instance is accessible. The resource
+      name should be in the format,
+      projects/{project_id}/regions/{region_id}/subnetworks/{subnetwork_id}
+    username: Required. The username that Dataproc Metastore service will use
+      to connect to the database.
+  """
+
+  hiveDatabaseName = _messages.StringField(1)
+  instanceConnectionName = _messages.StringField(2)
+  ipAddress = _messages.StringField(3)
+  natSubnet = _messages.StringField(4)
+  password = _messages.StringField(5)
+  port = _messages.IntegerField(6, variant=_messages.Variant.INT32)
+  proxySubnet = _messages.StringField(7)
+  username = _messages.StringField(8)
+
+
+class CloudSQLMigrationConfig(_messages.Message):
+  r"""Configuration information for migrating from self-managed hive metastore
+  on Google Cloud using Cloud SQL as the backend database to Dataproc
+  Metastore.
+
+  Fields:
+    cdcConfig: Required. Configuration information to start the Change Data
+      Capture (CDC) streams from customer database to backend database of
+      Dataproc Metastore. Dataproc Metastore switches to using its backend
+      database after the cutover phase of migration.
+    cloudSqlConnectionConfig: Required. Configuration information to establish
+      customer database connection before the cutover phase of migration
+  """
+
+  cdcConfig = _messages.MessageField('CdcConfig', 1)
+  cloudSqlConnectionConfig = _messages.MessageField('CloudSQLConnectionConfig', 2)
+
+
+class CompleteMigrationRequest(_messages.Message):
+  r"""Request message for DataprocMetastore.CompleteMigration."""
 
 
 class Consumer(_messages.Message):
@@ -398,6 +581,21 @@ class Consumer(_messages.Message):
   endpointLocation = _messages.StringField(1)
   endpointUri = _messages.StringField(2)
   subnetwork = _messages.StringField(3)
+
+
+class CustomRegionMetadata(_messages.Message):
+  r"""Metadata about a custom region. This is only populated if the region is
+  a custom region. For single/multi regions, it will be empty.
+
+  Fields:
+    optionalReadOnlyRegions: The read-only regions for this custom region.
+    requiredReadWriteRegions: The read-write regions for this custom region.
+    witnessRegion: The Spanner witness region for this custom region.
+  """
+
+  optionalReadOnlyRegions = _messages.StringField(1, repeated=True)
+  requiredReadWriteRegions = _messages.StringField(2, repeated=True)
+  witnessRegion = _messages.StringField(3)
 
 
 class DataCatalogConfig(_messages.Message):
@@ -424,9 +622,9 @@ class DatabaseDump(_messages.Message):
 
   Fields:
     databaseType: The type of the database.
-    gcsUri: A Cloud Storage object or folder URI that specifies the source
-      from which to import metadata. It must begin with gs://.
-    sourceDatabase: The name of the source database.
+    gcsUri: Optional. A Cloud Storage object or folder URI that specifies the
+      source from which to import metadata. It must begin with gs://.
+    sourceDatabase: Optional. The name of the source database.
     type: Optional. The type of the database dump. If unspecified, defaults to
       MYSQL.
   """
@@ -473,18 +671,13 @@ class EncryptionConfig(_messages.Message):
   r"""Encryption settings for the service.
 
   Fields:
-    kmsKey: The fully qualified customer provided Cloud KMS key name to use
-      for customer data encryption, in the following format:projects/{project_
-      number}/locations/{location_id}/keyRings/{key_ring_id}/cryptoKeys/{crypt
-      o_key_id}.
-    kmsKeys: Optional. The list of fully qualified customer provided Cloud KMS
-      key names for the multi-regional service. Each key must be in the
-      following format:projects/{project_number}/locations/{location_id}/keyRi
-      ngs/{key_ring_id}/cryptoKeys/{crypto_key_id}.
+    kmsKey: Optional. The fully qualified customer provided Cloud KMS key name
+      to use for customer data encryption, in the following format:projects/{p
+      roject_number}/locations/{location_id}/keyRings/{key_ring_id}/cryptoKeys
+      /{crypto_key_id}.
   """
 
   kmsKey = _messages.StringField(1)
-  kmsKeys = _messages.StringField(2, repeated=True)
 
 
 class ErrorDetails(_messages.Message):
@@ -619,6 +812,9 @@ class Federation(_messages.Message):
       be greater than or equal to zero. A BackendMetastore with a lower number
       will be evaluated before a BackendMetastore with a higher number.
     LabelsValue: User-defined labels for the metastore federation.
+    TagsValue: Optional. Input only. Immutable. Tag keys/values directly bound
+      to this resource. For example: "123/environment": "production",
+      "123/costCenter": "marketing"
 
   Fields:
     backendMetastores: A map from BackendMetastore rank to BackendMetastores
@@ -637,6 +833,9 @@ class Federation(_messages.Message):
     state: Output only. The current state of the federation.
     stateMessage: Output only. Additional information about the current state
       of the metastore federation, if available.
+    tags: Optional. Input only. Immutable. Tag keys/values directly bound to
+      this resource. For example: "123/environment": "production",
+      "123/costCenter": "marketing"
     uid: Output only. The globally unique resource identifier of the metastore
       federation.
     updateTime: Output only. The time when the metastore federation was last
@@ -723,6 +922,32 @@ class Federation(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class TagsValue(_messages.Message):
+    r"""Optional. Input only. Immutable. Tag keys/values directly bound to
+    this resource. For example: "123/environment": "production",
+    "123/costCenter": "marketing"
+
+    Messages:
+      AdditionalProperty: An additional property for a TagsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type TagsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a TagsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
   backendMetastores = _messages.MessageField('BackendMetastoresValue', 1)
   createTime = _messages.StringField(2)
   endpointUri = _messages.StringField(3)
@@ -730,9 +955,10 @@ class Federation(_messages.Message):
   name = _messages.StringField(5)
   state = _messages.EnumField('StateValueValuesEnum', 6)
   stateMessage = _messages.StringField(7)
-  uid = _messages.StringField(8)
-  updateTime = _messages.StringField(9)
-  version = _messages.StringField(10)
+  tags = _messages.MessageField('TagsValue', 8)
+  uid = _messages.StringField(9)
+  updateTime = _messages.StringField(10)
+  version = _messages.StringField(11)
 
 
 class HiveMetastoreConfig(_messages.Message):
@@ -740,11 +966,27 @@ class HiveMetastoreConfig(_messages.Message):
   software as the metastore service.
 
   Enums:
-    EndpointProtocolValueValuesEnum: The protocol to use for the metastore
-      service endpoint. If unspecified, defaults to THRIFT.
+    EndpointProtocolValueValuesEnum: Optional. The protocol to use for the
+      metastore service endpoint. If unspecified, defaults to THRIFT.
 
   Messages:
-    AuxiliaryVersionsValue: A mapping of Hive metastore version to the
+    AuxiliaryVersionsValue: Optional. A mapping of Hive metastore version to
+      the auxiliary version configuration. When specified, a secondary Hive
+      metastore service is created along with the primary service. All
+      auxiliary versions must be less than the service's primary version. The
+      key is the auxiliary service name and it must match the regular
+      expression a-z?. This means that the first character must be a lowercase
+      letter, and all the following characters must be hyphens, lowercase
+      letters, or digits, except the last character, which cannot be a hyphen.
+    ConfigOverridesValue: Optional. A mapping of Hive metastore configuration
+      key-value pairs to apply to the Hive metastore (configured in hive-
+      site.xml). The mappings override system defaults (some keys cannot be
+      overridden). These overrides are also applied to auxiliary versions and
+      can be further customized in the auxiliary version's
+      AuxiliaryVersionConfig.
+
+  Fields:
+    auxiliaryVersions: Optional. A mapping of Hive metastore version to the
       auxiliary version configuration. When specified, a secondary Hive
       metastore service is created along with the primary service. All
       auxiliary versions must be less than the service's primary version. The
@@ -752,38 +994,24 @@ class HiveMetastoreConfig(_messages.Message):
       expression a-z?. This means that the first character must be a lowercase
       letter, and all the following characters must be hyphens, lowercase
       letters, or digits, except the last character, which cannot be a hyphen.
-    ConfigOverridesValue: A mapping of Hive metastore configuration key-value
-      pairs to apply to the Hive metastore (configured in hive-site.xml). The
-      mappings override system defaults (some keys cannot be overridden).
-      These overrides are also applied to auxiliary versions and can be
-      further customized in the auxiliary version's AuxiliaryVersionConfig.
-
-  Fields:
-    auxiliaryVersions: A mapping of Hive metastore version to the auxiliary
-      version configuration. When specified, a secondary Hive metastore
-      service is created along with the primary service. All auxiliary
-      versions must be less than the service's primary version. The key is the
-      auxiliary service name and it must match the regular expression a-z?.
-      This means that the first character must be a lowercase letter, and all
-      the following characters must be hyphens, lowercase letters, or digits,
-      except the last character, which cannot be a hyphen.
-    configOverrides: A mapping of Hive metastore configuration key-value pairs
-      to apply to the Hive metastore (configured in hive-site.xml). The
-      mappings override system defaults (some keys cannot be overridden).
-      These overrides are also applied to auxiliary versions and can be
-      further customized in the auxiliary version's AuxiliaryVersionConfig.
-    endpointProtocol: The protocol to use for the metastore service endpoint.
-      If unspecified, defaults to THRIFT.
-    kerberosConfig: Information used to configure the Hive metastore service
-      as a service principal in a Kerberos realm. To disable Kerberos, use the
-      UpdateService method and specify this field's path
+    configOverrides: Optional. A mapping of Hive metastore configuration key-
+      value pairs to apply to the Hive metastore (configured in hive-
+      site.xml). The mappings override system defaults (some keys cannot be
+      overridden). These overrides are also applied to auxiliary versions and
+      can be further customized in the auxiliary version's
+      AuxiliaryVersionConfig.
+    endpointProtocol: Optional. The protocol to use for the metastore service
+      endpoint. If unspecified, defaults to THRIFT.
+    kerberosConfig: Optional. Information used to configure the Hive metastore
+      service as a service principal in a Kerberos realm. To disable Kerberos,
+      use the UpdateService method and specify this field's path
       (hive_metastore_config.kerberos_config) in the request's update_mask
       while omitting this field from the request's service.
     version: Immutable. The Hive metastore schema version.
   """
 
   class EndpointProtocolValueValuesEnum(_messages.Enum):
-    r"""The protocol to use for the metastore service endpoint. If
+    r"""Optional. The protocol to use for the metastore service endpoint. If
     unspecified, defaults to THRIFT.
 
     Values:
@@ -799,7 +1027,7 @@ class HiveMetastoreConfig(_messages.Message):
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class AuxiliaryVersionsValue(_messages.Message):
-    r"""A mapping of Hive metastore version to the auxiliary version
+    r"""Optional. A mapping of Hive metastore version to the auxiliary version
     configuration. When specified, a secondary Hive metastore service is
     created along with the primary service. All auxiliary versions must be
     less than the service's primary version. The key is the auxiliary service
@@ -832,11 +1060,11 @@ class HiveMetastoreConfig(_messages.Message):
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class ConfigOverridesValue(_messages.Message):
-    r"""A mapping of Hive metastore configuration key-value pairs to apply to
-    the Hive metastore (configured in hive-site.xml). The mappings override
-    system defaults (some keys cannot be overridden). These overrides are also
-    applied to auxiliary versions and can be further customized in the
-    auxiliary version's AuxiliaryVersionConfig.
+    r"""Optional. A mapping of Hive metastore configuration key-value pairs to
+    apply to the Hive metastore (configured in hive-site.xml). The mappings
+    override system defaults (some keys cannot be overridden). These overrides
+    are also applied to auxiliary versions and can be further customized in
+    the auxiliary version's AuxiliaryVersionConfig.
 
     Messages:
       AdditionalProperty: An additional property for a ConfigOverridesValue
@@ -883,13 +1111,14 @@ class KerberosConfig(_messages.Message):
   r"""Configuration information for a Kerberos principal.
 
   Fields:
-    keytab: A Kerberos keytab file that can be used to authenticate a service
-      principal with a Kerberos Key Distribution Center (KDC).
-    krb5ConfigGcsUri: A Cloud Storage URI that specifies the path to a
-      krb5.conf file. It is of the form gs://{bucket_name}/path/to/krb5.conf,
-      although the file does not need to be named krb5.conf explicitly.
-    principal: A Kerberos principal that exists in the both the keytab the KDC
-      to authenticate as. A typical principal is of the form
+    keytab: Optional. A Kerberos keytab file that can be used to authenticate
+      a service principal with a Kerberos Key Distribution Center (KDC).
+    krb5ConfigGcsUri: Optional. A Cloud Storage URI that specifies the path to
+      a krb5.conf file. It is of the form
+      gs://{bucket_name}/path/to/krb5.conf, although the file does not need to
+      be named krb5.conf explicitly.
+    principal: Optional. A Kerberos principal that exists in the both the
+      keytab the KDC to authenticate as. A typical principal is of the form
       primary/instance@REALM, but there is no exact format.
   """
 
@@ -930,6 +1159,20 @@ class LatestBackup(_messages.Message):
   duration = _messages.StringField(2)
   startTime = _messages.StringField(3)
   state = _messages.EnumField('StateValueValuesEnum', 4)
+
+
+class LimitConfig(_messages.Message):
+  r"""Represents the autoscaling limit configuration of a metastore service.
+
+  Fields:
+    maxScalingFactor: Optional. The highest scaling factor that the service
+      should be autoscaled to.
+    minScalingFactor: Optional. The lowest scaling factor that the service
+      should be autoscaled to.
+  """
+
+  maxScalingFactor = _messages.FloatField(1, variant=_messages.Variant.FLOAT)
+  minScalingFactor = _messages.FloatField(2, variant=_messages.Variant.FLOAT)
 
 
 class ListBackupsResponse(_messages.Message):
@@ -986,6 +1229,21 @@ class ListMetadataImportsResponse(_messages.Message):
   """
 
   metadataImports = _messages.MessageField('MetadataImport', 1, repeated=True)
+  nextPageToken = _messages.StringField(2)
+  unreachable = _messages.StringField(3, repeated=True)
+
+
+class ListMigrationExecutionsResponse(_messages.Message):
+  r"""Response message for DataprocMetastore.ListMigrationExecutions.
+
+  Fields:
+    migrationExecutions: The migration executions on the specified service.
+    nextPageToken: A token that can be sent as page_token to retrieve the next
+      page. If this field is omitted, there are no subsequent pages.
+    unreachable: Locations that could not be reached.
+  """
+
+  migrationExecutions = _messages.MessageField('MigrationExecution', 1, repeated=True)
   nextPageToken = _messages.StringField(2)
   unreachable = _messages.StringField(3, repeated=True)
 
@@ -1102,6 +1360,8 @@ class LocationMetadata(_messages.Message):
   r"""Metadata about the service in a location.
 
   Fields:
+    customRegionMetadata: Possible configurations supported if the current
+      region is a custom region.
     multiRegionMetadata: The multi-region metadata if the current region is a
       multi-region.
     supportedHiveMetastoreVersions: The versions of Hive Metastore that can be
@@ -1110,8 +1370,9 @@ class LocationMetadata(_messages.Message):
       is_default.
   """
 
-  multiRegionMetadata = _messages.MessageField('MultiRegionMetadata', 1)
-  supportedHiveMetastoreVersions = _messages.MessageField('HiveMetastoreVersion', 2, repeated=True)
+  customRegionMetadata = _messages.MessageField('CustomRegionMetadata', 1, repeated=True)
+  multiRegionMetadata = _messages.MessageField('MultiRegionMetadata', 2)
+  supportedHiveMetastoreVersions = _messages.MessageField('HiveMetastoreVersion', 3, repeated=True)
 
 
 class MaintenanceWindow(_messages.Message):
@@ -1119,15 +1380,16 @@ class MaintenanceWindow(_messages.Message):
   system maintenance operation to the service.
 
   Enums:
-    DayOfWeekValueValuesEnum: The day of week, when the window starts.
+    DayOfWeekValueValuesEnum: Optional. The day of week, when the window
+      starts.
 
   Fields:
-    dayOfWeek: The day of week, when the window starts.
-    hourOfDay: The hour of day (0-23) when the window starts.
+    dayOfWeek: Optional. The day of week, when the window starts.
+    hourOfDay: Optional. The hour of day (0-23) when the window starts.
   """
 
   class DayOfWeekValueValuesEnum(_messages.Enum):
-    r"""The day of week, when the window starts.
+    r"""Optional. The day of week, when the window starts.
 
     Values:
       DAY_OF_WEEK_UNSPECIFIED: The day of the week is unspecified.
@@ -1150,6 +1412,20 @@ class MaintenanceWindow(_messages.Message):
 
   dayOfWeek = _messages.EnumField('DayOfWeekValueValuesEnum', 1)
   hourOfDay = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+
+
+class MessageSet(_messages.Message):
+  r"""This is proto2's version of MessageSet.DEPRECATED: DO NOT USE FOR NEW
+  FIELDS.If you are using editions or proto2, please make your own extendable
+  messages for your use case. If you are using proto3, please use Any
+  instead.MessageSet was the implementation of extensions for proto1. When
+  proto2 was introduced, extensions were implemented as a first-class feature.
+  This schema for MessageSet was meant to be a "bridge" solution to migrate
+  MessageSet-bearing messages from proto1 to proto2.This schema has been open-
+  sourced only to facilitate the migration of Google products with MessageSet-
+  bearing messages to open-source environments.
+  """
+
 
 
 class MetadataExport(_messages.Message):
@@ -1216,11 +1492,11 @@ class MetadataImport(_messages.Message):
     createTime: Output only. The time when the metadata import was started.
     databaseDump: Immutable. A database dump from a pre-existing metastore's
       database.
-    description: The description of the metadata import.
+    description: Optional. The description of the metadata import.
     endTime: Output only. The time when the metadata import finished.
-    name: Immutable. The relative resource name of the metadata import, of the
-      form:projects/{project_number}/locations/{location_id}/services/{service
-      _id}/metadataImports/{metadata_import_id}.
+    name: Immutable. Identifier. The relative resource name of the metadata
+      import, of the form:projects/{project_number}/locations/{location_id}/se
+      rvices/{service_id}/metadataImports/{metadata_import_id}.
     state: Output only. The current state of the metadata import.
     updateTime: Output only. The time when the metadata import was last
       updated.
@@ -1469,6 +1745,9 @@ class MetastoreProjectsLocationsListRequest(_messages.Message):
   r"""A MetastoreProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like "displayName=tokyo", and is
       documented in more detail in AIP-160 (https://google.aip.dev/160).
@@ -1479,10 +1758,11 @@ class MetastoreProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class MetastoreProjectsLocationsOperationsCancelRequest(_messages.Message):
@@ -1699,6 +1979,36 @@ class MetastoreProjectsLocationsServicesBackupsSetIamPolicyRequest(_messages.Mes
   setIamPolicyRequest = _messages.MessageField('SetIamPolicyRequest', 2)
 
 
+class MetastoreProjectsLocationsServicesCancelMigrationRequest(_messages.Message):
+  r"""A MetastoreProjectsLocationsServicesCancelMigrationRequest object.
+
+  Fields:
+    cancelMigrationRequest: A CancelMigrationRequest resource to be passed as
+      the request body.
+    service: Required. The relative resource name of the metastore service to
+      cancel the ongoing migration to, in the following format:projects/{proje
+      ct_id}/locations/{location_id}/services/{service_id}.
+  """
+
+  cancelMigrationRequest = _messages.MessageField('CancelMigrationRequest', 1)
+  service = _messages.StringField(2, required=True)
+
+
+class MetastoreProjectsLocationsServicesCompleteMigrationRequest(_messages.Message):
+  r"""A MetastoreProjectsLocationsServicesCompleteMigrationRequest object.
+
+  Fields:
+    completeMigrationRequest: A CompleteMigrationRequest resource to be passed
+      as the request body.
+    service: Required. The relative resource name of the metastore service to
+      complete the migration to, in the following format:projects/{project_id}
+      /locations/{location_id}/services/{service_id}.
+  """
+
+  completeMigrationRequest = _messages.MessageField('CompleteMigrationRequest', 1)
+  service = _messages.StringField(2, required=True)
+
+
 class MetastoreProjectsLocationsServicesCreateRequest(_messages.Message):
   r"""A MetastoreProjectsLocationsServicesCreateRequest object.
 
@@ -1727,6 +2037,86 @@ class MetastoreProjectsLocationsServicesCreateRequest(_messages.Message):
   requestId = _messages.StringField(2)
   service = _messages.MessageField('Service', 3)
   serviceId = _messages.StringField(4)
+
+
+class MetastoreProjectsLocationsServicesDatabasesGetIamPolicyRequest(_messages.Message):
+  r"""A MetastoreProjectsLocationsServicesDatabasesGetIamPolicyRequest object.
+
+  Fields:
+    options_requestedPolicyVersion: Optional. The maximum policy version that
+      will be used to format the policy.Valid values are 0, 1, and 3. Requests
+      specifying an invalid value will be rejected.Requests for policies with
+      any conditional role bindings must specify version 3. Policies with no
+      conditional role bindings may specify any valid value or leave the field
+      unset.The policy in the response might use the policy version that you
+      specified, or it might use a lower policy version. For example, if you
+      specify version 3, but the policy has no conditional role bindings, the
+      response uses version 1.To learn which resources support conditions in
+      their IAM policies, see the IAM documentation
+      (https://cloud.google.com/iam/help/conditions/resource-policies).
+    resource: REQUIRED: The resource for which the policy is being requested.
+      See Resource names (https://cloud.google.com/apis/design/resource_names)
+      for the appropriate value for this field.
+  """
+
+  options_requestedPolicyVersion = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  resource = _messages.StringField(2, required=True)
+
+
+class MetastoreProjectsLocationsServicesDatabasesSetIamPolicyRequest(_messages.Message):
+  r"""A MetastoreProjectsLocationsServicesDatabasesSetIamPolicyRequest object.
+
+  Fields:
+    resource: REQUIRED: The resource for which the policy is being specified.
+      See Resource names (https://cloud.google.com/apis/design/resource_names)
+      for the appropriate value for this field.
+    setIamPolicyRequest: A SetIamPolicyRequest resource to be passed as the
+      request body.
+  """
+
+  resource = _messages.StringField(1, required=True)
+  setIamPolicyRequest = _messages.MessageField('SetIamPolicyRequest', 2)
+
+
+class MetastoreProjectsLocationsServicesDatabasesTablesGetIamPolicyRequest(_messages.Message):
+  r"""A MetastoreProjectsLocationsServicesDatabasesTablesGetIamPolicyRequest
+  object.
+
+  Fields:
+    options_requestedPolicyVersion: Optional. The maximum policy version that
+      will be used to format the policy.Valid values are 0, 1, and 3. Requests
+      specifying an invalid value will be rejected.Requests for policies with
+      any conditional role bindings must specify version 3. Policies with no
+      conditional role bindings may specify any valid value or leave the field
+      unset.The policy in the response might use the policy version that you
+      specified, or it might use a lower policy version. For example, if you
+      specify version 3, but the policy has no conditional role bindings, the
+      response uses version 1.To learn which resources support conditions in
+      their IAM policies, see the IAM documentation
+      (https://cloud.google.com/iam/help/conditions/resource-policies).
+    resource: REQUIRED: The resource for which the policy is being requested.
+      See Resource names (https://cloud.google.com/apis/design/resource_names)
+      for the appropriate value for this field.
+  """
+
+  options_requestedPolicyVersion = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  resource = _messages.StringField(2, required=True)
+
+
+class MetastoreProjectsLocationsServicesDatabasesTablesSetIamPolicyRequest(_messages.Message):
+  r"""A MetastoreProjectsLocationsServicesDatabasesTablesSetIamPolicyRequest
+  object.
+
+  Fields:
+    resource: REQUIRED: The resource for which the policy is being specified.
+      See Resource names (https://cloud.google.com/apis/design/resource_names)
+      for the appropriate value for this field.
+    setIamPolicyRequest: A SetIamPolicyRequest resource to be passed as the
+      request body.
+  """
+
+  resource = _messages.StringField(1, required=True)
+  setIamPolicyRequest = _messages.MessageField('SetIamPolicyRequest', 2)
 
 
 class MetastoreProjectsLocationsServicesDeleteRequest(_messages.Message):
@@ -1912,9 +2302,9 @@ class MetastoreProjectsLocationsServicesMetadataImportsPatchRequest(_messages.Me
   Fields:
     metadataImport: A MetadataImport resource to be passed as the request
       body.
-    name: Immutable. The relative resource name of the metadata import, of the
-      form:projects/{project_number}/locations/{location_id}/services/{service
-      _id}/metadataImports/{metadata_import_id}.
+    name: Immutable. Identifier. The relative resource name of the metadata
+      import, of the form:projects/{project_number}/locations/{location_id}/se
+      rvices/{service_id}/metadataImports/{metadata_import_id}.
     requestId: Optional. A request ID. Specify a unique request ID to allow
       the server to ignore the request if it has completed. The server will
       ignore subsequent requests that provide a duplicate request ID for at
@@ -1936,6 +2326,76 @@ class MetastoreProjectsLocationsServicesMetadataImportsPatchRequest(_messages.Me
   updateMask = _messages.StringField(4)
 
 
+class MetastoreProjectsLocationsServicesMigrationExecutionsDeleteRequest(_messages.Message):
+  r"""A MetastoreProjectsLocationsServicesMigrationExecutionsDeleteRequest
+  object.
+
+  Fields:
+    name: Required. The relative resource name of the migrationExecution to
+      delete, in the following form:projects/{project_number}/locations/{locat
+      ion_id}/services/{service_id}/migrationExecutions/{migration_execution_i
+      d}.
+    requestId: Optional. A request ID. Specify a unique request ID to allow
+      the server to ignore the request if it has completed. The server will
+      ignore subsequent requests that provide a duplicate request ID for at
+      least 60 minutes after the first request.For example, if an initial
+      request times out, followed by another request with the same request ID,
+      the server ignores the second request to prevent the creation of
+      duplicate commitments.The request ID must be a valid UUID
+      (https://en.wikipedia.org/wiki/Universally_unique_identifier#Format) A
+      zero UUID (00000000-0000-0000-0000-000000000000) is not supported.
+  """
+
+  name = _messages.StringField(1, required=True)
+  requestId = _messages.StringField(2)
+
+
+class MetastoreProjectsLocationsServicesMigrationExecutionsGetRequest(_messages.Message):
+  r"""A MetastoreProjectsLocationsServicesMigrationExecutionsGetRequest
+  object.
+
+  Fields:
+    name: Required. The relative resource name of the migration execution to
+      retrieve, in the following form:projects/{project_number}/locations/{loc
+      ation_id}/services/{service_id}/migrationExecutions/{migration_execution
+      _id}.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class MetastoreProjectsLocationsServicesMigrationExecutionsListRequest(_messages.Message):
+  r"""A MetastoreProjectsLocationsServicesMigrationExecutionsListRequest
+  object.
+
+  Fields:
+    filter: Optional. The filter to apply to list results.
+    orderBy: Optional. Specify the ordering of results as described in Sorting
+      Order
+      (https://cloud.google.com/apis/design/design_patterns#sorting_order). If
+      not specified, the results will be sorted in the default order.
+    pageSize: Optional. The maximum number of migration executions to return.
+      The response may contain less than the maximum number. If unspecified,
+      no more than 500 migration executions are returned. The maximum value is
+      1000; values above 1000 are changed to 1000.
+    pageToken: Optional. A page token, received from a previous
+      DataprocMetastore.ListMigrationExecutions call. Provide this token to
+      retrieve the subsequent page.To retrieve the first page, supply an empty
+      page token.When paginating, other parameters provided to
+      DataprocMetastore.ListMigrationExecutions must match the call that
+      provided the page token.
+    parent: Required. The relative resource name of the service whose
+      migration executions to list, in the following form:projects/{project_nu
+      mber}/locations/{location_id}/services/{service_id}/migrationExecutions.
+  """
+
+  filter = _messages.StringField(1)
+  orderBy = _messages.StringField(2)
+  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(4)
+  parent = _messages.StringField(5, required=True)
+
+
 class MetastoreProjectsLocationsServicesMoveTableToDatabaseRequest(_messages.Message):
   r"""A MetastoreProjectsLocationsServicesMoveTableToDatabaseRequest object.
 
@@ -1955,9 +2415,9 @@ class MetastoreProjectsLocationsServicesPatchRequest(_messages.Message):
   r"""A MetastoreProjectsLocationsServicesPatchRequest object.
 
   Fields:
-    name: Immutable. The relative resource name of the metastore service, in
-      the following format:projects/{project_number}/locations/{location_id}/s
-      ervices/{service_id}.
+    name: Immutable. Identifier. The relative resource name of the metastore
+      service, in the following format:projects/{project_number}/locations/{lo
+      cation_id}/services/{service_id}.
     requestId: Optional. A request ID. Specify a unique request ID to allow
       the server to ignore the request if it has completed. The server will
       ignore subsequent requests that provide a duplicate request ID for at
@@ -2025,6 +2485,21 @@ class MetastoreProjectsLocationsServicesSetIamPolicyRequest(_messages.Message):
   setIamPolicyRequest = _messages.MessageField('SetIamPolicyRequest', 2)
 
 
+class MetastoreProjectsLocationsServicesStartMigrationRequest(_messages.Message):
+  r"""A MetastoreProjectsLocationsServicesStartMigrationRequest object.
+
+  Fields:
+    service: Required. The relative resource name of the metastore service to
+      start migrating to, in the following format:projects/{project_id}/locati
+      ons/{location_id}/services/{service_id}.
+    startMigrationRequest: A StartMigrationRequest resource to be passed as
+      the request body.
+  """
+
+  service = _messages.StringField(1, required=True)
+  startMigrationRequest = _messages.MessageField('StartMigrationRequest', 2)
+
+
 class MetastoreProjectsLocationsServicesTestIamPermissionsRequest(_messages.Message):
   r"""A MetastoreProjectsLocationsServicesTestIamPermissionsRequest object.
 
@@ -2039,6 +2514,85 @@ class MetastoreProjectsLocationsServicesTestIamPermissionsRequest(_messages.Mess
 
   resource = _messages.StringField(1, required=True)
   testIamPermissionsRequest = _messages.MessageField('TestIamPermissionsRequest', 2)
+
+
+class MigrationExecution(_messages.Message):
+  r"""The details of a migration execution resource.
+
+  Enums:
+    PhaseValueValuesEnum: Output only. The current phase of the migration
+      execution.
+    StateValueValuesEnum: Output only. The current state of the migration
+      execution.
+
+  Fields:
+    cloudSqlMigrationConfig: Configuration information specific to migrating
+      from self-managed hive metastore on Google Cloud using Cloud SQL as the
+      backend database to Dataproc Metastore.
+    createTime: Output only. The time when the migration execution was
+      started.
+    endTime: Output only. The time when the migration execution finished.
+    name: Output only. The relative resource name of the migration execution,
+      in the following form: projects/{project_number}/locations/{location_id}
+      /services/{service_id}/migrationExecutions/{migration_execution_id}
+    phase: Output only. The current phase of the migration execution.
+    state: Output only. The current state of the migration execution.
+    stateMessage: Output only. Additional information about the current state
+      of the migration execution.
+  """
+
+  class PhaseValueValuesEnum(_messages.Enum):
+    r"""Output only. The current phase of the migration execution.
+
+    Values:
+      PHASE_UNSPECIFIED: The phase of the migration execution is unknown.
+      REPLICATION: Replication phase refers to the migration phase when
+        Dataproc Metastore is running a pipeline to replicate changes in the
+        customer database to its backend database. During this phase, Dataproc
+        Metastore uses the customer database as the hive metastore backend
+        database.
+      CUTOVER: Cutover phase refers to the migration phase when Dataproc
+        Metastore switches to using its own backend database. Migration enters
+        this phase when customer is done migrating all their
+        clusters/workloads to Dataproc Metastore and triggers
+        CompleteMigration.
+    """
+    PHASE_UNSPECIFIED = 0
+    REPLICATION = 1
+    CUTOVER = 2
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. The current state of the migration execution.
+
+    Values:
+      STATE_UNSPECIFIED: The state of the migration execution is unknown.
+      STARTING: The migration execution is starting.
+      RUNNING: The migration execution is running.
+      CANCELLING: The migration execution is in the process of being
+        cancelled.
+      AWAITING_USER_ACTION: The migration execution is awaiting user action.
+      SUCCEEDED: The migration execution has completed successfully.
+      FAILED: The migration execution has failed.
+      CANCELLED: The migration execution is cancelled.
+      DELETING: The migration execution is being deleted.
+    """
+    STATE_UNSPECIFIED = 0
+    STARTING = 1
+    RUNNING = 2
+    CANCELLING = 3
+    AWAITING_USER_ACTION = 4
+    SUCCEEDED = 5
+    FAILED = 6
+    CANCELLED = 7
+    DELETING = 8
+
+  cloudSqlMigrationConfig = _messages.MessageField('CloudSQLMigrationConfig', 1)
+  createTime = _messages.StringField(2)
+  endTime = _messages.StringField(3)
+  name = _messages.StringField(4)
+  phase = _messages.EnumField('PhaseValueValuesEnum', 5)
+  state = _messages.EnumField('StateValueValuesEnum', 6)
+  stateMessage = _messages.StringField(7)
 
 
 class MoveTableToDatabaseRequest(_messages.Message):
@@ -2063,13 +2617,17 @@ class MoveTableToDatabaseResponse(_messages.Message):
 class MultiRegionMetadata(_messages.Message):
   r"""The metadata for the multi-region that includes the constituent regions.
   The metadata is only populated if the region is multi-region. For single
-  region, it will be empty.
+  region or custom dual region, it will be empty.
 
   Fields:
     constituentRegions: The regions constituting the multi-region.
+    continent: The continent for this multi-region.
+    witnessRegion: The Spanner witness region for this multi-region.
   """
 
   constituentRegions = _messages.StringField(1, repeated=True)
+  continent = _messages.StringField(2)
+  witnessRegion = _messages.StringField(3)
 
 
 class NetworkConfig(_messages.Message):
@@ -2199,8 +2757,9 @@ class OperationMetadata(_messages.Message):
     endTime: Output only. The time the operation finished running.
     requestedCancellation: Output only. Identifies whether the caller has
       requested cancellation of the operation. Operations that have
-      successfully been cancelled have Operation.error value with a
-      google.rpc.Status.code of 1, corresponding to Code.CANCELLED.
+      successfully been cancelled have google.longrunning.Operation.error
+      value with a google.rpc.Status.code of 1, corresponding to
+      Code.CANCELLED.
     statusMessage: Output only. Human-readable status of the operation, if
       any.
     target: Output only. Server-defined resource path for the target of the
@@ -2376,7 +2935,7 @@ class Restore(_messages.Message):
 
 
 class RestoreServiceRequest(_messages.Message):
-  r"""Request message for DataprocMetastore.Restore.
+  r"""Request message for DataprocMetastore.RestoreService.
 
   Enums:
     RestoreTypeValueValuesEnum: Optional. The type of restore. If unspecified,
@@ -2432,6 +2991,7 @@ class ScalingConfig(_messages.Message):
       scaling_factor(0.1))
 
   Fields:
+    autoscalingConfig: Optional. The autoscaling configuration.
     instanceSize: An enum of readable instance sizes, with each instance size
       mapping to a float value (e.g. InstanceSize.EXTRA_SMALL =
       scaling_factor(0.1))
@@ -2458,8 +3018,9 @@ class ScalingConfig(_messages.Message):
     LARGE = 4
     EXTRA_LARGE = 5
 
-  instanceSize = _messages.EnumField('InstanceSizeValueValuesEnum', 1)
-  scalingFactor = _messages.FloatField(2, variant=_messages.Variant.FLOAT)
+  autoscalingConfig = _messages.MessageField('AutoscalingConfig', 1)
+  instanceSize = _messages.EnumField('InstanceSizeValueValuesEnum', 2)
+  scalingFactor = _messages.FloatField(3, variant=_messages.Variant.FLOAT)
 
 
 class ScheduledBackup(_messages.Message):
@@ -2495,9 +3056,9 @@ class Secret(_messages.Message):
   r"""A securely stored value.
 
   Fields:
-    cloudSecret: The relative resource name of a Secret Manager secret
-      version, in the following form:projects/{project_number}/secrets/{secret
-      _id}/versions/{version_id}.
+    cloudSecret: Optional. The relative resource name of a Secret Manager
+      secret version, in the following form:projects/{project_number}/secrets/
+      {secret_id}/versions/{version_id}.
   """
 
   cloudSecret = _messages.StringField(1)
@@ -2513,18 +3074,25 @@ class Service(_messages.Message):
       service. If unspecified, defaults to STABLE.
     StateValueValuesEnum: Output only. The current state of the metastore
       service.
-    TierValueValuesEnum: The tier of the service.
+    TierValueValuesEnum: Optional. The tier of the service.
 
   Messages:
     LabelsValue: User-defined labels for the metastore service.
+    TagsValue: Optional. Input only. Immutable. Tag keys/values directly bound
+      to this resource. For example: "123/environment": "production",
+      "123/costCenter": "marketing"
 
   Fields:
     artifactGcsUri: Output only. A Cloud Storage URI (starting with gs://)
       that specifies where artifacts related to the metastore service are
       stored.
+    bigqueryMetastoreMigrationConfig: Optional. Specifies the configuration
+      required for migrating to BigQuery Metastore service.
     createTime: Output only. The time when the metastore service was created.
     databaseType: Immutable. The database type that the Metastore service
       stores its data.
+    deletionProtection: Optional. Indicates if the dataproc metastore should
+      be protected against accidental deletions.
     encryptionConfig: Immutable. Information used to configure the Dataproc
       Metastore service to encrypt customer data at rest. Cannot be updated.
     endpointUri: Output only. The URI of the endpoint used to access the
@@ -2532,35 +3100,38 @@ class Service(_messages.Message):
     hiveMetastoreConfig: Configuration information specific to running Hive
       metastore software as the metastore service.
     labels: User-defined labels for the metastore service.
-    maintenanceWindow: The one hour maintenance window of the metastore
-      service. This specifies when the service can be restarted for
+    maintenanceWindow: Optional. The one hour maintenance window of the
+      metastore service. This specifies when the service can be restarted for
       maintenance purposes in UTC time. Maintenance window is not needed for
       services with the SPANNER database type.
     metadataIntegration: Optional. The setting that defines how metastore
       metadata should be integrated with external services and systems.
     metadataManagementActivity: Output only. The metadata management
       activities of the metastore service.
-    name: Immutable. The relative resource name of the metastore service, in
-      the following format:projects/{project_number}/locations/{location_id}/s
-      ervices/{service_id}.
+    name: Immutable. Identifier. The relative resource name of the metastore
+      service, in the following format:projects/{project_number}/locations/{lo
+      cation_id}/services/{service_id}.
     network: Immutable. The relative resource name of the VPC network on which
       the instance can be accessed. It is specified in the following
       form:projects/{project_number}/global/networks/{network_id}.
-    networkConfig: The configuration specifying the network settings for the
-      Dataproc Metastore service.
-    port: The TCP port at which the metastore service is reached. Default:
-      9083.
+    networkConfig: Optional. The configuration specifying the network settings
+      for the Dataproc Metastore service.
+    port: Optional. The TCP port at which the metastore service is reached.
+      Default: 9083.
     releaseChannel: Immutable. The release channel of the service. If
       unspecified, defaults to STABLE.
-    scalingConfig: Scaling configuration of the metastore service.
+    scalingConfig: Optional. Scaling configuration of the metastore service.
     scheduledBackup: Optional. The configuration of scheduled backup for the
       metastore service.
     state: Output only. The current state of the metastore service.
     stateMessage: Output only. Additional information about the current state
       of the metastore service, if available.
-    telemetryConfig: The configuration specifying telemetry settings for the
-      Dataproc Metastore service. If unspecified defaults to JSON.
-    tier: The tier of the service.
+    tags: Optional. Input only. Immutable. Tag keys/values directly bound to
+      this resource. For example: "123/environment": "production",
+      "123/costCenter": "marketing"
+    telemetryConfig: Optional. The configuration specifying telemetry settings
+      for the Dataproc Metastore service. If unspecified defaults to JSON.
+    tier: Optional. The tier of the service.
     uid: Output only. The globally unique resource identifier of the metastore
       service.
     updateTime: Output only. The time when the metastore service was last
@@ -2614,6 +3185,9 @@ class Service(_messages.Message):
         used.
       ERROR: The metastore service has encountered an error and cannot be
         used. The metastore service should be deleted.
+      AUTOSCALING: The Dataproc Metastore service 2 is being scaled up or
+        down.
+      MIGRATING: The metastore service is processing a managed migration.
     """
     STATE_UNSPECIFIED = 0
     CREATING = 1
@@ -2623,9 +3197,11 @@ class Service(_messages.Message):
     UPDATING = 5
     DELETING = 6
     ERROR = 7
+    AUTOSCALING = 8
+    MIGRATING = 9
 
   class TierValueValuesEnum(_messages.Enum):
-    r"""The tier of the service.
+    r"""Optional. The tier of the service.
 
     Values:
       TIER_UNSPECIFIED: The tier is not set.
@@ -2663,29 +3239,58 @@ class Service(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class TagsValue(_messages.Message):
+    r"""Optional. Input only. Immutable. Tag keys/values directly bound to
+    this resource. For example: "123/environment": "production",
+    "123/costCenter": "marketing"
+
+    Messages:
+      AdditionalProperty: An additional property for a TagsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type TagsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a TagsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
   artifactGcsUri = _messages.StringField(1)
-  createTime = _messages.StringField(2)
-  databaseType = _messages.EnumField('DatabaseTypeValueValuesEnum', 3)
-  encryptionConfig = _messages.MessageField('EncryptionConfig', 4)
-  endpointUri = _messages.StringField(5)
-  hiveMetastoreConfig = _messages.MessageField('HiveMetastoreConfig', 6)
-  labels = _messages.MessageField('LabelsValue', 7)
-  maintenanceWindow = _messages.MessageField('MaintenanceWindow', 8)
-  metadataIntegration = _messages.MessageField('MetadataIntegration', 9)
-  metadataManagementActivity = _messages.MessageField('MetadataManagementActivity', 10)
-  name = _messages.StringField(11)
-  network = _messages.StringField(12)
-  networkConfig = _messages.MessageField('NetworkConfig', 13)
-  port = _messages.IntegerField(14, variant=_messages.Variant.INT32)
-  releaseChannel = _messages.EnumField('ReleaseChannelValueValuesEnum', 15)
-  scalingConfig = _messages.MessageField('ScalingConfig', 16)
-  scheduledBackup = _messages.MessageField('ScheduledBackup', 17)
-  state = _messages.EnumField('StateValueValuesEnum', 18)
-  stateMessage = _messages.StringField(19)
-  telemetryConfig = _messages.MessageField('TelemetryConfig', 20)
-  tier = _messages.EnumField('TierValueValuesEnum', 21)
-  uid = _messages.StringField(22)
-  updateTime = _messages.StringField(23)
+  bigqueryMetastoreMigrationConfig = _messages.MessageField('BigQueryMetastoreMigrationConfig', 2)
+  createTime = _messages.StringField(3)
+  databaseType = _messages.EnumField('DatabaseTypeValueValuesEnum', 4)
+  deletionProtection = _messages.BooleanField(5)
+  encryptionConfig = _messages.MessageField('EncryptionConfig', 6)
+  endpointUri = _messages.StringField(7)
+  hiveMetastoreConfig = _messages.MessageField('HiveMetastoreConfig', 8)
+  labels = _messages.MessageField('LabelsValue', 9)
+  maintenanceWindow = _messages.MessageField('MaintenanceWindow', 10)
+  metadataIntegration = _messages.MessageField('MetadataIntegration', 11)
+  metadataManagementActivity = _messages.MessageField('MetadataManagementActivity', 12)
+  name = _messages.StringField(13)
+  network = _messages.StringField(14)
+  networkConfig = _messages.MessageField('NetworkConfig', 15)
+  port = _messages.IntegerField(16, variant=_messages.Variant.INT32)
+  releaseChannel = _messages.EnumField('ReleaseChannelValueValuesEnum', 17)
+  scalingConfig = _messages.MessageField('ScalingConfig', 18)
+  scheduledBackup = _messages.MessageField('ScheduledBackup', 19)
+  state = _messages.EnumField('StateValueValuesEnum', 20)
+  stateMessage = _messages.StringField(21)
+  tags = _messages.MessageField('TagsValue', 22)
+  telemetryConfig = _messages.MessageField('TelemetryConfig', 23)
+  tier = _messages.EnumField('TierValueValuesEnum', 24)
+  uid = _messages.StringField(25)
+  updateTime = _messages.StringField(26)
 
 
 class SetIamPolicyRequest(_messages.Message):
@@ -2768,6 +3373,26 @@ class StandardQueryParameters(_messages.Message):
   upload_protocol = _messages.StringField(12)
 
 
+class StartMigrationRequest(_messages.Message):
+  r"""Request message for DataprocMetastore.StartMigration.
+
+  Fields:
+    migrationExecution: Required. The configuration details for the migration.
+    requestId: Optional. A request ID. Specify a unique request ID to allow
+      the server to ignore the request if it has completed. The server will
+      ignore subsequent requests that provide a duplicate request ID for at
+      least 60 minutes after the first request.For example, if an initial
+      request times out, followed by another request with the same request ID,
+      the server ignores the second request to prevent the creation of
+      duplicate commitments.The request ID must be a valid UUID
+      (https://en.wikipedia.org/wiki/Universally_unique_identifier#Format) A
+      zero UUID (00000000-0000-0000-0000-000000000000) is not supported.
+  """
+
+  migrationExecution = _messages.MessageField('MigrationExecution', 1)
+  requestId = _messages.StringField(2)
+
+
 class Status(_messages.Message):
   r"""The Status type defines a logical error model that is suitable for
   different programming environments, including REST APIs and RPC APIs. It is
@@ -2819,19 +3444,47 @@ class Status(_messages.Message):
   message = _messages.StringField(3)
 
 
+class StatusProto(_messages.Message):
+  r"""Wire-format for a Status object
+
+  Fields:
+    canonicalCode: copybara:strip_begin(b/383363683)
+      copybara:strip_end_and_replace optional int32 canonical_code = 6;
+    code: Numeric code drawn from the space specified below. Often, this is
+      the canonical error space, and code is drawn from
+      google3/util/task/codes.proto copybara:strip_begin(b/383363683)
+      copybara:strip_end_and_replace optional int32 code = 1;
+    message: Detail message copybara:strip_begin(b/383363683)
+      copybara:strip_end_and_replace optional string message = 3;
+    messageSet: message_set associates an arbitrary proto message with the
+      status. copybara:strip_begin(b/383363683) copybara:strip_end_and_replace
+      optional proto2.bridge.MessageSet message_set = 5;
+    space: copybara:strip_begin(b/383363683) Space to which this status
+      belongs copybara:strip_end_and_replace optional string space = 2; //
+      Space to which this status belongs
+  """
+
+  canonicalCode = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  code = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  message = _messages.StringField(3)
+  messageSet = _messages.MessageField('MessageSet', 4)
+  space = _messages.StringField(5)
+
+
 class TelemetryConfig(_messages.Message):
   r"""Telemetry Configuration for the Dataproc Metastore service.
 
   Enums:
-    LogFormatValueValuesEnum: The output format of the Dataproc Metastore
-      service's logs.
+    LogFormatValueValuesEnum: Optional. The output format of the Dataproc
+      Metastore service's logs.
 
   Fields:
-    logFormat: The output format of the Dataproc Metastore service's logs.
+    logFormat: Optional. The output format of the Dataproc Metastore service's
+      logs.
   """
 
   class LogFormatValueValuesEnum(_messages.Enum):
-    r"""The output format of the Dataproc Metastore service's logs.
+    r"""Optional. The output format of the Dataproc Metastore service's logs.
 
     Values:
       LOG_FORMAT_UNSPECIFIED: The LOG_FORMAT is not set.
@@ -2875,3 +3528,13 @@ encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    MetastoreProjectsLocationsFederationsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    MetastoreProjectsLocationsServicesGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    MetastoreProjectsLocationsServicesBackupsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    MetastoreProjectsLocationsServicesDatabasesGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    MetastoreProjectsLocationsServicesDatabasesTablesGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')

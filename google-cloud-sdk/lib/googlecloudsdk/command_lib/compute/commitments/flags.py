@@ -19,6 +19,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import datetime
+
 from googlecloudsdk.calliope import arg_parsers
 from googlecloudsdk.command_lib.compute import completers as compute_completers
 from googlecloudsdk.command_lib.compute import flags as compute_flags
@@ -27,10 +29,15 @@ from googlecloudsdk.command_lib.compute.instances import flags as instance_flags
 from googlecloudsdk.command_lib.compute.reservations import flags as reservation_flags
 from googlecloudsdk.command_lib.compute.reservations import resource_args
 from googlecloudsdk.command_lib.util.apis import arg_utils
+import pytz
 
 
 VALID_PLANS = ['12-month', '36-month']
+EXTENDED_VALID_PLANS = ['12-month', '36-month', '60-month']
 VALID_UPDATE_PLANS = ['36-month']
+EXTENDED_VALID_UPDATE_PLANS = ['36-month', '60-month']
+RFC3339_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
+DATE_ONLY_FORMAT = '%Y-%m-%d'
 _REQUIRED_RESOURCES = sorted(['vcpu', 'memory'])
 
 
@@ -40,14 +47,18 @@ class RegionCommitmentsCompleter(compute_completers.ListCommandCompleter):
     super(RegionCommitmentsCompleter, self).__init__(
         collection='compute.regionCommitments',
         list_command='alpha compute commitments list --uri',
-        **kwargs)
+        **kwargs
+    )
 
 
 def _GetFlagToPlanMap(messages):
-  return {
+  result = {
       '12-month': messages.Commitment.PlanValueValuesEnum.TWELVE_MONTH,
       '36-month': messages.Commitment.PlanValueValuesEnum.THIRTY_SIX_MONTH,
   }
+  if hasattr(messages.Commitment.PlanValueValuesEnum, 'SIXTY_MONTH'):
+    result['60-month'] = messages.Commitment.PlanValueValuesEnum.SIXTY_MONTH
+  return result
 
 
 def TranslatePlanArg(messages, plan_arg):
@@ -63,6 +74,45 @@ def TranslateAutoRenewArgForCreate(args):
 def TranslateAutoRenewArgForUpdate(args):
   if args.IsSpecified('auto_renew'):
     return args.auto_renew
+  return None
+
+
+def TranslateCustomEndTimeArg(args):
+  """Translates the custom end time arg to a RFC3339 format."""
+  if args.IsSpecified('custom_end_time'):
+    # make sure if along with the RFC3339 format.
+    try_date_only_parse = False
+    final_date_time = None
+    try:
+      datetime.datetime.strptime(args.custom_end_time, RFC3339_FORMAT)
+      final_date_time = args.custom_end_time
+    except ValueError:
+      # Swallow the exception and try to parse the date string in the format of
+      # YYYY-MM-DD
+      try_date_only_parse = True
+
+    if try_date_only_parse:
+      try:
+        # try to parse the date string in the format of YYYY-MM-DD
+        tz = pytz.timezone('America/Los_Angeles')
+        midnight_date_time_mtv = tz.localize(
+            datetime.datetime.strptime(args.custom_end_time, DATE_ONLY_FORMAT)
+        )
+        final_date_time = midnight_date_time_mtv.astimezone(pytz.utc).strftime(
+            RFC3339_FORMAT
+        )
+      except ValueError:
+        # Swallow the exception and throw canonical one.
+        pass
+
+    if not final_date_time:
+      raise ValueError(
+          'Invalid custom end time. Expected format: YYYY-MM-DD or'
+          ' YYYY-MM-DDTHH:MM:SSZ'
+      )
+
+    return final_date_time
+
   return None
 
 
@@ -89,7 +139,9 @@ def TranslateResourcesArgGroup(messages, args):
     resources.append(
         messages.ResourceCommitment(
             amount=resources_arg['local-ssd'],
-            type=messages.ResourceCommitment.TypeValueValuesEnum.LOCAL_SSD))
+            type=messages.ResourceCommitment.TypeValueValuesEnum.LOCAL_SSD,
+        )
+    )
 
   if args.IsSpecified('resources_accelerator'):
     accelerator_arg = args.resources_accelerator
@@ -97,7 +149,9 @@ def TranslateResourcesArgGroup(messages, args):
         messages.ResourceCommitment(
             amount=accelerator_arg['count'],
             acceleratorType=accelerator_arg['type'],
-            type=messages.ResourceCommitment.TypeValueValuesEnum.ACCELERATOR))
+            type=messages.ResourceCommitment.TypeValueValuesEnum.ACCELERATOR,
+        )
+    )
 
   return resources
 
@@ -114,7 +168,8 @@ def MakeCommitmentArg(plural):
       plural=plural,
       name='commitment',
       regional_collection='compute.regionCommitments',
-      region_explanation=compute_flags.REGION_PROPERTY_EXPLANATION)
+      region_explanation=compute_flags.REGION_PROPERTY_EXPLANATION,
+  )
 
 
 def AddCreateFlags(
@@ -122,39 +177,46 @@ def AddCreateFlags(
     support_share_setting=False,
     support_stable_fleet=False,
     support_existing_reservation=False,
+    support_reservation_sharing_policy=False,
+    support_60_month_plan=False,
 ):
   """Add general arguments for `commitments create` flag."""
-  AddPlanForCreate(parser)
+  AddPlanForCreate(parser, support_60_month_plan)
   AddReservationArgGroup(
       parser,
       support_share_setting,
       support_stable_fleet,
       support_existing_reservation,
+      support_reservation_sharing_policy,
   )
   AddResourcesArgGroup(parser)
   AddSplitSourceCommitment(parser)
   AddMergeSourceCommitments(parser)
+  AddCustomEndTime(parser)
 
 
-def AddUpdateFlags(parser):
+def AddUpdateFlags(parser, support_60_month_plan=False):
   """Add general arguments for `commitments update` flag."""
   AddAutoRenew(parser)
-  AddPlanForUpdate(parser)
+  AddPlanForUpdate(parser, support_60_month_plan)
 
 
-def AddPlanForCreate(parser):
+def AddPlanForCreate(parser, support_60_month_plan):
   return parser.add_argument(
       '--plan',
       required=True,
-      choices=VALID_PLANS,
-      help='Duration of the commitment.')
+      choices=EXTENDED_VALID_PLANS if support_60_month_plan else VALID_PLANS,
+      help='Duration of the commitment.',
+  )
 
 
-def AddPlanForUpdate(parser):
+def AddPlanForUpdate(parser, support_60_month_plan):
   return parser.add_argument(
       '--plan',
       required=False,
-      choices=VALID_UPDATE_PLANS,
+      choices=EXTENDED_VALID_UPDATE_PLANS
+      if support_60_month_plan
+      else VALID_UPDATE_PLANS,
       help='Duration of the commitment.',
   )
 
@@ -164,41 +226,74 @@ def AddAutoRenew(parser):
       '--auto-renew',
       action='store_true',
       default=False,
-      help='Enable auto renewal for the commitment.')
+      help='Enable auto renewal for the commitment.',
+  )
 
 
 def AddLicenceBasedFlags(parser):
-  parser.add_argument('--license', required=True,
-                      help='Applicable license URI. For example: '
-                           '`https://www.googleapis.com/compute/v1/projects/suse-sap-cloud/global/licenses/sles-sap-12`')  #  pylint:disable=line-too-long
-  parser.add_argument('--cores-per-license', required=False, type=str,
-                      help='Core range of the instance. Must be one of: `1-2`,'
-                           ' `3-4`, `5+`. Required for SAP licenses.')
-  parser.add_argument('--amount', required=True, type=int,
-                      help='Number of licenses purchased.')
-  AddPlanForCreate(parser)
+  """Add license based flags for `commitments create` flag."""
+  parser.add_argument(
+      '--license',
+      required=True,
+      help=(
+          'Applicable license URI. For example: '
+          '`https://www.googleapis.com/compute/v1/projects/suse-sap-cloud/global/licenses/sles-sap-12`'
+      ),
+  )  #  pylint:disable=line-too-long
+  parser.add_argument(
+      '--cores-per-license',
+      required=False,
+      type=str,
+      help=(
+          'Core range of the instance. Must be one of: `1-2`,'
+          ' `3-4`, `5+`. Required for SAP licenses.'
+      ),
+  )
+  parser.add_argument(
+      '--amount', required=True, type=int, help='Number of licenses purchased.'
+  )
+  AddPlanForCreate(parser, support_60_month_plan=False)
 
 
 def AddSplitSourceCommitment(parser):
   return parser.add_argument(
       '--split-source-commitment',
       required=False,
-      help=('Creates the new commitment by splitting the specified '
-            'source commitment and redistributing the specified resources.'))
+      help=(
+          'Creates the new commitment by splitting the specified '
+          'source commitment and redistributing the specified resources.'
+      ),
+  )
 
 
 def AddMergeSourceCommitments(parser):
   return parser.add_argument(
       '--merge-source-commitments',
       required=False,
-      help=('Creates the new commitment by merging the specified '
-            'source commitments and combining their resources.'))
+      help=(
+          'Creates the new commitment by merging the specified '
+          'source commitments and combining their resources.'
+      ),
+  )
+
+
+def AddCustomEndTime(parser):
+  return parser.add_argument(
+      '--custom-end-time',
+      required=False,
+      type=str,
+      help=(
+          "Specifies a custom future end date and extends the commitment's"
+          ' ongoing term.'
+      ),
+  )
 
 
 def AddResourcesArgGroup(parser):
   """Add the argument group for ResourceCommitment support in commitment."""
   resources_group = parser.add_group(
-      'Manage the commitment for particular resources.', required=True)
+      'Manage the commitment for particular resources.', required=True
+  )
 
   resources_help = """\
 Resources to be included in the commitment. For details and examples of valid
@@ -216,8 +311,10 @@ specifications, refer to the
           spec={
               'vcpu': int,
               'local-ssd': int,
-              'memory': arg_parsers.BinarySize()
-          }))
+              'memory': arg_parsers.BinarySize(),
+          }
+      ),
+  )
   accelerator_help = """\
 Manage the configuration of the type and number of accelerator cards to include in the commitment.
 *count*::: The number of accelerators to include.
@@ -226,10 +323,8 @@ Manage the configuration of the type and number of accelerator cards to include 
   resources_group.add_argument(
       '--resources-accelerator',
       help=accelerator_help,
-      type=arg_parsers.ArgDict(spec={
-          'count': int,
-          'type': str
-      }))
+      type=arg_parsers.ArgDict(spec={'count': int, 'type': str}),
+  )
 
 
 def GetTypeMapperFlag(messages):
@@ -239,40 +334,52 @@ def GetTypeMapperFlag(messages):
       messages.Commitment.TypeValueValuesEnum,
       help_str=(
           'Type of commitment. `memory-optimized` indicates that the '
-          'commitment is for memory-optimized VMs.'),
+          'commitment is for memory-optimized VMs.'
+      ),
       default='general-purpose',
-      include_filter=lambda x: x != 'TYPE_UNSPECIFIED')
+      include_filter=lambda x: x != 'TYPE_UNSPECIFIED',
+  )
 
 
 def AddUpdateReservationGroup(parser):
   """Add reservation arguments to the update-reservations command."""
   parent_reservations_group = parser.add_group(
-      'Manage reservations that are attached to the commitment.',
-      mutex=True)
+      'Manage reservations that are attached to the commitment.', mutex=True
+  )
   AddReservationsFromFileFlag(
       parent_reservations_group,
-      custom_text='Path to a YAML file of two reservations\' configuration.')
+      custom_text="Path to a YAML file of two reservations' configuration.",
+  )
   reservations_group = parent_reservations_group.add_group(
-      'Specify source and destination reservations configuration.')
+      'Specify source and destination reservations configuration.'
+  )
   AddReservationArguments(reservations_group)
-  reservation_flags.GetAcceleratorFlag(
-      '--source-accelerator').AddToParser(reservations_group)
-  reservation_flags.GetAcceleratorFlag(
-      '--dest-accelerator').AddToParser(reservations_group)
-  reservation_flags.GetLocalSsdFlag(
-      '--source-local-ssd').AddToParser(reservations_group)
-  reservation_flags.GetLocalSsdFlag(
-      '--dest-local-ssd').AddToParser(reservations_group)
+  reservation_flags.GetAcceleratorFlag('--source-accelerator').AddToParser(
+      reservations_group
+  )
+  reservation_flags.GetAcceleratorFlag('--dest-accelerator').AddToParser(
+      reservations_group
+  )
+  reservation_flags.GetLocalSsdFlag('--source-local-ssd').AddToParser(
+      reservations_group
+  )
+  reservation_flags.GetLocalSsdFlag('--dest-local-ssd').AddToParser(
+      reservations_group
+  )
 
   # Add share-setting and share-with flags.
   reservation_flags.GetSharedSettingFlag('--source-share-setting').AddToParser(
-      reservations_group)
+      reservations_group
+  )
   reservation_flags.GetShareWithFlag('--source-share-with').AddToParser(
-      reservations_group)
+      reservations_group
+  )
   reservation_flags.GetSharedSettingFlag('--dest-share-setting').AddToParser(
-      reservations_group)
+      reservations_group
+  )
   reservation_flags.GetShareWithFlag('--dest-share-with').AddToParser(
-      reservations_group)
+      reservations_group
+  )
   return parser
 
 
@@ -301,24 +408,32 @@ defined. If enabled, then only VMs that target this reservation by name using
       'require-specific-reservation': bool,
   }
 
-  parser.add_argument('--source-reservation',
-                      type=arg_parsers.ArgDict(spec=reservation_spec),
-                      help=help_text.format('source'),
-                      required=True)
-  parser.add_argument('--dest-reservation',
-                      type=arg_parsers.ArgDict(spec=reservation_spec),
-                      help=help_text.format('destination'),
-                      required=True)
+  parser.add_argument(
+      '--source-reservation',
+      type=arg_parsers.ArgDict(spec=reservation_spec),
+      help=help_text.format('source'),
+      required=True,
+  )
+  parser.add_argument(
+      '--dest-reservation',
+      type=arg_parsers.ArgDict(spec=reservation_spec),
+      help=help_text.format('destination'),
+      required=True,
+  )
   return parser
 
 
 def AddReservationsFromFileFlag(parser, custom_text=None):
-  help_text = (custom_text if custom_text else
-               'Path to a YAML file of multiple reservations\' configuration.')
+  help_text = (
+      custom_text
+      if custom_text
+      else "Path to a YAML file of multiple reservations' configuration."
+  )
   return parser.add_argument(
       '--reservations-from-file',
       type=arg_parsers.FileContents(),
-      help=help_text)
+      help=help_text,
+  )
 
 
 def AddExistingReservationFlag(parser):
@@ -359,7 +474,7 @@ def ResolveExistingReservationArgs(args, resources):
         compute_scope.ScopeEnum.ZONE,
         reservation['zone'],
         resources,
-        )[0]
+    )[0]
     reservation_urls.append(reservation_ref.SelfLink())
   return reservation_urls
 
@@ -369,30 +484,37 @@ def AddReservationArgGroup(
     support_share_setting=False,
     support_stable_fleet=False,
     support_existing_reservations=False,
+    support_reservation_sharing_policy=False,
 ):
   """Adds all flags needed for reservations creation."""
   reservations_manage_group = parser.add_group(
-      'Manage the reservations to be created with the commitment.', mutex=True)
+      'Manage the reservations to be created with the commitment.', mutex=True
+  )
 
   AddReservationsFromFileFlag(reservations_manage_group)
   if support_existing_reservations:
     AddExistingReservationFlag(reservations_manage_group)
 
   single_reservation_group = reservations_manage_group.add_argument_group(
-      help='Manage the reservation to be created with the commitment.')
-  resource_args.GetReservationResourceArg(
-      positional=False).AddArgument(single_reservation_group)
+      help='Manage the reservation to be created with the commitment.'
+  )
+  resource_args.GetReservationResourceArg(positional=False).AddArgument(
+      single_reservation_group
+  )
   single_reservation_group.add_argument(
       '--reservation-type',
       hidden=True,
       choices=['specific'],
       default='specific',
-      help='The type of the reservation to be created.')
+      help='The type of the reservation to be created.',
+  )
 
   specific_sku_reservation_group = single_reservation_group.add_argument_group(
-      help='Manage the specific SKU reservation properties to create.')
-  AddFlagsToSpecificSkuGroup(specific_sku_reservation_group,
-                             support_stable_fleet)
+      help='Manage the specific SKU reservation properties to create.'
+  )
+  AddFlagsToSpecificSkuGroup(
+      specific_sku_reservation_group, support_stable_fleet
+  )
 
   if support_share_setting:
     share_setting_reservation_group = (
@@ -402,6 +524,22 @@ def AddReservationArgGroup(
         )
     )
     AddFlagsToShareSettingGroup(share_setting_reservation_group)
+
+  if support_reservation_sharing_policy:
+    reservation_sharing_policy_group = single_reservation_group.add_argument_group(
+        help='Manage the properties of a reservation sharing policy to create',
+        required=False,
+    )
+    AddFlagsToReservationSharingPolicyGroup(reservation_sharing_policy_group)
+
+
+def AddFlagsToReservationSharingPolicyGroup(group):
+  """Adds flags needed for a reservation sharing policy."""
+  args = [
+      reservation_flags.GetReservationSharingPolicyFlag(),
+  ]
+  for arg in args:
+    arg.AddToParser(group)
 
 
 def AddFlagsToSpecificSkuGroup(group, support_stable_fleet=False):
@@ -427,7 +565,7 @@ def AddFlagsToShareSettingGroup(group):
   """Adds flags needed for an allocation with share setting."""
   args = [
       reservation_flags.GetSharedSettingFlag(),
-      reservation_flags.GetShareWithFlag()
+      reservation_flags.GetShareWithFlag(),
   ]
 
   for arg in args:

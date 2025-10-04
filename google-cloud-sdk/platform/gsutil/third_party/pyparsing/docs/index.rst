@@ -12,6 +12,9 @@ Release v\ |version|
    :caption: Contents:
 
    HowToUsePyparsing
+   whats_new_in_3_2
+   whats_new_in_3_1
+   whats_new_in_3_0_0
    modules
    CODE_OF_CONDUCT
 

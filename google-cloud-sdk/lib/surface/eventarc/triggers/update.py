@@ -23,6 +23,7 @@ from googlecloudsdk.calliope import base
 from googlecloudsdk.calliope import exceptions
 from googlecloudsdk.command_lib.eventarc import flags
 from googlecloudsdk.command_lib.eventarc import types
+from googlecloudsdk.command_lib.util.args import labels_util
 from googlecloudsdk.core import log
 
 _DETAILED_HELP = {
@@ -38,6 +39,7 @@ _DETAILED_HELP = {
 
 
 @base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.DefaultUniverseOnly
 class Update(base.UpdateCommand):
   """Update an Eventarc trigger."""
 
@@ -55,10 +57,11 @@ class Update(base.UpdateCommand):
     service_account_group = parser.add_mutually_exclusive_group()
     flags.AddServiceAccountArg(service_account_group)
     flags.AddClearServiceAccountArg(service_account_group)
+    labels_util.AddUpdateLabelsFlags(parser)
 
   def Run(self, args):
     """Run the update command."""
-    client = triggers.CreateTriggersClient(self.ReleaseTrack())
+    client = triggers.TriggersClientV1()
     trigger_ref = args.CONCEPTS.trigger.Parse()
     event_filters = flags.GetEventFiltersArg(args, self.ReleaseTrack())
     event_filters_path_pattern = flags.GetEventFiltersPathPatternArg(
@@ -66,6 +69,12 @@ class Update(base.UpdateCommand):
     event_data_content_type = flags.GetEventDataContentTypeArg(
         args, self.ReleaseTrack()
     )
+
+    original_trigger = client.Get(trigger_ref)
+    labels_update_result = labels_util.Diff.FromUpdateArgs(args).Apply(
+        client.LabelsValueClass(), original_trigger.labels
+    )
+
     update_mask = client.BuildUpdateMask(
         event_filters=event_filters is not None,
         event_filters_path_pattern=event_filters_path_pattern is not None,
@@ -89,11 +98,12 @@ class Update(base.UpdateCommand):
         destination_function_location=args.IsSpecified(
             'destination_function_location'
         ),
+        labels=labels_update_result.needs_update,
     )
-    old_trigger = client.Get(trigger_ref)
-    # The type can't be updated, so it's safe to use the old trigger's type.
+    # The type can't be updated, so it's safe to use the original trigger's
+    # type.
     # In the async case, this is the only way to get the type.
-    self._event_type = client.GetEventType(old_trigger)
+    self._event_type = client.GetEventType(original_trigger)
     destination_message = None
     if (args.IsSpecified('destination_run_service') or
         args.IsSpecified('destination_run_job') or
@@ -112,14 +122,14 @@ class Update(base.UpdateCommand):
           args.destination_gke_service, args.destination_gke_path)
     elif (args.IsSpecified('destination_workflow') or
           args.IsSpecified('destination_workflow_location')):
-      location = self.GetWorkflowDestinationLocation(args, old_trigger)
-      workflow = self.GetWorkflowDestination(args, old_trigger)
+      location = self.GetWorkflowDestinationLocation(args, original_trigger)
+      workflow = self.GetWorkflowDestination(args, original_trigger)
       destination_message = client.BuildWorkflowDestinationMessage(
           trigger_ref.Parent().Parent().Name(), workflow, location)
     elif (args.IsSpecified('destination_function') or
           args.IsSpecified('destination_function_location')):
-      location = self.GetFunctionDestinationLocation(args, old_trigger)
-      function = self.GetFunctionDestination(args, old_trigger)
+      location = self.GetFunctionDestinationLocation(args, original_trigger)
+      function = self.GetFunctionDestination(args, original_trigger)
       destination_message = client.BuildFunctionDestinationMessage(
           trigger_ref.Parent().Parent().Name(), function, location)
     trigger_message = client.BuildTriggerMessage(
@@ -131,6 +141,7 @@ class Update(base.UpdateCommand):
         destination_message,
         None,
         None,
+        labels_update_result.GetOrNone(),
     )
     operation = client.Patch(trigger_ref, trigger_message, update_mask)
     if args.async_:
@@ -178,52 +189,3 @@ class Update(base.UpdateCommand):
     raise exceptions.InvalidArgumentException(
         '--destination-function-location',
         'The specified trigger is not for a function destination.')
-
-
-@base.Deprecate(
-    is_removed=True,
-    warning=(
-        'This command is deprecated. '
-        'Please use `gcloud eventarc triggers update` instead.'
-    ),
-    error=(
-        'This command has been removed. '
-        'Please use `gcloud eventarc triggers update` instead.'
-    ),
-)
-@base.ReleaseTracks(base.ReleaseTrack.BETA)
-class UpdateBeta(Update):
-  """Update an Eventarc trigger."""
-
-  def Run(self, args):
-    """Run the update command."""
-    client = triggers.CreateTriggersClient(self.ReleaseTrack())
-    trigger_ref = args.CONCEPTS.trigger.Parse()
-    event_filters = flags.GetEventFiltersArg(args, self.ReleaseTrack())
-    update_mask = client.BuildUpdateMask(
-        event_filters=event_filters is not None,
-        event_data_content_type=None,
-        service_account=args.IsSpecified('service_account')
-        or args.clear_service_account,
-        destination_run_service=args.IsSpecified('destination_run_service'),
-        destination_run_job=None,  # Not supported in BETA release track or API
-        destination_run_path=args.IsSpecified('destination_run_path')
-        or args.clear_destination_run_path,
-        destination_run_region=args.IsSpecified('destination_run_region'),
-    )
-    old_trigger = client.Get(trigger_ref)
-    # The type can't be updated, so it's safe to use the old trigger's type.
-    # In the async case, this is the only way to get the type.
-    self._event_type = client.GetEventType(old_trigger)
-    destination_message = client.BuildCloudRunDestinationMessage(
-        args.destination_run_service, None, args.destination_run_path,
-        args.destination_run_region)
-    trigger_message = client.BuildTriggerMessage(trigger_ref, event_filters,
-                                                 None, None,
-                                                 args.service_account,
-                                                 destination_message, None,
-                                                 None)
-    operation = client.Patch(trigger_ref, trigger_message, update_mask)
-    if args.async_:
-      return operation
-    return client.WaitFor(operation, 'Updating', trigger_ref)

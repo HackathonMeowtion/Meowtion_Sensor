@@ -49,6 +49,7 @@ class PublicDelegatedPrefixesClient(object):
       enable_live_migration,
       mode,
       allocatable_prefix_length,
+      purpose,
   ):
     """Creates a public delegated prefix."""
     is_regional = hasattr(pdp_ref, 'region')
@@ -83,6 +84,9 @@ class PublicDelegatedPrefixesClient(object):
       public_delegated_prefix.allocatablePrefixLength = (
           allocatable_prefix_length
       )
+
+    if purpose is not None:
+      public_delegated_prefix.purpose = purpose
 
     if is_regional:
       request = self.messages.ComputePublicDelegatedPrefixesInsertRequest(
@@ -214,6 +218,8 @@ class PublicDelegatedPrefixesClient(object):
       description,
       delegatee_project,
       is_addresses,
+      mode,
+      allocatable_prefix_length,
   ):
     """Adds a delegated sub prefix to public delegated prefix using PATCH.
 
@@ -224,6 +230,9 @@ class PublicDelegatedPrefixesClient(object):
       description: sub prefix description.
       delegatee_project: sub prefix target project.
       is_addresses: sub prefix isAddress parameter.
+      mode: sub prefix mode.
+      allocatable_prefix_length: sub prefix allocatable prefix length for IPv6
+        NetLb
 
     Returns:
       Operation result from the poller.
@@ -249,6 +258,8 @@ class PublicDelegatedPrefixesClient(object):
             ipCidrRange=ip_cidr_range,
             delegateeProject=delegatee_project,
             isAddress=is_addresses,
+            mode=mode,
+            allocatablePrefixLength=allocatable_prefix_length,
         )
     )
 

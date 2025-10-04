@@ -394,6 +394,12 @@ class _HandleLaterError(Exception):
   pass
 
 
+class DryRunError(Exception):
+  """Error to pack for dry run cases without causing system exit."""
+
+  pass
+
+
 class ArgumentParser(argparse.ArgumentParser):
   """A custom subclass for arg parsing behavior.
 
@@ -890,7 +896,8 @@ class ArgumentParser(argparse.ArgumentParser):
     # If we are dealing with flags, see if the spelling was close to something
     # else that exists here.
     suggestion = None
-    choices = sorted(action.choices)
+    hidden_choices = getattr(action, 'hidden_choices', [])
+    choices = sorted(c for c in action.choices if c not in hidden_choices)
     if not is_subparser:
       suggester = usage_text.TextChoiceSuggester(choices)
       suggestion = suggester.GetSuggestion(arg)
@@ -1032,6 +1039,7 @@ class ArgumentParser(argparse.ArgumentParser):
     Raises:
       _HandleLaterError: if the error should be handled in a subsequent call to
         this method.
+      DryRunError: If CLOUDSDK_CORE_DRY_RUN is set to 1.
     """
     # Ignore errors better handled by validate_specified_args().
     if '_ARGCOMPLETE' not in os.environ:
@@ -1098,13 +1106,22 @@ class ArgumentParser(argparse.ArgumentParser):
     elif not self.raise_error:
       message = console_attr.SafeText(message)
       log.error('({prog}) {message}'.format(prog=self.prog, message=message))
+      if (
+          'CLOUDSDK_CORE_DRY_RUN' in os.environ
+          and os.environ['CLOUDSDK_CORE_DRY_RUN'] == '1'
+      ):
+        raise DryRunError(message)
+
       # multi-line message means hints already added, no need for usage.
       # pylint: disable=protected-access
       if '\n' not in message:
         # Provide "Maybe you meant" suggestions if we are dealing with an
         # invalid command.
         suggestions = None
-        if 'Invalid choice' in message:
+        # "Valid choices" would imply this is an arg issue not a command issue.
+        is_invalid_command = ('Invalid choice' in message and
+                              'Valid choices' not in message)
+        if is_invalid_command:
           suggestions = suggest_commands.GetCommandSuggestions(
               self._GetOriginalArgs())
           self._ClearOriginalArgs()

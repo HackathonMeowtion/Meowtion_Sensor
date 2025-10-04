@@ -1,3 +1,92 @@
+Release 5.35 (release date: 2025-06-25)
+======================================
+New Features
+------------------
+- Added explicit support for Python 3.13
+
+Other Changes
+------------------
+- Dropped Support for Python 3.8.
+
+Release 5.34 (release date: 2025-04-16)
+======================================
+New Features
+------------------
+
+Shim Changes
+------------------
+- Added shim translations for (--autoclass and -s) options in gsutil mb command (#1835 and #1845).
+- Added shim translations for (-U and -r/-R) options in gsutil mv command (#1852 and #1853).
+- Added shim translation for -U option in gsutil cp command (#1852).
+
+Other Changes
+------------------
+- Added invocation id to Gsutil user agent (#1856).
+- Ignored Syntax warnings in pyparsing module (#1841).
+- Increased timeout for gsutil tests from 180s to 360s (#1855).
+
+Bug Fixes
+------------------
+- Fixed parity issues and updated tests in gstil hmac and gsutil ls commands (#1847, #1848 and #1860).
+
+Release 5.33 (release date: 2024-12-10)
+======================================
+Bug Fixes
+------------------
+- Corrected python-requires as <3.13 (#1827)
+
+Other Changes
+------------------
+
+Release 5.32 (release date: 2024-12-04)
+======================================
+New Features
+------------------
+- Added explicit support for Python 3.12
+
+Other Changes
+------------------
+- Dropped Support for Python 3.5, 3.6 and 3.7.
+- Pinned pyOpenSSL to a maximum version of 24.2.1 (#1822).
+
+Release 5.31 (release date: 2024-10-10)
+======================================
+Bug Fixes
+------------------
+- Fixed some vulnerabilities in dependencies by addressing CVE-2023-38325.
+
+Other Changes
+------------------
+- Skipped incompatible tests for python 3.11.9 and above
+
+Release 5.30 (release date: 2024-06-12)
+======================================
+New Features
+------------------
+
+Other Changes
+------------------
+- Fixed the bug in `gsutil signurl` command.
+
+Release 5.29 (release date: 2024-05-07)
+======================================
+New Features
+------------------
+
+Other Changes
+------------------
+- Upgraded gcs-oauth2-boto-plugin for users to authenticate via google-auth (instead of oauth2client) for .p12 keys.
+
+Release 5.28 (release date: 2024-04-30)
+======================================
+New Features
+------------------
+- Allow accessing public data with anonymous user when shim is turned ON
+
+Other Changes
+------------------
+- Migrated P12 Authentication from oauth2client to google-auth.
+
 Release 5.27 (release date: 2023-10-24)
 ======================================
 New Features

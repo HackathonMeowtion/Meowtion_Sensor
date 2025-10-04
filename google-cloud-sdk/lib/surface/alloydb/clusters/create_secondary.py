@@ -29,9 +29,8 @@ from googlecloudsdk.core import properties
 from googlecloudsdk.core import resources
 
 
-@base.ReleaseTracks(
-    base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA, base.ReleaseTrack.GA
-)
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.GA)
 class CreateSecondary(base.CreateCommand):
   """Create a new AlloyDB SECONDARY cluster within a given project."""
 
@@ -59,6 +58,7 @@ class CreateSecondary(base.CreateCommand):
     flags.AddAllocatedIPRangeName(parser)
     flags.AddContinuousBackupConfigFlagsForCreateSecondary(parser)
     flags.AddAutomatedBackupFlagsForCreateSecondary(parser, alloydb_messages)
+    flags.AddTags(parser)
     kms_resource_args.AddKmsKeyResourceArg(
         parser,
         'cluster',
@@ -67,6 +67,11 @@ class CreateSecondary(base.CreateCommand):
             " 'Cloud KMS CryptoKey Encrypter/Decrypter'"
         ),
     )
+
+  def ConstructCreateSecondaryRequestFromArgs(
+      self, alloydb_messages, location_ref, args):
+    return cluster_helper.ConstructCreatesecondaryRequestFromArgsGA(
+        alloydb_messages, location_ref, args)
 
   def Run(self, args):
     """Constructs and sends request.
@@ -86,8 +91,7 @@ class CreateSecondary(base.CreateCommand):
         projectsId=properties.VALUES.core.project.GetOrFail,
         locationsId=args.region,
     )
-
-    req = cluster_helper.ConstructCreatesecondaryRequestFromArgs(
+    req = self.ConstructCreateSecondaryRequestFromArgs(
         alloydb_messages, location_ref, args
     )
 
@@ -99,3 +103,33 @@ class CreateSecondary(base.CreateCommand):
     if not args.async_:
       cluster_operations.Await(op_ref, 'Creating cluster', self.ReleaseTrack())
     return op
+
+
+@base.ReleaseTracks(base.ReleaseTrack.BETA)
+class CreateSecondaryBeta(CreateSecondary):
+  """Create a new AlloyDB SECONDARY cluster within a given project."""
+
+  @classmethod
+  def Args(cls, parser):
+    super(CreateSecondaryBeta, cls).Args(parser)
+
+  def ConstructCreateSecondaryRequestFromArgs(
+      self, alloydb_messages, location_ref, args):
+    return cluster_helper.ConstructCreatesecondaryRequestFromArgsBeta(
+        alloydb_messages, location_ref, args)
+
+
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class CreateSecondaryAlpha(CreateSecondaryBeta):
+  """Create a new AlloyDB SECONDARY cluster within a given project."""
+
+  @classmethod
+  def Args(cls, parser):
+    super(CreateSecondaryAlpha, cls).Args(parser)
+
+  def ConstructCreateSecondaryRequestFromArgs(
+      self, alloydb_messages, location_ref, args
+  ):
+    return cluster_helper.ConstructCreatesecondaryRequestFromArgsAlpha(
+        alloydb_messages, location_ref, args
+    )

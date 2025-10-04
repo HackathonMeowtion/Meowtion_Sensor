@@ -22,6 +22,7 @@ import os
 
 from googlecloudsdk.api_lib.storage import cloud_api
 from googlecloudsdk.command_lib.storage import errors
+from googlecloudsdk.command_lib.storage import folder_util
 from googlecloudsdk.command_lib.storage import manifest_util
 from googlecloudsdk.command_lib.storage import path_util
 from googlecloudsdk.command_lib.storage import plurality_checkable_iterator
@@ -29,6 +30,7 @@ from googlecloudsdk.command_lib.storage import posix_util
 from googlecloudsdk.command_lib.storage import progress_callbacks
 from googlecloudsdk.command_lib.storage import storage_url
 from googlecloudsdk.command_lib.storage import wildcard_iterator
+from googlecloudsdk.command_lib.storage.resources import gcs_resource_reference
 from googlecloudsdk.command_lib.storage.resources import resource_reference
 from googlecloudsdk.command_lib.storage.resources import resource_util
 from googlecloudsdk.command_lib.storage.tasks.cp import copy_task_factory
@@ -40,7 +42,7 @@ _ONE_TB_IN_BYTES = 1099511627776
 _RELATIVE_PATH_SYMBOLS = frozenset(['.', '..'])
 
 
-def _expand_destination_wildcards(destination_string):
+def _expand_destination_wildcards(destination_string, folders_only=False):
   """Expands destination wildcards.
 
   Ensures that only one resource matches the wildcard expanded string. Much
@@ -49,6 +51,8 @@ def _expand_destination_wildcards(destination_string):
 
   Args:
     destination_string (str): A string representing the destination url.
+    folders_only (bool): If True, indicates that we are invoking folders only
+      copy task.
 
   Returns:
     A resource_reference.Resource, or None if no matching resource is found.
@@ -61,35 +65,146 @@ def _expand_destination_wildcards(destination_string):
       plurality_checkable_iterator.PluralityCheckableIterator(
           wildcard_iterator.get_wildcard_iterator(
               destination_string,
-              fields_scope=cloud_api.FieldsScope.SHORT)))
+              folder_setting=folder_util.FolderSetting.LIST_AS_FOLDERS
+              if folders_only
+              else folder_util.FolderSetting.DO_NOT_LIST,
+              fields_scope=cloud_api.FieldsScope.SHORT,
+          )
+      )
+  )
 
   if destination_iterator.is_plural():
-    raise errors.InvalidUrlError(
-        'Destination ({}) must match exactly one URL.'.format(
-            destination_string
+    # If the result is plural, we are bound to throw an error.
+    # But we also should check if this is a case of duplicate results due to a
+    # placeholder folder which was created through the UI.
+    # If it is not the case, we continue with raising the Error and not moving
+    # further with the method.
+    # If it is the case of duplicates, we do not raise the Error, and rather
+    # continue with method execution as planned.
+    resolved_resource = _resolve_duplicate_ui_folder_destination(
+        destination_string, destination_iterator
+    )
+    if not resolved_resource:
+      raise errors.InvalidUrlError(
+          f'Destination ({destination_string}) must match exactly one URL.'
+      )
+    destination_iterator = (
+        plurality_checkable_iterator.PluralityCheckableIterator(
+            [resolved_resource]
         )
     )
 
   contains_unexpanded_wildcard = (
-      destination_iterator.is_empty() and
-      wildcard_iterator.contains_wildcard(destination_string))
+      destination_iterator.is_empty()
+      and wildcard_iterator.contains_wildcard(destination_string)
+  )
 
   if contains_unexpanded_wildcard:
     raise errors.InvalidUrlError(
-        'Destination ({}) contains an unexpected wildcard.'.format(
-            destination_string
-        )
+        f'Destination ({destination_string}) contains an unexpected wildcard.'
     )
 
   if not destination_iterator.is_empty():
     return next(destination_iterator)
 
 
-def _get_raw_destination(destination_string):
+def _resolve_duplicate_ui_folder_destination(
+    destination_string, destination_iterator
+):
+  """Resolves duplicate resource results for placeholder folders created through the UI.
+
+  In the scenario where a user creates a placeholder folder
+  (which is actually an object ending with a '/' rather than a true folder as in
+  the case of HNS buckets), the CLI, when resolving for destination gets
+  two results as part of the ListObjects API call. One of these is of type
+  GCSObjectResource, while the other is PrefixResource. Technically both results
+  are correct and expected. But in our logic, we end up interpretting this case
+  as multiple destinations which we do not support.
+
+  This method determines if the given results come under the above scenario.
+
+  Args:
+    destination_string (str): A string representing the destination url.
+    destination_iterator (PluralityCheckableIterator): Contains results from the
+      destination search through the wildcard iterator.
+
+  Returns:
+    PrefixResource out of the two results of duplicate resources due to UI
+    folder creation, None otherwise.
+  """
+  # The first condition would be to make sure that the destination string
+  # is of the type CloudURL and a GCS schema, because this case does not apply
+  # to any other type of destination.
+  destination_storage_url = storage_url.storage_url_from_string(
+      destination_string
+  )
+  if (
+      not isinstance(destination_storage_url, storage_url.CloudUrl)
+      or destination_storage_url.scheme != storage_url.ProviderPrefix.GCS
+  ):
+    return None
+
+  destination_resource_1 = next(destination_iterator)
+  destination_resource_2 = next(destination_iterator)
+
+  # In case of a Folder created through the UI, we expect two resources.
+  # We never expect more than that to exist. So if we do encounter that case,
+  # then this is not the scenario of a UI created folder.
+  if not destination_iterator.is_empty():
+    return None
+
+  # Types of both resources cannot be the same since we expect a mix of
+  # GCSResourceReference and PrefixResource to be returned
+  # from the WildcardIterator in the case of Folders which are a part of the UI.
+  if isinstance(destination_resource_1, type(destination_resource_2)):
+    return None
+
+  # At least one of the resource has to be of type GcsObjectResource.
+  if not (
+      isinstance(
+          destination_resource_1, gcs_resource_reference.GcsObjectResource
+      )
+      or isinstance(
+          destination_resource_2, gcs_resource_reference.GcsObjectResource
+      )
+  ):
+    return None
+
+  # Once we have determined that at least one of the resource is of type
+  # GcsObjectResource, we need to ensure that one of them is PrefixResource.
+  # In the case where we have two GcsObjectResource or one of them is not of
+  # type PrefixResource, we will return False as this is not a UI created folder
+  # case for sure.
+  if not (
+      isinstance(destination_resource_1, resource_reference.PrefixResource)
+      or isinstance(destination_resource_2, resource_reference.PrefixResource)
+  ):
+    return None
+
+  if (
+      destination_resource_1.storage_url.versionless_url_string.endswith('/')
+      and destination_resource_2.storage_url.versionless_url_string.endswith(
+          '/'
+      )
+  ) and (
+      destination_resource_1.storage_url.versionless_url_string
+      == destination_resource_2.storage_url.versionless_url_string
+  ):
+    return (
+        destination_resource_1
+        if isinstance(destination_resource_1, resource_reference.PrefixResource)
+        else destination_resource_2
+    )
+  return None
+
+
+def _get_raw_destination(destination_string, folders_only=False):
   """Converts self._destination_string to a destination resource.
 
   Args:
     destination_string (str): A string representing the destination url.
+    folders_only (bool): If True, indicates that we are invoking folders only
+      copy task.
 
   Returns:
     A resource_reference.Resource. Note that this resource may not be a valid
@@ -114,7 +229,9 @@ def _get_raw_destination(destination_string):
           'version-specific URL ({}).'.format(destination_string)
       )
 
-  raw_destination = _expand_destination_wildcards(destination_string)
+  raw_destination = _expand_destination_wildcards(
+      destination_string, folders_only
+  )
   if raw_destination:
     return raw_destination
   return resource_reference.UnknownResource(destination_url)
@@ -146,7 +263,7 @@ def _destination_is_container(destination):
   destination_url = destination.storage_url
   if isinstance(destination_url, storage_url.FileUrl):
     # We don't want to treat non-existing file paths as valid containers.
-    return os.path.isdir(destination_url.object_name)
+    return os.path.isdir(destination_url.resource_name)
 
   return (destination_url.versionless_url_string.endswith(
       destination_url.delimiter) or
@@ -205,30 +322,33 @@ def _is_expanded_url_valid_parent_dir(expanded_url):
 class CopyTaskIterator:
   """Iterates over each expanded source and creates an appropriate copy task."""
 
-  def __init__(self,
-               source_name_iterator,
-               destination_string,
-               custom_md5_digest=None,
-               delete_source=False,
-               do_not_decompress=False,
-               force_daisy_chain=False,
-               print_created_message=False,
-               shared_stream=None,
-               skip_unsupported=True,
-               task_status_queue=None,
-               user_request_args=None):
+  def __init__(
+      self,
+      source_name_iterator,
+      destination_string,
+      custom_md5_digest=None,
+      delete_source=False,
+      do_not_decompress=False,
+      force_daisy_chain=False,
+      print_created_message=False,
+      shared_stream=None,
+      skip_unsupported=True,
+      task_status_queue=None,
+      user_request_args=None,
+      folders_only=False,
+  ):
     """Initializes a CopyTaskIterator instance.
 
     Args:
-      source_name_iterator (name_expansion.NameExpansionIterator):
-        yields resource_reference.Resource objects with expanded source URLs.
+      source_name_iterator (name_expansion.NameExpansionIterator): yields
+        resource_reference.Resource objects with expanded source URLs.
       destination_string (str): The copy destination path or url.
       custom_md5_digest (str|None): User-added MD5 hash output to send to server
         for validating a single resource upload.
       delete_source (bool): If copy completes successfully, delete the source
         object afterwards.
-      do_not_decompress (bool): Prevents automatically decompressing
-        downloaded gzips.
+      do_not_decompress (bool): Prevents automatically decompressing downloaded
+        gzips.
       force_daisy_chain (bool): If True, yields daisy chain copy tasks in place
         of intra-cloud copy tasks.
       print_created_message (bool): Print the versioned URL of each successfully
@@ -239,6 +359,7 @@ class CopyTaskIterator:
       task_status_queue (multiprocessing.Queue|None): Used for estimating total
         workload from this iterator.
       user_request_args (UserRequestArgs|None): Values for RequestConfig.
+      folders_only (bool): If True, perform only folders tasks.
     """
     self._all_versions = (
         source_name_iterator.object_state
@@ -262,11 +383,14 @@ class CopyTaskIterator:
     self._skip_unsupported = skip_unsupported
     self._task_status_queue = task_status_queue
     self._user_request_args = user_request_args
+    self._folders_only = folders_only
 
     self._total_file_count = 0
     self._total_size = 0
 
-    self._raw_destination = _get_raw_destination(destination_string)
+    self._raw_destination = _get_raw_destination(
+        destination_string, self._folders_only
+    )
     if self._multiple_sources:
       self._raise_if_destination_is_file_url_and_not_a_directory_or_pipe()
     else:
@@ -291,6 +415,14 @@ class CopyTaskIterator:
         raise errors.InvalidUrlError(
             'Source URL matches destination URL: {}'.format(source_url))
 
+  def _raise_error_if_expanded_source_matches_expanded_destination(
+      self, expanded_source_url, expanded_destination_url
+  ):
+    if expanded_source_url == expanded_destination_url:
+      raise errors.InvalidUrlError(
+          'Destination URL {} already exists.'.format(expanded_destination_url)
+      )
+
   def _raise_if_destination_is_file_url_and_not_a_directory_or_pipe(self):
     if (isinstance(self._raw_destination.storage_url, storage_url.FileUrl) and
         not (_destination_is_container(self._raw_destination) or
@@ -298,14 +430,14 @@ class CopyTaskIterator:
       raise errors.InvalidUrlError(
           'Destination URL must name an existing directory.'
           ' Provided: {}.'.format(
-              self._raw_destination.storage_url.object_name))
+              self._raw_destination.storage_url.resource_name))
 
   def _raise_if_download_destination_ends_with_delimiter_and_does_not_exist(
       self,
   ):
     if isinstance(self._raw_destination.storage_url, storage_url.FileUrl):
       # Download operation.
-      destination_path = self._raw_destination.storage_url.object_name
+      destination_path = self._raw_destination.storage_url.resource_name
       if destination_path.endswith(
           self._raw_destination.storage_url.delimiter
       ) and not self._raw_destination.storage_url.isdir():
@@ -361,7 +493,13 @@ class CopyTaskIterator:
   def __iter__(self):
     self._raise_error_if_source_matches_destination()
 
+    is_source_plural = self._source_name_iterator.is_plural()
     for source in self._source_name_iterator:
+      if self._folders_only and not isinstance(
+          source.resource, resource_reference.FolderResource
+      ):
+        continue
+
       if self._delete_source:
         copy_util.raise_if_mv_early_deletion_fee_applies(source.resource)
 
@@ -385,10 +523,26 @@ class CopyTaskIterator:
         self._print_skip_and_maybe_send_to_manifest(message, source)
         continue
 
-      destination_resource = self._get_copy_destination(self._raw_destination,
-                                                        source)
+      destination_resource = self._get_copy_destination(
+          self._raw_destination, source, is_source_plural
+      )
       source_url = source.resource.storage_url
       destination_url = destination_resource.storage_url
+
+      self._raise_error_if_expanded_source_matches_expanded_destination(
+          source_url, destination_url
+      )
+
+      if (
+          self._folders_only
+          and self._delete_source
+          and (
+              source_url.scheme != destination_url.scheme
+              or source_url.bucket_name != destination_url.bucket_name
+          )
+      ):
+        continue
+
       posix_util.run_if_setting_posix(
           posix_to_set=None,
           user_request_args=self._user_request_args,
@@ -398,7 +552,7 @@ class CopyTaskIterator:
       )
       if (isinstance(source.resource, resource_reference.ObjectResource) and
           isinstance(destination_url, storage_url.FileUrl) and
-          destination_url.object_name.endswith(destination_url.delimiter)):
+          destination_url.resource_name.endswith(destination_url.delimiter)):
         log.debug('Skipping downloading {} to {} since the destination ends in'
                   ' a file system delimiter.'.format(
                       source_url.versionless_url_string,
@@ -458,7 +612,9 @@ class CopyTaskIterator:
           ' disable this message.'
       )
 
-  def _get_copy_destination(self, raw_destination, source):
+  def _get_copy_destination(
+      self, raw_destination, source, is_source_plural=False
+  ):
     """Returns the final destination StorageUrl instance."""
     completion_is_necessary = (
         _destination_is_container(raw_destination)
@@ -474,7 +630,9 @@ class CopyTaskIterator:
         raise errors.Error(
             'Destination object name needed when source is stdin.'
         )
-      destination_resource = self._complete_destination(raw_destination, source)
+      destination_resource = self._complete_destination(
+          raw_destination, source, is_source_plural
+      )
     else:
       destination_resource = raw_destination
 
@@ -483,7 +641,9 @@ class CopyTaskIterator:
     )
     return sanitized_destination_resource
 
-  def _complete_destination(self, destination_container, source):
+  def _complete_destination(
+      self, destination_container, source, is_source_plural=False
+  ):
     """Gets a valid copy destination incorporating part of the source's name.
 
     When given a source file or object and a destination resource that should
@@ -499,6 +659,7 @@ class CopyTaskIterator:
         container.
       source (NameExpansionResult): Represents the source resource and the
         expanded parent url in case of recursion.
+      is_source_plural (bool): True if the source is a plural resource.
 
     Returns:
       The completed destination, a resource_reference.Resource.
@@ -545,6 +706,19 @@ class CopyTaskIterator:
     destination_url_prefix = storage_url.storage_url_from_string(
         destination_url.versionless_url_string.rstrip(destination_url.delimiter)
     )
+    # For folders use-case, we want to rename/copy to the folder as the name
+    # of the destination if it does not exist. This is similar to the Filesystem
+    # and does not happen for flat buckets today. Hence this additional logic.
+    if (
+        self._folders_only
+        and isinstance(source.resource, resource_reference.FolderResource)
+        and not isinstance(
+            destination_container, resource_reference.FolderResource
+        )
+        and not is_source_plural
+    ):
+      return resource_reference.UnknownResource(destination_url_prefix)
+
     new_destination_url = destination_url_prefix.join(destination_suffix)
     return resource_reference.UnknownResource(new_destination_url)
 

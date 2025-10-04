@@ -32,6 +32,7 @@ from googlecloudsdk.core import resources as core_resources
 _OUTPUT_FILTER = ['[Daisy', '[image-export', '  image', 'ERROR']
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Export(base.CreateCommand):
   """Export a Compute Engine image."""
@@ -183,7 +184,8 @@ class Export(base.CreateCommand):
     return daisy_utils.CreateDaisyBucketInProject(
         bucket_location,
         storage_client,
-        enable_uniform_level_access=True)
+        enable_uniform_level_access=True,
+        soft_delete_duration=0)
 
 
 @base.ReleaseTracks(base.ReleaseTrack.BETA)

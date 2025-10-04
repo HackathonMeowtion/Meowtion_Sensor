@@ -18,6 +18,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import json
+
 from googlecloudsdk.api_lib.dataflow import apis
 from googlecloudsdk.calliope import actions
 from googlecloudsdk.calliope import arg_parsers
@@ -33,6 +35,7 @@ def _CommonArgs(parser):
   """
   image_args = parser.add_mutually_exclusive_group(required=True)
   image_building_args = image_args.add_argument_group()
+  yaml_args = image_args.add_argument_group()
   parser.add_argument(
       'template_file_gcs_path',
       metavar='TEMPLATE_FILE_GCS_PATH',
@@ -88,9 +91,10 @@ def _CommonArgs(parser):
 
   parser.add_argument(
       '--sdk-language',
-      help=('SDK language of the flex template job.'),
-      choices=['JAVA', 'PYTHON', 'GO'],
-      required=True)
+      help='SDK language of the flex template job.',
+      choices=['JAVA', 'PYTHON', 'GO', 'YAML'],
+      required=True,
+  )
 
   parser.add_argument(
       '--metadata-file',
@@ -127,9 +131,30 @@ def _CommonArgs(parser):
       help='Default service account to run the workers as.')
 
   parser.add_argument(
+      '--cloud-build-service-account',
+      type=arg_parsers.RegexpValidator(
+          r'.*@.*\..*', 'must provide a valid email address'
+      ),
+      help=(
+          'Service account to run the Cloud Build in the format'
+          ' projects/{project}/serviceAccounts/{service_account}. Ensure that'
+          " the account you are using to run 'gcloud dataflow flex-template"
+          " build' has 'ServiceAccountUser' role on the specified Cloud"
+          ' Build service account you provide with the'
+          ' --cloud-build-service-account flag. The specified service account'
+          ' must have required permissions to build the image. If the specified'
+          ' service account is in a project that is different from the project'
+          ' where you are starting builds, see'
+          ' https://cloud.google.com/build/docs/securing-builds/configure-user-specified-service-accounts#cross-project_set_up'
+          ' to grant the necessary access.'
+      ),
+  )
+
+  parser.add_argument(
       '--max-workers',
       type=int,
-      help='Default maximum number of workers to run.')
+      help='Default maximum number of workers to run.',
+  )
 
   parser.add_argument(
       '--disable-public-ips',
@@ -197,8 +222,11 @@ def _CommonArgs(parser):
       metavar='ADDITIONAL_USER_LABELS',
       type=arg_parsers.ArgDict(),
       action=arg_parsers.UpdateAction,
-      help=
-      ('Default user labels to pass to the job.'))
+      help=(
+          'Default user labels to pass to the job. Example: '
+          '--additional-user-labels=\'{"key1":"value1"}\''
+      ),
+  )
 
   image_building_args.add_argument(
       '--image-gcr-path',
@@ -247,19 +275,43 @@ def _CommonArgs(parser):
             'https://beam.apache.org/documentation/sdks/go-cross-compilation/ '
             'for more information.'))
 
+  # This is set here as image_args is required.
+  yaml_args.add_argument(
+      '--yaml-pipeline-path',
+      required=True,
+      metavar='YAML_PIPELINE_PATH',
+      type=arg_parsers.FileContents(),
+      help='Local path to your YAML pipeline file.',
+  )
+
+  yaml_args.add_argument(
+      '--yaml-image',
+      metavar='YAML_IMAGE',
+      help=(
+          'Path to the any image registry location of the prebuilt yaml '
+          'template image.'
+      ),
+  )
+
   image_building_args.add_argument(
       '--flex-template-base-image',
       help=(
           'Flex template base image to be used while building the container'
-          ' image. Allowed choices are JAVA8, JAVA11, JAVA17 or gcr.io path of'
-          ' the specific version of the base image. For JAVA8, JAVA11 and'
-          ' JAVA17 option, we use the latest base image version to build the'
-          ' container. You can also provide a specific version from this link '
+          ' image. Allowed choices are allowed labels (JAVA11, JAVA17, JAVA21,'
+          ' PYTHON3, GO), supported distroless images (JAVA11_DISTROLESS,'
+          ' JAVA17_DISTROLESS, JAVA21_DISTROLESS, GO_DISTROLESS), or full'
+          ' gcr.io path of the specific version of the base image. For labels,'
+          ' we use the latest base image version to build the container. You'
+          ' can also provide a specific version from this link '
           ' https://gcr.io/dataflow-templates-base/'
       ),
+      # JAVA8 is deprecated and removed from help text. Allow it until Beam 3
+      # release.
       type=arg_parsers.RegexpValidator(
-          r'^JAVA11$|^JAVA17$|^JAVA8$|^PYTHON3$|^GO$|^gcr.io/.*',
-          "Must be JAVA11, JAVA17, JAVA8, PYTHON3, GO, or begin with 'gcr.io/'",
+          r'^(JAVA11|JAVA17|JAVA21|GO)(_DISTROLESS)?$|^JAVA8$|^PYTHON3$|^gcr.io/.*',
+          'Must be JAVA11, JAVA17, JAVA21, PYTHON3, GO, (or with `_DISTROLESS` '
+          'suffix for supported distroless variants), or begin with'
+          " 'gcr.io/'",
       ),
       required=True,
   )
@@ -311,15 +363,30 @@ def _CommonRun(args):
       .GetBool(),
       additional_experiments=args.additional_experiments,
       additional_user_labels=args.additional_user_labels)
-  image_path = args.image
-  if not args.image:
+
+  if args.sdk_language == 'YAML':
+    if not args.yaml_pipeline_path:
+      raise ValueError('yaml_pipeline_path is required.')
+    metadata = json.loads(args.metadata_file)
+    metadata['yamlDefinition'] = args.yaml_pipeline_path
+    args.metadata_file = json.dumps(metadata, indent=4)
+    image_path = apis.Templates.GetYamlTemplateImage(args)
+  else:
+    image_path = args.image
+
+  if not image_path:
     image_path = args.image_gcr_path
-    apis.Templates.BuildAndStoreFlexTemplateImage(args.image_gcr_path,
-                                                  args.flex_template_base_image,
-                                                  args.jar, args.py_path,
-                                                  args.go_binary_path, args.env,
-                                                  args.sdk_language,
-                                                  args.gcs_log_dir)
+    apis.Templates.BuildAndStoreFlexTemplateImage(
+        args.image_gcr_path,
+        args.flex_template_base_image,
+        args.jar,
+        args.py_path,
+        args.go_binary_path,
+        args.env,
+        args.sdk_language,
+        args.gcs_log_dir,
+        args.cloud_build_service_account,
+    )
 
   return apis.Templates.BuildAndStoreFlexTemplateFile(
       args.template_file_gcs_path, image_path, args.metadata_file,
@@ -328,6 +395,7 @@ def _CommonRun(args):
       args.image_repository_password_secret_id, args.image_repository_cert_path)
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA, base.ReleaseTrack.BETA)
 class Build(base.Command):
   """Builds a flex template file from the specified parameters."""

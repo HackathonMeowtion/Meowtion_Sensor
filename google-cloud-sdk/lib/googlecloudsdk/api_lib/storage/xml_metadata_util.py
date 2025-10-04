@@ -203,7 +203,7 @@ def _get_object_url_from_xml_response(scheme,
   return storage_url.CloudUrl(
       scheme=scheme,
       bucket_name=bucket_name,
-      object_name=object_name,
+      resource_name=object_name,
       generation=object_dict.get('VersionId'))
 
 
@@ -292,6 +292,20 @@ def get_bucket_resource_from_xml_response(scheme, bucket_dict, bucket_name):
       website_config=_get_error_or_value(bucket_dict.get('Website')))
 
 
+def _parse_object_tags_if_any(
+    object_dict
+):
+  """Parse object tags from object response in format of GCS object contexts."""
+  obj_tags = object_dict.get('TagSet', None)
+  if not obj_tags:
+    return None
+  # It is guaranteed that 'Key' and 'Value' are in tag dict. See format here:
+  # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3/client/get_object_tagging.html
+  return {
+      tag['Key']: tag['Value'] for tag in obj_tags
+  }
+
+
 def get_object_resource_from_xml_response(scheme,
                                           object_dict,
                                           bucket_name,
@@ -354,6 +368,9 @@ def get_object_resource_from_xml_response(scheme,
   # The CRC32C is added if available only for GCS.
   if scheme == storage_url.ProviderPrefix.GCS:
     object_resource.crc32c_hash = _get_crc32c_hash_from_object_dict(object_dict)
+  # The tags are added if available only for S3.
+  if scheme == storage_url.ProviderPrefix.S3:
+    object_resource.tags = _parse_object_tags_if_any(object_dict)
   return object_resource
 
 
@@ -373,7 +390,7 @@ def get_prefix_resource_from_xml_response(scheme, prefix_dict, bucket_name):
       storage_url.CloudUrl(
           scheme=scheme,
           bucket_name=bucket_name,
-          object_name=prefix),
+          resource_name=prefix),
       prefix=prefix)
 
 

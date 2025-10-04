@@ -17,6 +17,7 @@
 from googlecloudsdk.api_lib.container.fleet.packages import fleet_packages as apis
 from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.container.fleet.packages import flags
+from googlecloudsdk.command_lib.container.fleet.packages import utils
 from googlecloudsdk.command_lib.export import util as export_util
 from googlecloudsdk.command_lib.util.concepts import concept_parsers
 from googlecloudsdk.core.console import console_io
@@ -24,19 +25,20 @@ from googlecloudsdk.core.console import console_io
 _DETAILED_HELP = {
     'DESCRIPTION': '{description}',
     'EXAMPLES': """ \
-        To update Fleet Package ``cert-manager-app'', run:
+        To update Fleet Package `cert-manager-app`, run:
 
           $ {command} cert-manager-app --source=my_source.yaml
         """,
 }
 
 
-@base.Hidden
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.GA)
 class Update(base.UpdateCommand):
   """Update Package Rollouts Fleet Package."""
 
   detailed_help = _DETAILED_HELP
+  _api_version = 'v1'
 
   @staticmethod
   def Args(parser):
@@ -51,15 +53,54 @@ class Update(base.UpdateCommand):
 
   def Run(self, args):
     """Run the update command."""
-    client = apis.FleetPackagesClient()
-    schema_path = apis.GetSchemaPath()
-    data = console_io.ReadFromFileOrStdin(args.source, binary=False)
+    client = apis.FleetPackagesClient(self._api_version)
+    data = console_io.ReadFromFileOrStdin(
+        utils.ExpandPathForUser(args.source), binary=False
+    )
     fleet_package = export_util.Import(
         message_type=client.messages.FleetPackage,
         stream=data,
-        schema_path=schema_path,
     )
 
-    fully_qualified_name = f'projects/{flags.GetProject(args)}/locations/{flags.GetLocation(args)}/fleetPackages/{args.fleet_package}'
+    possible_attributes = [
+        'resourceBundleSelector',
+        'target',
+        'variantSelector',
+        'rolloutStrategy',
+        'deletionPropagationPolicy',
+        'state',
+    ]
+    update_mask_attrs = []
+    for attr in possible_attributes:
+      attr_value = getattr(fleet_package, attr, None)
+      if attr_value is not None:
+        update_mask_attrs.append(attr)
+    update_mask = ','.join(update_mask_attrs)
 
-    return client.Update(fleet_package=fleet_package, name=fully_qualified_name)
+    fully_qualified_name = f'projects/{flags.GetProject(args)}/locations/{flags.GetLocation(args)}/fleetPackages/{args.fleet_package}'
+    fleet_package = utils.UpsertFleetPackageName(
+        fleet_package, fully_qualified_name
+    )
+    fleet_package = utils.FixFleetPackagePathForCloudBuild(fleet_package)
+
+    return client.Update(
+        fleet_package=fleet_package,
+        name=fully_qualified_name,
+        update_mask=update_mask,
+    )
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.BETA)
+class UpdateBeta(Update):
+  """Update Package Rollouts Fleet Package."""
+
+  _api_version = 'v1beta'
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class UpdateAlpha(Update):
+  """Update Package Rollouts Fleet Package."""
+
+  _api_version = 'v1alpha'

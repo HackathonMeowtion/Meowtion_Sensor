@@ -15,6 +15,7 @@
 """Utils for generating API-specific RequestConfig objects."""
 
 from __future__ import absolute_import
+from __future__ import annotations
 from __future__ import division
 from __future__ import unicode_literals
 
@@ -108,6 +109,7 @@ class _UserBucketArgs(_UserResourceArgs):
       enable_autoclass=None,
       enable_per_object_retention=None,
       enable_hierarchical_namespace=None,
+      ip_filter_file_path=None,
       labels_file_path=None,
       labels_to_append=None,
       labels_to_remove=None,
@@ -144,6 +146,7 @@ class _UserBucketArgs(_UserResourceArgs):
     self.enable_autoclass = enable_autoclass
     self.enable_per_object_retention = enable_per_object_retention
     self.enable_hierarchical_namespace = enable_hierarchical_namespace
+    self.ip_filter_file_path = ip_filter_file_path
     self.labels_file_path = labels_file_path
     self.labels_to_append = labels_to_append
     self.labels_to_remove = labels_to_remove
@@ -185,6 +188,7 @@ class _UserBucketArgs(_UserResourceArgs):
         == other.enable_per_object_retention
         and self.enable_hierarchical_namespace
         == other.enable_hierarchical_namespace
+        and self.ip_filter_file_path == other.ip_filter_file_path
         and self.labels_file_path == other.labels_file_path
         and self.labels_to_append == other.labels_to_append
         and self.labels_to_remove == other.labels_to_remove
@@ -221,6 +225,9 @@ class _UserObjectArgs(_UserResourceArgs):
       content_encoding=None,
       content_language=None,
       content_type=None,
+      custom_contexts_to_set=None,
+      custom_contexts_to_remove=None,
+      custom_contexts_to_update=None,
       custom_fields_to_set=None,
       custom_fields_to_remove=None,
       custom_fields_to_update=None,
@@ -241,6 +248,9 @@ class _UserObjectArgs(_UserResourceArgs):
     self.content_encoding = content_encoding
     self.content_language = content_language
     self.content_type = content_type
+    self.custom_contexts_to_set = custom_contexts_to_set
+    self.custom_contexts_to_remove = custom_contexts_to_remove
+    self.custom_contexts_to_update = custom_contexts_to_update
     self.custom_fields_to_set = custom_fields_to_set
     self.custom_fields_to_remove = custom_fields_to_remove
     self.custom_fields_to_update = custom_fields_to_update
@@ -256,23 +266,28 @@ class _UserObjectArgs(_UserResourceArgs):
   def __eq__(self, other):
     if not isinstance(other, type(self)):
       return NotImplemented
-    return (super(_UserObjectArgs, self).__eq__(other) and
-            self.cache_control == other.cache_control and
-            self.content_disposition == other.content_disposition and
-            self.content_encoding == other.content_encoding and
-            self.content_language == other.content_language and
-            self.content_type == other.content_type and
-            self.custom_fields_to_set == other.custom_fields_to_set and
-            self.custom_fields_to_remove == other.custom_fields_to_remove and
-            self.custom_fields_to_update == other.custom_fields_to_update and
-            self.custom_time == other.custom_time and
-            self.event_based_hold == other.event_based_hold and
-            self.md5_hash == other.md5_hash and
-            self.preserve_acl == other.preserve_acl and
-            self.retain_until == other.retain_until and
-            self.retention_mode == other.retention_mode and
-            self.storage_class == other.storage_class and
-            self.temporary_hold == other.temporary_hold)
+    return (
+        super(_UserObjectArgs, self).__eq__(other)
+        and self.cache_control == other.cache_control
+        and self.content_disposition == other.content_disposition
+        and self.content_encoding == other.content_encoding
+        and self.content_language == other.content_language
+        and self.content_type == other.content_type
+        and self.custom_contexts_to_set == other.custom_contexts_to_set
+        and self.custom_contexts_to_remove == other.custom_contexts_to_remove
+        and self.custom_contexts_to_update == other.custom_contexts_to_update
+        and self.custom_fields_to_set == other.custom_fields_to_set
+        and self.custom_fields_to_remove == other.custom_fields_to_remove
+        and self.custom_fields_to_update == other.custom_fields_to_update
+        and self.custom_time == other.custom_time
+        and self.event_based_hold == other.event_based_hold
+        and self.md5_hash == other.md5_hash
+        and self.preserve_acl == other.preserve_acl
+        and self.retain_until == other.retain_until
+        and self.retention_mode == other.retention_mode
+        and self.storage_class == other.storage_class
+        and self.temporary_hold == other.temporary_hold
+    )
 
 
 class _UserRequestArgs:
@@ -337,6 +352,21 @@ class _UserRequestArgs:
     return debug_output.generic_repr(self)
 
 
+def _get_value_or_clear_from_flags(
+    args, clear_flag, setter_flags
+):
+  """Returns setter value, or CLEAR value, prioritizing setter values."""
+  for setter_flag in setter_flags:
+    value = getattr(args, setter_flag, None)
+    if value is not None:
+      return value
+  if getattr(args, clear_flag, None):
+    return CLEAR
+  return None
+
+
+# TODO: b/436221393 - Replace all usages of this function with
+# _get_value_or_clear_from_flags.
 def _get_value_or_clear_from_flag(args, clear_flag, setter_flag):
   """Returns setter value or CLEAR value, prioritizing setter values."""
   value = getattr(args, setter_flag, None)
@@ -358,6 +388,9 @@ def get_user_request_args_from_command_args(args, metadata_type=None):
           args, 'clear_default_encryption_key', 'default_encryption_key')
       default_storage_class = _get_value_or_clear_from_flag(
           args, 'clear_default_storage_class', 'default_storage_class')
+      ip_filter_file_path = _get_value_or_clear_from_flag(
+          args, 'clear_ip_filter', 'ip_filter_file'
+      )
       labels_file_path = _get_value_or_clear_from_flag(args, 'clear_labels',
                                                        'labels_file')
       lifecycle_file_path = _get_value_or_clear_from_flag(
@@ -403,6 +436,7 @@ def get_user_request_args_from_command_args(args, metadata_type=None):
           enable_hierarchical_namespace=getattr(
               args, 'enable_hierarchical_namespace', None
           ),
+          ip_filter_file_path=ip_filter_file_path,
           labels_file_path=labels_file_path,
           labels_to_append=getattr(args, 'update_labels', None),
           labels_to_remove=getattr(args, 'remove_labels', None),
@@ -446,6 +480,11 @@ def get_user_request_args_from_command_args(args, metadata_type=None):
                                                'content_md5')
       content_type = _get_value_or_clear_from_flag(args, 'clear_content_type',
                                                    'content_type')
+      custom_contexts_to_set = _get_value_or_clear_from_flags(
+          args,
+          'clear_custom_contexts',
+          ['custom_contexts', 'custom_contexts_file'],
+      )
       custom_fields_to_set = _get_value_or_clear_from_flag(
           args, 'clear_custom_metadata', 'custom_metadata')
       custom_time = _get_value_or_clear_from_flag(args, 'clear_custom_time',
@@ -475,6 +514,13 @@ def get_user_request_args_from_command_args(args, metadata_type=None):
           content_encoding=content_encoding,
           content_language=content_language,
           content_type=content_type,
+          custom_contexts_to_set=custom_contexts_to_set,
+          custom_contexts_to_update=getattr(
+              args, 'update_custom_contexts', None
+          ),
+          custom_contexts_to_remove=getattr(
+              args, 'remove_custom_contexts', None
+          ),
           custom_fields_to_set=custom_fields_to_set,
           custom_fields_to_remove=getattr(args, 'remove_custom_metadata', None),
           custom_fields_to_update=getattr(args, 'update_custom_metadata', None),

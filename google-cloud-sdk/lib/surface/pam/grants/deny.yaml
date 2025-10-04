@@ -1,11 +1,11 @@
-- release_tracks: [ALPHA, BETA]
+- release_tracks: [ALPHA, BETA, GA]
 
   help_text:
     brief: Deny a Privileged Access Manager (PAM) grant.
     description: Deny a Privileged Access Manager (PAM) grant with a reason.
     examples: |
       The following command denies a grant with the full name ``GRANT_NAME'' and a reason
-      `denial reason`:
+      of `denial reason`:
 
       $ {command} GRANT_NAME --reason="denial reason"
 
@@ -14,6 +14,8 @@
       api_version: v1alpha
     BETA:
       api_version: v1beta
+    GA:
+      api_version: v1
     method: deny
     collection:
     - privilegedaccessmanager.projects.locations.entitlements.grants

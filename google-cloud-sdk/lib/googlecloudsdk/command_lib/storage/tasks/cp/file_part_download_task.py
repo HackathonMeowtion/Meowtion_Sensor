@@ -66,7 +66,7 @@ def _get_first_null_byte_index(destination_url, offset, length):
   # Component is slice of larger file. Find how much of slice is downloaded.
   first_null_byte = offset
   end_of_range = offset + length
-  with files.BinaryFileReader(destination_url.object_name) as file_reader:
+  with files.BinaryFileReader(destination_url.resource_name) as file_reader:
     file_reader.seek(offset)
     while first_null_byte < end_of_range:
       data = file_reader.read(_READ_SIZE)
@@ -101,21 +101,26 @@ def _get_digesters(component_number, resource):
   """
   digesters = {}
   check_hashes = properties.VALUES.storage.check_hashes.Get()
-  if check_hashes != properties.CheckHashes.NEVER.value:
-    if component_number is None and resource.md5_hash:
-      digesters[hash_util.HashAlgorithm.MD5] = hashing.get_md5()
-    elif resource.crc32c_hash and (
-        check_hashes == properties.CheckHashes.ALWAYS.value
-        or fast_crc32c_util.check_if_will_use_fast_crc32c(
-            install_if_missing=True
-        )
-    ):
-      digesters[hash_util.HashAlgorithm.CRC32C] = fast_crc32c_util.get_crc32c()
+  if check_hashes == properties.CheckHashes.NEVER.value:
+    return digesters
+
+  if component_number is None and resource.md5_hash:
+    digesters[hash_util.HashAlgorithm.MD5] = hashing.get_md5()
+  elif resource.crc32c_hash and (
+      check_hashes == properties.CheckHashes.ALWAYS.value
+      or fast_crc32c_util.check_if_will_use_fast_crc32c(
+          install_if_missing=True
+      )
+  ):
+    digesters[hash_util.HashAlgorithm.CRC32C] = fast_crc32c_util.get_crc32c()
 
   if not digesters:
     log.warning(
-        'Found no hashes to validate download of object: %s.'
-        ' Integrity cannot be assured without hashes.', resource)
+        'Found no hashes to validate download of object: %s. Component number:'
+        ' %s. Integrity cannot be assured without hashes.',
+        resource,
+        component_number,
+    )
 
   return digesters
 
@@ -168,7 +173,7 @@ class FilePartDownloadTask(file_part_task.FilePartTask):
         fast_crc32c_util.DeferredCrc32c,
     ):
       digesters[hash_util.HashAlgorithm.CRC32C].sum_file(
-          self._destination_resource.storage_url.object_name,
+          self._destination_resource.storage_url.resource_name,
           self._offset,
           self._length,
       )
@@ -193,7 +198,7 @@ class FilePartDownloadTask(file_part_task.FilePartTask):
                         end_byte, write_mode, digesters):
     """Prepares file stream, calls API, and validates hash."""
     with files.BinaryFileWriter(
-        self._destination_resource.storage_url.object_name,
+        self._destination_resource.storage_url.resource_name,
         create_path=True,
         mode=write_mode,
         convert_invalid_windows_characters=(
@@ -202,8 +207,16 @@ class FilePartDownloadTask(file_part_task.FilePartTask):
         )) as download_stream:
       download_stream.seek(start_byte)
       provider = self._source_resource.storage_url.scheme
+      enable_zonal_buckets_bidi_streaming = (
+          properties.VALUES.storage.enable_zonal_buckets_bidi_streaming.GetBool()
+      )
+      if enable_zonal_buckets_bidi_streaming:
+        bucket_name = self._source_resource.storage_url.bucket_name
+        api = api_factory.get_api(provider, bucket_name=bucket_name)
+      else:
+        api = api_factory.get_api(provider)
       # TODO(b/162264437): Support all of download_object's parameters.
-      api_download_result = api_factory.get_api(provider).download_object(
+      api_download_result = api.download_object(
           self._source_resource,
           download_stream,
           request_config,
@@ -219,7 +232,7 @@ class FilePartDownloadTask(file_part_task.FilePartTask):
       calculated_digest = hash_util.get_base64_hash_digest_string(
           digesters[hash_util.HashAlgorithm.MD5])
       download_util.validate_download_hash_and_delete_corrupt_files(
-          self._destination_resource.storage_url.object_name,
+          self._destination_resource.storage_url.resource_name,
           self._source_resource.md5_hash, calculated_digest)
     elif hash_util.HashAlgorithm.CRC32C in digesters:
       # Only for one-shot composite object downloads as final CRC32C validated
@@ -228,7 +241,7 @@ class FilePartDownloadTask(file_part_task.FilePartTask):
         calculated_digest = crc32c.get_hash(
             digesters[hash_util.HashAlgorithm.CRC32C])
         download_util.validate_download_hash_and_delete_corrupt_files(
-            self._destination_resource.storage_url.object_name,
+            self._destination_resource.storage_url.resource_name,
             self._source_resource.crc32c_hash, calculated_digest)
 
     return api_download_result
@@ -252,7 +265,7 @@ class FilePartDownloadTask(file_part_task.FilePartTask):
         # Deferred calculation runs at end, no on-the-fly.
         continue
       digesters[hash_algorithm] = hash_util.get_hash_from_file(
-          self._destination_resource.storage_url.object_name,
+          self._destination_resource.storage_url.resource_name,
           hash_algorithm,
           start=start_byte,
           stop=end_byte,
@@ -396,6 +409,8 @@ class FilePartDownloadTask(file_part_task.FilePartTask):
         )
       # pylint:disable=broad-except
       except Exception as e:
+        if task_status_queue is not None:
+          progress_callback(self._offset, error_occurred=True)
         # pylint:enable=broad-except
         return task.Output(
             additional_task_iterators=None,

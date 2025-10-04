@@ -1,4 +1,4 @@
-- release_tracks: [ALPHA]
+- release_tracks: [ALPHA, BETA, GA]
   help_text:
     brief: List Dataplex entries.
     description: List Dataplex entries in an entry group.
@@ -22,6 +22,7 @@
     format: |
       table(
         name.basename():label=ENTRY_ID,
+        entrySource.location:label=SOURCE_LOCATION,
         entrySource.display_name:label=DISPLAY_NAME,
         entrySource.description:label=DESCRIPTION,
         entrySource.resource:label=RESOURCE,

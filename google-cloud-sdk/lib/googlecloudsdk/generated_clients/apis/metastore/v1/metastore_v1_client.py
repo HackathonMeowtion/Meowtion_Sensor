@@ -42,7 +42,10 @@ class MetastoreV1(base_api.BaseApiClient):
     self.projects_locations_federations = self.ProjectsLocationsFederationsService(self)
     self.projects_locations_operations = self.ProjectsLocationsOperationsService(self)
     self.projects_locations_services_backups = self.ProjectsLocationsServicesBackupsService(self)
+    self.projects_locations_services_databases_tables = self.ProjectsLocationsServicesDatabasesTablesService(self)
+    self.projects_locations_services_databases = self.ProjectsLocationsServicesDatabasesService(self)
     self.projects_locations_services_metadataImports = self.ProjectsLocationsServicesMetadataImportsService(self)
+    self.projects_locations_services_migrationExecutions = self.ProjectsLocationsServicesMigrationExecutionsService(self)
     self.projects_locations_services = self.ProjectsLocationsServicesService(self)
     self.projects_locations = self.ProjectsLocationsService(self)
     self.projects = self.ProjectsService(self)
@@ -563,6 +566,134 @@ class MetastoreV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+  class ProjectsLocationsServicesDatabasesTablesService(base_api.BaseApiService):
+    """Service class for the projects_locations_services_databases_tables resource."""
+
+    _NAME = 'projects_locations_services_databases_tables'
+
+    def __init__(self, client):
+      super(MetastoreV1.ProjectsLocationsServicesDatabasesTablesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def GetIamPolicy(self, request, global_params=None):
+      r"""Gets the access control policy for a resource. Returns an empty policy if the resource exists and does not have a policy set.
+
+      Args:
+        request: (MetastoreProjectsLocationsServicesDatabasesTablesGetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Policy) The response message.
+      """
+      config = self.GetMethodConfig('GetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/services/{servicesId}/databases/{databasesId}/tables/{tablesId}:getIamPolicy',
+        http_method='GET',
+        method_id='metastore.projects.locations.services.databases.tables.getIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=['options_requestedPolicyVersion'],
+        relative_path='v1/{+resource}:getIamPolicy',
+        request_field='',
+        request_type_name='MetastoreProjectsLocationsServicesDatabasesTablesGetIamPolicyRequest',
+        response_type_name='Policy',
+        supports_download=False,
+    )
+
+    def SetIamPolicy(self, request, global_params=None):
+      r"""Sets the access control policy on the specified resource. Replaces any existing policy.Can return NOT_FOUND, INVALID_ARGUMENT, and PERMISSION_DENIED errors.
+
+      Args:
+        request: (MetastoreProjectsLocationsServicesDatabasesTablesSetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Policy) The response message.
+      """
+      config = self.GetMethodConfig('SetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/services/{servicesId}/databases/{databasesId}/tables/{tablesId}:setIamPolicy',
+        http_method='POST',
+        method_id='metastore.projects.locations.services.databases.tables.setIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1/{+resource}:setIamPolicy',
+        request_field='setIamPolicyRequest',
+        request_type_name='MetastoreProjectsLocationsServicesDatabasesTablesSetIamPolicyRequest',
+        response_type_name='Policy',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsServicesDatabasesService(base_api.BaseApiService):
+    """Service class for the projects_locations_services_databases resource."""
+
+    _NAME = 'projects_locations_services_databases'
+
+    def __init__(self, client):
+      super(MetastoreV1.ProjectsLocationsServicesDatabasesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def GetIamPolicy(self, request, global_params=None):
+      r"""Gets the access control policy for a resource. Returns an empty policy if the resource exists and does not have a policy set.
+
+      Args:
+        request: (MetastoreProjectsLocationsServicesDatabasesGetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Policy) The response message.
+      """
+      config = self.GetMethodConfig('GetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/services/{servicesId}/databases/{databasesId}:getIamPolicy',
+        http_method='GET',
+        method_id='metastore.projects.locations.services.databases.getIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=['options_requestedPolicyVersion'],
+        relative_path='v1/{+resource}:getIamPolicy',
+        request_field='',
+        request_type_name='MetastoreProjectsLocationsServicesDatabasesGetIamPolicyRequest',
+        response_type_name='Policy',
+        supports_download=False,
+    )
+
+    def SetIamPolicy(self, request, global_params=None):
+      r"""Sets the access control policy on the specified resource. Replaces any existing policy.Can return NOT_FOUND, INVALID_ARGUMENT, and PERMISSION_DENIED errors.
+
+      Args:
+        request: (MetastoreProjectsLocationsServicesDatabasesSetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Policy) The response message.
+      """
+      config = self.GetMethodConfig('SetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/services/{servicesId}/databases/{databasesId}:setIamPolicy',
+        http_method='POST',
+        method_id='metastore.projects.locations.services.databases.setIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1/{+resource}:setIamPolicy',
+        request_field='setIamPolicyRequest',
+        request_type_name='MetastoreProjectsLocationsServicesDatabasesSetIamPolicyRequest',
+        response_type_name='Policy',
+        supports_download=False,
+    )
+
   class ProjectsLocationsServicesMetadataImportsService(base_api.BaseApiService):
     """Service class for the projects_locations_services_metadataImports resource."""
 
@@ -681,6 +812,97 @@ class MetastoreV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+  class ProjectsLocationsServicesMigrationExecutionsService(base_api.BaseApiService):
+    """Service class for the projects_locations_services_migrationExecutions resource."""
+
+    _NAME = 'projects_locations_services_migrationExecutions'
+
+    def __init__(self, client):
+      super(MetastoreV1.ProjectsLocationsServicesMigrationExecutionsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a single migration execution.
+
+      Args:
+        request: (MetastoreProjectsLocationsServicesMigrationExecutionsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/services/{servicesId}/migrationExecutions/{migrationExecutionsId}',
+        http_method='DELETE',
+        method_id='metastore.projects.locations.services.migrationExecutions.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId'],
+        relative_path='v1/{+name}',
+        request_field='',
+        request_type_name='MetastoreProjectsLocationsServicesMigrationExecutionsDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets details of a single migration execution.
+
+      Args:
+        request: (MetastoreProjectsLocationsServicesMigrationExecutionsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (MigrationExecution) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/services/{servicesId}/migrationExecutions/{migrationExecutionsId}',
+        http_method='GET',
+        method_id='metastore.projects.locations.services.migrationExecutions.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}',
+        request_field='',
+        request_type_name='MetastoreProjectsLocationsServicesMigrationExecutionsGetRequest',
+        response_type_name='MigrationExecution',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists migration executions on a service.
+
+      Args:
+        request: (MetastoreProjectsLocationsServicesMigrationExecutionsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListMigrationExecutionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/services/{servicesId}/migrationExecutions',
+        http_method='GET',
+        method_id='metastore.projects.locations.services.migrationExecutions.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1/{+parent}/migrationExecutions',
+        request_field='',
+        request_type_name='MetastoreProjectsLocationsServicesMigrationExecutionsListRequest',
+        response_type_name='ListMigrationExecutionsResponse',
+        supports_download=False,
+    )
+
   class ProjectsLocationsServicesService(base_api.BaseApiService):
     """Service class for the projects_locations_services resource."""
 
@@ -741,6 +963,60 @@ class MetastoreV1(base_api.BaseApiClient):
         relative_path='v1/{+service}:alterTableProperties',
         request_field='alterTablePropertiesRequest',
         request_type_name='MetastoreProjectsLocationsServicesAlterTablePropertiesRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def CancelMigration(self, request, global_params=None):
+      r"""Cancels the ongoing Managed Migration process.
+
+      Args:
+        request: (MetastoreProjectsLocationsServicesCancelMigrationRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('CancelMigration')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    CancelMigration.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/services/{servicesId}:cancelMigration',
+        http_method='POST',
+        method_id='metastore.projects.locations.services.cancelMigration',
+        ordered_params=['service'],
+        path_params=['service'],
+        query_params=[],
+        relative_path='v1/{+service}:cancelMigration',
+        request_field='cancelMigrationRequest',
+        request_type_name='MetastoreProjectsLocationsServicesCancelMigrationRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def CompleteMigration(self, request, global_params=None):
+      r"""Completes the managed migration process. The Dataproc Metastore service will switch to using its own backend database after successful migration.
+
+      Args:
+        request: (MetastoreProjectsLocationsServicesCompleteMigrationRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('CompleteMigration')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    CompleteMigration.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/services/{servicesId}:completeMigration',
+        http_method='POST',
+        method_id='metastore.projects.locations.services.completeMigration',
+        ordered_params=['service'],
+        path_params=['service'],
+        query_params=[],
+        relative_path='v1/{+service}:completeMigration',
+        request_field='completeMigrationRequest',
+        request_type_name='MetastoreProjectsLocationsServicesCompleteMigrationRequest',
         response_type_name='Operation',
         supports_download=False,
     )
@@ -1042,6 +1318,33 @@ class MetastoreV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def StartMigration(self, request, global_params=None):
+      r"""Starts the Managed Migration process.
+
+      Args:
+        request: (MetastoreProjectsLocationsServicesStartMigrationRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('StartMigration')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    StartMigration.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/services/{servicesId}:startMigration',
+        http_method='POST',
+        method_id='metastore.projects.locations.services.startMigration',
+        ordered_params=['service'],
+        path_params=['service'],
+        query_params=[],
+        relative_path='v1/{+service}:startMigration',
+        request_field='startMigrationRequest',
+        request_type_name='MetastoreProjectsLocationsServicesStartMigrationRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
     def TestIamPermissions(self, request, global_params=None):
       r"""Returns permissions that a caller has on the specified resource. If the resource does not exist, this will return an empty set of permissions, not a NOT_FOUND error.Note: This operation is designed to be used for building permission-aware UIs and command-line tools, not for authorization checking. This operation may "fail open" without warning.
 
@@ -1125,7 +1428,7 @@ class MetastoreV1(base_api.BaseApiClient):
         method_id='metastore.projects.locations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['extraLocationTypes', 'filter', 'pageSize', 'pageToken'],
         relative_path='v1/{+name}/locations',
         request_field='',
         request_type_name='MetastoreProjectsLocationsListRequest',

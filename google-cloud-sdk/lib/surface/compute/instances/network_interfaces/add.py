@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Command to add network interface to an instance."""
+"""Command to add a dynamic network interface to a Compute Engine instance."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -28,14 +28,20 @@ from googlecloudsdk.command_lib.compute.instances import flags as instances_flag
 from googlecloudsdk.command_lib.compute.instances.network_interfaces import flags as network_interfaces_flags
 
 
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.UniverseCompatible
 class Add(base.UpdateCommand):
-  r"""Add a Compute Engine virtual machine network interface.
+  r"""Add a Dynamic Network Interface to a Compute Engine instance.
 
-  *{command}* adds network interface to a Compute Engine virtual machine.
+  *{command}* adds a Dynamic Network Interface to a Compute Engine instance.
+  For example:
+
+    $ {command} instance-name --parent-nic-name=nic1 --vlan=2
+    --network=network-1 --subnetwork=subnetwork-1
   """
 
-  enable_ipv6_assignment = True
+  enable_ipv6_assignment = False
+  support_igmp_query = False
 
   @classmethod
   def Args(cls, parser):
@@ -48,6 +54,7 @@ class Add(base.UpdateCommand):
     network_interfaces_flags.AddPrivateNetworkIpArg(
         parser, add_network_interface=True
     )
+    network_interfaces_flags.AddNetworkAttachmentArg(parser)
     network_interfaces_flags.AddAliasesArg(parser, add_network_interface=True)
     network_interfaces_flags.AddStackTypeArg(parser)
     network_interfaces_flags.AddNetworkTierArg(parser)
@@ -60,6 +67,9 @@ class Add(base.UpdateCommand):
     if cls.enable_ipv6_assignment:
       network_interfaces_flags.AddIpv6AddressArg(parser)
       network_interfaces_flags.AddIpv6PrefixLengthArg(parser)
+
+    if cls.support_igmp_query:
+      network_interfaces_flags.AddIgmpQueryArg(parser)
 
   def Run(self, args):
     holder = base_classes.ComputeApiHolder(self.ReleaseTrack())
@@ -82,6 +92,7 @@ class Add(base.UpdateCommand):
         project=instance_ref.project,
         location=instance_ref.zone,
         scope=compute_scopes.ScopeEnum.ZONE,
+        network_attachment=getattr(args, 'network_attachment', None),
         parent_nic_name=getattr(args, 'parent_nic_name', None),
         vlan=getattr(args, 'vlan', None),
         private_network_ip=getattr(args, 'private_network_ip', None),
@@ -101,6 +112,7 @@ class Add(base.UpdateCommand):
         ),
         ipv6_address=getattr(args, 'ipv6_address', None),
         ipv6_prefix_length=getattr(args, 'ipv6_prefix_length', None),
+        igmp_query=getattr(args, 'igmp_query', None),
     )
 
     request = messages.ComputeInstancesAddNetworkInterfaceRequest(
@@ -121,3 +133,47 @@ class Add(base.UpdateCommand):
         operation_ref,
         f'Adding network interface for instance [{instance_ref.Name()}]',
     )
+
+
+@base.ReleaseTracks(base.ReleaseTrack.BETA)
+class AddBeta(Add):
+  r"""Add a Dynamic Network Interface to a Compute Engine instance.
+
+  *{command}* adds a Dynamic Network Interface to a Compute Engine instance.
+  For example:
+
+    $ {command} instance-name --parent-nic-name=nic1 --vlan=2
+    --network=network-1 --subnetwork=subnetwork-1
+  """
+
+  enable_ipv6_assignment = False
+  support_igmp_query = False
+
+
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class AddAlpha(AddBeta):
+  r"""Add a Dynamic Network Interface to a Compute Engine instance.
+
+  *{command}* adds a Dynamic Network Interface to a Compute Engine instance.
+  For example:
+
+    $ {command} instance-name --parent-nic-name=nic1 --vlan=2
+    --network=network-1 --subnetwork=subnetwork-1
+  """
+
+  enable_ipv6_assignment = True
+  support_igmp_query = True
+
+
+Add.detailed_help = {
+    'brief': 'Add a Dynamic Network Interface to a Compute Engine instance.',
+    'DESCRIPTION': (
+        '*{command}* adds a Dynamic Network Interface to a Compute Engine'
+        ' instance.'
+    ),
+    'EXAMPLES': """\
+      To add a Dynamic Network Interface to a Compute Engine instance, run:
+        $ {command} instance-name --parent-nic-name=nic1 --vlan=2
+        --network=network-1 --subnetwork=subnetwork-1
+    """,
+}

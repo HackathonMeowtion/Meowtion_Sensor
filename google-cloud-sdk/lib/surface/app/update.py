@@ -15,16 +15,12 @@
 
 """The `app update` command."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.app import update_util
 
 
 _DETAILED_HELP = {
-    'brief': ('Updates an App Engine application.'),
+    'brief': 'Updates an App Engine application.',
     'DESCRIPTION': """
         This command is used to update settings on an app engine application.
 
@@ -37,10 +33,15 @@ _DETAILED_HELP = {
         To update the app-level service account on an application:
 
           $ {command} --service-account=SERVICE_ACCOUNT
+
+        To update the app-level minimum SSL policy of the application:
+
+          $ {command} --ssl-policy=TLS_VERSION_1_2
         """,
 }
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class UpdateGa(base.UpdateCommand):
   """Updates an App Engine application(GA version)."""
@@ -55,9 +56,12 @@ class UpdateGa(base.UpdateCommand):
     update_util.PatchApplication(
         self.ReleaseTrack(),
         split_health_checks=args.split_health_checks,
-        service_account=args.service_account)
+        service_account=args.service_account,
+        ssl_policy=args.ssl_policy,
+    )
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.ALPHA)
 class UpdateAlphaAndBeta(base.UpdateCommand):
   """Updates an App Engine application(Alpha and Beta version)."""
@@ -72,4 +76,6 @@ class UpdateAlphaAndBeta(base.UpdateCommand):
     update_util.PatchApplication(
         self.ReleaseTrack(),
         split_health_checks=args.split_health_checks,
-        service_account=args.service_account)
+        service_account=args.service_account,
+        ssl_policy=args.ssl_policy,
+    )

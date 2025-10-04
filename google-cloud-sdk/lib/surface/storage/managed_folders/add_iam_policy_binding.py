@@ -29,6 +29,7 @@ from googlecloudsdk.command_lib.storage import storage_url
 from googlecloudsdk.command_lib.storage.tasks import set_iam_policy_task
 
 
+@base.UniverseCompatible
 class AddIamPolicyBinding(base.Command):
   """Add an IAM policy binding to a managed folder."""
 
@@ -62,17 +63,17 @@ class AddIamPolicyBinding(base.Command):
 
   def Run(self, args):
     url = storage_url.storage_url_from_string(args.url)
-    errors_util.raise_error_if_not_gcs_managed_folder(args.command_path, url)
+    errors_util.raise_error_if_not_gcs_folder_type(args.command_path, url)
 
     api_client = api_factory.get_api(url.scheme)
     messages = apis.GetMessagesModule('storage', 'v1')
 
     try:
       policy = api_client.get_managed_folder_iam_policy(
-          url.bucket_name, url.object_name
+          url.bucket_name, url.resource_name
       )
     except api_errors.NotFoundError:
-      api_client.create_managed_folder(url.bucket_name, url.object_name)
+      api_client.create_managed_folder(url.bucket_name, url.resource_name)
       policy = messages.Policy()
 
     return iam_command_util.add_iam_binding_to_resource(

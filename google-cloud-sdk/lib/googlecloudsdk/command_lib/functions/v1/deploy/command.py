@@ -34,6 +34,7 @@ from googlecloudsdk.calliope import exceptions as calliope_exceptions
 from googlecloudsdk.calliope.arg_parsers import ArgumentTypeError
 from googlecloudsdk.command_lib.functions import flags
 from googlecloudsdk.command_lib.functions import secrets_config
+from googlecloudsdk.command_lib.functions import service_account_util
 from googlecloudsdk.command_lib.functions.v1.deploy import enum_util
 from googlecloudsdk.command_lib.functions.v1.deploy import labels_util
 from googlecloudsdk.command_lib.functions.v1.deploy import source_util
@@ -46,6 +47,7 @@ from googlecloudsdk.core import log
 from googlecloudsdk.core import properties
 from googlecloudsdk.core.console import console_io
 from six.moves import urllib
+
 
 _BUILD_NAME_REGEX = re.compile(
     r'projects\/(?P<projectnumber>[^\/]+)\/locations'
@@ -375,22 +377,20 @@ def _ApplyBuildpackStackArgsToFunction(function, args, track):
   return updated_fields
 
 
-def _ApplyBuildServiceAccountToFunction(function, args, track):
+def _ApplyBuildServiceAccountToFunction(function, args):
   """Populates the `build_service_account` field of a Cloud Function message.
 
   Args:
     function: Cloud function message to be populated.
     args: All CLI arguments.
-    track: release track.
 
   Returns:
     updated_fields: update mask containing the list of fields to be updated.
   """
-  if track is base.ReleaseTrack.GA:
-    return []
-
   updated_fields = []
-  if args.IsSpecified('build_service_account'):
+  if args.IsSpecified('build_service_account') or args.IsSpecified(
+      'clear_build_service_account'
+  ):
     function.buildServiceAccount = args.build_service_account
     updated_fields.append('build_service_account')
 
@@ -491,6 +491,18 @@ def Run(args, track=None):
         function.eventTrigger, trigger_params['trigger_event']
     )
 
+  if args.IsKnownAndSpecified('binary_authorization'):
+    raise calliope_exceptions.InvalidArgumentException(
+        '--binary_authorization',
+        'Binary authorization is not supported for 1st gen Cloud Functions.',
+    )
+
+  if args.IsKnownAndSpecified('clear_binary_authorization'):
+    raise calliope_exceptions.InvalidArgumentException(
+        '--clear_binary_authorization',
+        'Binary authorization is not supported for 1st gen Cloud Functions.',
+    )
+
   # Keep track of which fields are updated in the case of patching.
   updated_fields = []
 
@@ -548,11 +560,16 @@ def Run(args, track=None):
 
   vpc_connector_ref = args.CONCEPTS.vpc_connector.Parse()
 
-  if vpc_connector_ref or args.clear_vpc_connector:
-    function.vpcConnector = (
-        '' if args.clear_vpc_connector else vpc_connector_ref.RelativeName()
-    )
+  if args.clear_vpc_connector:
+    function.vpcConnector = ''
+    function.vpcConnectorEgressSettings = None
     updated_fields.append('vpcConnector')
+    updated_fields.append('vpcConnectorEgressSettings')
+
+  if vpc_connector_ref:
+    function.vpcConnector = vpc_connector_ref.RelativeName()
+    updated_fields.append('vpcConnector')
+
   if args.IsSpecified('egress_settings'):
     will_have_vpc_connector = (
         had_vpc_connector and not args.clear_vpc_connector
@@ -674,13 +691,12 @@ def Run(args, track=None):
       _ApplyBuildpackStackArgsToFunction(function, args, track)
   )
 
+  updated_fields.extend(_ApplyBuildServiceAccountToFunction(function, args))
+
   # TODO(b/287538740): Can be cleaned up after a full transition to the AR.
+  # Expected to be set after all other fields.
   updated_fields.extend(
       _DefaultDockerRegistryIfUnspecified(function, updated_fields)
-  )
-
-  updated_fields.extend(
-      _ApplyBuildServiceAccountToFunction(function, args, track)
   )
 
   api_enablement.PromptToEnableApiIfDisabled('cloudbuild.googleapis.com')
@@ -702,6 +718,10 @@ def Run(args, track=None):
           default=False,
       )
 
+    service_account_util.ValidateDefaultBuildServiceAccountAndPromptWarning(
+        _GetProject(), function_ref.locationsId, function.buildServiceAccount
+    )
+
     op = api_util.CreateFunction(function, function_ref.Parent().RelativeName())
     if api_util.IsGcrRepository(function):
       api_util.ValidateSecureImageRepositoryOrWarn(
@@ -720,6 +740,9 @@ def Run(args, track=None):
       deny_all_users_invoke = True
 
   elif updated_fields:
+    service_account_util.ValidateDefaultBuildServiceAccountAndPromptWarning(
+        _GetProject(), function_ref.locationsId, function.buildServiceAccount
+    )
     op = api_util.PatchFunction(function, updated_fields)
     if api_util.IsGcrRepository(function):
       api_util.ValidateSecureImageRepositoryOrWarn(

@@ -100,9 +100,6 @@ class S3XmlClient(cloud_api.CloudApi):
   scheme = storage_url.ProviderPrefix.S3
 
   def __init__(self):
-    log.warning(
-        'S3 support is currently unstable and should not be relied on for'
-        ' production workloads.')
     self.endpoint_url = properties.VALUES.storage.s3_endpoint_url.Get()
     self.client = self.create_client()
 
@@ -185,7 +182,13 @@ class S3XmlClient(cloud_api.CloudApi):
     del request_config  # Unused.
     return self.client.delete_bucket(Bucket=bucket_name)
 
-  def get_bucket(self, bucket_name, fields_scope=cloud_api.FieldsScope.NO_ACL):
+  def get_bucket(
+      self,
+      bucket_name,
+      generation=None,
+      fields_scope=cloud_api.FieldsScope.NO_ACL,
+      soft_deleted=False,
+  ):
     """See super class."""
     metadata = {'Name': bucket_name}
     # TODO(b/168716392) As new commands are implemented, they may want
@@ -406,7 +409,7 @@ class S3XmlClient(cloud_api.CloudApi):
       else:
         existing_acl_dict = self.client.get_object_acl(
             Bucket=destination_resource.storage_url.bucket_name,
-            Key=destination_resource.storage_url.object_name)
+            Key=destination_resource.storage_url.resource_name)
         acl_dict = (
             xml_metadata_util.get_acl_policy_with_added_and_removed_grants(
                 existing_acl_dict, request_config
@@ -415,7 +418,7 @@ class S3XmlClient(cloud_api.CloudApi):
 
       put_acl_kwargs = {
           'Bucket': destination_resource.storage_url.bucket_name,
-          'Key': destination_resource.storage_url.object_name,
+          'Key': destination_resource.storage_url.resource_name,
           'AccessControlPolicy': acl_dict,
       }
       self.client.put_object_acl(**put_acl_kwargs)
@@ -423,13 +426,13 @@ class S3XmlClient(cloud_api.CloudApi):
       acl_dict = None
 
     source_kwargs = {'Bucket': source_resource.storage_url.bucket_name,
-                     'Key': source_resource.storage_url.object_name}
+                     'Key': source_resource.storage_url.resource_name}
     if source_resource.storage_url.generation:
       source_kwargs['VersionId'] = source_resource.storage_url.generation
 
     copy_kwargs = {
         'Bucket': destination_resource.storage_url.bucket_name,
-        'Key': destination_resource.storage_url.object_name,
+        'Key': destination_resource.storage_url.resource_name,
         'CopySource': source_kwargs,
     }
 
@@ -475,7 +478,7 @@ class S3XmlClient(cloud_api.CloudApi):
 
     delete_object_kwargs = {
         'Bucket': object_url.bucket_name,
-        'Key': object_url.object_name,
+        'Key': object_url.resource_name,
     }
     if object_url.generation:
       delete_object_kwargs['VersionId'] = object_url.generation
@@ -617,6 +620,18 @@ class S3XmlClient(cloud_api.CloudApi):
       except botocore.exceptions.ClientError as error:
         object_dict['ACL'] = errors.XmlApiError(error)
 
+    if fields_scope and fields_scope is not cloud_api.FieldsScope.SHORT:
+      try:
+        tags_response = self.client.get_object_tagging(**request)
+        object_dict['TagSet'] = tags_response.get('TagSet', None)
+      except Exception as error:  # pylint: disable=broad-except
+        # TODO: b/436204166 - Remove this once the API supports object tags.
+        # Currently GCS-XML API does not support object tags, and throws
+        # an error when we try to fetch it. We will ignore the error for now and
+        # continue. Users anyway do not interact with XML API from gcloud.
+        log.warning('Failed to get object tags, error: %s', error)
+        pass
+
     return xml_metadata_util.get_object_resource_from_xml_response(
         self.scheme, object_dict, bucket_name, object_name
     )
@@ -631,12 +646,14 @@ class S3XmlClient(cloud_api.CloudApi):
       include_folders_as_prefixes=None,
       next_page_token=None,
       object_state=cloud_api.ObjectState.LIVE,
+      list_filter=None,
   ):
     """See super class."""
     del (
         halt_on_empty_response,
         include_folders_as_prefixes,
         next_page_token,
+        list_filter,
     )  # Only used by GCS.
     if object_state == cloud_api.ObjectState.LIVE_AND_NONCURRENT:
       api_method_name = 'list_object_versions'
@@ -719,7 +736,7 @@ class S3XmlClient(cloud_api.CloudApi):
       resource_reference.ObjectResource with uploaded object's metadata.
     """
     bucket_name = destination_resource.storage_url.bucket_name
-    object_name = destination_resource.storage_url.object_name
+    object_name = destination_resource.storage_url.resource_name
     multipart_chunksize = scaled_integer.ParseInteger(
         properties.VALUES.storage.multipart_chunksize.Get())
     multipart_threshold = scaled_integer.ParseInteger(
@@ -757,7 +774,7 @@ class S3XmlClient(cloud_api.CloudApi):
     """
     kwargs = {
         'Bucket': destination_resource.storage_url.bucket_name,
-        'Key': destination_resource.storage_url.object_name,
+        'Key': destination_resource.storage_url.resource_name,
         'Body': source_stream,
     }
     kwargs.update(extra_args)
@@ -766,7 +783,7 @@ class S3XmlClient(cloud_api.CloudApi):
         self.scheme,
         response,
         destination_resource.storage_url.bucket_name,
-        destination_resource.storage_url.object_name,
+        destination_resource.storage_url.resource_name,
     )
 
   @_catch_client_error_raise_s3_api_error()

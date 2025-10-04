@@ -56,6 +56,13 @@ def AddTypeFlag(parser, required=False):
   )
 
 
+def AddDumpGroupFlag(parser):
+  """Adds a --dump-path or --dump-flags flag to the given parser."""
+  dump_group = parser.add_group(mutex=True)
+  AddDumpPathFlag(dump_group)
+  AddDumpFlagsFlag(dump_group)
+
+
 def AddDumpPathFlag(parser):
   """Adds a --dump-path flag to the given parser."""
   help_text = """\
@@ -63,6 +70,20 @@ def AddDumpPathFlag(parser):
     `gs://[BUCKET_NAME]/[OBJECT_NAME]`.
     """
   parser.add_argument('--dump-path', help=help_text)
+
+
+def AddDumpFlagsFlag(parser):
+  """Adds a --dump-flags flag to the given parser."""
+  help_text = """\
+    A list of dump flags. An object containing a list of "key": "value" pairs.
+    """
+  parser.add_argument(
+      '--dump-flags',
+      metavar='KEY=VALUE',
+      type=arg_parsers.ArgDict(),
+      help=help_text,
+      hidden=True,
+  )
 
 
 def AddConnectivityGroupFlag(parser, api_type, required=False):
@@ -163,20 +184,47 @@ def AddDumpTypeFlag(parser):
   parser.add_argument('--dump-type', help=help_text, choices=choices)
 
 
-def AddSqlServerHomogeneousMigrationConfigFlag(parser):
+def AddSqlServerHomogeneousMigrationConfigFlag(parser, is_update=False):
   """Adds SQL Server homogeneous migration flag group to the given parser."""
-  sqlserver_homogeneous_migration_config = parser.add_group(
+  sqlserver_homogeneous_migration_config = parser.add_group(mutex=True)
+  AddSqlServerLogShippingConfigFlag(
+      sqlserver_homogeneous_migration_config, is_update
+  )
+  AddSqlServerDagConfigFlag(sqlserver_homogeneous_migration_config, is_update)
+
+
+def AddSqlServerLogShippingConfigFlag(parser, is_update=False):
+  """Adds SQL Server homogeneous log shipping migration flag group to the given parser."""
+  sqlserver_log_shipping_config = parser.add_group(
       (
           'The SQL Server homogeneous migration config. This is used only for'
           ' SQL Server to CloudSQL SQL Server migrations.'
       ),
   )
-  AddSqlServerBackupFilePattern(sqlserver_homogeneous_migration_config)
-  AddSqlServerDatabasesFlag(sqlserver_homogeneous_migration_config)
-  AddSqlServerEncryptedDatabasesFlag(sqlserver_homogeneous_migration_config)
+  if is_update:
+    AddSqlServerBackupFilePattern(
+        sqlserver_log_shipping_config, default_value=None
+    )
+    AddSqlServerDatabasesFlag(
+        sqlserver_log_shipping_config, required=False
+    )
+    AddSqlServerEncryptedDatabasesFlag(sqlserver_log_shipping_config)
+    AddSqlServerUseDiffBackupFlag(sqlserver_log_shipping_config)
+    AddSqlServerPromoteWhenReadyFlag(sqlserver_log_shipping_config)
+  else:
+    AddSqlServerBackupFilePattern(
+        sqlserver_log_shipping_config,
+        default_value='.*(\\.|_)(<epoch>\\d*)\\.(trn|bak|trn\\.final)',
+    )
+    AddSqlServerDatabasesFlag(
+        sqlserver_log_shipping_config, required=True
+    )
+    AddSqlServerEncryptedDatabasesFlag(sqlserver_log_shipping_config)
+    AddSqlServerUseDiffBackupFlag(sqlserver_log_shipping_config)
+    AddSqlServerPromoteWhenReadyFlag(sqlserver_log_shipping_config)
 
 
-def AddSqlServerBackupFilePattern(parser):
+def AddSqlServerBackupFilePattern(parser, default_value=None):
   """Adds a --sqlserver-backup-file-pattern flag to the given parser."""
   help_text = (
       'Pattern that describes the default backup naming strategy. The specified'
@@ -185,28 +233,31 @@ def AddSqlServerBackupFilePattern(parser):
       ' timestamp\nExample: For backup files TestDB.1691448240.bak,'
       ' TestDB.1691448254.trn, TestDB.1691448284.trn.final use pattern:'
       ' .*\\.(<epoch>\\d*)\\.(trn|bak|trn\\.final) or'
-      ' .*\\.(<timestamp>\\d*)\\.(trn|bak|trn\\.final)'
+      ' .*\\.(<timestamp>\\d*)\\.(trn|bak|trn\\.final)\nThis flag is used only'
+      ' for SQL Server to Cloud SQL migrations.'
   )
   parser.add_argument(
       '--sqlserver-backup-file-pattern',
       help=help_text,
-      default='.*(\\.|_)(<epoch>\\d*)\\.(trn|bak|trn\\.final)',
+      default=default_value,
+      hidden=True,
   )
 
 
-def AddSqlServerDatabasesFlag(parser):
+def AddSqlServerDatabasesFlag(parser, required=True):
   """Adds a --sqlserver-databases flag to the given parser."""
   help_text = """\
     A list of databases to be migrated to the destination Cloud SQL instance.
     Provide databases as a comma separated list. This list should contain all
-    encrypted and non-encrypted database names.
+    encrypted and non-encrypted database names. This flag is used only for
+    SQL Server to Cloud SQL migrations.
     """
   parser.add_argument(
       '--sqlserver-databases',
       metavar='databaseName',
       type=arg_parsers.ArgList(min_length=1),
       help=help_text,
-      required=True,
+      required=required,
   )
 
 
@@ -214,6 +265,10 @@ def AddSqlServerEncryptedDatabasesFlag(parser):
   """Adds a --sqlserver-encrypted-databases flag to the given parser."""
   help_text = """\
     A JSON/YAML file describing the encryption settings per database for all encrytped databases.
+    Note:
+    Path to the Certificate (.cer) and Private Key (.pvk) in Cloud Storage,
+    should be in the form of `gs://bucketName/fileName`. The instance must
+    have write permissions to the bucket and read access to the file.
     An example of a JSON request:
         [{
             "database": "db1",
@@ -232,10 +287,279 @@ def AddSqlServerEncryptedDatabasesFlag(parser):
             }
         }]
 
-      This flag accepts "-" for stdin.
+      This flag accepts "-" for stdin. This flag is used only for SQL Server to Cloud SQL migrations.
     """
   parser.add_argument(
       '--sqlserver-encrypted-databases',
       type=arg_parsers.YAMLFileContents(),
       help=help_text,
   )
+
+
+def AddSqlServerUseDiffBackupFlag(parser):
+  """Adds a --sqlserver-diff-backup flag to the given parser."""
+  help_text = """\
+      Enable differential backups. If not specified, differential backups
+      are disabled by default. Use --sqlserver-diff-backup to enable and
+      --no-sqlserver-diff-backup to disable. This flag is used only for
+      homogeneous SQL Server to Cloud SQL for SQL Server migrations.
+    """
+  parser.add_argument(
+      '--sqlserver-diff-backup',
+      action='store_true',
+      help=help_text,
+  )
+
+
+def AddSqlServerDagConfigFlag(parser, is_update=False):
+  """Adds SQL Server homogeneous DAG migration flag group to the given parser."""
+  sqlserver_dag_config = parser.add_group(
+      (
+          'The SQL Server homogeneous DAG migration config. This is used only'
+          ' for SQL Server to CloudSQL SQL for SQL Server migrations.'
+      ),
+      hidden=True,
+  )
+  sqlserver_dag_config.add_argument(
+      '--sqlserver-dag-source-ag',
+      help='The name of the source availability group.',
+      required=not is_update,
+      hidden=True,
+  )
+  sqlserver_dag_config.add_argument(
+      '--sqlserver-dag-linked-server',
+      help=(
+          'The name of the linked server that points to the source SQL Server'
+          ' instance.'
+      ),
+      required=not is_update,
+      hidden=True,
+  )
+
+
+def AddSkipValidationFlag(parser):
+  """Adds a --skip-validation flag to the given parser."""
+  help_text = """\
+    Restart the migration job without running prior configuration verification.
+    """
+  parser.add_argument(
+      '--skip-validation',
+      action='store_true',
+      help=help_text,
+  )
+
+
+def AddMigrationJobObjectsConfigFlagForCreateAndUpdate(parser):
+  """Adds migration job objects config flag group to the given parser."""
+  migration_config = parser.add_group(
+      'The migration job objects config.',
+      mutex=True,
+  )
+  database_config = migration_config.add_group(
+      'The migration job objects config for databases.',
+      mutex=True,
+  )
+  AddDatabasesFilterFlag(database_config)
+  AddAllDatabasesFlag(database_config)
+
+
+def AddMigrationJobObjectsConfigFlagForPromote(parser):
+  """Adds migration job objects config flag group to the given parser."""
+  migration_config = parser.add_group(
+      'The migration job objects config.',
+      mutex=True,
+  )
+  AddDatabasesFilterFlagForSqlServer(migration_config)
+
+
+def AddMigrationJobObjectsConfigFlagForRestart(parser):
+  """Adds migration job objects config flag group to the given parser."""
+  migration_config = parser.add_group(
+      'The migration job objects config.',
+      mutex=True,
+  )
+  AddDatabasesFilterFlagForSqlServer(migration_config)
+  AddObjectFilterFlagForHeterogeneous(migration_config)
+
+
+def AddDatabasesFilterFlag(parser):
+  """Adds a --databases-filter flag to the given parser."""
+  help_text = """\
+    A list of databases to be migrated to the destination instance.
+    Provide databases as a comma separated list. This flag is used only for
+    Postgres to AlloyDB migrations and Postgres to Cloud SQL Postgres migrations.
+    """
+  parser.add_argument(
+      '--databases-filter',
+      metavar='databaseName',
+      type=arg_parsers.ArgList(min_length=1),
+      help=help_text,
+  )
+
+
+def AddAllDatabasesFlag(parser):
+  """Adds --all-databases flag to the given parser."""
+  help_text = """\
+    Migrate all databases for the migration job. This flag is used only for
+    Postgres to AlloyDB migrations and Postgres to Cloud SQL Postgres migrations.
+    """
+  parser.add_argument('--all-databases', action='store_true', help=help_text)
+
+
+def AddDatabasesFilterFlagForSqlServer(parser):
+  """Adds a --databases-filter flag to the given parser."""
+  help_text = """\
+    A list of databases to be migrated to the destination instance.
+    Provide databases as a comma separated list. This flag is used only for
+    SQL Server to Cloud SQL SQL Server migrations.
+    """
+  parser.add_argument(
+      '--databases-filter',
+      metavar='databaseName',
+      type=arg_parsers.ArgList(min_length=1),
+      help=help_text,
+  )
+
+
+def AddObjectFilterFlagForHeterogeneous(parser):
+  """Adds a --object-filter flag to the given parser."""
+  help_text = """\
+    A list of schema and table names to be migrated to the destination instance.
+    Usage: --object-filter schema=schema1,table=table1 --object-filter schema=schema2,table=table2
+    This flag is used only for heterogeneous migrations.
+    """
+  parser.add_argument(
+      '--object-filter',
+      type=arg_parsers.ArgDict(
+          spec={
+              'schema': str,
+              'table': str,
+          },
+          required_keys=['schema', 'table'],
+      ),
+      action='append',
+      help=help_text,
+      hidden=True,
+  )
+
+
+def AddSqlServerPromoteWhenReadyFlag(parser):
+  """Adds a --sqlserver-promote-when-ready flag to the given parser."""
+  help_text = """\
+      Promote the database when it is ready. Use --sqlserver-promote-when-ready
+      to enable and --no-sqlserver-promote-when-ready to disable. This flag is
+      used only for homogeneous SQL Server to Cloud SQL for SQL Server
+      migrations.
+    """
+  parser.add_argument(
+      '--sqlserver-promote-when-ready',
+      action='store_true',
+      help=help_text,
+  )
+
+
+def AddRestartFailedObjectsFlag(parser):
+  """Adds a --restart-failed-objects flag to the given parser."""
+  help_text = """\
+    Restart the failed objects in the migration job. This flag is used only for
+    Postgres to AlloyDB migrations and Postgres to Cloud SQL Postgres migrations.
+    """
+  parser.add_argument(
+      '--restart-failed-objects',
+      action='store_true',
+      help=help_text,
+  )
+
+
+def AddHeterogeneousMigrationConfigFlag(parser, is_update=False):
+  """Adds heterogeneous migration flag group to the given parser."""
+  heterogeneous_migration_config = parser.add_group(
+      (
+          'The heterogeneous migration config. This is used only for'
+          ' Oracle to Cloud SQL for PostgreSQL and SQL Server to Cloud SQL for'
+          ' PostgreSQL migrations.'
+      ),
+  )
+  AddHeterogeneousMigrationSourceConfigFlags(
+      heterogeneous_migration_config, is_update
+  )
+  AddHeterogeneousMigrationDestinationConfigFlags(
+      heterogeneous_migration_config
+  )
+
+
+def AddHeterogeneousMigrationDestinationConfigFlags(parser):
+  """Adds heterogeneous migration destination config flag to the parser."""
+  destination_config = parser.add_group(
+      (
+          'Configuration for Postgres as a destination in a heterogeneous'
+          ' migration.'
+      ),
+  )
+  destination_config.add_argument(
+      '--max-concurrent-destination-connections',
+      help="""\
+        Maximum number of concurrent connections Database Migration Service will
+        open to the destination for data migration.
+        """,
+      type=int,
+  )
+  destination_config.add_argument(
+      '--transaction-timeout',
+      help="""Timeout for data migration transactions.""",
+      type=arg_parsers.Duration(lower_bound='30s', upper_bound='300s'),
+  )
+
+
+def AddHeterogeneousMigrationSourceConfigFlags(parser, is_update=False):
+  """Adds heterogeneous migration source config flag group to the parser."""
+  source_config = parser.add_group(
+      (
+          'Configuration for Oracle or SQL Server as a source in a'
+          ' heterogeneous migration.'
+      ),
+  )
+  source_config.add_argument(
+      '--max-concurrent-full-dump-connections',
+      help="""\
+        Maximum number of connections Database Migration Service will open to
+        the source for full dump phase.
+        """,
+      type=int,
+  )
+  source_config.add_argument(
+      '--max-concurrent-cdc-connections',
+      help="""\
+        Maximum number of connections Database Migration Service will open to
+        the source for CDC phase.
+        """,
+      type=int,
+  )
+  if not is_update:
+    skip_full_dump_group = source_config.add_group(
+        'Configuration for skipping full dump.',
+    )
+    skip_full_dump_group.add_argument(
+        '--skip-full-dump',
+        help="""\
+          Whether to skip full dump or not.
+          """,
+        action='store_true',
+    )
+    cdc_start_position_group = skip_full_dump_group.add_group(
+        'Configuration for CDC start position.',
+        mutex=True,
+    )
+    cdc_start_position_group.add_argument(
+        '--oracle-cdc-start-position',
+        help="""\
+          Oracle schema change number (SCN) to start CDC data migration from.
+          """,
+        type=int,
+    )
+    cdc_start_position_group.add_argument(
+        '--sqlserver-cdc-start-position',
+        help="""\
+          Sqlserver log squence number (LSN) to start CDC data migration from.
+          """
+    )

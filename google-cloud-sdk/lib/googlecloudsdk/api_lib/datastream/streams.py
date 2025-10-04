@@ -59,6 +59,24 @@ class StreamsClient:
       return self._messages.BackfillAllStrategy(
           postgresqlExcludedObjects=util.ParsePostgresqlRdbmsFile(
               self._messages, args.postgresql_excluded_objects))
+    elif args.sqlserver_excluded_objects:
+      return self._messages.BackfillAllStrategy(
+          sqlServerExcludedObjects=util.ParseSqlServerRdbmsFile(
+              self._messages, args.sqlserver_excluded_objects
+          )
+      )
+    elif args.salesforce_excluded_objects:
+      return self._messages.BackfillAllStrategy(
+          salesforceExcludedObjects=util.ParseSalesforceOrgFile(
+              self._messages, args.salesforce_excluded_objects
+          )
+      )
+    elif args.mongodb_excluded_objects:
+      return self._messages.BackfillAllStrategy(
+          mongodbExcludedObjects=util.ParseMongodbFile(
+              self._messages, args.mongodb_excluded_objects
+          )
+      )
     return self._messages.BackfillAllStrategy()
 
   def _ParseOracleSourceConfig(self, oracle_source_config_file, release_track):
@@ -182,6 +200,33 @@ class StreamsClient:
         self._messages.PostgresqlSourceConfig,
     )
 
+  def _ParseSqlServerSourceConfig(self, sqlserver_source_config_file):
+    """Parses a sqlserver_sorce_config into the SqlServerSourceConfig message."""
+
+    return util.ParseMessageAndValidateSchema(
+        sqlserver_source_config_file,
+        'SqlServerSourceConfig',
+        self._messages.SqlServerSourceConfig,
+    )
+
+  def _ParseSalesforceSourceConfig(self, salesforce_source_config_file):
+    """Parses a salesforce_sorce_config into the SalesforceSourceConfig message."""
+
+    return util.ParseMessageAndValidateSchema(
+        salesforce_source_config_file,
+        'SalesforceSourceConfig',
+        self._messages.SalesforceSourceConfig,
+    )
+
+  def _ParseMongodbSourceConfig(self, mongodb_source_config_file):
+    """Parses a mongodb_source_config into the MongodbSourceConfig message."""
+
+    return util.ParseMessageAndValidateSchema(
+        mongodb_source_config_file,
+        'MongodbSourceConfig',
+        self._messages.MongodbSourceConfig,
+    )
+
   def _ParseGcsDestinationConfig(
       self, gcs_destination_config_file, release_track
   ):
@@ -267,6 +312,18 @@ class StreamsClient:
     elif args.postgresql_source_config:
       stream_source_config.postgresqlSourceConfig = (
           self._ParsePostgresqlSourceConfig(args.postgresql_source_config)
+      )
+    elif args.sqlserver_source_config:
+      stream_source_config.sqlServerSourceConfig = (
+          self._ParseSqlServerSourceConfig(args.sqlserver_source_config)
+      )
+    elif args.salesforce_source_config:
+      stream_source_config.salesforceSourceConfig = (
+          self._ParseSalesforceSourceConfig(args.salesforce_source_config)
+      )
+    elif args.mongodb_source_config:
+      stream_source_config.mongodbSourceConfig = self._ParseMongodbSourceConfig(
+          args.mongodb_source_config
       )
     stream_obj.sourceConfig = stream_source_config
 
@@ -382,6 +439,21 @@ class StreamsClient:
       )
       update_fields = self._UpdateListWithFieldNamePrefixes(
           update_fields, 'postgresql_source_config', 'source_config.')
+
+    elif args.IsSpecified('sqlserver_source_config'):
+      stream.sourceConfig.sqlServerSourceConfig = (
+          self._ParseSqlServerSourceConfig(args.sqlserver_source_config)
+      )
+      update_fields = self._UpdateListWithFieldNamePrefixes(
+          update_fields, 'sqlserver_source_config', 'source_config.'
+      )
+    elif args.IsSpecified('salesforce_source_config'):
+      stream.sourceConfig.salesforceSourceConfig = (
+          self._ParseSalesforceSourceConfig(args.salesforce_source_config)
+      )
+      update_fields = self._UpdateListWithFieldNamePrefixes(
+          update_fields, 'salesforce_source_config', 'source_config.'
+      )
 
     # TODO(b/207467120): use source field only.
     if release_track == base.ReleaseTrack.BETA:

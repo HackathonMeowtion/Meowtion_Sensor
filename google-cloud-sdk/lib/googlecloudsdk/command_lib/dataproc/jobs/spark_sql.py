@@ -84,19 +84,23 @@ class SparkSqlBase(job_base.JobBase):
     spark_sql_job = messages.SparkSqlJob(
         jarFileUris=files_by_type['jars'],
         queryFileUri=files_by_type['file'],
-        loggingConfig=logging_config)
+        loggingConfig=logging_config,
+    )
 
     if args.queries:
       spark_sql_job.queryList = messages.QueryList(queries=args.queries)
     if args.params:
       spark_sql_job.scriptVariables = encoding.DictToAdditionalPropertyMessage(
-          args.params, messages.SparkSqlJob.ScriptVariablesValue)
+          args.params, messages.SparkSqlJob.ScriptVariablesValue
+      )
 
     job_properties = job_util.BuildJobProperties(
-        args.properties, args.properties_file)
+        args.properties, args.properties_file
+    )
     if job_properties:
-    # Sort properties to ensure tests comparing messages not fail on ordering.
+      # Sort properties to ensure tests comparing messages not fail on ordering.
       spark_sql_job.properties = encoding.DictToAdditionalPropertyMessage(
-          job_properties, messages.SparkSqlJob.PropertiesValue, sort_items=True)
+          job_properties, messages.SparkSqlJob.PropertiesValue, sort_items=True
+      )
 
     job.sparkSqlJob = spark_sql_job

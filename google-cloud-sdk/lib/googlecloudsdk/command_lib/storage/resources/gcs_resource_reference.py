@@ -51,7 +51,7 @@ def _get_json_dump(resource):
 
 def _get_formatted_acl(acl):
   """Removes unnecessary fields from acl."""
-  if acl is None:
+  if acl is None or not isinstance(acl, list):
     return acl
   formatted_acl = []
   for acl_entry in acl:
@@ -160,12 +160,14 @@ class GcsBucketResource(resource_reference.BucketResource):
       default_kms_key=None,
       default_storage_class=None,
       etag=None,
+      ip_filter_config=None,
       labels=None,
       lifecycle_config=None,
       location=None,
       location_type=None,
       logging_config=None,
       metadata=None,
+      generation=None,
       metageneration=None,
       per_object_retention=None,
       project_number=None,
@@ -177,6 +179,8 @@ class GcsBucketResource(resource_reference.BucketResource):
       soft_delete_policy=None,
       uniform_bucket_level_access=None,
       update_time=None,
+      soft_delete_time=None,
+      hard_delete_time=None,
       versioning_enabled=None,
       website_config=None,
   ):
@@ -206,6 +210,7 @@ class GcsBucketResource(resource_reference.BucketResource):
     self.custom_placement_config = custom_placement_config
     self.default_acl = default_acl
     self.default_kms_key = default_kms_key
+    self.ip_filter_config = ip_filter_config
     self.location_type = location_type
     self.per_object_retention = per_object_retention
     self.project_number = project_number
@@ -214,6 +219,9 @@ class GcsBucketResource(resource_reference.BucketResource):
     self.satisfies_pzs = satisfies_pzs
     self.soft_delete_policy = soft_delete_policy
     self.uniform_bucket_level_access = uniform_bucket_level_access
+    self.generation = generation
+    self.soft_delete_time = soft_delete_time
+    self.hard_delete_time = hard_delete_time
 
   @property
   def data_locations(self):
@@ -240,6 +248,7 @@ class GcsBucketResource(resource_reference.BucketResource):
         and self.custom_placement_config == other.custom_placement_config
         and self.default_acl == other.default_acl
         and self.default_kms_key == other.default_kms_key
+        and self.ip_filter_config == other.ip_filter_config
         and self.location_type == other.location_type
         and self.per_object_retention == other.per_object_retention
         and self.project_number == other.project_number
@@ -309,6 +318,7 @@ class GcsObjectResource(resource_reference.ObjectResource):
       content_type=None,
       crc32c_hash=None,
       creation_time=None,
+      contexts=None,
       custom_fields=None,
       custom_time=None,
       decryption_key_hash_sha256=None,
@@ -359,6 +369,7 @@ class GcsObjectResource(resource_reference.ObjectResource):
         temporary_hold,
         update_time,
     )
+    self.contexts = contexts
     self.hard_delete_time = hard_delete_time
     self.retention_settings = retention_settings
     self.soft_delete_time = soft_delete_time
@@ -367,6 +378,7 @@ class GcsObjectResource(resource_reference.ObjectResource):
   def __eq__(self, other):
     return (
         super(GcsObjectResource, self).__eq__(other)
+        and self.contexts == other.contexts
         and self.hard_delete_time == other.hard_delete_time
         and self.retention_settings == other.retention_settings
         and self.soft_delete_time == other.soft_delete_time

@@ -25,6 +25,7 @@ from googlecloudsdk.command_lib.resource_manager import tag_arguments as argumen
 from googlecloudsdk.command_lib.resource_manager import tag_utils
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA,
                     base.ReleaseTrack.GA)
 class Create(base.Command):
@@ -39,8 +40,8 @@ class Create(base.Command):
         --description=description
   """
 
-  @staticmethod
-  def Args(parser):
+  @classmethod
+  def Args(cls, parser):
     group = parser.add_argument_group("TagKey.", required=True)
     arguments.AddShortNameArgToParser(group)
     arguments.AddParentArgToParser(
@@ -49,6 +50,8 @@ class Create(base.Command):
     arguments.AddDescriptionArgToParser(parser)
     arguments.AddPurposeArgToParser(parser)
     arguments.AddPurposeDataArgToParser(parser)
+    if cls.ReleaseTrack() in [base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA]:
+      arguments.AddAllowedValuesRegexArgToParser(parser)
     arguments.AddAsyncArgToParser(parser)
 
   def Run(self, args):
@@ -58,6 +61,12 @@ class Create(base.Command):
     short_name = args.short_name
     tag_parent = args.parent
     description = args.description
+
+    allowed_values_regex = None
+    if "allowed_values_regex" in args and args.IsSpecified(
+        "allowed_values_regex"
+    ):
+      allowed_values_regex = args.allowed_values_regex
 
     purpose = None
     purpose_data = None
@@ -74,9 +83,17 @@ class Create(base.Command):
       purpose_data = messages.TagKey.PurposeDataValue(
           additionalProperties=additional_properties)
 
-    tag_key = messages.TagKey(
-        shortName=short_name, parent=tag_parent, description=description,
-        purpose=purpose, purposeData=purpose_data)
+    tag_key_params = {
+        "shortName": short_name,
+        "parent": tag_parent,
+        "description": description,
+        "purpose": purpose,
+        "purposeData": purpose_data,
+    }
+    if self.ReleaseTrack() in [base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA]:
+      tag_key_params["allowedValuesRegex"] = allowed_values_regex
+
+    tag_key = messages.TagKey(**tag_key_params)
 
     create_req = messages.CloudresourcemanagerTagKeysCreateRequest(
         tagKey=tag_key)

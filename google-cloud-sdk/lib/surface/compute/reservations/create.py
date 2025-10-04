@@ -53,10 +53,13 @@ def _RunCreate(compute_api, args):
 
 
 @base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.UniverseCompatible
 class Create(base.CreateCommand):
   """Create a Compute Engine reservation."""
-  _support_share_setting = True
   _support_auto_delete = False
+  _support_folder_share_setting = False
+  _support_reservation_sharing_policy = True
+  _support_ssd_count = True
 
   @classmethod
   def Args(cls, parser):
@@ -64,7 +67,9 @@ class Create(base.CreateCommand):
         parser, operation_type='create')
     flags.AddCreateFlags(
         parser,
-        support_share_setting=cls._support_share_setting,
+        support_folder_share_setting=cls._support_folder_share_setting,
+        support_reservation_sharing_policy=cls._support_reservation_sharing_policy,
+        support_ssd_count=cls._support_ssd_count,
     )
 
   def Run(self, args):
@@ -74,9 +79,10 @@ class Create(base.CreateCommand):
 @base.ReleaseTracks(base.ReleaseTrack.BETA)
 class CreateBeta(Create):
   """Create a Compute Engine reservation."""
-  _support_share_setting = True
-  _support_ssd_count = False
+  _support_ssd_count = True
   _support_auto_delete = True
+  _support_folder_share_setting = False
+  _support_reservation_sharing_policy = True
 
   @classmethod
   def Args(cls, parser):
@@ -84,8 +90,11 @@ class CreateBeta(Create):
         parser, operation_type='create')
     flags.AddCreateFlags(
         parser,
-        support_share_setting=cls._support_share_setting,
-        support_auto_delete=cls._support_auto_delete)
+        support_folder_share_setting=cls._support_folder_share_setting,
+        support_auto_delete=cls._support_auto_delete,
+        support_reservation_sharing_policy=cls._support_reservation_sharing_policy,
+        support_ssd_count=cls._support_ssd_count,
+    )
 
   def Run(self, args):
     return _RunCreate(
@@ -95,9 +104,10 @@ class CreateBeta(Create):
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
 class CreateAlpha(CreateBeta):
   """Create a Compute Engine reservation."""
-  _support_share_setting = True
   _support_ssd_count = True
   _support_auto_delete = True
+  _support_folder_share_setting = True
+  _support_reservation_sharing_policy = True
 
   @classmethod
   def Args(cls, parser):
@@ -105,10 +115,11 @@ class CreateAlpha(CreateBeta):
         parser, operation_type='create')
     flags.AddCreateFlags(
         parser,
-        support_share_setting=cls._support_share_setting,
         support_fleet=True,
+        support_folder_share_setting=cls._support_folder_share_setting,
         support_ssd_count=cls._support_ssd_count,
         support_auto_delete=cls._support_auto_delete,
+        support_reservation_sharing_policy=cls._support_reservation_sharing_policy,
     )
 
   def Run(self, args):

@@ -21,8 +21,15 @@ from __future__ import unicode_literals
 from googlecloudsdk.calliope import base
 
 
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.GA)
 class Operations(base.Group):
   """Check audit operation status."""
 
   category = base.SECURITY_CATEGORY
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class OperationsAlpha(Operations):
+  """Check audit operation status."""

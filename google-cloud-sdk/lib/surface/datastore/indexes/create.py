@@ -19,18 +19,19 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from googlecloudsdk.api_lib.app import yaml_parsing
+from googlecloudsdk.api_lib.datastore import constants
 from googlecloudsdk.api_lib.datastore import index_api
 from googlecloudsdk.calliope import base
 from googlecloudsdk.calliope import exceptions
+from googlecloudsdk.calliope import parser_arguments
 from googlecloudsdk.command_lib.app import output_helpers
 from googlecloudsdk.command_lib.datastore import flags
 from googlecloudsdk.core import properties
 from googlecloudsdk.core.console import console_io
 
 
-@base.ReleaseTracks(
-    base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA, base.ReleaseTrack.GA
-)
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.GA)
 class Create(base.Command):
   """Create Cloud Datastore indexes."""
 
@@ -49,37 +50,40 @@ Any indexes in your index file that do not exist will be created.
             $ {command} ~/myapp/index.yaml
 
           Detailed information about index configuration can be found at the
-          [index.yaml reference](https://cloud.google.com/appengine/docs/standard/python/config/indexref).
+          [index.yaml reference](https://cloud.google.com/datastore/docs/tools/indexconfig).
           """,
   }
 
   @staticmethod
-  def Args(parser):
-    """Get arguments for this command.
+  def Args(parser: parser_arguments.ArgumentInterceptor) -> None:
+    """Get arguments for this command."""
+    flags.AddIndexFileFlag(parser)
+    flags.AddDatabaseIdFlag(parser)
+
+  def Run(self, args) -> None:
+    """Create missing indexes as defined in the index.yaml file."""
+    # Default to '(default)' if unset.
+    database_id = (
+        args.database if args.database else constants.DEFAULT_NAMESPACE
+    )
+    self.CreateIndexes(
+        index_file=args.index_file, database=database_id, enable_vector=False
+    )
+
+  def CreateIndexes(
+      self, index_file: str, database: str, enable_vector: bool
+  ) -> None:
+    """Cleates missing indexes via the Firestore Admin API.
+
+    Lists the database's existing indexes, and then compares them against the
+    indexes that are defined in the given index.yaml file. Any discrepancies
+    against the index.yaml file are created.
 
     Args:
-      parser: argparse.ArgumentParser, the parser for this command.
+      index_file: The users definition of their desired indexes.
+      database: The database within the project we are operating on.
+      enable_vector: Whether or not vector indexes are supported.
     """
-    flags.AddIndexFileFlag(parser)
-    parser.add_argument(
-        '--database',
-        help="""\
-        The database to operate on. If not specified, the CLI refers the
-        `(default)` database by default.
-
-        For example, to operate on database `testdb`:
-
-          $ {command} --database='testdb'
-        """,
-        type=str,
-    )
-
-  def Run(self, args):
-    return self.CreateIndexes(
-        index_file=args.index_file, database=args.database
-    )
-
-  def CreateIndexes(self, index_file, database=None):
     project = properties.VALUES.core.project.Get(required=True)
     info = yaml_parsing.ConfigYamlInfo.FromFile(index_file)
     if not info or info.name != yaml_parsing.ConfigYamlInfo.INDEX:
@@ -93,15 +97,24 @@ Any indexes in your index file that do not exist will be created.
         default=True, throw_if_unattended=False, cancel_on_no=True
     )
 
-    if database:
-      # Use Firestore Admin for non (default) database.
-      index_api.CreateMissingIndexesViaFirestoreApi(
-          project_id=project,
-          database_id=database,
-          index_definitions=info.parsed,
-      )
-    else:
-      # Use Datastore Admin for the (default) database.
-      index_api.CreateMissingIndexes(
-          project_id=project, index_definitions=info.parsed
-      )
+    index_api.CreateMissingIndexesViaFirestoreApi(
+        project_id=project,
+        database_id=database,
+        index_definitions=info.parsed,
+        enable_vector=enable_vector,
+    )
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class CreateFirestoreAPI(Create):
+  """Create Cloud Datastore indexes with Firestore API."""
+
+  def Run(self, args) -> None:
+    # Default to '(default)' if unset.
+    database_id = (
+        constants.DEFAULT_NAMESPACE if not args.database else args.database
+    )
+    return self.CreateIndexes(
+        index_file=args.index_file, database=database_id, enable_vector=True
+    )

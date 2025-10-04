@@ -21,7 +21,9 @@ from __future__ import unicode_literals
 from googlecloudsdk.api_lib.compute import base_classes
 from googlecloudsdk.api_lib.compute.operations import poller
 from googlecloudsdk.api_lib.util import waiter
+from googlecloudsdk.calliope import arg_parsers
 from googlecloudsdk.calliope import base
+from googlecloudsdk.command_lib.compute import resource_manager_tags_utils
 from googlecloudsdk.command_lib.compute.networks import flags as network_flags
 from googlecloudsdk.command_lib.compute.routers import flags
 from googlecloudsdk.command_lib.compute.routers import router_utils
@@ -30,6 +32,7 @@ from googlecloudsdk.core import resources
 import six
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Create(base.CreateCommand):
   """Create a Compute Engine router.
@@ -39,43 +42,85 @@ class Create(base.CreateCommand):
   """
 
   ROUTER_ARG = None
+  _support_ncc_gateway = False
+  _support_tagging_at_creation = False
 
   @classmethod
-  def _Args(cls, parser, enable_ipv6_bgp=False):
-    parser.display_info.AddFormat(flags.DEFAULT_LIST_FORMAT)
-    cls.NETWORK_ARG = network_flags.NetworkArgumentForOtherResource(
-        'The network for this router'
-    )
-    cls.NETWORK_ARG.AddArgument(parser)
+  def _Args(cls, parser):
+    parser.display_info.AddFormat(flags.DEFAULT_CREATE_FORMAT)
+
+    if not cls._support_ncc_gateway:
+      cls.add_network_arg(parser)
+    else:
+      cls.add_ncc_gateway_and_network_arg(parser)
+
+    if cls._support_tagging_at_creation:
+      parser.add_argument(
+          '--resource-manager-tags',
+          type=arg_parsers.ArgDict(),
+          metavar='KEY=VALUE',
+          help="""\
+            A comma-separated list of Resource Manager tags to apply to the router.
+        """,
+      )
+
     cls.ROUTER_ARG = flags.RouterArgument()
     cls.ROUTER_ARG.AddArgument(parser, operation_type='create')
     base.ASYNC_FLAG.AddToParser(parser)
     flags.AddCreateRouterArgs(parser)
     flags.AddKeepaliveIntervalArg(parser)
-    if enable_ipv6_bgp:
-      flags.AddBgpIdentifierRangeArg(parser)
+    flags.AddBgpIdentifierRangeArg(parser)
     flags.AddEncryptedInterconnectRouter(parser)
     flags.AddReplaceCustomAdvertisementArgs(parser, 'router')
     parser.display_info.AddCacheUpdater(flags.RoutersCompleter)
+
+  @classmethod
+  def add_ncc_gateway_and_network_arg(cls, parser):
+    link_parser = parser.add_mutually_exclusive_group(required=True)
+    flags.AddNccGatewayArg(link_parser)
+    cls.NETWORK_ARG = network_flags.NetworkArgumentForOtherResource(
+        required=False,
+        short_help='The network for this router'
+    )
+    cls.NETWORK_ARG.AddArgument(link_parser)
+
+  @classmethod
+  def add_network_arg(cls, parser):
+    cls.NETWORK_ARG = network_flags.NetworkArgumentForOtherResource(
+        'The network for this router'
+    )
+    cls.NETWORK_ARG.AddArgument(parser)
 
   @classmethod
   def Args(cls, parser):
     """See base.CreateCommand."""
     cls._Args(parser)
 
-  def _Run(self, args, enable_ipv6_bgp=False):
+  def _Run(self, args):
     holder = base_classes.ComputeApiHolder(self.ReleaseTrack())
     messages = holder.client.messages
     service = holder.client.apitools_client.routers
 
     router_ref = self.ROUTER_ARG.ResolveAsResource(args, holder.resources)
-    network_ref = self.NETWORK_ARG.ResolveAsResource(args, holder.resources)
 
     router_resource = messages.Router(
         name=router_ref.Name(),
         description=args.description,
-        network=network_ref.SelfLink(),
     )
+
+    if self._support_ncc_gateway:
+      if args.ncc_gateway is not None:
+        router_resource.nccGateway = args.ncc_gateway
+
+    if self._support_tagging_at_creation:
+      if args.resource_manager_tags is not None:
+        router_resource.params = self._CreateRouterParams(
+            messages, args.resource_manager_tags
+        )
+
+    if args.network is not None:
+      network_ref = self.NETWORK_ARG.ResolveAsResource(args, holder.resources)
+      router_resource.network = network_ref.SelfLink()
 
     # Add bgp field with the assigned asn and/or keepalive_interval
     if args.asn is not None or args.keepalive_interval is not None:
@@ -104,7 +149,7 @@ class Create(base.CreateCommand):
         if value is not None:
           setattr(router_resource.bgp, attr, value)
 
-    if enable_ipv6_bgp and args.bgp_identifier_range is not None:
+    if args.bgp_identifier_range is not None:
       if not hasattr(router_resource.bgp, 'identifierRange'):
         router_resource.bgp = messages.RouterBgp()
       router_resource.bgp.identifierRange = args.bgp_identifier_range
@@ -161,6 +206,23 @@ class Create(base.CreateCommand):
     """See base.UpdateCommand."""
     return self._Run(args)
 
+  def _CreateRouterParams(self, messages, resource_manager_tags):
+    resource_manager_tags_map = (
+        resource_manager_tags_utils.GetResourceManagerTags(
+            resource_manager_tags
+        )
+    )
+    params = messages.RouterParams
+    additional_properties = [
+        params.ResourceManagerTagsValue.AdditionalProperty(key=key, value=value)
+        for key, value in sorted(six.iteritems(resource_manager_tags_map))
+    ]
+    return params(
+        resourceManagerTags=params.ResourceManagerTagsValue(
+            additionalProperties=additional_properties
+        )
+    )
+
 
 @base.ReleaseTracks(base.ReleaseTrack.BETA)
 class CreateBeta(Create):
@@ -170,14 +232,8 @@ class CreateBeta(Create):
   tunnels and interconnects.
   """
 
-  @classmethod
-  def Args(cls, parser):
-    """See base.CreateCommand."""
-    cls._Args(parser, enable_ipv6_bgp=True)
-
-  def Run(self, args):
-    """See base.UpdateCommand."""
-    return self._Run(args, enable_ipv6_bgp=True)
+  _support_ncc_gateway = True
+  _support_tagging_at_creation = True
 
 
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
@@ -187,3 +243,5 @@ class CreateAlpha(CreateBeta):
   *{command}* is used to create a router to provide dynamic routing to VPN
   tunnels and interconnects.
   """
+  _support_ncc_gateway = True
+  _support_tagging_at_creation = True

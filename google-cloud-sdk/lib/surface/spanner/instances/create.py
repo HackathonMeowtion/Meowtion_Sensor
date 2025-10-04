@@ -14,10 +14,6 @@
 # limitations under the License.
 """Command for spanner instances create."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 import textwrap
 
 from googlecloudsdk.api_lib.spanner import instance_operations
@@ -27,6 +23,7 @@ from googlecloudsdk.command_lib.spanner import flags
 from googlecloudsdk.command_lib.spanner import resource_args
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Create(base.CreateCommand):
   """Create a Cloud Spanner instance."""
@@ -54,15 +51,47 @@ class Create(base.CreateCommand):
     flags.Instance().AddToParser(parser)
     flags.Config().AddToParser(parser)
     flags.Description().AddToParser(parser)
+    flags.Edition(
+        choices={
+            'STANDARD': 'Standard edition',
+            'ENTERPRISE': 'Enterprise edition',
+            'ENTERPRISE_PLUS': 'Enterprise Plus edition',
+            'EDITION_UNSPECIFIED': (
+                "Spanner's legacy pricing model. For more information, see the"
+                ' [Spanner editions overview]'
+                '(https://cloud.google.com/spanner/docs/editions-overview)'
+            ),
+        },
+    ).AddToParser(parser)
+    flags.DefaultBackupScheduleType(
+        choices={
+            'DEFAULT_BACKUP_SCHEDULE_TYPE_UNSPECIFIED': 'Not specified.',
+            'NONE': (
+                'No default backup schedule is created automatically when a new'
+                ' database is created in an instance.'
+            ),
+            'AUTOMATIC': (
+                'A default backup schedule is created automatically when a new'
+                ' database is created in an instance. You can edit or delete'
+                " the default backup schedule once it's created. The default"
+                ' backup schedule creates a full backup every 24 hours. These'
+                ' full backups are retained for 7 days.'
+            ),
+        },
+    ).AddToParser(parser)
     resource_args.AddExpireBehaviorArg(parser)
     resource_args.AddInstanceTypeArg(parser)
     flags.AddCapacityArgsForInstance(
         require_all_autoscaling_args=True,
-        hide_autoscaling_args=True,
         parser=parser,
+        add_asymmetric_option_flag=True,
+        autoscaling_cpu_target_group=True,
+        add_asymmetric_total_cpu_target_flag=True,
+        add_asymmetric_disable_autoscaling_flags=True,
     )
     base.ASYNC_FLAG.AddToParser(parser)
     parser.display_info.AddCacheUpdater(flags.InstanceCompleter)
+    flags.AddTags(parser)
 
   def Run(self, args):
     """This is what gets called when the user runs this command.
@@ -88,9 +117,14 @@ class Create(base.CreateCommand):
         autoscaling_min_processing_units=args.autoscaling_min_processing_units,
         autoscaling_max_processing_units=args.autoscaling_max_processing_units,
         autoscaling_high_priority_cpu_target=args.autoscaling_high_priority_cpu_target,
+        autoscaling_total_cpu_target=args.autoscaling_total_cpu_target,
         autoscaling_storage_target=args.autoscaling_storage_target,
+        asymmetric_autoscaling_options=args.asymmetric_autoscaling_option,
         instance_type=instance_type,
         expire_behavior=expire_behavior,
+        edition=args.edition,
+        default_backup_schedule_type=args.default_backup_schedule_type,
+        tags=args.tags,
     )
     if args.async_:
       return op
@@ -124,15 +158,47 @@ class BetaCreate(base.CreateCommand):
     flags.Instance().AddToParser(parser)
     flags.Config().AddToParser(parser)
     flags.Description().AddToParser(parser)
+    flags.Edition(
+        choices={
+            'STANDARD': 'Standard edition',
+            'ENTERPRISE': 'Enterprise edition',
+            'ENTERPRISE_PLUS': 'Enterprise Plus edition',
+            'EDITION_UNSPECIFIED': (
+                "Spanner's legacy pricing model. For more information, see the"
+                ' [Spanner editions overview]'
+                '(https://cloud.google.com/spanner/docs/editions-overview)'
+            ),
+        },
+    ).AddToParser(parser)
+    flags.DefaultBackupScheduleType(
+        choices={
+            'DEFAULT_BACKUP_SCHEDULE_TYPE_UNSPECIFIED': 'Not specified.',
+            'NONE': (
+                'No default backup schedule is created automatically when a new'
+                ' database is created in an instance.'
+            ),
+            'AUTOMATIC': (
+                'A default backup schedule is created automatically when a new'
+                ' database is created in an instance. You can edit or delete'
+                " the default backup schedule once it's created. The default"
+                ' backup schedule creates a full backup every 24 hours. These'
+                ' full backups are retained for 7 days.'
+            ),
+        },
+    ).AddToParser(parser)
     resource_args.AddExpireBehaviorArg(parser)
     resource_args.AddInstanceTypeArg(parser)
     flags.AddCapacityArgsForInstance(
         require_all_autoscaling_args=True,
-        hide_autoscaling_args=False,
         parser=parser,
+        add_asymmetric_option_flag=True,
+        autoscaling_cpu_target_group=True,
+        add_asymmetric_total_cpu_target_flag=True,
+        add_asymmetric_disable_autoscaling_flags=True,
     )
     base.ASYNC_FLAG.AddToParser(parser)
     parser.display_info.AddCacheUpdater(flags.InstanceCompleter)
+    flags.AddTags(parser)
 
   def Run(self, args):
     """This is what gets called when the user runs this command.
@@ -158,15 +224,21 @@ class BetaCreate(base.CreateCommand):
         autoscaling_min_processing_units=args.autoscaling_min_processing_units,
         autoscaling_max_processing_units=args.autoscaling_max_processing_units,
         autoscaling_high_priority_cpu_target=args.autoscaling_high_priority_cpu_target,
+        autoscaling_total_cpu_target=args.autoscaling_total_cpu_target,
         autoscaling_storage_target=args.autoscaling_storage_target,
+        asymmetric_autoscaling_options=args.asymmetric_autoscaling_option,
         instance_type=instance_type,
         expire_behavior=expire_behavior,
+        edition=args.edition,
+        default_backup_schedule_type=args.default_backup_schedule_type,
+        tags=args.tags,
     )
     if args.async_:
       return op
     instance_operations.Await(op, 'Creating instance')
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
 class AlphaCreate(Create):
   """Create a Cloud Spanner instance with ALPHA features."""
@@ -179,16 +251,50 @@ class AlphaCreate(Create):
     flags.Config().AddToParser(parser)
     flags.Description().AddToParser(parser)
     flags.SsdCache().AddToParser(parser)
+    flags.Edition(
+        choices={
+            'STANDARD': 'Standard edition',
+            'ENTERPRISE': 'Enterprise edition',
+            'ENTERPRISE_PLUS': 'Enterprise Plus edition',
+            'EDITION_UNSPECIFIED': (
+                "Spanner's legacy pricing model. For more information, see the"
+                ' [Spanner editions overview]'
+                '(https://cloud.google.com/spanner/docs/editions-overview)'
+            ),
+        },
+    ).AddToParser(parser)
+    flags.DefaultBackupScheduleType(
+        choices={
+            'DEFAULT_BACKUP_SCHEDULE_TYPE_UNSPECIFIED': 'Not specified.',
+            'NONE': (
+                'No default backup schedule is created automatically when a new'
+                ' database is created in an instance.'
+            ),
+            'AUTOMATIC': (
+                'A default backup schedule is created automatically when a new'
+                ' database is created in an instance. You can edit or delete'
+                " the default backup schedule once it's created. The default"
+                ' backup schedule creates a full backup every 24 hours. These'
+                ' full backups are retained for 7 days.'
+            ),
+        },
+    ).AddToParser(parser)
     resource_args.AddExpireBehaviorArg(parser)
     resource_args.AddInstanceTypeArg(parser)
     resource_args.AddDefaultStorageTypeArg(parser)
     flags.AddCapacityArgsForInstance(
         require_all_autoscaling_args=True,
-        hide_autoscaling_args=False,
         parser=parser,
+        add_asymmetric_option_flag=True,
+        asymmetric_options_group=False,
+        autoscaling_cpu_target_group=True,
+        add_asymmetric_total_cpu_target_flag=True,
+        add_asymmetric_disable_autoscaling_flags=True,
+        add_disable_downscaling_flag=True,
     )
     base.ASYNC_FLAG.AddToParser(parser)
     parser.display_info.AddCacheUpdater(flags.InstanceCompleter)
+    flags.AddTags(parser)
 
   def Run(self, args):
     """This is what gets called when the user runs this command.
@@ -205,21 +311,26 @@ class AlphaCreate(Create):
     default_storage_type = resource_args.GetDefaultStorageTypeArg(args)
 
     op = instances.Create(
-        args.instance,
-        args.config,
-        args.description,
-        args.nodes,
-        args.processing_units,
-        args.autoscaling_min_nodes,
-        args.autoscaling_max_nodes,
-        args.autoscaling_min_processing_units,
-        args.autoscaling_max_processing_units,
-        args.autoscaling_high_priority_cpu_target,
-        args.autoscaling_storage_target,
-        instance_type,
-        expire_behavior,
-        default_storage_type,
-        args.ssd_cache,
+        instance=args.instance,
+        config=args.config,
+        description=args.description,
+        nodes=args.nodes,
+        processing_units=args.processing_units,
+        autoscaling_min_nodes=args.autoscaling_min_nodes,
+        autoscaling_max_nodes=args.autoscaling_max_nodes,
+        autoscaling_min_processing_units=args.autoscaling_min_processing_units,
+        autoscaling_max_processing_units=args.autoscaling_max_processing_units,
+        autoscaling_high_priority_cpu_target=args.autoscaling_high_priority_cpu_target,
+        autoscaling_total_cpu_target=args.autoscaling_total_cpu_target,
+        autoscaling_storage_target=args.autoscaling_storage_target,
+        asymmetric_autoscaling_options=args.asymmetric_autoscaling_option,
+        instance_type=instance_type,
+        expire_behavior=expire_behavior,
+        default_storage_type=default_storage_type,
+        ssd_cache=args.ssd_cache,
+        edition=args.edition,
+        default_backup_schedule_type=args.default_backup_schedule_type,
+        tags=args.tags,
     )
     if args.async_:
       return op

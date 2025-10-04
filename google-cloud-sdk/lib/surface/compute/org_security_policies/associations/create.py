@@ -29,6 +29,7 @@ from googlecloudsdk.core import log
 import six
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
 class Create(base.CreateCommand):
   """Create a new association between a security policy and an organization or folder resource.
@@ -36,6 +37,10 @@ class Create(base.CreateCommand):
   *{command}* is used to create organization security policy associations. An
   organization security policy is a set of rules that controls access to various
   resources.
+
+  This command has billing implications. Projects in the hierarchy with
+  effective hierarchical security policies will be automatically enrolled into
+  Cloud Armor Enterprise if not already enrolled.
   """
 
   @classmethod
@@ -53,11 +58,17 @@ class Create(base.CreateCommand):
     name = None
     attachment_id = None
     replace_existing_association = False
+    excluded_projects = []
+    excluded_folders = []
 
     if args.IsSpecified('name'):
       name = args.name
 
-    attachment_id = None
+    if args.IsSpecified('project_number'):
+      attachment_id = 'projects/' + args.project_number
+      if name is None:
+        name = 'project-' + args.project_number
+
     if args.IsSpecified('folder'):
       attachment_id = 'folders/' + args.folder
       if name is None:
@@ -71,16 +82,29 @@ class Create(base.CreateCommand):
     if attachment_id is None:
       log.error(
           'Must specify attachment ID with --organization=ORGANIZATION or '
-          '--folder=FOLDER')
+          '--folder=FOLDER or --project-number=PROJECT.')
       sys.exit()
 
-    replace_existing_association = False
+    if args.IsSpecified('excluded_projects'):
+      excluded_projects = args.excluded_projects
+
+    if args.IsSpecified('excluded_folders'):
+      excluded_folders = args.excluded_folders
+
     if args.replace_association_on_target:
       replace_existing_association = True
 
     association = holder.client.messages.SecurityPolicyAssociation(
-        attachmentId=attachment_id, name=name)
+        attachmentId=attachment_id,
+        name=name,
+        excludedProjects=excluded_projects,
+        excludedFolders=excluded_folders,
+    )
 
+    log.status.Print("""\
+  This command has billing implications. Projects in the hierarchy with
+  effective organization security policies will be automatically enrolled into
+  Cloud Armor Enterprise if not already enrolled.""")
     security_policy_id = org_security_policies_utils.GetSecurityPolicyId(
         org_security_policy,
         args.security_policy,
@@ -96,8 +120,8 @@ Create.detailed_help = {
     'EXAMPLES':
         """\
     To associate an organization security policy under folder with ID
-    ``123456789" to folder ``987654321", run:
+    ``123456789'' to folder ``987654321'', run:
 
-      $ {command} create --security-policy=123456789 --folder=987654321
+      $ {command} --security-policy=123456789 --folder=987654321
     """,
 }

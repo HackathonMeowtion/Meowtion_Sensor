@@ -202,3 +202,126 @@ def CreateDisplayNameFlag(required=True) -> base.Argument:
       metavar='DISPLAY-NAME',
       help="""The display name of the custom module.""",
   )
+
+
+def CreateServiceNameArg() -> base.Argument:
+  """A positional argument representing the service name."""
+  valid_service_names = '\n\n* '.join(
+      [str(service) for service in constants.SUPPORTED_SERVICES]
+  )
+
+  return base.Argument(
+      'service_name',
+      help=(
+          'The service name, provided either in lowercase hyphenated form'
+          ' (e.g. security-health-analytics), or in abbreviated form (e.g.'
+          ' sha) if applicable.\n\nThe list of supported services is:\n\n*'
+          f' {valid_service_names}'
+      ),
+  )
+
+
+def CreateServiceUpdateFlags(
+    file_type: str,
+    required: bool = True,
+) -> base.Argument:
+  """Returns a module-config flag or an enablement-state flag, or both."""
+
+  root = base.ArgumentGroup(mutex=False, required=required)
+  root.AddArgument(
+      base.Argument(
+          '--module-config-file',
+          required=False,
+          default=None,
+          help=(
+              f'Path to a {file_type} file that contains the module config to'
+              ' set for the given module and service.'
+          ),
+          type=arg_parsers.FileContents(),
+      )
+  )
+  root.AddArgument(CreateServiceEnablementStateFlag(required=False))
+  return root
+
+
+def CreateServiceEnablementStateFlag(
+    required: bool,
+):
+  """Creates a service enablement state flag."""
+  return base.Argument(
+      '--enablement-state',
+      required=required,
+      default=None,
+      help="""Sets the enablement state of the Security Center service.
+      Valid options are ENABLED, DISABLED, OR INHERITED. The INHERITED
+      state is only valid when setting the enablement state at the project or folder level.""",
+  )
+
+
+def CreateModuleList() -> base.Argument:
+  """An optional argument representing a comma separated list of module names."""
+  return base.Argument(
+      '--filter-modules',
+      help="""If provided, only prints module information for modules specified
+      in the list. Provided as a comma separated list of module names in
+      SCREAMING_SNAKE_CASE format (e.g. WEB_UI_ENABLED, API_KEY_NOT_ROTATED).
+      A single module name is also valid.""",
+  )
+
+
+def CreateFlagForParent(
+    resource_name: str = 'billing metadata', required=False
+) -> base.Argument:
+  """Returns a flag for capturing an org, project name.
+
+  The flag can be provided in one of 2 forms:
+    1. --parent=organizations/<id>, --parent=projects/<id or name>
+    2. One of:
+      * --organizations=<id> or organizations/<id>
+      * --projects=<id or name> or projects/<id or name>
+
+  Args:
+    resource_name: The name of the resource for which the flag is created. The
+      default value is set to 'billing metadata'.
+    required: whether or not this flag is required
+
+  Returns:
+    A base.Argument object.
+  """
+
+  root = base.ArgumentGroup(mutex=True, required=required)
+
+  root.AddArgument(
+      base.Argument(
+          '--parent',
+          required=False,
+          help=textwrap.dedent(
+              """Parent associated with the {}. Can be one of
+                organizations/<id>, projects/<id or name>""".format(
+                  resource_name
+              )
+          ),
+      )
+  )
+
+  root.AddArgument(
+      base.Argument(
+          '--organization',
+          required=False,
+          metavar='ORGANIZATION_ID',
+          completer=completers.OrganizationCompleter,
+          help='Organization associated with the {}.'.format(resource_name),
+      )
+  )
+
+  root.AddArgument(
+      base.Argument(
+          '--project',
+          required=False,
+          metavar='PROJECT_ID_OR_NUMBER',
+          completer=completers.ProjectCompleter,
+          help='Project associated with the {}.'.format(resource_name),
+      )
+  )
+
+  return root

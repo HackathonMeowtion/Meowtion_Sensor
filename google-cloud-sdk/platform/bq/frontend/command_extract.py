@@ -7,15 +7,17 @@ from __future__ import print_function
 
 from typing import Optional
 
-
 from absl import flags
 
+import bq_flags
+from clients import client_job
 from clients import utils as bq_client_utils
 from frontend import bigquery_command
 from frontend import bq_cached_client
+from frontend import flags as frontend_flags
 from frontend import utils as frontend_utils
-
-FLAGS = flags.FLAGS
+from frontend import utils_flags
+from frontend import utils_formatting
 
 # These aren't relevant for user-facing docstrings:
 # pylint: disable=g-doc-return-or-yield
@@ -104,6 +106,9 @@ class Extract(bigquery_command.BigqueryCmd):
         short_name='m',
         flag_values=fv,
     )
+    self.reservation_id_for_a_job_flag = (
+        frontend_flags.define_reservation_id_for_a_job(flag_values=fv)
+    )
     self._ProcessCommandRc(fv)
 
   def RunWithArgs(
@@ -128,16 +133,23 @@ class Extract(bigquery_command.BigqueryCmd):
     """
     client = bq_cached_client.Client.Get()
     kwds = {
-        'job_id': frontend_utils.GetJobIdFromFlags(),
+        'job_id': utils_flags.get_job_id_from_flags(),
     }
-    if FLAGS.location:
-      kwds['location'] = FLAGS.location
+    if bq_flags.LOCATION.value:
+      kwds['location'] = bq_flags.LOCATION.value
+    if self.reservation_id_for_a_job_flag.present:
+      kwds['reservation_id'] = self.reservation_id_for_a_job_flag.value
 
     if self.m:
-      reference = client.GetModelReference(identifier)
+      reference = bq_client_utils.GetModelReference(
+          id_fallbacks=client, identifier=identifier
+      )
     else:
-      reference = client.GetTableReference(identifier)
-    job = client.Extract(
+      reference = bq_client_utils.GetTableReference(
+          id_fallbacks=client, identifier=identifier
+      )
+    job = client_job.Extract(
+        client,
         reference,
         destination_uris,
         print_header=self.print_header,
@@ -151,8 +163,8 @@ class Extract(bigquery_command.BigqueryCmd):
         use_avro_logical_types=self.use_avro_logical_types,
         **kwds,
     )
-    if FLAGS.sync:
+    if bq_flags.SYNCHRONOUS_MODE.value:
       # If we are here, the job succeeded, but print warnings if any.
-      frontend_utils.PrintJobMessages(bq_client_utils.FormatJobInfo(job))
+      frontend_utils.PrintJobMessages(utils_formatting.format_job_info(job))
     else:
       self.PrintJobStartInfo(job)

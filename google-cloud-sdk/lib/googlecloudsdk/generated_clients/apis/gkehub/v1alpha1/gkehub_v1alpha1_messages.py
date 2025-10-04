@@ -13,74 +13,6 @@ from apitools.base.py import extra_types
 package = 'gkehub'
 
 
-class AnthosObservabilityFeatureSpec(_messages.Message):
-  r"""Spec for Anthos Observability. This is required since Feature proto
-  requires a spec.
-
-  Messages:
-    MembershipSpecsValue: Per-membership spec that determines the spec in
-      Stackdriver CR
-
-  Fields:
-    defaultMembershipSpec: Default membership spec when nothing is specified.
-    membershipSpecs: Per-membership spec that determines the spec in
-      Stackdriver CR
-  """
-
-  @encoding.MapUnrecognizedFields('additionalProperties')
-  class MembershipSpecsValue(_messages.Message):
-    r"""Per-membership spec that determines the spec in Stackdriver CR
-
-    Messages:
-      AdditionalProperty: An additional property for a MembershipSpecsValue
-        object.
-
-    Fields:
-      additionalProperties: Additional properties of type MembershipSpecsValue
-    """
-
-    class AdditionalProperty(_messages.Message):
-      r"""An additional property for a MembershipSpecsValue object.
-
-      Fields:
-        key: Name of the additional property.
-        value: A AnthosObservabilityMembershipSpec attribute.
-      """
-
-      key = _messages.StringField(1)
-      value = _messages.MessageField('AnthosObservabilityMembershipSpec', 2)
-
-    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
-
-  defaultMembershipSpec = _messages.MessageField('AnthosObservabilityMembershipSpec', 1)
-  membershipSpecs = _messages.MessageField('MembershipSpecsValue', 2)
-
-
-class AnthosObservabilityFeatureState(_messages.Message):
-  r"""An empty state for Anthos Observability. This is required since
-  FeatureStateDetails requires a state.
-  """
-
-
-
-class AnthosObservabilityMembershipSpec(_messages.Message):
-  r"""**Anthosobservability**: Per-Membership Feature spec.
-
-  Fields:
-    doNotOptimizeMetrics: Use full of metrics rather than optimized metrics.
-      See https://cloud.google.com/anthos/clusters/docs/on-
-      prem/1.8/concepts/logging-and-
-      monitoring#optimized_metrics_default_metrics
-    enableStackdriverOnApplications: Enable collecting and reporting metrics
-      and logs from user apps.
-    version: the version of stackdriver operator used by this feature
-  """
-
-  doNotOptimizeMetrics = _messages.BooleanField(1)
-  enableStackdriverOnApplications = _messages.BooleanField(2)
-  version = _messages.StringField(3)
-
-
 class AppDevExperienceFeatureSpec(_messages.Message):
   r"""Spec for App Dev Experience Feature."""
 
@@ -591,25 +523,137 @@ class Condition(_messages.Message):
     Values:
       CODE_UNSPECIFIED: Default Unspecified code
       MESH_IAM_PERMISSION_DENIED: Mesh IAM permission denied error code
+      MESH_IAM_CROSS_PROJECT_PERMISSION_DENIED: Permission denied error code
+        for cross-project
       CNI_CONFIG_UNSUPPORTED: CNI config unsupported error code
       GKE_SANDBOX_UNSUPPORTED: GKE sandbox unsupported error code
       NODEPOOL_WORKLOAD_IDENTITY_FEDERATION_REQUIRED: Nodepool workload
         identity federation required error code
       CNI_INSTALLATION_FAILED: CNI installation failed error code
       CNI_POD_UNSCHEDULABLE: CNI pod unschedulable error code
+      CLUSTER_HAS_ZERO_NODES: Cluster has zero node code
+      CANONICAL_SERVICE_ERROR: Failure to reconcile CanonicalServices
       UNSUPPORTED_MULTIPLE_CONTROL_PLANES: Multiple control planes unsupported
         error code
       VPCSC_GA_SUPPORTED: VPC-SC GA is supported for this control plane.
+      DEPRECATED_SPEC_CONTROL_PLANE_MANAGEMENT: User is using deprecated
+        ControlPlaneManagement and they have not yet set Management.
+      DEPRECATED_SPEC_CONTROL_PLANE_MANAGEMENT_SAFE: User is using deprecated
+        ControlPlaneManagement and they have already set Management.
+      CONFIG_APPLY_INTERNAL_ERROR: Configuration (Istio/k8s resources) failed
+        to apply due to internal error.
+      CONFIG_VALIDATION_ERROR: Configuration failed to be applied due to being
+        invalid.
+      CONFIG_VALIDATION_WARNING: Encountered configuration(s) with possible
+        unintended behavior or invalid configuration. These configs may not
+        have been applied.
+      QUOTA_EXCEEDED_BACKEND_SERVICES: BackendService quota exceeded error
+        code.
+      QUOTA_EXCEEDED_HEALTH_CHECKS: HealthCheck quota exceeded error code.
+      QUOTA_EXCEEDED_HTTP_ROUTES: HTTPRoute quota exceeded error code.
+      QUOTA_EXCEEDED_TCP_ROUTES: TCPRoute quota exceeded error code.
+      QUOTA_EXCEEDED_TLS_ROUTES: TLS routes quota exceeded error code.
+      QUOTA_EXCEEDED_TRAFFIC_POLICIES: TrafficPolicy quota exceeded error
+        code.
+      QUOTA_EXCEEDED_ENDPOINT_POLICIES: EndpointPolicy quota exceeded error
+        code.
+      QUOTA_EXCEEDED_GATEWAYS: Gateway quota exceeded error code.
+      QUOTA_EXCEEDED_MESHES: Mesh quota exceeded error code.
+      QUOTA_EXCEEDED_SERVER_TLS_POLICIES: ServerTLSPolicy quota exceeded error
+        code.
+      QUOTA_EXCEEDED_CLIENT_TLS_POLICIES: ClientTLSPolicy quota exceeded error
+        code.
+      QUOTA_EXCEEDED_SERVICE_LB_POLICIES: ServiceLBPolicy quota exceeded error
+        code.
+      QUOTA_EXCEEDED_HTTP_FILTERS: HTTPFilter quota exceeded error code.
+      QUOTA_EXCEEDED_TCP_FILTERS: TCPFilter quota exceeded error code.
+      QUOTA_EXCEEDED_NETWORK_ENDPOINT_GROUPS: NetworkEndpointGroup quota
+        exceeded error code.
+      LEGACY_MC_SECRETS: Legacy istio secrets found for multicluster error
+        code
+      WORKLOAD_IDENTITY_REQUIRED: Workload identity required error code
+      NON_STANDARD_BINARY_USAGE: Non-standard binary usage error code
+      UNSUPPORTED_GATEWAY_CLASS: Unsupported gateway class error code
+      MANAGED_CNI_NOT_ENABLED: Managed CNI not enabled error code
+      MODERNIZATION_SCHEDULED: Modernization is scheduled for a cluster.
+      MODERNIZATION_IN_PROGRESS: Modernization is in progress for a cluster.
+      MODERNIZATION_COMPLETED: Modernization is completed for a cluster.
+      MODERNIZATION_ABORTED: Modernization is aborted for a cluster.
+      MODERNIZATION_PREPARING: Preparing cluster so that its workloads can be
+        migrated.
+      MODERNIZATION_STALLED: Modernization is stalled for a cluster.
+      MODERNIZATION_PREPARED: Cluster has been prepared for its workloads to
+        be migrated.
+      MODERNIZATION_MIGRATING_WORKLOADS: Migrating the cluster's workloads to
+        the new implementation.
+      MODERNIZATION_ROLLING_BACK_CLUSTER: Rollback is in progress for
+        modernization of a cluster.
+      MODERNIZATION_WILL_BE_SCHEDULED: Modernization will be scheduled for a
+        fleet.
+      MODERNIZATION_MANUAL: Fleet is opted out from automated modernization.
+      MODERNIZATION_ELIGIBLE: Fleet is eligible for modernization.
+      MODERNIZATION_MODERNIZING: Modernization of one or more clusters in a
+        fleet is in progress.
+      MODERNIZATION_MODERNIZED_SOAKING: Modernization of all the fleet's
+        clusters is complete. Soaking before finalizing the modernization.
+      MODERNIZATION_FINALIZED: Modernization is finalized for all clusters in
+        a fleet. Rollback is no longer allowed.
+      MODERNIZATION_ROLLING_BACK_FLEET: Rollback is in progress for
+        modernization of all clusters in a fleet.
     """
     CODE_UNSPECIFIED = 0
     MESH_IAM_PERMISSION_DENIED = 1
-    CNI_CONFIG_UNSUPPORTED = 2
-    GKE_SANDBOX_UNSUPPORTED = 3
-    NODEPOOL_WORKLOAD_IDENTITY_FEDERATION_REQUIRED = 4
-    CNI_INSTALLATION_FAILED = 5
-    CNI_POD_UNSCHEDULABLE = 6
-    UNSUPPORTED_MULTIPLE_CONTROL_PLANES = 7
-    VPCSC_GA_SUPPORTED = 8
+    MESH_IAM_CROSS_PROJECT_PERMISSION_DENIED = 2
+    CNI_CONFIG_UNSUPPORTED = 3
+    GKE_SANDBOX_UNSUPPORTED = 4
+    NODEPOOL_WORKLOAD_IDENTITY_FEDERATION_REQUIRED = 5
+    CNI_INSTALLATION_FAILED = 6
+    CNI_POD_UNSCHEDULABLE = 7
+    CLUSTER_HAS_ZERO_NODES = 8
+    CANONICAL_SERVICE_ERROR = 9
+    UNSUPPORTED_MULTIPLE_CONTROL_PLANES = 10
+    VPCSC_GA_SUPPORTED = 11
+    DEPRECATED_SPEC_CONTROL_PLANE_MANAGEMENT = 12
+    DEPRECATED_SPEC_CONTROL_PLANE_MANAGEMENT_SAFE = 13
+    CONFIG_APPLY_INTERNAL_ERROR = 14
+    CONFIG_VALIDATION_ERROR = 15
+    CONFIG_VALIDATION_WARNING = 16
+    QUOTA_EXCEEDED_BACKEND_SERVICES = 17
+    QUOTA_EXCEEDED_HEALTH_CHECKS = 18
+    QUOTA_EXCEEDED_HTTP_ROUTES = 19
+    QUOTA_EXCEEDED_TCP_ROUTES = 20
+    QUOTA_EXCEEDED_TLS_ROUTES = 21
+    QUOTA_EXCEEDED_TRAFFIC_POLICIES = 22
+    QUOTA_EXCEEDED_ENDPOINT_POLICIES = 23
+    QUOTA_EXCEEDED_GATEWAYS = 24
+    QUOTA_EXCEEDED_MESHES = 25
+    QUOTA_EXCEEDED_SERVER_TLS_POLICIES = 26
+    QUOTA_EXCEEDED_CLIENT_TLS_POLICIES = 27
+    QUOTA_EXCEEDED_SERVICE_LB_POLICIES = 28
+    QUOTA_EXCEEDED_HTTP_FILTERS = 29
+    QUOTA_EXCEEDED_TCP_FILTERS = 30
+    QUOTA_EXCEEDED_NETWORK_ENDPOINT_GROUPS = 31
+    LEGACY_MC_SECRETS = 32
+    WORKLOAD_IDENTITY_REQUIRED = 33
+    NON_STANDARD_BINARY_USAGE = 34
+    UNSUPPORTED_GATEWAY_CLASS = 35
+    MANAGED_CNI_NOT_ENABLED = 36
+    MODERNIZATION_SCHEDULED = 37
+    MODERNIZATION_IN_PROGRESS = 38
+    MODERNIZATION_COMPLETED = 39
+    MODERNIZATION_ABORTED = 40
+    MODERNIZATION_PREPARING = 41
+    MODERNIZATION_STALLED = 42
+    MODERNIZATION_PREPARED = 43
+    MODERNIZATION_MIGRATING_WORKLOADS = 44
+    MODERNIZATION_ROLLING_BACK_CLUSTER = 45
+    MODERNIZATION_WILL_BE_SCHEDULED = 46
+    MODERNIZATION_MANUAL = 47
+    MODERNIZATION_ELIGIBLE = 48
+    MODERNIZATION_MODERNIZING = 49
+    MODERNIZATION_MODERNIZED_SOAKING = 50
+    MODERNIZATION_FINALIZED = 51
+    MODERNIZATION_ROLLING_BACK_FLEET = 52
 
   class SeverityValueValuesEnum(_messages.Enum):
     r"""Severity level of the condition.
@@ -702,8 +746,7 @@ class ConfigSync(_messages.Message):
   r"""Configuration for Config Sync
 
   Fields:
-    allowVerticalScale: Set to true to allow the vertical scaling. Defaults to
-      false which disallows vertical scaling. This field is deprecated.
+    deploymentOverrides: Optional. Configuration for deployment overrides.
     enabled: Enables the installation of ConfigSync. If set to true,
       ConfigSync resources will be created and the other ConfigSync fields
       will be applied if exist. If set to false, all other ConfigSync fields
@@ -716,19 +759,22 @@ class ConfigSync(_messages.Message):
       and Cloud Monarch when Workload Identity is enabled. The GSA should have
       the Monitoring Metric Writer (roles/monitoring.metricWriter) IAM role.
       The Kubernetes ServiceAccount `default` in the namespace `config-
-      management-monitoring` should be bound to the GSA.
+      management-monitoring` should be bound to the GSA. Deprecated: If
+      Workload Identity Federation for GKE is enabled, Google Cloud Service
+      Account is no longer needed for exporting Config Sync metrics:
+      https://cloud.google.com/kubernetes-engine/enterprise/config-
+      sync/docs/how-to/monitor-config-sync-cloud-monitoring#custom-monitoring.
     oci: OCI repo configuration for the cluster
     preventDrift: Set to true to enable the Config Sync admission webhook to
       prevent drifts. Defaults to false which disables the Config Sync
       admission webhook and does not prevent drifts.
     sourceFormat: Specifies whether the Config Sync Repo is in "hierarchical"
       or "unstructured" mode.
-    stopSyncing: Set to true to stop syncing configs for a single cluster when
-      automatic Feature management is enabled. Default to false. The field
-      will be ignored when automatic Feature management is disabled.
+    stopSyncing: Set to true to stop syncing configs for a single cluster.
+      Default to false.
   """
 
-  allowVerticalScale = _messages.BooleanField(1)
+  deploymentOverrides = _messages.MessageField('DeploymentOverride', 1, repeated=True)
   enabled = _messages.BooleanField(2)
   git = _messages.MessageField('GitConfig', 3)
   metricsGcpServiceAccountEmail = _messages.StringField(4)
@@ -746,8 +792,11 @@ class ConfigSyncDeploymentState(_messages.Message):
     GitSyncValueValuesEnum: Deployment state of the git-sync pod
     ImporterValueValuesEnum: Deployment state of the importer pod
     MonitorValueValuesEnum: Deployment state of the monitor pod
+    OtelCollectorValueValuesEnum: Deployment state of otel-collector
     ReconcilerManagerValueValuesEnum: Deployment state of reconciler-manager
       pod
+    ResourceGroupControllerManagerValueValuesEnum: Deployment state of
+      resource-group-controller-manager
     RootReconcilerValueValuesEnum: Deployment state of root-reconciler
     SyncerValueValuesEnum: Deployment state of the syncer pod
 
@@ -756,7 +805,10 @@ class ConfigSyncDeploymentState(_messages.Message):
     gitSync: Deployment state of the git-sync pod
     importer: Deployment state of the importer pod
     monitor: Deployment state of the monitor pod
+    otelCollector: Deployment state of otel-collector
     reconcilerManager: Deployment state of reconciler-manager pod
+    resourceGroupControllerManager: Deployment state of resource-group-
+      controller-manager
     rootReconciler: Deployment state of root-reconciler
     syncer: Deployment state of the syncer pod
   """
@@ -825,8 +877,40 @@ class ConfigSyncDeploymentState(_messages.Message):
     ERROR = 3
     PENDING = 4
 
+  class OtelCollectorValueValuesEnum(_messages.Enum):
+    r"""Deployment state of otel-collector
+
+    Values:
+      DEPLOYMENT_STATE_UNSPECIFIED: Deployment's state cannot be determined
+      NOT_INSTALLED: Deployment is not installed
+      INSTALLED: Deployment is installed
+      ERROR: Deployment was attempted to be installed, but has errors
+      PENDING: Deployment is installing or terminating
+    """
+    DEPLOYMENT_STATE_UNSPECIFIED = 0
+    NOT_INSTALLED = 1
+    INSTALLED = 2
+    ERROR = 3
+    PENDING = 4
+
   class ReconcilerManagerValueValuesEnum(_messages.Enum):
     r"""Deployment state of reconciler-manager pod
+
+    Values:
+      DEPLOYMENT_STATE_UNSPECIFIED: Deployment's state cannot be determined
+      NOT_INSTALLED: Deployment is not installed
+      INSTALLED: Deployment is installed
+      ERROR: Deployment was attempted to be installed, but has errors
+      PENDING: Deployment is installing or terminating
+    """
+    DEPLOYMENT_STATE_UNSPECIFIED = 0
+    NOT_INSTALLED = 1
+    INSTALLED = 2
+    ERROR = 3
+    PENDING = 4
+
+  class ResourceGroupControllerManagerValueValuesEnum(_messages.Enum):
+    r"""Deployment state of resource-group-controller-manager
 
     Values:
       DEPLOYMENT_STATE_UNSPECIFIED: Deployment's state cannot be determined
@@ -877,9 +961,11 @@ class ConfigSyncDeploymentState(_messages.Message):
   gitSync = _messages.EnumField('GitSyncValueValuesEnum', 2)
   importer = _messages.EnumField('ImporterValueValuesEnum', 3)
   monitor = _messages.EnumField('MonitorValueValuesEnum', 4)
-  reconcilerManager = _messages.EnumField('ReconcilerManagerValueValuesEnum', 5)
-  rootReconciler = _messages.EnumField('RootReconcilerValueValuesEnum', 6)
-  syncer = _messages.EnumField('SyncerValueValuesEnum', 7)
+  otelCollector = _messages.EnumField('OtelCollectorValueValuesEnum', 5)
+  reconcilerManager = _messages.EnumField('ReconcilerManagerValueValuesEnum', 6)
+  resourceGroupControllerManager = _messages.EnumField('ResourceGroupControllerManagerValueValuesEnum', 7)
+  rootReconciler = _messages.EnumField('RootReconcilerValueValuesEnum', 8)
+  syncer = _messages.EnumField('SyncerValueValuesEnum', 9)
 
 
 class ConfigSyncError(_messages.Message):
@@ -896,12 +982,18 @@ class ConfigSyncState(_messages.Message):
   r"""State information for ConfigSync
 
   Enums:
+    ClusterLevelStopSyncingStateValueValuesEnum: Whether syncing resources to
+      the cluster is stopped at the cluster level.
     ReposyncCrdValueValuesEnum: The state of the Reposync CRD
     RootsyncCrdValueValuesEnum: The state of the RootSync CRD
     StateValueValuesEnum: The state of CS This field summarizes the other
       fields in this message.
 
   Fields:
+    clusterLevelStopSyncingState: Whether syncing resources to the cluster is
+      stopped at the cluster level.
+    crCount: Output only. The number of RootSync and RepoSync CRs in the
+      cluster.
     deploymentState: Information about the deployment of ConfigSync, including
       the version of the various Pods deployed
     errors: Errors pertaining to the installation of Config Sync.
@@ -912,6 +1004,24 @@ class ConfigSyncState(_messages.Message):
     syncState: The state of ConfigSync's process to sync configs to a cluster
     version: The version of ConfigSync deployed
   """
+
+  class ClusterLevelStopSyncingStateValueValuesEnum(_messages.Enum):
+    r"""Whether syncing resources to the cluster is stopped at the cluster
+    level.
+
+    Values:
+      STOP_SYNCING_STATE_UNSPECIFIED: State cannot be determined
+      NOT_STOPPED: Syncing resources to the cluster is not stopped at the
+        cluster level.
+      PENDING: Some reconcilers stop syncing resources to the cluster, while
+        others are still syncing.
+      STOPPED: Syncing resources to the cluster is stopped at the cluster
+        level.
+    """
+    STOP_SYNCING_STATE_UNSPECIFIED = 0
+    NOT_STOPPED = 1
+    PENDING = 2
+    STOPPED = 3
 
   class ReposyncCrdValueValuesEnum(_messages.Enum):
     r"""The state of the Reposync CRD
@@ -965,24 +1075,29 @@ class ConfigSyncState(_messages.Message):
     CONFIG_SYNC_ERROR = 3
     CONFIG_SYNC_PENDING = 4
 
-  deploymentState = _messages.MessageField('ConfigSyncDeploymentState', 1)
-  errors = _messages.MessageField('ConfigSyncError', 2, repeated=True)
-  reposyncCrd = _messages.EnumField('ReposyncCrdValueValuesEnum', 3)
-  rootsyncCrd = _messages.EnumField('RootsyncCrdValueValuesEnum', 4)
-  state = _messages.EnumField('StateValueValuesEnum', 5)
-  syncState = _messages.MessageField('SyncState', 6)
-  version = _messages.MessageField('ConfigSyncVersion', 7)
+  clusterLevelStopSyncingState = _messages.EnumField('ClusterLevelStopSyncingStateValueValuesEnum', 1)
+  crCount = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  deploymentState = _messages.MessageField('ConfigSyncDeploymentState', 3)
+  errors = _messages.MessageField('ConfigSyncError', 4, repeated=True)
+  reposyncCrd = _messages.EnumField('ReposyncCrdValueValuesEnum', 5)
+  rootsyncCrd = _messages.EnumField('RootsyncCrdValueValuesEnum', 6)
+  state = _messages.EnumField('StateValueValuesEnum', 7)
+  syncState = _messages.MessageField('SyncState', 8)
+  version = _messages.MessageField('ConfigSyncVersion', 9)
 
 
 class ConfigSyncVersion(_messages.Message):
   r"""Specific versioning information pertaining to ConfigSync's Pods
 
   Fields:
-    admissionWebhook: Version of the deployed admission_webhook pod
+    admissionWebhook: Version of the deployed admission-webhook pod
     gitSync: Version of the deployed git-sync pod
     importer: Version of the deployed importer pod
     monitor: Version of the deployed monitor pod
+    otelCollector: Version of the deployed otel-collector pod
     reconcilerManager: Version of the deployed reconciler-manager pod
+    resourceGroupControllerManager: Version of the deployed resource-group-
+      controller-manager pod
     rootReconciler: Version of the deployed reconciler container in root-
       reconciler pod
     syncer: Version of the deployed syncer pod
@@ -992,9 +1107,29 @@ class ConfigSyncVersion(_messages.Message):
   gitSync = _messages.StringField(2)
   importer = _messages.StringField(3)
   monitor = _messages.StringField(4)
-  reconcilerManager = _messages.StringField(5)
-  rootReconciler = _messages.StringField(6)
-  syncer = _messages.StringField(7)
+  otelCollector = _messages.StringField(5)
+  reconcilerManager = _messages.StringField(6)
+  resourceGroupControllerManager = _messages.StringField(7)
+  rootReconciler = _messages.StringField(8)
+  syncer = _messages.StringField(9)
+
+
+class ContainerOverride(_messages.Message):
+  r"""Configuration for a container override.
+
+  Fields:
+    containerName: Required. The name of the container.
+    cpuLimit: The cpu limit of the container.
+    cpuRequest: The cpu request of the container.
+    memoryLimit: The memory limit of the container.
+    memoryRequest: The memory request of the container.
+  """
+
+  containerName = _messages.StringField(1)
+  cpuLimit = _messages.StringField(2)
+  cpuRequest = _messages.StringField(3)
+  memoryLimit = _messages.StringField(4)
+  memoryRequest = _messages.StringField(5)
 
 
 class ControlPlaneManagement(_messages.Message):
@@ -1042,6 +1177,7 @@ class ControlPlaneManagement(_messages.Message):
         migrate workloads to a new control plane revision.)
       DEGRADED: DEGRADED means that the component is ready, but operating in a
         degraded state.
+      DEPROVISIONING: DEPROVISIONING means that deprovisioning is in progress.
     """
     LIFECYCLE_STATE_UNSPECIFIED = 0
     DISABLED = 1
@@ -1051,6 +1187,7 @@ class ControlPlaneManagement(_messages.Message):
     STALLED = 5
     NEEDS_ATTENTION = 6
     DEGRADED = 7
+    DEPROVISIONING = 8
 
   details = _messages.MessageField('StatusDetails', 1, repeated=True)
   implementation = _messages.EnumField('ImplementationValueValuesEnum', 2)
@@ -1117,6 +1254,7 @@ class ControlPlaneRevision(_messages.Message):
         migrate workloads to a new control plane revision.)
       DEGRADED: DEGRADED means that the component is ready, but operating in a
         degraded state.
+      DEPROVISIONING: DEPROVISIONING means that deprovisioning is in progress.
     """
     LIFECYCLE_STATE_UNSPECIFIED = 0
     DISABLED = 1
@@ -1126,6 +1264,7 @@ class ControlPlaneRevision(_messages.Message):
     STALLED = 5
     NEEDS_ATTENTION = 6
     DEGRADED = 7
+    DEPROVISIONING = 8
 
   class TypeValueValuesEnum(_messages.Enum):
     r"""Type of the control plane revision.
@@ -1284,6 +1423,7 @@ class DataPlaneManagement(_messages.Message):
         migrate workloads to a new control plane revision.)
       DEGRADED: DEGRADED means that the component is ready, but operating in a
         degraded state.
+      DEPROVISIONING: DEPROVISIONING means that deprovisioning is in progress.
     """
     LIFECYCLE_STATE_UNSPECIFIED = 0
     DISABLED = 1
@@ -1293,6 +1433,7 @@ class DataPlaneManagement(_messages.Message):
     STALLED = 5
     NEEDS_ATTENTION = 6
     DEGRADED = 7
+    DEPROVISIONING = 8
 
   details = _messages.MessageField('StatusDetails', 1, repeated=True)
   state = _messages.EnumField('StateValueValuesEnum', 2)
@@ -1333,6 +1474,23 @@ class DeleteReferenceRequest(_messages.Message):
 
   name = _messages.StringField(1)
   requestId = _messages.StringField(2)
+
+
+class DeploymentOverride(_messages.Message):
+  r"""Configuration for a deployment override.
+
+  Fields:
+    containers: Optional. The containers of the deployment resource to be
+      overridden.
+    deploymentName: Required. The name of the deployment resource to be
+      overridden.
+    deploymentNamespace: Required. The namespace of the deployment resource to
+      be overridden.
+  """
+
+  containers = _messages.MessageField('ContainerOverride', 1, repeated=True)
+  deploymentName = _messages.StringField(2)
+  deploymentNamespace = _messages.StringField(3)
 
 
 class Empty(_messages.Message):
@@ -1403,8 +1561,6 @@ class Feature(_messages.Message):
     LabelsValue: Labels for this feature.
 
   Fields:
-    anthosobservabilityFeatureSpec: The specification for Anthos
-      Observability.
     appdevexperienceFeatureSpec: The specification for App Dev Experience.
     authorizerFeatureSpec: The specification for the Authorizer Feature.
     cloudauditloggingFeatureSpec: The specification for Anthos Cloud Audit
@@ -1438,6 +1594,8 @@ class Feature(_messages.Message):
       Binding Actuation.
     servicedirectoryFeatureSpec: The specification for Service Directory.
     servicemeshFeatureSpec: The specification for the Service Mesh Feature.
+    unreachable: Output only. List of locations that could not be reached
+      while fetching this feature.
     updateTime: Output only. When the Feature was last updated.
     workloadcertificateFeatureSpec: The specification for Workload
       Certificate.
@@ -1467,31 +1625,31 @@ class Feature(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
-  anthosobservabilityFeatureSpec = _messages.MessageField('AnthosObservabilityFeatureSpec', 1)
-  appdevexperienceFeatureSpec = _messages.MessageField('AppDevExperienceFeatureSpec', 2)
-  authorizerFeatureSpec = _messages.MessageField('AuthorizerFeatureSpec', 3)
-  cloudauditloggingFeatureSpec = _messages.MessageField('CloudAuditLoggingFeatureSpec', 4)
-  cloudbuildFeatureSpec = _messages.MessageField('CloudBuildFeatureSpec', 5)
-  configmanagementFeatureSpec = _messages.MessageField('ConfigManagementFeatureSpec', 6)
-  createTime = _messages.StringField(7)
-  dataplanev2FeatureSpec = _messages.MessageField('DataplaneV2FeatureSpec', 8)
-  deleteTime = _messages.StringField(9)
-  description = _messages.StringField(10)
-  featureState = _messages.MessageField('FeatureState', 11)
-  fleetDefaultMemberConfig = _messages.MessageField('FleetDefaultMemberConfig', 12)
-  fleetobservabilityFeatureSpec = _messages.MessageField('FleetObservabilityFeatureSpec', 13)
-  helloworldFeatureSpec = _messages.MessageField('HelloWorldFeatureSpec', 14)
-  identityserviceFeatureSpec = _messages.MessageField('IdentityServiceFeatureSpec', 15)
-  labels = _messages.MessageField('LabelsValue', 16)
-  meteringFeatureSpec = _messages.MessageField('MeteringFeatureSpec', 17)
-  multiclusteringressFeatureSpec = _messages.MessageField('MultiClusterIngressFeatureSpec', 18)
-  multiclusterservicediscoveryFeatureSpec = _messages.MessageField('MultiClusterServiceDiscoveryFeatureSpec', 19)
-  name = _messages.StringField(20)
-  namespaceactuationFeatureSpec = _messages.MessageField('NamespaceActuationFeatureSpec', 21)
-  policycontrollerFeatureSpec = _messages.MessageField('PolicyControllerFeatureSpec', 22)
-  rbacrolebindingactuationFeatureSpec = _messages.MessageField('RBACRoleBindingActuationFeatureSpec', 23)
-  servicedirectoryFeatureSpec = _messages.MessageField('ServiceDirectoryFeatureSpec', 24)
-  servicemeshFeatureSpec = _messages.MessageField('ServiceMeshFeatureSpec', 25)
+  appdevexperienceFeatureSpec = _messages.MessageField('AppDevExperienceFeatureSpec', 1)
+  authorizerFeatureSpec = _messages.MessageField('AuthorizerFeatureSpec', 2)
+  cloudauditloggingFeatureSpec = _messages.MessageField('CloudAuditLoggingFeatureSpec', 3)
+  cloudbuildFeatureSpec = _messages.MessageField('CloudBuildFeatureSpec', 4)
+  configmanagementFeatureSpec = _messages.MessageField('ConfigManagementFeatureSpec', 5)
+  createTime = _messages.StringField(6)
+  dataplanev2FeatureSpec = _messages.MessageField('DataplaneV2FeatureSpec', 7)
+  deleteTime = _messages.StringField(8)
+  description = _messages.StringField(9)
+  featureState = _messages.MessageField('FeatureState', 10)
+  fleetDefaultMemberConfig = _messages.MessageField('FleetDefaultMemberConfig', 11)
+  fleetobservabilityFeatureSpec = _messages.MessageField('FleetObservabilityFeatureSpec', 12)
+  helloworldFeatureSpec = _messages.MessageField('HelloWorldFeatureSpec', 13)
+  identityserviceFeatureSpec = _messages.MessageField('IdentityServiceFeatureSpec', 14)
+  labels = _messages.MessageField('LabelsValue', 15)
+  meteringFeatureSpec = _messages.MessageField('MeteringFeatureSpec', 16)
+  multiclusteringressFeatureSpec = _messages.MessageField('MultiClusterIngressFeatureSpec', 17)
+  multiclusterservicediscoveryFeatureSpec = _messages.MessageField('MultiClusterServiceDiscoveryFeatureSpec', 18)
+  name = _messages.StringField(19)
+  namespaceactuationFeatureSpec = _messages.MessageField('NamespaceActuationFeatureSpec', 20)
+  policycontrollerFeatureSpec = _messages.MessageField('PolicyControllerFeatureSpec', 21)
+  rbacrolebindingactuationFeatureSpec = _messages.MessageField('RBACRoleBindingActuationFeatureSpec', 22)
+  servicedirectoryFeatureSpec = _messages.MessageField('ServiceDirectoryFeatureSpec', 23)
+  servicemeshFeatureSpec = _messages.MessageField('ServiceMeshFeatureSpec', 24)
+  unreachable = _messages.StringField(25, repeated=True)
   updateTime = _messages.StringField(26)
   workloadcertificateFeatureSpec = _messages.MessageField('WorkloadCertificateFeatureSpec', 27)
 
@@ -1686,8 +1844,6 @@ class FeatureStateDetails(_messages.Message):
       return the Feature to `OK`.
 
   Fields:
-    anthosobservabilityFeatureState: State for the Anthos Observability
-      Feature
     appdevexperienceFeatureState: State for the AppDevExperience Feature.
     authorizerFeatureState: State for the Authorizer Feature.
     cloudauditloggingFeatureState: The state of the Anthos Cloud Audit Logging
@@ -1738,27 +1894,26 @@ class FeatureStateDetails(_messages.Message):
     FAILED = 2
     WARNING = 3
 
-  anthosobservabilityFeatureState = _messages.MessageField('AnthosObservabilityFeatureState', 1)
-  appdevexperienceFeatureState = _messages.MessageField('AppDevExperienceFeatureState', 2)
-  authorizerFeatureState = _messages.MessageField('AuthorizerFeatureState', 3)
-  cloudauditloggingFeatureState = _messages.MessageField('CloudAuditLoggingFeatureState', 4)
-  code = _messages.EnumField('CodeValueValuesEnum', 5)
-  configmanagementFeatureState = _messages.MessageField('ConfigManagementFeatureState', 6)
-  dataplanev2FeatureState = _messages.MessageField('DataplaneV2FeatureState', 7)
-  description = _messages.StringField(8)
-  fleetobservabilityFeatureState = _messages.MessageField('FleetObservabilityFeatureState', 9)
-  helloworldFeatureState = _messages.MessageField('HelloWorldFeatureState', 10)
-  identityserviceFeatureState = _messages.MessageField('IdentityServiceFeatureState', 11)
-  meteringFeatureState = _messages.MessageField('MeteringFeatureState', 12)
-  multiclusteringressFeatureState = _messages.MessageField('MultiClusterIngressFeatureState', 13)
-  multiclusterservicediscoveryFeatureState = _messages.MessageField('MultiClusterServiceDiscoveryFeatureState', 14)
-  namespaceactuationFeatureState = _messages.MessageField('NamespaceActuationFeatureState', 15)
-  policycontrollerFeatureState = _messages.MessageField('PolicyControllerFeatureState', 16)
-  rbacrolebindingactuationFeatureState = _messages.MessageField('RBACRoleBindingActuationFeatureState', 17)
-  servicedirectoryFeatureState = _messages.MessageField('ServiceDirectoryFeatureState', 18)
-  servicemeshFeatureState = _messages.MessageField('ServiceMeshFeatureState', 19)
-  updateTime = _messages.StringField(20)
-  workloadcertificateFeatureState = _messages.MessageField('WorkloadCertificateFeatureState', 21)
+  appdevexperienceFeatureState = _messages.MessageField('AppDevExperienceFeatureState', 1)
+  authorizerFeatureState = _messages.MessageField('AuthorizerFeatureState', 2)
+  cloudauditloggingFeatureState = _messages.MessageField('CloudAuditLoggingFeatureState', 3)
+  code = _messages.EnumField('CodeValueValuesEnum', 4)
+  configmanagementFeatureState = _messages.MessageField('ConfigManagementFeatureState', 5)
+  dataplanev2FeatureState = _messages.MessageField('DataplaneV2FeatureState', 6)
+  description = _messages.StringField(7)
+  fleetobservabilityFeatureState = _messages.MessageField('FleetObservabilityFeatureState', 8)
+  helloworldFeatureState = _messages.MessageField('HelloWorldFeatureState', 9)
+  identityserviceFeatureState = _messages.MessageField('IdentityServiceFeatureState', 10)
+  meteringFeatureState = _messages.MessageField('MeteringFeatureState', 11)
+  multiclusteringressFeatureState = _messages.MessageField('MultiClusterIngressFeatureState', 12)
+  multiclusterservicediscoveryFeatureState = _messages.MessageField('MultiClusterServiceDiscoveryFeatureState', 13)
+  namespaceactuationFeatureState = _messages.MessageField('NamespaceActuationFeatureState', 14)
+  policycontrollerFeatureState = _messages.MessageField('PolicyControllerFeatureState', 15)
+  rbacrolebindingactuationFeatureState = _messages.MessageField('RBACRoleBindingActuationFeatureState', 16)
+  servicedirectoryFeatureState = _messages.MessageField('ServiceDirectoryFeatureState', 17)
+  servicemeshFeatureState = _messages.MessageField('ServiceMeshFeatureState', 18)
+  updateTime = _messages.StringField(19)
+  workloadcertificateFeatureState = _messages.MessageField('WorkloadCertificateFeatureState', 20)
 
 
 class FleetDefaultMemberConfig(_messages.Message):
@@ -1961,7 +2116,8 @@ class GitConfig(_messages.Message):
     policyDir: The path within the Git repository that represents the top
       level of the repo to sync. Default: the root directory of the
       repository.
-    secretType: Type of secret configured for access to the Git repo.
+    secretType: Required. Type of secret configured for access to the Git
+      repo.
     syncBranch: The branch of the repository to sync from. Default: master.
     syncRepo: The URL of the Git repository to use as the source of truth.
     syncRev: Git revision (tag or hash) to check out. Default HEAD.
@@ -2082,9 +2238,14 @@ class GkehubProjectsLocationsGlobalFeaturesGetRequest(_messages.Message):
   Fields:
     name: Required. The Feature resource name in the format
       `projects/*/locations/global/features/*`
+    returnPartialSuccess: Optional. If set to true, the response will return
+      partial results when some regions are unreachable and the unreachable
+      field in Feature proto will be populated. If set to false, the request
+      will fail when some regions are unreachable.
   """
 
   name = _messages.StringField(1, required=True)
+  returnPartialSuccess = _messages.BooleanField(2)
 
 
 class GkehubProjectsLocationsGlobalFeaturesListRequest(_messages.Message):
@@ -2108,6 +2269,10 @@ class GkehubProjectsLocationsGlobalFeaturesListRequest(_messages.Message):
       resources.
     parent: Required. The parent (project and location) where the Features
       will be listed. Specified in the format `projects/*/locations/global`.
+    returnPartialSuccess: Optional. If set to true, the response will return
+      partial results when some regions are unreachable and the unreachable
+      field in Feature proto will be populated. If set to false, the request
+      will fail when some regions are unreachable.
   """
 
   filter = _messages.StringField(1)
@@ -2115,6 +2280,7 @@ class GkehubProjectsLocationsGlobalFeaturesListRequest(_messages.Message):
   pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
   pageToken = _messages.StringField(4)
   parent = _messages.StringField(5, required=True)
+  returnPartialSuccess = _messages.BooleanField(6)
 
 
 class GkehubProjectsLocationsGlobalFeaturesPatchRequest(_messages.Message):
@@ -2136,6 +2302,9 @@ class GkehubProjectsLocationsListRequest(_messages.Message):
   r"""A GkehubProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -2148,11 +2317,12 @@ class GkehubProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  includeUnrevealedLocations = _messages.BooleanField(2)
-  name = _messages.StringField(3, required=True)
-  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(5)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  includeUnrevealedLocations = _messages.BooleanField(3)
+  name = _messages.StringField(4, required=True)
+  pageSize = _messages.IntegerField(5, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(6)
 
 
 class GkehubProjectsLocationsOperationsCancelRequest(_messages.Message):
@@ -2251,15 +2421,23 @@ class GoogleIamV1Condition(_messages.Message):
         cloud region) - 'self:prod-region' (i.e., allow connections from
         clients that are in the same prod region) - 'guardians' (i.e., allow
         connections from its guardian realms. See go/security-realms-
-        glossary#guardian for more information.) - 'self' [DEPRECATED] (i.e.,
-        allow connections from clients that are in the same security realm,
-        which is currently but not guaranteed to be campus-sized) - a realm
-        (e.g., 'campus-abc') - a realm group (e.g., 'realms-for-borg-cell-xx',
-        see: go/realm-groups) A match is determined by a realm group
-        membership check performed by a RealmAclRep object (go/realm-acl-
-        howto). It is not permitted to grant access based on the *absence* of
-        a realm, so realm conditions can only be used in a "positive" context
-        (e.g., ALLOW/IN or DENY/NOT_IN).
+        glossary#guardian for more information.) - 'cryto_core_guardians'
+        (i.e., allow connections from its crypto core guardian realms. See
+        go/security-realms-glossary#guardian for more information.) Crypto
+        Core coverage is a super-set of Default coverage, containing
+        information about coverage between higher tier data centers (e.g.,
+        YAWNs). Most services should use Default coverage and only use Crypto
+        Core coverage if the service is involved in greenfield turnup of new
+        higher tier data centers (e.g., credential infrastructure, machine/job
+        management systems, etc.). - 'self' [DEPRECATED] (i.e., allow
+        connections from clients that are in the same security realm, which is
+        currently but not guaranteed to be campus-sized) - a realm (e.g.,
+        'campus-abc') - a realm group (e.g., 'realms-for-borg-cell-xx', see:
+        go/realm-groups) A match is determined by a realm group membership
+        check performed by a RealmAclRep object (go/realm-acl-howto). It is
+        not permitted to grant access based on the *absence* of a realm, so
+        realm conditions can only be used in a "positive" context (e.g.,
+        ALLOW/IN or DENY/NOT_IN).
       APPROVER: An approver (distinct from the requester) that has authorized
         this request. When used with IN, the condition indicates that one of
         the approvers associated with the request matches the specified
@@ -2280,8 +2458,10 @@ class GoogleIamV1Condition(_messages.Message):
         CREDS_TYPE_EMERGENCY is supported. It is not permitted to grant access
         based on the *absence* of a credentials type, so the conditions can
         only be used in a "positive" context (e.g., ALLOW/IN or DENY/NOT_IN).
-      CREDS_ASSERTION: EXPERIMENTAL -- DO NOT USE. The conditions can only be
-        used in a "positive" context (e.g., ALLOW/IN or DENY/NOT_IN).
+      CREDS_ASSERTION: Properties of the credentials supplied with this
+        request. See http://go/rpcsp-credential-assertions?polyglot=rpcsp-v1-0
+        The conditions can only be used in a "positive" context (e.g.,
+        ALLOW/IN or DENY/NOT_IN).
     """
     NO_ATTR = 0
     AUTHORITY = 1
@@ -2866,8 +3046,14 @@ class MembershipConfig(_messages.Message):
       annotation or ClusterSelector.
     configSync: Config Sync configuration for the cluster.
     hierarchyController: Hierarchy Controller configuration for the cluster.
+      Deprecated: Configuring Hierarchy Controller through the
+      configmanagement feature is no longer recommended. Use
+      https://github.com/kubernetes-sigs/hierarchical-namespaces instead.
     management: Enables automatic Feature management.
     policyController: Policy Controller configuration for the cluster.
+      Deprecated: Configuring Policy Controller through the configmanagement
+      feature is no longer recommended. Use the policycontroller feature
+      instead.
     version: Version of ACM installed.
   """
 
@@ -2921,6 +3107,7 @@ class MeshConnectivity(_messages.Message):
         migrate workloads to a new control plane revision.)
       DEGRADED: DEGRADED means that the component is ready, but operating in a
         degraded state.
+      DEPROVISIONING: DEPROVISIONING means that deprovisioning is in progress.
     """
     LIFECYCLE_STATE_UNSPECIFIED = 0
     DISABLED = 1
@@ -2930,6 +3117,7 @@ class MeshConnectivity(_messages.Message):
     STALLED = 5
     NEEDS_ATTENTION = 6
     DEGRADED = 7
+    DEPROVISIONING = 8
 
   details = _messages.MessageField('StatusDetails', 1, repeated=True)
   state = _messages.EnumField('StateValueValuesEnum', 2)
@@ -4173,7 +4361,7 @@ class Rule(_messages.Message):
       the PRINCIPAL/AUTHORITY_SELECTOR is in none of the entries. The format
       for in and not_in entries can be found at in the Local IAM documentation
       (see go/local-iam#features).
-    permissions: A permission is a string of form '..' (e.g.,
+    permissions: A permission is a string of form `..` (e.g.,
       'storage.buckets.list'). A value of '*' matches all permissions, and a
       verb part of '*' (e.g., 'storage.buckets.*') matches all verbs.
   """
@@ -4420,6 +4608,10 @@ class ServiceMeshAnalysisMessageBase(_messages.Message):
 class ServiceMeshFeatureSpec(_messages.Message):
   r"""ServiceMeshFeatureSpec contains the input for the service mesh feature.
 
+  Enums:
+    ModernizationValueValuesEnum: Optional. Specifies modernization for the
+      fleet.
+
   Messages:
     MembershipSpecsValue: Optional. Map from full path to the membership, to
       its individual config.
@@ -4429,7 +4621,20 @@ class ServiceMeshFeatureSpec(_messages.Message):
       applied to all memberships.
     membershipSpecs: Optional. Map from full path to the membership, to its
       individual config.
+    modernization: Optional. Specifies modernization for the fleet.
   """
+
+  class ModernizationValueValuesEnum(_messages.Enum):
+    r"""Optional. Specifies modernization for the fleet.
+
+    Values:
+      MODERNIZATION_UNSPECIFIED: Unspecified.
+      AUTOMATICALLY_MODERNIZED: Google should start modernization.
+      BEFORE_MODERNIZATION: Google should rollback fleet.
+    """
+    MODERNIZATION_UNSPECIFIED = 0
+    AUTOMATICALLY_MODERNIZED = 1
+    BEFORE_MODERNIZATION = 2
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class MembershipSpecsValue(_messages.Message):
@@ -4459,6 +4664,7 @@ class ServiceMeshFeatureSpec(_messages.Message):
 
   fleetDefaultMemberConfig = _messages.MessageField('ServiceMeshMembershipSpec', 1)
   membershipSpecs = _messages.MessageField('MembershipSpecsValue', 2)
+  modernization = _messages.EnumField('ModernizationValueValuesEnum', 3)
 
 
 class ServiceMeshFeatureState(_messages.Message):
@@ -4518,22 +4724,43 @@ class ServiceMeshMembershipSpec(_messages.Message):
   feature
 
   Enums:
-    ControlPlaneValueValuesEnum: Enables automatic control plane management.
+    ConfigApiValueValuesEnum: Optional. Specifies the API that will be used
+      for configuring the mesh workloads.
+    ControlPlaneValueValuesEnum: Deprecated: use `management` instead Enables
+      automatic control plane management.
     DataPlaneValueValuesEnum: Enables automatic data plane management.
     DefaultChannelValueValuesEnum: Determines which release channel to use for
       default injection and service mesh APIs.
-    ManagementValueValuesEnum: Enables automatic Service Mesh management.
+    ManagementValueValuesEnum: Optional. Enables automatic Service Mesh
+      management.
 
   Fields:
-    controlPlane: Enables automatic control plane management.
+    configApi: Optional. Specifies the API that will be used for configuring
+      the mesh workloads.
+    controlPlane: Deprecated: use `management` instead Enables automatic
+      control plane management.
     dataPlane: Enables automatic data plane management.
     defaultChannel: Determines which release channel to use for default
       injection and service mesh APIs.
-    management: Enables automatic Service Mesh management.
+    management: Optional. Enables automatic Service Mesh management.
   """
 
+  class ConfigApiValueValuesEnum(_messages.Enum):
+    r"""Optional. Specifies the API that will be used for configuring the mesh
+    workloads.
+
+    Values:
+      CONFIG_API_UNSPECIFIED: Unspecified
+      CONFIG_API_ISTIO: Use the Istio API for configuration.
+      CONFIG_API_GATEWAY: Use the K8s Gateway API for configuration.
+    """
+    CONFIG_API_UNSPECIFIED = 0
+    CONFIG_API_ISTIO = 1
+    CONFIG_API_GATEWAY = 2
+
   class ControlPlaneValueValuesEnum(_messages.Enum):
-    r"""Enables automatic control plane management.
+    r"""Deprecated: use `management` instead Enables automatic control plane
+    management.
 
     Values:
       CONTROL_PLANE_MANAGEMENT_UNSPECIFIED: Unspecified
@@ -4582,7 +4809,7 @@ class ServiceMeshMembershipSpec(_messages.Message):
     STABLE = 3
 
   class ManagementValueValuesEnum(_messages.Enum):
-    r"""Enables automatic Service Mesh management.
+    r"""Optional. Enables automatic Service Mesh management.
 
     Values:
       MANAGEMENT_UNSPECIFIED: Unspecified
@@ -4590,15 +4817,19 @@ class ServiceMeshMembershipSpec(_messages.Message):
         cluster.
       MANAGEMENT_MANUAL: User will manually configure their service mesh
         components.
+      MANAGEMENT_NOT_INSTALLED: Google should remove any managed Service Mesh
+        components from this cluster and deprovision any resources.
     """
     MANAGEMENT_UNSPECIFIED = 0
     MANAGEMENT_AUTOMATIC = 1
     MANAGEMENT_MANUAL = 2
+    MANAGEMENT_NOT_INSTALLED = 3
 
-  controlPlane = _messages.EnumField('ControlPlaneValueValuesEnum', 1)
-  dataPlane = _messages.EnumField('DataPlaneValueValuesEnum', 2)
-  defaultChannel = _messages.EnumField('DefaultChannelValueValuesEnum', 3)
-  management = _messages.EnumField('ManagementValueValuesEnum', 4)
+  configApi = _messages.EnumField('ConfigApiValueValuesEnum', 1)
+  controlPlane = _messages.EnumField('ControlPlaneValueValuesEnum', 2)
+  dataPlane = _messages.EnumField('DataPlaneValueValuesEnum', 3)
+  defaultChannel = _messages.EnumField('DefaultChannelValueValuesEnum', 4)
+  management = _messages.EnumField('ManagementValueValuesEnum', 5)
 
 
 class SetIamPolicyRequest(_messages.Message):
@@ -5042,3 +5273,5 @@ encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    GkehubProjectsLocationsFeaturesGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')

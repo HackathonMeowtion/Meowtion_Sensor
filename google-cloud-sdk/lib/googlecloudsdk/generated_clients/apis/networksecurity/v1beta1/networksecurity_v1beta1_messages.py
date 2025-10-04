@@ -127,34 +127,64 @@ class AddressGroup(_messages.Message):
   updateTime = _messages.StringField(10)
 
 
-class AuthorizationLoggingOptions(_messages.Message):
-  r"""Authorization-related information used by Cloud Audit Logging.
+class AntivirusOverride(_messages.Message):
+  r"""Defines what action to take for antivirus threats per protocol.
 
   Enums:
-    PermissionTypeValueValuesEnum: The type of the permission that was
-      checked.
+    ActionValueValuesEnum: Required. Threat action override. For some threat
+      types, only a subset of actions applies.
+    ProtocolValueValuesEnum: Required. Protocol to match.
 
   Fields:
-    permissionType: The type of the permission that was checked.
+    action: Required. Threat action override. For some threat types, only a
+      subset of actions applies.
+    protocol: Required. Protocol to match.
   """
 
-  class PermissionTypeValueValuesEnum(_messages.Enum):
-    r"""The type of the permission that was checked.
+  class ActionValueValuesEnum(_messages.Enum):
+    r"""Required. Threat action override. For some threat types, only a subset
+    of actions applies.
 
     Values:
-      PERMISSION_TYPE_UNSPECIFIED: Default. Should not be used.
-      ADMIN_READ: A read of admin (meta) data.
-      ADMIN_WRITE: A write of admin (meta) data.
-      DATA_READ: A read of standard data.
-      DATA_WRITE: A write of standard data.
+      THREAT_ACTION_UNSPECIFIED: Threat action not specified.
+      DEFAULT_ACTION: The default action (as specified by the vendor) is
+        taken.
+      ALLOW: The packet matching this rule will be allowed to transmit.
+      ALERT: The packet matching this rule will be allowed to transmit, but a
+        threat_log entry will be sent to the consumer project.
+      DENY: The packet matching this rule will be dropped, and a threat_log
+        entry will be sent to the consumer project.
     """
-    PERMISSION_TYPE_UNSPECIFIED = 0
-    ADMIN_READ = 1
-    ADMIN_WRITE = 2
-    DATA_READ = 3
-    DATA_WRITE = 4
+    THREAT_ACTION_UNSPECIFIED = 0
+    DEFAULT_ACTION = 1
+    ALLOW = 2
+    ALERT = 3
+    DENY = 4
 
-  permissionType = _messages.EnumField('PermissionTypeValueValuesEnum', 1)
+  class ProtocolValueValuesEnum(_messages.Enum):
+    r"""Required. Protocol to match.
+
+    Values:
+      PROTOCOL_UNSPECIFIED: Protocol not specified.
+      SMTP: SMTP protocol
+      SMB: SMB protocol
+      POP3: POP3 protocol
+      IMAP: IMAP protocol
+      HTTP2: HTTP2 protocol
+      HTTP: HTTP protocol
+      FTP: FTP protocol
+    """
+    PROTOCOL_UNSPECIFIED = 0
+    SMTP = 1
+    SMB = 2
+    POP3 = 3
+    IMAP = 4
+    HTTP2 = 5
+    HTTP = 6
+    FTP = 7
+
+  action = _messages.EnumField('ActionValueValuesEnum', 1)
+  protocol = _messages.EnumField('ProtocolValueValuesEnum', 2)
 
 
 class AuthorizationPolicy(_messages.Message):
@@ -176,9 +206,6 @@ class AuthorizationPolicy(_messages.Message):
       values are "ALLOW" or "DENY".
     createTime: Output only. The timestamp when the resource was created.
     description: Optional. Free-text description of the resource.
-    internalCaller: Optional. A flag set to identify internal controllers
-      Setting this will trigger a P4SA check to validate the caller is from an
-      allowlisted service's P4SA even if other optional fields are unset.
     labels: Optional. Set of label tags associated with the
       AuthorizationPolicy resource.
     name: Required. Name of the AuthorizationPolicy resource. It matches
@@ -234,25 +261,584 @@ class AuthorizationPolicy(_messages.Message):
   action = _messages.EnumField('ActionValueValuesEnum', 1)
   createTime = _messages.StringField(2)
   description = _messages.StringField(3)
-  internalCaller = _messages.BooleanField(4)
-  labels = _messages.MessageField('LabelsValue', 5)
-  name = _messages.StringField(6)
-  rules = _messages.MessageField('Rule', 7, repeated=True)
-  updateTime = _messages.StringField(8)
+  labels = _messages.MessageField('LabelsValue', 4)
+  name = _messages.StringField(5)
+  rules = _messages.MessageField('Rule', 6, repeated=True)
+  updateTime = _messages.StringField(7)
 
 
-class BillingView(_messages.Message):
-  r"""Message for reporting billing requests through Eventstream.
+class AuthzPolicy(_messages.Message):
+  r"""`AuthzPolicy` is a resource that allows to forward traffic to a callout
+  backend designed to scan the traffic for security purposes.
+
+  Enums:
+    ActionValueValuesEnum: Required. Can be one of `ALLOW`, `DENY`, `CUSTOM`.
+      When the action is `CUSTOM`, `customProvider` must be specified. When
+      the action is `ALLOW`, only requests matching the policy will be
+      allowed. When the action is `DENY`, only requests matching the policy
+      will be denied. When a request arrives, the policies are evaluated in
+      the following order: 1. If there is a `CUSTOM` policy that matches the
+      request, the `CUSTOM` policy is evaluated using the custom authorization
+      providers and the request is denied if the provider rejects the request.
+      2. If there are any `DENY` policies that match the request, the request
+      is denied. 3. If there are no `ALLOW` policies for the resource or if
+      any of the `ALLOW` policies match the request, the request is allowed.
+      4. Else the request is denied by default if none of the configured
+      AuthzPolicies with `ALLOW` action match the request.
+
+  Messages:
+    LabelsValue: Optional. Set of labels associated with the `AuthzPolicy`
+      resource. The format must comply with [the following
+      requirements](/compute/docs/labeling-resources#requirements).
 
   Fields:
-    reportRequests: Billing requests to be reported for
-      cloud.eventstream.v2.ResourceEvent Each request contains billing
-      operations to be reported under a service name. See go/billing-view-
-      construction for documentation on constructing billing view report
-      requests.
+    action: Required. Can be one of `ALLOW`, `DENY`, `CUSTOM`. When the action
+      is `CUSTOM`, `customProvider` must be specified. When the action is
+      `ALLOW`, only requests matching the policy will be allowed. When the
+      action is `DENY`, only requests matching the policy will be denied. When
+      a request arrives, the policies are evaluated in the following order: 1.
+      If there is a `CUSTOM` policy that matches the request, the `CUSTOM`
+      policy is evaluated using the custom authorization providers and the
+      request is denied if the provider rejects the request. 2. If there are
+      any `DENY` policies that match the request, the request is denied. 3. If
+      there are no `ALLOW` policies for the resource or if any of the `ALLOW`
+      policies match the request, the request is allowed. 4. Else the request
+      is denied by default if none of the configured AuthzPolicies with
+      `ALLOW` action match the request.
+    createTime: Output only. The timestamp when the resource was created.
+    customProvider: Optional. Required if the action is `CUSTOM`. Allows
+      delegating authorization decisions to Cloud IAP or to Service
+      Extensions. One of `cloudIap` or `authzExtension` must be specified.
+    description: Optional. A human-readable description of the resource.
+    httpRules: Optional. A list of authorization HTTP rules to match against
+      the incoming request. A policy match occurs when at least one HTTP rule
+      matches the request or when no HTTP rules are specified in the policy.
+      At least one HTTP Rule is required for Allow or Deny Action. Limited to
+      5 rules.
+    labels: Optional. Set of labels associated with the `AuthzPolicy`
+      resource. The format must comply with [the following
+      requirements](/compute/docs/labeling-resources#requirements).
+    name: Required. Identifier. Name of the `AuthzPolicy` resource in the
+      following format:
+      `projects/{project}/locations/{location}/authzPolicies/{authz_policy}`.
+    target: Required. Specifies the set of resources to which this policy
+      should be applied to.
+    updateTime: Output only. The timestamp when the resource was updated.
   """
 
-  reportRequests = _messages.MessageField('GoogleApiServicecontrolV1ReportRequest', 1, repeated=True)
+  class ActionValueValuesEnum(_messages.Enum):
+    r"""Required. Can be one of `ALLOW`, `DENY`, `CUSTOM`. When the action is
+    `CUSTOM`, `customProvider` must be specified. When the action is `ALLOW`,
+    only requests matching the policy will be allowed. When the action is
+    `DENY`, only requests matching the policy will be denied. When a request
+    arrives, the policies are evaluated in the following order: 1. If there is
+    a `CUSTOM` policy that matches the request, the `CUSTOM` policy is
+    evaluated using the custom authorization providers and the request is
+    denied if the provider rejects the request. 2. If there are any `DENY`
+    policies that match the request, the request is denied. 3. If there are no
+    `ALLOW` policies for the resource or if any of the `ALLOW` policies match
+    the request, the request is allowed. 4. Else the request is denied by
+    default if none of the configured AuthzPolicies with `ALLOW` action match
+    the request.
+
+    Values:
+      AUTHZ_ACTION_UNSPECIFIED: Unspecified action.
+      ALLOW: Allow request to pass through to the backend.
+      DENY: Deny the request and return a HTTP 404 to the client.
+      CUSTOM: Delegate the authorization decision to an external authorization
+        engine.
+    """
+    AUTHZ_ACTION_UNSPECIFIED = 0
+    ALLOW = 1
+    DENY = 2
+    CUSTOM = 3
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class LabelsValue(_messages.Message):
+    r"""Optional. Set of labels associated with the `AuthzPolicy` resource.
+    The format must comply with [the following
+    requirements](/compute/docs/labeling-resources#requirements).
+
+    Messages:
+      AdditionalProperty: An additional property for a LabelsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type LabelsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a LabelsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  action = _messages.EnumField('ActionValueValuesEnum', 1)
+  createTime = _messages.StringField(2)
+  customProvider = _messages.MessageField('AuthzPolicyCustomProvider', 3)
+  description = _messages.StringField(4)
+  httpRules = _messages.MessageField('AuthzPolicyAuthzRule', 5, repeated=True)
+  labels = _messages.MessageField('LabelsValue', 6)
+  name = _messages.StringField(7)
+  target = _messages.MessageField('AuthzPolicyTarget', 8)
+  updateTime = _messages.StringField(9)
+
+
+class AuthzPolicyAuthzRule(_messages.Message):
+  r"""Conditions to match against the incoming request.
+
+  Fields:
+    from_: Optional. Describes properties of a source of a request.
+    to: Optional. Describes properties of a target of a request.
+    when: Optional. CEL expression that describes the conditions to be
+      satisfied for the action. The result of the CEL expression is ANDed with
+      the from and to. Refer to the CEL language reference for a list of
+      available attributes.
+  """
+
+  from_ = _messages.MessageField('AuthzPolicyAuthzRuleFrom', 1)
+  to = _messages.MessageField('AuthzPolicyAuthzRuleTo', 2)
+  when = _messages.StringField(3)
+
+
+class AuthzPolicyAuthzRuleFrom(_messages.Message):
+  r"""Describes properties of one or more sources of a request.
+
+  Fields:
+    notSources: Optional. Describes the negated properties of request sources.
+      Matches requests from sources that do not match the criteria specified
+      in this field. At least one of sources or notSources must be specified.
+    sources: Optional. Describes the properties of a request's sources. At
+      least one of sources or notSources must be specified. Limited to 1
+      source. A match occurs when ANY source (in sources or notSources)
+      matches the request. Within a single source, the match follows AND
+      semantics across fields and OR semantics within a single field, i.e. a
+      match occurs when ANY principal matches AND ANY ipBlocks match.
+  """
+
+  notSources = _messages.MessageField('AuthzPolicyAuthzRuleFromRequestSource', 1, repeated=True)
+  sources = _messages.MessageField('AuthzPolicyAuthzRuleFromRequestSource', 2, repeated=True)
+
+
+class AuthzPolicyAuthzRuleFromRequestSource(_messages.Message):
+  r"""Describes the properties of a single source.
+
+  Fields:
+    ipBlocks: Optional. A list of IP addresses or IP address ranges to match
+      against the source IP address of the request. Limited to 10 ip_blocks
+      per Authorization Policy
+    principals: Optional. A list of identities derived from the client's
+      certificate. This field will not match on a request unless frontend
+      mutual TLS is enabled for the forwarding rule or Gateway and the client
+      certificate has been successfully validated by mTLS. Each identity is a
+      string whose value is matched against a list of URI SANs, DNS Name SANs,
+      or the common name in the client's certificate. A match happens when any
+      principal matches with the rule. Limited to 50 principals per
+      Authorization Policy for regional internal Application Load Balancers,
+      regional external Application Load Balancers, cross-region internal
+      Application Load Balancers, and Cloud Service Mesh. This field is not
+      supported for global external Application Load Balancers.
+    resources: Optional. A list of resources to match against the resource of
+      the source VM of a request. Limited to 10 resources per Authorization
+      Policy.
+  """
+
+  ipBlocks = _messages.MessageField('AuthzPolicyAuthzRuleIpBlock', 1, repeated=True)
+  principals = _messages.MessageField('AuthzPolicyAuthzRulePrincipal', 2, repeated=True)
+  resources = _messages.MessageField('AuthzPolicyAuthzRuleRequestResource', 3, repeated=True)
+
+
+class AuthzPolicyAuthzRuleHeaderMatch(_messages.Message):
+  r"""Determines how a HTTP header should be matched.
+
+  Fields:
+    name: Optional. Specifies the name of the header in the request.
+    value: Optional. Specifies how the header match will be performed.
+  """
+
+  name = _messages.StringField(1)
+  value = _messages.MessageField('AuthzPolicyAuthzRuleStringMatch', 2)
+
+
+class AuthzPolicyAuthzRuleIpBlock(_messages.Message):
+  r"""Represents a range of IP Addresses.
+
+  Fields:
+    length: Required. The length of the address range.
+    prefix: Required. The address prefix.
+  """
+
+  length = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  prefix = _messages.StringField(2)
+
+
+class AuthzPolicyAuthzRulePrincipal(_messages.Message):
+  r"""Describes the properties of a principal to be matched against.
+
+  Enums:
+    PrincipalSelectorValueValuesEnum: Optional. An enum to decide what
+      principal value the principal rule will match against. If not specified,
+      the PrincipalSelector is CLIENT_CERT_URI_SAN.
+
+  Fields:
+    principal: Required. A non-empty string whose value is matched against the
+      principal value based on the principal_selector. Only exact match can be
+      applied for CLIENT_CERT_URI_SAN, CLIENT_CERT_DNS_NAME_SAN,
+      CLIENT_CERT_COMMON_NAME selectors.
+    principalSelector: Optional. An enum to decide what principal value the
+      principal rule will match against. If not specified, the
+      PrincipalSelector is CLIENT_CERT_URI_SAN.
+  """
+
+  class PrincipalSelectorValueValuesEnum(_messages.Enum):
+    r"""Optional. An enum to decide what principal value the principal rule
+    will match against. If not specified, the PrincipalSelector is
+    CLIENT_CERT_URI_SAN.
+
+    Values:
+      PRINCIPAL_SELECTOR_UNSPECIFIED: Unspecified principal selector. It will
+        be treated as CLIENT_CERT_URI_SAN by default.
+      CLIENT_CERT_URI_SAN: The principal rule is matched against a list of URI
+        SANs in the validated client's certificate. A match happens when there
+        is any exact URI SAN value match. This is the default principal
+        selector.
+      CLIENT_CERT_DNS_NAME_SAN: The principal rule is matched against a list
+        of DNS Name SANs in the validated client's certificate. A match
+        happens when there is any exact DNS Name SAN value match. This is only
+        applicable for Application Load Balancers except for classic Global
+        External Application load balancer. CLIENT_CERT_DNS_NAME_SAN is not
+        supported for INTERNAL_SELF_MANAGED load balancing scheme.
+      CLIENT_CERT_COMMON_NAME: The principal rule is matched against the
+        common name in the client's certificate. Authorization against
+        multiple common names in the client certificate is not supported.
+        Requests with multiple common names in the client certificate will be
+        rejected if CLIENT_CERT_COMMON_NAME is set as the principal selector.
+        A match happens when there is an exact common name value match. This
+        is only applicable for Application Load Balancers except for global
+        external Application Load Balancer and classic Application Load
+        Balancer. CLIENT_CERT_COMMON_NAME is not supported for
+        INTERNAL_SELF_MANAGED load balancing scheme.
+    """
+    PRINCIPAL_SELECTOR_UNSPECIFIED = 0
+    CLIENT_CERT_URI_SAN = 1
+    CLIENT_CERT_DNS_NAME_SAN = 2
+    CLIENT_CERT_COMMON_NAME = 3
+
+  principal = _messages.MessageField('AuthzPolicyAuthzRuleStringMatch', 1)
+  principalSelector = _messages.EnumField('PrincipalSelectorValueValuesEnum', 2)
+
+
+class AuthzPolicyAuthzRuleRequestResource(_messages.Message):
+  r"""Describes the properties of a client VM resource accessing the internal
+  application load balancers.
+
+  Fields:
+    iamServiceAccount: Optional. An IAM service account to match against the
+      source service account of the VM sending the request.
+    tagValueIdSet: Optional. A list of resource tag value permanent IDs to
+      match against the resource manager tags value associated with the source
+      VM of a request.
+  """
+
+  iamServiceAccount = _messages.MessageField('AuthzPolicyAuthzRuleStringMatch', 1)
+  tagValueIdSet = _messages.MessageField('AuthzPolicyAuthzRuleRequestResourceTagValueIdSet', 2)
+
+
+class AuthzPolicyAuthzRuleRequestResourceTagValueIdSet(_messages.Message):
+  r"""Describes a set of resource tag value permanent IDs to match against the
+  resource manager tags value associated with the source VM of a request.
+
+  Fields:
+    ids: Required. A list of resource tag value permanent IDs to match against
+      the resource manager tags value associated with the source VM of a
+      request. The match follows AND semantics which means all the ids must
+      match. Limited to 5 ids in the Tag value id set.
+  """
+
+  ids = _messages.IntegerField(1, repeated=True)
+
+
+class AuthzPolicyAuthzRuleStringMatch(_messages.Message):
+  r"""Determines how a string value should be matched.
+
+  Fields:
+    contains: The input string must have the substring specified here. Note:
+      empty contains match is not allowed, please use regex instead. Examples:
+      * ``abc`` matches the value ``xyz.abc.def``
+    exact: The input string must match exactly the string specified here.
+      Examples: * ``abc`` only matches the value ``abc``.
+    ignoreCase: If true, indicates the exact/prefix/suffix/contains matching
+      should be case insensitive. For example, the matcher ``data`` will match
+      both input string ``Data`` and ``data`` if set to true.
+    prefix: The input string must have the prefix specified here. Note: empty
+      prefix is not allowed, please use regex instead. Examples: * ``abc``
+      matches the value ``abc.xyz``
+    suffix: The input string must have the suffix specified here. Note: empty
+      prefix is not allowed, please use regex instead. Examples: * ``abc``
+      matches the value ``xyz.abc``
+  """
+
+  contains = _messages.StringField(1)
+  exact = _messages.StringField(2)
+  ignoreCase = _messages.BooleanField(3)
+  prefix = _messages.StringField(4)
+  suffix = _messages.StringField(5)
+
+
+class AuthzPolicyAuthzRuleTo(_messages.Message):
+  r"""Describes properties of one or more targets of a request.
+
+  Fields:
+    notOperations: Optional. Describes the negated properties of the targets
+      of a request. Matches requests for operations that do not match the
+      criteria specified in this field. At least one of operations or
+      notOperations must be specified.
+    operations: Optional. Describes properties of one or more targets of a
+      request. At least one of operations or notOperations must be specified.
+      Limited to 1 operation. A match occurs when ANY operation (in operations
+      or notOperations) matches. Within an operation, the match follows AND
+      semantics across fields and OR semantics within a field, i.e. a match
+      occurs when ANY path matches AND ANY header matches and ANY method
+      matches.
+  """
+
+  notOperations = _messages.MessageField('AuthzPolicyAuthzRuleToRequestOperation', 1, repeated=True)
+  operations = _messages.MessageField('AuthzPolicyAuthzRuleToRequestOperation', 2, repeated=True)
+
+
+class AuthzPolicyAuthzRuleToRequestOperation(_messages.Message):
+  r"""Describes properties of one or more targets of a request.
+
+  Fields:
+    headerSet: Optional. A list of headers to match against in http header.
+    hosts: Optional. A list of HTTP Hosts to match against. The match can be
+      one of exact, prefix, suffix, or contains (substring match). Matches are
+      always case sensitive unless the ignoreCase is set. Limited to 10 hosts
+      per Authorization Policy.
+    methods: Optional. A list of HTTP methods to match against. Each entry
+      must be a valid HTTP method name (GET, PUT, POST, HEAD, PATCH, DELETE,
+      OPTIONS). It only allows exact match and is always case sensitive.
+      Limited to 10 methods per Authorization Policy.
+    paths: Optional. A list of paths to match against. The match can be one of
+      exact, prefix, suffix, or contains (substring match). Matches are always
+      case sensitive unless the ignoreCase is set. Limited to 10 paths per
+      Authorization Policy. Note that this path match includes the query
+      parameters. For gRPC services, this should be a fully-qualified name of
+      the form /package.service/method.
+  """
+
+  headerSet = _messages.MessageField('AuthzPolicyAuthzRuleToRequestOperationHeaderSet', 1)
+  hosts = _messages.MessageField('AuthzPolicyAuthzRuleStringMatch', 2, repeated=True)
+  methods = _messages.StringField(3, repeated=True)
+  paths = _messages.MessageField('AuthzPolicyAuthzRuleStringMatch', 4, repeated=True)
+
+
+class AuthzPolicyAuthzRuleToRequestOperationHeaderSet(_messages.Message):
+  r"""Describes a set of HTTP headers to match against.
+
+  Fields:
+    headers: Required. A list of headers to match against in http header. The
+      match can be one of exact, prefix, suffix, or contains (substring
+      match). The match follows AND semantics which means all the headers must
+      match. Matches are always case sensitive unless the ignoreCase is set.
+      Limited to 10 headers per Authorization Policy.
+  """
+
+  headers = _messages.MessageField('AuthzPolicyAuthzRuleHeaderMatch', 1, repeated=True)
+
+
+class AuthzPolicyCustomProvider(_messages.Message):
+  r"""Allows delegating authorization decisions to Cloud IAP or to Service
+  Extensions.
+
+  Fields:
+    authzExtension: Optional. Delegate authorization decision to user authored
+      Service Extension. Only one of cloudIap or authzExtension can be
+      specified.
+    cloudIap: Optional. Delegates authorization decisions to Cloud IAP.
+      Applicable only for managed load balancers. Enabling Cloud IAP at the
+      AuthzPolicy level is not compatible with Cloud IAP settings in the
+      BackendService. Enabling IAP in both places will result in request
+      failure. Ensure that IAP is enabled in either the AuthzPolicy or the
+      BackendService but not in both places.
+  """
+
+  authzExtension = _messages.MessageField('AuthzPolicyCustomProviderAuthzExtension', 1)
+  cloudIap = _messages.MessageField('AuthzPolicyCustomProviderCloudIap', 2)
+
+
+class AuthzPolicyCustomProviderAuthzExtension(_messages.Message):
+  r"""Optional. Delegate authorization decision to user authored extension.
+  Only one of cloudIap or authzExtension can be specified.
+
+  Fields:
+    resources: Required. A list of references to authorization extensions that
+      will be invoked for requests matching this policy. Limited to 1 custom
+      provider.
+  """
+
+  resources = _messages.StringField(1, repeated=True)
+
+
+class AuthzPolicyCustomProviderCloudIap(_messages.Message):
+  r"""Optional. Delegates authorization decisions to Cloud IAP. Applicable
+  only for managed load balancers. Enabling Cloud IAP at the AuthzPolicy level
+  is not compatible with Cloud IAP settings in the BackendService. Enabling
+  IAP in both places will result in request failure. Ensure that IAP is
+  enabled in either the AuthzPolicy or the BackendService but not in both
+  places.
+  """
+
+
+
+class AuthzPolicyTarget(_messages.Message):
+  r"""Specifies the set of targets to which this policy should be applied to.
+
+  Enums:
+    LoadBalancingSchemeValueValuesEnum: Required. All gateways and forwarding
+      rules referenced by this policy and extensions must share the same load
+      balancing scheme. Supported values: `INTERNAL_MANAGED` and
+      `EXTERNAL_MANAGED`. For more information, refer to [Backend services
+      overview](https://cloud.google.com/load-balancing/docs/backend-service).
+
+  Fields:
+    loadBalancingScheme: Required. All gateways and forwarding rules
+      referenced by this policy and extensions must share the same load
+      balancing scheme. Supported values: `INTERNAL_MANAGED` and
+      `EXTERNAL_MANAGED`. For more information, refer to [Backend services
+      overview](https://cloud.google.com/load-balancing/docs/backend-service).
+    resources: Required. A list of references to the Forwarding Rules on which
+      this policy will be applied.
+  """
+
+  class LoadBalancingSchemeValueValuesEnum(_messages.Enum):
+    r"""Required. All gateways and forwarding rules referenced by this policy
+    and extensions must share the same load balancing scheme. Supported
+    values: `INTERNAL_MANAGED` and `EXTERNAL_MANAGED`. For more information,
+    refer to [Backend services overview](https://cloud.google.com/load-
+    balancing/docs/backend-service).
+
+    Values:
+      LOAD_BALANCING_SCHEME_UNSPECIFIED: Default value. Do not use.
+      INTERNAL_MANAGED: Signifies that this is used for Regional internal or
+        Cross-region internal Application Load Balancing.
+      EXTERNAL_MANAGED: Signifies that this is used for Global external or
+        Regional external Application Load Balancing.
+      INTERNAL_SELF_MANAGED: Signifies that this is used for Cloud Service
+        Mesh. Meant for use by CSM GKE controller only.
+    """
+    LOAD_BALANCING_SCHEME_UNSPECIFIED = 0
+    INTERNAL_MANAGED = 1
+    EXTERNAL_MANAGED = 2
+    INTERNAL_SELF_MANAGED = 3
+
+  loadBalancingScheme = _messages.EnumField('LoadBalancingSchemeValueValuesEnum', 1)
+  resources = _messages.StringField(2, repeated=True)
+
+
+class BackendAuthenticationConfig(_messages.Message):
+  r"""BackendAuthenticationConfig message groups the TrustConfig together with
+  other settings that control how the load balancer authenticates, and
+  expresses its identity to, the backend: * `trustConfig` is the attached
+  TrustConfig. * `wellKnownRoots` indicates whether the load balance should
+  trust backend server certificates that are issued by public certificate
+  authorities, in addition to certificates trusted by the TrustConfig. *
+  `clientCertificate` is a client certificate that the load balancer uses to
+  express its identity to the backend, if the connection to the backend uses
+  mTLS. You can attach the BackendAuthenticationConfig to the load balancer's
+  BackendService directly determining how that BackendService negotiates TLS.
+
+  Enums:
+    WellKnownRootsValueValuesEnum: Well known roots to use for server
+      certificate validation.
+
+  Messages:
+    LabelsValue: Set of label tags associated with the resource.
+
+  Fields:
+    clientCertificate: Optional. A reference to a
+      certificatemanager.googleapis.com.Certificate resource. This is a
+      relative resource path following the form
+      "projects/{project}/locations/{location}/certificates/{certificate}".
+      Used by a BackendService to negotiate mTLS when the backend connection
+      uses TLS and the backend requests a client certificate. Must have a
+      CLIENT_AUTH scope.
+    createTime: Output only. The timestamp when the resource was created.
+    description: Optional. Free-text description of the resource.
+    etag: Output only. Etag of the resource.
+    labels: Set of label tags associated with the resource.
+    name: Required. Name of the BackendAuthenticationConfig resource. It
+      matches the pattern `projects/*/locations/{location}/backendAuthenticati
+      onConfigs/{backend_authentication_config}`
+    trustConfig: Optional. A reference to a TrustConfig resource from the
+      certificatemanager.googleapis.com namespace. This is a relative resource
+      path following the form
+      "projects/{project}/locations/{location}/trustConfigs/{trust_config}". A
+      BackendService uses the chain of trust represented by this TrustConfig,
+      if specified, to validate the server certificates presented by the
+      backend. Required unless wellKnownRoots is set to PUBLIC_ROOTS.
+    updateTime: Output only. The timestamp when the resource was updated.
+    wellKnownRoots: Well known roots to use for server certificate validation.
+  """
+
+  class WellKnownRootsValueValuesEnum(_messages.Enum):
+    r"""Well known roots to use for server certificate validation.
+
+    Values:
+      WELL_KNOWN_ROOTS_UNSPECIFIED: Equivalent to NONE.
+      NONE: The BackendService will only validate server certificates against
+        roots specified in TrustConfig.
+      PUBLIC_ROOTS: The BackendService uses a set of well-known public roots,
+        in addition to any roots specified in the trustConfig field, when
+        validating the server certificates presented by the backend.
+        Validation with these roots is only considered when the
+        TlsSettings.sni field in the BackendService is set. The well-known
+        roots are a set of root CAs managed by Google. CAs in this set can be
+        added or removed without notice.
+    """
+    WELL_KNOWN_ROOTS_UNSPECIFIED = 0
+    NONE = 1
+    PUBLIC_ROOTS = 2
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class LabelsValue(_messages.Message):
+    r"""Set of label tags associated with the resource.
+
+    Messages:
+      AdditionalProperty: An additional property for a LabelsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type LabelsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a LabelsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  clientCertificate = _messages.StringField(1)
+  createTime = _messages.StringField(2)
+  description = _messages.StringField(3)
+  etag = _messages.StringField(4)
+  labels = _messages.MessageField('LabelsValue', 5)
+  name = _messages.StringField(6)
+  trustConfig = _messages.StringField(7)
+  updateTime = _messages.StringField(8)
+  wellKnownRoots = _messages.EnumField('WellKnownRootsValueValuesEnum', 9)
 
 
 class CancelOperationRequest(_messages.Message):
@@ -291,47 +877,16 @@ class ClientTlsPolicy(_messages.Message):
       presence of this dictates mTLS.
     createTime: Output only. The timestamp when the resource was created.
     description: Optional. Free-text description of the resource.
-    internalCaller: Optional. A flag set to identify internal controllers
-      Setting this will trigger a P4SA check to validate the caller is from an
-      allowlisted service's P4SA even if other optional fields are unset.
     labels: Optional. Set of label tags associated with the resource.
     name: Required. Name of the ClientTlsPolicy resource. It matches the
-      pattern
-      `projects/*/locations/{location}/clientTlsPolicies/{client_tls_policy}`
+      pattern `projects/{project}/locations/{location}/clientTlsPolicies/{clie
+      nt_tls_policy}`
     serverValidationCa: Optional. Defines the mechanism to obtain the
       Certificate Authority certificate to validate the server certificate. If
       empty, client does not validate the server certificate.
     sni: Optional. Server Name Indication string to present to the server
       during TLS handshake. E.g: "secure.example.com".
-    subjectAltNames: Optional. A list of alternate names to verify the server
-      identity in the certificate. If specified, the client will verify that
-      the server certificate's subject alt name matches one of the specified
-      values. If specified, this list overrides the value of subject_alt_names
-      from the BackendService.securitySettings.subjectAltNames[]. The domain
-      names can be either be exact match (e.g foo) or suffix matches (e.g foo*
-      or foo/*)
-    targets: Optional. Define a list of targets this policy should serve. A
-      target can only be a BackendService and it should be the fully qualified
-      name of the BackendService, e.g.:
-      projects/xxx/backendServices/locations/global/xxx NOTE: ClientTlsPolicy
-      and the referenced BackendServices must be present in the same project.
-      This is used only for Google Service Mesh (GSM) product.
     updateTime: Output only. The timestamp when the resource was updated.
-    workloadContextSelectors: Optional. Selects the workload where the policy
-      should be applied to its targets. A policy without a
-      WorkloadContextSelector should always be applied to its targets when
-      there is no conflict. If there are multiple WorkloadContextSelectors
-      then the policy will be applied to all targets if ANY of the
-      WorkloadContextSelectors match. Therefore these selectors can be
-      combined in an OR fashion. If there are multiple ClientTlsPolicy
-      targeted to the same BackendService, There should be only one effective
-      ClientTlsPolicy and the precdence is as following: 1) ClientTlsPolicy
-      with workload_context_selectors will take precedence first. 2) If there
-      are multiple ClientTlsPolicy with workload_context_selectors matched,
-      earliest created one will take take precedence. 3) Then ClientTlsPolicy
-      without workloadSelector will take precedence. Right now we don't allow
-      multiple ClientTlsPolicy without workloadSelector attached the same
-      backendService. NOTE: For GSM use only.
   """
 
   @encoding.MapUnrecognizedFields('additionalProperties')
@@ -361,15 +916,11 @@ class ClientTlsPolicy(_messages.Message):
   clientCertificate = _messages.MessageField('GoogleCloudNetworksecurityV1beta1CertificateProvider', 1)
   createTime = _messages.StringField(2)
   description = _messages.StringField(3)
-  internalCaller = _messages.BooleanField(4)
-  labels = _messages.MessageField('LabelsValue', 5)
-  name = _messages.StringField(6)
-  serverValidationCa = _messages.MessageField('ValidationCA', 7, repeated=True)
-  sni = _messages.StringField(8)
-  subjectAltNames = _messages.StringField(9, repeated=True)
-  targets = _messages.StringField(10, repeated=True)
-  updateTime = _messages.StringField(11)
-  workloadContextSelectors = _messages.MessageField('WorkloadContextSelector', 12, repeated=True)
+  labels = _messages.MessageField('LabelsValue', 4)
+  name = _messages.StringField(5)
+  serverValidationCa = _messages.MessageField('ValidationCA', 6, repeated=True)
+  sni = _messages.StringField(7)
+  updateTime = _messages.StringField(8)
 
 
 class CloneAddressGroupItemsRequest(_messages.Message):
@@ -394,49 +945,31 @@ class CloneAddressGroupItemsRequest(_messages.Message):
   sourceAddressGroup = _messages.StringField(2)
 
 
-class CreateReferenceRequest(_messages.Message):
-  r"""The CreateReferenceRequest request.
+class CustomInterceptProfile(_messages.Message):
+  r"""CustomInterceptProfile defines in-band integration behavior (intercept).
+  It is used by firewall rules with an APPLY_SECURITY_PROFILE_GROUP action.
 
   Fields:
-    parent: Required. The parent resource name (target_resource of this
-      reference). For example: `//targetservice.googleapis.com/projects/{my-
-      project}/locations/{location}/instances/{my-instance}`.
-    reference: Required. The reference to be created.
-    referenceId: The unique id of this resource. Must be unique within a scope
-      of a target resource, but does not have to be globally unique. Reference
-      ID is part of resource name of the reference. Resource name is generated
-      in the following way: {parent}/references/{reference_id}. Reference ID
-      field is currently required but id auto generation might be added in the
-      future. It can be any arbitrary string, either GUID or any other string,
-      however CLHs can use preprocess callbacks to perform a custom
-      validation.
-    requestId: Optional. Request ID is an idempotency ID of the request. It
-      must be a valid UUID. Zero UUID (00000000-0000-0000-0000-000000000000)
-      is not supported.
+    interceptEndpointGroup: Required. The target InterceptEndpointGroup. When
+      a firewall rule with this security profile attached matches a packet,
+      the packet will be intercepted to the location-local target in this
+      group.
   """
 
-  parent = _messages.StringField(1)
-  reference = _messages.MessageField('Reference', 2)
-  referenceId = _messages.StringField(3)
-  requestId = _messages.StringField(4)
+  interceptEndpointGroup = _messages.StringField(1)
 
 
-class DeleteReferenceRequest(_messages.Message):
-  r"""The DeleteReferenceRequest request.
+class CustomMirroringProfile(_messages.Message):
+  r"""CustomMirroringProfile defines out-of-band integration behavior
+  (mirroring). It is used by mirroring rules with a MIRROR action.
 
   Fields:
-    name: Required. Full resource name of the reference, in the following
-      format:
-      `//{targer_service}/{target_resource}/references/{reference_id}`. For
-      example: `//targetservice.googleapis.com/projects/{my-
-      project}/locations/{location}/instances/{my-instance}/references/{xyz}`.
-    requestId: Optional. Request ID is an idempotency ID of the request. It
-      must be a valid UUID. Zero UUID (00000000-0000-0000-0000-000000000000)
-      is not supported.
+    mirroringEndpointGroup: Required. The target MirroringEndpointGroup. When
+      a mirroring rule with this security profile attached matches a packet, a
+      replica will be mirrored to the location-local target in this group.
   """
 
-  name = _messages.StringField(1)
-  requestId = _messages.StringField(2)
+  mirroringEndpointGroup = _messages.StringField(1)
 
 
 class Destination(_messages.Message):
@@ -455,12 +988,6 @@ class Destination(_messages.Message):
       guarantee that requests arrive through a trusted client or proxy.
     methods: Optional. A list of HTTP methods to match. At least one method
       should match. Should not be set for gRPC services.
-    paths: Optional. A list of HTTP paths to match. gRPC methods must be
-      presented as fully-qualified name in the form of
-      "/packageName.serviceName/methodName". At least one path should match.
-      Each path can be an exact match, or a prefix match (example,
-      "/packageName.serviceName/*") or a suffix match (example, "*/video") or
-      a presence (any) match "*".
     ports: Required. List of destination ports to match. At least one port
       should match.
   """
@@ -468,62 +995,76 @@ class Destination(_messages.Message):
   hosts = _messages.StringField(1, repeated=True)
   httpHeaderMatch = _messages.MessageField('HttpHeaderMatch', 2)
   methods = _messages.StringField(3, repeated=True)
-  paths = _messages.StringField(4, repeated=True)
-  ports = _messages.IntegerField(5, repeated=True, variant=_messages.Variant.UINT32)
+  ports = _messages.IntegerField(4, repeated=True, variant=_messages.Variant.UINT32)
 
 
-class DistributionExemplar(_messages.Message):
-  r"""Exemplars are example points that may be used to annotate aggregated
-  distribution values. They are metadata that gives information about a
-  particular value added to a Distribution bucket, such as a trace ID that was
-  active when a value was added. They may contain further information, such as
-  a example values and timestamps, origin, etc.
+class DnsThreatDetector(_messages.Message):
+  r"""A DNS threat detector sends DNS query logs to a _provider_ that then
+  analyzes the logs to identify malicious activity in the DNS queries. By
+  default, all VPC networks in your projects are included. You can exclude
+  specific networks by supplying `excluded_networks`.
+
+  Enums:
+    ProviderValueValuesEnum: Required. The provider used for DNS threat
+      analysis.
 
   Messages:
-    AttachmentsValueListEntry: A AttachmentsValueListEntry object.
+    LabelsValue: Optional. Any labels associated with the DnsThreatDetector,
+      listed as key value pairs.
 
   Fields:
-    attachments: Contextual information about the example value. Examples are:
-      Trace: type.googleapis.com/google.monitoring.v3.SpanContext Literal
-      string: type.googleapis.com/google.protobuf.StringValue Labels dropped
-      during aggregation:
-      type.googleapis.com/google.monitoring.v3.DroppedLabels There may be only
-      a single attachment of any given message type in a single exemplar, and
-      this is enforced by the system.
-    timestamp: The observation (sampling) time of the above value.
-    value: Value of the exemplar point. This value determines to which bucket
-      the exemplar belongs.
+    createTime: Output only. Create time stamp.
+    excludedNetworks: Optional. A list of network resource names which aren't
+      monitored by this DnsThreatDetector. Example:
+      `projects/PROJECT_ID/global/networks/NETWORK_NAME`.
+    labels: Optional. Any labels associated with the DnsThreatDetector, listed
+      as key value pairs.
+    name: Immutable. Identifier. Name of the DnsThreatDetector resource.
+    provider: Required. The provider used for DNS threat analysis.
+    updateTime: Output only. Update time stamp.
   """
 
+  class ProviderValueValuesEnum(_messages.Enum):
+    r"""Required. The provider used for DNS threat analysis.
+
+    Values:
+      PROVIDER_UNSPECIFIED: An unspecified provider.
+      INFOBLOX: The Infoblox DNS threat detector provider.
+    """
+    PROVIDER_UNSPECIFIED = 0
+    INFOBLOX = 1
+
   @encoding.MapUnrecognizedFields('additionalProperties')
-  class AttachmentsValueListEntry(_messages.Message):
-    r"""A AttachmentsValueListEntry object.
+  class LabelsValue(_messages.Message):
+    r"""Optional. Any labels associated with the DnsThreatDetector, listed as
+    key value pairs.
 
     Messages:
-      AdditionalProperty: An additional property for a
-        AttachmentsValueListEntry object.
+      AdditionalProperty: An additional property for a LabelsValue object.
 
     Fields:
-      additionalProperties: Properties of the object. Contains field @type
-        with type URL.
+      additionalProperties: Additional properties of type LabelsValue
     """
 
     class AdditionalProperty(_messages.Message):
-      r"""An additional property for a AttachmentsValueListEntry object.
+      r"""An additional property for a LabelsValue object.
 
       Fields:
         key: Name of the additional property.
-        value: A extra_types.JsonValue attribute.
+        value: A string attribute.
       """
 
       key = _messages.StringField(1)
-      value = _messages.MessageField('extra_types.JsonValue', 2)
+      value = _messages.StringField(2)
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
-  attachments = _messages.MessageField('AttachmentsValueListEntry', 1, repeated=True)
-  timestamp = _messages.StringField(2)
-  value = _messages.FloatField(3)
+  createTime = _messages.StringField(1)
+  excludedNetworks = _messages.StringField(2, repeated=True)
+  labels = _messages.MessageField('LabelsValue', 3)
+  name = _messages.StringField(4)
+  provider = _messages.EnumField('ProviderValueValuesEnum', 5)
+  updateTime = _messages.StringField(6)
 
 
 class Empty(_messages.Message):
@@ -572,11 +1113,10 @@ class Expr(_messages.Message):
 
 
 class FirewallEndpoint(_messages.Message):
-  r"""Message describing Endpoint object
+  r"""Message describing Endpoint object.
 
   Enums:
     StateValueValuesEnum: Output only. Current state of the endpoint.
-    TypeValueValuesEnum: Optional. Endpoint type.
 
   Messages:
     LabelsValue: Optional. Labels as key value pairs
@@ -591,19 +1131,17 @@ class FirewallEndpoint(_messages.Message):
       associated to this endpoint. An association will only appear in this
       list after traffic routing is fully configured.
     billingProjectId: Required. Project to bill on endpoint uptime usage.
-    createTime: Output only. Create time stamp
+    createTime: Output only. Create time stamp.
     description: Optional. Description of the firewall endpoint. Max length
       2048 characters.
-    firstPartyEndpointSettings: Optional. Firewall endpoint settings for first
-      party firewall endpoints.
+    endpointSettings: Optional. Settings for the endpoint.
     labels: Optional. Labels as key value pairs
-    name: Immutable. Identifier. name of resource
+    name: Immutable. Identifier. Name of resource.
     reconciling: Output only. Whether reconciling is in progress, recommended
       per https://google.aip.dev/128.
+    satisfiesPzi: Output only. [Output Only] Reserved for future use.
+    satisfiesPzs: Output only. [Output Only] Reserved for future use.
     state: Output only. Current state of the endpoint.
-    thirdPartyEndpointSettings: Optional. Firewall endpoint settings for third
-      party firewall endpoints.
-    type: Optional. Endpoint type.
     updateTime: Output only. Update time stamp
   """
 
@@ -622,18 +1160,6 @@ class FirewallEndpoint(_messages.Message):
     ACTIVE = 2
     DELETING = 3
     INACTIVE = 4
-
-  class TypeValueValuesEnum(_messages.Enum):
-    r"""Optional. Endpoint type.
-
-    Values:
-      TYPE_UNSPECIFIED: Not set.
-      FIRST_PARTY: First party firewall endpoint.
-      THIRD_PARTY: Third party firewall endpoint.
-    """
-    TYPE_UNSPECIFIED = 0
-    FIRST_PARTY = 1
-    THIRD_PARTY = 2
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
@@ -664,13 +1190,13 @@ class FirewallEndpoint(_messages.Message):
   billingProjectId = _messages.StringField(3)
   createTime = _messages.StringField(4)
   description = _messages.StringField(5)
-  firstPartyEndpointSettings = _messages.MessageField('FirstPartyEndpointSettings', 6)
+  endpointSettings = _messages.MessageField('FirewallEndpointEndpointSettings', 6)
   labels = _messages.MessageField('LabelsValue', 7)
   name = _messages.StringField(8)
   reconciling = _messages.BooleanField(9)
-  state = _messages.EnumField('StateValueValuesEnum', 10)
-  thirdPartyEndpointSettings = _messages.MessageField('ThirdPartyEndpointSettings', 11)
-  type = _messages.EnumField('TypeValueValuesEnum', 12)
+  satisfiesPzi = _messages.BooleanField(10)
+  satisfiesPzs = _messages.BooleanField(11)
+  state = _messages.EnumField('StateValueValuesEnum', 12)
   updateTime = _messages.StringField(13)
 
 
@@ -709,12 +1235,14 @@ class FirewallEndpointAssociation(_messages.Message):
       ACTIVE: Active and ready for traffic.
       DELETING: Being deleted.
       INACTIVE: Down or in an error state.
+      ORPHAN: The project that housed the association has been deleted.
     """
     STATE_UNSPECIFIED = 0
     CREATING = 1
     ACTIVE = 2
     DELETING = 3
     INACTIVE = 4
+    ORPHAN = 5
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
@@ -768,8 +1296,8 @@ class FirewallEndpointAssociationReference(_messages.Message):
   network = _messages.StringField(2)
 
 
-class FirstPartyEndpointSettings(_messages.Message):
-  r"""Next ID: 1."""
+class FirewallEndpointEndpointSettings(_messages.Message):
+  r"""Settings for the endpoint."""
 
 
 class GatewaySecurityPolicy(_messages.Message):
@@ -851,910 +1379,6 @@ class GatewaySecurityPolicyRule(_messages.Message):
   updateTime = _messages.StringField(10)
 
 
-class GetReferenceRequest(_messages.Message):
-  r"""The GetReferenceRequest request.
-
-  Fields:
-    name: Required. Full resource name of the reference, in the following
-      format:
-      `//{target_service}/{target_resource}/references/{reference_id}`. For
-      example: `//targetservice.googleapis.com/projects/{my-
-      project}/locations/{location}/instances/{my-instance}/references/{xyz}`.
-  """
-
-  name = _messages.StringField(1)
-
-
-class GoogleApiServicecontrolV1AttributeValue(_messages.Message):
-  r"""The allowed types for [VALUE] in a `[KEY]:[VALUE]` attribute.
-
-  Fields:
-    boolValue: A Boolean value represented by `true` or `false`.
-    intValue: A 64-bit signed integer.
-    stringValue: A string up to 256 bytes long.
-  """
-
-  boolValue = _messages.BooleanField(1)
-  intValue = _messages.IntegerField(2)
-  stringValue = _messages.MessageField('GoogleApiServicecontrolV1TruncatableString', 3)
-
-
-class GoogleApiServicecontrolV1Attributes(_messages.Message):
-  r"""A set of attributes, each in the format `[KEY]:[VALUE]`.
-
-  Messages:
-    AttributeMapValue: The set of attributes. Each attribute's key can be up
-      to 128 bytes long. The value can be a string up to 256 bytes, a signed
-      64-bit integer, or the Boolean values `true` and `false`. For example:
-      "/instance_id": "my-instance" "/http/user_agent": ""
-      "/http/request_bytes": 300 "abc.com/myattribute": true
-
-  Fields:
-    attributeMap: The set of attributes. Each attribute's key can be up to 128
-      bytes long. The value can be a string up to 256 bytes, a signed 64-bit
-      integer, or the Boolean values `true` and `false`. For example:
-      "/instance_id": "my-instance" "/http/user_agent": ""
-      "/http/request_bytes": 300 "abc.com/myattribute": true
-    droppedAttributesCount: The number of attributes that were discarded.
-      Attributes can be discarded because their keys are too long or because
-      there are too many attributes. If this value is 0 then all attributes
-      are valid.
-  """
-
-  @encoding.MapUnrecognizedFields('additionalProperties')
-  class AttributeMapValue(_messages.Message):
-    r"""The set of attributes. Each attribute's key can be up to 128 bytes
-    long. The value can be a string up to 256 bytes, a signed 64-bit integer,
-    or the Boolean values `true` and `false`. For example: "/instance_id":
-    "my-instance" "/http/user_agent": "" "/http/request_bytes": 300
-    "abc.com/myattribute": true
-
-    Messages:
-      AdditionalProperty: An additional property for a AttributeMapValue
-        object.
-
-    Fields:
-      additionalProperties: Additional properties of type AttributeMapValue
-    """
-
-    class AdditionalProperty(_messages.Message):
-      r"""An additional property for a AttributeMapValue object.
-
-      Fields:
-        key: Name of the additional property.
-        value: A GoogleApiServicecontrolV1AttributeValue attribute.
-      """
-
-      key = _messages.StringField(1)
-      value = _messages.MessageField('GoogleApiServicecontrolV1AttributeValue', 2)
-
-    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
-
-  attributeMap = _messages.MessageField('AttributeMapValue', 1)
-  droppedAttributesCount = _messages.IntegerField(2, variant=_messages.Variant.INT32)
-
-
-class GoogleApiServicecontrolV1Distribution(_messages.Message):
-  r"""Distribution represents a frequency distribution of double-valued sample
-  points. It contains the size of the population of sample points plus
-  additional optional information: * the arithmetic mean of the samples * the
-  minimum and maximum of the samples * the sum-squared-deviation of the
-  samples, used to compute variance * a histogram of the values of the sample
-  points
-
-  Fields:
-    bucketCounts: The number of samples in each histogram bucket.
-      `bucket_counts` are optional. If present, they must sum to the `count`
-      value. The buckets are defined below in `bucket_option`. There are N
-      buckets. `bucket_counts[0]` is the number of samples in the underflow
-      bucket. `bucket_counts[1]` to `bucket_counts[N-1]` are the numbers of
-      samples in each of the finite buckets. And `bucket_counts[N] is the
-      number of samples in the overflow bucket. See the comments of
-      `bucket_option` below for more details. Any suffix of trailing zeros may
-      be omitted.
-    count: The total number of samples in the distribution. Must be >= 0.
-    exemplars: Example points. Must be in increasing order of `value` field.
-    explicitBuckets: Buckets with arbitrary user-provided width.
-    exponentialBuckets: Buckets with exponentially growing width.
-    linearBuckets: Buckets with constant width.
-    maximum: The maximum of the population of values. Ignored if `count` is
-      zero.
-    mean: The arithmetic mean of the samples in the distribution. If `count`
-      is zero then this field must be zero.
-    minimum: The minimum of the population of values. Ignored if `count` is
-      zero.
-    sumOfSquaredDeviation: The sum of squared deviations from the mean:
-      Sum[i=1..count]((x_i - mean)^2) where each x_i is a sample values. If
-      `count` is zero then this field must be zero, otherwise validation of
-      the request fails.
-  """
-
-  bucketCounts = _messages.IntegerField(1, repeated=True)
-  count = _messages.IntegerField(2)
-  exemplars = _messages.MessageField('DistributionExemplar', 3, repeated=True)
-  explicitBuckets = _messages.MessageField('GoogleApiServicecontrolV1ExplicitBuckets', 4)
-  exponentialBuckets = _messages.MessageField('GoogleApiServicecontrolV1ExponentialBuckets', 5)
-  linearBuckets = _messages.MessageField('GoogleApiServicecontrolV1LinearBuckets', 6)
-  maximum = _messages.FloatField(7)
-  mean = _messages.FloatField(8)
-  minimum = _messages.FloatField(9)
-  sumOfSquaredDeviation = _messages.FloatField(10)
-
-
-class GoogleApiServicecontrolV1ExplicitBuckets(_messages.Message):
-  r"""Describing buckets with arbitrary user-provided width.
-
-  Fields:
-    bounds: 'bound' is a list of strictly increasing boundaries between
-      buckets. Note that a list of length N-1 defines N buckets because of
-      fenceposting. See comments on `bucket_options` for details. The i'th
-      finite bucket covers the interval [bound[i-1], bound[i]) where i ranges
-      from 1 to bound_size() - 1. Note that there are no finite buckets at all
-      if 'bound' only contains a single element; in that special case the
-      single bound defines the boundary between the underflow and overflow
-      buckets. bucket number lower bound upper bound i == 0 (underflow) -inf
-      bound[i] 0 < i < bound_size() bound[i-1] bound[i] i == bound_size()
-      (overflow) bound[i-1] +inf
-  """
-
-  bounds = _messages.FloatField(1, repeated=True)
-
-
-class GoogleApiServicecontrolV1ExponentialBuckets(_messages.Message):
-  r"""Describing buckets with exponentially growing width.
-
-  Fields:
-    growthFactor: The i'th exponential bucket covers the interval [scale *
-      growth_factor^(i-1), scale * growth_factor^i) where i ranges from 1 to
-      num_finite_buckets inclusive. Must be larger than 1.0.
-    numFiniteBuckets: The number of finite buckets. With the underflow and
-      overflow buckets, the total number of buckets is `num_finite_buckets` +
-      2. See comments on `bucket_options` for details.
-    scale: The i'th exponential bucket covers the interval [scale *
-      growth_factor^(i-1), scale * growth_factor^i) where i ranges from 1 to
-      num_finite_buckets inclusive. Must be > 0.
-  """
-
-  growthFactor = _messages.FloatField(1)
-  numFiniteBuckets = _messages.IntegerField(2, variant=_messages.Variant.INT32)
-  scale = _messages.FloatField(3)
-
-
-class GoogleApiServicecontrolV1HttpRequest(_messages.Message):
-  r"""A common proto for logging HTTP requests. Only contains semantics
-  defined by the HTTP specification. Product-specific logging information MUST
-  be defined in a separate message.
-
-  Fields:
-    cacheFillBytes: The number of HTTP response bytes inserted into cache. Set
-      only when a cache fill was attempted.
-    cacheHit: Whether or not an entity was served from cache (with or without
-      validation).
-    cacheLookup: Whether or not a cache lookup was attempted.
-    cacheValidatedWithOriginServer: Whether or not the response was validated
-      with the origin server before being served from cache. This field is
-      only meaningful if `cache_hit` is True.
-    latency: The request processing latency on the server, from the time the
-      request was received until the response was sent.
-    protocol: Protocol used for the request. Examples: "HTTP/1.1", "HTTP/2",
-      "websocket"
-    referer: The referer URL of the request, as defined in [HTTP/1.1 Header
-      Field
-      Definitions](http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html).
-    remoteIp: The IP address (IPv4 or IPv6) of the client that issued the HTTP
-      request. Examples: `"192.168.1.1"`, `"FE80::0202:B3FF:FE1E:8329"`.
-    requestMethod: The request method. Examples: `"GET"`, `"HEAD"`, `"PUT"`,
-      `"POST"`.
-    requestSize: The size of the HTTP request message in bytes, including the
-      request headers and the request body.
-    requestUrl: The scheme (http, https), the host name, the path, and the
-      query portion of the URL that was requested. Example:
-      `"http://example.com/some/info?color=red"`.
-    responseSize: The size of the HTTP response message sent back to the
-      client, in bytes, including the response headers and the response body.
-    serverIp: The IP address (IPv4 or IPv6) of the origin server that the
-      request was sent to.
-    status: The response code indicating the status of the response. Examples:
-      200, 404.
-    userAgent: The user agent sent by the client. Example: `"Mozilla/4.0
-      (compatible; MSIE 6.0; Windows 98; Q312461; .NET CLR 1.0.3705)"`.
-  """
-
-  cacheFillBytes = _messages.IntegerField(1)
-  cacheHit = _messages.BooleanField(2)
-  cacheLookup = _messages.BooleanField(3)
-  cacheValidatedWithOriginServer = _messages.BooleanField(4)
-  latency = _messages.StringField(5)
-  protocol = _messages.StringField(6)
-  referer = _messages.StringField(7)
-  remoteIp = _messages.StringField(8)
-  requestMethod = _messages.StringField(9)
-  requestSize = _messages.IntegerField(10)
-  requestUrl = _messages.StringField(11)
-  responseSize = _messages.IntegerField(12)
-  serverIp = _messages.StringField(13)
-  status = _messages.IntegerField(14, variant=_messages.Variant.INT32)
-  userAgent = _messages.StringField(15)
-
-
-class GoogleApiServicecontrolV1LinearBuckets(_messages.Message):
-  r"""Describing buckets with constant width.
-
-  Fields:
-    numFiniteBuckets: The number of finite buckets. With the underflow and
-      overflow buckets, the total number of buckets is `num_finite_buckets` +
-      2. See comments on `bucket_options` for details.
-    offset: The i'th linear bucket covers the interval [offset + (i-1) *
-      width, offset + i * width) where i ranges from 1 to num_finite_buckets,
-      inclusive.
-    width: The i'th linear bucket covers the interval [offset + (i-1) * width,
-      offset + i * width) where i ranges from 1 to num_finite_buckets,
-      inclusive. Must be strictly positive.
-  """
-
-  numFiniteBuckets = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  offset = _messages.FloatField(2)
-  width = _messages.FloatField(3)
-
-
-class GoogleApiServicecontrolV1LogEntry(_messages.Message):
-  r"""An individual log entry.
-
-  Enums:
-    SeverityValueValuesEnum: The severity of the log entry. The default value
-      is `LogSeverity.DEFAULT`.
-
-  Messages:
-    LabelsValue: A set of user-defined (key, value) data that provides
-      additional information about the log entry.
-    ProtoPayloadValue: The log entry payload, represented as a protocol buffer
-      that is expressed as a JSON object. The only accepted type currently is
-      AuditLog.
-    StructPayloadValue: The log entry payload, represented as a structure that
-      is expressed as a JSON object.
-
-  Fields:
-    httpRequest: Optional. Information about the HTTP request associated with
-      this log entry, if applicable.
-    insertId: A unique ID for the log entry used for deduplication. If
-      omitted, the implementation will generate one based on operation_id.
-    labels: A set of user-defined (key, value) data that provides additional
-      information about the log entry.
-    name: Required. The log to which this log entry belongs. Examples:
-      `"syslog"`, `"book_log"`.
-    operation: Optional. Information about an operation associated with the
-      log entry, if applicable.
-    protoPayload: The log entry payload, represented as a protocol buffer that
-      is expressed as a JSON object. The only accepted type currently is
-      AuditLog.
-    severity: The severity of the log entry. The default value is
-      `LogSeverity.DEFAULT`.
-    sourceLocation: Optional. Source code location information associated with
-      the log entry, if any.
-    structPayload: The log entry payload, represented as a structure that is
-      expressed as a JSON object.
-    textPayload: The log entry payload, represented as a Unicode string
-      (UTF-8).
-    timestamp: The time the event described by the log entry occurred. If
-      omitted, defaults to operation start time.
-    trace: Optional. Resource name of the trace associated with the log entry,
-      if any. If this field contains a relative resource name, you can assume
-      the name is relative to `//tracing.googleapis.com`. Example:
-      `projects/my-projectid/traces/06796866738c859f2f19b7cfb3214824`
-  """
-
-  class SeverityValueValuesEnum(_messages.Enum):
-    r"""The severity of the log entry. The default value is
-    `LogSeverity.DEFAULT`.
-
-    Values:
-      DEFAULT: (0) The log entry has no assigned severity level.
-      DEBUG: (100) Debug or trace information.
-      INFO: (200) Routine information, such as ongoing status or performance.
-      NOTICE: (300) Normal but significant events, such as start up, shut
-        down, or a configuration change.
-      WARNING: (400) Warning events might cause problems.
-      ERROR: (500) Error events are likely to cause problems.
-      CRITICAL: (600) Critical events cause more severe problems or outages.
-      ALERT: (700) A person must take an action immediately.
-      EMERGENCY: (800) One or more systems are unusable.
-    """
-    DEFAULT = 0
-    DEBUG = 1
-    INFO = 2
-    NOTICE = 3
-    WARNING = 4
-    ERROR = 5
-    CRITICAL = 6
-    ALERT = 7
-    EMERGENCY = 8
-
-  @encoding.MapUnrecognizedFields('additionalProperties')
-  class LabelsValue(_messages.Message):
-    r"""A set of user-defined (key, value) data that provides additional
-    information about the log entry.
-
-    Messages:
-      AdditionalProperty: An additional property for a LabelsValue object.
-
-    Fields:
-      additionalProperties: Additional properties of type LabelsValue
-    """
-
-    class AdditionalProperty(_messages.Message):
-      r"""An additional property for a LabelsValue object.
-
-      Fields:
-        key: Name of the additional property.
-        value: A string attribute.
-      """
-
-      key = _messages.StringField(1)
-      value = _messages.StringField(2)
-
-    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
-
-  @encoding.MapUnrecognizedFields('additionalProperties')
-  class ProtoPayloadValue(_messages.Message):
-    r"""The log entry payload, represented as a protocol buffer that is
-    expressed as a JSON object. The only accepted type currently is AuditLog.
-
-    Messages:
-      AdditionalProperty: An additional property for a ProtoPayloadValue
-        object.
-
-    Fields:
-      additionalProperties: Properties of the object. Contains field @type
-        with type URL.
-    """
-
-    class AdditionalProperty(_messages.Message):
-      r"""An additional property for a ProtoPayloadValue object.
-
-      Fields:
-        key: Name of the additional property.
-        value: A extra_types.JsonValue attribute.
-      """
-
-      key = _messages.StringField(1)
-      value = _messages.MessageField('extra_types.JsonValue', 2)
-
-    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
-
-  @encoding.MapUnrecognizedFields('additionalProperties')
-  class StructPayloadValue(_messages.Message):
-    r"""The log entry payload, represented as a structure that is expressed as
-    a JSON object.
-
-    Messages:
-      AdditionalProperty: An additional property for a StructPayloadValue
-        object.
-
-    Fields:
-      additionalProperties: Properties of the object.
-    """
-
-    class AdditionalProperty(_messages.Message):
-      r"""An additional property for a StructPayloadValue object.
-
-      Fields:
-        key: Name of the additional property.
-        value: A extra_types.JsonValue attribute.
-      """
-
-      key = _messages.StringField(1)
-      value = _messages.MessageField('extra_types.JsonValue', 2)
-
-    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
-
-  httpRequest = _messages.MessageField('GoogleApiServicecontrolV1HttpRequest', 1)
-  insertId = _messages.StringField(2)
-  labels = _messages.MessageField('LabelsValue', 3)
-  name = _messages.StringField(4)
-  operation = _messages.MessageField('GoogleApiServicecontrolV1LogEntryOperation', 5)
-  protoPayload = _messages.MessageField('ProtoPayloadValue', 6)
-  severity = _messages.EnumField('SeverityValueValuesEnum', 7)
-  sourceLocation = _messages.MessageField('GoogleApiServicecontrolV1LogEntrySourceLocation', 8)
-  structPayload = _messages.MessageField('StructPayloadValue', 9)
-  textPayload = _messages.StringField(10)
-  timestamp = _messages.StringField(11)
-  trace = _messages.StringField(12)
-
-
-class GoogleApiServicecontrolV1LogEntryOperation(_messages.Message):
-  r"""Additional information about a potentially long-running operation with
-  which a log entry is associated.
-
-  Fields:
-    first: Optional. Set this to True if this is the first log entry in the
-      operation.
-    id: Optional. An arbitrary operation identifier. Log entries with the same
-      identifier are assumed to be part of the same operation.
-    last: Optional. Set this to True if this is the last log entry in the
-      operation.
-    producer: Optional. An arbitrary producer identifier. The combination of
-      `id` and `producer` must be globally unique. Examples for `producer`:
-      `"MyDivision.MyBigCompany.com"`, `"github.com/MyProject/MyApplication"`.
-  """
-
-  first = _messages.BooleanField(1)
-  id = _messages.StringField(2)
-  last = _messages.BooleanField(3)
-  producer = _messages.StringField(4)
-
-
-class GoogleApiServicecontrolV1LogEntrySourceLocation(_messages.Message):
-  r"""Additional information about the source code location that produced the
-  log entry.
-
-  Fields:
-    file: Optional. Source file name. Depending on the runtime environment,
-      this might be a simple name or a fully-qualified name.
-    function: Optional. Human-readable name of the function or method being
-      invoked, with optional context such as the class or package name. This
-      information may be used in contexts such as the logs viewer, where a
-      file and line number are less meaningful. The format can vary by
-      language. For example: `qual.if.ied.Class.method` (Java),
-      `dir/package.func` (Go), `function` (Python).
-    line: Optional. Line within the source file. 1-based; 0 indicates no line
-      number available.
-  """
-
-  file = _messages.StringField(1)
-  function = _messages.StringField(2)
-  line = _messages.IntegerField(3)
-
-
-class GoogleApiServicecontrolV1MetricValue(_messages.Message):
-  r"""Represents a single metric value.
-
-  Messages:
-    LabelsValue: The labels describing the metric value. See comments on
-      google.api.servicecontrol.v1.Operation.labels for the overriding
-      relationship. Note that this map must not contain monitored resource
-      labels.
-
-  Fields:
-    boolValue: A boolean value.
-    distributionValue: A distribution value.
-    doubleValue: A double precision floating point value.
-    endTime: The end of the time period over which this metric value's
-      measurement applies. If not specified,
-      google.api.servicecontrol.v1.Operation.end_time will be used.
-    int64Value: A signed 64-bit integer value.
-    labels: The labels describing the metric value. See comments on
-      google.api.servicecontrol.v1.Operation.labels for the overriding
-      relationship. Note that this map must not contain monitored resource
-      labels.
-    moneyValue: A money value.
-    startTime: The start of the time period over which this metric value's
-      measurement applies. The time period has different semantics for
-      different metric types (cumulative, delta, and gauge). See the metric
-      definition documentation in the service configuration for details. If
-      not specified, google.api.servicecontrol.v1.Operation.start_time will be
-      used.
-    stringValue: A text string value.
-  """
-
-  @encoding.MapUnrecognizedFields('additionalProperties')
-  class LabelsValue(_messages.Message):
-    r"""The labels describing the metric value. See comments on
-    google.api.servicecontrol.v1.Operation.labels for the overriding
-    relationship. Note that this map must not contain monitored resource
-    labels.
-
-    Messages:
-      AdditionalProperty: An additional property for a LabelsValue object.
-
-    Fields:
-      additionalProperties: Additional properties of type LabelsValue
-    """
-
-    class AdditionalProperty(_messages.Message):
-      r"""An additional property for a LabelsValue object.
-
-      Fields:
-        key: Name of the additional property.
-        value: A string attribute.
-      """
-
-      key = _messages.StringField(1)
-      value = _messages.StringField(2)
-
-    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
-
-  boolValue = _messages.BooleanField(1)
-  distributionValue = _messages.MessageField('GoogleApiServicecontrolV1Distribution', 2)
-  doubleValue = _messages.FloatField(3)
-  endTime = _messages.StringField(4)
-  int64Value = _messages.IntegerField(5)
-  labels = _messages.MessageField('LabelsValue', 6)
-  moneyValue = _messages.MessageField('Money', 7)
-  startTime = _messages.StringField(8)
-  stringValue = _messages.StringField(9)
-
-
-class GoogleApiServicecontrolV1MetricValueSet(_messages.Message):
-  r"""Represents a set of metric values in the same metric. Each metric value
-  in the set should have a unique combination of start time, end time, and
-  label values.
-
-  Fields:
-    metricName: The metric name defined in the service configuration.
-    metricValues: The values in this metric.
-  """
-
-  metricName = _messages.StringField(1)
-  metricValues = _messages.MessageField('GoogleApiServicecontrolV1MetricValue', 2, repeated=True)
-
-
-class GoogleApiServicecontrolV1Operation(_messages.Message):
-  r"""Represents information regarding an operation.
-
-  Enums:
-    ImportanceValueValuesEnum: DO NOT USE. This is an experimental field.
-
-  Messages:
-    LabelsValue: Labels describing the operation. Only the following labels
-      are allowed: - Labels describing monitored resources as defined in the
-      service configuration. - Default labels of metric values. When
-      specified, labels defined in the metric value override these default. -
-      The following labels defined by Google Cloud Platform: -
-      `cloud.googleapis.com/location` describing the location where the
-      operation happened, - `servicecontrol.googleapis.com/user_agent`
-      describing the user agent of the API request, -
-      `servicecontrol.googleapis.com/service_agent` describing the service
-      used to handle the API request (e.g. ESP), -
-      `servicecontrol.googleapis.com/platform` describing the platform where
-      the API is served, such as App Engine, Compute Engine, or Kubernetes
-      Engine.
-    UserLabelsValue: Private Preview. This feature is only available for
-      approved services. User defined labels for the resource that this
-      operation is associated with.
-
-  Fields:
-    consumerId: Identity of the consumer who is using the service. This field
-      should be filled in for the operations initiated by a consumer, but not
-      for service-initiated operations that are not related to a specific
-      consumer. - This can be in one of the following formats: -
-      project:PROJECT_ID, - project`_`number:PROJECT_NUMBER, -
-      projects/PROJECT_ID or PROJECT_NUMBER, - folders/FOLDER_NUMBER, -
-      organizations/ORGANIZATION_NUMBER, - api`_`key:API_KEY.
-    endTime: End time of the operation. Required when the operation is used in
-      ServiceController.Report, but optional when the operation is used in
-      ServiceController.Check.
-    importance: DO NOT USE. This is an experimental field.
-    labels: Labels describing the operation. Only the following labels are
-      allowed: - Labels describing monitored resources as defined in the
-      service configuration. - Default labels of metric values. When
-      specified, labels defined in the metric value override these default. -
-      The following labels defined by Google Cloud Platform: -
-      `cloud.googleapis.com/location` describing the location where the
-      operation happened, - `servicecontrol.googleapis.com/user_agent`
-      describing the user agent of the API request, -
-      `servicecontrol.googleapis.com/service_agent` describing the service
-      used to handle the API request (e.g. ESP), -
-      `servicecontrol.googleapis.com/platform` describing the platform where
-      the API is served, such as App Engine, Compute Engine, or Kubernetes
-      Engine.
-    logEntries: Represents information to be logged.
-    metricValueSets: Represents information about this operation. Each
-      MetricValueSet corresponds to a metric defined in the service
-      configuration. The data type used in the MetricValueSet must agree with
-      the data type specified in the metric definition. Within a single
-      operation, it is not allowed to have more than one MetricValue instances
-      that have the same metric names and identical label value combinations.
-      If a request has such duplicated MetricValue instances, the entire
-      request is rejected with an invalid argument error.
-    operationId: Identity of the operation. This must be unique within the
-      scope of the service that generated the operation. If the service calls
-      Check() and Report() on the same operation, the two calls should carry
-      the same id. UUID version 4 is recommended, though not required. In
-      scenarios where an operation is computed from existing information and
-      an idempotent id is desirable for deduplication purpose, UUID version 5
-      is recommended. See RFC 4122 for details.
-    operationName: Fully qualified name of the operation. Reserved for future
-      use.
-    quotaProperties: Represents the properties needed for quota check.
-      Applicable only if this operation is for a quota check request. If this
-      is not specified, no quota check will be performed.
-    resources: The resources that are involved in the operation. The maximum
-      supported number of entries in this field is 100.
-    startTime: Required. Start time of the operation.
-    traceSpans: Unimplemented. A list of Cloud Trace spans. The span names
-      shall contain the id of the destination project which can be either the
-      produce or the consumer project.
-    userLabels: Private Preview. This feature is only available for approved
-      services. User defined labels for the resource that this operation is
-      associated with.
-  """
-
-  class ImportanceValueValuesEnum(_messages.Enum):
-    r"""DO NOT USE. This is an experimental field.
-
-    Values:
-      LOW: Allows data caching, batching, and aggregation. It provides higher
-        performance with higher data loss risk.
-      HIGH: Disables data aggregation to minimize data loss. It is for
-        operations that contains significant monetary value or audit trail.
-        This feature only applies to the client libraries.
-      DEBUG: Deprecated. Do not use. Disables data aggregation and enables
-        additional validation logic. It should only be used during the
-        onboarding process. It is only available to Google internal services,
-        and the service must be approved by chemist-dev@google.com in order to
-        use this level.
-      PROMOTED: Used internally by Chemist.
-    """
-    LOW = 0
-    HIGH = 1
-    DEBUG = 2
-    PROMOTED = 3
-
-  @encoding.MapUnrecognizedFields('additionalProperties')
-  class LabelsValue(_messages.Message):
-    r"""Labels describing the operation. Only the following labels are
-    allowed: - Labels describing monitored resources as defined in the service
-    configuration. - Default labels of metric values. When specified, labels
-    defined in the metric value override these default. - The following labels
-    defined by Google Cloud Platform: - `cloud.googleapis.com/location`
-    describing the location where the operation happened, -
-    `servicecontrol.googleapis.com/user_agent` describing the user agent of
-    the API request, - `servicecontrol.googleapis.com/service_agent`
-    describing the service used to handle the API request (e.g. ESP), -
-    `servicecontrol.googleapis.com/platform` describing the platform where the
-    API is served, such as App Engine, Compute Engine, or Kubernetes Engine.
-
-    Messages:
-      AdditionalProperty: An additional property for a LabelsValue object.
-
-    Fields:
-      additionalProperties: Additional properties of type LabelsValue
-    """
-
-    class AdditionalProperty(_messages.Message):
-      r"""An additional property for a LabelsValue object.
-
-      Fields:
-        key: Name of the additional property.
-        value: A string attribute.
-      """
-
-      key = _messages.StringField(1)
-      value = _messages.StringField(2)
-
-    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
-
-  @encoding.MapUnrecognizedFields('additionalProperties')
-  class UserLabelsValue(_messages.Message):
-    r"""Private Preview. This feature is only available for approved services.
-    User defined labels for the resource that this operation is associated
-    with.
-
-    Messages:
-      AdditionalProperty: An additional property for a UserLabelsValue object.
-
-    Fields:
-      additionalProperties: Additional properties of type UserLabelsValue
-    """
-
-    class AdditionalProperty(_messages.Message):
-      r"""An additional property for a UserLabelsValue object.
-
-      Fields:
-        key: Name of the additional property.
-        value: A string attribute.
-      """
-
-      key = _messages.StringField(1)
-      value = _messages.StringField(2)
-
-    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
-
-  consumerId = _messages.StringField(1)
-  endTime = _messages.StringField(2)
-  importance = _messages.EnumField('ImportanceValueValuesEnum', 3)
-  labels = _messages.MessageField('LabelsValue', 4)
-  logEntries = _messages.MessageField('GoogleApiServicecontrolV1LogEntry', 5, repeated=True)
-  metricValueSets = _messages.MessageField('GoogleApiServicecontrolV1MetricValueSet', 6, repeated=True)
-  operationId = _messages.StringField(7)
-  operationName = _messages.StringField(8)
-  quotaProperties = _messages.MessageField('GoogleApiServicecontrolV1QuotaProperties', 9)
-  resources = _messages.MessageField('GoogleApiServicecontrolV1ResourceInfo', 10, repeated=True)
-  startTime = _messages.StringField(11)
-  traceSpans = _messages.MessageField('GoogleApiServicecontrolV1TraceSpan', 12, repeated=True)
-  userLabels = _messages.MessageField('UserLabelsValue', 13)
-
-
-class GoogleApiServicecontrolV1QuotaProperties(_messages.Message):
-  r"""Represents the properties needed for quota operations.
-
-  Enums:
-    QuotaModeValueValuesEnum: Quota mode for this operation.
-
-  Fields:
-    quotaMode: Quota mode for this operation.
-  """
-
-  class QuotaModeValueValuesEnum(_messages.Enum):
-    r"""Quota mode for this operation.
-
-    Values:
-      ACQUIRE: Decreases available quota by the cost specified for the
-        operation. If cost is higher than available quota, operation fails and
-        returns error.
-      ACQUIRE_BEST_EFFORT: Decreases available quota by the cost specified for
-        the operation. If cost is higher than available quota, operation does
-        not fail and available quota goes down to zero but it returns error.
-      CHECK: Does not change any available quota. Only checks if there is
-        enough quota. No lock is placed on the checked tokens neither.
-    """
-    ACQUIRE = 0
-    ACQUIRE_BEST_EFFORT = 1
-    CHECK = 2
-
-  quotaMode = _messages.EnumField('QuotaModeValueValuesEnum', 1)
-
-
-class GoogleApiServicecontrolV1ReportRequest(_messages.Message):
-  r"""Request message for the Report method.
-
-  Fields:
-    operations: Operations to be reported. Typically the service should report
-      one operation per request. Putting multiple operations into a single
-      request is allowed, but should be used only when multiple operations are
-      natually available at the time of the report. There is no limit on the
-      number of operations in the same ReportRequest, however the
-      ReportRequest size should be no larger than 1MB. See
-      ReportResponse.report_errors for partial failure behavior.
-    serviceConfigId: Specifies which version of service config should be used
-      to process the request. If unspecified or no matching version can be
-      found, the latest one will be used.
-    serviceName: The service name as specified in its service configuration.
-      For example, `"pubsub.googleapis.com"`. See
-      [google.api.Service](https://cloud.google.com/service-
-      management/reference/rpc/google.api#google.api.Service) for the
-      definition of a service name.
-  """
-
-  operations = _messages.MessageField('GoogleApiServicecontrolV1Operation', 1, repeated=True)
-  serviceConfigId = _messages.StringField(2)
-  serviceName = _messages.StringField(3)
-
-
-class GoogleApiServicecontrolV1ResourceInfo(_messages.Message):
-  r"""Describes a resource associated with this operation.
-
-  Fields:
-    permission: The resource permission required for this request.
-    resourceContainer: The identifier of the parent of this resource instance.
-      Must be in one of the following formats: - `projects/` - `folders/` -
-      `organizations/`
-    resourceLocation: The location of the resource. If not empty, the resource
-      will be checked against location policy. The value must be a valid zone,
-      region or multiregion. For example: "europe-west4" or "northamerica-
-      northeast1-a"
-    resourceName: Name of the resource. This is used for auditing purposes.
-  """
-
-  permission = _messages.StringField(1)
-  resourceContainer = _messages.StringField(2)
-  resourceLocation = _messages.StringField(3)
-  resourceName = _messages.StringField(4)
-
-
-class GoogleApiServicecontrolV1TraceSpan(_messages.Message):
-  r"""A span represents a single operation within a trace. Spans can be nested
-  to form a trace tree. Often, a trace contains a root span that describes the
-  end-to-end latency, and one or more subspans for its sub-operations. A trace
-  can also contain multiple root spans, or none at all. Spans do not need to
-  be contiguous-there may be gaps or overlaps between spans in a trace.
-
-  Enums:
-    SpanKindValueValuesEnum: Distinguishes between spans generated in a
-      particular context. For example, two spans with the same name may be
-      distinguished using `CLIENT` (caller) and `SERVER` (callee) to identify
-      an RPC call.
-
-  Fields:
-    attributes: A set of attributes on the span. You can have up to 32
-      attributes per span.
-    childSpanCount: An optional number of child spans that were generated
-      while this span was active. If set, allows implementation to detect
-      missing child spans.
-    displayName: A description of the span's operation (up to 128 bytes).
-      Stackdriver Trace displays the description in the Google Cloud Platform
-      Console. For example, the display name can be a qualified method name or
-      a file name and a line number where the operation is called. A best
-      practice is to use the same display name within an application and at
-      the same call point. This makes it easier to correlate spans in
-      different traces.
-    endTime: The end time of the span. On the client side, this is the time
-      kept by the local machine where the span execution ends. On the server
-      side, this is the time when the server application handler stops
-      running.
-    name: The resource name of the span in the following format:
-      projects/[PROJECT_ID]/traces/[TRACE_ID]/spans/SPAN_ID is a unique
-      identifier for a trace within a project; it is a 32-character
-      hexadecimal encoding of a 16-byte array. [SPAN_ID] is a unique
-      identifier for a span within a trace; it is a 16-character hexadecimal
-      encoding of an 8-byte array.
-    parentSpanId: The [SPAN_ID] of this span's parent span. If this is a root
-      span, then this field must be empty.
-    sameProcessAsParentSpan: (Optional) Set this parameter to indicate whether
-      this span is in the same process as its parent. If you do not set this
-      parameter, Stackdriver Trace is unable to take advantage of this helpful
-      information.
-    spanId: The [SPAN_ID] portion of the span's resource name.
-    spanKind: Distinguishes between spans generated in a particular context.
-      For example, two spans with the same name may be distinguished using
-      `CLIENT` (caller) and `SERVER` (callee) to identify an RPC call.
-    startTime: The start time of the span. On the client side, this is the
-      time kept by the local machine where the span execution starts. On the
-      server side, this is the time when the server's application handler
-      starts running.
-    status: An optional final status for this span.
-  """
-
-  class SpanKindValueValuesEnum(_messages.Enum):
-    r"""Distinguishes between spans generated in a particular context. For
-    example, two spans with the same name may be distinguished using `CLIENT`
-    (caller) and `SERVER` (callee) to identify an RPC call.
-
-    Values:
-      SPAN_KIND_UNSPECIFIED: Unspecified. Do NOT use as default.
-        Implementations MAY assume SpanKind.INTERNAL to be default.
-      INTERNAL: Indicates that the span is used internally. Default value.
-      SERVER: Indicates that the span covers server-side handling of an RPC or
-        other remote network request.
-      CLIENT: Indicates that the span covers the client-side wrapper around an
-        RPC or other remote request.
-      PRODUCER: Indicates that the span describes producer sending a message
-        to a broker. Unlike client and server, there is no direct critical
-        path latency relationship between producer and consumer spans (e.g.
-        publishing a message to a pubsub service).
-      CONSUMER: Indicates that the span describes consumer receiving a message
-        from a broker. Unlike client and server, there is no direct critical
-        path latency relationship between producer and consumer spans (e.g.
-        receiving a message from a pubsub service subscription).
-    """
-    SPAN_KIND_UNSPECIFIED = 0
-    INTERNAL = 1
-    SERVER = 2
-    CLIENT = 3
-    PRODUCER = 4
-    CONSUMER = 5
-
-  attributes = _messages.MessageField('GoogleApiServicecontrolV1Attributes', 1)
-  childSpanCount = _messages.IntegerField(2, variant=_messages.Variant.INT32)
-  displayName = _messages.MessageField('GoogleApiServicecontrolV1TruncatableString', 3)
-  endTime = _messages.StringField(4)
-  name = _messages.StringField(5)
-  parentSpanId = _messages.StringField(6)
-  sameProcessAsParentSpan = _messages.BooleanField(7)
-  spanId = _messages.StringField(8)
-  spanKind = _messages.EnumField('SpanKindValueValuesEnum', 9)
-  startTime = _messages.StringField(10)
-  status = _messages.MessageField('Status', 11)
-
-
-class GoogleApiServicecontrolV1TruncatableString(_messages.Message):
-  r"""Represents a string that might be shortened to a specified length.
-
-  Fields:
-    truncatedByteCount: The number of bytes removed from the original string.
-      If this value is 0, then the string was not shortened.
-    value: The shortened string. For example, if the original string is 500
-      bytes long and the limit of the string is 128 bytes, then `value`
-      contains the first 128 bytes of the 500-byte string. Truncation always
-      happens on a UTF8 character boundary. If there are multi-byte characters
-      in the string, then the length of the shortened string might be less
-      than the size limit.
-  """
-
-  truncatedByteCount = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  value = _messages.StringField(2)
-
-
 class GoogleCloudNetworksecurityV1beta1CertificateProvider(_messages.Message):
   r"""Specification of certificate provider. Defines the mechanism to obtain
   the certificate and private key for peer to peer authentication.
@@ -1775,17 +1399,11 @@ class GoogleCloudNetworksecurityV1beta1GrpcEndpoint(_messages.Message):
   r"""Specification of the GRPC Endpoint.
 
   Fields:
-    sdsResource: Optional. sds_resource is used to set the name of the SDS
-      configuration. When used in the context of GSM, the following rules
-      apply If the resource name is "default" and "ROOTCA" then it implies
-      ISTIO_MUTUAL tlsMode. If the resource name begins with "file-cert"
-      and/or "file-root", it implies custom MUTUAL tlsMode
     targetUri: Required. The target URI of the gRPC endpoint. Only UDS path is
       supported, and should start with "unix:".
   """
 
-  sdsResource = _messages.StringField(1)
-  targetUri = _messages.StringField(2)
+  targetUri = _messages.StringField(1)
 
 
 class GoogleIamV1AuditConfig(_messages.Message):
@@ -1830,7 +1448,6 @@ class GoogleIamV1AuditLogConfig(_messages.Message):
   Fields:
     exemptedMembers: Specifies the identities that do not cause logging for
       this type of permission. Follows the same format of Binding.members.
-    ignoreChildExemptions: A boolean attribute.
     logType: The log type that this config enables.
   """
 
@@ -1849,15 +1466,13 @@ class GoogleIamV1AuditLogConfig(_messages.Message):
     DATA_READ = 3
 
   exemptedMembers = _messages.StringField(1, repeated=True)
-  ignoreChildExemptions = _messages.BooleanField(2)
-  logType = _messages.EnumField('LogTypeValueValuesEnum', 3)
+  logType = _messages.EnumField('LogTypeValueValuesEnum', 2)
 
 
 class GoogleIamV1Binding(_messages.Message):
   r"""Associates `members`, or principals, with a `role`.
 
   Fields:
-    bindingId: A string attribute.
     condition: The condition that is associated with this binding. If the
       condition evaluates to `true`, then this binding applies to the current
       request. If the condition evaluates to `false`, then this binding does
@@ -1936,272 +1551,9 @@ class GoogleIamV1Binding(_messages.Message):
       [here](https://cloud.google.com/iam/docs/understanding-roles).
   """
 
-  bindingId = _messages.StringField(1)
-  condition = _messages.MessageField('Expr', 2)
-  members = _messages.StringField(3, repeated=True)
-  role = _messages.StringField(4)
-
-
-class GoogleIamV1CloudAuditOptions(_messages.Message):
-  r"""Write a Cloud Audit log
-
-  Enums:
-    LogNameValueValuesEnum: The log_name to populate in the Cloud Audit
-      Record.
-    PermissionTypeValueValuesEnum: The type associated with the permission.
-
-  Fields:
-    authorizationLoggingOptions: Information used by the Cloud Audit Logging
-      pipeline. Will be deprecated once the migration to PermissionType is
-      complete (b/201806118).
-    logName: The log_name to populate in the Cloud Audit Record.
-    permissionType: The type associated with the permission.
-  """
-
-  class LogNameValueValuesEnum(_messages.Enum):
-    r"""The log_name to populate in the Cloud Audit Record.
-
-    Values:
-      UNSPECIFIED_LOG_NAME: Default. Should not be used.
-      ADMIN_ACTIVITY: Corresponds to "cloudaudit.googleapis.com/activity"
-      DATA_ACCESS: Corresponds to "cloudaudit.googleapis.com/data_access"
-    """
-    UNSPECIFIED_LOG_NAME = 0
-    ADMIN_ACTIVITY = 1
-    DATA_ACCESS = 2
-
-  class PermissionTypeValueValuesEnum(_messages.Enum):
-    r"""The type associated with the permission.
-
-    Values:
-      PERMISSION_TYPE_UNSPECIFIED: Default. Should not be used.
-      ADMIN_READ: Permissions that gate reading resource configuration or
-        metadata.
-      ADMIN_WRITE: Permissions that gate modification of resource
-        configuration or metadata.
-      DATA_READ: Permissions that gate reading user-provided data.
-      DATA_WRITE: Permissions that gate writing user-provided data.
-    """
-    PERMISSION_TYPE_UNSPECIFIED = 0
-    ADMIN_READ = 1
-    ADMIN_WRITE = 2
-    DATA_READ = 3
-    DATA_WRITE = 4
-
-  authorizationLoggingOptions = _messages.MessageField('AuthorizationLoggingOptions', 1)
-  logName = _messages.EnumField('LogNameValueValuesEnum', 2)
-  permissionType = _messages.EnumField('PermissionTypeValueValuesEnum', 3)
-
-
-class GoogleIamV1Condition(_messages.Message):
-  r"""A condition to be met.
-
-  Enums:
-    IamValueValuesEnum: Trusted attributes supplied by the IAM system.
-    OpValueValuesEnum: An operator to apply the subject with.
-    SysValueValuesEnum: Trusted attributes supplied by any service that owns
-      resources and uses the IAM system for access control.
-
-  Fields:
-    iam: Trusted attributes supplied by the IAM system.
-    op: An operator to apply the subject with.
-    svc: Trusted attributes discharged by the service.
-    sys: Trusted attributes supplied by any service that owns resources and
-      uses the IAM system for access control.
-    values: The objects of the condition.
-  """
-
-  class IamValueValuesEnum(_messages.Enum):
-    r"""Trusted attributes supplied by the IAM system.
-
-    Values:
-      NO_ATTR: Default non-attribute.
-      AUTHORITY: Either principal or (if present) authority selector.
-      ATTRIBUTION: The principal (even if an authority selector is present),
-        which must only be used for attribution, not authorization.
-      SECURITY_REALM: Any of the security realms in the IAMContext
-        (go/security-realms). When used with IN, the condition indicates "any
-        of the request's realms match one of the given values; with NOT_IN,
-        "none of the realms match any of the given values". Note that a value
-        can be: - 'self:campus' (i.e., clients that are in the same campus) -
-        'self:metro' (i.e., clients that are in the same metro) - 'self:cloud-
-        region' (i.e., allow connections from clients that are in the same
-        cloud region) - 'self:prod-region' (i.e., allow connections from
-        clients that are in the same prod region) - 'guardians' (i.e., allow
-        connections from its guardian realms. See go/security-realms-
-        glossary#guardian for more information.) - 'self' [DEPRECATED] (i.e.,
-        allow connections from clients that are in the same security realm,
-        which is currently but not guaranteed to be campus-sized) - a realm
-        (e.g., 'campus-abc') - a realm group (e.g., 'realms-for-borg-cell-xx',
-        see: go/realm-groups) A match is determined by a realm group
-        membership check performed by a RealmAclRep object (go/realm-acl-
-        howto). It is not permitted to grant access based on the *absence* of
-        a realm, so realm conditions can only be used in a "positive" context
-        (e.g., ALLOW/IN or DENY/NOT_IN).
-      APPROVER: An approver (distinct from the requester) that has authorized
-        this request. When used with IN, the condition indicates that one of
-        the approvers associated with the request matches the specified
-        principal, or is a member of the specified group. Approvers can only
-        grant additional access, and are thus only used in a strictly positive
-        context (e.g. ALLOW/IN or DENY/NOT_IN).
-      JUSTIFICATION_TYPE: What types of justifications have been supplied with
-        this request. String values should match enum names from
-        security.credentials.JustificationType, e.g. "MANUAL_STRING". It is
-        not permitted to grant access based on the *absence* of a
-        justification, so justification conditions can only be used in a
-        "positive" context (e.g., ALLOW/IN or DENY/NOT_IN). Multiple
-        justifications, e.g., a Buganizer ID and a manually-entered reason,
-        are normal and supported.
-      CREDENTIALS_TYPE: What type of credentials have been supplied with this
-        request. String values should match enum names from
-        security_loas_l2.CredentialsType - currently, only
-        CREDS_TYPE_EMERGENCY is supported. It is not permitted to grant access
-        based on the *absence* of a credentials type, so the conditions can
-        only be used in a "positive" context (e.g., ALLOW/IN or DENY/NOT_IN).
-      CREDS_ASSERTION: EXPERIMENTAL -- DO NOT USE. The conditions can only be
-        used in a "positive" context (e.g., ALLOW/IN or DENY/NOT_IN).
-    """
-    NO_ATTR = 0
-    AUTHORITY = 1
-    ATTRIBUTION = 2
-    SECURITY_REALM = 3
-    APPROVER = 4
-    JUSTIFICATION_TYPE = 5
-    CREDENTIALS_TYPE = 6
-    CREDS_ASSERTION = 7
-
-  class OpValueValuesEnum(_messages.Enum):
-    r"""An operator to apply the subject with.
-
-    Values:
-      NO_OP: Default no-op.
-      EQUALS: DEPRECATED. Use IN instead.
-      NOT_EQUALS: DEPRECATED. Use NOT_IN instead.
-      IN: The condition is true if the subject (or any element of it if it is
-        a set) matches any of the supplied values.
-      NOT_IN: The condition is true if the subject (or every element of it if
-        it is a set) matches none of the supplied values.
-      DISCHARGED: Subject is discharged
-    """
-    NO_OP = 0
-    EQUALS = 1
-    NOT_EQUALS = 2
-    IN = 3
-    NOT_IN = 4
-    DISCHARGED = 5
-
-  class SysValueValuesEnum(_messages.Enum):
-    r"""Trusted attributes supplied by any service that owns resources and
-    uses the IAM system for access control.
-
-    Values:
-      NO_ATTR: Default non-attribute type
-      REGION: Region of the resource
-      SERVICE: Service name
-      NAME: Resource name
-      IP: IP address of the caller
-    """
-    NO_ATTR = 0
-    REGION = 1
-    SERVICE = 2
-    NAME = 3
-    IP = 4
-
-  iam = _messages.EnumField('IamValueValuesEnum', 1)
-  op = _messages.EnumField('OpValueValuesEnum', 2)
-  svc = _messages.StringField(3)
-  sys = _messages.EnumField('SysValueValuesEnum', 4)
-  values = _messages.StringField(5, repeated=True)
-
-
-class GoogleIamV1CounterOptions(_messages.Message):
-  r"""Increment a streamz counter with the specified metric and field names.
-  Metric names should start with a '/', generally be lowercase-only, and end
-  in "_count". Field names should not contain an initial slash. The actual
-  exported metric names will have "/iam/policy" prepended. Field names
-  correspond to IAM request parameters and field values are their respective
-  values. Supported field names: - "authority", which is "[token]" if
-  IAMContext.token is present, otherwise the value of
-  IAMContext.authority_selector if present, and otherwise a representation of
-  IAMContext.principal; or - "iam_principal", a representation of
-  IAMContext.principal even if a token or authority selector is present; or -
-  "" (empty string), resulting in a counter with no fields. Examples: counter
-  { metric: "/debug_access_count" field: "iam_principal" } ==> increment
-  counter /iam/policy/debug_access_count {iam_principal=[value of
-  IAMContext.principal]}
-
-  Fields:
-    customFields: Custom fields.
-    field: The field value to attribute.
-    metric: The metric to update.
-  """
-
-  customFields = _messages.MessageField('GoogleIamV1CustomField', 1, repeated=True)
-  field = _messages.StringField(2)
-  metric = _messages.StringField(3)
-
-
-class GoogleIamV1CustomField(_messages.Message):
-  r"""Custom fields. These can be used to create a counter with arbitrary
-  field/value pairs. See: go/rpcsp-custom-fields.
-
-  Fields:
-    name: Name is the field name.
-    value: Value is the field value. It is important that in contrast to the
-      CounterOptions.field, the value here is a constant that is not derived
-      from the IAMContext.
-  """
-
-  name = _messages.StringField(1)
-  value = _messages.StringField(2)
-
-
-class GoogleIamV1DataAccessOptions(_messages.Message):
-  r"""Write a Data Access (Gin) log
-
-  Enums:
-    LogModeValueValuesEnum:
-
-  Fields:
-    logMode: A LogModeValueValuesEnum attribute.
-  """
-
-  class LogModeValueValuesEnum(_messages.Enum):
-    r"""LogModeValueValuesEnum enum type.
-
-    Values:
-      LOG_MODE_UNSPECIFIED: Client is not required to write a partial Gin log
-        immediately after the authorization check. If client chooses to write
-        one and it fails, client may either fail open (allow the operation to
-        continue) or fail closed (handle as a DENY outcome).
-      LOG_FAIL_CLOSED: The application's operation in the context of which
-        this authorization check is being made may only be performed if it is
-        successfully logged to Gin. For instance, the authorization library
-        may satisfy this obligation by emitting a partial log entry at
-        authorization check time and only returning ALLOW to the application
-        if it succeeds. If a matching Rule has this directive, but the client
-        has not indicated that it will honor such requirements, then the IAM
-        check will result in authorization failure by setting
-        CheckPolicyResponse.success=false.
-    """
-    LOG_MODE_UNSPECIFIED = 0
-    LOG_FAIL_CLOSED = 1
-
-  logMode = _messages.EnumField('LogModeValueValuesEnum', 1)
-
-
-class GoogleIamV1LogConfig(_messages.Message):
-  r"""Specifies what kind of log the caller must write
-
-  Fields:
-    cloudAudit: Cloud audit options.
-    counter: Counter options.
-    dataAccess: Data access options.
-  """
-
-  cloudAudit = _messages.MessageField('GoogleIamV1CloudAuditOptions', 1)
-  counter = _messages.MessageField('GoogleIamV1CounterOptions', 2)
-  dataAccess = _messages.MessageField('GoogleIamV1DataAccessOptions', 3)
+  condition = _messages.MessageField('Expr', 1)
+  members = _messages.StringField(2, repeated=True)
+  role = _messages.StringField(3)
 
 
 class GoogleIamV1Policy(_messages.Message):
@@ -2257,13 +1609,6 @@ class GoogleIamV1Policy(_messages.Message):
       `etag` field whenever you call `setIamPolicy`. If you omit this field,
       then IAM allows you to overwrite a version `3` policy with a version `1`
       policy, and all of the conditions in the version `3` policy are lost.
-    rules: If more than one rule is specified, the rules are applied in the
-      following manner: - All matching LOG rules are always applied. - If any
-      DENY/DENY_WITH_LOG rule matches, permission is denied. Logging will be
-      applied if one or more matching rule requires logging. - Otherwise, if
-      any ALLOW/ALLOW_WITH_LOG rule matches, permission is granted. Logging
-      will be applied if one or more matching rule requires logging. -
-      Otherwise, if no rule applies, permission is denied.
     version: Specifies the format of the policy. Valid values are `0`, `1`,
       and `3`. Requests that specify an invalid value are rejected. Any
       operation that affects conditional role bindings must specify version
@@ -2286,61 +1631,7 @@ class GoogleIamV1Policy(_messages.Message):
   auditConfigs = _messages.MessageField('GoogleIamV1AuditConfig', 1, repeated=True)
   bindings = _messages.MessageField('GoogleIamV1Binding', 2, repeated=True)
   etag = _messages.BytesField(3)
-  rules = _messages.MessageField('GoogleIamV1Rule', 4, repeated=True)
-  version = _messages.IntegerField(5, variant=_messages.Variant.INT32)
-
-
-class GoogleIamV1Rule(_messages.Message):
-  r"""A rule to be applied in a Policy.
-
-  Enums:
-    ActionValueValuesEnum: Required
-
-  Fields:
-    action: Required
-    conditions: Additional restrictions that must be met. All conditions must
-      pass for the rule to match.
-    description: Human-readable description of the rule.
-    in_: If one or more 'in' clauses are specified, the rule matches if the
-      PRINCIPAL/AUTHORITY_SELECTOR is in at least one of these entries.
-    logConfig: The config returned to callers of CheckPolicy for any entries
-      that match the LOG action.
-    notIn: If one or more 'not_in' clauses are specified, the rule matches if
-      the PRINCIPAL/AUTHORITY_SELECTOR is in none of the entries. The format
-      for in and not_in entries can be found at in the Local IAM documentation
-      (see go/local-iam#features).
-    permissions: A permission is a string of form '..' (e.g.,
-      'storage.buckets.list'). A value of '*' matches all permissions, and a
-      verb part of '*' (e.g., 'storage.buckets.*') matches all verbs.
-  """
-
-  class ActionValueValuesEnum(_messages.Enum):
-    r"""Required
-
-    Values:
-      NO_ACTION: Default no action.
-      ALLOW: Matching 'Entries' grant access.
-      ALLOW_WITH_LOG: Matching 'Entries' grant access and the caller promises
-        to log the request per the returned log_configs.
-      DENY: Matching 'Entries' deny access.
-      DENY_WITH_LOG: Matching 'Entries' deny access and the caller promises to
-        log the request per the returned log_configs.
-      LOG: Matching 'Entries' tell IAM.Check callers to generate logs.
-    """
-    NO_ACTION = 0
-    ALLOW = 1
-    ALLOW_WITH_LOG = 2
-    DENY = 3
-    DENY_WITH_LOG = 4
-    LOG = 5
-
-  action = _messages.EnumField('ActionValueValuesEnum', 1)
-  conditions = _messages.MessageField('GoogleIamV1Condition', 2, repeated=True)
-  description = _messages.StringField(3)
-  in_ = _messages.StringField(4, repeated=True)
-  logConfig = _messages.MessageField('GoogleIamV1LogConfig', 5, repeated=True)
-  notIn = _messages.StringField(6, repeated=True)
-  permissions = _messages.StringField(7, repeated=True)
+  version = _messages.IntegerField(4, variant=_messages.Variant.INT32)
 
 
 class GoogleIamV1SetIamPolicyRequest(_messages.Message):
@@ -2404,6 +1695,617 @@ class HttpHeaderMatch(_messages.Message):
   regexMatch = _messages.StringField(2)
 
 
+class InterceptDeployment(_messages.Message):
+  r"""A deployment represents a zonal intercept backend ready to accept
+  GENEVE-encapsulated traffic, e.g. a zonal instance group fronted by an
+  internal passthrough load balancer. Deployments are always part of a global
+  deployment group which represents a global intercept service.
+
+  Enums:
+    StateValueValuesEnum: Output only. The current state of the deployment.
+      See https://google.aip.dev/216.
+
+  Messages:
+    LabelsValue: Optional. Labels are key/value pairs that help to organize
+      and filter resources.
+
+  Fields:
+    createTime: Output only. The timestamp when the resource was created. See
+      https://google.aip.dev/148#timestamps.
+    description: Optional. User-provided description of the deployment. Used
+      as additional context for the deployment.
+    forwardingRule: Required. Immutable. The regional forwarding rule that
+      fronts the interceptors, for example: `projects/123456789/regions/us-
+      central1/forwardingRules/my-rule`. See https://google.aip.dev/124.
+    interceptDeploymentGroup: Required. Immutable. The deployment group that
+      this deployment is a part of, for example:
+      `projects/123456789/locations/global/interceptDeploymentGroups/my-dg`.
+      See https://google.aip.dev/124.
+    labels: Optional. Labels are key/value pairs that help to organize and
+      filter resources.
+    name: Immutable. Identifier. The resource name of this deployment, for
+      example: `projects/123456789/locations/us-
+      central1-a/interceptDeployments/my-dep`. See https://google.aip.dev/122
+      for more details.
+    reconciling: Output only. The current state of the resource does not match
+      the user's intended state, and the system is working to reconcile them.
+      This part of the normal operation (e.g. linking a new association to the
+      parent group). See https://google.aip.dev/128.
+    state: Output only. The current state of the deployment. See
+      https://google.aip.dev/216.
+    updateTime: Output only. The timestamp when the resource was most recently
+      updated. See https://google.aip.dev/148#timestamps.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. The current state of the deployment. See
+    https://google.aip.dev/216.
+
+    Values:
+      STATE_UNSPECIFIED: State not set (this is not a valid state).
+      ACTIVE: The deployment is ready and in sync with the parent group.
+      CREATING: The deployment is being created.
+      DELETING: The deployment is being deleted.
+      OUT_OF_SYNC: The deployment is out of sync with the parent group. In
+        most cases, this is a result of a transient issue within the system
+        (e.g. a delayed data-path config) and the system is expected to
+        recover automatically. See the parent deployment group's state for
+        more details.
+      DELETE_FAILED: An attempt to delete the deployment has failed. This is a
+        terminal state and the deployment is not expected to recover. The only
+        permitted operation is to retry deleting the deployment.
+    """
+    STATE_UNSPECIFIED = 0
+    ACTIVE = 1
+    CREATING = 2
+    DELETING = 3
+    OUT_OF_SYNC = 4
+    DELETE_FAILED = 5
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class LabelsValue(_messages.Message):
+    r"""Optional. Labels are key/value pairs that help to organize and filter
+    resources.
+
+    Messages:
+      AdditionalProperty: An additional property for a LabelsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type LabelsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a LabelsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  createTime = _messages.StringField(1)
+  description = _messages.StringField(2)
+  forwardingRule = _messages.StringField(3)
+  interceptDeploymentGroup = _messages.StringField(4)
+  labels = _messages.MessageField('LabelsValue', 5)
+  name = _messages.StringField(6)
+  reconciling = _messages.BooleanField(7)
+  state = _messages.EnumField('StateValueValuesEnum', 8)
+  updateTime = _messages.StringField(9)
+
+
+class InterceptDeploymentGroup(_messages.Message):
+  r"""A deployment group aggregates many zonal intercept backends
+  (deployments) into a single global intercept service. Consumers can connect
+  this service using an endpoint group.
+
+  Enums:
+    StateValueValuesEnum: Output only. The current state of the deployment
+      group. See https://google.aip.dev/216.
+
+  Messages:
+    LabelsValue: Optional. Labels are key/value pairs that help to organize
+      and filter resources.
+
+  Fields:
+    connectedEndpointGroups: Output only. The list of endpoint groups that are
+      connected to this resource.
+    createTime: Output only. The timestamp when the resource was created. See
+      https://google.aip.dev/148#timestamps.
+    description: Optional. User-provided description of the deployment group.
+      Used as additional context for the deployment group.
+    labels: Optional. Labels are key/value pairs that help to organize and
+      filter resources.
+    locations: Output only. The list of locations where the deployment group
+      is present.
+    name: Immutable. Identifier. The resource name of this deployment group,
+      for example:
+      `projects/123456789/locations/global/interceptDeploymentGroups/my-dg`.
+      See https://google.aip.dev/122 for more details.
+    nestedDeployments: Output only. The list of Intercept Deployments that
+      belong to this group.
+    network: Required. Immutable. The network that will be used for all child
+      deployments, for example:
+      `projects/{project}/global/networks/{network}`. See
+      https://google.aip.dev/124.
+    reconciling: Output only. The current state of the resource does not match
+      the user's intended state, and the system is working to reconcile them.
+      This is part of the normal operation (e.g. adding a new deployment to
+      the group) See https://google.aip.dev/128.
+    state: Output only. The current state of the deployment group. See
+      https://google.aip.dev/216.
+    updateTime: Output only. The timestamp when the resource was most recently
+      updated. See https://google.aip.dev/148#timestamps.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. The current state of the deployment group. See
+    https://google.aip.dev/216.
+
+    Values:
+      STATE_UNSPECIFIED: State not set (this is not a valid state).
+      ACTIVE: The deployment group is ready.
+      CREATING: The deployment group is being created.
+      DELETING: The deployment group is being deleted.
+    """
+    STATE_UNSPECIFIED = 0
+    ACTIVE = 1
+    CREATING = 2
+    DELETING = 3
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class LabelsValue(_messages.Message):
+    r"""Optional. Labels are key/value pairs that help to organize and filter
+    resources.
+
+    Messages:
+      AdditionalProperty: An additional property for a LabelsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type LabelsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a LabelsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  connectedEndpointGroups = _messages.MessageField('InterceptDeploymentGroupConnectedEndpointGroup', 1, repeated=True)
+  createTime = _messages.StringField(2)
+  description = _messages.StringField(3)
+  labels = _messages.MessageField('LabelsValue', 4)
+  locations = _messages.MessageField('InterceptLocation', 5, repeated=True)
+  name = _messages.StringField(6)
+  nestedDeployments = _messages.MessageField('InterceptDeploymentGroupDeployment', 7, repeated=True)
+  network = _messages.StringField(8)
+  reconciling = _messages.BooleanField(9)
+  state = _messages.EnumField('StateValueValuesEnum', 10)
+  updateTime = _messages.StringField(11)
+
+
+class InterceptDeploymentGroupConnectedEndpointGroup(_messages.Message):
+  r"""An endpoint group connected to this deployment group.
+
+  Fields:
+    name: Output only. The connected endpoint group's resource name, for
+      example:
+      `projects/123456789/locations/global/interceptEndpointGroups/my-eg`. See
+      https://google.aip.dev/124.
+  """
+
+  name = _messages.StringField(1)
+
+
+class InterceptDeploymentGroupDeployment(_messages.Message):
+  r"""A deployment belonging to this deployment group.
+
+  Enums:
+    StateValueValuesEnum: Output only. Most recent known state of the
+      deployment.
+
+  Fields:
+    name: Output only. The name of the Intercept Deployment, in the format: `p
+      rojects/{project}/locations/{location}/interceptDeployments/{intercept_d
+      eployment}`.
+    state: Output only. Most recent known state of the deployment.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. Most recent known state of the deployment.
+
+    Values:
+      STATE_UNSPECIFIED: State not set (this is not a valid state).
+      ACTIVE: The deployment is ready and in sync with the parent group.
+      CREATING: The deployment is being created.
+      DELETING: The deployment is being deleted.
+      OUT_OF_SYNC: The deployment is out of sync with the parent group. In
+        most cases, this is a result of a transient issue within the system
+        (e.g. a delayed data-path config) and the system is expected to
+        recover automatically. See the parent deployment group's state for
+        more details.
+      DELETE_FAILED: An attempt to delete the deployment has failed. This is a
+        terminal state and the deployment is not expected to recover. The only
+        permitted operation is to retry deleting the deployment.
+    """
+    STATE_UNSPECIFIED = 0
+    ACTIVE = 1
+    CREATING = 2
+    DELETING = 3
+    OUT_OF_SYNC = 4
+    DELETE_FAILED = 5
+
+  name = _messages.StringField(1)
+  state = _messages.EnumField('StateValueValuesEnum', 2)
+
+
+class InterceptEndpointGroup(_messages.Message):
+  r"""An endpoint group is a consumer frontend for a deployment group
+  (backend). In order to configure intercept for a network, consumers must
+  create: - An association between their network and the endpoint group. - A
+  security profile that points to the endpoint group. - A firewall rule that
+  references the security profile (group).
+
+  Enums:
+    StateValueValuesEnum: Output only. The current state of the endpoint
+      group. See https://google.aip.dev/216.
+
+  Messages:
+    LabelsValue: Optional. Labels are key/value pairs that help to organize
+      and filter resources.
+
+  Fields:
+    associations: Output only. List of associations to this endpoint group.
+    connectedDeploymentGroup: Output only. Details about the connected
+      deployment group to this endpoint group.
+    createTime: Output only. The timestamp when the resource was created. See
+      https://google.aip.dev/148#timestamps.
+    description: Optional. User-provided description of the endpoint group.
+      Used as additional context for the endpoint group.
+    interceptDeploymentGroup: Required. Immutable. The deployment group that
+      this endpoint group is connected to, for example:
+      `projects/123456789/locations/global/interceptDeploymentGroups/my-dg`.
+      See https://google.aip.dev/124.
+    labels: Optional. Labels are key/value pairs that help to organize and
+      filter resources.
+    name: Immutable. Identifier. The resource name of this endpoint group, for
+      example:
+      `projects/123456789/locations/global/interceptEndpointGroups/my-eg`. See
+      https://google.aip.dev/122 for more details.
+    reconciling: Output only. The current state of the resource does not match
+      the user's intended state, and the system is working to reconcile them.
+      This is part of the normal operation (e.g. adding a new association to
+      the group). See https://google.aip.dev/128.
+    state: Output only. The current state of the endpoint group. See
+      https://google.aip.dev/216.
+    updateTime: Output only. The timestamp when the resource was most recently
+      updated. See https://google.aip.dev/148#timestamps.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. The current state of the endpoint group. See
+    https://google.aip.dev/216.
+
+    Values:
+      STATE_UNSPECIFIED: State not set (this is not a valid state).
+      ACTIVE: The endpoint group is ready and in sync with the target
+        deployment group.
+      CLOSED: The deployment group backing this endpoint group has been force-
+        deleted. This endpoint group cannot be used and interception is
+        effectively disabled.
+      CREATING: The endpoint group is being created.
+      DELETING: The endpoint group is being deleted.
+      OUT_OF_SYNC: The endpoint group is out of sync with the backing
+        deployment group. In most cases, this is a result of a transient issue
+        within the system (e.g. an inaccessible location) and the system is
+        expected to recover automatically. See the associations field for
+        details per network and location.
+      DELETE_FAILED: An attempt to delete the endpoint group has failed. This
+        is a terminal state and the endpoint group is not expected to recover.
+        The only permitted operation is to retry deleting the endpoint group.
+    """
+    STATE_UNSPECIFIED = 0
+    ACTIVE = 1
+    CLOSED = 2
+    CREATING = 3
+    DELETING = 4
+    OUT_OF_SYNC = 5
+    DELETE_FAILED = 6
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class LabelsValue(_messages.Message):
+    r"""Optional. Labels are key/value pairs that help to organize and filter
+    resources.
+
+    Messages:
+      AdditionalProperty: An additional property for a LabelsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type LabelsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a LabelsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  associations = _messages.MessageField('InterceptEndpointGroupAssociationDetails', 1, repeated=True)
+  connectedDeploymentGroup = _messages.MessageField('InterceptEndpointGroupConnectedDeploymentGroup', 2)
+  createTime = _messages.StringField(3)
+  description = _messages.StringField(4)
+  interceptDeploymentGroup = _messages.StringField(5)
+  labels = _messages.MessageField('LabelsValue', 6)
+  name = _messages.StringField(7)
+  reconciling = _messages.BooleanField(8)
+  state = _messages.EnumField('StateValueValuesEnum', 9)
+  updateTime = _messages.StringField(10)
+
+
+class InterceptEndpointGroupAssociation(_messages.Message):
+  r"""An endpoint group association represents a link between a network and an
+  endpoint group in the organization. Creating an association creates the
+  networking infrastructure linking the network to the endpoint group, but
+  does not enable intercept by itself. To enable intercept, the user must also
+  create a network firewall policy containing intercept rules and associate it
+  with the network.
+
+  Enums:
+    StateValueValuesEnum: Output only. Current state of the endpoint group
+      association.
+
+  Messages:
+    LabelsValue: Optional. Labels are key/value pairs that help to organize
+      and filter resources.
+
+  Fields:
+    createTime: Output only. The timestamp when the resource was created. See
+      https://google.aip.dev/148#timestamps.
+    interceptEndpointGroup: Required. Immutable. The endpoint group that this
+      association is connected to, for example:
+      `projects/123456789/locations/global/interceptEndpointGroups/my-eg`. See
+      https://google.aip.dev/124.
+    labels: Optional. Labels are key/value pairs that help to organize and
+      filter resources.
+    locations: Output only. The list of locations where the association is
+      configured. This information is retrieved from the linked endpoint
+      group.
+    locationsDetails: Output only. The list of locations where the association
+      is present. This information is retrieved from the linked endpoint
+      group, and not configured as part of the association itself.
+    name: Immutable. Identifier. The resource name of this endpoint group
+      association, for example: `projects/123456789/locations/global/intercept
+      EndpointGroupAssociations/my-eg-association`. See
+      https://google.aip.dev/122 for more details.
+    network: Required. Immutable. The VPC network that is associated. for
+      example: `projects/123456789/global/networks/my-network`. See
+      https://google.aip.dev/124.
+    reconciling: Output only. The current state of the resource does not match
+      the user's intended state, and the system is working to reconcile them.
+      This part of the normal operation (e.g. adding a new location to the
+      target deployment group). See https://google.aip.dev/128.
+    state: Output only. Current state of the endpoint group association.
+    updateTime: Output only. The timestamp when the resource was most recently
+      updated. See https://google.aip.dev/148#timestamps.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. Current state of the endpoint group association.
+
+    Values:
+      STATE_UNSPECIFIED: Not set.
+      ACTIVE: The association is ready and in sync with the linked endpoint
+        group.
+      CREATING: The association is being created.
+      DELETING: The association is being deleted.
+      CLOSED: The association is disabled due to a breaking change in another
+        resource.
+      OUT_OF_SYNC: The association is out of sync with the linked endpoint
+        group. In most cases, this is a result of a transient issue within the
+        system (e.g. an inaccessible location) and the system is expected to
+        recover automatically. Check the `locations_details` field for more
+        details.
+      DELETE_FAILED: An attempt to delete the association has failed. This is
+        a terminal state and the association is not expected to be usable as
+        some of its resources have been deleted. The only permitted operation
+        is to retry deleting the association.
+    """
+    STATE_UNSPECIFIED = 0
+    ACTIVE = 1
+    CREATING = 2
+    DELETING = 3
+    CLOSED = 4
+    OUT_OF_SYNC = 5
+    DELETE_FAILED = 6
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class LabelsValue(_messages.Message):
+    r"""Optional. Labels are key/value pairs that help to organize and filter
+    resources.
+
+    Messages:
+      AdditionalProperty: An additional property for a LabelsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type LabelsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a LabelsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  createTime = _messages.StringField(1)
+  interceptEndpointGroup = _messages.StringField(2)
+  labels = _messages.MessageField('LabelsValue', 3)
+  locations = _messages.MessageField('InterceptLocation', 4, repeated=True)
+  locationsDetails = _messages.MessageField('InterceptEndpointGroupAssociationLocationDetails', 5, repeated=True)
+  name = _messages.StringField(6)
+  network = _messages.StringField(7)
+  reconciling = _messages.BooleanField(8)
+  state = _messages.EnumField('StateValueValuesEnum', 9)
+  updateTime = _messages.StringField(10)
+
+
+class InterceptEndpointGroupAssociationDetails(_messages.Message):
+  r"""The endpoint group's view of a connected association.
+
+  Enums:
+    StateValueValuesEnum: Output only. Most recent known state of the
+      association.
+
+  Fields:
+    name: Output only. The connected association's resource name, for example:
+      `projects/123456789/locations/global/interceptEndpointGroupAssociations/
+      my-ega`. See https://google.aip.dev/124.
+    network: Output only. The associated network, for example:
+      projects/123456789/global/networks/my-network. See
+      https://google.aip.dev/124.
+    state: Output only. Most recent known state of the association.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. Most recent known state of the association.
+
+    Values:
+      STATE_UNSPECIFIED: Not set.
+      ACTIVE: The association is ready and in sync with the linked endpoint
+        group.
+      CREATING: The association is being created.
+      DELETING: The association is being deleted.
+      CLOSED: The association is disabled due to a breaking change in another
+        resource.
+      OUT_OF_SYNC: The association is out of sync with the linked endpoint
+        group. In most cases, this is a result of a transient issue within the
+        system (e.g. an inaccessible location) and the system is expected to
+        recover automatically. Check the `locations_details` field for more
+        details.
+      DELETE_FAILED: An attempt to delete the association has failed. This is
+        a terminal state and the association is not expected to be usable as
+        some of its resources have been deleted. The only permitted operation
+        is to retry deleting the association.
+    """
+    STATE_UNSPECIFIED = 0
+    ACTIVE = 1
+    CREATING = 2
+    DELETING = 3
+    CLOSED = 4
+    OUT_OF_SYNC = 5
+    DELETE_FAILED = 6
+
+  name = _messages.StringField(1)
+  network = _messages.StringField(2)
+  state = _messages.EnumField('StateValueValuesEnum', 3)
+
+
+class InterceptEndpointGroupAssociationLocationDetails(_messages.Message):
+  r"""Contains details about the state of an association in a specific cloud
+  location.
+
+  Enums:
+    StateValueValuesEnum: Output only. The current state of the association in
+      this location.
+
+  Fields:
+    location: Output only. The cloud location, e.g. "us-central1-a" or "asia-
+      south1".
+    state: Output only. The current state of the association in this location.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. The current state of the association in this location.
+
+    Values:
+      STATE_UNSPECIFIED: Not set.
+      ACTIVE: The association is ready and in sync with the linked endpoint
+        group.
+      OUT_OF_SYNC: The association is out of sync with the linked endpoint
+        group. In most cases, this is a result of a transient issue within the
+        system (e.g. an inaccessible location) and the system is expected to
+        recover automatically.
+    """
+    STATE_UNSPECIFIED = 0
+    ACTIVE = 1
+    OUT_OF_SYNC = 2
+
+  location = _messages.StringField(1)
+  state = _messages.EnumField('StateValueValuesEnum', 2)
+
+
+class InterceptEndpointGroupConnectedDeploymentGroup(_messages.Message):
+  r"""The endpoint group's view of a connected deployment group.
+
+  Fields:
+    locations: Output only. The list of locations where the deployment group
+      is present.
+    name: Output only. The connected deployment group's resource name, for
+      example:
+      `projects/123456789/locations/global/interceptDeploymentGroups/my-dg`.
+      See https://google.aip.dev/124.
+  """
+
+  locations = _messages.MessageField('InterceptLocation', 1, repeated=True)
+  name = _messages.StringField(2)
+
+
+class InterceptLocation(_messages.Message):
+  r"""Details about intercept in a specific cloud location.
+
+  Enums:
+    StateValueValuesEnum: Output only. The current state of the association in
+      this location.
+
+  Fields:
+    location: Output only. The cloud location, e.g. "us-central1-a" or "asia-
+      south1".
+    state: Output only. The current state of the association in this location.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. The current state of the association in this location.
+
+    Values:
+      STATE_UNSPECIFIED: State not set (this is not a valid state).
+      ACTIVE: The resource is ready and in sync in the location.
+      OUT_OF_SYNC: The resource is out of sync in the location. In most cases,
+        this is a result of a transient issue within the system (e.g. an
+        inaccessible location) and the system is expected to recover
+        automatically.
+    """
+    STATE_UNSPECIFIED = 0
+    ACTIVE = 1
+    OUT_OF_SYNC = 2
+
+  location = _messages.StringField(1)
+  state = _messages.EnumField('StateValueValuesEnum', 2)
+
+
 class ListAddressGroupReferencesResponse(_messages.Message):
   r"""Response of the ListAddressGroupReferences method.
 
@@ -2427,15 +2329,13 @@ class ListAddressGroupReferencesResponseAddressGroupReference(_messages.Message)
     firewallPolicy: FirewallPolicy that is using the Address Group.
     rulePriority: Rule priority of the FirewallPolicy that is using the
       Address Group.
-    ruleType: Type of the rule (applies only to FIREWALL_POLICY references)
     securityPolicy: Cloud Armor SecurityPolicy that is using the Address
       Group.
   """
 
   firewallPolicy = _messages.StringField(1)
   rulePriority = _messages.IntegerField(2, variant=_messages.Variant.INT32)
-  ruleType = _messages.StringField(3)
-  securityPolicy = _messages.StringField(4)
+  securityPolicy = _messages.StringField(3)
 
 
 class ListAddressGroupsResponse(_messages.Message):
@@ -2447,10 +2347,12 @@ class ListAddressGroupsResponse(_messages.Message):
       response, then `next_page_token` is included. To get the next set of
       results, call this method again using the value of `next_page_token` as
       `page_token`.
+    unreachable: Locations that could not be reached.
   """
 
   addressGroups = _messages.MessageField('AddressGroup', 1, repeated=True)
   nextPageToken = _messages.StringField(2)
+  unreachable = _messages.StringField(3, repeated=True)
 
 
 class ListAuthorizationPoliciesResponse(_messages.Message):
@@ -2468,6 +2370,39 @@ class ListAuthorizationPoliciesResponse(_messages.Message):
   nextPageToken = _messages.StringField(2)
 
 
+class ListAuthzPoliciesResponse(_messages.Message):
+  r"""Message for response to listing `AuthzPolicy` resources.
+
+  Fields:
+    authzPolicies: The list of `AuthzPolicy` resources.
+    nextPageToken: A token identifying a page of results that the server
+      returns.
+    unreachable: Locations that could not be reached.
+  """
+
+  authzPolicies = _messages.MessageField('AuthzPolicy', 1, repeated=True)
+  nextPageToken = _messages.StringField(2)
+  unreachable = _messages.StringField(3, repeated=True)
+
+
+class ListBackendAuthenticationConfigsResponse(_messages.Message):
+  r"""Response returned by the ListBackendAuthenticationConfigs method.
+
+  Fields:
+    backendAuthenticationConfigs: List of BackendAuthenticationConfig
+      resources.
+    nextPageToken: If there might be more results than those appearing in this
+      response, then `next_page_token` is included. To get the next set of
+      results, call this method again using the value of `next_page_token` as
+      `page_token`.
+    unreachable: Locations that could not be reached.
+  """
+
+  backendAuthenticationConfigs = _messages.MessageField('BackendAuthenticationConfig', 1, repeated=True)
+  nextPageToken = _messages.StringField(2)
+  unreachable = _messages.StringField(3, repeated=True)
+
+
 class ListClientTlsPoliciesResponse(_messages.Message):
   r"""Response returned by the ListClientTlsPolicies method.
 
@@ -2481,6 +2416,21 @@ class ListClientTlsPoliciesResponse(_messages.Message):
 
   clientTlsPolicies = _messages.MessageField('ClientTlsPolicy', 1, repeated=True)
   nextPageToken = _messages.StringField(2)
+
+
+class ListDnsThreatDetectorsResponse(_messages.Message):
+  r"""The response message to requesting a list of DnsThreatDetectors.
+
+  Fields:
+    dnsThreatDetectors: The list of DnsThreatDetector resources.
+    nextPageToken: A token, which can be sent as `page_token`, to retrieve the
+      next page.
+    unreachable: Unordered list. Unreachable `DnsThreatDetector` resources.
+  """
+
+  dnsThreatDetectors = _messages.MessageField('DnsThreatDetector', 1, repeated=True)
+  nextPageToken = _messages.StringField(2)
+  unreachable = _messages.StringField(3, repeated=True)
 
 
 class ListFirewallEndpointAssociationsResponse(_messages.Message):
@@ -2547,6 +2497,66 @@ class ListGatewaySecurityPolicyRulesResponse(_messages.Message):
   unreachable = _messages.StringField(3, repeated=True)
 
 
+class ListInterceptDeploymentGroupsResponse(_messages.Message):
+  r"""Response message for ListInterceptDeploymentGroups.
+
+  Fields:
+    interceptDeploymentGroups: The deployment groups from the specified
+      parent.
+    nextPageToken: A token that can be sent as `page_token` to retrieve the
+      next page. If this field is omitted, there are no subsequent pages. See
+      https://google.aip.dev/158 for more details.
+  """
+
+  interceptDeploymentGroups = _messages.MessageField('InterceptDeploymentGroup', 1, repeated=True)
+  nextPageToken = _messages.StringField(2)
+
+
+class ListInterceptDeploymentsResponse(_messages.Message):
+  r"""Response message for ListInterceptDeployments.
+
+  Fields:
+    interceptDeployments: The deployments from the specified parent.
+    nextPageToken: A token that can be sent as `page_token` to retrieve the
+      next page. If this field is omitted, there are no subsequent pages. See
+      https://google.aip.dev/158 for more details.
+    unreachable: Locations that could not be reached.
+  """
+
+  interceptDeployments = _messages.MessageField('InterceptDeployment', 1, repeated=True)
+  nextPageToken = _messages.StringField(2)
+  unreachable = _messages.StringField(3, repeated=True)
+
+
+class ListInterceptEndpointGroupAssociationsResponse(_messages.Message):
+  r"""Response message for ListInterceptEndpointGroupAssociations.
+
+  Fields:
+    interceptEndpointGroupAssociations: The associations from the specified
+      parent.
+    nextPageToken: A token that can be sent as `page_token` to retrieve the
+      next page. If this field is omitted, there are no subsequent pages. See
+      https://google.aip.dev/158 for more details.
+  """
+
+  interceptEndpointGroupAssociations = _messages.MessageField('InterceptEndpointGroupAssociation', 1, repeated=True)
+  nextPageToken = _messages.StringField(2)
+
+
+class ListInterceptEndpointGroupsResponse(_messages.Message):
+  r"""Response message for ListInterceptEndpointGroups.
+
+  Fields:
+    interceptEndpointGroups: The endpoint groups from the specified parent.
+    nextPageToken: A token that can be sent as `page_token` to retrieve the
+      next page. If this field is omitted, there are no subsequent pages. See
+      https://google.aip.dev/158 for more details.
+  """
+
+  interceptEndpointGroups = _messages.MessageField('InterceptEndpointGroup', 1, repeated=True)
+  nextPageToken = _messages.StringField(2)
+
+
 class ListLocationsResponse(_messages.Message):
   r"""The response message for Locations.ListLocations.
 
@@ -2557,6 +2567,66 @@ class ListLocationsResponse(_messages.Message):
   """
 
   locations = _messages.MessageField('Location', 1, repeated=True)
+  nextPageToken = _messages.StringField(2)
+
+
+class ListMirroringDeploymentGroupsResponse(_messages.Message):
+  r"""Response message for ListMirroringDeploymentGroups.
+
+  Fields:
+    mirroringDeploymentGroups: The deployment groups from the specified
+      parent.
+    nextPageToken: A token that can be sent as `page_token` to retrieve the
+      next page. If this field is omitted, there are no subsequent pages. See
+      https://google.aip.dev/158 for more details.
+  """
+
+  mirroringDeploymentGroups = _messages.MessageField('MirroringDeploymentGroup', 1, repeated=True)
+  nextPageToken = _messages.StringField(2)
+
+
+class ListMirroringDeploymentsResponse(_messages.Message):
+  r"""Response message for ListMirroringDeployments.
+
+  Fields:
+    mirroringDeployments: The deployments from the specified parent.
+    nextPageToken: A token that can be sent as `page_token` to retrieve the
+      next page. If this field is omitted, there are no subsequent pages. See
+      https://google.aip.dev/158 for more details.
+    unreachable: Locations that could not be reached.
+  """
+
+  mirroringDeployments = _messages.MessageField('MirroringDeployment', 1, repeated=True)
+  nextPageToken = _messages.StringField(2)
+  unreachable = _messages.StringField(3, repeated=True)
+
+
+class ListMirroringEndpointGroupAssociationsResponse(_messages.Message):
+  r"""Response message for ListMirroringEndpointGroupAssociations.
+
+  Fields:
+    mirroringEndpointGroupAssociations: The associations from the specified
+      parent.
+    nextPageToken: A token that can be sent as `page_token` to retrieve the
+      next page. If this field is omitted, there are no subsequent pages. See
+      https://google.aip.dev/158 for more details.
+  """
+
+  mirroringEndpointGroupAssociations = _messages.MessageField('MirroringEndpointGroupAssociation', 1, repeated=True)
+  nextPageToken = _messages.StringField(2)
+
+
+class ListMirroringEndpointGroupsResponse(_messages.Message):
+  r"""Response message for ListMirroringEndpointGroups.
+
+  Fields:
+    mirroringEndpointGroups: The endpoint groups from the specified parent.
+    nextPageToken: A token that can be sent as `page_token` to retrieve the
+      next page. If this field is omitted, there are no subsequent pages. See
+      https://google.aip.dev/158 for more details.
+  """
+
+  mirroringEndpointGroups = _messages.MessageField('MirroringEndpointGroup', 1, repeated=True)
   nextPageToken = _messages.StringField(2)
 
 
@@ -2573,37 +2643,34 @@ class ListOperationsResponse(_messages.Message):
   operations = _messages.MessageField('Operation', 2, repeated=True)
 
 
-class ListReferencesRequest(_messages.Message):
-  r"""The ListResourceMetadataRequest request.
+class ListSACAttachmentsResponse(_messages.Message):
+  r"""Response for `ListSACAttachments` method.
 
   Fields:
-    pageSize: The maximum number of items to return. If unspecified, server
-      will pick an appropriate default. Server may return fewer items than
-      requested. A caller should only rely on response's next_page_token to
-      determine if there are more References left to be queried.
-    pageToken: The next_page_token value returned from a previous List
-      request, if any.
-    parent: Required. The parent resource name (target_resource of this
-      reference). For example: `//targetservice.googleapis.com/projects/{my-
-      project}/locations/{location}/instances/{my-instance}`.
-  """
-
-  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(2)
-  parent = _messages.StringField(3)
-
-
-class ListReferencesResponse(_messages.Message):
-  r"""The ListReferencesResponse response.
-
-  Fields:
-    nextPageToken: Token to retrieve the next page of results, or empty if
-      there are no more results in the list.
-    references: The list of references.
+    nextPageToken: A token identifying a page of results the server should
+      return.
+    sacAttachments: The list of SACAttachments.
+    unreachable: Locations that could not be reached.
   """
 
   nextPageToken = _messages.StringField(1)
-  references = _messages.MessageField('Reference', 2, repeated=True)
+  sacAttachments = _messages.MessageField('SACAttachment', 2, repeated=True)
+  unreachable = _messages.StringField(3, repeated=True)
+
+
+class ListSACRealmsResponse(_messages.Message):
+  r"""Response for `ListSACRealms` method.
+
+  Fields:
+    nextPageToken: A token identifying a page of results the server should
+      return.
+    sacRealms: The list of SACRealms.
+    unreachable: Locations that could not be reached.
+  """
+
+  nextPageToken = _messages.StringField(1)
+  sacRealms = _messages.MessageField('SACRealm', 2, repeated=True)
+  unreachable = _messages.StringField(3, repeated=True)
 
 
 class ListSecurityProfileGroupsResponse(_messages.Message):
@@ -2645,10 +2712,14 @@ class ListServerTlsPoliciesResponse(_messages.Message):
       results, call this method again using the value of `next_page_token` as
       `page_token`.
     serverTlsPolicies: List of ServerTlsPolicy resources.
+    unreachable: Unreachable resources. Populated when the request opts into
+      `return_partial_success` and reading across collections e.g. when
+      attempting to list all resources across all supported locations.
   """
 
   nextPageToken = _messages.StringField(1)
   serverTlsPolicies = _messages.MessageField('ServerTlsPolicy', 2, repeated=True)
+  unreachable = _messages.StringField(3, repeated=True)
 
 
 class ListTlsInspectionPoliciesResponse(_messages.Message):
@@ -2772,35 +2843,31 @@ class MTLSPolicy(_messages.Message):
     ClientValidationModeValueValuesEnum: When the client presents an invalid
       certificate or no certificate to the load balancer, the
       `client_validation_mode` specifies how the client connection is handled.
-      Required if the policy is to be used with the external HTTPS load
-      balancing. For Traffic Director it must be empty.
-    TierValueValuesEnum: Mutual TLS tier. Allowed only if the policy is to be
-      used with external HTTPS load balancers.
+      Required if the policy is to be used with the Application Load
+      Balancers. For Traffic Director it must be empty.
 
   Fields:
     clientValidationCa: Required if the policy is to be used with Traffic
-      Director. For external HTTPS load balancers it must be empty. Defines
-      the mechanism to obtain the Certificate Authority certificate to
-      validate the client certificate.
+      Director. For Application Load Balancers it must be empty. Defines the
+      mechanism to obtain the Certificate Authority certificate to validate
+      the client certificate.
     clientValidationMode: When the client presents an invalid certificate or
       no certificate to the load balancer, the `client_validation_mode`
       specifies how the client connection is handled. Required if the policy
-      is to be used with the external HTTPS load balancing. For Traffic
-      Director it must be empty.
+      is to be used with the Application Load Balancers. For Traffic Director
+      it must be empty.
     clientValidationTrustConfig: Reference to the TrustConfig from
       certificatemanager.googleapis.com namespace. If specified, the chain
       validation will be performed against certificates configured in the
       given TrustConfig. Allowed only if the policy is to be used with
-      external HTTPS load balancers.
-    tier: Mutual TLS tier. Allowed only if the policy is to be used with
-      external HTTPS load balancers.
+      Application Load Balancers.
   """
 
   class ClientValidationModeValueValuesEnum(_messages.Enum):
     r"""When the client presents an invalid certificate or no certificate to
     the load balancer, the `client_validation_mode` specifies how the client
     connection is handled. Required if the policy is to be used with the
-    external HTTPS load balancing. For Traffic Director it must be empty.
+    Application Load Balancers. For Traffic Director it must be empty.
 
     Values:
       CLIENT_VALIDATION_MODE_UNSPECIFIED: Not allowed.
@@ -2820,46 +2887,621 @@ class MTLSPolicy(_messages.Message):
     ALLOW_INVALID_OR_MISSING_CLIENT_CERT = 1
     REJECT_INVALID = 2
 
-  class TierValueValuesEnum(_messages.Enum):
-    r"""Mutual TLS tier. Allowed only if the policy is to be used with
-    external HTTPS load balancers.
-
-    Values:
-      TIER_UNSPECIFIED: If tier is unspecified in the request, the system will
-        choose a default value - `STANDARD` tier at present.
-      STANDARD: Default Tier. Primarily for Software Providers (service to
-        service/API communication).
-      ADVANCED: Advanced Tier. For customers in strongly regulated
-        environments, specifying longer keys, complex certificate chains.
-    """
-    TIER_UNSPECIFIED = 0
-    STANDARD = 1
-    ADVANCED = 2
-
   clientValidationCa = _messages.MessageField('ValidationCA', 1, repeated=True)
   clientValidationMode = _messages.EnumField('ClientValidationModeValueValuesEnum', 2)
   clientValidationTrustConfig = _messages.StringField(3)
-  tier = _messages.EnumField('TierValueValuesEnum', 4)
 
 
-class Money(_messages.Message):
-  r"""Represents an amount of money with its currency type.
+class MirroringDeployment(_messages.Message):
+  r"""A deployment represents a zonal mirroring backend ready to accept
+  GENEVE-encapsulated replica traffic, e.g. a zonal instance group fronted by
+  an internal passthrough load balancer. Deployments are always part of a
+  global deployment group which represents a global mirroring service.
+
+  Enums:
+    StateValueValuesEnum: Output only. The current state of the deployment.
+      See https://google.aip.dev/216.
+
+  Messages:
+    LabelsValue: Optional. Labels are key/value pairs that help to organize
+      and filter resources.
 
   Fields:
-    currencyCode: The three-letter currency code defined in ISO 4217.
-    nanos: Number of nano (10^-9) units of the amount. The value must be
-      between -999,999,999 and +999,999,999 inclusive. If `units` is positive,
-      `nanos` must be positive or zero. If `units` is zero, `nanos` can be
-      positive, zero, or negative. If `units` is negative, `nanos` must be
-      negative or zero. For example $-1.75 is represented as `units`=-1 and
-      `nanos`=-750,000,000.
-    units: The whole units of the amount. For example if `currencyCode` is
-      `"USD"`, then 1 unit is one US dollar.
+    createTime: Output only. The timestamp when the resource was created. See
+      https://google.aip.dev/148#timestamps.
+    description: Optional. User-provided description of the deployment. Used
+      as additional context for the deployment.
+    forwardingRule: Required. Immutable. The regional forwarding rule that
+      fronts the mirroring collectors, for example:
+      `projects/123456789/regions/us-central1/forwardingRules/my-rule`. See
+      https://google.aip.dev/124.
+    labels: Optional. Labels are key/value pairs that help to organize and
+      filter resources.
+    mirroringDeploymentGroup: Required. Immutable. The deployment group that
+      this deployment is a part of, for example:
+      `projects/123456789/locations/global/mirroringDeploymentGroups/my-dg`.
+      See https://google.aip.dev/124.
+    name: Immutable. Identifier. The resource name of this deployment, for
+      example: `projects/123456789/locations/us-
+      central1-a/mirroringDeployments/my-dep`. See https://google.aip.dev/122
+      for more details.
+    reconciling: Output only. The current state of the resource does not match
+      the user's intended state, and the system is working to reconcile them.
+      This part of the normal operation (e.g. linking a new association to the
+      parent group). See https://google.aip.dev/128.
+    state: Output only. The current state of the deployment. See
+      https://google.aip.dev/216.
+    updateTime: Output only. The timestamp when the resource was most recently
+      updated. See https://google.aip.dev/148#timestamps.
   """
 
-  currencyCode = _messages.StringField(1)
-  nanos = _messages.IntegerField(2, variant=_messages.Variant.INT32)
-  units = _messages.IntegerField(3)
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. The current state of the deployment. See
+    https://google.aip.dev/216.
+
+    Values:
+      STATE_UNSPECIFIED: State not set (this is not a valid state).
+      ACTIVE: The deployment is ready and in sync with the parent group.
+      CREATING: The deployment is being created.
+      DELETING: The deployment is being deleted.
+      OUT_OF_SYNC: The deployment is out of sync with the parent group. In
+        most cases, this is a result of a transient issue within the system
+        (e.g. a delayed data-path config) and the system is expected to
+        recover automatically. See the parent deployment group's state for
+        more details.
+      DELETE_FAILED: An attempt to delete the deployment has failed. This is a
+        terminal state and the deployment is not expected to recover. The only
+        permitted operation is to retry deleting the deployment.
+    """
+    STATE_UNSPECIFIED = 0
+    ACTIVE = 1
+    CREATING = 2
+    DELETING = 3
+    OUT_OF_SYNC = 4
+    DELETE_FAILED = 5
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class LabelsValue(_messages.Message):
+    r"""Optional. Labels are key/value pairs that help to organize and filter
+    resources.
+
+    Messages:
+      AdditionalProperty: An additional property for a LabelsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type LabelsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a LabelsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  createTime = _messages.StringField(1)
+  description = _messages.StringField(2)
+  forwardingRule = _messages.StringField(3)
+  labels = _messages.MessageField('LabelsValue', 4)
+  mirroringDeploymentGroup = _messages.StringField(5)
+  name = _messages.StringField(6)
+  reconciling = _messages.BooleanField(7)
+  state = _messages.EnumField('StateValueValuesEnum', 8)
+  updateTime = _messages.StringField(9)
+
+
+class MirroringDeploymentGroup(_messages.Message):
+  r"""A deployment group aggregates many zonal mirroring backends
+  (deployments) into a single global mirroring service. Consumers can connect
+  this service using an endpoint group.
+
+  Enums:
+    StateValueValuesEnum: Output only. The current state of the deployment
+      group. See https://google.aip.dev/216.
+
+  Messages:
+    LabelsValue: Optional. Labels are key/value pairs that help to organize
+      and filter resources.
+
+  Fields:
+    connectedEndpointGroups: Output only. The list of endpoint groups that are
+      connected to this resource.
+    createTime: Output only. The timestamp when the resource was created. See
+      https://google.aip.dev/148#timestamps.
+    description: Optional. User-provided description of the deployment group.
+      Used as additional context for the deployment group.
+    labels: Optional. Labels are key/value pairs that help to organize and
+      filter resources.
+    locations: Output only. The list of locations where the deployment group
+      is present.
+    name: Immutable. Identifier. The resource name of this deployment group,
+      for example:
+      `projects/123456789/locations/global/mirroringDeploymentGroups/my-dg`.
+      See https://google.aip.dev/122 for more details.
+    nestedDeployments: Output only. The list of Mirroring Deployments that
+      belong to this group.
+    network: Required. Immutable. The network that will be used for all child
+      deployments, for example:
+      `projects/{project}/global/networks/{network}`. See
+      https://google.aip.dev/124.
+    reconciling: Output only. The current state of the resource does not match
+      the user's intended state, and the system is working to reconcile them.
+      This is part of the normal operation (e.g. adding a new deployment to
+      the group) See https://google.aip.dev/128.
+    state: Output only. The current state of the deployment group. See
+      https://google.aip.dev/216.
+    updateTime: Output only. The timestamp when the resource was most recently
+      updated. See https://google.aip.dev/148#timestamps.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. The current state of the deployment group. See
+    https://google.aip.dev/216.
+
+    Values:
+      STATE_UNSPECIFIED: State not set (this is not a valid state).
+      ACTIVE: The deployment group is ready.
+      CREATING: The deployment group is being created.
+      DELETING: The deployment group is being deleted.
+    """
+    STATE_UNSPECIFIED = 0
+    ACTIVE = 1
+    CREATING = 2
+    DELETING = 3
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class LabelsValue(_messages.Message):
+    r"""Optional. Labels are key/value pairs that help to organize and filter
+    resources.
+
+    Messages:
+      AdditionalProperty: An additional property for a LabelsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type LabelsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a LabelsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  connectedEndpointGroups = _messages.MessageField('MirroringDeploymentGroupConnectedEndpointGroup', 1, repeated=True)
+  createTime = _messages.StringField(2)
+  description = _messages.StringField(3)
+  labels = _messages.MessageField('LabelsValue', 4)
+  locations = _messages.MessageField('MirroringLocation', 5, repeated=True)
+  name = _messages.StringField(6)
+  nestedDeployments = _messages.MessageField('MirroringDeploymentGroupDeployment', 7, repeated=True)
+  network = _messages.StringField(8)
+  reconciling = _messages.BooleanField(9)
+  state = _messages.EnumField('StateValueValuesEnum', 10)
+  updateTime = _messages.StringField(11)
+
+
+class MirroringDeploymentGroupConnectedEndpointGroup(_messages.Message):
+  r"""An endpoint group connected to this deployment group.
+
+  Fields:
+    name: Output only. The connected endpoint group's resource name, for
+      example:
+      `projects/123456789/locations/global/mirroringEndpointGroups/my-eg`. See
+      https://google.aip.dev/124.
+  """
+
+  name = _messages.StringField(1)
+
+
+class MirroringDeploymentGroupDeployment(_messages.Message):
+  r"""A deployment belonging to this deployment group.
+
+  Enums:
+    StateValueValuesEnum: Output only. Most recent known state of the
+      deployment.
+
+  Fields:
+    name: Output only. The name of the Mirroring Deployment, in the format: `p
+      rojects/{project}/locations/{location}/mirroringDeployments/{mirroring_d
+      eployment}`.
+    state: Output only. Most recent known state of the deployment.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. Most recent known state of the deployment.
+
+    Values:
+      STATE_UNSPECIFIED: State not set (this is not a valid state).
+      ACTIVE: The deployment is ready and in sync with the parent group.
+      CREATING: The deployment is being created.
+      DELETING: The deployment is being deleted.
+      OUT_OF_SYNC: The deployment is out of sync with the parent group. In
+        most cases, this is a result of a transient issue within the system
+        (e.g. a delayed data-path config) and the system is expected to
+        recover automatically. See the parent deployment group's state for
+        more details.
+      DELETE_FAILED: An attempt to delete the deployment has failed. This is a
+        terminal state and the deployment is not expected to recover. The only
+        permitted operation is to retry deleting the deployment.
+    """
+    STATE_UNSPECIFIED = 0
+    ACTIVE = 1
+    CREATING = 2
+    DELETING = 3
+    OUT_OF_SYNC = 4
+    DELETE_FAILED = 5
+
+  name = _messages.StringField(1)
+  state = _messages.EnumField('StateValueValuesEnum', 2)
+
+
+class MirroringEndpointGroup(_messages.Message):
+  r"""An endpoint group is a consumer frontend for a deployment group
+  (backend). In order to configure mirroring for a network, consumers must
+  create: - An association between their network and the endpoint group. - A
+  security profile that points to the endpoint group. - A mirroring rule that
+  references the security profile (group).
+
+  Enums:
+    StateValueValuesEnum: Output only. The current state of the endpoint
+      group. See https://google.aip.dev/216.
+
+  Messages:
+    LabelsValue: Optional. Labels are key/value pairs that help to organize
+      and filter resources.
+
+  Fields:
+    associations: Output only. List of associations to this endpoint group.
+    connectedDeploymentGroups: Output only. List of details about the
+      connected deployment groups to this endpoint group.
+    createTime: Output only. The timestamp when the resource was created. See
+      https://google.aip.dev/148#timestamps.
+    description: Optional. User-provided description of the endpoint group.
+      Used as additional context for the endpoint group.
+    labels: Optional. Labels are key/value pairs that help to organize and
+      filter resources.
+    mirroringDeploymentGroup: Immutable. The deployment group that this DIRECT
+      endpoint group is connected to, for example:
+      `projects/123456789/locations/global/mirroringDeploymentGroups/my-dg`.
+      See https://google.aip.dev/124.
+    name: Immutable. Identifier. The resource name of this endpoint group, for
+      example:
+      `projects/123456789/locations/global/mirroringEndpointGroups/my-eg`. See
+      https://google.aip.dev/122 for more details.
+    reconciling: Output only. The current state of the resource does not match
+      the user's intended state, and the system is working to reconcile them.
+      This is part of the normal operation (e.g. adding a new association to
+      the group). See https://google.aip.dev/128.
+    state: Output only. The current state of the endpoint group. See
+      https://google.aip.dev/216.
+    updateTime: Output only. The timestamp when the resource was most recently
+      updated. See https://google.aip.dev/148#timestamps.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. The current state of the endpoint group. See
+    https://google.aip.dev/216.
+
+    Values:
+      STATE_UNSPECIFIED: State not set (this is not a valid state).
+      ACTIVE: The endpoint group is ready and in sync with the target
+        deployment group.
+      CLOSED: The deployment group backing this endpoint group has been force-
+        deleted. This endpoint group cannot be used and mirroring is
+        effectively disabled.
+      CREATING: The endpoint group is being created.
+      DELETING: The endpoint group is being deleted.
+      OUT_OF_SYNC: The endpoint group is out of sync with the backing
+        deployment group. In most cases, this is a result of a transient issue
+        within the system (e.g. an inaccessible location) and the system is
+        expected to recover automatically. See the associations field for
+        details per network and location.
+      DELETE_FAILED: An attempt to delete the endpoint group has failed. This
+        is a terminal state and the endpoint group is not expected to recover.
+        The only permitted operation is to retry deleting the endpoint group.
+    """
+    STATE_UNSPECIFIED = 0
+    ACTIVE = 1
+    CLOSED = 2
+    CREATING = 3
+    DELETING = 4
+    OUT_OF_SYNC = 5
+    DELETE_FAILED = 6
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class LabelsValue(_messages.Message):
+    r"""Optional. Labels are key/value pairs that help to organize and filter
+    resources.
+
+    Messages:
+      AdditionalProperty: An additional property for a LabelsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type LabelsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a LabelsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  associations = _messages.MessageField('MirroringEndpointGroupAssociationDetails', 1, repeated=True)
+  connectedDeploymentGroups = _messages.MessageField('MirroringEndpointGroupConnectedDeploymentGroup', 2, repeated=True)
+  createTime = _messages.StringField(3)
+  description = _messages.StringField(4)
+  labels = _messages.MessageField('LabelsValue', 5)
+  mirroringDeploymentGroup = _messages.StringField(6)
+  name = _messages.StringField(7)
+  reconciling = _messages.BooleanField(8)
+  state = _messages.EnumField('StateValueValuesEnum', 9)
+  updateTime = _messages.StringField(10)
+
+
+class MirroringEndpointGroupAssociation(_messages.Message):
+  r"""An endpoint group association represents a link between a network and an
+  endpoint group in the organization. Creating an association creates the
+  networking infrastructure linking the network to the endpoint group, but
+  does not enable mirroring by itself. To enable mirroring, the user must also
+  create a network firewall policy containing mirroring rules and associate it
+  with the network.
+
+  Enums:
+    StateValueValuesEnum: Output only. Current state of the endpoint group
+      association.
+
+  Messages:
+    LabelsValue: Optional. Labels are key/value pairs that help to organize
+      and filter resources.
+
+  Fields:
+    createTime: Output only. The timestamp when the resource was created. See
+      https://google.aip.dev/148#timestamps.
+    labels: Optional. Labels are key/value pairs that help to organize and
+      filter resources.
+    locations: Output only. The list of locations where the association is
+      configured. This information is retrieved from the linked endpoint
+      group.
+    locationsDetails: Output only. The list of locations where the association
+      is present. This information is retrieved from the linked endpoint
+      group, and not configured as part of the association itself.
+    mirroringEndpointGroup: Immutable. The endpoint group that this
+      association is connected to, for example:
+      `projects/123456789/locations/global/mirroringEndpointGroups/my-eg`. See
+      https://google.aip.dev/124.
+    name: Immutable. Identifier. The resource name of this endpoint group
+      association, for example: `projects/123456789/locations/global/mirroring
+      EndpointGroupAssociations/my-eg-association`. See
+      https://google.aip.dev/122 for more details.
+    network: Immutable. The VPC network that is associated. for example:
+      `projects/123456789/global/networks/my-network`. See
+      https://google.aip.dev/124.
+    reconciling: Output only. The current state of the resource does not match
+      the user's intended state, and the system is working to reconcile them.
+      This part of the normal operation (e.g. adding a new location to the
+      target deployment group). See https://google.aip.dev/128.
+    state: Output only. Current state of the endpoint group association.
+    updateTime: Output only. The timestamp when the resource was most recently
+      updated. See https://google.aip.dev/148#timestamps.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. Current state of the endpoint group association.
+
+    Values:
+      STATE_UNSPECIFIED: Not set.
+      ACTIVE: The association is ready and in sync with the linked endpoint
+        group.
+      CREATING: The association is being created.
+      DELETING: The association is being deleted.
+      CLOSED: The association is disabled due to a breaking change in another
+        resource.
+      OUT_OF_SYNC: The association is out of sync with the linked endpoint
+        group. In most cases, this is a result of a transient issue within the
+        system (e.g. an inaccessible location) and the system is expected to
+        recover automatically. Check the `locations_details` field for more
+        details.
+      DELETE_FAILED: An attempt to delete the association has failed. This is
+        a terminal state and the association is not expected to be usable as
+        some of its resources have been deleted. The only permitted operation
+        is to retry deleting the association.
+    """
+    STATE_UNSPECIFIED = 0
+    ACTIVE = 1
+    CREATING = 2
+    DELETING = 3
+    CLOSED = 4
+    OUT_OF_SYNC = 5
+    DELETE_FAILED = 6
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class LabelsValue(_messages.Message):
+    r"""Optional. Labels are key/value pairs that help to organize and filter
+    resources.
+
+    Messages:
+      AdditionalProperty: An additional property for a LabelsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type LabelsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a LabelsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  createTime = _messages.StringField(1)
+  labels = _messages.MessageField('LabelsValue', 2)
+  locations = _messages.MessageField('MirroringLocation', 3, repeated=True)
+  locationsDetails = _messages.MessageField('MirroringEndpointGroupAssociationLocationDetails', 4, repeated=True)
+  mirroringEndpointGroup = _messages.StringField(5)
+  name = _messages.StringField(6)
+  network = _messages.StringField(7)
+  reconciling = _messages.BooleanField(8)
+  state = _messages.EnumField('StateValueValuesEnum', 9)
+  updateTime = _messages.StringField(10)
+
+
+class MirroringEndpointGroupAssociationDetails(_messages.Message):
+  r"""The endpoint group's view of a connected association.
+
+  Enums:
+    StateValueValuesEnum: Output only. Most recent known state of the
+      association.
+
+  Fields:
+    name: Output only. The connected association's resource name, for example:
+      `projects/123456789/locations/global/mirroringEndpointGroupAssociations/
+      my-ega`. See https://google.aip.dev/124.
+    network: Output only. The associated network, for example:
+      projects/123456789/global/networks/my-network. See
+      https://google.aip.dev/124.
+    state: Output only. Most recent known state of the association.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. Most recent known state of the association.
+
+    Values:
+      STATE_UNSPECIFIED: Not set.
+      ACTIVE: The association is ready and in sync with the linked endpoint
+        group.
+      CREATING: The association is being created.
+      DELETING: The association is being deleted.
+      CLOSED: The association is disabled due to a breaking change in another
+        resource.
+      OUT_OF_SYNC: The association is out of sync with the linked endpoint
+        group. In most cases, this is a result of a transient issue within the
+        system (e.g. an inaccessible location) and the system is expected to
+        recover automatically. Check the `locations_details` field for more
+        details.
+      DELETE_FAILED: An attempt to delete the association has failed. This is
+        a terminal state and the association is not expected to be usable as
+        some of its resources have been deleted. The only permitted operation
+        is to retry deleting the association.
+    """
+    STATE_UNSPECIFIED = 0
+    ACTIVE = 1
+    CREATING = 2
+    DELETING = 3
+    CLOSED = 4
+    OUT_OF_SYNC = 5
+    DELETE_FAILED = 6
+
+  name = _messages.StringField(1)
+  network = _messages.StringField(2)
+  state = _messages.EnumField('StateValueValuesEnum', 3)
+
+
+class MirroringEndpointGroupAssociationLocationDetails(_messages.Message):
+  r"""Contains details about the state of an association in a specific cloud
+  location.
+
+  Enums:
+    StateValueValuesEnum: Output only. The current state of the association in
+      this location.
+
+  Fields:
+    location: Output only. The cloud location, e.g. "us-central1-a" or "asia-
+      south1".
+    state: Output only. The current state of the association in this location.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. The current state of the association in this location.
+
+    Values:
+      STATE_UNSPECIFIED: Not set.
+      ACTIVE: The association is ready and in sync with the linked endpoint
+        group.
+      OUT_OF_SYNC: The association is out of sync with the linked endpoint
+        group. In most cases, this is a result of a transient issue within the
+        system (e.g. an inaccessible location) and the system is expected to
+        recover automatically.
+    """
+    STATE_UNSPECIFIED = 0
+    ACTIVE = 1
+    OUT_OF_SYNC = 2
+
+  location = _messages.StringField(1)
+  state = _messages.EnumField('StateValueValuesEnum', 2)
+
+
+class MirroringEndpointGroupConnectedDeploymentGroup(_messages.Message):
+  r"""The endpoint group's view of a connected deployment group.
+
+  Fields:
+    locations: Output only. The list of locations where the deployment group
+      is present.
+    name: Output only. The connected deployment group's resource name, for
+      example:
+      `projects/123456789/locations/global/mirroringDeploymentGroups/my-dg`.
+      See https://google.aip.dev/124.
+  """
+
+  locations = _messages.MessageField('MirroringLocation', 1, repeated=True)
+  name = _messages.StringField(2)
+
+
+class MirroringLocation(_messages.Message):
+  r"""Details about mirroring in a specific cloud location.
+
+  Enums:
+    StateValueValuesEnum: Output only. The current state of the association in
+      this location.
+
+  Fields:
+    location: Output only. The cloud location, e.g. "us-central1-a" or "asia-
+      south1".
+    state: Output only. The current state of the association in this location.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. The current state of the association in this location.
+
+    Values:
+      STATE_UNSPECIFIED: State not set (this is not a valid state).
+      ACTIVE: The resource is ready and in sync in the location.
+      OUT_OF_SYNC: The resource is out of sync in the location. In most cases,
+        this is a result of a transient issue within the system (e.g. an
+        inaccessible location) and the system is expected to recover
+        automatically.
+    """
+    STATE_UNSPECIFIED = 0
+    ACTIVE = 1
+    OUT_OF_SYNC = 2
+
+  location = _messages.StringField(1)
+  state = _messages.EnumField('StateValueValuesEnum', 2)
 
 
 class NetworksecurityOrganizationsLocationsAddressGroupsAddItemsRequest(_messages.Message):
@@ -2993,11 +3635,14 @@ class NetworksecurityOrganizationsLocationsAddressGroupsListRequest(_messages.Me
     parent: Required. The project and location from which the AddressGroups
       should be listed, specified in the format
       `projects/*/locations/{location}`.
+    returnPartialSuccess: Optional. If true, allow partial responses for
+      multi-regional Aggregated List requests.
   """
 
   pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
   pageToken = _messages.StringField(2)
   parent = _messages.StringField(3, required=True)
+  returnPartialSuccess = _messages.BooleanField(4)
 
 
 class NetworksecurityOrganizationsLocationsAddressGroupsPatchRequest(_messages.Message):
@@ -3138,7 +3783,7 @@ class NetworksecurityOrganizationsLocationsFirewallEndpointsPatchRequest(_messag
   Fields:
     firewallEndpoint: A FirewallEndpoint resource to be passed as the request
       body.
-    name: Immutable. Identifier. name of resource
+    name: Immutable. Identifier. Name of resource.
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
       will know to ignore the request if it has already been completed. The
@@ -3546,11 +4191,14 @@ class NetworksecurityProjectsLocationsAddressGroupsListRequest(_messages.Message
     parent: Required. The project and location from which the AddressGroups
       should be listed, specified in the format
       `projects/*/locations/{location}`.
+    returnPartialSuccess: Optional. If true, allow partial responses for
+      multi-regional Aggregated List requests.
   """
 
   pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
   pageToken = _messages.StringField(2)
   parent = _messages.StringField(3, required=True)
+  returnPartialSuccess = _messages.BooleanField(4)
 
 
 class NetworksecurityProjectsLocationsAddressGroupsPatchRequest(_messages.Message):
@@ -3787,6 +4435,284 @@ class NetworksecurityProjectsLocationsAuthorizationPoliciesTestIamPermissionsReq
   resource = _messages.StringField(2, required=True)
 
 
+class NetworksecurityProjectsLocationsAuthzPoliciesCreateRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsAuthzPoliciesCreateRequest object.
+
+  Fields:
+    authzPolicy: A AuthzPolicy resource to be passed as the request body.
+    authzPolicyId: Required. User-provided ID of the `AuthzPolicy` resource to
+      be created.
+    parent: Required. The parent resource of the `AuthzPolicy` resource. Must
+      be in the format `projects/{project}/locations/{location}`.
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      can ignore the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if original operation with the same request ID
+      was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
+  """
+
+  authzPolicy = _messages.MessageField('AuthzPolicy', 1)
+  authzPolicyId = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+  requestId = _messages.StringField(4)
+
+
+class NetworksecurityProjectsLocationsAuthzPoliciesDeleteRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsAuthzPoliciesDeleteRequest object.
+
+  Fields:
+    name: Required. The name of the `AuthzPolicy` resource to delete. Must be
+      in the format
+      `projects/{project}/locations/{location}/authzPolicies/{authz_policy}`.
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      can ignore the request if it has already been completed. The server
+      guarantees that for at least 60 minutes after the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if original operation with the same request ID
+      was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
+  """
+
+  name = _messages.StringField(1, required=True)
+  requestId = _messages.StringField(2)
+
+
+class NetworksecurityProjectsLocationsAuthzPoliciesGetIamPolicyRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsAuthzPoliciesGetIamPolicyRequest
+  object.
+
+  Fields:
+    options_requestedPolicyVersion: Optional. The maximum policy version that
+      will be used to format the policy. Valid values are 0, 1, and 3.
+      Requests specifying an invalid value will be rejected. Requests for
+      policies with any conditional role bindings must specify version 3.
+      Policies with no conditional role bindings may specify any valid value
+      or leave the field unset. The policy in the response might use the
+      policy version that you specified, or it might use a lower policy
+      version. For example, if you specify version 3, but the policy has no
+      conditional role bindings, the response uses version 1. To learn which
+      resources support conditions in their IAM policies, see the [IAM
+      documentation](https://cloud.google.com/iam/help/conditions/resource-
+      policies).
+    resource: REQUIRED: The resource for which the policy is being requested.
+      See [Resource
+      names](https://cloud.google.com/apis/design/resource_names) for the
+      appropriate value for this field.
+  """
+
+  options_requestedPolicyVersion = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  resource = _messages.StringField(2, required=True)
+
+
+class NetworksecurityProjectsLocationsAuthzPoliciesGetRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsAuthzPoliciesGetRequest object.
+
+  Fields:
+    name: Required. A name of the `AuthzPolicy` resource to get. Must be in
+      the format
+      `projects/{project}/locations/{location}/authzPolicies/{authz_policy}`.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class NetworksecurityProjectsLocationsAuthzPoliciesListRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsAuthzPoliciesListRequest object.
+
+  Fields:
+    filter: Optional. Filtering results.
+    orderBy: Optional. Hint for how to order the results.
+    pageSize: Optional. Requested page size. The server might return fewer
+      items than requested. If unspecified, the server picks an appropriate
+      default.
+    pageToken: Optional. A token identifying a page of results that the server
+      returns.
+    parent: Required. The project and location from which the `AuthzPolicy`
+      resources are listed, specified in the following format:
+      `projects/{project}/locations/{location}`.
+  """
+
+  filter = _messages.StringField(1)
+  orderBy = _messages.StringField(2)
+  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(4)
+  parent = _messages.StringField(5, required=True)
+
+
+class NetworksecurityProjectsLocationsAuthzPoliciesPatchRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsAuthzPoliciesPatchRequest object.
+
+  Fields:
+    authzPolicy: A AuthzPolicy resource to be passed as the request body.
+    name: Required. Identifier. Name of the `AuthzPolicy` resource in the
+      following format:
+      `projects/{project}/locations/{location}/authzPolicies/{authz_policy}`.
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      can ignore the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if original operation with the same request ID
+      was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
+    updateMask: Required. Used to specify the fields to be overwritten in the
+      `AuthzPolicy` resource by the update. The fields specified in the
+      `update_mask` are relative to the resource, not the full request. A
+      field is overwritten if it is in the mask. If the user does not specify
+      a mask, then all fields are overwritten.
+  """
+
+  authzPolicy = _messages.MessageField('AuthzPolicy', 1)
+  name = _messages.StringField(2, required=True)
+  requestId = _messages.StringField(3)
+  updateMask = _messages.StringField(4)
+
+
+class NetworksecurityProjectsLocationsAuthzPoliciesSetIamPolicyRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsAuthzPoliciesSetIamPolicyRequest
+  object.
+
+  Fields:
+    googleIamV1SetIamPolicyRequest: A GoogleIamV1SetIamPolicyRequest resource
+      to be passed as the request body.
+    resource: REQUIRED: The resource for which the policy is being specified.
+      See [Resource
+      names](https://cloud.google.com/apis/design/resource_names) for the
+      appropriate value for this field.
+  """
+
+  googleIamV1SetIamPolicyRequest = _messages.MessageField('GoogleIamV1SetIamPolicyRequest', 1)
+  resource = _messages.StringField(2, required=True)
+
+
+class NetworksecurityProjectsLocationsAuthzPoliciesTestIamPermissionsRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsAuthzPoliciesTestIamPermissionsRequest
+  object.
+
+  Fields:
+    googleIamV1TestIamPermissionsRequest: A
+      GoogleIamV1TestIamPermissionsRequest resource to be passed as the
+      request body.
+    resource: REQUIRED: The resource for which the policy detail is being
+      requested. See [Resource
+      names](https://cloud.google.com/apis/design/resource_names) for the
+      appropriate value for this field.
+  """
+
+  googleIamV1TestIamPermissionsRequest = _messages.MessageField('GoogleIamV1TestIamPermissionsRequest', 1)
+  resource = _messages.StringField(2, required=True)
+
+
+class NetworksecurityProjectsLocationsBackendAuthenticationConfigsCreateRequest(_messages.Message):
+  r"""A
+  NetworksecurityProjectsLocationsBackendAuthenticationConfigsCreateRequest
+  object.
+
+  Fields:
+    backendAuthenticationConfig: A BackendAuthenticationConfig resource to be
+      passed as the request body.
+    backendAuthenticationConfigId: Required. Short name of the
+      BackendAuthenticationConfig resource to be created. This value should be
+      1-63 characters long, containing only letters, numbers, hyphens, and
+      underscores, and should not start with a number. E.g. "backend-auth-
+      config".
+    parent: Required. The parent resource of the BackendAuthenticationConfig.
+      Must be in the format `projects/*/locations/{location}`.
+  """
+
+  backendAuthenticationConfig = _messages.MessageField('BackendAuthenticationConfig', 1)
+  backendAuthenticationConfigId = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+
+
+class NetworksecurityProjectsLocationsBackendAuthenticationConfigsDeleteRequest(_messages.Message):
+  r"""A
+  NetworksecurityProjectsLocationsBackendAuthenticationConfigsDeleteRequest
+  object.
+
+  Fields:
+    etag: Optional. Etag of the resource. If this is provided, it must match
+      the server's etag.
+    name: Required. A name of the BackendAuthenticationConfig to delete. Must
+      be in the format
+      `projects/*/locations/{location}/backendAuthenticationConfigs/*`.
+  """
+
+  etag = _messages.StringField(1)
+  name = _messages.StringField(2, required=True)
+
+
+class NetworksecurityProjectsLocationsBackendAuthenticationConfigsGetRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsBackendAuthenticationConfigsGetRequest
+  object.
+
+  Fields:
+    name: Required. A name of the BackendAuthenticationConfig to get. Must be
+      in the format
+      `projects/*/locations/{location}/backendAuthenticationConfigs/*`.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class NetworksecurityProjectsLocationsBackendAuthenticationConfigsListRequest(_messages.Message):
+  r"""A
+  NetworksecurityProjectsLocationsBackendAuthenticationConfigsListRequest
+  object.
+
+  Fields:
+    pageSize: Maximum number of BackendAuthenticationConfigs to return per
+      call.
+    pageToken: The value returned by the last
+      `ListBackendAuthenticationConfigsResponse` Indicates that this is a
+      continuation of a prior `ListBackendAuthenticationConfigs` call, and
+      that the system should return the next page of data.
+    parent: Required. The project and location from which the
+      BackendAuthenticationConfigs should be listed, specified in the format
+      `projects/*/locations/{location}`.
+  """
+
+  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+
+
+class NetworksecurityProjectsLocationsBackendAuthenticationConfigsPatchRequest(_messages.Message):
+  r"""A
+  NetworksecurityProjectsLocationsBackendAuthenticationConfigsPatchRequest
+  object.
+
+  Fields:
+    backendAuthenticationConfig: A BackendAuthenticationConfig resource to be
+      passed as the request body.
+    name: Required. Name of the BackendAuthenticationConfig resource. It
+      matches the pattern `projects/*/locations/{location}/backendAuthenticati
+      onConfigs/{backend_authentication_config}`
+    updateMask: Optional. Field mask is used to specify the fields to be
+      overwritten in the BackendAuthenticationConfig resource by the update.
+      The fields specified in the update_mask are relative to the resource,
+      not the full request. A field will be overwritten if it is in the mask.
+      If the user does not provide a mask then all fields will be overwritten.
+  """
+
+  backendAuthenticationConfig = _messages.MessageField('BackendAuthenticationConfig', 1)
+  name = _messages.StringField(2, required=True)
+  updateMask = _messages.StringField(3)
+
+
 class NetworksecurityProjectsLocationsClientTlsPoliciesCreateRequest(_messages.Message):
   r"""A NetworksecurityProjectsLocationsClientTlsPoliciesCreateRequest object.
 
@@ -3880,8 +4806,8 @@ class NetworksecurityProjectsLocationsClientTlsPoliciesPatchRequest(_messages.Me
     clientTlsPolicy: A ClientTlsPolicy resource to be passed as the request
       body.
     name: Required. Name of the ClientTlsPolicy resource. It matches the
-      pattern
-      `projects/*/locations/{location}/clientTlsPolicies/{client_tls_policy}`
+      pattern `projects/{project}/locations/{location}/clientTlsPolicies/{clie
+      nt_tls_policy}`
     updateMask: Optional. Field mask is used to specify the fields to be
       overwritten in the ClientTlsPolicy resource by the update. The fields
       specified in the update_mask are relative to the resource, not the full
@@ -3928,6 +4854,84 @@ class NetworksecurityProjectsLocationsClientTlsPoliciesTestIamPermissionsRequest
 
   googleIamV1TestIamPermissionsRequest = _messages.MessageField('GoogleIamV1TestIamPermissionsRequest', 1)
   resource = _messages.StringField(2, required=True)
+
+
+class NetworksecurityProjectsLocationsDnsThreatDetectorsCreateRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsDnsThreatDetectorsCreateRequest
+  object.
+
+  Fields:
+    dnsThreatDetector: A DnsThreatDetector resource to be passed as the
+      request body.
+    dnsThreatDetectorId: Optional. The ID of the requesting DnsThreatDetector
+      object. If this field is not supplied, the service generates an
+      identifier.
+    parent: Required. The value for the parent of the DnsThreatDetector
+      resource.
+  """
+
+  dnsThreatDetector = _messages.MessageField('DnsThreatDetector', 1)
+  dnsThreatDetectorId = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+
+
+class NetworksecurityProjectsLocationsDnsThreatDetectorsDeleteRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsDnsThreatDetectorsDeleteRequest
+  object.
+
+  Fields:
+    name: Required. Name of the DnsThreatDetector resource.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class NetworksecurityProjectsLocationsDnsThreatDetectorsGetRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsDnsThreatDetectorsGetRequest object.
+
+  Fields:
+    name: Required. Name of the DnsThreatDetector resource.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class NetworksecurityProjectsLocationsDnsThreatDetectorsListRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsDnsThreatDetectorsListRequest object.
+
+  Fields:
+    pageSize: Optional. The requested page size. The server may return fewer
+      items than requested. If unspecified, the server picks an appropriate
+      default.
+    pageToken: Optional. A page token received from a previous
+      `ListDnsThreatDetectorsRequest` call. Provide this to retrieve the
+      subsequent page.
+    parent: Required. The parent value for `ListDnsThreatDetectorsRequest`.
+  """
+
+  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+
+
+class NetworksecurityProjectsLocationsDnsThreatDetectorsPatchRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsDnsThreatDetectorsPatchRequest object.
+
+  Fields:
+    dnsThreatDetector: A DnsThreatDetector resource to be passed as the
+      request body.
+    name: Immutable. Identifier. Name of the DnsThreatDetector resource.
+    updateMask: Optional. The field mask is used to specify the fields to be
+      overwritten in the DnsThreatDetector resource by the update. The fields
+      specified in the update_mask are relative to the resource, not the full
+      request. A field will be overwritten if it is in the mask. If the mask
+      is not provided then all fields present in the request will be
+      overwritten.
+  """
+
+  dnsThreatDetector = _messages.MessageField('DnsThreatDetector', 1)
+  name = _messages.StringField(2, required=True)
+  updateMask = _messages.StringField(3)
 
 
 class NetworksecurityProjectsLocationsFirewallEndpointAssociationsCreateRequest(_messages.Message):
@@ -4243,15 +5247,440 @@ class NetworksecurityProjectsLocationsGetRequest(_messages.Message):
   name = _messages.StringField(1, required=True)
 
 
+class NetworksecurityProjectsLocationsInterceptDeploymentGroupsCreateRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsInterceptDeploymentGroupsCreateRequest
+  object.
+
+  Fields:
+    interceptDeploymentGroup: A InterceptDeploymentGroup resource to be passed
+      as the request body.
+    interceptDeploymentGroupId: Required. The ID to use for the new deployment
+      group, which will become the final component of the deployment group's
+      resource name.
+    parent: Required. The parent resource where this deployment group will be
+      created. Format: projects/{project}/locations/{location}
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+  """
+
+  interceptDeploymentGroup = _messages.MessageField('InterceptDeploymentGroup', 1)
+  interceptDeploymentGroupId = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+  requestId = _messages.StringField(4)
+
+
+class NetworksecurityProjectsLocationsInterceptDeploymentGroupsDeleteRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsInterceptDeploymentGroupsDeleteRequest
+  object.
+
+  Fields:
+    name: Required. The deployment group to delete.
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+  """
+
+  name = _messages.StringField(1, required=True)
+  requestId = _messages.StringField(2)
+
+
+class NetworksecurityProjectsLocationsInterceptDeploymentGroupsGetRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsInterceptDeploymentGroupsGetRequest
+  object.
+
+  Fields:
+    name: Required. The name of the deployment group to retrieve. Format: proj
+      ects/{project}/locations/{location}/interceptDeploymentGroups/{intercept
+      _deployment_group}
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class NetworksecurityProjectsLocationsInterceptDeploymentGroupsListRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsInterceptDeploymentGroupsListRequest
+  object.
+
+  Fields:
+    filter: Optional. Filter expression. See
+      https://google.aip.dev/160#filtering for more details.
+    orderBy: Optional. Sort expression. See
+      https://google.aip.dev/132#ordering for more details.
+    pageSize: Optional. Requested page size. Server may return fewer items
+      than requested. If unspecified, server will pick an appropriate default.
+      See https://google.aip.dev/158 for more details.
+    pageToken: Optional. A page token, received from a previous
+      `ListInterceptDeploymentGroups` call. Provide this to retrieve the
+      subsequent page. When paginating, all other parameters provided to
+      `ListInterceptDeploymentGroups` must match the call that provided the
+      page token. See https://google.aip.dev/158 for more details.
+    parent: Required. The parent, which owns this collection of deployment
+      groups. Example: `projects/123456789/locations/global`. See
+      https://google.aip.dev/132 for more details.
+  """
+
+  filter = _messages.StringField(1)
+  orderBy = _messages.StringField(2)
+  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(4)
+  parent = _messages.StringField(5, required=True)
+
+
+class NetworksecurityProjectsLocationsInterceptDeploymentGroupsPatchRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsInterceptDeploymentGroupsPatchRequest
+  object.
+
+  Fields:
+    interceptDeploymentGroup: A InterceptDeploymentGroup resource to be passed
+      as the request body.
+    name: Immutable. Identifier. The resource name of this deployment group,
+      for example:
+      `projects/123456789/locations/global/interceptDeploymentGroups/my-dg`.
+      See https://google.aip.dev/122 for more details.
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+    updateMask: Optional. The list of fields to update. Fields are specified
+      relative to the deployment group (e.g. `description`; *not*
+      `intercept_deployment_group.description`). See
+      https://google.aip.dev/161 for more details.
+  """
+
+  interceptDeploymentGroup = _messages.MessageField('InterceptDeploymentGroup', 1)
+  name = _messages.StringField(2, required=True)
+  requestId = _messages.StringField(3)
+  updateMask = _messages.StringField(4)
+
+
+class NetworksecurityProjectsLocationsInterceptDeploymentsCreateRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsInterceptDeploymentsCreateRequest
+  object.
+
+  Fields:
+    interceptDeployment: A InterceptDeployment resource to be passed as the
+      request body.
+    interceptDeploymentId: Required. The ID to use for the new deployment,
+      which will become the final component of the deployment's resource name.
+    parent: Required. The parent resource where this deployment will be
+      created. Format: projects/{project}/locations/{location}
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+  """
+
+  interceptDeployment = _messages.MessageField('InterceptDeployment', 1)
+  interceptDeploymentId = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+  requestId = _messages.StringField(4)
+
+
+class NetworksecurityProjectsLocationsInterceptDeploymentsDeleteRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsInterceptDeploymentsDeleteRequest
+  object.
+
+  Fields:
+    name: Required. Name of the resource
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+  """
+
+  name = _messages.StringField(1, required=True)
+  requestId = _messages.StringField(2)
+
+
+class NetworksecurityProjectsLocationsInterceptDeploymentsGetRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsInterceptDeploymentsGetRequest object.
+
+  Fields:
+    name: Required. The name of the deployment to retrieve. Format: projects/{
+      project}/locations/{location}/interceptDeployments/{intercept_deployment
+      }
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class NetworksecurityProjectsLocationsInterceptDeploymentsListRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsInterceptDeploymentsListRequest
+  object.
+
+  Fields:
+    filter: Optional. Filter expression. See
+      https://google.aip.dev/160#filtering for more details.
+    orderBy: Optional. Sort expression. See
+      https://google.aip.dev/132#ordering for more details.
+    pageSize: Optional. Requested page size. Server may return fewer items
+      than requested. If unspecified, server will pick an appropriate default.
+      See https://google.aip.dev/158 for more details.
+    pageToken: Optional. A page token, received from a previous
+      `ListInterceptDeployments` call. Provide this to retrieve the subsequent
+      page. When paginating, all other parameters provided to
+      `ListInterceptDeployments` must match the call that provided the page
+      token. See https://google.aip.dev/158 for more details.
+    parent: Required. The parent, which owns this collection of deployments.
+      Example: `projects/123456789/locations/us-central1-a`. See
+      https://google.aip.dev/132 for more details.
+  """
+
+  filter = _messages.StringField(1)
+  orderBy = _messages.StringField(2)
+  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(4)
+  parent = _messages.StringField(5, required=True)
+
+
+class NetworksecurityProjectsLocationsInterceptDeploymentsPatchRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsInterceptDeploymentsPatchRequest
+  object.
+
+  Fields:
+    interceptDeployment: A InterceptDeployment resource to be passed as the
+      request body.
+    name: Immutable. Identifier. The resource name of this deployment, for
+      example: `projects/123456789/locations/us-
+      central1-a/interceptDeployments/my-dep`. See https://google.aip.dev/122
+      for more details.
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+    updateMask: Optional. The list of fields to update. Fields are specified
+      relative to the deployment (e.g. `description`; *not*
+      `intercept_deployment.description`). See https://google.aip.dev/161 for
+      more details.
+  """
+
+  interceptDeployment = _messages.MessageField('InterceptDeployment', 1)
+  name = _messages.StringField(2, required=True)
+  requestId = _messages.StringField(3)
+  updateMask = _messages.StringField(4)
+
+
+class NetworksecurityProjectsLocationsInterceptEndpointGroupAssociationsCreateRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsInterceptEndpointGroupAssociationsCrea
+  teRequest object.
+
+  Fields:
+    interceptEndpointGroupAssociation: A InterceptEndpointGroupAssociation
+      resource to be passed as the request body.
+    interceptEndpointGroupAssociationId: Optional. The ID to use for the new
+      association, which will become the final component of the endpoint
+      group's resource name. If not provided, the server will generate a
+      unique ID.
+    parent: Required. The parent resource where this association will be
+      created. Format: projects/{project}/locations/{location}
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+  """
+
+  interceptEndpointGroupAssociation = _messages.MessageField('InterceptEndpointGroupAssociation', 1)
+  interceptEndpointGroupAssociationId = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+  requestId = _messages.StringField(4)
+
+
+class NetworksecurityProjectsLocationsInterceptEndpointGroupAssociationsDeleteRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsInterceptEndpointGroupAssociationsDele
+  teRequest object.
+
+  Fields:
+    name: Required. The association to delete.
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+  """
+
+  name = _messages.StringField(1, required=True)
+  requestId = _messages.StringField(2)
+
+
+class NetworksecurityProjectsLocationsInterceptEndpointGroupAssociationsGetRequest(_messages.Message):
+  r"""A
+  NetworksecurityProjectsLocationsInterceptEndpointGroupAssociationsGetRequest
+  object.
+
+  Fields:
+    name: Required. The name of the association to retrieve. Format: projects/
+      {project}/locations/{location}/interceptEndpointGroupAssociations/{inter
+      cept_endpoint_group_association}
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class NetworksecurityProjectsLocationsInterceptEndpointGroupAssociationsListRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsInterceptEndpointGroupAssociationsList
+  Request object.
+
+  Fields:
+    filter: Optional. Filter expression. See
+      https://google.aip.dev/160#filtering for more details.
+    orderBy: Optional. Sort expression. See
+      https://google.aip.dev/132#ordering for more details.
+    pageSize: Optional. Requested page size. Server may return fewer items
+      than requested. If unspecified, server will pick an appropriate default.
+      See https://google.aip.dev/158 for more details.
+    pageToken: Optional. A page token, received from a previous
+      `ListInterceptEndpointGroups` call. Provide this to retrieve the
+      subsequent page. When paginating, all other parameters provided to
+      `ListInterceptEndpointGroups` must match the call that provided the page
+      token. See https://google.aip.dev/158 for more details.
+    parent: Required. The parent, which owns this collection of associations.
+      Example: `projects/123456789/locations/global`. See
+      https://google.aip.dev/132 for more details.
+  """
+
+  filter = _messages.StringField(1)
+  orderBy = _messages.StringField(2)
+  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(4)
+  parent = _messages.StringField(5, required=True)
+
+
+class NetworksecurityProjectsLocationsInterceptEndpointGroupAssociationsPatchRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsInterceptEndpointGroupAssociationsPatc
+  hRequest object.
+
+  Fields:
+    interceptEndpointGroupAssociation: A InterceptEndpointGroupAssociation
+      resource to be passed as the request body.
+    name: Immutable. Identifier. The resource name of this endpoint group
+      association, for example: `projects/123456789/locations/global/intercept
+      EndpointGroupAssociations/my-eg-association`. See
+      https://google.aip.dev/122 for more details.
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+    updateMask: Optional. The list of fields to update. Fields are specified
+      relative to the association (e.g. `description`; *not*
+      `intercept_endpoint_group_association.description`). See
+      https://google.aip.dev/161 for more details.
+  """
+
+  interceptEndpointGroupAssociation = _messages.MessageField('InterceptEndpointGroupAssociation', 1)
+  name = _messages.StringField(2, required=True)
+  requestId = _messages.StringField(3)
+  updateMask = _messages.StringField(4)
+
+
+class NetworksecurityProjectsLocationsInterceptEndpointGroupsCreateRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsInterceptEndpointGroupsCreateRequest
+  object.
+
+  Fields:
+    interceptEndpointGroup: A InterceptEndpointGroup resource to be passed as
+      the request body.
+    interceptEndpointGroupId: Required. The ID to use for the endpoint group,
+      which will become the final component of the endpoint group's resource
+      name.
+    parent: Required. The parent resource where this endpoint group will be
+      created. Format: projects/{project}/locations/{location}
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+  """
+
+  interceptEndpointGroup = _messages.MessageField('InterceptEndpointGroup', 1)
+  interceptEndpointGroupId = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+  requestId = _messages.StringField(4)
+
+
+class NetworksecurityProjectsLocationsInterceptEndpointGroupsDeleteRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsInterceptEndpointGroupsDeleteRequest
+  object.
+
+  Fields:
+    name: Required. The endpoint group to delete.
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+  """
+
+  name = _messages.StringField(1, required=True)
+  requestId = _messages.StringField(2)
+
+
+class NetworksecurityProjectsLocationsInterceptEndpointGroupsGetRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsInterceptEndpointGroupsGetRequest
+  object.
+
+  Fields:
+    name: Required. The name of the endpoint group to retrieve. Format: projec
+      ts/{project}/locations/{location}/interceptEndpointGroups/{intercept_end
+      point_group}
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class NetworksecurityProjectsLocationsInterceptEndpointGroupsListRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsInterceptEndpointGroupsListRequest
+  object.
+
+  Fields:
+    filter: Optional. Filter expression. See
+      https://google.aip.dev/160#filtering for more details.
+    orderBy: Optional. Sort expression. See
+      https://google.aip.dev/132#ordering for more details.
+    pageSize: Optional. Requested page size. Server may return fewer items
+      than requested. If unspecified, server will pick an appropriate default.
+      See https://google.aip.dev/158 for more details.
+    pageToken: Optional. A page token, received from a previous
+      `ListInterceptEndpointGroups` call. Provide this to retrieve the
+      subsequent page. When paginating, all other parameters provided to
+      `ListInterceptEndpointGroups` must match the call that provided the page
+      token. See https://google.aip.dev/158 for more details.
+    parent: Required. The parent, which owns this collection of endpoint
+      groups. Example: `projects/123456789/locations/global`. See
+      https://google.aip.dev/132 for more details.
+  """
+
+  filter = _messages.StringField(1)
+  orderBy = _messages.StringField(2)
+  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(4)
+  parent = _messages.StringField(5, required=True)
+
+
+class NetworksecurityProjectsLocationsInterceptEndpointGroupsPatchRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsInterceptEndpointGroupsPatchRequest
+  object.
+
+  Fields:
+    interceptEndpointGroup: A InterceptEndpointGroup resource to be passed as
+      the request body.
+    name: Immutable. Identifier. The resource name of this endpoint group, for
+      example:
+      `projects/123456789/locations/global/interceptEndpointGroups/my-eg`. See
+      https://google.aip.dev/122 for more details.
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+    updateMask: Optional. The list of fields to update. Fields are specified
+      relative to the endpoint group (e.g. `description`; *not*
+      `intercept_endpoint_group.description`). See https://google.aip.dev/161
+      for more details.
+  """
+
+  interceptEndpointGroup = _messages.MessageField('InterceptEndpointGroup', 1)
+  name = _messages.StringField(2, required=True)
+  requestId = _messages.StringField(3)
+  updateMask = _messages.StringField(4)
+
+
 class NetworksecurityProjectsLocationsListRequest(_messages.Message):
   r"""A NetworksecurityProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
-    includeUnrevealedLocations: If true, the returned list will include
-      locations which are not yet revealed.
     name: The resource that owns the locations collection, if applicable.
     pageSize: The maximum number of results to return. If not set, the service
       selects a default.
@@ -4259,11 +5688,435 @@ class NetworksecurityProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  includeUnrevealedLocations = _messages.BooleanField(2)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
   name = _messages.StringField(3, required=True)
   pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
   pageToken = _messages.StringField(5)
+
+
+class NetworksecurityProjectsLocationsMirroringDeploymentGroupsCreateRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsMirroringDeploymentGroupsCreateRequest
+  object.
+
+  Fields:
+    mirroringDeploymentGroup: A MirroringDeploymentGroup resource to be passed
+      as the request body.
+    mirroringDeploymentGroupId: Required. The ID to use for the new deployment
+      group, which will become the final component of the deployment group's
+      resource name.
+    parent: Required. The parent resource where this deployment group will be
+      created. Format: projects/{project}/locations/{location}
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+  """
+
+  mirroringDeploymentGroup = _messages.MessageField('MirroringDeploymentGroup', 1)
+  mirroringDeploymentGroupId = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+  requestId = _messages.StringField(4)
+
+
+class NetworksecurityProjectsLocationsMirroringDeploymentGroupsDeleteRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsMirroringDeploymentGroupsDeleteRequest
+  object.
+
+  Fields:
+    name: Required. The deployment group to delete.
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+  """
+
+  name = _messages.StringField(1, required=True)
+  requestId = _messages.StringField(2)
+
+
+class NetworksecurityProjectsLocationsMirroringDeploymentGroupsGetRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsMirroringDeploymentGroupsGetRequest
+  object.
+
+  Fields:
+    name: Required. The name of the deployment group to retrieve. Format: proj
+      ects/{project}/locations/{location}/mirroringDeploymentGroups/{mirroring
+      _deployment_group}
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class NetworksecurityProjectsLocationsMirroringDeploymentGroupsListRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsMirroringDeploymentGroupsListRequest
+  object.
+
+  Fields:
+    filter: Optional. Filter expression. See
+      https://google.aip.dev/160#filtering for more details.
+    orderBy: Optional. Sort expression. See
+      https://google.aip.dev/132#ordering for more details.
+    pageSize: Optional. Requested page size. Server may return fewer items
+      than requested. If unspecified, server will pick an appropriate default.
+      See https://google.aip.dev/158 for more details.
+    pageToken: Optional. A page token, received from a previous
+      `ListMirroringDeploymentGroups` call. Provide this to retrieve the
+      subsequent page. When paginating, all other parameters provided to
+      `ListMirroringDeploymentGroups` must match the call that provided the
+      page token. See https://google.aip.dev/158 for more details.
+    parent: Required. The parent, which owns this collection of deployment
+      groups. Example: `projects/123456789/locations/global`. See
+      https://google.aip.dev/132 for more details.
+  """
+
+  filter = _messages.StringField(1)
+  orderBy = _messages.StringField(2)
+  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(4)
+  parent = _messages.StringField(5, required=True)
+
+
+class NetworksecurityProjectsLocationsMirroringDeploymentGroupsPatchRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsMirroringDeploymentGroupsPatchRequest
+  object.
+
+  Fields:
+    mirroringDeploymentGroup: A MirroringDeploymentGroup resource to be passed
+      as the request body.
+    name: Immutable. Identifier. The resource name of this deployment group,
+      for example:
+      `projects/123456789/locations/global/mirroringDeploymentGroups/my-dg`.
+      See https://google.aip.dev/122 for more details.
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+    updateMask: Optional. The list of fields to update. Fields are specified
+      relative to the deployment group (e.g. `description`; *not*
+      `mirroring_deployment_group.description`). See
+      https://google.aip.dev/161 for more details.
+  """
+
+  mirroringDeploymentGroup = _messages.MessageField('MirroringDeploymentGroup', 1)
+  name = _messages.StringField(2, required=True)
+  requestId = _messages.StringField(3)
+  updateMask = _messages.StringField(4)
+
+
+class NetworksecurityProjectsLocationsMirroringDeploymentsCreateRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsMirroringDeploymentsCreateRequest
+  object.
+
+  Fields:
+    mirroringDeployment: A MirroringDeployment resource to be passed as the
+      request body.
+    mirroringDeploymentId: Required. The ID to use for the new deployment,
+      which will become the final component of the deployment's resource name.
+    parent: Required. The parent resource where this deployment will be
+      created. Format: projects/{project}/locations/{location}
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+  """
+
+  mirroringDeployment = _messages.MessageField('MirroringDeployment', 1)
+  mirroringDeploymentId = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+  requestId = _messages.StringField(4)
+
+
+class NetworksecurityProjectsLocationsMirroringDeploymentsDeleteRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsMirroringDeploymentsDeleteRequest
+  object.
+
+  Fields:
+    name: Required. Name of the resource
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+  """
+
+  name = _messages.StringField(1, required=True)
+  requestId = _messages.StringField(2)
+
+
+class NetworksecurityProjectsLocationsMirroringDeploymentsGetRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsMirroringDeploymentsGetRequest object.
+
+  Fields:
+    name: Required. The name of the deployment to retrieve. Format: projects/{
+      project}/locations/{location}/mirroringDeployments/{mirroring_deployment
+      }
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class NetworksecurityProjectsLocationsMirroringDeploymentsListRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsMirroringDeploymentsListRequest
+  object.
+
+  Fields:
+    filter: Optional. Filter expression. See
+      https://google.aip.dev/160#filtering for more details.
+    orderBy: Optional. Sort expression. See
+      https://google.aip.dev/132#ordering for more details.
+    pageSize: Optional. Requested page size. Server may return fewer items
+      than requested. If unspecified, server will pick an appropriate default.
+      See https://google.aip.dev/158 for more details.
+    pageToken: Optional. A page token, received from a previous
+      `ListMirroringDeployments` call. Provide this to retrieve the subsequent
+      page. When paginating, all other parameters provided to
+      `ListMirroringDeployments` must match the call that provided the page
+      token. See https://google.aip.dev/158 for more details.
+    parent: Required. The parent, which owns this collection of deployments.
+      Example: `projects/123456789/locations/us-central1-a`. See
+      https://google.aip.dev/132 for more details.
+  """
+
+  filter = _messages.StringField(1)
+  orderBy = _messages.StringField(2)
+  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(4)
+  parent = _messages.StringField(5, required=True)
+
+
+class NetworksecurityProjectsLocationsMirroringDeploymentsPatchRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsMirroringDeploymentsPatchRequest
+  object.
+
+  Fields:
+    mirroringDeployment: A MirroringDeployment resource to be passed as the
+      request body.
+    name: Immutable. Identifier. The resource name of this deployment, for
+      example: `projects/123456789/locations/us-
+      central1-a/mirroringDeployments/my-dep`. See https://google.aip.dev/122
+      for more details.
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+    updateMask: Optional. The list of fields to update. Fields are specified
+      relative to the deployment (e.g. `description`; *not*
+      `mirroring_deployment.description`). See https://google.aip.dev/161 for
+      more details.
+  """
+
+  mirroringDeployment = _messages.MessageField('MirroringDeployment', 1)
+  name = _messages.StringField(2, required=True)
+  requestId = _messages.StringField(3)
+  updateMask = _messages.StringField(4)
+
+
+class NetworksecurityProjectsLocationsMirroringEndpointGroupAssociationsCreateRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsMirroringEndpointGroupAssociationsCrea
+  teRequest object.
+
+  Fields:
+    mirroringEndpointGroupAssociation: A MirroringEndpointGroupAssociation
+      resource to be passed as the request body.
+    mirroringEndpointGroupAssociationId: Optional. The ID to use for the new
+      association, which will become the final component of the endpoint
+      group's resource name. If not provided, the server will generate a
+      unique ID.
+    parent: Required. The parent resource where this association will be
+      created. Format: projects/{project}/locations/{location}
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+  """
+
+  mirroringEndpointGroupAssociation = _messages.MessageField('MirroringEndpointGroupAssociation', 1)
+  mirroringEndpointGroupAssociationId = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+  requestId = _messages.StringField(4)
+
+
+class NetworksecurityProjectsLocationsMirroringEndpointGroupAssociationsDeleteRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsMirroringEndpointGroupAssociationsDele
+  teRequest object.
+
+  Fields:
+    name: Required. The association to delete.
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+  """
+
+  name = _messages.StringField(1, required=True)
+  requestId = _messages.StringField(2)
+
+
+class NetworksecurityProjectsLocationsMirroringEndpointGroupAssociationsGetRequest(_messages.Message):
+  r"""A
+  NetworksecurityProjectsLocationsMirroringEndpointGroupAssociationsGetRequest
+  object.
+
+  Fields:
+    name: Required. The name of the association to retrieve. Format: projects/
+      {project}/locations/{location}/mirroringEndpointGroupAssociations/{mirro
+      ring_endpoint_group_association}
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class NetworksecurityProjectsLocationsMirroringEndpointGroupAssociationsListRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsMirroringEndpointGroupAssociationsList
+  Request object.
+
+  Fields:
+    filter: Optional. Filter expression. See
+      https://google.aip.dev/160#filtering for more details.
+    orderBy: Optional. Sort expression. See
+      https://google.aip.dev/132#ordering for more details.
+    pageSize: Optional. Requested page size. Server may return fewer items
+      than requested. If unspecified, server will pick an appropriate default.
+      See https://google.aip.dev/158 for more details.
+    pageToken: Optional. A page token, received from a previous
+      `ListMirroringEndpointGroups` call. Provide this to retrieve the
+      subsequent page. When paginating, all other parameters provided to
+      `ListMirroringEndpointGroups` must match the call that provided the page
+      token. See https://google.aip.dev/158 for more details.
+    parent: Required. The parent, which owns this collection of associations.
+      Example: `projects/123456789/locations/global`. See
+      https://google.aip.dev/132 for more details.
+  """
+
+  filter = _messages.StringField(1)
+  orderBy = _messages.StringField(2)
+  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(4)
+  parent = _messages.StringField(5, required=True)
+
+
+class NetworksecurityProjectsLocationsMirroringEndpointGroupAssociationsPatchRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsMirroringEndpointGroupAssociationsPatc
+  hRequest object.
+
+  Fields:
+    mirroringEndpointGroupAssociation: A MirroringEndpointGroupAssociation
+      resource to be passed as the request body.
+    name: Immutable. Identifier. The resource name of this endpoint group
+      association, for example: `projects/123456789/locations/global/mirroring
+      EndpointGroupAssociations/my-eg-association`. See
+      https://google.aip.dev/122 for more details.
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+    updateMask: Optional. The list of fields to update. Fields are specified
+      relative to the association (e.g. `description`; *not*
+      `mirroring_endpoint_group_association.description`). See
+      https://google.aip.dev/161 for more details.
+  """
+
+  mirroringEndpointGroupAssociation = _messages.MessageField('MirroringEndpointGroupAssociation', 1)
+  name = _messages.StringField(2, required=True)
+  requestId = _messages.StringField(3)
+  updateMask = _messages.StringField(4)
+
+
+class NetworksecurityProjectsLocationsMirroringEndpointGroupsCreateRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsMirroringEndpointGroupsCreateRequest
+  object.
+
+  Fields:
+    mirroringEndpointGroup: A MirroringEndpointGroup resource to be passed as
+      the request body.
+    mirroringEndpointGroupId: Required. The ID to use for the endpoint group,
+      which will become the final component of the endpoint group's resource
+      name.
+    parent: Required. The parent resource where this endpoint group will be
+      created. Format: projects/{project}/locations/{location}
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+  """
+
+  mirroringEndpointGroup = _messages.MessageField('MirroringEndpointGroup', 1)
+  mirroringEndpointGroupId = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+  requestId = _messages.StringField(4)
+
+
+class NetworksecurityProjectsLocationsMirroringEndpointGroupsDeleteRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsMirroringEndpointGroupsDeleteRequest
+  object.
+
+  Fields:
+    name: Required. The endpoint group to delete.
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+  """
+
+  name = _messages.StringField(1, required=True)
+  requestId = _messages.StringField(2)
+
+
+class NetworksecurityProjectsLocationsMirroringEndpointGroupsGetRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsMirroringEndpointGroupsGetRequest
+  object.
+
+  Fields:
+    name: Required. The name of the endpoint group to retrieve. Format: projec
+      ts/{project}/locations/{location}/mirroringEndpointGroups/{mirroring_end
+      point_group}
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class NetworksecurityProjectsLocationsMirroringEndpointGroupsListRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsMirroringEndpointGroupsListRequest
+  object.
+
+  Fields:
+    filter: Optional. Filter expression. See
+      https://google.aip.dev/160#filtering for more details.
+    orderBy: Optional. Sort expression. See
+      https://google.aip.dev/132#ordering for more details.
+    pageSize: Optional. Requested page size. Server may return fewer items
+      than requested. If unspecified, server will pick an appropriate default.
+      See https://google.aip.dev/158 for more details.
+    pageToken: Optional. A page token, received from a previous
+      `ListMirroringEndpointGroups` call. Provide this to retrieve the
+      subsequent page. When paginating, all other parameters provided to
+      `ListMirroringEndpointGroups` must match the call that provided the page
+      token. See https://google.aip.dev/158 for more details.
+    parent: Required. The parent, which owns this collection of endpoint
+      groups. Example: `projects/123456789/locations/global`. See
+      https://google.aip.dev/132 for more details.
+  """
+
+  filter = _messages.StringField(1)
+  orderBy = _messages.StringField(2)
+  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(4)
+  parent = _messages.StringField(5, required=True)
+
+
+class NetworksecurityProjectsLocationsMirroringEndpointGroupsPatchRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsMirroringEndpointGroupsPatchRequest
+  object.
+
+  Fields:
+    mirroringEndpointGroup: A MirroringEndpointGroup resource to be passed as
+      the request body.
+    name: Immutable. Identifier. The resource name of this endpoint group, for
+      example:
+      `projects/123456789/locations/global/mirroringEndpointGroups/my-eg`. See
+      https://google.aip.dev/122 for more details.
+    requestId: Optional. A unique identifier for this request. Must be a
+      UUID4. This request is only idempotent if a `request_id` is provided.
+      See https://google.aip.dev/155 for more details.
+    updateMask: Optional. The list of fields to update. Fields are specified
+      relative to the endpoint group (e.g. `description`; *not*
+      `mirroring_endpoint_group.description`). See https://google.aip.dev/161
+      for more details.
+  """
+
+  mirroringEndpointGroup = _messages.MessageField('MirroringEndpointGroup', 1)
+  name = _messages.StringField(2, required=True)
+  requestId = _messages.StringField(3)
+  updateMask = _messages.StringField(4)
 
 
 class NetworksecurityProjectsLocationsOperationsCancelRequest(_messages.Message):
@@ -4315,178 +6168,180 @@ class NetworksecurityProjectsLocationsOperationsListRequest(_messages.Message):
   pageToken = _messages.StringField(4)
 
 
-class NetworksecurityProjectsLocationsSecurityProfileGroupsCreateRequest(_messages.Message):
-  r"""A NetworksecurityProjectsLocationsSecurityProfileGroupsCreateRequest
-  object.
+class NetworksecurityProjectsLocationsSacAttachmentsCreateRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsSacAttachmentsCreateRequest object.
 
   Fields:
-    parent: Required. The parent resource of the SecurityProfileGroup. Must be
-      in the format `projects|organizations/*/locations/{location}`.
-    securityProfileGroup: A SecurityProfileGroup resource to be passed as the
-      request body.
-    securityProfileGroupId: Required. Short name of the SecurityProfileGroup
-      resource to be created. This value should be 1-63 characters long,
-      containing only letters, numbers, hyphens, and underscores, and should
-      not start with a number. E.g. "security_profile_group1".
+    parent: Required. The parent, in the form
+      `projects/{project}/locations/{location}`.
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      will know to ignore the request if it has already been completed. The
+      server will guarantee that for at least 60 minutes since the first
+      request. For example, consider a situation where you make an initial
+      request and the request times out. If you make the request again with
+      the same request ID, the server can check if original operation with the
+      same request ID was received, and if so, will ignore the second request.
+      This prevents clients from accidentally creating duplicate commitments.
+      The request ID must be a valid UUID with the exception that zero UUID is
+      not supported (00000000-0000-0000-0000-000000000000).
+    sACAttachment: A SACAttachment resource to be passed as the request body.
+    sacAttachmentId: Required. ID of the created attachment. The ID must be
+      1-63 characters long, and comply with RFC1035. Specifically, it must be
+      1-63 characters long and match the regular expression
+      `[a-z]([-a-z0-9]*[a-z0-9])?` which means the first character must be a
+      lowercase letter, and all following characters must be a dash, lowercase
+      letter, or digit, except the last character, which cannot be a dash.
   """
 
   parent = _messages.StringField(1, required=True)
-  securityProfileGroup = _messages.MessageField('SecurityProfileGroup', 2)
-  securityProfileGroupId = _messages.StringField(3)
+  requestId = _messages.StringField(2)
+  sACAttachment = _messages.MessageField('SACAttachment', 3)
+  sacAttachmentId = _messages.StringField(4)
 
 
-class NetworksecurityProjectsLocationsSecurityProfileGroupsDeleteRequest(_messages.Message):
-  r"""A NetworksecurityProjectsLocationsSecurityProfileGroupsDeleteRequest
-  object.
+class NetworksecurityProjectsLocationsSacAttachmentsDeleteRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsSacAttachmentsDeleteRequest object.
 
   Fields:
-    etag: Optional. If client provided etag is out of date, delete will return
-      FAILED_PRECONDITION error.
-    name: Required. A name of the SecurityProfileGroup to delete. Must be in
-      the format `projects|organizations/*/locations/{location}/securityProfil
-      eGroups/{security_profile_group}`.
+    name: Required. Name of the resource, in the form
+      `projects/{project}/locations/{location}/sacAttachments/{sac_attachment}
+      `.
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      will know to ignore the request if it has already been completed. The
+      server will guarantee that for at least 60 minutes after the first
+      request. For example, consider a situation where you make an initial
+      request and the request times out. If you make the request again with
+      the same request ID, the server can check if original operation with the
+      same request ID was received, and if so, will ignore the second request.
+      This prevents clients from accidentally creating duplicate commitments.
+      The request ID must be a valid UUID with the exception that zero UUID is
+      not supported (00000000-0000-0000-0000-000000000000).
   """
 
-  etag = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
+  name = _messages.StringField(1, required=True)
+  requestId = _messages.StringField(2)
 
 
-class NetworksecurityProjectsLocationsSecurityProfileGroupsGetRequest(_messages.Message):
-  r"""A NetworksecurityProjectsLocationsSecurityProfileGroupsGetRequest
-  object.
+class NetworksecurityProjectsLocationsSacAttachmentsGetRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsSacAttachmentsGetRequest object.
 
   Fields:
-    name: Required. A name of the SecurityProfileGroup to get. Must be in the
-      format `projects|organizations/*/locations/{location}/securityProfileGro
-      ups/{security_profile_group}`.
+    name: Required. Name of the resource, in the form
+      `projects/{project}/locations/{location}/sacAttachments/{sac_attachment}
+      `.
   """
 
   name = _messages.StringField(1, required=True)
 
 
-class NetworksecurityProjectsLocationsSecurityProfileGroupsListRequest(_messages.Message):
-  r"""A NetworksecurityProjectsLocationsSecurityProfileGroupsListRequest
-  object.
+class NetworksecurityProjectsLocationsSacAttachmentsListRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsSacAttachmentsListRequest object.
 
   Fields:
-    pageSize: Maximum number of SecurityProfileGroups to return per call.
-    pageToken: The value returned by the last
-      `ListSecurityProfileGroupsResponse` Indicates that this is a
-      continuation of a prior `ListSecurityProfileGroups` call, and that the
-      system should return the next page of data.
-    parent: Required. The project or organization and location from which the
-      SecurityProfileGroups should be listed, specified in the format
-      `projects|organizations/*/locations/{location}`.
+    filter: Optional. An expression that filters the list of results.
+    orderBy: Optional. Sort the results by a certain order.
+    pageSize: Optional. Requested page size. Server may return fewer items
+      than requested. If unspecified, server will pick an appropriate default.
+    pageToken: Optional. A token identifying a page of results the server
+      should return.
+    parent: Required. The parent, in the form
+      `projects/{project}/locations/{location}`.
   """
 
-  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(2)
-  parent = _messages.StringField(3, required=True)
+  filter = _messages.StringField(1)
+  orderBy = _messages.StringField(2)
+  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(4)
+  parent = _messages.StringField(5, required=True)
 
 
-class NetworksecurityProjectsLocationsSecurityProfileGroupsPatchRequest(_messages.Message):
-  r"""A NetworksecurityProjectsLocationsSecurityProfileGroupsPatchRequest
-  object.
-
-  Fields:
-    name: Immutable. Identifier. Name of the SecurityProfileGroup resource. It
-      matches pattern `projects|organizations/*/locations/{location}/securityP
-      rofileGroups/{security_profile_group}`.
-    securityProfileGroup: A SecurityProfileGroup resource to be passed as the
-      request body.
-    updateMask: Required. Field mask is used to specify the fields to be
-      overwritten in the SecurityProfileGroup resource by the update. The
-      fields specified in the update_mask are relative to the resource, not
-      the full request. A field will be overwritten if it is in the mask.
-  """
-
-  name = _messages.StringField(1, required=True)
-  securityProfileGroup = _messages.MessageField('SecurityProfileGroup', 2)
-  updateMask = _messages.StringField(3)
-
-
-class NetworksecurityProjectsLocationsSecurityProfilesCreateRequest(_messages.Message):
-  r"""A NetworksecurityProjectsLocationsSecurityProfilesCreateRequest object.
+class NetworksecurityProjectsLocationsSacRealmsCreateRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsSacRealmsCreateRequest object.
 
   Fields:
-    parent: Required. The parent resource of the SecurityProfile. Must be in
-      the format `projects|organizations/*/locations/{location}`.
-    securityProfile: A SecurityProfile resource to be passed as the request
-      body.
-    securityProfileId: Required. Short name of the SecurityProfile resource to
-      be created. This value should be 1-63 characters long, containing only
-      letters, numbers, hyphens, and underscores, and should not start with a
-      number. E.g. "security_profile1".
+    parent: Required. The parent, in the form
+      `projects/{project}/locations/global`.
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      will know to ignore the request if it has already been completed. The
+      server will guarantee that for at least 60 minutes since the first
+      request. For example, consider a situation where you make an initial
+      request and the request times out. If you make the request again with
+      the same request ID, the server can check if original operation with the
+      same request ID was received, and if so, will ignore the second request.
+      This prevents clients from accidentally creating duplicate commitments.
+      The request ID must be a valid UUID with the exception that zero UUID is
+      not supported (00000000-0000-0000-0000-000000000000).
+    sACRealm: A SACRealm resource to be passed as the request body.
+    sacRealmId: Required. ID of the created realm. The ID must be 1-63
+      characters long, and comply with RFC1035. Specifically, it must be 1-63
+      characters long and match the regular expression
+      `[a-z]([-a-z0-9]*[a-z0-9])?` which means the first character must be a
+      lowercase letter, and all following characters must be a dash, lowercase
+      letter, or digit, except the last character, which cannot be a dash.
   """
 
   parent = _messages.StringField(1, required=True)
-  securityProfile = _messages.MessageField('SecurityProfile', 2)
-  securityProfileId = _messages.StringField(3)
+  requestId = _messages.StringField(2)
+  sACRealm = _messages.MessageField('SACRealm', 3)
+  sacRealmId = _messages.StringField(4)
 
 
-class NetworksecurityProjectsLocationsSecurityProfilesDeleteRequest(_messages.Message):
-  r"""A NetworksecurityProjectsLocationsSecurityProfilesDeleteRequest object.
+class NetworksecurityProjectsLocationsSacRealmsDeleteRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsSacRealmsDeleteRequest object.
 
   Fields:
-    etag: Optional. If client provided etag is out of date, delete will return
-      FAILED_PRECONDITION error.
-    name: Required. A name of the SecurityProfile to delete. Must be in the
-      format `projects|organizations/*/locations/{location}/securityProfiles/{
-      security_profile_id}`.
+    name: Required. Name of the resource, in the form
+      `projects/{project}/locations/global/sacRealms/{sacRealm}`.
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      will know to ignore the request if it has already been completed. The
+      server will guarantee that for at least 60 minutes after the first
+      request. For example, consider a situation where you make an initial
+      request and the request times out. If you make the request again with
+      the same request ID, the server can check if original operation with the
+      same request ID was received, and if so, will ignore the second request.
+      This prevents clients from accidentally creating duplicate commitments.
+      The request ID must be a valid UUID with the exception that zero UUID is
+      not supported (00000000-0000-0000-0000-000000000000).
   """
 
-  etag = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
+  name = _messages.StringField(1, required=True)
+  requestId = _messages.StringField(2)
 
 
-class NetworksecurityProjectsLocationsSecurityProfilesGetRequest(_messages.Message):
-  r"""A NetworksecurityProjectsLocationsSecurityProfilesGetRequest object.
+class NetworksecurityProjectsLocationsSacRealmsGetRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsSacRealmsGetRequest object.
 
   Fields:
-    name: Required. A name of the SecurityProfile to get. Must be in the
-      format `projects|organizations/*/locations/{location}/securityProfiles/{
-      security_profile_id}`.
+    name: Required. Name of the resource, in the form
+      `projects/{project}/locations/global/sacRealms/{sacRealm}`.
   """
 
   name = _messages.StringField(1, required=True)
 
 
-class NetworksecurityProjectsLocationsSecurityProfilesListRequest(_messages.Message):
-  r"""A NetworksecurityProjectsLocationsSecurityProfilesListRequest object.
+class NetworksecurityProjectsLocationsSacRealmsListRequest(_messages.Message):
+  r"""A NetworksecurityProjectsLocationsSacRealmsListRequest object.
 
   Fields:
-    pageSize: Maximum number of SecurityProfiles to return per call.
-    pageToken: The value returned by the last `ListSecurityProfilesResponse`
-      Indicates that this is a continuation of a prior `ListSecurityProfiles`
-      call, and that the system should return the next page of data.
-    parent: Required. The project or organization and location from which the
-      SecurityProfiles should be listed, specified in the format
-      `projects|organizations/*/locations/{location}`.
+    filter: Optional. An expression that filters the list of results.
+    orderBy: Optional. Sort the results by a certain order.
+    pageSize: Optional. Requested page size. Server may return fewer items
+      than requested. If unspecified, server will pick an appropriate default.
+    pageToken: Optional. A token identifying a page of results the server
+      should return.
+    parent: Required. The parent, in the form
+      `projects/{project}/locations/global`.
   """
 
-  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(2)
-  parent = _messages.StringField(3, required=True)
-
-
-class NetworksecurityProjectsLocationsSecurityProfilesPatchRequest(_messages.Message):
-  r"""A NetworksecurityProjectsLocationsSecurityProfilesPatchRequest object.
-
-  Fields:
-    name: Immutable. Identifier. Name of the SecurityProfile resource. It
-      matches pattern `projects|organizations/*/locations/{location}/securityP
-      rofiles/{security_profile}`.
-    securityProfile: A SecurityProfile resource to be passed as the request
-      body.
-    updateMask: Required. Field mask is used to specify the fields to be
-      overwritten in the SecurityProfile resource by the update. The fields
-      specified in the update_mask are relative to the resource, not the full
-      request. A field will be overwritten if it is in the mask.
-  """
-
-  name = _messages.StringField(1, required=True)
-  securityProfile = _messages.MessageField('SecurityProfile', 2)
-  updateMask = _messages.StringField(3)
+  filter = _messages.StringField(1)
+  orderBy = _messages.StringField(2)
+  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(4)
+  parent = _messages.StringField(5, required=True)
 
 
 class NetworksecurityProjectsLocationsServerTlsPoliciesCreateRequest(_messages.Message):
@@ -4568,11 +6423,18 @@ class NetworksecurityProjectsLocationsServerTlsPoliciesListRequest(_messages.Mes
     parent: Required. The project and location from which the
       ServerTlsPolicies should be listed, specified in the format
       `projects/*/locations/{location}`.
+    returnPartialSuccess: Optional. Setting this field to `true` will opt the
+      request into returning the resources that are reachable, and into
+      including the names of those that were unreachable in the
+      [ListServerTlsPoliciesResponse.unreachable] field. This can only be
+      `true` when reading across collections e.g. when `parent` is set to
+      `"projects/example/locations/-"`.
   """
 
   pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
   pageToken = _messages.StringField(2)
   parent = _messages.StringField(3, required=True)
+  returnPartialSuccess = _messages.BooleanField(4)
 
 
 class NetworksecurityProjectsLocationsServerTlsPoliciesPatchRequest(_messages.Message):
@@ -4938,67 +6800,6 @@ class OperationMetadata(_messages.Message):
   verb = _messages.StringField(7)
 
 
-class Reference(_messages.Message):
-  r"""Represents a reference to a resource.
-
-  Messages:
-    DetailsValueListEntry: A DetailsValueListEntry object.
-
-  Fields:
-    createTime: Output only. The creation time.
-    details: Details of the reference type with no implied semantics.
-      Cumulative size of the field must not be more than 1KiB.
-    name: Output only. Relative resource name of the reference. Includes
-      target resource as a parent and reference uid
-      `{target_resource}/references/{reference_id}`. For example,
-      `projects/{my-project}/locations/{location}/instances/{my-
-      instance}/references/{xyz}`.
-    sourceResource: Required. Full resource name of the resource which refers
-      the target resource. For example:
-      //tpu.googleapis.com/projects/myproject/nodes/mynode
-    targetUniqueId: Output only. The unique_id of the target resource. Example
-      1: (For arcus resource) A-1-0-2-387420123-13-913517247483640811
-      unique_id format defined in go/m11n-unique-id-as-resource-id Example 2:
-      (For CCFE resource) 123e4567-e89b-12d3-a456-426614174000
-    type: Required. Type of the reference. A service might impose limits on
-      number of references of a specific type. Note: It's recommended to use
-      CAPITALS_WITH_UNDERSCORES style for a type name.
-  """
-
-  @encoding.MapUnrecognizedFields('additionalProperties')
-  class DetailsValueListEntry(_messages.Message):
-    r"""A DetailsValueListEntry object.
-
-    Messages:
-      AdditionalProperty: An additional property for a DetailsValueListEntry
-        object.
-
-    Fields:
-      additionalProperties: Properties of the object. Contains field @type
-        with type URL.
-    """
-
-    class AdditionalProperty(_messages.Message):
-      r"""An additional property for a DetailsValueListEntry object.
-
-      Fields:
-        key: Name of the additional property.
-        value: A extra_types.JsonValue attribute.
-      """
-
-      key = _messages.StringField(1)
-      value = _messages.MessageField('extra_types.JsonValue', 2)
-
-    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
-
-  createTime = _messages.StringField(1)
-  details = _messages.MessageField('DetailsValueListEntry', 2, repeated=True)
-  name = _messages.StringField(3)
-  sourceResource = _messages.StringField(4)
-  targetUniqueId = _messages.StringField(5)
-  type = _messages.StringField(6)
-
-
 class RemoveAddressGroupItemsRequest(_messages.Message):
   r"""Request used by the RemoveAddressGroupItems method.
 
@@ -5040,9 +6841,255 @@ class Rule(_messages.Message):
   sources = _messages.MessageField('Source', 2, repeated=True)
 
 
+class SACAttachment(_messages.Message):
+  r"""Represents a Secure Access Connect (SAC) attachment resource. A Secure
+  Access Connect attachment enables NCC Gateway to process traffic with an SSE
+  product.
+
+  Enums:
+    StateValueValuesEnum: Output only. State of the attachment.
+
+  Messages:
+    LabelsValue: Optional. Optional list of labels applied to the resource.
+
+  Fields:
+    country: Optional. Case-insensitive ISO-3166 alpha-2 country code used for
+      localization. Only valid for Symantec attachments.
+    createTime: Output only. Timestamp when the attachment was created.
+    labels: Optional. Optional list of labels applied to the resource.
+    name: Identifier. Resource name, in the form
+      `projects/{project}/locations/{location}/sacAttachments/{sac_attachment}
+      `.
+    nccGateway: Required. NCC Gateway associated with the attachment. This can
+      be input as an ID or a full resource name. The output always has the
+      form
+      `projects/{project_number}/locations/{location}/spokes/{ncc_gateway}`.
+    sacRealm: Required. SAC Realm which owns the attachment. This can be input
+      as an ID or a full resource name. The output always has the form
+      `projects/{project_number}/locations/{location}/sacRealms/{sac_realm}`.
+    state: Output only. State of the attachment.
+    symantecOptions: Optional. Configuration required for Symantec
+      attachments.
+    timeZone: Optional. Case-sensitive tzinfo identifier used for
+      localization. Only valid for Symantec attachments.
+    updateTime: Output only. Timestamp when the attachment was last updated.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. State of the attachment.
+
+    Values:
+      STATE_UNSPECIFIED: No state specified. This should not be used.
+      PENDING_PARTNER_ATTACHMENT: Has never been attached to a partner.
+      PARTNER_ATTACHED: Currently attached to a partner.
+      PARTNER_DETACHED: Was once attached to a partner but has been detached.
+    """
+    STATE_UNSPECIFIED = 0
+    PENDING_PARTNER_ATTACHMENT = 1
+    PARTNER_ATTACHED = 2
+    PARTNER_DETACHED = 3
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class LabelsValue(_messages.Message):
+    r"""Optional. Optional list of labels applied to the resource.
+
+    Messages:
+      AdditionalProperty: An additional property for a LabelsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type LabelsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a LabelsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  country = _messages.StringField(1)
+  createTime = _messages.StringField(2)
+  labels = _messages.MessageField('LabelsValue', 3)
+  name = _messages.StringField(4)
+  nccGateway = _messages.StringField(5)
+  sacRealm = _messages.StringField(6)
+  state = _messages.EnumField('StateValueValuesEnum', 7)
+  symantecOptions = _messages.MessageField('SACAttachmentSACAttachmentSymantecOptions', 8)
+  timeZone = _messages.StringField(9)
+  updateTime = _messages.StringField(10)
+
+
+class SACAttachmentSACAttachmentSymantecOptions(_messages.Message):
+  r"""Fields specific to attachments associated with Symantec Cloud SWG.
+
+  Fields:
+    symantecLocationName: Immutable. Name to be used when creating a location
+      on the customer's behalf in Symantec's Location API. Not to be confused
+      with Google Cloud locations.
+    symantecSite: Immutable. Symantec data center identifier that this
+      attachment will connect to.
+  """
+
+  symantecLocationName = _messages.StringField(1)
+  symantecSite = _messages.StringField(2)
+
+
+class SACRealm(_messages.Message):
+  r"""Represents a Secure Access Connect (SAC) realm resource. A Secure Access
+  Connect realm establishes a connection between your Google Cloud project and
+  an SSE service.
+
+  Enums:
+    SecurityServiceValueValuesEnum: Immutable. SSE service provider associated
+      with the realm.
+    StateValueValuesEnum: Output only. State of the realm.
+
+  Messages:
+    LabelsValue: Optional. Optional list of labels applied to the resource.
+
+  Fields:
+    createTime: Output only. Timestamp when the realm was created.
+    labels: Optional. Optional list of labels applied to the resource.
+    name: Identifier. Resource name, in the form
+      `projects/{project}/locations/global/sacRealms/{sacRealm}`.
+    pairingKey: Output only. Key to be shared with SSE service provider during
+      pairing.
+    securityService: Immutable. SSE service provider associated with the
+      realm.
+    state: Output only. State of the realm.
+    symantecOptions: Optional. Configuration required for Symantec realms.
+    updateTime: Output only. Timestamp when the realm was last updated.
+  """
+
+  class SecurityServiceValueValuesEnum(_messages.Enum):
+    r"""Immutable. SSE service provider associated with the realm.
+
+    Values:
+      SECURITY_SERVICE_UNSPECIFIED: The default value. This value is used if
+        the state is omitted.
+      PALO_ALTO_PRISMA_ACCESS: [Palo Alto Networks Prisma
+        Access](https://www.paloaltonetworks.com/sase/access).
+      SYMANTEC_CLOUD_SWG: Symantec Cloud SWG.
+    """
+    SECURITY_SERVICE_UNSPECIFIED = 0
+    PALO_ALTO_PRISMA_ACCESS = 1
+    SYMANTEC_CLOUD_SWG = 2
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. State of the realm.
+
+    Values:
+      STATE_UNSPECIFIED: No state specified. This should not be used.
+      PENDING_PARTNER_ATTACHMENT: Has never been attached to a partner. Used
+        only for Prisma Access.
+      PARTNER_ATTACHED: Currently attached to a partner.
+      PARTNER_DETACHED: Was once attached to a partner but has been detached.
+      KEY_EXPIRED: Is not attached to a partner and has an expired pairing
+        key. Used only for Prisma Access.
+    """
+    STATE_UNSPECIFIED = 0
+    PENDING_PARTNER_ATTACHMENT = 1
+    PARTNER_ATTACHED = 2
+    PARTNER_DETACHED = 3
+    KEY_EXPIRED = 4
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class LabelsValue(_messages.Message):
+    r"""Optional. Optional list of labels applied to the resource.
+
+    Messages:
+      AdditionalProperty: An additional property for a LabelsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type LabelsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a LabelsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  createTime = _messages.StringField(1)
+  labels = _messages.MessageField('LabelsValue', 2)
+  name = _messages.StringField(3)
+  pairingKey = _messages.MessageField('SACRealmPairingKey', 4)
+  securityService = _messages.EnumField('SecurityServiceValueValuesEnum', 5)
+  state = _messages.EnumField('StateValueValuesEnum', 6)
+  symantecOptions = _messages.MessageField('SACRealmSACRealmSymantecOptions', 7)
+  updateTime = _messages.StringField(8)
+
+
+class SACRealmPairingKey(_messages.Message):
+  r"""Key to be shared with SSE service provider to establish global
+  handshake.
+
+  Fields:
+    expireTime: Output only. Timestamp in UTC of when this resource is
+      considered expired. It expires 7 days after creation.
+    key: Output only. Key value.
+  """
+
+  expireTime = _messages.StringField(1)
+  key = _messages.StringField(2)
+
+
+class SACRealmSACRealmSymantecOptions(_messages.Message):
+  r"""Fields specific to realms using Symantec Cloud SWG.
+
+  Enums:
+    SymantecConnectionStateValueValuesEnum: Output only. Connection status to
+      Symantec API.
+
+  Fields:
+    availableSymantecSites: Output only. Symantec site IDs which the user can
+      choose to connect to.
+    secretPath: Optional. API Key used to call Symantec APIs on the user's
+      behalf. Required if using Symantec Cloud SWG. P4SA account needs
+      permissions granted to read this secret. A secret ID, secret name, or
+      secret URI can be specified, but it will be parsed and stored as a
+      secret URI in the form `projects/{project_number}/secrets/my-secret`.
+    symantecConnectionState: Output only. Connection status to Symantec API.
+  """
+
+  class SymantecConnectionStateValueValuesEnum(_messages.Enum):
+    r"""Output only. Connection status to Symantec API.
+
+    Values:
+      SYMANTEC_CONNECTION_STATE_UNSPECIFIED: No state specified. This should
+        not be used.
+      SUCCEEDED: Successfully made a request to Symantec API.
+      READ_SECRET_FAILED: Cannot access the API key in the provided
+        `secret_path`.
+      REQUEST_TO_SYMANTEC_FAILED: Failed to get a successful response from
+        Symantec API due to an invalid API key or Symantec API unavailability.
+    """
+    SYMANTEC_CONNECTION_STATE_UNSPECIFIED = 0
+    SUCCEEDED = 1
+    READ_SECRET_FAILED = 2
+    REQUEST_TO_SYMANTEC_FAILED = 3
+
+  availableSymantecSites = _messages.StringField(1, repeated=True)
+  secretPath = _messages.StringField(2)
+  symantecConnectionState = _messages.EnumField('SymantecConnectionStateValueValuesEnum', 3)
+
+
 class SecurityProfile(_messages.Message):
   r"""SecurityProfile is a resource that defines the behavior for one of many
-  ProfileTypes. Next ID: 9
+  ProfileTypes.
 
   Enums:
     TypeValueValuesEnum: Immutable. The single ProfileType that the
@@ -5053,6 +7100,10 @@ class SecurityProfile(_messages.Message):
 
   Fields:
     createTime: Output only. Resource creation timestamp.
+    customInterceptProfile: The custom TPPI configuration for the
+      SecurityProfile.
+    customMirroringProfile: The custom Packet Mirroring v2 configuration for
+      the SecurityProfile.
     description: Optional. An optional description of the profile. Max length
       512 characters.
     etag: Output only. This checksum is computed by the server based on the
@@ -5067,6 +7118,8 @@ class SecurityProfile(_messages.Message):
     type: Immutable. The single ProfileType that the SecurityProfile resource
       configures.
     updateTime: Output only. Last resource update timestamp.
+    urlFilteringProfile: The URL filtering configuration for the
+      SecurityProfile.
   """
 
   class TypeValueValuesEnum(_messages.Enum):
@@ -5076,9 +7129,15 @@ class SecurityProfile(_messages.Message):
     Values:
       PROFILE_TYPE_UNSPECIFIED: Profile type not specified.
       THREAT_PREVENTION: Profile type for threat prevention.
+      CUSTOM_MIRRORING: Profile type for packet mirroring v2
+      CUSTOM_INTERCEPT: Profile type for TPPI.
+      URL_FILTERING: Profile type for URL filtering.
     """
     PROFILE_TYPE_UNSPECIFIED = 0
     THREAT_PREVENTION = 1
+    CUSTOM_MIRRORING = 2
+    CUSTOM_INTERCEPT = 3
+    URL_FILTERING = 4
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
@@ -5105,24 +7164,33 @@ class SecurityProfile(_messages.Message):
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
   createTime = _messages.StringField(1)
-  description = _messages.StringField(2)
-  etag = _messages.StringField(3)
-  labels = _messages.MessageField('LabelsValue', 4)
-  name = _messages.StringField(5)
-  threatPreventionProfile = _messages.MessageField('ThreatPreventionProfile', 6)
-  type = _messages.EnumField('TypeValueValuesEnum', 7)
-  updateTime = _messages.StringField(8)
+  customInterceptProfile = _messages.MessageField('CustomInterceptProfile', 2)
+  customMirroringProfile = _messages.MessageField('CustomMirroringProfile', 3)
+  description = _messages.StringField(4)
+  etag = _messages.StringField(5)
+  labels = _messages.MessageField('LabelsValue', 6)
+  name = _messages.StringField(7)
+  threatPreventionProfile = _messages.MessageField('ThreatPreventionProfile', 8)
+  type = _messages.EnumField('TypeValueValuesEnum', 9)
+  updateTime = _messages.StringField(10)
+  urlFilteringProfile = _messages.MessageField('UrlFilteringProfile', 11)
 
 
 class SecurityProfileGroup(_messages.Message):
   r"""SecurityProfileGroup is a resource that defines the behavior for various
-  ProfileTypes. Next ID: 8
+  ProfileTypes.
 
   Messages:
     LabelsValue: Optional. Labels as key value pairs.
 
   Fields:
     createTime: Output only. Resource creation timestamp.
+    customInterceptProfile: Optional. Reference to a SecurityProfile with the
+      CustomIntercept configuration.
+    customMirroringProfile: Optional. Reference to a SecurityProfile with the
+      CustomMirroring configuration.
+    dataPathId: Output only. Identifier used by the data-path. Unique within
+      {container, location}.
     description: Optional. An optional description of the profile group. Max
       length 2048 characters.
     etag: Output only. This checksum is computed by the server based on the
@@ -5133,8 +7201,10 @@ class SecurityProfileGroup(_messages.Message):
       matches pattern `projects|organizations/*/locations/{location}/securityP
       rofileGroups/{security_profile_group}`.
     threatPreventionProfile: Optional. Reference to a SecurityProfile with the
-      threat prevention configuration for the SecurityProfileGroup.
+      ThreatPrevention configuration.
     updateTime: Output only. Last resource update timestamp.
+    urlFilteringProfile: Optional. Reference to a SecurityProfile with the
+      UrlFiltering configuration.
   """
 
   @encoding.MapUnrecognizedFields('additionalProperties')
@@ -5162,126 +7232,63 @@ class SecurityProfileGroup(_messages.Message):
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
   createTime = _messages.StringField(1)
-  description = _messages.StringField(2)
-  etag = _messages.StringField(3)
-  labels = _messages.MessageField('LabelsValue', 4)
-  name = _messages.StringField(5)
-  threatPreventionProfile = _messages.StringField(6)
-  updateTime = _messages.StringField(7)
+  customInterceptProfile = _messages.StringField(2)
+  customMirroringProfile = _messages.StringField(3)
+  dataPathId = _messages.IntegerField(4, variant=_messages.Variant.UINT64)
+  description = _messages.StringField(5)
+  etag = _messages.StringField(6)
+  labels = _messages.MessageField('LabelsValue', 7)
+  name = _messages.StringField(8)
+  threatPreventionProfile = _messages.StringField(9)
+  updateTime = _messages.StringField(10)
+  urlFilteringProfile = _messages.StringField(11)
 
 
 class ServerTlsPolicy(_messages.Message):
   r"""ServerTlsPolicy is a resource that specifies how a server should
   authenticate incoming requests. This resource itself does not affect
   configuration unless it is attached to a target HTTPS proxy or endpoint
-  config selector resource. ServerTlsPolicy in the form accepted by external
-  HTTPS load balancers can be attached only to TargetHttpsProxy with an
-  `EXTERNAL` or `EXTERNAL_MANAGED` load balancing scheme. Traffic Director
-  compatible ServerTlsPolicies can be attached to EndpointPolicy and
-  TargetHttpsProxy with Traffic Director `INTERNAL_SELF_MANAGED` load
-  balancing scheme.
-
-  Enums:
-    MaxTlsVersionValueValuesEnum: Optional. TLS max version used only for
-      Envoy. If not specified, Envoy will use default version. Envoy latest: h
-      ttps://www.envoyproxy.io/docs/envoy/latest/api-
-      v3/extensions/transport_sockets/tls/v3/common.proto
-    MinTlsVersionValueValuesEnum: Optional. TLS min version used only for
-      Envoy. If not specified, Envoy will use default version. Envoy latest: h
-      ttps://www.envoyproxy.io/docs/envoy/latest/api-
-      v3/extensions/transport_sockets/tls/v3/common.proto
+  config selector resource. ServerTlsPolicy in the form accepted by
+  Application Load Balancers can be attached only to TargetHttpsProxy with an
+  `EXTERNAL`, `EXTERNAL_MANAGED` or `INTERNAL_MANAGED` load balancing scheme.
+  Traffic Director compatible ServerTlsPolicies can be attached to
+  EndpointPolicy and TargetHttpsProxy with Traffic Director
+  `INTERNAL_SELF_MANAGED` load balancing scheme.
 
   Messages:
     LabelsValue: Set of label tags associated with the resource.
 
   Fields:
     allowOpen: This field applies only for Traffic Director policies. It is
-      must be set to false for external HTTPS load balancer policies.
-      Determines if server allows plaintext connections. If set to true,
-      server allows plain text connections. By default, it is set to false.
-      This setting is not exclusive of other encryption modes. For example, if
-      `allow_open` and `mtls_policy` are set, server allows both plain text
-      and mTLS connections. See documentation of other encryption modes to
-      confirm compatibility. Consider using it if you wish to upgrade in place
-      your deployment to TLS while having mixed TLS and non-TLS traffic
-      reaching port :80.
-    cipherSuites: Optional. TLS custom cipher suites used only in CSM.
-      Following ciphers are supported: ECDHE-ECDSA-AES128-GCM-SHA256 ECDHE-
-      RSA-AES128-GCM-SHA256 ECDHE-ECDSA-AES256-GCM-SHA384 ECDHE-RSA-
-      AES256-GCM-SHA384 ECDHE-ECDSA-CHACHA20-POLY1305 ECDHE-RSA-
-      CHACHA20-POLY1305 ECDHE-ECDSA-AES128-SHA ECDHE-RSA-AES128-SHA ECDHE-
-      ECDSA-AES256-SHA ECDHE-RSA-AES256-SHA AES128-GCM-SHA256 AES256-GCM-
-      SHA384 AES128-SHA AES256-SHA DES-CBC3-SHA
+      must be set to false for Application Load Balancer policies. Determines
+      if server allows plaintext connections. If set to true, server allows
+      plain text connections. By default, it is set to false. This setting is
+      not exclusive of other encryption modes. For example, if `allow_open`
+      and `mtls_policy` are set, server allows both plain text and mTLS
+      connections. See documentation of other encryption modes to confirm
+      compatibility. Consider using it if you wish to upgrade in place your
+      deployment to TLS while having mixed TLS and non-TLS traffic reaching
+      port :80.
     createTime: Output only. The timestamp when the resource was created.
     description: Free-text description of the resource.
-    internalCaller: Optional. A flag set to identify internal controllers
-      Setting this will trigger a P4SA check to validate the caller is from an
-      allowlisted service's P4SA even if other optional fields are unset.
     labels: Set of label tags associated with the resource.
-    maxTlsVersion: Optional. TLS max version used only for Envoy. If not
-      specified, Envoy will use default version. Envoy latest: https://www.env
-      oyproxy.io/docs/envoy/latest/api-
-      v3/extensions/transport_sockets/tls/v3/common.proto
-    minTlsVersion: Optional. TLS min version used only for Envoy. If not
-      specified, Envoy will use default version. Envoy latest: https://www.env
-      oyproxy.io/docs/envoy/latest/api-
-      v3/extensions/transport_sockets/tls/v3/common.proto
-    mtlsPolicy: This field is required if the policy is used with external
-      HTTPS load balancers. This field can be empty for Traffic Director.
-      Defines a mechanism to provision peer validation certificates for peer
-      to peer authentication (Mutual TLS - mTLS). If not specified, client
-      certificate will not be requested. The connection is treated as TLS and
-      not mTLS. If `allow_open` and `mtls_policy` are set, server allows both
-      plain text and mTLS connections.
+    mtlsPolicy: This field is required if the policy is used with Application
+      Load Balancers. This field can be empty for Traffic Director. Defines a
+      mechanism to provision peer validation certificates for peer to peer
+      authentication (Mutual TLS - mTLS). If not specified, client certificate
+      will not be requested. The connection is treated as TLS and not mTLS. If
+      `allow_open` and `mtls_policy` are set, server allows both plain text
+      and mTLS connections.
     name: Required. Name of the ServerTlsPolicy resource. It matches the
       pattern
       `projects/*/locations/{location}/serverTlsPolicies/{server_tls_policy}`
     serverCertificate: Optional if policy is to be used with Traffic Director.
-      For external HTTPS load balancer must be empty. Defines a mechanism to
+      For Application Load Balancers must be empty. Defines a mechanism to
       provision server identity (public and private keys). Cannot be combined
       with `allow_open` as a permissive mode that allows both plain text and
       TLS is not supported.
-    subjectAltNames: Optional. Server side validation for client SAN, only
-      used in CSM. If not specified, the client SAN will not be checked by the
-      server.
     updateTime: Output only. The timestamp when the resource was updated.
   """
-
-  class MaxTlsVersionValueValuesEnum(_messages.Enum):
-    r"""Optional. TLS max version used only for Envoy. If not specified, Envoy
-    will use default version. Envoy latest: https://www.envoyproxy.io/docs/env
-    oy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto
-
-    Values:
-      TLS_VERSION_UNSPECIFIED: <no description>
-      TLS_V1_0: <no description>
-      TLS_V1_1: <no description>
-      TLS_V1_2: <no description>
-      TLS_V1_3: <no description>
-    """
-    TLS_VERSION_UNSPECIFIED = 0
-    TLS_V1_0 = 1
-    TLS_V1_1 = 2
-    TLS_V1_2 = 3
-    TLS_V1_3 = 4
-
-  class MinTlsVersionValueValuesEnum(_messages.Enum):
-    r"""Optional. TLS min version used only for Envoy. If not specified, Envoy
-    will use default version. Envoy latest: https://www.envoyproxy.io/docs/env
-    oy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto
-
-    Values:
-      TLS_VERSION_UNSPECIFIED: <no description>
-      TLS_V1_0: <no description>
-      TLS_V1_1: <no description>
-      TLS_V1_2: <no description>
-      TLS_V1_3: <no description>
-    """
-    TLS_VERSION_UNSPECIFIED = 0
-    TLS_V1_0 = 1
-    TLS_V1_1 = 2
-    TLS_V1_2 = 3
-    TLS_V1_3 = 4
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
@@ -5308,18 +7315,13 @@ class ServerTlsPolicy(_messages.Message):
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
   allowOpen = _messages.BooleanField(1)
-  cipherSuites = _messages.StringField(2, repeated=True)
-  createTime = _messages.StringField(3)
-  description = _messages.StringField(4)
-  internalCaller = _messages.BooleanField(5)
-  labels = _messages.MessageField('LabelsValue', 6)
-  maxTlsVersion = _messages.EnumField('MaxTlsVersionValueValuesEnum', 7)
-  minTlsVersion = _messages.EnumField('MinTlsVersionValueValuesEnum', 8)
-  mtlsPolicy = _messages.MessageField('MTLSPolicy', 9)
-  name = _messages.StringField(10)
-  serverCertificate = _messages.MessageField('GoogleCloudNetworksecurityV1beta1CertificateProvider', 11)
-  subjectAltNames = _messages.StringField(12, repeated=True)
-  updateTime = _messages.StringField(13)
+  createTime = _messages.StringField(2)
+  description = _messages.StringField(3)
+  labels = _messages.MessageField('LabelsValue', 4)
+  mtlsPolicy = _messages.MessageField('MTLSPolicy', 5)
+  name = _messages.StringField(6)
+  serverCertificate = _messages.MessageField('GoogleCloudNetworksecurityV1beta1CertificateProvider', 7)
+  updateTime = _messages.StringField(8)
 
 
 class SeverityOverride(_messages.Message):
@@ -5526,16 +7528,6 @@ class Status(_messages.Message):
   message = _messages.StringField(3)
 
 
-class ThirdPartyEndpointSettings(_messages.Message):
-  r"""Next ID: 2.
-
-  Fields:
-    targetFirewallAttachment: Optional. URL of the target firewall attachment.
-  """
-
-  targetFirewallAttachment = _messages.StringField(1)
-
-
 class ThreatOverride(_messages.Message):
   r"""Defines what action to take for a specific threat_id match.
 
@@ -5605,6 +7597,8 @@ class ThreatPreventionProfile(_messages.Message):
   or severity levels.
 
   Fields:
+    antivirusOverrides: Optional. Configuration for overriding antivirus
+      actions per protocol.
     severityOverrides: Optional. Configuration for overriding threats actions
       by severity match.
     threatOverrides: Optional. Configuration for overriding threats actions by
@@ -5613,8 +7607,9 @@ class ThreatPreventionProfile(_messages.Message):
       is applied.
   """
 
-  severityOverrides = _messages.MessageField('SeverityOverride', 1, repeated=True)
-  threatOverrides = _messages.MessageField('ThreatOverride', 2, repeated=True)
+  antivirusOverrides = _messages.MessageField('AntivirusOverride', 1, repeated=True)
+  severityOverrides = _messages.MessageField('SeverityOverride', 2, repeated=True)
+  threatOverrides = _messages.MessageField('ThreatOverride', 3, repeated=True)
 
 
 class TlsInspectionPolicy(_messages.Message):
@@ -5746,6 +7741,50 @@ class TlsInspectionPolicy(_messages.Message):
   updateTime = _messages.StringField(10)
 
 
+class UrlFilter(_messages.Message):
+  r"""A URL filter defines an action to take for some URL match.
+
+  Enums:
+    FilteringActionValueValuesEnum: Required. The action taken when this
+      filter is applied.
+
+  Fields:
+    filteringAction: Required. The action taken when this filter is applied.
+    priority: Required. The priority of this filter within the URL Filtering
+      Profile. Lower integers indicate higher priorities. The priority of a
+      filter must be unique within a URL Filtering Profile.
+    urls: Required. The list of strings that a URL must match with for this
+      filter to be applied.
+  """
+
+  class FilteringActionValueValuesEnum(_messages.Enum):
+    r"""Required. The action taken when this filter is applied.
+
+    Values:
+      URL_FILTERING_ACTION_UNSPECIFIED: Filtering action not specified.
+      ALLOW: The connection matching this filter will be allowed to transmit.
+      DENY: The connection matching this filter will be dropped.
+    """
+    URL_FILTERING_ACTION_UNSPECIFIED = 0
+    ALLOW = 1
+    DENY = 2
+
+  filteringAction = _messages.EnumField('FilteringActionValueValuesEnum', 1)
+  priority = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  urls = _messages.StringField(3, repeated=True)
+
+
+class UrlFilteringProfile(_messages.Message):
+  r"""UrlFilteringProfile defines filters based on URL.
+
+  Fields:
+    urlFilters: Optional. The list of filtering configs in which each config
+      defines an action to take for some URL match.
+  """
+
+  urlFilters = _messages.MessageField('UrlFilter', 1, repeated=True)
+
+
 class UrlList(_messages.Message):
   r"""UrlList proto helps users to set reusable, independently manageable
   lists of hosts, host patterns, URLs, URL patterns.
@@ -5783,38 +7822,21 @@ class ValidationCA(_messages.Message):
   grpcEndpoint = _messages.MessageField('GoogleCloudNetworksecurityV1beta1GrpcEndpoint', 2)
 
 
-class WorkloadContextSelector(_messages.Message):
-  r"""Determines which workloads a policy is applicable for.
-
-  Fields:
-    metadataSelectors: Required. A map of metadata label values used to select
-      workloads. If multiple MetadataSelectors are provided, all
-      MetadataSelectors must match in order for the policy to be applied to
-      this workload. Therefore these selectors must be combined in an AND
-      fashion.
-  """
-
-  metadataSelectors = _messages.MessageField('WorkloadContextSelectorMetadataSelector', 1, repeated=True)
-
-
-class WorkloadContextSelectorMetadataSelector(_messages.Message):
-  r"""This message type exists as opposed to using a map to support additional
-  fields in the future such as priority.
-
-  Fields:
-    key: Required. The metadata field being selected on
-    value: Required. The value for this metadata field to be compared with
-  """
-
-  key = _messages.StringField(1)
-  value = _messages.StringField(2)
-
-
 encoding.AddCustomJsonFieldMapping(
-    GoogleIamV1Rule, 'in_', 'in')
+    AuthzPolicyAuthzRule, 'from_', 'from')
 encoding.AddCustomJsonFieldMapping(
     StandardQueryParameters, 'f__xgafv', '$.xgafv')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    NetworksecurityProjectsLocationsAddressGroupsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    NetworksecurityProjectsLocationsAuthorizationPoliciesGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    NetworksecurityProjectsLocationsAuthzPoliciesGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    NetworksecurityProjectsLocationsClientTlsPoliciesGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    NetworksecurityProjectsLocationsServerTlsPoliciesGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')

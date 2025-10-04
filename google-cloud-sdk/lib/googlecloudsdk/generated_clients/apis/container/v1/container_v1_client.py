@@ -190,6 +190,33 @@ class ContainerV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def FetchNodePoolUpgradeInfo(self, request, global_params=None):
+      r"""Fetch upgrade information of a specific nodepool.
+
+      Args:
+        request: (ContainerProjectsLocationsClustersNodePoolsFetchNodePoolUpgradeInfoRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (NodePoolUpgradeInfo) The response message.
+      """
+      config = self.GetMethodConfig('FetchNodePoolUpgradeInfo')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    FetchNodePoolUpgradeInfo.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/clusters/{clustersId}/nodePools/{nodePoolsId}:fetchNodePoolUpgradeInfo',
+        http_method='GET',
+        method_id='container.projects.locations.clusters.nodePools.fetchNodePoolUpgradeInfo',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['version'],
+        relative_path='v1/{+name}:fetchNodePoolUpgradeInfo',
+        request_field='',
+        request_type_name='ContainerProjectsLocationsClustersNodePoolsFetchNodePoolUpgradeInfoRequest',
+        response_type_name='NodePoolUpgradeInfo',
+        supports_download=False,
+    )
+
     def Get(self, request, global_params=None):
       r"""Retrieves the requested node pool.
 
@@ -453,6 +480,33 @@ class ContainerV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def CompleteControlPlaneUpgrade(self, request, global_params=None):
+      r"""CompleteControlPlaneUpgrade completes the rollback-safe upgrade by performing the step two upgrade for a specific cluster.
+
+      Args:
+        request: (ContainerProjectsLocationsClustersCompleteControlPlaneUpgradeRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('CompleteControlPlaneUpgrade')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    CompleteControlPlaneUpgrade.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/clusters/{clustersId}:completeControlPlaneUpgrade',
+        http_method='POST',
+        method_id='container.projects.locations.clusters.completeControlPlaneUpgrade',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}:completeControlPlaneUpgrade',
+        request_field='completeControlPlaneUpgradeRequest',
+        request_type_name='ContainerProjectsLocationsClustersCompleteControlPlaneUpgradeRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
     def CompleteConvertToAutopilot(self, request, global_params=None):
       r"""CompleteConvertToAutopilot is an optional API that commits the conversion by deleting all Standard node pools and completing CA rotation. This action requires that a conversion has been started and that workload migration has completed, with no pods running on GKE Standard node pools. This action will be automatically performed 72 hours after conversion.
 
@@ -508,7 +562,7 @@ class ContainerV1(base_api.BaseApiClient):
     )
 
     def Create(self, request, global_params=None):
-      r"""Creates a cluster, consisting of the specified number and type of Google Compute Engine instances. By default, the cluster is created in the project's [default network](https://cloud.google.com/compute/docs/networks-and-firewalls#networks). One firewall is added for the cluster. After cluster creation, the Kubelet creates routes for each node to allow the containers on that node to communicate with all other instances in the cluster. Finally, an entry is added to the project's global metadata indicating which CIDR range the cluster is using.
+      r"""Creates a cluster, consisting of the specified number and type of Google Compute Engine instances. By default, the cluster is created in the project's [default network](https://{$universe.dns_names.final_documentation_domain}/compute/docs/networks-and-firewalls#networks). One firewall is added for the cluster. After cluster creation, the Kubelet creates routes for each node to allow the containers on that node to communicate with all other instances in the cluster. Finally, an entry is added to the project's global metadata indicating which CIDR range the cluster is using.
 
       Args:
         request: (CreateClusterRequest) input message
@@ -558,6 +612,33 @@ class ContainerV1(base_api.BaseApiClient):
         request_field='',
         request_type_name='ContainerProjectsLocationsClustersDeleteRequest',
         response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def FetchClusterUpgradeInfo(self, request, global_params=None):
+      r"""Fetch upgrade information of a specific cluster.
+
+      Args:
+        request: (ContainerProjectsLocationsClustersFetchClusterUpgradeInfoRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ClusterUpgradeInfo) The response message.
+      """
+      config = self.GetMethodConfig('FetchClusterUpgradeInfo')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    FetchClusterUpgradeInfo.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/clusters/{clustersId}:fetchClusterUpgradeInfo',
+        http_method='GET',
+        method_id='container.projects.locations.clusters.fetchClusterUpgradeInfo',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['version'],
+        relative_path='v1/{+name}:fetchClusterUpgradeInfo',
+        request_field='',
+        request_type_name='ContainerProjectsLocationsClustersFetchClusterUpgradeInfoRequest',
+        response_type_name='ClusterUpgradeInfo',
         supports_download=False,
     )
 
@@ -697,7 +778,7 @@ class ContainerV1(base_api.BaseApiClient):
     )
 
     def SetLocations(self, request, global_params=None):
-      r"""Sets the locations for a specific cluster. Deprecated. Use [projects.locations.clusters.update](https://cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters/update) instead.
+      r"""Sets the locations for a specific cluster. Deprecated. Use [projects.locations.clusters.update](https://{$universe.dns_names.final_documentation_domain}/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters/update) instead.
 
       Args:
         request: (SetLocationsRequest) input message
@@ -1182,6 +1263,33 @@ class ContainerV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def FetchNodePoolUpgradeInfo(self, request, global_params=None):
+      r"""Fetch upgrade information of a specific nodepool.
+
+      Args:
+        request: (ContainerProjectsZonesClustersNodePoolsFetchNodePoolUpgradeInfoRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (NodePoolUpgradeInfo) The response message.
+      """
+      config = self.GetMethodConfig('FetchNodePoolUpgradeInfo')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    FetchNodePoolUpgradeInfo.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/zones/{zonesId}/clusters/{clustersId}/nodePools/{nodePoolsId}:fetchNodePoolUpgradeInfo',
+        http_method='GET',
+        method_id='container.projects.zones.clusters.nodePools.fetchNodePoolUpgradeInfo',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['version'],
+        relative_path='v1/{+name}:fetchNodePoolUpgradeInfo',
+        request_field='',
+        request_type_name='ContainerProjectsZonesClustersNodePoolsFetchNodePoolUpgradeInfoRequest',
+        response_type_name='NodePoolUpgradeInfo',
+        supports_download=False,
+    )
+
     def Get(self, request, global_params=None):
       r"""Retrieves the requested node pool.
 
@@ -1374,6 +1482,33 @@ class ContainerV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def CompleteControlPlaneUpgrade(self, request, global_params=None):
+      r"""CompleteControlPlaneUpgrade completes the rollback-safe upgrade by performing the step two upgrade for a specific cluster.
+
+      Args:
+        request: (ContainerProjectsZonesClustersCompleteControlPlaneUpgradeRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('CompleteControlPlaneUpgrade')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    CompleteControlPlaneUpgrade.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/zones/{zonesId}/clusters/{clustersId}:completeControlPlaneUpgrade',
+        http_method='POST',
+        method_id='container.projects.zones.clusters.completeControlPlaneUpgrade',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}:completeControlPlaneUpgrade',
+        request_field='completeControlPlaneUpgradeRequest',
+        request_type_name='ContainerProjectsZonesClustersCompleteControlPlaneUpgradeRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
     def CompleteIpRotation(self, request, global_params=None):
       r"""Completes master IP rotation.
 
@@ -1401,7 +1536,7 @@ class ContainerV1(base_api.BaseApiClient):
     )
 
     def Create(self, request, global_params=None):
-      r"""Creates a cluster, consisting of the specified number and type of Google Compute Engine instances. By default, the cluster is created in the project's [default network](https://cloud.google.com/compute/docs/networks-and-firewalls#networks). One firewall is added for the cluster. After cluster creation, the Kubelet creates routes for each node to allow the containers on that node to communicate with all other instances in the cluster. Finally, an entry is added to the project's global metadata indicating which CIDR range the cluster is using.
+      r"""Creates a cluster, consisting of the specified number and type of Google Compute Engine instances. By default, the cluster is created in the project's [default network](https://{$universe.dns_names.final_documentation_domain}/compute/docs/networks-and-firewalls#networks). One firewall is added for the cluster. After cluster creation, the Kubelet creates routes for each node to allow the containers on that node to communicate with all other instances in the cluster. Finally, an entry is added to the project's global metadata indicating which CIDR range the cluster is using.
 
       Args:
         request: (CreateClusterRequest) input message
@@ -1449,6 +1584,33 @@ class ContainerV1(base_api.BaseApiClient):
         request_field='',
         request_type_name='ContainerProjectsZonesClustersDeleteRequest',
         response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def FetchClusterUpgradeInfo(self, request, global_params=None):
+      r"""Fetch upgrade information of a specific cluster.
+
+      Args:
+        request: (ContainerProjectsZonesClustersFetchClusterUpgradeInfoRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ClusterUpgradeInfo) The response message.
+      """
+      config = self.GetMethodConfig('FetchClusterUpgradeInfo')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    FetchClusterUpgradeInfo.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/zones/{zonesId}/clusters/{clustersId}:fetchClusterUpgradeInfo',
+        http_method='GET',
+        method_id='container.projects.zones.clusters.fetchClusterUpgradeInfo',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['version'],
+        relative_path='v1/{+name}:fetchClusterUpgradeInfo',
+        request_field='',
+        request_type_name='ContainerProjectsZonesClustersFetchClusterUpgradeInfoRequest',
+        response_type_name='ClusterUpgradeInfo',
         supports_download=False,
     )
 
@@ -1531,7 +1693,7 @@ class ContainerV1(base_api.BaseApiClient):
     )
 
     def Locations(self, request, global_params=None):
-      r"""Sets the locations for a specific cluster. Deprecated. Use [projects.locations.clusters.update](https://cloud.google.com/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters/update) instead.
+      r"""Sets the locations for a specific cluster. Deprecated. Use [projects.locations.clusters.update](https://{$universe.dns_names.final_documentation_domain}/kubernetes-engine/docs/reference/rest/v1/projects.locations.clusters/update) instead.
 
       Args:
         request: (SetLocationsRequest) input message

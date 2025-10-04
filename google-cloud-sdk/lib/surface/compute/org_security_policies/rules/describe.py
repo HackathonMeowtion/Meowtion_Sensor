@@ -27,6 +27,7 @@ from googlecloudsdk.command_lib.compute.org_security_policies import org_securit
 import six
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
 class Describe(base.DescribeCommand):
   """Describe a Compute Engine organization security policy rule.
@@ -66,9 +67,9 @@ class Describe(base.DescribeCommand):
 Describe.detailed_help = {
     "EXAMPLES":
         """\
-    To describe a rule with priority ``10" in an organization security policy
-    with ID ``123456789", run:
+    To describe a rule with priority ``10'' in an organization security policy
+    with ID ``123456789'', run:
 
-      $ {command} describe 10 --security-policy=123456789
+      $ {command} 10 --security-policy=123456789
     """,
 }

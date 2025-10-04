@@ -64,7 +64,9 @@ oauth_client:
 
       * `openid`: Associate you with your personal info on Google Cloud.
 
-      * `email`: View your Google Cloud Account email address.
+      * `email`: The OAuth client can read a federated identity's email address.
+
+      * `groups`: The OAuth client can read a federated identity's groups.
   allowed_redirect_uris:
     api_field: oauthClient.allowedRedirectUris
     arg_name: allowed-redirect-uris
@@ -142,6 +144,68 @@ workload_identity_pool:
     arg_name: mode
     help_text: |-
       The mode of the pool.
+  inline_certificate_issuance_config_file:
+    api_field: workloadIdentityPool.inlineCertificateIssuanceConfig
+    type: "googlecloudsdk.calliope.arg_parsers:YAMLFileContents:"
+    processor: googlecloudsdk.command_lib.iam.iam_util:ParseYamlOrJsonToInlineCertificateIssuanceConfig
+    arg_name: inline-certificate-issuance-config-file
+    help_text: |-
+      YAML file with configuration for certificate issuance.
+      Example file format:
+      ```yaml
+      inlineCertificateIssuanceConfig:
+        caPools:
+          us-east1: projects/1234/locations/us-east1/caPools/capoolname
+          us-west1: projects/1234/locations/us-west1/caPools/capoolname
+        keyAlgorithm: ECDSA_P256
+        lifetime: 86400s
+        rotationWindowPercentage: 50
+      ```
+  key_algorithm:
+    api_field: workloadIdentityPool.inlineCertificateIssuanceConfig.keyAlgorithm
+    arg_name: key-algorithm
+    help_text: |-
+      Key algorithm to use when generating the key pair. This key pair will be used to create the
+      certificate.
+  certificate_lifetime:
+    api_field: workloadIdentityPool.inlineCertificateIssuanceConfig.lifetime
+    arg_name: certificate-lifetime
+    help_text: |-
+      Lifetime of the workload certificates issued by the CA pool.
+  rotation_window_percentage:
+    api_field: workloadIdentityPool.inlineCertificateIssuanceConfig.rotationWindowPercentage
+    arg_name: rotation-window-percentage
+    help_text: |-
+      Rotation window percentage indicating when certificate rotation should be initiated based on
+      remaining lifetime.
+  inline_trust_config_file:
+    api_field: workloadIdentityPool.inlineTrustConfig
+    type: "googlecloudsdk.calliope.arg_parsers:YAMLFileContents:"
+    processor: googlecloudsdk.command_lib.iam.iam_util:ParseYamlOrJsonToInlineTrustConfig
+    arg_name: inline-trust-config-file
+    help_text: |-
+      YAML file with configuration for providing additional trust bundles.
+      Example file format:
+      ```yaml
+      inlineTrustConfig:
+        additionalTrustBundles:
+          example.com:
+            trustAnchors:
+            - pemCertificate: "-----BEGIN CERTIFICATE-----
+              <certificate>
+              -----END CERTIFICATE-----"
+            - pemCertificate: "-----BEGIN CERTIFICATE-----
+              <certificate>
+              -----END CERTIFICATE-----"
+          myorg.com:
+            trustAnchors:
+            - pemCertificate: "-----BEGIN CERTIFICATE-----
+              <certificate>
+              -----END CERTIFICATE-----"
+            - pemCertificate: "-----BEGIN CERTIFICATE-----
+              <certificate>
+              -----END CERTIFICATE-----"
+      ```
 
 workload_identity_pool_provider:
   display_name:
@@ -233,7 +297,7 @@ workload_identity_pool_provider:
       - If no attribute mapping is defined, the following default mapping
         applies:
 
-        ```
+        ```json
         {
           "google.subject":"assertion.arn",
           "attribute.aws_role":
@@ -256,7 +320,7 @@ workload_identity_pool_provider:
         `sub` claim of the incoming credential to the `subject` attribute on
         a Google token.
 
-        ```
+        ```json
         {"google.subject": "assertion.sub"}
         ```
   attribute_condition:
@@ -323,7 +387,7 @@ workload_identity_pool_provider:
     help_text: |-
       Optional file containing jwk public keys. The file format must follow
       [jwk specifications](https://www.rfc-editor.org/rfc/rfc7517#section-4). Example file format:
-      ```
+      ```json
       {
         "keys": [
            {
@@ -378,7 +442,7 @@ workload_identity_pool_provider:
     help_text: |-
       YAML file with configuration metadata for the X.509 identity provider.
       Example file format:
-      ```
+      ```yaml
       trustStore:
         trustAnchors:
         - pemCertificate: "-----BEGIN CERTIFICATE-----
@@ -469,6 +533,62 @@ workforce_pool:
       information, refer to Obtain short-lived tokens for workforce identity federation at
       https://cloud.google.com/iam/docs/workforce-obtaining-short-lived-credentials
 
+workforce_pool_installed_app:
+  application_name:
+    api_field: workforcePoolInstalledApp.appMetadata.name
+    arg_name: application-name
+    required: true
+    help_text: |-
+      The full resource name of the application to be installed.
+  display_name:
+    api_field: workforcePoolInstalledApp.displayName
+    arg_name: display-name
+    help_text: |-
+      A display name for the workforce pool installed app. Cannot exceed 32 characters in length.
+  description:
+    api_field: workforcePoolInstalledApp.description
+    arg_name: description
+    help_text: |-
+      A description for the workforce pool installed app. Cannot exceed 256 characters in length.
+
+workforce_pool_provider_scim_tenant:
+  display_name:
+    api_field: workforcePoolProviderScimTenant.displayName
+    arg_name: display-name
+    help_text: |-
+      Optional, user-specified display name for the SCIM tenant (max 32 characters).
+  description:
+    api_field: workforcePoolProviderScimTenant.description
+    arg_name: description
+    help_text: |-
+      Optional, user-specified description for the SCIM tenant (max 256 characters).
+  claim_mapping:
+    api_field: workforcePoolProviderScimTenant.claimMapping
+    arg_name: claim-mapping
+    metavar: KEY=VALUE
+    type: "googlecloudsdk.calliope.arg_parsers:ArgDict:"
+    # TODO(b/412401165): Add specific SCIM claim mapping examples and link to relevant docs when available.
+    help_text: |-
+      A comma-separated list of KEY=VALUE pairs defining attribute mappings.
+  hard_delete:
+    api_field: hardDelete
+    arg_name: hard-delete
+    action: store_true
+    help_text: |-
+      If set, permanently deletes the SCIM tenant and its associated resources, including the SCIM tenant project and service account. This action cannot be undone.
+
+workforce_pool_provider_scim_token:
+  display_name:
+    api_field: workforcePoolProviderScimToken.displayName
+    arg_name: display-name
+    help_text: |-
+      Optional, user-specified display name for the SCIM token (max 32 characters).
+  show_deleted:
+    arg_name: show-deleted
+    api_field: showDeleted
+    action: store_true
+    help_text: Include soft-deleted tokens in the results.
+
 workforce_pool_provider:
   display_name:
     api_field: workforcePoolProvider.displayName
@@ -487,6 +607,12 @@ workforce_pool_provider:
       Disables the workforce pool provider. You cannot use a disabled provider to perform
       new token exchanges or sign-ins. However, existing tokens still grant access. Specify
       `--no-disabled` to enable a disabled pool.
+  detailed_audit_logging:
+    api_field: workforcePoolProvider.detailedAuditLogging
+    arg_name: detailed-audit-logging
+    help_text: |-
+      Enables detailed audit logging for this provider, which populates additional debug information
+      in STS Cloud Audit Logs. Specify `--no-detailed-audit-logging` to disable it.
   attribute_mapping:
     api_field: workforcePoolProvider.attributeMapping
     arg_name: attribute-mapping
@@ -548,7 +674,7 @@ workforce_pool_provider:
       Example: Map the `sub` claim of the incoming credential to the
                `subject` Google Cloud IAM attribute.
 
-               ```
+               ```json
                {"google.subject": "assertion.sub"}
                ```
   attribute_condition:
@@ -671,7 +797,7 @@ workforce_pool_provider:
     help_text: |-
       Optional file containing JSON Web Key (JWK) public keys. The file format must follow
       [JWK specifications](https://www.rfc-editor.org/rfc/rfc7517#section-4). Example file format:
-      ```
+      ```json
       {
         "keys": [
            {
@@ -701,7 +827,7 @@ workforce_pool_provider:
     api_field: workforcePoolProvider.extraAttributesOauth2Client.issuerUri
     arg_name: extra-attributes-issuer-uri
     help_text: |-
-      OIDC identity provider's issuer URI. Must be a valid URI using the 'https' scheme.
+      OIDC identity provider's issuer URI. Must be a valid URI using the `https` scheme.
       Required to get the OIDC discovery document.
 
   extra_attributes_client_id: &extra_attributes_client_id
@@ -709,14 +835,14 @@ workforce_pool_provider:
     arg_name: extra-attributes-client-id
     help_text: |-
       The OAuth 2.0 client ID for retrieving extra attributes from the identity provider. Required
-      to get the Access Token using client credentials grant flow.
+      to get the access token using client credentials grant flow.
 
   extra_attributes_client_secret_value: &extra_attributes_client_secret_value
     api_field: workforcePoolProvider.extraAttributesOauth2Client.clientSecret.value.plainText
     arg_name: extra-attributes-client-secret-value
     help_text: |-
       The OAuth 2.0 client secret for retrieving extra attributes from the identity provider.
-      Required to get the Access Token using client credentials grant flow.
+      Required to get the access token using client credentials grant flow.
 
   extra_attributes_type: &extra_attributes_type
     api_field: workforcePoolProvider.extraAttributesOauth2Client.attributesType
@@ -728,45 +854,47 @@ workforce_pool_provider:
     api_field: workforcePoolProvider.extraAttributesOauth2Client.queryParameters.filter
     arg_name: extra-attributes-filter
     help_text: |-
-      The filter used to request specific records from IdP. In case of attributes type as
-      AZURE_AD_GROUPS_MAIL, it represents the filter used to request specific groups for users from
-      IdP. By default all the groups associated with the user are fetched. The groups that are used
-      should be mail enabled and security enabled. See
-      https://learn.microsoft.com/en-us/graph/search-query-parameter for more details.
+      The filter used to request specific records from the IdP.
+      By default, all of the groups that are associated with a user are
+      fetched. For Microsoft Entra ID, you can add `$search` query parameters
+      using [Keyword Query Language]
+      (https://learn.microsoft.com/en-us/sharepoint/dev/general-development/keyword-query-language-kql-syntax-reference).
+      To learn more about `$search` querying in Microsoft Entra ID, see [Use
+      the `$search` query parameter]
+      (https://learn.microsoft.com/en-us/graph/search-query-parameter).
 
-  create_extra_attributes_group:
-    group:
-      params:
-      - <<: *extra_attributes_issuer_uri
-        required: true
-      - <<: *extra_attributes_client_id
-        required: true
-      - <<: *extra_attributes_client_secret_value
-        required: true
-      - <<: *extra_attributes_type
-        required: true
-      - <<: *extra_attributes_filter
+      Additionally, Workforce Identity Federation automatically adds the
+      following [`$filter` query parameters]
+      (https://learn.microsoft.com/en-us/graph/filter-query-parameter), based
+      on the value of `attributes_type`. Values passed to `filter` are
+      converted to `$search` query parameters. Additional `$filter` query
+      parameters cannot be added using this field.
 
-  update_extra_attributes_group: &update_extra_attributes_group
-    group:
-      params:
-      - *extra_attributes_issuer_uri
-      - *extra_attributes_client_id
-      - *extra_attributes_client_secret_value
-      - *extra_attributes_type
-      - *extra_attributes_filter
+      * `AZURE_AD_GROUPS_MAIL`: `mailEnabled` and `securityEnabled` filters
+      are applied.
+      * `AZURE_AD_GROUPS_ID`: `securityEnabled` filter is applied.
 
-  clearable_extra_attributes_group:
-    group:
-      mutex: true
-      params:
-      - arg_name: clear-extra-attributes-config
-        api_field: workforcePoolProvider.extraAttributesOauth2Client
-        action: store_true
-        processor: googlecloudsdk.command_lib.iam.hooks:ClearFlag
-        help_text: |-
-          Clear the extra attributes configuration
-      - *update_extra_attributes_group
+  clear_extra_attributes_config: &clear_extra_attributes_config
+    arg_name: clear-extra-attributes-config
+    api_field: workforcePoolProvider.extraAttributesOauth2Client
+    action: store_true
+    processor: googlecloudsdk.command_lib.iam.hooks:ClearFlag
+    help_text: |-
+      Clear the extra attributes configuration
+
+  scim_usage:
+    arg_name: scim-usage
+    api_field: workforcePoolProvider.scimUsage
+    help_text: |-
+      Specifies whether the workforce identity pool provider uses SCIM-managed
+      groups instead of the `google.groups` attribute mapping for authorization checks.
+
+      The `scim_usage` and `extended_attributes_oauth2_client` fields are
+      mutually exclusive. A request that enables both fields on the same
+      workforce identity pool provider will produce an error.
+
+      Use `enabled-for-groups` to enable SCIM-managed groups.
+      Use `scim-usage-unspecified` to disable SCIM-managed groups.
 
 workforce_pool_provider_key:
   use:

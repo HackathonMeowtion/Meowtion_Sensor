@@ -27,17 +27,20 @@ from googlecloudsdk.command_lib.spanner import flags
 from googlecloudsdk.command_lib.spanner import resource_args
 
 
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
-class AlphaUpdate(base.Command):
-  """Update a Cloud Spanner instance partition with ALPHA features."""
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(
+    base.ReleaseTrack.GA, base.ReleaseTrack.BETA
+)
+class Update(base.Command):
+  """Update a Spanner instance partition. You can't update the default instance partition using this command."""  # pylint: disable=line-too-long
 
   detailed_help = {
       'EXAMPLES': textwrap.dedent("""\
-        To update the display name of a Cloud Spanner instance partition, run:
+        To update the display name of a Spanner instance partition, run:
 
           $ {command} my-instance-partition-id --instance=my-instance-id --description=my-new-display-name
 
-        To update the node count of a Cloud Spanner instance partition, run:
+        To update the node count of a Spanner instance partition, run:
 
           $ {command} my-instance-partition-id --instance=my-instance-id --nodes=1
         """),
@@ -58,7 +61,12 @@ class AlphaUpdate(base.Command):
         required=False, text='Description of the instance partition.'
     ).AddToParser(parser)
     base.ASYNC_FLAG.AddToParser(parser)
-    flags.AddCapacityArgsForInstancePartition(parser=parser)
+    flags.AddCapacityArgsForInstancePartition(
+        parser=parser,
+        add_autoscaling_args=True,
+        autoscaling_args_hidden=True,
+        require_all_autoscaling_args=False,
+    )
 
   def Run(self, args):
     """This is what gets called when the user runs this command.
@@ -75,6 +83,57 @@ class AlphaUpdate(base.Command):
         description=args.description,
         nodes=args.nodes,
         processing_units=args.processing_units,
+        autoscaling_min_nodes=args.autoscaling_min_nodes,
+        autoscaling_max_nodes=args.autoscaling_max_nodes,
+        autoscaling_min_processing_units=args.autoscaling_min_processing_units,
+        autoscaling_max_processing_units=args.autoscaling_max_processing_units,
+        autoscaling_high_priority_cpu_target=args.autoscaling_high_priority_cpu_target,
+        autoscaling_total_cpu_target=args.autoscaling_total_cpu_target,
+        autoscaling_storage_target=args.autoscaling_storage_target,
+    )
+    if args.async_:
+      return op
+    return instance_partition_operations.Await(
+        op, 'Updating instance partition'
+    )
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class AlphaUpdate(Update):
+  """Update a Spanner instance partition with ALPHA features."""
+
+  __doc__ = Update.__doc__
+
+  @staticmethod
+  def Args(parser):
+    """See base class."""
+    resource_args.AddInstancePartitionResourceArg(parser, 'to update')
+    flags.Description(
+        required=False, text='Description of the instance partition.'
+    ).AddToParser(parser)
+    base.ASYNC_FLAG.AddToParser(parser)
+    flags.AddCapacityArgsForInstancePartition(
+        parser=parser,
+        add_autoscaling_args=True,
+        autoscaling_args_hidden=True,
+        require_all_autoscaling_args=False,
+    )
+
+  def Run(self, args):
+    """See base class."""
+    op = instance_partitions.Patch(
+        args.CONCEPTS.instance_partition.Parse(),
+        description=args.description,
+        nodes=args.nodes,
+        processing_units=args.processing_units,
+        autoscaling_min_nodes=args.autoscaling_min_nodes,
+        autoscaling_max_nodes=args.autoscaling_max_nodes,
+        autoscaling_min_processing_units=args.autoscaling_min_processing_units,
+        autoscaling_max_processing_units=args.autoscaling_max_processing_units,
+        autoscaling_high_priority_cpu_target=args.autoscaling_high_priority_cpu_target,
+        autoscaling_total_cpu_target=args.autoscaling_total_cpu_target,
+        autoscaling_storage_target=args.autoscaling_storage_target,
     )
     if args.async_:
       return op

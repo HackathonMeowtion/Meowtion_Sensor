@@ -26,7 +26,6 @@ from googlecloudsdk.api_lib.spanner import instance_config_operations
 from googlecloudsdk.api_lib.spanner import instance_operations
 from googlecloudsdk.api_lib.spanner import instance_partition_operations
 from googlecloudsdk.calliope import base
-from googlecloudsdk.calliope import exceptions as c_exceptions
 from googlecloudsdk.command_lib.spanner import flags
 
 DETAILED_HELP = {
@@ -44,11 +43,16 @@ DETAILED_HELP = {
 
           $ {command}  _auto_12345 --instance=my-instance-id
               --backup=my-backup-id
+
+        To cancel an instance partition operation with ID auto_12345, run:
+
+          $ {command} auto_12345 --instance=my-instance-id --instance-partition=my-partition-id
         """),
 }
 
 
-@base.ReleaseTracks(base.ReleaseTrack.GA, base.ReleaseTrack.BETA)
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.GA)
 class Cancel(base.Command):
   """Cancel a Cloud Spanner operation."""
 
@@ -92,11 +96,9 @@ class Cancel(base.Command):
       return instance_config_operations.Cancel(args.instance_config,
                                                args.operation)
 
-    # Checks that user only specified either database or backup flag.
-    if (args.IsSpecified('database') and args.IsSpecified('backup')):
-      raise c_exceptions.InvalidArgumentException(
-          '--database or --backup',
-          'Must specify either --database or --backup.')
+    # Checks that user only specified database or backup or instance partition
+    # flag.
+    flags.CheckExclusiveLROFlagsUnderInstance(args)
 
     if args.backup:
       return backup_operations.Cancel(args.instance, args.backup,
@@ -105,20 +107,21 @@ class Cancel(base.Command):
     if args.database:
       return database_operations.Cancel(args.instance, args.database,
                                         args.operation)
-    else:
-      return instance_operations.Cancel(args.instance, args.operation)
+    if args.instance_partition:
+      return instance_partition_operations.Cancel(
+          args.instance, args.instance_partition, args.operation
+      )
+
+    return instance_operations.Cancel(args.instance, args.operation)
 
 
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
-class AlphaCancel(Cancel):
-  """Cancel a Cloud Spanner operation with ALPHA features."""
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
+class BetaAndAlphaCancel(Cancel):
+  """Cancel a Cloud Spanner operation."""
 
   detailed_help = {
       'EXAMPLES': DETAILED_HELP['EXAMPLES'] + textwrap.dedent("""\
-
-        To cancel a Cloud Spanner instance partition operation with ID auto_12345, run:
-
-          $ {command} auto_12345 --instance=my-instance-id --instance-partition=my-partition-id
         """),
   }
 
@@ -132,32 +135,4 @@ class AlphaCancel(Cancel):
       parser: An argparse parser that you can use to add arguments that go on
         the command line after this command. Positional arguments are allowed.
     """
-    super(AlphaCancel, AlphaCancel).Args(parser)
-
-    flags.InstancePartition(
-        positional=False,
-        required=False,
-        hidden=True,
-        text=(
-            'For instance partition operations, the name of the instance '
-            'partition the operation is executing on.'
-        ),
-    ).AddToParser(parser)
-
-  def Run(self, args):
-    """This is what gets called when the user runs this command.
-
-    Args:
-      args: an argparse namespace. All the arguments that were provided to this
-        command invocation.
-
-    Returns:
-      Some value that we want to have printed later.
-    """
-
-    if args.instance_partition:
-      return instance_partition_operations.Cancel(
-          args.instance_partition, args.instance, args.operation
-      )
-
-    return super().Run(args)
+    super(BetaAndAlphaCancel, BetaAndAlphaCancel).Args(parser)

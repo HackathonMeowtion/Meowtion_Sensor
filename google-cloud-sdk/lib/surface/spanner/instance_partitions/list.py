@@ -26,13 +26,16 @@ from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.spanner import resource_args
 
 
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
-class AlphaList(base.ListCommand):
-  """List the Cloud Spanner instance partitions contained within the given instance with ALPHA features."""
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(
+    base.ReleaseTrack.GA, base.ReleaseTrack.BETA, base.ReleaseTrack.ALPHA
+)
+class List(base.ListCommand):
+  """List the Spanner instance partitions contained within the given instance."""
 
   detailed_help = {
       'EXAMPLES': textwrap.dedent("""\
-      To list all Cloud Spanner instances partitions in an instance, run:
+      To list all Spanner instances partitions in an instance, run:
 
       $ {command} --instance=my-instance-id
       """),

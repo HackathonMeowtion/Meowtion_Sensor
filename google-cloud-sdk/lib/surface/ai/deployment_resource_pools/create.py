@@ -28,6 +28,7 @@ from googlecloudsdk.command_lib.ai import endpoint_util
 from googlecloudsdk.command_lib.ai import flags
 from googlecloudsdk.command_lib.ai import operations_util
 from googlecloudsdk.command_lib.ai import region_util
+from googlecloudsdk.command_lib.ai import validation
 from googlecloudsdk.core import log
 
 
@@ -47,7 +48,7 @@ def _AddArgsBeta(parser):
       'the final component of the DeploymentResourcePool\'s resource name. ' +
       'The maximum length is 63 characters, and valid characters are ' +
       '/^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$/.')
-  flags.AddPredictionResourcesArgs(parser, version)
+  flags.AddPredictionResourcesArgs(parser, version, drp=True)
   flags.GetAutoscalingMetricSpecsArg().AddToParser(parser)
   flags.AddRegionResourceArg(
       parser,
@@ -57,6 +58,8 @@ def _AddArgsBeta(parser):
 
 def _RunBeta(args):
   """Create a new Vertex AI deployment resource pool."""
+  validation.ValidateRequiredReplicaCount(args.required_replica_count,
+                                          args.min_replica_count)
   version = constants.BETA_VERSION
   region_ref = args.CONCEPTS.region.Parse()
   args.region = region_ref.AsDict()['locationsId']
@@ -71,7 +74,12 @@ def _RunBeta(args):
         min_replica_count=args.min_replica_count,
         max_replica_count=args.max_replica_count,
         machine_type=args.machine_type,
-        tpu_topology=args.tpu_topology)
+        tpu_topology=args.tpu_topology,
+        multihost_gpu_node_count=args.multihost_gpu_node_count,
+        reservation_affinity=args.reservation_affinity,
+        spot=args.spot,
+        required_replica_count=args.required_replica_count,
+    )
     response_msg = operations_util.WaitForOpMaybe(
         operations.OperationsClient(), op,
         deployment_resource_pools_util.ParseOperation(op.name))
@@ -86,6 +94,7 @@ def _RunBeta(args):
 
 @base.Hidden
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
+@base.UniverseCompatible
 class CreateV1Beta1(base.CreateCommand):
   """Create a new Vertex AI deployment resource pool.
 

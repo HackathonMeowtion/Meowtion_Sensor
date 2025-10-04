@@ -18,35 +18,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from googlecloudsdk.api_lib.assured import message_util
 from googlecloudsdk.calliope import arg_parsers
-from googlecloudsdk.calliope.base import ReleaseTrack
+from googlecloudsdk.calliope import base as calliope_base
 from googlecloudsdk.command_lib.assured import resource_args
+from googlecloudsdk.command_lib.util.apis import arg_utils
 from googlecloudsdk.command_lib.util.concepts import concept_parsers
-
-_GA_COMPLIANCE_REGIMES = [
-    'CJIS',
-    'FEDRAMP_HIGH',
-    'FEDRAMP_MODERATE',
-    'IL4',
-    'US_REGIONAL_ACCESS',
-    'HIPAA',
-    'HITRUST',
-    'EU_REGIONS_AND_SUPPORT',
-    'CA_REGIONS_AND_SUPPORT',
-    'ITAR',
-    'ASSURED_WORKLOADS_FOR_PARTNERS',
-]
-_BETA_COMPLIANCE_REGIMES = _GA_COMPLIANCE_REGIMES
-
-compliance_regimes = {
-    ReleaseTrack.GA: _GA_COMPLIANCE_REGIMES,
-    ReleaseTrack.BETA: _BETA_COMPLIANCE_REGIMES,
-    ReleaseTrack.ALPHA: _BETA_COMPLIANCE_REGIMES,
-}
-
-PARTNERS = ['LOCAL_CONTROLS_BY_S3NS', 'SOVEREIGN_CONTROLS_BY_T_SYSTEMS']
-
-ACKNOWLEDGE_TYPE = ['SINGLE_VIOLATION', 'EXISTING_CHILD_RESOURCE_VIOLATIONS']
 
 
 def AddListWorkloadsFlags(parser):
@@ -128,20 +105,22 @@ def AddCreateWorkloadFlags(parser, release_track):
       required=True,
       help='The display name of the new Assured Workloads environment',
   )
-  parser.add_argument(
+  arg_utils.ChoiceEnumMapper(
       '--compliance-regime',
+      message_util.GetComplianceRegimesEnum(release_track),
+      include_filter=lambda regime: regime != 'COMPLIANCE_REGIME_UNSPECIFIED',
       required=True,
-      choices=compliance_regimes.get(release_track),
-      help='The compliance regime of the new Assured Workloads environment',
-  )
-  parser.add_argument(
+      help_str='The compliance regime of the new Assured Workloads environment',
+  ).choice_arg.AddToParser(parser)
+  arg_utils.ChoiceEnumMapper(
       '--partner',
-      choices=PARTNERS,
-      help=(
+      message_util.GetPartnersEnum(release_track),
+      include_filter=lambda regime: regime != 'PARTNER_UNSPECIFIED',
+      help_str=(
           'The partner choice when creating a workload managed by local trusted'
           ' partners.'
       ),
-  )
+  ).choice_arg.AddToParser(parser)
   parser.add_argument(
       '--partner-permissions',
       type=arg_parsers.ArgDict(
@@ -153,6 +132,18 @@ def AddCreateWorkloadFlags(parser, release_track):
       help=(
           'The partner permissions for the partner regime, for example,'
           ' data-logs-viewer=true/false'
+      ),
+  )
+  parser.add_argument(
+      '--partner-services-billing-account',
+      required=False,
+      help=(
+          'Billing account necessary for purchasing services from Sovereign'
+          ' Partners. This field is required for creating SIA/PSN/CNTXT'
+          ' partner workloads. The caller should have'
+          " 'billing.resourceAssociations.create' IAM permission on this"
+          ' billing-account. The format of this string is'
+          ' billingAccounts/AAAAAA-BBBBBB-CCCCCC'
       ),
   )
   parser.add_argument(
@@ -215,7 +206,7 @@ def _AddResourceSettingsFlag(parser, release_track):
   Returns:
     None.
   """
-  if release_track == ReleaseTrack.GA:
+  if release_track == calliope_base.ReleaseTrack.GA:
     parser.add_argument(
         '--resource-settings',
         type=arg_parsers.ArgDict(

@@ -61,11 +61,12 @@ def _set_iam_policy_task_iterator(url_strings, policy):
       continue
     url = storage_url.storage_url_from_string(url_string)
     api_factory.get_api(url.scheme).create_managed_folder(
-        url.bucket_name, url.object_name
+        url.bucket_name, url.resource_name
     )
     yield set_iam_policy_task.SetManagedFolderIamPolicyTask(url, policy)
 
 
+@base.UniverseCompatible
 class SetIamPolicy(base.Command):
   """Set the IAM policy for a managed folder."""
 
@@ -104,7 +105,7 @@ class SetIamPolicy(base.Command):
   def Run(self, args):
     for url_string in args.urls:
       url = storage_url.storage_url_from_string(url_string)
-      errors_util.raise_error_if_not_gcs_managed_folder(args.command_path, url)
+      errors_util.raise_error_if_not_gcs_folder_type(args.command_path, url)
     policy = metadata_field_converters.process_iam_file(
         args.policy_file, custom_etag=args.etag
     )

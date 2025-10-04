@@ -175,10 +175,23 @@ def _CheckForExistingImage(
     raise exceptions.InvalidArgumentException(arg_name, message)
 
 
-# TODO(b/289223643): Reevaluate universe compatiblity
-# when this bug is addressed.
-@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.Deprecate(
+    is_removed=False,
+    warning=(
+        'This command is being deprecated. Instead, use the `gcloud migration'
+        ' vms image-imports` command. For more information, see https://'
+        'cloud.google.com/migrate/virtual-machines/docs/5.0/migrate/'
+        'image_import.'
+    ),
+    error=(
+        'This command hash been deprecated. Instead, use the `gcloud migration'
+        ' vms image-imports` command. For more information, see https://'
+        'cloud.google.com/migrate/virtual-machines/docs/5.0/migrate/'
+        'image_import.'
+    ),
+)
+@base.DefaultUniverseOnly
 class Import(base.CreateCommand):
   """Import an image into Compute Engine."""
 
@@ -358,6 +371,18 @@ class Import(base.CreateCommand):
         daisy_utils.IMPORT_ROLES_FOR_CLOUDBUILD_SERVICE_ACCOUNT,
     )
 
+    parser.add_argument(
+        '--cmd-deprecated',
+        action='store_true',
+        required=True,
+        help="""
+        The command you're using is deprecated and will be removed by December 31,
+        2025. We recommend using `gcloud compute migration image-imports` instead.
+        See our official documentation for more information.
+        https://cloud.google.com/migrate/virtual-machines/docs/5.0/migrate/image_import.
+        """,
+    )
+
   @classmethod
   def _GetComputeApiHolder(cls, no_http=False):
     return base_classes.ComputeApiHolder(cls.ReleaseTrack(), no_http)
@@ -521,6 +546,7 @@ class BaseImportStager(object):
         self.GetBucketLocation(),
         self.storage_client,
         enable_uniform_level_access=True,
+        soft_delete_duration=0,
     )
 
   def GetBucketLocation(self):
@@ -744,6 +770,15 @@ Import.detailed_help = {
 
         Files stored on Cloud Storage and images in Compute Engine incur
         charges. See [](https://cloud.google.com/compute/docs/images/importing-virtual-disks#resource_cleanup).
+
+        Troubleshooting: Image import/export tools rely on CloudBuild default
+        behavior. They has been using the default CloudBuild service account in
+        order to import/export images to/from Google Cloud Platform. However,
+        Cloud Build has changed this default behavior and in new projects a
+        custom user managed service account may need to be provided to perform
+        the builds. If you get a CloudBuild service account related error, run
+        gcloud with --cloudbuild-service-account=<custom service account>.
+        See `gcloud compute images import --help` for details.
         """,
     'EXAMPLES': """
         To import a centos-7 VMDK file, run:

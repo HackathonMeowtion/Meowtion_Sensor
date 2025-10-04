@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -60,8 +60,14 @@ class ResultSet(proto.Message):
             rows modified, unless executed using the
             [ExecuteSqlRequest.QueryMode.PLAN][google.spanner.v1.ExecuteSqlRequest.QueryMode.PLAN]
             [ExecuteSqlRequest.query_mode][google.spanner.v1.ExecuteSqlRequest.query_mode].
-            Other fields may or may not be populated, based on the
+            Other fields might or might not be populated, based on the
             [ExecuteSqlRequest.query_mode][google.spanner.v1.ExecuteSqlRequest.query_mode].
+        precommit_token (googlecloudsdk.generated_clients.gapic_clients.spanner_v1.types.MultiplexedSessionPrecommitToken):
+            Optional. A precommit token is included if the read-write
+            transaction is on a multiplexed session. Pass the precommit
+            token with the highest sequence number from this transaction
+            attempt to the [Commit][google.spanner.v1.Spanner.Commit]
+            request for this transaction.
     """
 
     metadata: 'ResultSetMetadata' = proto.Field(
@@ -78,6 +84,11 @@ class ResultSet(proto.Message):
         proto.MESSAGE,
         number=3,
         message='ResultSetStats',
+    )
+    precommit_token: gs_transaction.MultiplexedSessionPrecommitToken = proto.Field(
+        proto.MESSAGE,
+        number=5,
+        message=gs_transaction.MultiplexedSessionPrecommitToken,
     )
 
 
@@ -102,14 +113,14 @@ class PartialResultSet(proto.Message):
             Most values are encoded based on type as described
             [here][google.spanner.v1.TypeCode].
 
-            It is possible that the last value in values is "chunked",
+            It's possible that the last value in values is "chunked",
             meaning that the rest of the value is sent in subsequent
             ``PartialResultSet``\ (s). This is denoted by the
             [chunked_value][google.spanner.v1.PartialResultSet.chunked_value]
             field. Two or more chunked values can be merged to form a
             complete value as follows:
 
-            -  ``bool/number/null``: cannot be chunked
+            -  ``bool/number/null``: can't be chunked
             -  ``string``: concatenate the strings
             -  ``list``: concatenate the lists. If the last element in a
                list is a ``string``, ``list``, or ``object``, merge it
@@ -123,28 +134,28 @@ class PartialResultSet(proto.Message):
 
             ::
 
-                # Strings are concatenated.
+                Strings are concatenated.
                 "foo", "bar" => "foobar"
 
-                # Lists of non-strings are concatenated.
+                Lists of non-strings are concatenated.
                 [2, 3], [4] => [2, 3, 4]
 
-                # Lists are concatenated, but the last and first elements are merged
-                # because they are strings.
+                Lists are concatenated, but the last and first elements are merged
+                because they are strings.
                 ["a", "b"], ["c", "d"] => ["a", "bc", "d"]
 
-                # Lists are concatenated, but the last and first elements are merged
-                # because they are lists. Recursively, the last and first elements
-                # of the inner lists are merged because they are strings.
+                Lists are concatenated, but the last and first elements are merged
+                because they are lists. Recursively, the last and first elements
+                of the inner lists are merged because they are strings.
                 ["a", ["b", "c"]], [["d"], "e"] => ["a", ["b", "cd"], "e"]
 
-                # Non-overlapping object fields are combined.
+                Non-overlapping object fields are combined.
                 {"a": "1"}, {"b": "2"} => {"a": "1", "b": 2"}
 
-                # Overlapping object fields are merged.
+                Overlapping object fields are merged.
                 {"a": "1"}, {"a": "2"} => {"a": "12"}
 
-                # Examples of merging objects containing lists of strings.
+                Examples of merging objects containing lists of strings.
                 {"a": ["1"]}, {"a": ["2"]} => {"a": ["12"]}
 
             For a more complete example, suppose a streaming SQL query
@@ -177,8 +188,8 @@ class PartialResultSet(proto.Message):
             Execution can only be resumed from a previously yielded
             ``resume_token``. For the above sequence of
             ``PartialResultSet``\ s, resuming the query with
-            ``"resume_token": "Af65..."`` will yield results from the
-            ``PartialResultSet`` with value ``["orl"]``.
+            ``"resume_token": "Af65..."`` yields results from the
+            ``PartialResultSet`` with value "orl".
         chunked_value (bool):
             If true, then the final value in
             [values][google.spanner.v1.PartialResultSet.values] is
@@ -198,8 +209,20 @@ class PartialResultSet(proto.Message):
             by setting
             [ExecuteSqlRequest.query_mode][google.spanner.v1.ExecuteSqlRequest.query_mode]
             and are sent only once with the last response in the stream.
-            This field will also be present in the last response for DML
+            This field is also present in the last response for DML
             statements.
+        precommit_token (googlecloudsdk.generated_clients.gapic_clients.spanner_v1.types.MultiplexedSessionPrecommitToken):
+            Optional. A precommit token is included if the read-write
+            transaction has multiplexed sessions enabled. Pass the
+            precommit token with the highest sequence number from this
+            transaction attempt to the
+            [Commit][google.spanner.v1.Spanner.Commit] request for this
+            transaction.
+        last (bool):
+            Optional. Indicates whether this is the last
+            ``PartialResultSet`` in the stream. The server might
+            optionally set this field. Clients shouldn't rely on this
+            field being set in all cases.
     """
 
     metadata: 'ResultSetMetadata' = proto.Field(
@@ -224,6 +247,15 @@ class PartialResultSet(proto.Message):
         proto.MESSAGE,
         number=5,
         message='ResultSetStats',
+    )
+    precommit_token: gs_transaction.MultiplexedSessionPrecommitToken = proto.Field(
+        proto.MESSAGE,
+        number=8,
+        message=gs_transaction.MultiplexedSessionPrecommitToken,
+    )
+    last: bool = proto.Field(
+        proto.BOOL,
+        number=9,
     )
 
 
@@ -315,7 +347,7 @@ class ResultSetStats(proto.Message):
 
             This field is a member of `oneof`_ ``row_count``.
         row_count_lower_bound (int):
-            Partitioned DML does not offer exactly-once
+            Partitioned DML doesn't offer exactly-once
             semantics, so it returns a lower bound of the
             rows modified.
 

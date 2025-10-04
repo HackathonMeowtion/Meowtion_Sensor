@@ -50,8 +50,8 @@ class GkehubV1alpha(base_api.BaseApiClient):
     self.projects_locations_namespaces_rbacrolebindings = self.ProjectsLocationsNamespacesRbacrolebindingsService(self)
     self.projects_locations_namespaces = self.ProjectsLocationsNamespacesService(self)
     self.projects_locations_operations = self.ProjectsLocationsOperationsService(self)
+    self.projects_locations_rolloutSequences = self.ProjectsLocationsRolloutSequencesService(self)
     self.projects_locations_rollouts = self.ProjectsLocationsRolloutsService(self)
-    self.projects_locations_scopes_namespaces_resourcequotas = self.ProjectsLocationsScopesNamespacesResourcequotasService(self)
     self.projects_locations_scopes_namespaces = self.ProjectsLocationsScopesNamespacesService(self)
     self.projects_locations_scopes_rbacrolebindings = self.ProjectsLocationsScopesRbacrolebindingsService(self)
     self.projects_locations_scopes = self.ProjectsLocationsScopesService(self)
@@ -198,7 +198,7 @@ class GkehubV1alpha(base_api.BaseApiClient):
         method_id='gkehub.projects.locations.features.get',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=[],
+        query_params=['returnPartialSuccess'],
         relative_path='v1alpha/{+name}',
         request_field='',
         request_type_name='GkehubProjectsLocationsFeaturesGetRequest',
@@ -252,7 +252,7 @@ class GkehubV1alpha(base_api.BaseApiClient):
         method_id='gkehub.projects.locations.features.list',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken', 'returnPartialSuccess'],
         relative_path='v1alpha/{+parent}/features',
         request_field='',
         request_type_name='GkehubProjectsLocationsFeaturesListRequest',
@@ -894,6 +894,33 @@ class GkehubV1alpha(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def GenerateExclusivityManifest(self, request, global_params=None):
+      r"""GenerateExclusivityManifest generates the manifests to update the exclusivity artifacts in the cluster if needed. Exclusivity artifacts include the Membership custom resource definition (CRD) and the singleton Membership custom resource (CR). Combined with ValidateExclusivity, exclusivity artifacts guarantee that a Kubernetes cluster is only registered to a single GKE Hub. The Membership CRD is versioned, and may require conversion when the GKE Hub API server begins serving a newer version of the CRD and corresponding CR. The response will be the converted CRD and CR if there are any differences between the versions.
+
+      Args:
+        request: (GkehubProjectsLocationsMembershipsGenerateExclusivityManifestRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GenerateExclusivityManifestResponse) The response message.
+      """
+      config = self.GetMethodConfig('GenerateExclusivityManifest')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GenerateExclusivityManifest.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/memberships/{membershipsId}:generateExclusivityManifest',
+        http_method='GET',
+        method_id='gkehub.projects.locations.memberships.generateExclusivityManifest',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['crManifest', 'crdManifest'],
+        relative_path='v1alpha/{+name}:generateExclusivityManifest',
+        request_field='',
+        request_type_name='GkehubProjectsLocationsMembershipsGenerateExclusivityManifestRequest',
+        response_type_name='GenerateExclusivityManifestResponse',
+        supports_download=False,
+    )
+
     def Get(self, request, global_params=None):
       r"""Gets the details of a Membership.
 
@@ -1002,6 +1029,33 @@ class GkehubV1alpha(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def ListSelected(self, request, global_params=None):
+      r"""Lists Memberships matching a given cluster selector.
+
+      Args:
+        request: (GkehubProjectsLocationsMembershipsListSelectedRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListSelectedMembershipsResponse) The response message.
+      """
+      config = self.GetMethodConfig('ListSelected')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ListSelected.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/memberships:listSelected',
+        http_method='POST',
+        method_id='gkehub.projects.locations.memberships.listSelected',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha/{+parent}/memberships:listSelected',
+        request_field='clusterSelector',
+        request_type_name='GkehubProjectsLocationsMembershipsListSelectedRequest',
+        response_type_name='ListSelectedMembershipsResponse',
+        supports_download=False,
+    )
+
     def Patch(self, request, global_params=None):
       r"""Updates an existing Membership.
 
@@ -1107,6 +1161,33 @@ class GkehubV1alpha(base_api.BaseApiClient):
         request_field='validateCreateMembershipRequest',
         request_type_name='GkehubProjectsLocationsMembershipsValidateCreateRequest',
         response_type_name='ValidateCreateMembershipResponse',
+        supports_download=False,
+    )
+
+    def ValidateExclusivity(self, request, global_params=None):
+      r"""ValidateExclusivity validates the state of exclusivity in the cluster. The validation does not depend on an existing Hub membership resource.
+
+      Args:
+        request: (GkehubProjectsLocationsMembershipsValidateExclusivityRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ValidateExclusivityResponse) The response message.
+      """
+      config = self.GetMethodConfig('ValidateExclusivity')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ValidateExclusivity.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/memberships:validateExclusivity',
+        http_method='GET',
+        method_id='gkehub.projects.locations.memberships.validateExclusivity',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['crManifest', 'intendedMembership'],
+        relative_path='v1alpha/{+parent}/memberships:validateExclusivity',
+        request_field='',
+        request_type_name='GkehubProjectsLocationsMembershipsValidateExclusivityRequest',
+        response_type_name='ValidateExclusivityResponse',
         supports_download=False,
     )
 
@@ -1411,7 +1492,7 @@ class GkehubV1alpha(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (GkehubProjectsLocationsOperationsCancelRequest) input message
@@ -1518,6 +1599,151 @@ class GkehubV1alpha(base_api.BaseApiClient):
         supports_download=False,
     )
 
+  class ProjectsLocationsRolloutSequencesService(base_api.BaseApiService):
+    """Service class for the projects_locations_rolloutSequences resource."""
+
+    _NAME = 'projects_locations_rolloutSequences'
+
+    def __init__(self, client):
+      super(GkehubV1alpha.ProjectsLocationsRolloutSequencesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Create a new rollout sequence resource.
+
+      Args:
+        request: (GkehubProjectsLocationsRolloutSequencesCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/rolloutSequences',
+        http_method='POST',
+        method_id='gkehub.projects.locations.rolloutSequences.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['rolloutSequenceId'],
+        relative_path='v1alpha/{+parent}/rolloutSequences',
+        request_field='rolloutSequence',
+        request_type_name='GkehubProjectsLocationsRolloutSequencesCreateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Remove a RolloutSequence.
+
+      Args:
+        request: (GkehubProjectsLocationsRolloutSequencesDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/rolloutSequences/{rolloutSequencesId}',
+        http_method='DELETE',
+        method_id='gkehub.projects.locations.rolloutSequences.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='GkehubProjectsLocationsRolloutSequencesDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Retrieve a single rollout sequence.
+
+      Args:
+        request: (GkehubProjectsLocationsRolloutSequencesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (RolloutSequence) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/rolloutSequences/{rolloutSequencesId}',
+        http_method='GET',
+        method_id='gkehub.projects.locations.rolloutSequences.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='GkehubProjectsLocationsRolloutSequencesGetRequest',
+        response_type_name='RolloutSequence',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Retrieve the list of all rollout sequences.
+
+      Args:
+        request: (GkehubProjectsLocationsRolloutSequencesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListRolloutSequencesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/rolloutSequences',
+        http_method='GET',
+        method_id='gkehub.projects.locations.rolloutSequences.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v1alpha/{+parent}/rolloutSequences',
+        request_field='',
+        request_type_name='GkehubProjectsLocationsRolloutSequencesListRequest',
+        response_type_name='ListRolloutSequencesResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Update a rollout sequence.
+
+      Args:
+        request: (GkehubProjectsLocationsRolloutSequencesPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/rolloutSequences/{rolloutSequencesId}',
+        http_method='PATCH',
+        method_id='gkehub.projects.locations.rolloutSequences.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1alpha/{+name}',
+        request_field='rolloutSequence',
+        request_type_name='GkehubProjectsLocationsRolloutSequencesPatchRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
   class ProjectsLocationsRolloutsService(base_api.BaseApiService):
     """Service class for the projects_locations_rollouts resource."""
 
@@ -1528,8 +1754,35 @@ class GkehubV1alpha(base_api.BaseApiClient):
       self._upload_configs = {
           }
 
+    def Cancel(self, request, global_params=None):
+      r"""Cancel a paused Rollout. The rollout will not be started on new clusters, however the rollout running on the cluster will be allowed to finish. It's only valid to cancel a paused rollout, otherwise it will return a FAILED_PRECONDITION error.
+
+      Args:
+        request: (GkehubProjectsLocationsRolloutsCancelRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Cancel')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Cancel.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/rollouts/{rolloutsId}:cancel',
+        http_method='POST',
+        method_id='gkehub.projects.locations.rollouts.cancel',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}:cancel',
+        request_field='cancelRolloutRequest',
+        request_type_name='GkehubProjectsLocationsRolloutsCancelRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
     def Create(self, request, global_params=None):
-      r"""Create a new rollout resource.
+      r"""Create a new rollout resource. Doesn't allow creating Google-initiated rollouts.
 
       Args:
         request: (GkehubProjectsLocationsRolloutsCreateRequest) input message
@@ -1686,151 +1939,6 @@ class GkehubV1alpha(base_api.BaseApiClient):
         relative_path='v1alpha/{+name}:resume',
         request_field='resumeRolloutRequest',
         request_type_name='GkehubProjectsLocationsRolloutsResumeRequest',
-        response_type_name='Operation',
-        supports_download=False,
-    )
-
-  class ProjectsLocationsScopesNamespacesResourcequotasService(base_api.BaseApiService):
-    """Service class for the projects_locations_scopes_namespaces_resourcequotas resource."""
-
-    _NAME = 'projects_locations_scopes_namespaces_resourcequotas'
-
-    def __init__(self, client):
-      super(GkehubV1alpha.ProjectsLocationsScopesNamespacesResourcequotasService, self).__init__(client)
-      self._upload_configs = {
-          }
-
-    def Create(self, request, global_params=None):
-      r"""Creates a resource quota.
-
-      Args:
-        request: (GkehubProjectsLocationsScopesNamespacesResourcequotasCreateRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (Operation) The response message.
-      """
-      config = self.GetMethodConfig('Create')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Create.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/scopes/{scopesId}/namespaces/{namespacesId}/resourcequotas',
-        http_method='POST',
-        method_id='gkehub.projects.locations.scopes.namespaces.resourcequotas.create',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['resourceQuotaId'],
-        relative_path='v1alpha/{+parent}/resourcequotas',
-        request_field='resourceQuota',
-        request_type_name='GkehubProjectsLocationsScopesNamespacesResourcequotasCreateRequest',
-        response_type_name='Operation',
-        supports_download=False,
-    )
-
-    def Delete(self, request, global_params=None):
-      r"""Deletes a resource quota.
-
-      Args:
-        request: (GkehubProjectsLocationsScopesNamespacesResourcequotasDeleteRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (Operation) The response message.
-      """
-      config = self.GetMethodConfig('Delete')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Delete.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/scopes/{scopesId}/namespaces/{namespacesId}/resourcequotas/{resourcequotasId}',
-        http_method='DELETE',
-        method_id='gkehub.projects.locations.scopes.namespaces.resourcequotas.delete',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=[],
-        relative_path='v1alpha/{+name}',
-        request_field='',
-        request_type_name='GkehubProjectsLocationsScopesNamespacesResourcequotasDeleteRequest',
-        response_type_name='Operation',
-        supports_download=False,
-    )
-
-    def Get(self, request, global_params=None):
-      r"""Returns the details of a resource quota.
-
-      Args:
-        request: (GkehubProjectsLocationsScopesNamespacesResourcequotasGetRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (ResourceQuota) The response message.
-      """
-      config = self.GetMethodConfig('Get')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Get.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/scopes/{scopesId}/namespaces/{namespacesId}/resourcequotas/{resourcequotasId}',
-        http_method='GET',
-        method_id='gkehub.projects.locations.scopes.namespaces.resourcequotas.get',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=[],
-        relative_path='v1alpha/{+name}',
-        request_field='',
-        request_type_name='GkehubProjectsLocationsScopesNamespacesResourcequotasGetRequest',
-        response_type_name='ResourceQuota',
-        supports_download=False,
-    )
-
-    def List(self, request, global_params=None):
-      r"""Lists resource quotas.
-
-      Args:
-        request: (GkehubProjectsLocationsScopesNamespacesResourcequotasListRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (ListResourceQuotasResponse) The response message.
-      """
-      config = self.GetMethodConfig('List')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    List.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/scopes/{scopesId}/namespaces/{namespacesId}/resourcequotas',
-        http_method='GET',
-        method_id='gkehub.projects.locations.scopes.namespaces.resourcequotas.list',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['pageSize', 'pageToken'],
-        relative_path='v1alpha/{+parent}/resourcequotas',
-        request_field='',
-        request_type_name='GkehubProjectsLocationsScopesNamespacesResourcequotasListRequest',
-        response_type_name='ListResourceQuotasResponse',
-        supports_download=False,
-    )
-
-    def Patch(self, request, global_params=None):
-      r"""Updates a resource quota.
-
-      Args:
-        request: (GkehubProjectsLocationsScopesNamespacesResourcequotasPatchRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (Operation) The response message.
-      """
-      config = self.GetMethodConfig('Patch')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Patch.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/scopes/{scopesId}/namespaces/{namespacesId}/resourcequotas/{resourcequotasId}',
-        http_method='PATCH',
-        method_id='gkehub.projects.locations.scopes.namespaces.resourcequotas.patch',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=['updateMask'],
-        relative_path='v1alpha/{+name}',
-        request_field='resourceQuota',
-        request_type_name='GkehubProjectsLocationsScopesNamespacesResourcequotasPatchRequest',
         response_type_name='Operation',
         supports_download=False,
     )
@@ -2461,7 +2569,7 @@ class GkehubV1alpha(base_api.BaseApiClient):
         method_id='gkehub.projects.locations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'includeUnrevealedLocations', 'pageSize', 'pageToken'],
+        query_params=['extraLocationTypes', 'filter', 'includeUnrevealedLocations', 'pageSize', 'pageToken'],
         relative_path='v1alpha/{+name}/locations',
         request_field='',
         request_type_name='GkehubProjectsLocationsListRequest',

@@ -91,7 +91,7 @@ SUBCOMMAND_ALLOWLIST = {
     'clear':
         SupportedAirflowVersion(from_version=None, to_version='2.0.0'),
     'connections':
-        SupportedAirflowVersion(from_version=None, to_version='3.0.0'),
+        SupportedAirflowVersion(from_version=None, to_version='3.1.0'),
     'db':
         SupportedAirflowVersion(
             from_version='2.3.0',
@@ -107,13 +107,13 @@ SUBCOMMAND_ALLOWLIST = {
     'dag_state':
         SupportedAirflowVersion(from_version=None, to_version='2.0.0'),
     'dags':
-        SupportedAirflowVersion(from_version='1.10.14', to_version='3.0.0'),
+        SupportedAirflowVersion(from_version='1.10.14', to_version='3.1.0'),
     'delete_dag':
         SupportedAirflowVersion(from_version='1.10.1', to_version='2.0.0'),
     'kerberos':
-        SupportedAirflowVersion(from_version=None, to_version='3.0.0'),
+        SupportedAirflowVersion(from_version=None, to_version='3.1.0'),
     'kubernetes':
-        SupportedAirflowVersion(from_version='2.1.4', to_version='3.0.0'),
+        SupportedAirflowVersion(from_version='2.1.4', to_version='3.1.0'),
     'list_dag_runs':
         SupportedAirflowVersion(from_version='1.10.2', to_version='2.0.0'),
     'list_dags':
@@ -129,15 +129,15 @@ SUBCOMMAND_ALLOWLIST = {
     'pool':
         SupportedAirflowVersion(from_version=None, to_version='2.0.0'),
     'pools':
-        SupportedAirflowVersion(from_version='1.10.14', to_version='3.0.0'),
+        SupportedAirflowVersion(from_version='1.10.14', to_version='3.1.0'),
     'render':
         SupportedAirflowVersion(from_version=None, to_version='2.0.0'),
     'roles':
-        SupportedAirflowVersion(from_version='2.0.0', to_version='3.0.0'),
+        SupportedAirflowVersion(from_version='2.0.0', to_version='3.1.0'),
     'run':
         SupportedAirflowVersion(from_version=None, to_version='2.0.0'),
     'sync-perm':
-        SupportedAirflowVersion(from_version='1.10.14', to_version='3.0.0'),
+        SupportedAirflowVersion(from_version='1.10.14', to_version='3.1.0'),
     'sync_perm':
         SupportedAirflowVersion(from_version='1.10.2', to_version='2.0.0'),
     'task_failed_deps':
@@ -145,7 +145,7 @@ SUBCOMMAND_ALLOWLIST = {
     'task_state':
         SupportedAirflowVersion(from_version=None, to_version='2.0.0'),
     'tasks':
-        SupportedAirflowVersion(from_version='1.10.14', to_version='3.0.0'),
+        SupportedAirflowVersion(from_version='1.10.14', to_version='3.1.0'),
     'test':
         SupportedAirflowVersion(from_version=None, to_version='2.0.0'),
     'trigger_dag':
@@ -155,11 +155,11 @@ SUBCOMMAND_ALLOWLIST = {
     'upgrade_check':
         SupportedAirflowVersion(from_version='1.10.15', to_version='2.0.0'),
     'users':
-        SupportedAirflowVersion(from_version='1.10.14', to_version='3.0.0'),
+        SupportedAirflowVersion(from_version='1.10.14', to_version='3.1.0'),
     'variables':
-        SupportedAirflowVersion(from_version=None, to_version='3.0.0'),
+        SupportedAirflowVersion(from_version=None, to_version='3.1.0'),
     'version':
-        SupportedAirflowVersion(from_version=None, to_version='3.0.0'),
+        SupportedAirflowVersion(from_version=None, to_version='3.1.0'),
 }
 # Code paths are prohibited from being included in this file.
 # LINT.ThenChange()
@@ -223,7 +223,7 @@ def ConstructList(title, items):
 
 # pylint: disable=g-doc-return-or-yield
 @contextlib.contextmanager
-def TemporaryKubeconfig(location_id, cluster_id):
+def TemporaryKubeconfig(location_id, cluster_id, kubecontext_override=None):
   """Context manager that manages a temporary kubeconfig file for a GKE cluster.
 
   The kubeconfig file will be automatically created and destroyed and will
@@ -236,6 +236,7 @@ def TemporaryKubeconfig(location_id, cluster_id):
   Args:
     location_id: string, the id of the location to which the cluster belongs
     cluster_id: string, the id of the cluster
+    kubecontext_override: string, the kubecontext override
 
   Raises:
     Error: If unable to get credentials for kubernetes cluster.
@@ -261,7 +262,11 @@ def TemporaryKubeconfig(location_id, cluster_id):
       if missing_creds and not gke_util.ClusterConfig.UseGCPAuthProvider():
         raise Error('Unable to get cluster credentials. User must have edit '
                     'permission on {}'.format(cluster_ref.projectId))
-      gke_util.ClusterConfig.Persist(cluster, cluster_ref.projectId)
+      gke_util.ClusterConfig.Persist(
+          cluster,
+          cluster_ref.projectId,
+          kubecontext_override=kubecontext_override,
+      )
       yield kubeconfig
     finally:
       encoding.SetEncodedValue(os.environ, KUBECONFIG_ENV_VAR_NAME,

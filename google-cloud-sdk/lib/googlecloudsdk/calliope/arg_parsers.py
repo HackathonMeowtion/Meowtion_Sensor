@@ -842,7 +842,7 @@ def _SplitOnDelim(arg_value, delim):
   return arg_value.split(delim)[:-1]
 
 
-def _ContainsValidJson(str_value):
+def _ContainsValidJSON(str_value):
   """Checks whether the string contains balanced json."""
   closing_brackets = {'}': '{', ']': '['}
   opening_brackets = set(closing_brackets.values())
@@ -865,7 +865,7 @@ def _ContainsValidJson(str_value):
   return not current_brackets
 
 
-def _RejoinJsonStrs(json_list, delim, arg_value):
+def _RejoinJSONStrs(json_list, delim, arg_value):
   """Rejoins json substrings that are part of the same json strings.
 
   For example:
@@ -893,7 +893,7 @@ def _RejoinJsonStrs(json_list, delim, arg_value):
     else:
       current_substr += delim + token
 
-    if _ContainsValidJson(current_substr):
+    if _ContainsValidJSON(current_substr):
       result.append(current_substr)
       current_substr = None
 
@@ -950,7 +950,7 @@ def _TokenizeQuotedList(arg_value, delim=',', includes_json=False):
   if not includes_json or delim != ',':
     return str_list
 
-  return _RejoinJsonStrs(str_list, delim, arg_value)
+  return _RejoinJSONStrs(str_list, delim, arg_value)
 
 
 def _ConcatList(existing_values, new_values):
@@ -984,8 +984,11 @@ class ArgType(object):
   """Base class for arg types."""
 
 
-class ArgBoolean(ArgType):
-  """Interpret an argument value as a bool."""
+class ArgBoolean(usage_text.ArgTypeUsage, ArgType):
+  """Interpret an argument value as a bool.
+
+  This should only be used to define the spec of a key of an ArgDict flag.
+  """
 
   def __init__(self,
                truthy_strings=None,
@@ -1014,6 +1017,22 @@ class ArgBoolean(ArgType):
         'Invalid flag value [{0}], expected one of [{1}]'.format(
             arg_value, ', '.join(self._truthy_strings + self._falsey_strings)))
 
+  @property
+  def hidden(self):
+    return False
+
+  def GetUsageMetavar(self, is_custom_metavar, metavar):
+    del is_custom_metavar  # unused
+    return metavar
+
+  def GetUsageExample(self, shorthand):
+    del shorthand  # unused
+    return 'boolean'
+
+  def GetUsageHelpText(self, field_name, required, flag_name=None):
+    del field_name, required, flag_name  # unused
+    return None
+
 
 def ArgRequiredInUniverse(
     default_universe: bool = False, non_default_universe: bool = True
@@ -1033,6 +1052,63 @@ def ArgRequiredInUniverse(
   if properties.IsDefaultUniverse():
     return default_universe
   return non_default_universe
+
+
+def _CheckIfJSONFileFormat(arg_value):
+  return re.match(r'^\S*\.(yaml|json)$', arg_value)
+
+
+def _LoadFile(arg_value):
+  return FileContents()(arg_value)
+
+
+def _LoadJSON(arg_value):
+  # pylint: disable=g-import-not-at-top
+  from googlecloudsdk.core import yaml
+  # pylint: enable=g-import-not-at-top
+
+  return yaml.load(arg_value)
+
+
+class ArgJSON(usage_text.ArgTypeUsage, ArgType):
+  """Parses inline JSON or from a file.
+
+  This is best for recursive values like struct fields
+  of when any value can be passed. ArgObject is better
+  for you want a specific format from the user.
+  ArgObjet helps validate if the user provided value
+  is valid and generates help text with examples.
+  """
+
+  @property
+  def hidden(self):
+    return False
+
+  def GetUsageMetavar(self, is_custom_metavar, metavar):
+    del is_custom_metavar  # unused
+    return metavar
+
+  def GetUsageExample(self, shorthand):
+    del shorthand  # unused
+    return '{...}'
+
+  def GetUsageHelpText(self, field_name, required, flag_name=None):
+    del field_name, required, flag_name  # unused
+    return None
+
+  def __call__(self, arg_value):
+    if not isinstance(arg_value, str):
+      raise ValueError(
+          'ArgJSON can only convert string values. Received {}.'.format(
+              arg_value))
+
+    if _CheckIfJSONFileFormat(arg_value):
+      # If it looks like a file, parse as a file
+      user_input = _LoadFile(arg_value)
+    else:
+      user_input = arg_value
+
+    return _LoadJSON(user_input)
 
 
 class ArgList(usage_text.ArgTypeUsage, ArgType):
@@ -1058,7 +1134,7 @@ class ArgList(usage_text.ArgTypeUsage, ArgType):
                max_length=None,
                choices=None,
                custom_delim_char=None,
-               visible_choices=None,
+               hidden_choices=None,
                includes_json=False):
     """Initialize an ArgList.
 
@@ -1069,8 +1145,8 @@ class ArgList(usage_text.ArgTypeUsage, ArgType):
       choices: [element_type], a list of valid possibilities for elements. If
         None, then no constraints are imposed.
       custom_delim_char: char, A customized delimiter character.
-      visible_choices: [element_type], a list of valid possibilities for
-        elements to be shown to the user. If None, defaults to choices.
+      hidden_choices: [element_type], a subset of choices that should be hidden
+        from documentation.
       includes_json: bool, whether the list contains any json
 
     Returns:
@@ -1081,10 +1157,9 @@ class ArgList(usage_text.ArgTypeUsage, ArgType):
     """
     self.element_type = element_type
     self.choices = choices
-    self.visible_choices = (
-        visible_choices if visible_choices is not None else choices)
+    self.hidden_choices = hidden_choices or []
 
-    if self.visible_choices:
+    if choices:
 
       def ChoiceType(raw_value):
         if element_type:
@@ -1095,7 +1170,7 @@ class ArgList(usage_text.ArgTypeUsage, ArgType):
           raise ArgumentTypeError('{value} must be one of [{choices}]'.format(
               value=typed_value,
               choices=', '.join(
-                  [six.text_type(choice) for choice in self.visible_choices])))
+                  [str(c) for c in choices if c not in self.hidden_choices])))
         return typed_value
 
       self.element_type = ChoiceType
@@ -1209,6 +1284,15 @@ class ArgList(usage_text.ArgTypeUsage, ArgType):
     return None
 
 
+def _TrimCharacter(value: str, char: str) -> str:
+  """Trims characters from the start and end of a string."""
+  if value.startswith(char):
+    value = value[1:]
+  if value.endswith(char):
+    value = value[:-1]
+  return value
+
+
 class ArgDict(ArgList):
   """Interpret an argument value as a dict.
 
@@ -1226,7 +1310,8 @@ class ArgDict(ArgList):
                allow_key_only=False,
                required_keys=None,
                operators=None,
-               includes_json=False):
+               includes_json=False,
+               cleanup_input=False):
     """Initialize an ArgDict.
 
     Args:
@@ -1245,6 +1330,7 @@ class ArgDict(ArgList):
         operators, each with its own value_type converter. Use value_type==None
         for no conversion. The default value is {'=': value_type}
       includes_json: bool, whether string parsed includes json
+      cleanup_input: bool, whether to clean up the input string
 
     Returns:
       (str)->{str:str}, A function to parse the dict in the argument.
@@ -1263,6 +1349,7 @@ class ArgDict(ArgList):
     self.spec = spec
     self.allow_key_only = allow_key_only
     self.required_keys = required_keys or []
+    self.cleanup_input = cleanup_input
     if not operators:
       operators = {'=': value_type}
     for op in operators.keys():
@@ -1289,6 +1376,13 @@ class ArgDict(ArgList):
                   self.spec.keys()))),
               user_input=key))
 
+  def _CleanupInput(self, value):
+    if not value or not self.cleanup_input or not isinstance(value, str):
+      return value
+
+    removed_space = value.strip()
+    return _TrimCharacter(removed_space, '"')
+
   def _ValidateKeyValue(self, key, value, op='='):
     """Converts and validates <key,value> and returns (key,value)."""
     if (not op or value is None) and not self.allow_key_only:
@@ -1302,15 +1396,26 @@ class ArgDict(ArgList):
         key = self.key_type(key)
       except ValueError:
         raise ArgumentTypeError('Invalid key [{0}]'.format(key))
-    convert_value = self.operators.get(op, None)
+
+    if self.allow_key_only:
+      default_convert = self.operators.get('=', None)
+    else:
+      default_convert = None
+    convert_value = self.operators.get(op, default_convert)
+
     if convert_value:
       try:
         value = convert_value(value)
       except ValueError:
         raise ArgumentTypeError('Invalid value [{0}]'.format(value))
-    if self.spec:
+    if self.spec is not None:
       value = self._ApplySpec(key, value)
     return key, value
+
+  def _CleanupAndValidateKeyValue(self, key, value, op='='):
+    """Converts and validates <key,value> and returns (key,value)."""
+    k, v = self._CleanupInput(key), self._CleanupInput(value)
+    return self._ValidateKeyValue(k, v, op=op)
 
   def _CheckRequiredKeys(self, arg_dict):
     for required_key in self.required_keys:
@@ -1325,7 +1430,7 @@ class ArgDict(ArgList):
       raw_dict = arg_value
       arg_dict = collections.OrderedDict()
       for key, value in six.iteritems(raw_dict):
-        key, value = self._ValidateKeyValue(key, value)
+        key, value = self._CleanupAndValidateKeyValue(key, value)
         arg_dict[key] = value
     elif not isinstance(arg_value, six.string_types):
       raise ArgumentTypeError('Invalid type [{}] for flag value [{}]'.format(
@@ -1339,7 +1444,7 @@ class ArgDict(ArgList):
         if not match:
           raise ArgumentTypeError('Invalid flag value [{0}]'.format(arg))
         key, op, value = match.group(1), match.group(2), match.group(3)
-        key, value = self._ValidateKeyValue(key, value, op=op)
+        key, value = self._CleanupAndValidateKeyValue(key, value, op=op)
         arg_dict[key] = value
 
     self._CheckRequiredKeys(arg_dict)
@@ -1489,33 +1594,53 @@ class ArgObject(ArgDict):
   a caller can retrieve {"foo": {"bar": 1}} by specifying any
   of the following on the command line.
 
-    (1) --inputs='foo={"bar": 1}'
+    (1) --inputs='foo={bar=1}'
     (2) --inputs='{"foo": {"bar": 1}}'
     (3) --inputs=path_to_json.(json|yaml)
   """
+  _file_path_pattern = r'^\S*\.(yaml|json)$'
 
-  def _DisableShorthand(self, arg_type):
-    if isinstance(arg_type, ArgObject) and arg_type.enable_shorthand:
-      arg_type.enable_shorthand = False
+  def _UpdateAsNested(self, arg_type):
+    if isinstance(arg_type, ArgObject):
+      arg_type.root_level = False
+
+  def _JSONValueType(self, value_type):
+    # bool("false") will always return True even if the user wants to specify
+    # a false value. We need to wrap the value type in an ArgBoolean so that
+    # "true" or "false" will be parsed as True or False.
+    if value_type == bool:
+      return ArgBoolean()
+    else:
+      return value_type
 
   def __init__(self, key_type=None, value_type=None, spec=None,
                required_keys=None, help_text=None, repeated=False,
-               hidden=None, enable_shorthand=True):
-    # Disable arg_dict syntax for nested values
+               hidden=None, enable_shorthand=True, enable_file_upload=True,
+               disable_key_description=False, root_level=True,
+               allow_key_only=False):
+    # label nested values as not root level
     if value_type:
-      self._DisableShorthand(value_type)
+      self._UpdateAsNested(value_type)
     elif spec:
       for value in spec.values():
-        self._DisableShorthand(value)
+        self._UpdateAsNested(value)
+
+    spec_type = (
+        spec and
+        {key: self._JSONValueType(value) for key, value in spec.items()})
 
     super(ArgObject, self).__init__(
-        key_type=key_type, value_type=value_type, spec=spec,
-        required_keys=required_keys, includes_json=True)
+        key_type=key_type, value_type=self._JSONValueType(value_type),
+        spec=spec_type, required_keys=required_keys, includes_json=True,
+        cleanup_input=True, allow_key_only=allow_key_only)
     self.help_text = help_text
     self.repeated = repeated
     self._keyed_values = key_type is not None or spec is not None
     self._hidden = hidden
     self.enable_shorthand = enable_shorthand
+    self.enable_file_upload = enable_file_upload
+    self._disable_key_description = disable_key_description
+    self.root_level = root_level
 
     if self.required_keys and not self._keyed_values:
       raise InvalidTypeError(
@@ -1563,9 +1688,9 @@ class ArgObject(ArgDict):
       raise ArgumentTypeError(
           'Expecting {} to be json or arg_dict format'.format(value))
 
-    if key and not isinstance(key, str):
+    if key is not None and not isinstance(key, str):
       key = str(key)
-    if value and not isinstance(value, str):
+    if value is not None and not isinstance(value, str):
       value = json.dumps(value)
     return key, value
 
@@ -1577,13 +1702,33 @@ class ArgObject(ArgDict):
     # stringifying json at each level
     return self._Map(arg_value, self._StringifyValues)
 
-  def _LooksLikeJson(self, arg_value):
-    list_pattern = r'^\s*\[.*\]\s*$'
-    json_pattern = r'^\s*\{.*\}\s*$'
-    return ((self.repeated and re.match(list_pattern, arg_value)) or
-            (self._keyed_values and re.match(json_pattern, arg_value)))
+  def _CheckIfFileFormat(self, arg_value):
+    return self.enable_file_upload and _CheckIfJSONFileFormat(arg_value)
 
-  def _LoadJsonOrFile(self, arg_value):
+  def _CheckIfJSONObject(self, arg_value):
+    """Checks if arg_value can be loaded into a json object."""
+    # pylint: disable=g-import-not-at-top
+    from googlecloudsdk.core import yaml
+    # pylint: enable=g-import-not-at-top
+    try:
+      parsed_json = yaml.load(arg_value)
+      if isinstance(parsed_json, list) and parsed_json:
+        json_dict = parsed_json.pop()
+      else:
+        json_dict = parsed_json
+
+      if not isinstance(json_dict, dict):
+        # Only return true for arg_values that parse into key-value pairs.
+        return False
+      elif all(val is None for val in json_dict.values()):
+        # '{foo=1}' will be parsed as {'foo': None}
+        return False
+      else:
+        return True
+    except yaml.YAMLParseError:
+      return False
+
+  def _LoadJSON(self, arg_value):
     """Loads json string or file into a dictionary.
 
     Args:
@@ -1593,16 +1738,8 @@ class ArgObject(ArgDict):
       Dictionary [str: str] where the value is a json string or other String
         value
     """
-    # pylint: disable=g-import-not-at-top
-    from googlecloudsdk.core import yaml
-    # pylint: enable=g-import-not-at-top
-
-    file_path_pattern = r'^\S*\.(yaml|json)$'
-    if re.match(file_path_pattern, arg_value):
-      arg_value = FileContents()(arg_value)
-
-    if self._LooksLikeJson(arg_value):
-      json_value = yaml.load(arg_value)
+    if self._keyed_values or self.repeated:
+      json_value = _LoadJSON(arg_value)
     else:
       json_value = arg_value
 
@@ -1615,7 +1752,7 @@ class ArgObject(ArgDict):
     else:
       super(ArgObject, self)._CheckRequiredKeys(arg_dict)
 
-  def _ParseAndValidateJson(self, arg_value):
+  def _ParseAndValidateJSON(self, arg_value):
     result = self._Map(arg_value, self._ValidateKeyValue)
 
     if self.required_keys:
@@ -1623,21 +1760,51 @@ class ArgObject(ArgDict):
 
     return result
 
+  def _ContainsArgDict(self, arg_value):
+    ops = '|'.join(self.operators.keys())
+    return re.search(f'({ops})', arg_value) or self.allow_key_only
+
+  def _ParseArgDict(self, arg_value):
+    stripped_value = arg_value.strip()
+    if (stripped_value.startswith('[') and stripped_value.endswith(']')
+        and self.repeated):
+      values = _TokenizeQuotedList(stripped_value[1:-1], includes_json=True)
+      return [self._ParseArgDict(val.strip()) for val in values]
+
+    if stripped_value.startswith('{') and stripped_value.endswith('}'):
+      arg_dict_str = stripped_value[1:-1]
+    else:
+      arg_dict_str = arg_value
+    return super(ArgObject, self).__call__(arg_dict_str)
+
+  def _CheckIfArgDictFormat(self, arg_value):
+    if not self.parse_as_arg_dict:
+      return False
+
+    empty_obj_shorthand = ''
+    return arg_value == empty_obj_shorthand or (
+        self._ContainsArgDict(arg_value)
+        and not self._CheckIfJSONObject(arg_value)
+    )
+
   def __call__(self, arg_value):
     if not isinstance(arg_value, str):
       raise ValueError(
           'ArgObject can only convert string values. Received {}.'.format(
               arg_value))
 
-    ops = self.operators.keys()
-    arg_dict_pattern = '({})'.format('|'.join(ops))
-    if re.search(arg_dict_pattern, arg_value) and self.parse_as_arg_dict:
-      # parse as arg_dict
-      value = super(ArgObject, self).__call__(arg_value)
+    if self._CheckIfFileFormat(arg_value):
+      file_content = _LoadFile(arg_value)
+      json_dict = self._LoadJSON(file_content)
+      value = self._ParseAndValidateJSON(json_dict)
+    elif self._CheckIfArgDictFormat(arg_value):
+      # If value contains arg_dict syntax and does not easily parse into a
+      # json object, we assume it is an arg_dict.
+      value = self._ParseArgDict(arg_value)
     else:
-      # parse as json
-      json_dict = self._LoadJsonOrFile(arg_value)
-      value = self._ParseAndValidateJson(json_dict)
+      # parse everything else as json / yaml
+      json_dict = self._LoadJSON(arg_value)
+      value = self._ParseAndValidateJSON(json_dict)
 
     if self.repeated and not isinstance(value, list):
       value = [value]
@@ -1688,14 +1855,14 @@ class ArgObject(ArgDict):
       return None
 
     shorthand_enabled = shorthand and self.enable_shorthand
-    is_json_obj = not shorthand_enabled and self._keyed_values
-    is_array = not shorthand_enabled and self.repeated
+    is_json_obj = self._keyed_values
+    is_array = self.repeated
 
     # Default to formatting single values as shorthand in example.
     # See method descriptor above.
-    format_as_shorthand = not (is_json_obj or is_array)
+    format_as_shorthand = not (is_json_obj or is_array) or shorthand_enabled
 
-    if self.spec:
+    if self.spec is not None:
       comma = ',' if format_as_shorthand else ', '
       example = (
           usage_text.GetNestedKeyValueExample(key, value, format_as_shorthand)
@@ -1707,19 +1874,31 @@ class ArgObject(ArgDict):
       usage = usage_text.GetNestedKeyValueExample(
           self.key_type, self.value_type or str, format_as_shorthand)
 
-    if is_json_obj:
+    include_brackets = not shorthand or not self.root_level
+    if is_json_obj and include_brackets:
       usage = '{' + usage + '}'
-    if is_array:
+    if is_array and include_brackets:
       usage = '[' + usage + ']'
 
     return usage
 
   def _GetCodeExamples(self, flag_name):
     """Returns a string of user input examples."""
+    shorthand_snippet = self.GetUsageExample(shorthand=True)
+
+    # If simple primitive value, just separate by commas
+    if not self._keyed_values and self.repeated:
+      append = False
+      snippet = f'{shorthand_snippet},{shorthand_snippet}'
+    # If more complicated input, use append action
+    else:
+      append = self.repeated
+      snippet = shorthand_snippet
+
     shorthand_example = usage_text.FormatCodeSnippet(
         arg_name=flag_name,
-        arg_value=self.GetUsageExample(shorthand=True),
-        append=self.repeated)
+        arg_value=snippet,
+        append=append)
 
     json_example = usage_text.FormatCodeSnippet(
         arg_name=flag_name, arg_value=self.GetUsageExample(shorthand=False))
@@ -1735,6 +1914,42 @@ class ArgObject(ArgDict):
               '*JSON Example:*\n\n{}\n\n'
               '*File Example:*\n\n{}').format(
                   shorthand_example, json_example, file_example)
+
+  def _FormatRootHelpText(self, field_name, required):
+    """Returns a string of help text for the flag."""
+    root_help_text = usage_text.FormatHelpText(
+        field_name, required, help_text=self.help_text)
+    if (not self.spec and
+        not self.key_type and
+        isinstance(self.value_type, usage_text.ArgTypeUsage)):
+      additional_help_text = self.value_type.GetUsageHelpText(
+          field_name, required)
+    else:
+      additional_help_text = None
+
+    if additional_help_text and additional_help_text != root_help_text:
+      return f'{root_help_text} {additional_help_text}'
+    else:
+      return root_help_text
+
+  def _GetKeyValueUsageHelpText(self):
+    """Returns a string of help text for the flag."""
+    result = []
+    if self.spec:
+      items = (
+          usage_text.GetNestedUsageHelpText(key, val, key in self.required_keys)
+          for key, val in sorted(self.spec.items()))
+      result.extend(items)
+
+    elif self.key_type:
+      # Keys can be None but values are parsed as string
+      # by default in ArgObject
+      result.append(
+          usage_text.GetNestedUsageHelpText('KEY', self.key_type))
+      result.append(
+          usage_text.GetNestedUsageHelpText('VALUE', self.value_type or str))
+
+    return result
 
   def GetUsageHelpText(self, field_name, required, flag_name=None):
     """Returns a string of usage help text.
@@ -1774,23 +1989,14 @@ class ArgObject(ArgDict):
       return None
 
     result = []
-    result.append(usage_text.FormatHelpText(
-        field_name, required, help_text=self.help_text))
+    # Adds this node's help text.
+    result.append(self._FormatRootHelpText(field_name, required))
 
-    if self.spec:
-      items = (
-          usage_text.GetNestedUsageHelpText(key, val, key in self.required_keys)
-          for key, val in sorted(self.spec.items()))
-      result.extend(items)
+    # Recursively adds the help text for each key/value pair nodes.
+    if not self._disable_key_description:
+      result.extend(self._GetKeyValueUsageHelpText())
 
-    elif self.key_type:
-      # Keys can be None but values are parsed as string
-      # by default in ArgObject
-      result.append(
-          usage_text.GetNestedUsageHelpText('KEY', self.key_type))
-      result.append(
-          usage_text.GetNestedUsageHelpText('VALUE', self.value_type or str))
-
+    # Adds code examples if flag_name is not None.
     if flag_name:
       # Reset indentation back to root level
       result.append(usage_text.ASCII_INDENT + self._GetCodeExamples(flag_name))
@@ -2233,7 +2439,7 @@ def HandleNoArgAction(none_arg, deprecation_message):
   return HandleNoArgActionInit
 
 
-class FileContents(object):
+class FileContents(usage_text.ArgTypeUsage):
   """Creates an argparse type that reads the contents of a file or stdin.
 
   This is similar to argparse.FileType, but unlike FileType it does not leave
@@ -2242,14 +2448,76 @@ class FileContents(object):
 
   Attributes:
     binary: bool, If True, the contents of the file will be returned as bytes.
+    default_help_text_disabled: bool, If True, the autogenerated help text will
+      include additional information about how to use this file flag type.
 
   Returns:
     A function that accepts a filename, or "-" representing that stdin should be
     used as input.
   """
 
-  def __init__(self, binary=False):
+  def __init__(self, binary=False, default_help_text_disabled=False):
     self.binary = binary
+    self.default_help_text_disabled = default_help_text_disabled
+
+  @property
+  def hidden(self):
+    return False
+
+  def GetUsageMetavar(self, is_custom_metavar, metavar):
+    """Provides a more user friendly metavar for file contents.
+
+    `PATH_TO_FILE` is used as the default metavar for file contents flags only
+    when (1) a custom metavar is not provided and (2) the default help text is
+    enabled.
+
+    Args:
+      is_custom_metavar: bool, True if the user provided a custom metavar.
+      metavar: str, the metavar to use if a custom metavar was not provided.
+    Returns:
+      The metavar to use for this file contents flag.
+    """
+    if not is_custom_metavar and not self.default_help_text_disabled:
+      return 'PATH_TO_FILE'
+    else:
+      return metavar
+
+  def GetUsageExample(self, shorthand):
+    """Generates a usage example for file contents flags.
+
+    This default usage example is used to generate example input values.
+    This is currently just used to generate ArgObject help text examples.
+
+    Args:
+      shorthand: bool, unused for file contents flags.
+
+    Returns:
+      The example input value for this file contents flag.
+    """
+    del shorthand  # unused
+    return 'path_to_file'
+
+  def GetUsageHelpText(self, field_name, required, flag_name=None):
+    """Autogenerates additional help text for file contents flags.
+
+    Additional help text is only added when the default help text is enabled.
+
+    Args:
+      field_name: str, the name of the field this flag is associated with.
+      required: bool, True if this flag is required.
+      flag_name: str, the name of the flag this help text is associated with.
+
+    Returns:
+      Additional help text for this file contents flag.
+    """
+    del required, flag_name  # unused
+    if not self.default_help_text_disabled:
+      sub_field_name = re.sub('_from_file$', '', field_name)
+      return (
+          'Use a full or relative path to a local file containing the value '
+          f'of {sub_field_name}.')
+    else:
+      return None
 
   def __call__(self, name):
     """Return the contents of the file with the specified name.
@@ -2292,7 +2560,7 @@ class YAMLFileContents(object):
       raise ArgumentTypeError('Validator must be callable')
     self.validator = validator
 
-  def _AssertJsonLike(self, yaml_data):
+  def _AssertJSONLike(self, yaml_data):
     # pylint: disable=g-import-not-at-top
     from googlecloudsdk.core import yaml
     # pylint: enable=g-import-not-at-top
@@ -2360,7 +2628,7 @@ class YAMLFileContents(object):
     # pylint: enable=g-import-not-at-top
     try:
       yaml_data = self._LoadSingleYamlDocument(name)
-      self._AssertJsonLike(yaml_data)
+      self._AssertJSONLike(yaml_data)
       if self.validator:
         if not self.validator(yaml_data):
           raise ValueError('Invalid YAML/JSON content [{}]'.format(yaml_data))

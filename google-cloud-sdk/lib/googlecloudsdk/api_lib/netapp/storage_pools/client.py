@@ -91,7 +91,18 @@ class StoragePoolsClient(object):
                              capacity=None,
                              description=None,
                              allow_auto_tiering=None,
-                             labels=None):
+                             zone=None,
+                             replica_zone=None,
+                             custom_performance_enabled=None,
+                             total_throughput=None,
+                             total_iops=None,
+                             hot_tier_size=None,
+                             enable_hot_tier_auto_resize=None,
+                             labels=None,
+                             unified_pool=None,
+                             qos_type=None,
+                             storage_pool_type=None,
+                             ):
     """Parses the command line arguments for Create Storage Pool into a config."""
     return self._adapter.ParseStoragePoolConfig(
         name=name,
@@ -103,7 +114,17 @@ class StoragePoolsClient(object):
         capacity=capacity,
         description=description,
         allow_auto_tiering=allow_auto_tiering,
-        labels=labels
+        zone=zone,
+        replica_zone=replica_zone,
+        custom_performance_enabled=custom_performance_enabled,
+        total_throughput=total_throughput,
+        total_iops=total_iops,
+        hot_tier_size=hot_tier_size,
+        enable_hot_tier_auto_resize=enable_hot_tier_auto_resize,
+        labels=labels,
+        unified_pool=unified_pool,
+        qos_type=qos_type,
+        storage_pool_type=storage_pool_type,
     )
 
   def ListStoragePools(self, location_ref, limit=None):
@@ -156,7 +177,15 @@ class StoragePoolsClient(object):
                                     active_directory=None,
                                     description=None,
                                     allow_auto_tiering=None,
-                                    labels=None):
+                                    zone=None,
+                                    replica_zone=None,
+                                    total_throughput=None,
+                                    total_iops=None,
+                                    hot_tier_size=None,
+                                    enable_hot_tier_auto_resize=None,
+                                    qos_type=None,
+                                    labels=None,
+                                    ):
     """Parses updates into a storage pool config.
 
     Args:
@@ -165,6 +194,14 @@ class StoragePoolsClient(object):
       active_directory: the Active Directory attached to a storage pool
       description: str, a new description, if any.
       allow_auto_tiering: bool indicate whether pool supports auto-tiering
+      zone: str, zone for storage pool
+      replica_zone: str, replica zone for storage pool
+      total_throughput: int, total throughput of the storage pool
+      total_iops: int, total IOPS of the storage pool
+      hot_tier_size: int, hot tier size of the storage pool
+      enable_hot_tier_auto_resize: bool, whether hot tier auto resize is enabled
+      for the storage pool
+      qos_type: qos (quality of service) type of the storage pool
       labels: LabelsValue message, the new labels value, if any.
 
     Returns:
@@ -176,7 +213,14 @@ class StoragePoolsClient(object):
         active_directory=active_directory,
         description=description,
         allow_auto_tiering=allow_auto_tiering,
-        labels=labels
+        zone=zone,
+        replica_zone=replica_zone,
+        total_throughput=total_throughput,
+        total_iops=total_iops,
+        hot_tier_size=hot_tier_size,
+        enable_hot_tier_auto_resize=enable_hot_tier_auto_resize,
+        qos_type=qos_type,
+        labels=labels,
     )
     return storage_pool
 
@@ -200,6 +244,48 @@ class StoragePoolsClient(object):
       return update_op
     operation_ref = resources.REGISTRY.ParseRelativeName(
         update_op.name, collection=constants.OPERATIONS_COLLECTION)
+    return self.WaitForOperation(operation_ref)
+
+  def SwitchStoragePool(self, storagepool_ref, async_):
+    """Switch the zone of a Regional Cloud NetApp Storage Pooln.
+
+    Args:
+      storagepool_ref: the reference to the storage pool.
+      async_: bool, if False, wait for the operation to complete.
+
+    Returns:
+      an Operation if async_ is set to true, or a switch message if the
+      SwtichStoragePool is successful.
+    """
+    switch_op = self._adapter.SwitchStoragePool(storagepool_ref)
+    if async_:
+      return switch_op
+    operation_ref = resources.REGISTRY.ParseRelativeName(
+        switch_op.name, collection=constants.OPERATIONS_COLLECTION
+    )
+    return self.WaitForOperation(operation_ref)
+
+  def ValidateDirectoryService(self, storagepool_ref, directory_service_type,
+                               async_):
+    """Validates the directory service attached to the storage pool.
+
+    Args:
+      storagepool_ref: the reference to the storage pool.
+      directory_service_type: the type of directory service to validate.
+      async_: bool, if False, wait for the operation to complete.
+
+    Returns:
+      an Operation if async_ is set to true, or a validate message if the
+      validation is successful.
+    """
+    validate_op = self._adapter.ValidateDirectoryService(
+        storagepool_ref, directory_service_type
+    )
+    if async_:
+      return validate_op
+    operation_ref = resources.REGISTRY.ParseRelativeName(
+        validate_op.name, collection=constants.OPERATIONS_COLLECTION
+    )
     return self.WaitForOperation(operation_ref)
 
 
@@ -226,7 +312,17 @@ class StoragePoolsAdapter(object):
       capacity,
       description,
       allow_auto_tiering,
+      zone,
+      replica_zone,
+      custom_performance_enabled,
+      total_throughput,
+      total_iops,
+      hot_tier_size,
+      enable_hot_tier_auto_resize,
+      qos_type,
       labels,
+      unified_pool,
+      storage_pool_type,
   ):
     """Parses the command line arguments for Create Storage Pool into a config.
 
@@ -240,7 +336,18 @@ class StoragePoolsAdapter(object):
       capacity: the storage capacity of the Storage Pool
       description: the description of the Storage Pool
       allow_auto_tiering: Bool on whether Storage Pool supports auto tiering
+      zone: zone of the Storage Pool
+      replica_zone: Replica zone for the Storage Pool
+      custom_performance_enabled: Bool on whether custom performance is enabled
+      total_throughput: Total throughput of the Storage Pool
+      total_iops: Total IOPS of the Storage Pool
+      hot_tier_size: Hot tier size of the Storage Pool
+      enable_hot_tier_auto_resize: Bool on whether hot tier auto resize is
+        enabled
+      qos_type: qos (quality of service) type of the storage pool
       labels: the parsed labels value
+      unified_pool: Bool on whether the Storage Pool is a unified pool
+      storage_pool_type: Type of the Storage Pool
 
     Returns:
       The configuration that will be used as the request body for creating a
@@ -259,7 +366,27 @@ class StoragePoolsAdapter(object):
     storage_pool.description = description
     if allow_auto_tiering is not None:
       storage_pool.allowAutoTiering = allow_auto_tiering
+    if zone is not None:
+      storage_pool.zone = zone
+    if replica_zone is not None:
+      storage_pool.replicaZone = replica_zone
+    if custom_performance_enabled is not None:
+      storage_pool.customPerformanceEnabled = custom_performance_enabled
+    if total_throughput is not None:
+      storage_pool.totalThroughputMibps = total_throughput
+    if total_iops is not None:
+      storage_pool.totalIops = total_iops
+    if hot_tier_size is not None:
+      storage_pool.hotTierSizeGib = hot_tier_size
+    if enable_hot_tier_auto_resize is not None:
+      storage_pool.enableHotTierAutoResize = enable_hot_tier_auto_resize
+    if qos_type is not None:
+      storage_pool.qosType = qos_type
     storage_pool.labels = labels
+    if unified_pool is not None:
+      storage_pool.unifiedPool = unified_pool
+    if storage_pool_type is not None:
+      storage_pool.type = storage_pool_type
     return storage_pool
 
   def ParseUpdatedStoragePoolConfig(
@@ -270,6 +397,13 @@ class StoragePoolsAdapter(object):
       labels=None,
       capacity=None,
       allow_auto_tiering=None,
+      zone=None,
+      replica_zone=None,
+      total_throughput=None,
+      total_iops=None,
+      hot_tier_size=None,
+      enable_hot_tier_auto_resize=None,
+      qos_type=None,
   ):
     """Parse update information into an updated Storage Pool message."""
     if capacity is not None:
@@ -280,6 +414,20 @@ class StoragePoolsAdapter(object):
       storagepool_config.description = description
     if allow_auto_tiering is not None:
       storagepool_config.allowAutoTiering = allow_auto_tiering
+    if zone is not None:
+      storagepool_config.zone = zone
+    if replica_zone is not None:
+      storagepool_config.replicaZone = replica_zone
+    if total_throughput is not None:
+      storagepool_config.totalThroughputMibps = total_throughput
+    if total_iops is not None:
+      storagepool_config.totalIops = total_iops
+    if hot_tier_size is not None:
+      storagepool_config.hotTierSizeGib = hot_tier_size
+    if enable_hot_tier_auto_resize is not None:
+      storagepool_config.enableHotTierAutoResize = enable_hot_tier_auto_resize
+    if qos_type is not None:
+      storagepool_config.qosType = qos_type
     if labels is not None:
       storagepool_config.labels = labels
     return storagepool_config
@@ -297,6 +445,28 @@ class StoragePoolsAdapter(object):
         update_request
     )
     return update_op
+
+  def SwitchStoragePool(self, storagepool_ref):
+    """Send a switch zone request for the Cloud NetApp storage pool."""
+    switch_request = (
+        self.messages.NetappProjectsLocationsStoragePoolsSwitchRequest(
+            name=storagepool_ref.RelativeName(),
+        )
+    )
+    return self.client.projects_locations_storagePools.Switch(switch_request)
+
+  def ValidateDirectoryService(self, storagepool_ref, directory_service_type):
+    """Send a validate directory service request for the Cloud NetApp storage pool."""
+    request = self.messages.ValidateDirectoryServiceRequest(
+        directoryServiceType=directory_service_type,
+    )
+    validate_request = self.messages.NetappProjectsLocationsStoragePoolsValidateDirectoryServiceRequest(
+        name=storagepool_ref.RelativeName(),
+        validateDirectoryServiceRequest=request,
+    )
+    return self.client.projects_locations_storagePools.ValidateDirectoryService(
+        validate_request
+    )
 
 
 class BetaStoragePoolsAdapter(StoragePoolsAdapter):

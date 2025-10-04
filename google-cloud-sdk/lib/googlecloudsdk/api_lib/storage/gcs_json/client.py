@@ -16,9 +16,6 @@
 
 Implements CloudApi for the GCS JSON API. Example functions include listing
 buckets, uploading objects, and setting lifecycle conditions.
-
-TODO(b/160601969): Update class with remaining API methods for ls and cp.
-    Note, this class has not been tested against the GCS API yet.
 """
 
 from __future__ import absolute_import
@@ -43,9 +40,11 @@ from googlecloudsdk.api_lib.storage.gcs_json import metadata_util
 from googlecloudsdk.api_lib.storage.gcs_json import patch_apitools_messages
 from googlecloudsdk.api_lib.storage.gcs_json import upload
 from googlecloudsdk.api_lib.util import apis as core_apis
+from googlecloudsdk.api_lib.util import waiter
 from googlecloudsdk.command_lib.storage import encryption_util
 from googlecloudsdk.command_lib.storage import errors as command_errors
 from googlecloudsdk.command_lib.storage import gzip_util
+from googlecloudsdk.command_lib.storage import operations_util
 from googlecloudsdk.command_lib.storage import posix_util
 from googlecloudsdk.command_lib.storage import storage_url
 from googlecloudsdk.command_lib.storage import tracker_file_util
@@ -138,7 +137,7 @@ class _StorageStreamResponseHandler(requests.ResponseHandler):
     self._chunk_size = scaled_integer.ParseInteger(
         properties.VALUES.storage.download_chunk_size.Get())
     # If progress callbacks is called more frequently than every 512 KB, it
-    # can degrate performance.
+    # can degrade performance.
     self._progress_callback_threshold = max(MINIMUM_PROGRESS_CALLBACK_THRESHOLD,
                                             self._chunk_size)
 
@@ -250,6 +249,39 @@ def _update_api_version_for_uploads_if_needed(client):
       'v1', api_version)
 
 
+class CloudStorageLroPoller(waiter.CloudOperationPollerNoResources):
+  """Poller for Storage LROs."""
+
+  _MESSAGES = core_apis.GetMessagesModule('storage', 'v1')
+
+  def Poll(self, operation_ref):
+    """Overrides."""
+
+    try:
+      bucket, operation_id = (
+          operations_util.get_operation_bucket_and_id_from_name(
+              operation_ref.name
+          )
+      )
+    except command_errors.Error:
+      log.warning(
+          'We could not wait for the operation to complete because the required'
+          ' data was incorrect. The operation may still have completed in the'
+          ' background. Please check if the operation has completed'
+          ' before retrying.'
+      )
+      raise cloud_errors.GcsApiError(
+          'Invalid operation data initiated for this command:'
+          f' {operation_ref.name}. Please check if command completed in the'
+          ' background before '
+      )
+
+    request = self._MESSAGES.StorageBucketsOperationsGetRequest(
+        bucket=bucket, operationId=operation_id
+    )
+    return self.operation_service.Get(request)
+
+
 class JsonClient(cloud_api.CloudApi):
   """Client for Google Cloud Storage API."""
 
@@ -258,6 +290,8 @@ class JsonClient(cloud_api.CloudApi):
       cloud_api.Capability.DAISY_CHAIN_SEEKABLE_UPLOAD_STREAM,
       cloud_api.Capability.ENCRYPTION,
       cloud_api.Capability.MANAGED_FOLDERS,
+      cloud_api.Capability.FOLDERS,
+      cloud_api.Capability.STORAGE_LAYOUT,
       cloud_api.Capability.RESUMABLE_UPLOAD,
       cloud_api.Capability.SLICED_DOWNLOAD,
   }
@@ -498,13 +532,24 @@ class JsonClient(cloud_api.CloudApi):
     self.client.buckets.Delete(request)
 
   @error_util.catch_http_error_raise_gcs_api_error()
-  def get_bucket(self, bucket_name, fields_scope=cloud_api.FieldsScope.NO_ACL):
+  def get_bucket(
+      self,
+      bucket_name,
+      generation=None,
+      fields_scope=cloud_api.FieldsScope.NO_ACL,
+      soft_deleted=False,
+  ):
     """See super class."""
-    projection = self._get_projection(fields_scope,
-                                      self.messages.StorageBucketsGetRequest)
+    projection = self._get_projection(
+        fields_scope, self.messages.StorageBucketsGetRequest
+    )
     request = self.messages.StorageBucketsGetRequest(
         bucket=bucket_name,
-        projection=projection)
+        generation=generation,
+        projection=projection,
+        # Avoid needlessly appending "&softDeleted=False" to URL.
+        softDeleted=True if soft_deleted else None,
+    )
 
     metadata = self.client.buckets.Get(request)
     return metadata_util.get_bucket_resource_from_metadata(metadata)
@@ -513,69 +558,125 @@ class JsonClient(cloud_api.CloudApi):
   def get_bucket_iam_policy(self, bucket_name):
     """See super class."""
     global_params = self.messages.StandardQueryParameters(
-        fields='bindings,etag')
+        fields='bindings,etag'
+    )
     return self.client.buckets.GetIamPolicy(
         self.messages.StorageBucketsGetIamPolicyRequest(
             bucket=bucket_name,
-            optionsRequestedPolicyVersion=gcs_iam_util.IAM_POLICY_VERSION),
-        global_params=global_params)
+            optionsRequestedPolicyVersion=gcs_iam_util.IAM_POLICY_VERSION,
+        ),
+        global_params=global_params,
+    )
 
-  def list_buckets(self, fields_scope=cloud_api.FieldsScope.NO_ACL):
+  def list_buckets(
+      self,
+      fields_scope=cloud_api.FieldsScope.NO_ACL,
+      soft_deleted=False,
+      prefix=None,
+  ):
     """See super class."""
-    projection = self._get_projection(fields_scope,
-                                      self.messages.StorageBucketsListRequest)
+    projection = self._get_projection(
+        fields_scope, self.messages.StorageBucketsListRequest
+    )
     request = self.messages.StorageBucketsListRequest(
         project=properties.VALUES.core.project.GetOrFail(),
-        projection=projection)
+        projection=projection,
+        # Avoid needlessly appending "&softDeleted=False" to URL.
+        softDeleted=True if soft_deleted else None,
+        prefix=prefix,
+    )
 
     global_params = None
     if fields_scope == cloud_api.FieldsScope.SHORT:
       global_params = self.messages.StandardQueryParameters(
-          fields='items/name,nextPageToken')
+          fields='items/name,nextPageToken'
+      )
     # TODO(b/160238394) Decrypt metadata fields if necessary.
     bucket_iter = list_pager.YieldFromList(
         self.client.buckets,
         request,
         batch_size=cloud_api.NUM_ITEMS_PER_LIST_PAGE,
-        global_params=global_params)
+        global_params=global_params,
+    )
     try:
       for bucket in bucket_iter:
         yield metadata_util.get_bucket_resource_from_metadata(bucket)
     except apitools_exceptions.HttpError as e:
       core_exceptions.reraise(
-          cloud_errors.translate_error(e, error_util.ERROR_TRANSLATION))
+          cloud_errors.translate_error(e, error_util.ERROR_TRANSLATION)
+      )
+
+  @error_util.catch_http_error_raise_gcs_api_error()
+  def relocate_bucket(
+      self,
+      bucket_name,
+      destination_location,
+      destination_custom_placement_config=None,
+      validate_only=False,
+  ):
+    """See CloudApi class."""
+    if destination_custom_placement_config is not None:
+      destination_custom_placement_config = self.messages.RelocateBucketRequest.DestinationCustomPlacementConfigValue(
+          dataLocations=destination_custom_placement_config
+      )
+    request = self.messages.RelocateBucketRequest(
+        destinationLocation=destination_location,
+        destinationCustomPlacementConfig=destination_custom_placement_config,
+        validateOnly=validate_only,
+    )
+    relocate_request = self.messages.StorageBucketsRelocateRequest(
+        bucket=bucket_name, relocateBucketRequest=request
+    )
+    return self.client.buckets.Relocate(relocate_request)
 
   @error_util.catch_http_error_raise_gcs_api_error()
   def lock_bucket_retention_policy(self, bucket_resource, request_config):
     metageneration_precondition = (
-        request_config.precondition_metageneration_match or
-        bucket_resource.metageneration)
+        request_config.precondition_metageneration_match
+        or bucket_resource.metageneration
+    )
     request = self.messages.StorageBucketsLockRetentionPolicyRequest(
         bucket=bucket_resource.storage_url.bucket_name,
-        ifMetagenerationMatch=metageneration_precondition)
+        ifMetagenerationMatch=metageneration_precondition,
+    )
     return metadata_util.get_bucket_resource_from_metadata(
-        self.client.buckets.LockRetentionPolicy(request))
+        self.client.buckets.LockRetentionPolicy(request)
+    )
 
   @error_util.catch_http_error_raise_gcs_api_error()
-  def patch_bucket(self,
-                   bucket_resource,
-                   request_config,
-                   fields_scope=cloud_api.FieldsScope.NO_ACL):
+  def patch_bucket(
+      self,
+      bucket_resource,
+      request_config,
+      fields_scope=cloud_api.FieldsScope.NO_ACL,
+  ):
     """See super class."""
-    projection = self._get_projection(fields_scope,
-                                      self.messages.StorageBucketsPatchRequest)
-    metadata = getattr(
-        bucket_resource, 'metadata',
-        None) or (metadata_util.get_apitools_metadata_from_url(
-            bucket_resource.storage_url))
+    projection = self._get_projection(
+        fields_scope, self.messages.StorageBucketsPatchRequest
+    )
+    metadata = getattr(bucket_resource, 'metadata', None) or (
+        metadata_util.get_apitools_metadata_from_url(
+            bucket_resource.storage_url
+        )
+    )
     metadata_util.update_bucket_metadata_from_request_config(
-        metadata, request_config)
+        metadata, request_config
+    )
 
     cleared_fields = metadata_util.get_cleared_bucket_fields(request_config)
-    if (metadata.defaultObjectAcl and metadata.defaultObjectAcl[0]
-        == metadata_util.PRIVATE_DEFAULT_OBJECT_ACL):
+    if (
+        metadata.defaultObjectAcl
+        and metadata.defaultObjectAcl[0]
+        == metadata_util.PRIVATE_DEFAULT_OBJECT_ACL
+    ):
       cleared_fields.append('defaultObjectAcl')
       metadata.defaultObjectAcl = []
+
+    # IP Filtering properties should be passed as empty values to get cleared.
+    if metadata.ipFilter:
+      cleared_fields.extend(
+          metadata_util.get_cleared_ip_filter_fields(metadata.ipFilter)
+      )
 
     # Must null out existing ACLs to apply new ones.
     if request_config.predefined_acl_string:
@@ -711,7 +812,7 @@ class JsonClient(cloud_api.CloudApi):
     source_messages = []
     for source in source_resources:
       source_message = self.messages.ComposeRequest.SourceObjectsValueListEntry(
-          name=source.storage_url.object_name)
+          name=source.storage_url.resource_name)
       if source.storage_url.generation is not None:
         generation = int(source.storage_url.generation)
         source_message.generation = generation
@@ -722,7 +823,7 @@ class JsonClient(cloud_api.CloudApi):
     if getattr(source_resources[0], 'metadata', None):
       final_destination_metadata = metadata_util.copy_object_metadata(
           source_resources[0].metadata, base_destination_metadata,
-          request_config)
+          request_config, method_type=metadata_util.MethodType.OBJECT_COMPOSE)
     else:
       final_destination_metadata = base_destination_metadata
     metadata_util.update_object_metadata_from_request_config(
@@ -730,6 +831,7 @@ class JsonClient(cloud_api.CloudApi):
         request_config,
         attributes_resource=original_source_resource,
         posix_to_set=posix_to_set,
+        method_type=metadata_util.MethodType.OBJECT_COMPOSE,
     )
 
     compose_request_payload = self.messages.ComposeRequest(
@@ -738,7 +840,7 @@ class JsonClient(cloud_api.CloudApi):
     compose_request = self.messages.StorageObjectsComposeRequest(
         composeRequest=compose_request_payload,
         destinationBucket=destination_resource.storage_url.bucket_name,
-        destinationObject=destination_resource.storage_url.object_name,
+        destinationObject=destination_resource.storage_url.resource_name,
         ifGenerationMatch=request_config.precondition_generation_match,
         ifMetagenerationMatch=request_config.precondition_metageneration_match)
 
@@ -783,7 +885,10 @@ class JsonClient(cloud_api.CloudApi):
           request_config,
           should_deep_copy=should_deep_copy_metadata)
     metadata_util.update_object_metadata_from_request_config(
-        destination_metadata, request_config, posix_to_set=posix_to_set
+        destination_metadata,
+        request_config,
+        posix_to_set=posix_to_set,
+        method_type=metadata_util.MethodType.OBJECT_REWRITE,
     )
 
     if request_config.predefined_acl_string:
@@ -826,9 +931,9 @@ class JsonClient(cloud_api.CloudApi):
       while True:
         request = self.messages.StorageObjectsRewriteRequest(
             sourceBucket=source_resource.storage_url.bucket_name,
-            sourceObject=source_resource.storage_url.object_name,
+            sourceObject=source_resource.storage_url.resource_name,
             destinationBucket=destination_resource.storage_url.bucket_name,
-            destinationObject=destination_resource.storage_url.object_name,
+            destinationObject=destination_resource.storage_url.resource_name,
             object=destination_metadata,
             sourceGeneration=source_generation,
             ifGenerationMatch=copy_util.get_generation_match_value(
@@ -881,7 +986,7 @@ class JsonClient(cloud_api.CloudApi):
 
     request = self.messages.StorageObjectsDeleteRequest(
         bucket=object_url.bucket_name,
-        object=object_url.object_name,
+        object=object_url.resource_name,
         generation=generation,
         ifGenerationMatch=request_config.precondition_generation_match,
         ifMetagenerationMatch=request_config.precondition_metageneration_match)
@@ -1021,6 +1126,7 @@ class JsonClient(cloud_api.CloudApi):
       include_folders_as_prefixes=None,
       next_page_token=None,
       object_state=cloud_api.ObjectState.LIVE,
+      list_filter=None,
   ):
     """See super class."""
     projection = self._get_projection(fields_scope,
@@ -1036,7 +1142,8 @@ class JsonClient(cloud_api.CloudApi):
               'prefixes,items/name,items/etag,items/size,items/generation,'
               'items/storageClass,items/timeCreated,items/metadata/{},'
               'items/metadata/{},items/metadata/{},items/metadata/{},'
-              'items/metadata/{},items/crc32c,items/md5Hash,nextPageToken'
+              'items/metadata/{},items/crc32c,items/md5Hash,nextPageToken,'
+              'items/kmsKeyName'
           ).format(
               posix_util.ATIME_METADATA_KEY,
               posix_util.GID_METADATA_KEY,
@@ -1067,6 +1174,7 @@ class JsonClient(cloud_api.CloudApi):
           includeFoldersAsPrefixes=include_folders_as_prefixes,
           # Avoid needlessly appending "&softDeleted=False" to URL.
           softDeleted=soft_deleted,
+          filter=list_filter,
       )
 
       try:
@@ -1107,7 +1215,7 @@ class JsonClient(cloud_api.CloudApi):
             storage_url.CloudUrl(
                 scheme=storage_url.ProviderPrefix.GCS,
                 bucket_name=bucket_name,
-                object_name=prefix_string),
+                resource_name=prefix_string),
             prefix=prefix_string)
 
       if not next_page_token:
@@ -1147,7 +1255,10 @@ class JsonClient(cloud_api.CloudApi):
     )
 
     metadata_util.update_object_metadata_from_request_config(
-        object_metadata, request_config, posix_to_set=posix_to_set
+        object_metadata,
+        request_config,
+        posix_to_set=posix_to_set,
+        method_type=metadata_util.MethodType.OBJECT_PATCH,
     )
     request = self.messages.StorageObjectsPatchRequest(
         bucket=bucket_name,
@@ -1343,6 +1454,70 @@ class JsonClient(cloud_api.CloudApi):
     )
 
   @error_util.catch_http_error_raise_gcs_api_error()
+  def create_folder(self, bucket_name, folder_name, is_recursive=False):
+    """See CloudApi class for function doc strings."""
+    folder = self.messages.Folder(bucket=bucket_name, name=folder_name)
+    insert_folder_request_message = self.messages.StorageFoldersInsertRequest(
+        bucket=bucket_name, folder=folder, recursive=is_recursive
+    )
+    response = self.client.folders.Insert(insert_folder_request_message)
+    return metadata_util.get_folder_resource_from_metadata(response)
+
+  @error_util.catch_http_error_raise_gcs_api_error()
+  def delete_folder(self, bucket_name, folder_name):
+    """See CloudApi class for function doc strings."""
+    delete_folder_request = self.messages.StorageFoldersDeleteRequest(
+        bucket=bucket_name, folder=folder_name
+    )
+    self.client.folders.Delete(delete_folder_request)
+
+  @error_util.catch_http_error_raise_gcs_api_error()
+  def get_folder(self, bucket_name, folder_name):
+    """See CloudApi class for function doc strings."""
+    response = self.client.folders.Get(
+        self.messages.StorageFoldersGetRequest(
+            bucket=bucket_name, folder=folder_name
+        )
+    )
+    return metadata_util.get_folder_resource_from_metadata(response)
+
+  def list_folders(self, bucket_name, delimiter=None, prefix=None):
+    """See CloudApi class for function doc strings."""
+    try:
+      for folder in list_pager.YieldFromList(
+          self.client.folders,
+          self.messages.StorageFoldersListRequest(
+              bucket=bucket_name,
+              delimiter=delimiter,
+              prefix=prefix,
+          ),
+          batch_size=1000,
+          batch_size_attribute='pageSize',
+          field='items',
+      ):
+        yield metadata_util.get_folder_resource_from_metadata(folder)
+    except apitools_exceptions.HttpError as e:
+      core_exceptions.reraise(
+          cloud_errors.translate_error(
+              e,
+              error_util.ERROR_TRANSLATION,
+              status_code_getter=error_util.get_status_code,
+          )
+      )
+
+  @error_util.catch_http_error_raise_gcs_api_error()
+  def rename_folder(
+      self, bucket_name, source_folder_name, destination_folder_name
+  ):
+    """See CloudApi class for function doc strings."""
+    rename_folder_request = self.messages.StorageFoldersRenameRequest(
+        bucket=bucket_name,
+        sourceFolder=source_folder_name,
+        destinationFolder=destination_folder_name,
+    )
+    return self.client.folders.Rename(rename_folder_request)
+
+  @error_util.catch_http_error_raise_gcs_api_error()
   def get_service_agent(self, project_id=None, project_number=None):
     """See CloudApi class for doc strings."""
     if project_id:
@@ -1437,6 +1612,21 @@ class JsonClient(cloud_api.CloudApi):
       yield notification_configuration
 
   @error_util.catch_http_error_raise_gcs_api_error()
+  def advance_relocate_bucket(self, bucket_name, operation_id, ttl=None):
+    """See CloudApi class."""
+    advance_relocate_bucket_operation_request = (
+        self.messages.AdvanceRelocateBucketOperationRequest(
+            ttl=str(ttl) + 's' if ttl is not None else None
+        )
+    )
+    request = self.messages.StorageBucketsOperationsAdvanceRelocateBucketRequest(
+        advanceRelocateBucketOperationRequest=advance_relocate_bucket_operation_request,
+        bucket=bucket_name,
+        operationId=operation_id,
+    )
+    return self.client.operations.AdvanceRelocateBucket(request)
+
+  @error_util.catch_http_error_raise_gcs_api_error()
   def cancel_operation(self, bucket_name, operation_id):
     """See CloudApi class."""
     self.client.operations.Cancel(
@@ -1493,10 +1683,30 @@ class JsonClient(cloud_api.CloudApi):
             ifMetagenerationMatch=(
                 request_config.precondition_metageneration_match
             ),
-            object=url.object_name,
+            object=url.resource_name,
         )
     )
     return metadata_util.get_object_resource_from_metadata(object_metadata)
+
+  @error_util.catch_http_error_raise_gcs_api_error()
+  def restore_bucket(self, url):
+    """See CloudApi class."""
+    if not url.is_bucket():
+      raise command_errors.InvalidUrlError(
+          'Restore bucket endpoint accepts only bucket URLs.'
+      )
+
+    if not url.generation:
+      raise command_errors.InvalidUrlError(
+          'Restore bucket endpoint requires a generation.'
+      )
+
+    return self.client.buckets.Restore(
+        self.messages.StorageBucketsRestoreRequest(
+            bucket=url.bucket_name,
+            generation=int(url.generation),
+        )
+    )
 
   @error_util.catch_http_error_raise_gcs_api_error()
   def bulk_restore_objects(
@@ -1505,6 +1715,8 @@ class JsonClient(cloud_api.CloudApi):
       object_globs,
       request_config,
       allow_overwrite=False,
+      created_after_time=None,
+      created_before_time=None,
       deleted_after_time=None,
       deleted_before_time=None,
   ):
@@ -1523,6 +1735,8 @@ class JsonClient(cloud_api.CloudApi):
               bulkRestoreObjectsRequest=self.messages.BulkRestoreObjectsRequest(
                   allowOverwrite=allow_overwrite,
                   copySourceAcl=preserve_acl,
+                  createdAfterTime=created_after_time,
+                  createdBeforeTime=created_before_time,
                   matchGlobs=object_globs,
                   softDeletedAfterTime=deleted_after_time,
                   softDeletedBeforeTime=deleted_before_time,
@@ -1530,3 +1744,21 @@ class JsonClient(cloud_api.CloudApi):
           )
       )
     return operation
+
+  @error_util.catch_http_error_raise_gcs_api_error()
+  def get_storage_layout(self, bucket_name):
+    """See CloudApi class for function doc strings."""
+    storage_layout_request = (
+        self.messages.StorageBucketsGetStorageLayoutRequest(bucket=bucket_name)
+    )
+    return self.client.buckets.GetStorageLayout(storage_layout_request)
+
+  @error_util.catch_http_error_raise_gcs_api_error()
+  def wait_for_operation(self, operation_ref):
+    """See CloudApi class for function doc strings."""
+
+    poller = CloudStorageLroPoller(
+        self.client.operations, (lambda ref: ref.name)
+    )
+
+    return waiter.WaitFor(poller, operation_ref)

@@ -1,8 +1,10 @@
-- release_tracks: [ALPHA]
+- release_tracks: [ALPHA, BETA, GA]
   help_text:
     brief: Delete a `WasmPlugin` resource.
     description: |
       Delete a `WasmPlugin` resource.
+
+      Please note that all WasmPluginVersions associated with the WasmPlugin will also be deleted.
     examples: |
       To delete a `WasmPlugin` called `my-plugin`, run:
 
@@ -12,6 +14,10 @@
     collection: networkservices.projects.locations.wasmPlugins
     ALPHA:
       api_version: v1alpha1
+    BETA:
+      api_version: v1beta1
+    GA:
+      api_version: v1
 
   async:
     collection: networkservices.projects.locations.operations

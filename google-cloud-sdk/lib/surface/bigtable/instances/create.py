@@ -29,14 +29,15 @@ from googlecloudsdk.core import log
 from googlecloudsdk.core import resources
 
 
-@base.ReleaseTracks(base.ReleaseTrack.GA, base.ReleaseTrack.BETA,
-                    base.ReleaseTrack.ALPHA)
+@base.UniverseCompatible
+@base.ReleaseTracks(base.ReleaseTrack.GA, base.ReleaseTrack.BETA)
 class CreateInstance(base.CreateCommand):
   """Create a new Bigtable instance."""
 
+  _support_tags = False
+
   detailed_help = {
-      'EXAMPLES':
-          textwrap.dedent("""\
+      'EXAMPLES': textwrap.dedent("""\
           To create an instance with id `my-instance-id` with a cluster located
           in `us-east1-c`, run:
 
@@ -53,13 +54,24 @@ class CreateInstance(base.CreateCommand):
           """),
   }
 
-  @staticmethod
-  def Args(parser):
+  @classmethod
+  def Args(cls, parser):
     """Register flags for this command."""
-    (arguments.ArgAdder(parser).AddInstanceDisplayName(
-        required=True).AddClusterConfig().AddDeprecatedCluster()
-     .AddDeprecatedClusterZone().AddDeprecatedClusterNodes().AddClusterStorage(
-     ).AddAsync().AddDeprecatedInstanceType())
+    (
+        arguments.ArgAdder(parser)
+        .AddInstanceDisplayName(required=True)
+        .AddClusterConfig()
+        .AddDeprecatedCluster()
+        .AddDeprecatedClusterZone()
+        .AddDeprecatedClusterNodes()
+        .AddClusterStorage()
+        .AddAsync()
+        .AddDeprecatedInstanceType()
+    )
+
+    if cls._support_tags:
+      arguments.ArgAdder(parser).AddTags()
+
     arguments.AddInstanceResourceArg(parser, 'to create', positional=True)
     parser.display_info.AddCacheUpdater(arguments.InstanceCompleter)
 
@@ -98,9 +110,14 @@ class CreateInstance(base.CreateCommand):
         instanceId=ref.Name(),
         parent=parent_ref.RelativeName(),
         instance=msgs.Instance(
-            displayName=args.display_name, type=instance_type),
+            displayName=args.display_name,
+            type=instance_type,
+            tags=self._Tags(args),
+        ),
         clusters=msgs.CreateInstanceRequest.ClustersValue(
-            additionalProperties=clusters_properties))
+            additionalProperties=clusters_properties
+        ),
+    )
     result = cli.projects_instances.Create(msg)
     operation_ref = util.GetOperationRef(result)
 
@@ -142,8 +159,15 @@ class CreateInstance(base.CreateCommand):
       new_clusters = {}
       for cluster_dict in args.cluster_config:
         nodes = cluster_dict.get('nodes', 1)
+        node_scaling_factor = cluster_dict.get(
+            'node-scaling-factor',
+            msgs.Cluster.NodeScalingFactorValueValuesEnum(
+                msgs.Cluster.NodeScalingFactorValueValuesEnum.NODE_SCALING_FACTOR_1X
+            ),
+        )
         cluster = msgs.Cluster(
             serveNodes=nodes,
+            nodeScalingFactor=node_scaling_factor,
             defaultStorageType=storage_type,
             # TODO(b/36049938): switch location to resource
             # when b/29566669 is fixed on API
@@ -178,7 +202,11 @@ class CreateInstance(base.CreateCommand):
             '--cluster-zone', '--cluster-zone must be specified.')
       cluster = msgs.Cluster(
           serveNodes=arguments.ProcessInstanceTypeAndNodes(args),
+          # nodeScalingFactor is not supported in deprecated workflow
           defaultStorageType=storage_type,
+          nodeScalingFactor=msgs.Cluster.NodeScalingFactorValueValuesEnum(
+              msgs.Cluster.NodeScalingFactorValueValuesEnum.NODE_SCALING_FACTOR_1X
+          ),
           # TODO(b/36049938): switch location to resource
           # when b/29566669 is fixed on API
           location=util.LocationUrl(args.cluster_zone))
@@ -186,7 +214,8 @@ class CreateInstance(base.CreateCommand):
     else:
       raise exceptions.InvalidArgumentException(
           '--cluster --cluster-config',
-          'Use --cluster-config to specify cluster(s).')
+          'Use --cluster-config to specify cluster(s).',
+      )
 
   def _ValidateClusterConfigArgs(self, cluster_config):
     """Validates arguments in cluster-config as a repeated dict."""
@@ -213,3 +242,38 @@ class CreateInstance(base.CreateCommand):
               '--autoscaling-cpu-target', 'All of --autoscaling-min-nodes '
               '--autoscaling-max-nodes --autoscaling-cpu-target must be set to '
               'enable Autoscaling.')
+
+  @classmethod
+  def _Tags(cls, args, tags_arg_name='tags'):
+    """Get the tags from command arguments.
+
+    Args:
+      args: the argparse namespace from Run().
+      tags_arg_name: the name of the tags argument.
+
+    Returns:
+      A dict mapping from tag key to tag value.
+    """
+
+    if not cls._support_tags:
+      return None
+
+    tags = getattr(args, tags_arg_name)
+    if not tags:
+      return None
+
+    tags_message = util.GetAdminMessages().Instance.TagsValue
+    # Sorted for test stability.
+    return tags_message(
+        additionalProperties=[
+            tags_message.AdditionalProperty(key=key, value=value)
+            for key, value in sorted(tags.items())
+        ]
+    )
+
+
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class CreateInstanceAlpha(CreateInstance):
+  """Create a new Bigtable instance."""
+
+  _support_tags = True

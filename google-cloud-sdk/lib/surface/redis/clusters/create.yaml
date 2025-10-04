@@ -42,7 +42,6 @@
       - enum_value: REDIS_SHARED_CORE_NANO
         arg_value: redis-shared-core-nano
     - arg_name: network
-      required: true
       api_field: cluster.pscConfigs.network
       help_text: |
          The network used to create your instance. It must use the format:
@@ -68,7 +67,6 @@
       help_text: |
         The replica count of each shard.
     - arg_name: shard-count
-      required: true
       api_field: cluster.shardCount
       type: int
       help_text: |
@@ -90,11 +88,12 @@
     - arg_name: deletion-protection
       api_field: cluster.deletionProtectionEnabled
       type: bool
-      hidden: true
-      release_tracks: [ALPHA, BETA]
+      # To distinguish b/w unset and default value. Otherwise, the request is always sent with
+      # deletionProtectionEnabled=false.
+      default: null
       help_text: |
-        Enable Delete Protection on the Redis Cluster to prevent accidental deletions.
-        Use --deletion-protection to enabled and --no-deletion-protection to disable.
+        Enable deletion protection for the Redis Cluster. Use
+        `--deletion-protection`/`--no-deletion-protection` to enable/disable it.
     - arg_name: redis-config
       api_field: cluster.redisConfigs.additionalProperties
       metavar: KEY=VALUE
@@ -112,7 +111,6 @@
           - api_field: value
     - arg_name: zone-distribution-mode
       api_field: cluster.zoneDistributionConfig.mode
-      release_tracks: [ALPHA, BETA]
       help_text: |
         Determines how the cluster nodes are distributed across zones.
       choices:
@@ -126,7 +124,6 @@
           Allocate cluster nodes in a single zone.
     - arg_name: zone
       api_field: cluster.zoneDistributionConfig.zone
-      release_tracks: [ALPHA, BETA]
       help_text: |
         The zone used to allocate the cluster nodes. Applicable only if the zone-distribution-mode
         is set to single-zone.
@@ -183,6 +180,94 @@
         arg_value: always
         help_text: |
           Redis explicitly calls fsync for every write command.
+    - arg_name: maintenance-window-day
+      api_field: cluster.maintenancePolicy.weeklyMaintenanceWindow.day
+      choices:
+      - arg_value: monday
+        enum_value: MONDAY
+      - arg_value: tuesday
+        enum_value: TUESDAY
+      - arg_value: wednesday
+        enum_value: WEDNESDAY
+      - arg_value: thursday
+        enum_value: THURSDAY
+      - arg_value: friday
+        enum_value: FRIDAY
+      - arg_value: saturday
+        enum_value: SATURDAY
+      - arg_value: sunday
+        enum_value: SUNDAY
+      help_text: |
+          Day of week when the window starts, e.g. `sunday`.
+    - arg_name: maintenance-window-hour
+      api_field: cluster.maintenancePolicy.weeklyMaintenanceWindow.startTime.hours
+      help_text: |
+        Hour of day (`0` to `23`) for the start of maintenance window, in UTC time zone.
+      processor: googlecloudsdk.command_lib.redis.clusters_update_util:CheckMaintenanceWindowStartTimeField
+    - arg_name: cross-cluster-replication-role
+      api_field: cluster.crossClusterReplicationConfig.clusterRole
+      help_text: |
+        The role of the cluster in cross cluster replication.
+      choices:
+      - enum_value: SECONDARY
+        arg_value: secondary
+        help_text: |
+         Create a secondary cluster.
+    - arg_name: primary-cluster
+      api_field: cluster.crossClusterReplicationConfig.primaryCluster.cluster
+      help_text: |
+        The primary cluster that the secondary cluster will replicate from. It must use the format:
+        projects/PROJECT_ID/locations/REGION/clusters/CLUSTER_ID. It must refer to an existing cluster. Otherwise, the create operation fails.
+    - arg_name: automated-backup-mode
+      api_field: cluster.automatedBackupConfig.automatedBackupMode
+      help_text: |
+        Automated backup mode
+      choices:
+      - enum_value: DISABLED
+        arg_value: disabled
+        help_text: |
+          (default) Automated backup is disabled.
+      - enum_value: ENABLED
+        arg_value: enabled
+        help_text: |
+          Automated backup is enabled.
+    - arg_name: automated-backup-start-time
+      api_field: cluster.automatedBackupConfig.fixedFrequencySchedule.startTime
+      help_text: |
+        One-hour window when you want automated-backup operations to start. Specify the time in the format HH:00 on a 24-hour cycle in UTC time.
+      ALPHA:
+        processor: googlecloudsdk.command_lib.redis.cluster_util:ParseTimeOfDayAlpha
+      BETA:
+        processor: googlecloudsdk.command_lib.redis.cluster_util:ParseTimeOfDayBeta
+      GA:
+        processor: googlecloudsdk.command_lib.redis.cluster_util:ParseTimeOfDayGa
+    - arg_name: automated-backup-ttl
+      api_field: cluster.automatedBackupConfig.retention
+      type: googlecloudsdk.core.util.times:ParseDuration
+      processor: googlecloudsdk.core.util.times:FormatDurationForJson
+      help_text: |
+        Time to live for automated backups. A backup will be deleted automatically after the TTL
+        is reached. It ranges from 1 day to 365 days. For example, "10d" for 10 days. If not specified, the default value is 35 days.
+    - group:
+        mutex: true
+        params:
+        - arg_name: import-gcs-object-uris
+          type: 'googlecloudsdk.calliope.arg_parsers:ArgList:'
+          api_field: cluster.gcsSource.uris
+          help_text: |
+            URIs of Google Cloud Storage objects to import from. For example, `gs://bucket/folder/file1.rdb,gs://bucket/folder/file2.rdb`.
+        - arg_name: import-managed-backup
+          api_field: cluster.managedBackupSource.backup
+          help_text: |
+            Managed backup to import from. For example, `projects/PROJECT_ID/locations/REGION/backupCollections/BACKUP_COLLECTION_ID/backups/BACKUP_ID`.
+    - arg_name: kms-key
+      api_field: cluster.kmsKey
+      help_text: |
+        The resource name of the customer-managed encryption key (CMEK) to use for the cluster.
+        It must use this format:
+        projects/PROJECT_ID/locations/LOCATION/keyRings/KEY_RING/cryptoKeys/CRYPTO_KEY.
+        The key must be in the same region as the cluster. Otherwise, the create operation fails.
+
 
   async:
     collection: redis.projects.locations.operations

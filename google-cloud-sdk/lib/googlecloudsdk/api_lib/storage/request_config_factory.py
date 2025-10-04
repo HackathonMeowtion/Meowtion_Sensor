@@ -46,11 +46,15 @@ S3_RESOURCE_ERROR_FIELDS = {
     'default_object_acl_file': 'Setting Default Object ACL',
     'enable_autoclass': 'Enabling Autoclass',
     'enable_hierarchical_namespace': 'Enabling Hierarchical Namespace',
+    'ip_filter_file_path': 'Setting IP Filter',
     'predefined_default_object_acl': 'Setting Predefined Default ACL',
     'public_access_prevention': 'Public Access Prevention',
     'recovery_point_objective': 'Setting Recovery Point Objective',
     'retention_period': 'Setting Retention Period',
     'retention_period_to_be_locked': 'Locking Retention Period',
+    'custom_contexts_to_set': 'Setting Custom Contexts',
+    'custom_contexts_to_remove': 'Removing Custom Contexts',
+    'custom_contexts_to_update': 'Updating Custom Contexts',
 }
 S3_RESOURCE_WARNING_FIELDS = {
     'custom_time': 'Setting Custom Time',
@@ -230,6 +234,7 @@ class _GcsBucketConfig(_BucketConfig):
       enable_autoclass=None,
       enable_per_object_retention=None,
       enable_hierarchical_namespace=None,
+      ip_filter_file_path=None,
       labels_file_path=None,
       labels_to_append=None,
       labels_to_remove=None,
@@ -249,12 +254,23 @@ class _GcsBucketConfig(_BucketConfig):
       web_error_page=None,
       web_main_page_suffix=None,
   ):
-    super(_GcsBucketConfig,
-          self).__init__(acl_file_path, acl_grants_to_add, acl_grants_to_remove,
-                         cors_file_path, labels_file_path, labels_to_append,
-                         labels_to_remove, lifecycle_file_path, location,
-                         log_bucket, log_object_prefix, requester_pays,
-                         versioning, web_error_page, web_main_page_suffix)
+    super(_GcsBucketConfig, self).__init__(
+        acl_file_path,
+        acl_grants_to_add,
+        acl_grants_to_remove,
+        cors_file_path,
+        labels_file_path,
+        labels_to_append,
+        labels_to_remove,
+        lifecycle_file_path,
+        location,
+        log_bucket,
+        log_object_prefix,
+        requester_pays,
+        versioning,
+        web_error_page,
+        web_main_page_suffix,
+    )
     self.autoclass_terminal_storage_class = autoclass_terminal_storage_class
     self.default_encryption_key = default_encryption_key
     self.default_event_based_hold = default_event_based_hold
@@ -267,6 +283,7 @@ class _GcsBucketConfig(_BucketConfig):
     self.enable_autoclass = enable_autoclass
     self.enable_per_object_retention = enable_per_object_retention
     self.enable_hierarchical_namespace = enable_hierarchical_namespace
+    self.ip_filter_file_path = ip_filter_file_path
     self.placement = placement
     self.public_access_prevention = public_access_prevention
     self.recovery_point_objective = recovery_point_objective
@@ -295,6 +312,7 @@ class _GcsBucketConfig(_BucketConfig):
         == other.enable_per_object_retention
         and self.enable_hierarchical_namespace
         == other.enable_hierarchical_namespace
+        and self.ip_filter_file_path == other.ip_filter_file_path
         and self.placement == other.placement
         and self.public_access_prevention == other.public_access_prevention
         and self.recovery_point_objective == other.recovery_point_objective
@@ -331,6 +349,11 @@ class _ObjectConfig(_ResourceConfig):
     content_language (str|None): Content's language (e.g. "en" = "English).
     content_type (str|None): Type of data contained in content (e.g.
       "text/html").
+    custom_contexts_to_set (dict|None): Custom contexts fields set by user.
+    custom_contexts_to_remove (dict|None): Custom contexts fields to be removed
+      by user.
+    custom_contexts_to_update (dict|None): Custom contexts field to be added or
+      changed by user.
     custom_fields_to_set (dict|None): Custom metadata fields set by user.
     custom_fields_to_remove (dict|None): Custom metadata fields to be removed.
     custom_fields_to_update (dict|None): Custom metadata fields to be added or
@@ -348,31 +371,40 @@ class _ObjectConfig(_ResourceConfig):
       bucket's default.
   """
 
-  def __init__(self,
-               acl_file_path=None,
-               acl_grants_to_add=None,
-               acl_grants_to_remove=None,
-               cache_control=None,
-               content_disposition=None,
-               content_encoding=None,
-               content_language=None,
-               content_type=None,
-               custom_fields_to_set=None,
-               custom_fields_to_remove=None,
-               custom_fields_to_update=None,
-               decryption_key=None,
-               encryption_key=None,
-               md5_hash=None,
-               preserve_acl=None,
-               size=None,
-               storage_class=None):
-    super(_ObjectConfig, self).__init__(acl_file_path, acl_grants_to_add,
-                                        acl_grants_to_remove)
+  def __init__(
+      self,
+      acl_file_path=None,
+      acl_grants_to_add=None,
+      acl_grants_to_remove=None,
+      cache_control=None,
+      content_disposition=None,
+      content_encoding=None,
+      content_language=None,
+      content_type=None,
+      custom_contexts_to_set=None,
+      custom_contexts_to_remove=None,
+      custom_contexts_to_update=None,
+      custom_fields_to_set=None,
+      custom_fields_to_remove=None,
+      custom_fields_to_update=None,
+      decryption_key=None,
+      encryption_key=None,
+      md5_hash=None,
+      preserve_acl=None,
+      size=None,
+      storage_class=None,
+  ):
+    super(_ObjectConfig, self).__init__(
+        acl_file_path, acl_grants_to_add, acl_grants_to_remove
+    )
     self.cache_control = cache_control
     self.content_disposition = content_disposition
     self.content_encoding = content_encoding
     self.content_language = content_language
     self.content_type = content_type
+    self.custom_contexts_to_set = custom_contexts_to_set
+    self.custom_contexts_to_remove = custom_contexts_to_remove
+    self.custom_contexts_to_update = custom_contexts_to_update
     self.custom_fields_to_set = custom_fields_to_set
     self.custom_fields_to_remove = custom_fields_to_remove
     self.custom_fields_to_update = custom_fields_to_update
@@ -386,20 +418,26 @@ class _ObjectConfig(_ResourceConfig):
   def __eq__(self, other):
     if not isinstance(other, type(self)):
       return NotImplemented
-    return (super(_ObjectConfig, self).__eq__(other) and
-            self.cache_control == other.cache_control and
-            self.content_disposition == other.content_disposition and
-            self.content_encoding == other.content_encoding and
-            self.content_language == other.content_language and
-            self.content_type == other.content_type and
-            self.custom_fields_to_set == other.custom_fields_to_set and
-            self.custom_fields_to_remove == other.custom_fields_to_remove and
-            self.custom_fields_to_update == other.custom_fields_to_update and
-            self.decryption_key == other.decryption_key and
-            self.encryption_key == other.encryption_key and
-            self.md5_hash == other.md5_hash and self.size == other.size and
-            self.preserve_acl == other.preserve_acl and
-            self.storage_class == other.storage_class)
+    return (
+        super(_ObjectConfig, self).__eq__(other)
+        and self.cache_control == other.cache_control
+        and self.content_disposition == other.content_disposition
+        and self.content_encoding == other.content_encoding
+        and self.content_language == other.content_language
+        and self.content_type == other.content_type
+        and self.custom_contexts_to_set == other.custom_contexts_to_set
+        and self.custom_contexts_to_remove == other.custom_contexts_to_remove
+        and self.custom_contexts_to_update == other.custom_contexts_to_update
+        and self.custom_fields_to_set == other.custom_fields_to_set
+        and self.custom_fields_to_remove == other.custom_fields_to_remove
+        and self.custom_fields_to_update == other.custom_fields_to_update
+        and self.decryption_key == other.decryption_key
+        and self.encryption_key == other.encryption_key
+        and self.md5_hash == other.md5_hash
+        and self.size == other.size
+        and self.preserve_acl == other.preserve_acl
+        and self.storage_class == other.storage_class
+    )
 
 
 class _GcsObjectConfig(_ObjectConfig):
@@ -419,27 +457,32 @@ class _GcsObjectConfig(_ObjectConfig):
   """
   # pylint:enable=g-missing-from-attributes
 
-  def __init__(self,
-               acl_file_path=None,
-               acl_grants_to_add=None,
-               acl_grants_to_remove=None,
-               cache_control=None,
-               content_disposition=None,
-               content_encoding=None,
-               content_language=None,
-               content_type=None,
-               custom_fields_to_set=None,
-               custom_fields_to_remove=None,
-               custom_fields_to_update=None,
-               custom_time=None,
-               decryption_key=None,
-               encryption_key=None,
-               event_based_hold=None,
-               md5_hash=None,
-               retain_until=None,
-               retention_mode=None,
-               size=None,
-               temporary_hold=None):
+  def __init__(
+      self,
+      acl_file_path=None,
+      acl_grants_to_add=None,
+      acl_grants_to_remove=None,
+      cache_control=None,
+      content_disposition=None,
+      content_encoding=None,
+      content_language=None,
+      content_type=None,
+      custom_contexts_to_set=None,
+      custom_contexts_to_remove=None,
+      custom_contexts_to_update=None,
+      custom_fields_to_set=None,
+      custom_fields_to_remove=None,
+      custom_fields_to_update=None,
+      custom_time=None,
+      decryption_key=None,
+      encryption_key=None,
+      event_based_hold=None,
+      md5_hash=None,
+      retain_until=None,
+      retention_mode=None,
+      size=None,
+      temporary_hold=None,
+  ):
     super(_GcsObjectConfig, self).__init__(
         acl_file_path=acl_file_path,
         acl_grants_to_add=acl_grants_to_add,
@@ -449,6 +492,9 @@ class _GcsObjectConfig(_ObjectConfig):
         content_encoding=content_encoding,
         content_language=content_language,
         content_type=content_type,
+        custom_contexts_to_set=custom_contexts_to_set,
+        custom_contexts_to_remove=custom_contexts_to_remove,
+        custom_contexts_to_update=custom_contexts_to_update,
         custom_fields_to_set=custom_fields_to_set,
         custom_fields_to_remove=custom_fields_to_remove,
         custom_fields_to_update=custom_fields_to_update,
@@ -665,6 +711,9 @@ def _get_request_config_resource_args(url,
           new_resource_args.enable_hierarchical_namespace = (
               user_resource_args.enable_hierarchical_namespace
           )
+          new_resource_args.ip_filter_file_path = (
+              user_resource_args.ip_filter_file_path
+          )
           new_resource_args.placement = user_resource_args.placement
           new_resource_args.public_access_prevention = (
               user_resource_args.public_access_prevention)
@@ -763,6 +812,15 @@ def _get_request_config_resource_args(url,
       )
       new_resource_args.custom_fields_to_update = (
           user_resource_args.custom_fields_to_update
+      )
+      new_resource_args.custom_contexts_to_set = (
+          user_resource_args.custom_contexts_to_set
+      )
+      new_resource_args.custom_contexts_to_remove = (
+          user_resource_args.custom_contexts_to_remove
+      )
+      new_resource_args.custom_contexts_to_update = (
+          user_resource_args.custom_contexts_to_update
       )
       new_resource_args.preserve_acl = user_resource_args.preserve_acl
 

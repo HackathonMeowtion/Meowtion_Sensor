@@ -35,10 +35,12 @@ from googlecloudsdk.command_lib.run import stages
 from googlecloudsdk.command_lib.run.printers import traffic_printer
 from googlecloudsdk.command_lib.util.concepts import concept_parsers
 from googlecloudsdk.command_lib.util.concepts import presentation_specs
+from googlecloudsdk.core import properties
 from googlecloudsdk.core.console import progress_tracker
 from googlecloudsdk.core.resource import resource_printer
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class AdjustTraffic(base.Command):
   """Adjust the traffic assignments for a Cloud Run service."""
@@ -140,7 +142,8 @@ class AdjustTraffic(base.Command):
               changes,
               tracker,
               args.async_,
-          )
+              properties.VALUES.core.verbosity.Get() == 'debug',
+              self.ReleaseTrack())
       except:
         serv = client.GetService(service_ref)
         if serv:
@@ -185,5 +188,4 @@ class AlphaAdjustTraffic(AdjustTraffic):
     cls.CommonArgs(parser)
 
     # Flags specific to managed CR
-    managed_group = flags.GetManagedArgGroup(parser)
-    flags.AddBinAuthzBreakglassFlag(managed_group)
+    flags.AddBinAuthzBreakglassFlag(parser)

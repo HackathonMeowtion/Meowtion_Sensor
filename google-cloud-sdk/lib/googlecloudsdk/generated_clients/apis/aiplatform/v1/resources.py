@@ -24,13 +24,6 @@ DOCS_URL = 'https://cloud.google.com/vertex-ai/'
 class Collections(enum.Enum):
   """Collections for all supported apis."""
 
-  PROJECTS = (
-      'projects',
-      'projects/{projectsId}',
-      {},
-      ['projectsId'],
-      True
-  )
   PROJECTS_LOCATIONS = (
       'projects.locations',
       'projects/{projectsId}/locations/{locationsId}',
@@ -49,6 +42,17 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_LOCATIONS_CACHEDCONTENTS = (
+      'projects.locations.cachedContents',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/cachedContents/'
+              '{cachedContentsId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS_LOCATIONS_CUSTOMJOBS = (
       'projects.locations.customJobs',
       '{+name}',
@@ -56,17 +60,6 @@ class Collections(enum.Enum):
           '':
               'projects/{projectsId}/locations/{locationsId}/customJobs/'
               '{customJobsId}',
-      },
-      ['name'],
-      True
-  )
-  PROJECTS_LOCATIONS_DATALABELINGJOBS = (
-      'projects.locations.dataLabelingJobs',
-      '{+name}',
-      {
-          '':
-              'projects/{projectsId}/locations/{locationsId}/'
-              'dataLabelingJobs/{dataLabelingJobsId}',
       },
       ['name'],
       True
@@ -175,6 +168,18 @@ class Collections(enum.Enum):
               'projects/{projectsId}/locations/{locationsId}/'
               'featureOnlineStores/{featureOnlineStoresId}/featureViews/'
               '{featureViewsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_FEATUREONLINESTORES_FEATUREVIEWS_FEATUREVIEWSYNCS = (
+      'projects.locations.featureOnlineStores.featureViews.featureViewSyncs',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'featureOnlineStores/{featureOnlineStoresId}/featureViews/'
+              '{featureViewsId}/featureViewSyncs/{featureViewSyncsId}',
       },
       ['name'],
       True
@@ -392,6 +397,17 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_LOCATIONS_NOTEBOOKEXECUTIONJOBS = (
+      'projects.locations.notebookExecutionJobs',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'notebookExecutionJobs/{notebookExecutionJobsId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS_LOCATIONS_NOTEBOOKRUNTIMETEMPLATES = (
       'projects.locations.notebookRuntimeTemplates',
       '{+name}',
@@ -443,6 +459,39 @@ class Collections(enum.Enum):
           '':
               'projects/{projectsId}/locations/{locationsId}/pipelineJobs/'
               '{pipelineJobsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_RAGCORPORA = (
+      'projects.locations.ragCorpora',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/ragCorpora/'
+              '{ragCorporaId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_RAGCORPORA_RAGFILES = (
+      'projects.locations.ragCorpora.ragFiles',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/ragCorpora/'
+              '{ragCorporaId}/ragFiles/{ragFilesId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_REASONINGENGINES = (
+      'projects.locations.reasoningEngines',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'reasoningEngines/{reasoningEnginesId}',
       },
       ['name'],
       True
@@ -543,6 +592,34 @@ class Collections(enum.Enum):
           '':
               'projects/{projectsId}/locations/{locationsId}/'
               'trainingPipelines/{trainingPipelinesId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_TUNINGJOBS = (
+      'projects.locations.tuningJobs',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/tuningJobs/'
+              '{tuningJobsId}',
+      },
+      ['name'],
+      True
+  )
+  PUBLISHERS = (
+      'publishers',
+      'publishers/{publishersId}',
+      {},
+      ['publishersId'],
+      True
+  )
+  PUBLISHERS_MODELS = (
+      'publishers.models',
+      '{+name}',
+      {
+          '':
+              'publishers/{publishersId}/models/{modelsId}',
       },
       ['name'],
       True

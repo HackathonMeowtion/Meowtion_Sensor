@@ -31,8 +31,11 @@ class Capability(enum.Enum):
   CLIENT_SIDE_HASH_VALIDATION = 'CLIENT_SIDE_HASH_VALIDATION'
   ENCRYPTION = 'ENCRYPTION'
   MANAGED_FOLDERS = 'MANAGED_FOLDERS'
+  FOLDERS = 'FOLDERS'
+  STORAGE_LAYOUT = 'STORAGE_LAYOUT'
   RESUMABLE_UPLOAD = 'RESUMABLE_UPLOAD'
   SLICED_DOWNLOAD = 'SLICED_DOWNLOAD'
+  APPENDABLE_UPLOAD = 'APPENDABLE_UPLOAD'
   # For daisy chain operations, the upload stream is not purely seekable.
   # For certain seek calls, we raise errors to avoid re-downloading the object.
   # We do not want the "seekable" method for the upload stream to always return
@@ -61,6 +64,7 @@ class UploadStrategy(enum.Enum):
   SIMPLE = 'simple'
   RESUMABLE = 'resumable'
   STREAMING = 'streaming'
+  APPENDABLE = 'appendable'
 
 
 class FieldsScope(enum.Enum):
@@ -289,13 +293,18 @@ class CloudApi(object):
     """
     raise NotImplementedError('delete_bucket must be overridden.')
 
-  def get_bucket(self, bucket_name, fields_scope=None):
+  def get_bucket(
+      self, bucket_name, generation=None, fields_scope=None, soft_deleted=False
+  ):
     """Gets bucket metadata.
 
     Args:
       bucket_name (str): Name of the bucket.
+      generation (int|None): Generation of the bucket.
       fields_scope (FieldsScope): Determines the fields and projection
         parameters of API call.
+      soft_deleted (bool): If true, return the soft-deleted version of this
+        bucket.
 
     Returns:
       resource_reference.BucketResource containing the bucket metadata.
@@ -326,12 +335,16 @@ class CloudApi(object):
     """
     raise NotImplementedError('get_bucket_iam_policy must be overridden.')
 
-  def list_buckets(self, fields_scope=None):
+  def list_buckets(self, fields_scope=None, soft_deleted=False, prefix=None):
     """Lists bucket metadata for the given project.
 
     Args:
       fields_scope (FieldsScope): Determines the fields and projection
         parameters of API call.
+      soft_deleted (bool): If true, only soft-deleted bucket versions will be
+        returned.
+      prefix (str): If provided, only buckets with the given prefix will be
+        returned.
 
     Yields:
       Iterator over resource_reference.BucketResource objects
@@ -342,6 +355,31 @@ class CloudApi(object):
         this interface.
     """
     raise NotImplementedError('list_buckets must be overridden.')
+
+  def relocate_bucket(
+      self,
+      bucket_name,
+      destination_location,
+      destination_custom_placement_config,
+      validate_only,
+  ):
+    """Relocates a bucket between different locations.
+
+    Args:
+      bucket_name (str): Name of the bucket.
+      destination_location (str): The new location the bucket will be relocated
+        to.
+      destination_custom_placement_config (list[str]): The bucket's new custom
+        placement configuration if relocating to a Custom Dual Region.
+      validate_only (bool): If true, validate the operation, but do not actually
+        relocate the bucket.
+
+    Raises:
+      CloudApiError: API returned an error.
+      NotImplementedError: This function was not implemented by a class using
+        this interface.
+    """
+    raise NotImplementedError('relocate_bucket must be overridden.')
 
   def lock_bucket_retention_policy(self, bucket_resource, request_config):
     """Locks a bucket's retention policy.
@@ -692,6 +730,7 @@ class CloudApi(object):
       include_folders_as_prefixes=None,
       next_page_token=None,
       object_state=ObjectState.LIVE,
+      list_filter=None,
   ):
     """Lists objects (with metadata) and prefixes in a bucket.
 
@@ -711,6 +750,10 @@ class CloudApi(object):
         halt_on_empty_response was true and a halt warning is printed, it will
         contain a next_page_token the user can use to resume querying.
       object_state (ObjectState): What versions of an object to query.
+      list_filter (str|None): If provided, objects with matching
+        filters will be returned, The prefixes would still be returned
+        regardless of whether they match the specified filter, See
+        go/gcs-object-context-filtering for more details.
 
     Yields:
       Iterator over resource_reference.ObjectResource objects.
@@ -938,6 +981,95 @@ class CloudApi(object):
         'set_managed_folder_iam_policy must be overridden.'
     )
 
+  def create_folder(self, bucket_name, folder_name, is_recursive=False):
+    """Creates a folder.
+
+    Args:
+      bucket_name (str): The bucket to create the folder in.
+      folder_name (str): The name of the folder to create.
+      is_recursive (bool): Whether to create all folders in a given path if they
+        do not exist.
+
+    Returns:
+      A resource_reference.FolderResource for the new folder.
+
+    Raises:
+      CloudApiError: API returned an error.
+      NotImplementedError: This function was not implemented by a class using
+        this interface.
+    """
+    raise NotImplementedError('create_folder must be overridden.')
+
+  def delete_folder(self, bucket_name, folder_name):
+    """Deletes a folder.
+
+    Args:
+      bucket_name (str): The bucket containing the folder to delete.
+      folder_name (str): The name of the folder to delete.
+
+    Raises:
+      CloudApiError: API returned an error.
+      NotImplementedError: This function was not implemented by a class using
+        this interface.
+    """
+    raise NotImplementedError('delete_folder must be overridden.')
+
+  def get_folder(self, bucket_name, folder_name):
+    """Gets metadata for a folder.
+
+    Args:
+      bucket_name (str): The bucket containing the folder to get.
+      folder_name (str): The name of the folder to get.
+
+    Returns:
+      A resource_reference.FolderResource.
+
+    Raises:
+      CloudApiError: API returned an error.
+      NotImplementedError: This function was not implemented by a class using
+        this interface.
+    """
+    raise NotImplementedError('get_folder must be overridden.')
+
+  def list_folders(self, bucket_name, prefix=None):
+    """Lists folders in a bucket.
+
+    Args:
+      bucket_name (str): The bucket to list folders in.
+      prefix (str|None): Only folders beginning with `prefix` are listed if
+        specified.
+
+    Yields:
+      resource_reference.FolderResources
+
+    Raises:
+      CloudApiError: API returned an error.
+      NotImplementedError: This function was not implemented by a class using
+        this interface.
+    """
+    raise NotImplementedError('list_folders must be overridden.')
+
+  def rename_folder(
+      self, bucket_name, source_folder_name, destination_folder_name
+  ):
+    """Renames a folder to a specified destination folder name in a bucket.
+
+    Args:
+      bucket_name (str): The bucket to list folders in.
+      source_folder_name (str): Name of the folder which needs to be renamed.
+      destination_folder_name (str): Name of the folder to which the source
+        folder needs to be renamed.
+
+    Returns:
+      GoogleLongrunningOperation Apitools object for renaming folders.
+
+    Raises:
+      CloudApiError: API returned an error.
+      NotImplementedError: This function was not implemented by a class using
+        this interface.
+    """
+    raise NotImplementedError('rename_folder must be overridden.')
+
   def get_service_agent(self, project_id=None, project_number=None):
     """Returns the email address (str) used to identify the service agent.
 
@@ -1042,6 +1174,24 @@ class CloudApi(object):
     raise NotImplementedError(
         'list_notification_configurations must be overridden.')
 
+  def advance_relocate_bucket(self, bucket_name, operation_id, ttl=None):
+    """Advances a bucket relocation operation, by applying write lock.
+
+    Args:
+      bucket_name (str): Name of the bucket to advance the relocate for.
+      operation_id (str): ID of the operation resource.
+      ttl (int | None): Specifies the duration in int seconds, after which the
+        relocation will revert to the sync stage if the relocation hasn't
+        succeeded. Optional, if not supplied, a default value of 12h will be
+        used.
+
+    Raises:
+      CloudApiError: API returned an error.
+      NotImplementedError: This function was not implemented by a class using
+        this interface.
+    """
+    raise NotImplementedError('advance_relocate_bucket must be overridden.')
+
   def cancel_operation(self, bucket_name, operation_id):
     """Cancels a long-running operation if it's still running.
 
@@ -1105,12 +1255,31 @@ class CloudApi(object):
     """
     raise NotImplementedError('restore_object must be overridden.')
 
+  def restore_bucket(self, url):
+    """Restores a soft-deleted bucket.
+
+    Args:
+      url (storage_url.CloudUrl): Bucket URL with generation.
+
+    Raises:
+      CloudApiError: API returned an error.
+      InvalidUrlError: Received invalid Bucket URL.
+      NotImplementedError: This function was not implemented by a class using
+        this interface.
+
+    Returns:
+      BucketResource of restored resource.
+    """
+    raise NotImplementedError('restore_bucket must be overridden.')
+
   def bulk_restore_objects(
       self,
       bucket_url,
       object_globs,
       request_config,
       allow_overwrite=False,
+      created_after_time=None,
+      created_before_time=None,
       deleted_after_time=None,
       deleted_before_time=None,
   ):
@@ -1123,6 +1292,10 @@ class CloudApi(object):
       request_config (RequestConfig): Contains preconditions for API requests.
       allow_overwrite (bool): Allow overwriting live objects with soft-deleted
         versions.
+      created_after_time (datetime|None): Restore only objects created after
+        this time.
+      created_before_time (datetime|None): Restore only objects created before
+        this time.
       deleted_after_time (datetime|None): Restore only objects soft-deleted
         after this time.
       deleted_before_time (datetime|None): Restore only objects soft-deleted
@@ -1138,3 +1311,36 @@ class CloudApi(object):
       GoogleLongrunningOperation Apitools object for restoring objects.
     """
     raise NotImplementedError('bulk_restore_object must be overridden.')
+
+  def get_storage_layout(self, bucket_name):
+    """Returns the storage layout configuration for the specified bucket.
+
+    Note that this operation requires storage.objects.list permission.
+
+    Args:
+      bucket_name (str): Name of the Bucket for which we need layout
+        configuration details.
+
+    Raises:
+      CloudApiError: API returned an error.
+      NotImplementedError: This function was not implemented by a class using
+        this interface.
+
+    Returns:
+      apitools BucketStorageLayout object.
+    """
+    raise NotImplementedError('get_storage_layout must be overridden.')
+
+  def wait_for_operation(self, operation_ref):
+    """Waits for the given google.longrunning.Operation to complete.
+
+    Args:
+      operation_ref: The operation to poll.
+
+    Returns:
+      The Operation once it completes.
+
+    Raises:
+      apitools.base.py.HttpError: if the request returns an HTTP error.
+    """
+    raise NotImplementedError('wait_for_operation must be overridden.')

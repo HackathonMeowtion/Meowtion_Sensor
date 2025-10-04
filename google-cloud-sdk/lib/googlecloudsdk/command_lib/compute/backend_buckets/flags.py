@@ -15,9 +15,6 @@
 
 """Flags and helpers for the compute backend-buckets commands."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from googlecloudsdk.calliope import arg_parsers
 from googlecloudsdk.command_lib.compute import completers as compute_completers
@@ -43,7 +40,8 @@ class BackendBucketsCompleter(compute_completers.ListCommandCompleter):
     super(BackendBucketsCompleter, self).__init__(
         collection='compute.backendBuckets',
         list_command='compute backend-buckets list --uri',
-        **kwargs)
+        **kwargs
+    )
 
 
 def BackendBucketArgument(plural=False):
@@ -52,7 +50,9 @@ def BackendBucketArgument(plural=False):
       resource_name='backend bucket',
       plural=plural,
       completer=BackendBucketsCompleter,
-      global_collection='compute.backendBuckets')
+      global_collection='compute.backendBuckets',
+  )
+
 
 GCS_BUCKET_ARG = compute_flags.ResourceArgument(
     resource_name='backend bucket',
@@ -61,7 +61,8 @@ GCS_BUCKET_ARG = compute_flags.ResourceArgument(
     plural=False,
     required=False,
     global_collection='compute.backendBuckets',
-    detailed_help=_GCS_BUCKET_DETAILED_HELP)
+    detailed_help=_GCS_BUCKET_DETAILED_HELP,
+)
 
 REQUIRED_GCS_BUCKET_ARG = compute_flags.ResourceArgument(
     resource_name='backend bucket',
@@ -69,7 +70,39 @@ REQUIRED_GCS_BUCKET_ARG = compute_flags.ResourceArgument(
     name='--gcs-bucket-name',
     plural=False,
     global_collection='compute.backendBuckets',
-    detailed_help=_GCS_BUCKET_DETAILED_HELP)
+    detailed_help=_GCS_BUCKET_DETAILED_HELP,
+)
+
+GLOBAL_REGIONAL_MULTI_BACKEND_BUCKET_ARG = compute_flags.ResourceArgument(
+    name='backend_bucket_name',
+    resource_name='backend bucket',
+    completer=BackendBucketsCompleter,
+    plural=True,
+    regional_collection='compute.regionBackendBuckets',
+    global_collection='compute.backendBuckets',
+)
+
+GLOBAL_REGIONAL_BACKEND_BUCKET_ARG = compute_flags.ResourceArgument(
+    name='backend_bucket_name',
+    resource_name='backend bucket',
+    completer=BackendBucketsCompleter,
+    regional_collection='compute.regionBackendBuckets',
+    global_collection='compute.backendBuckets',
+)
+
+GLOBAL_REGIONAL_BACKEND_BUCKET_ARG_IAM = compute_flags.ResourceArgument(
+    name='backend_bucket',
+    resource_name='backend bucket',
+    required=True,
+    completer=BackendBucketsCompleter,
+    regional_collection='compute.regionBackendBuckets',
+    global_collection='compute.backendBuckets',
+    short_help="""ID of the backend bucket or fully qualified identifier for the
+          backend bucket.
+
+          To set the backend_bucket attribute:
+          + provide the argument backend_bucket on the command line.""",
+)
 
 
 def BackendBucketArgumentForUrlMap(required=True):
@@ -78,23 +111,46 @@ def BackendBucketArgumentForUrlMap(required=True):
       name='--default-backend-bucket',
       required=required,
       completer=BackendBucketsCompleter,
-      global_collection='compute.backendBuckets')
+      global_collection='compute.backendBuckets',
+  )
 
 
-def AddUpdatableArgs(cls, parser, operation_type):
+def RegionSupportingBackendBucketArgumentForUrlMap(required=True):
+  return compute_flags.ResourceArgument(
+      resource_name='backend bucket',
+      name='--default-backend-bucket',
+      required=required,
+      completer=BackendBucketsCompleter,
+      global_collection='compute.backendBuckets',
+      regional_collection='compute.regionBackendBuckets',
+      region_explanation=(
+          'If not specified it will be set to the region of the URL map.'
+      ),
+  )
+
+
+def AddUpdatableArgs(
+    cls, parser, operation_type, support_regional_global_flags=False
+):
   """Adds top-level backend bucket arguments that can be updated.
 
   Args:
     cls: type, Class to add backend bucket argument to.
     parser: The argparse parser.
     operation_type: str, operation_type forwarded to AddArgument(...)
+    support_regional_global_flags: bool, whether backend bucket supports
+      regional and global flags.
   """
-  cls.BACKEND_BUCKET_ARG = BackendBucketArgument()
+  if support_regional_global_flags:
+    cls.BACKEND_BUCKET_ARG = GLOBAL_REGIONAL_BACKEND_BUCKET_ARG
+  else:
+    cls.BACKEND_BUCKET_ARG = BackendBucketArgument()
   cls.BACKEND_BUCKET_ARG.AddArgument(parser, operation_type=operation_type)
 
   parser.add_argument(
       '--description',
-      help='An optional, textual description for the backend bucket.')
+      help='An optional, textual description for the backend bucket.',
+  )
 
   parser.add_argument(
       '--enable-cdn',
@@ -102,7 +158,8 @@ def AddUpdatableArgs(cls, parser, operation_type):
       help="""\
       Enable Cloud CDN for the backend bucket. Cloud CDN can cache HTTP
       responses from a backend bucket at the edge of the network, close to
-      users.""")
+      users.""",
+  )
 
 
 def AddCacheKeyExtendedCachingArgs(parser):
@@ -115,7 +172,8 @@ def AddCacheKeyExtendedCachingArgs(parser):
       Specifies a comma-separated list of HTTP headers, by field name, to
       include in cache keys. Only the request URL is included in the cache
       key by default.
-      """)
+      """,
+  )
 
   parser.add_argument(
       '--cache-key-query-string-whitelist',
@@ -125,7 +183,8 @@ def AddCacheKeyExtendedCachingArgs(parser):
       Specifies a comma-separated list of query string parameters to include
       in cache keys. Default parameters are always included. '&' and '=' are
       percent encoded and not treated as delimiters.
-      """)
+      """,
+  )
 
 
 def AddCompressionMode(parser):
@@ -142,4 +201,35 @@ def AddCompressionMode(parser):
       will result in Brotli compression being favored.
       DISABLED - disables compression. Existing compressed responses cached
       by Cloud CDN will not be served to clients.
-      """)
+      """,
+  )
+
+
+def AddLoadBalancingScheme(parser, enable_external_managed=False):
+  """Add support for --load-balancing-scheme flag."""
+  return parser.add_argument(
+      '--load-balancing-scheme',
+      choices=['INTERNAL_MANAGED', 'EXTERNAL_MANAGED']
+      if enable_external_managed
+      else ['INTERNAL_MANAGED'],
+      type=arg_utils.ChoiceToEnumName,
+      required=False,
+      help="""\
+      The load balancing scheme of the backend bucket.
+      If left blank, the backend bucket will be compatible with Global External
+      Application Load Balancer or Classic Application Load Balancer.
+      """,
+  )
+
+
+def AddResourceManagerTags(parser):
+  """Add support for --resource-manager-tags flag."""
+  return parser.add_argument(
+      '--resource-manager-tags',
+      type=arg_parsers.ArgDict(),
+      metavar='KEY=VALUE',
+      help="""\
+      Comma-separated list of Resource Manager tags
+      to apply to the backend bucket.
+      """,
+  )

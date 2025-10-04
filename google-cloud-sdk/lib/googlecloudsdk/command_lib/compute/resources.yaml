@@ -46,6 +46,15 @@ zone:
 
 # resource name parameters
 
+preview_feature:
+  name: preview feature
+  collection: compute.previewFeatures
+  attributes:
+  - *compute_project
+  - parameter_name: previewFeature
+    attribute_name: preview_feature
+    help: The name of the Google Compute Engine preview feature.
+
 commitment:
   name: commitment
   collection: compute.regionCommitments
@@ -56,6 +65,16 @@ commitment:
     parameter_name: commitment
     attribute_name: commitment
     help: The name of the Google Compute Engine regional commitment.
+
+composite_health_check:
+  name: composite health check
+  collection: compute.regionCompositeHealthChecks
+  attributes:
+  - *project
+  - *region
+  - parameter_name: compositeHealthCheck
+    attribute_name: composite_health_check
+    help: The name of the Google Compute Engine composite health check.
 
 address:
   name: address
@@ -97,6 +116,28 @@ future_reservation:
     attribute_name: future_reservation
     help: The name of the Google Compute Engine future reservation.
 
+health_aggregation_policy:
+  name: health aggregation policy
+  collection: compute.regionHealthAggregationPolicies
+  attributes:
+  - *project
+  - *region
+  - &health_aggregation_policy
+    parameter_name: healthAggregationPolicy
+    attribute_name: health_aggregation_policy
+    help: The name of the Google Compute Engine health aggregation policy.
+
+health_source:
+  name: health source
+  collection: compute.regionHealthSources
+  attributes:
+  - *project
+  - *region
+  - &health_source
+    parameter_name: healthSource
+    attribute_name: health_source
+    help: The name of the Google Compute Engine health source.
+
 image:
   name: image
   collection: compute.images
@@ -124,6 +165,15 @@ instance_template:
   - parameter_name: instanceTemplate
     attribute_name: instance_template
     help: The name of the Google Compute Engine instance template.
+
+network_profile:
+  name: network_profile
+  collection: compute.networkProfiles
+  attributes:
+  - *project
+  - parameter_name: networkProfile
+    attribute_name: network_profile
+    help: The name of the Google Compute Engine network profile.
 
 node_group:
   name: node_group
@@ -347,3 +397,12 @@ vpn_tunnel:
   - parameter_name: vpnTunnel
     attribute_name: vpn_tunnel
     help: The name of the Google Compute Engine VPN tunnel.
+
+reliability_risk:
+  name: Reliability Risk
+  collection: compute.reliabilityRisks
+  attributes:
+  - *compute_project
+  - parameter_name: reliabilityRisk
+    attribute_name: reliability_risk
+    help: The name of the Google Compute reliability risk.

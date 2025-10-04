@@ -20,6 +20,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from apitools.base.py import list_pager
+from googlecloudsdk.api_lib.pubsub import utils
 from googlecloudsdk.api_lib.util import apis
 from googlecloudsdk.command_lib.iam import iam_util
 from googlecloudsdk.core import exceptions
@@ -35,7 +36,7 @@ CLEAR_BIGQUERY_CONFIG_VALUE = 'clear'
 CLEAR_CLOUD_STORAGE_CONFIG_VALUE = 'clear'
 CLEAR_PUSH_NO_WRAPPER_CONFIG_VALUE = 'clear'
 CLEAR_PUBSUB_EXPORT_CONFIG_VALUE = 'clear'
-
+CLEAR_MESSAGE_TRANSFORMATIONS_VALUE = []
 
 class NoFieldsSpecifiedError(exceptions.Error):
   """Error when no fields were specified for a Patch operation."""
@@ -122,16 +123,23 @@ class SubscriptionsClient(object):
       use_table_schema=None,
       write_metadata=None,
       drop_unknown_fields=None,
+      bigquery_service_account_email=None,
       cloud_storage_bucket=None,
       cloud_storage_file_prefix=None,
       cloud_storage_file_suffix=None,
       cloud_storage_file_datetime_format=None,
       cloud_storage_max_bytes=None,
       cloud_storage_max_duration=None,
+      cloud_storage_max_messages=None,
       cloud_storage_output_format=None,
+      cloud_storage_use_topic_schema=None,
       cloud_storage_write_metadata=None,
+      cloud_storage_service_account_email=None,
       pubsub_export_topic=None,
       pubsub_export_topic_region=None,
+      message_transforms_file=None,
+      tags=None,
+      enable_vertex_ai_smt=False,
   ):
     """Creates a Subscription.
 
@@ -170,6 +178,8 @@ class SubscriptionsClient(object):
         writing to BigQuery
       drop_unknown_fields (bool): Whether or not to drop fields that are only in
         the topic schema when writing to BigQuery
+      bigquery_service_account_email (str): The service account to use when
+        writing to BigQuery
       cloud_storage_bucket (str): The name for the Cloud Storage bucket.
       cloud_storage_file_prefix (str): The prefix for Cloud Storage filename.
       cloud_storage_file_suffix (str): The suffix for Cloud Storage filename.
@@ -179,13 +189,24 @@ class SubscriptionsClient(object):
         Cloud Storage file before a new file is created.
       cloud_storage_max_duration (str): The maximum duration that can elapse
         before a new Cloud Storage file is created.
+      cloud_storage_max_messages (int): The maximum number of messages that can
+        be written to a Cloud Storage file before a new file is created.
       cloud_storage_output_format (str): The output format for data written to
         Cloud Storage.
+      cloud_storage_use_topic_schema (bool): Whether or not to use the topic
+        schema when writing to Cloud Storage.
       cloud_storage_write_metadata (bool): Whether or not to write the
         subscription name and other metadata in the output.
+      cloud_storage_service_account_email (str): The service account to use when
+        writing to Cloud Storage
       pubsub_export_topic (str): The Pubsub topic to which to publish messages.
       pubsub_export_topic_region (str): The Cloud region to which to publish
         messages.
+      message_transforms_file (str): The file path to the JSON or YAML file
+        containing the message transforms.
+      tags (TagsValue): The tags Keys/Values to be bound to the subscription.
+      enable_vertex_ai_smt (bool): Whether or not to enable Vertex AI message
+        transforms.
 
     Returns:
       Subscription: the created subscription
@@ -214,6 +235,7 @@ class SubscriptionsClient(object):
             use_table_schema,
             write_metadata,
             drop_unknown_fields,
+            bigquery_service_account_email,
         ),
         cloudStorageConfig=self._CloudStorageConfig(
             cloud_storage_bucket,
@@ -222,13 +244,34 @@ class SubscriptionsClient(object):
             cloud_storage_file_datetime_format,
             cloud_storage_max_bytes,
             cloud_storage_max_duration,
+            cloud_storage_max_messages,
             cloud_storage_output_format,
+            cloud_storage_use_topic_schema,
             cloud_storage_write_metadata,
+            cloud_storage_service_account_email,
         ),
         pubsubExportConfig=self._PubsubExportConfig(
             pubsub_export_topic, pubsub_export_topic_region
         ),
     )
+    if message_transforms_file:
+      try:
+        subscription.messageTransforms = utils.GetMessageTransformsFromFile(
+            self.messages.MessageTransform,
+            message_transforms_file,
+            enable_vertex_ai_smt,
+        )
+      except (
+          utils.MessageTransformsInvalidFormatError,
+          utils.MessageTransformsEmptyFileError,
+          utils.MessageTransformsMissingFileError,
+      ) as e:
+        e.args = (utils.GetErrorMessage(e),)
+        raise
+
+    if tags:
+      subscription.tags = tags
+
     return self._service.Create(subscription)
 
   def Delete(self, subscription_ref):
@@ -414,6 +457,7 @@ class SubscriptionsClient(object):
       use_table_schema,
       write_metadata,
       drop_unknown_fields,
+      service_account_email,
   ):
     """Builds BigQueryConfig message from argument values.
 
@@ -424,6 +468,7 @@ class SubscriptionsClient(object):
       write_metadata (bool): Whether or not to write metadata fields
       drop_unknown_fields (bool): Whether or not to drop fields that are only in
         the topic schema
+      service_account_email(str): The service account to use
 
     Returns:
       BigQueryConfig message or None
@@ -435,6 +480,7 @@ class SubscriptionsClient(object):
           useTableSchema=use_table_schema,
           writeMetadata=write_metadata,
           dropUnknownFields=drop_unknown_fields,
+          serviceAccountEmail=service_account_email,
       )
     return None
 
@@ -446,8 +492,11 @@ class SubscriptionsClient(object):
       file_datetime_format,
       max_bytes,
       max_duration,
+      max_messages,
       output_format,
+      use_topic_schema,
       write_metadata,
+      service_account_email,
   ):
     """Builds CloudStorageConfig message from argument values.
 
@@ -461,9 +510,14 @@ class SubscriptionsClient(object):
         file before a new file is created.
       max_duration (str): The maximum duration that can elapse before a new
         Cloud Storage file is created.
+      max_messages (int): The maximum number of messages that can be written to
+        a Cloud Storage file before a new file is created.
       output_format (str): The output format for data written to Cloud Storage.
+      use_topic_schema (bool): Whether or not to use the topic schema when
+        writing to Cloud Storage.
       write_metadata (bool): Whether or not to write the subscription name and
         other metadata in the output.
+      service_account_email(str): The service account to use
 
     Returns:
       CloudStorageConfig message or None
@@ -476,12 +530,18 @@ class SubscriptionsClient(object):
           filenameDatetimeFormat=file_datetime_format,
           maxBytes=max_bytes,
           maxDuration=max_duration,
+          maxMessages=max_messages,
+          serviceAccountEmail=service_account_email,
       )
       if output_format == 'text':
         cloud_storage_config.textConfig = self.messages.TextConfig()
+        # TODO(b/318394291) Propagate error should avro fields be populated.
       elif output_format == 'avro':
         cloud_storage_config.avroConfig = self.messages.AvroConfig(
-            writeMetadata=write_metadata if write_metadata else False
+            writeMetadata=write_metadata if write_metadata else False,
+            # TODO(b/318394291) set use_topic_schema else False when promoting
+            # to GA.
+            useTopicSchema=use_topic_schema if use_topic_schema else None,
         )
       return cloud_storage_config
     return None
@@ -550,6 +610,7 @@ class SubscriptionsClient(object):
       use_table_schema=None,
       write_metadata=None,
       drop_unknown_fields=None,
+      bigquery_service_account_email=None,
       clear_bigquery_config=False,
       cloud_storage_bucket=None,
       cloud_storage_file_prefix=None,
@@ -557,13 +618,19 @@ class SubscriptionsClient(object):
       cloud_storage_file_datetime_format=None,
       cloud_storage_max_bytes=None,
       cloud_storage_max_duration=None,
+      cloud_storage_max_messages=None,
       cloud_storage_output_format=None,
+      cloud_storage_use_topic_schema=None,
       cloud_storage_write_metadata=None,
+      cloud_storage_service_account_email=None,
       clear_cloud_storage_config=False,
       clear_push_no_wrapper_config=False,
       pubsub_export_topic=None,
       pubsub_export_topic_region=None,
       clear_pubsub_export_config=False,
+      message_transforms_file=None,
+      clear_message_transforms=False,
+      enable_vertex_ai_smt=False,
   ):
     """Updates a Subscription.
 
@@ -601,6 +668,8 @@ class SubscriptionsClient(object):
         writing to BigQuery
       drop_unknown_fields (bool): Whether or not to drop fields that are only in
         the topic schema when writing to BigQuery
+      bigquery_service_account_email (str): The service account to use when
+        writing to BigQuery
       clear_bigquery_config (bool): If set, clear the BigQuery config from the
         subscription
       cloud_storage_bucket (bool): The name for the Cloud Storage bucket.
@@ -612,19 +681,31 @@ class SubscriptionsClient(object):
         Cloud Storage file before a new file is created.
       cloud_storage_max_duration (str): The maximum duration that can elapse
         before a new Cloud Storage file is created.
+      cloud_storage_max_messages (int): The maximum number of messages that can
+        be written to a Cloud Storage file before a new file is created.
       cloud_storage_output_format (str): The output format for data written to
         Cloud Storage.
+      cloud_storage_use_topic_schema (bool): Whether or not to use the topic
+        schema when writing to Cloud Storage.
       cloud_storage_write_metadata (bool): Whether or not to write the
         subscription name and other metadata in the output.
+      cloud_storage_service_account_email (str): The service account to use when
+        writing to Cloud Storage
       clear_cloud_storage_config (bool): If set, clear the Cloud Storage config
         from the subscription.
-      clear_push_no_wrapper_config(bool): If set, clear
-        the Push No Wrapper config from the subscription.
+      clear_push_no_wrapper_config (bool): If set, clear the Push No Wrapper
+        config from the subscription.
       pubsub_export_topic (str): The Pubsub topic to which to publish messages.
       pubsub_export_topic_region (str): The Cloud region to which to publish
         messages.
       clear_pubsub_export_config (bool): If set, clear the Pubsub export config
         from the subscription.
+      message_transforms_file (str): The file path to the JSON or YAML file
+        containing the message transforms.
+      clear_message_transforms (bool): If set, clears all message transforms
+        from the subscription.
+      enable_vertex_ai_smt (bool): If set, enables Vertex AI message
+        transforms.
 
     Returns:
       Subscription: The updated subscription.
@@ -641,8 +722,11 @@ class SubscriptionsClient(object):
           cloud_storage_file_datetime_format,
           cloud_storage_max_bytes,
           cloud_storage_max_duration,
+          cloud_storage_max_messages,
           cloud_storage_output_format,
+          cloud_storage_use_topic_schema,
           cloud_storage_write_metadata,
+          cloud_storage_service_account_email,
       )
 
     if clear_dead_letter_policy:
@@ -666,6 +750,7 @@ class SubscriptionsClient(object):
           use_table_schema,
           write_metadata,
           drop_unknown_fields,
+          bigquery_service_account_email,
       )
 
     if clear_pubsub_export_config:
@@ -679,6 +764,28 @@ class SubscriptionsClient(object):
       push_config_no_wrapper = CLEAR_PUSH_NO_WRAPPER_CONFIG_VALUE
     else:
       push_config_no_wrapper = None
+
+    if message_transforms_file:
+      try:
+        message_transforms = utils.GetMessageTransformsFromFile(
+            self.messages.MessageTransform,
+            message_transforms_file,
+            enable_vertex_ai_smt,
+        )
+      except (
+          utils.MessageTransformsInvalidFormatError,
+          utils.MessageTransformsEmptyFileError,
+          utils.MessageTransformsMissingFileError,
+      ) as e:
+        e.args = (utils.GetErrorMessage(e),)
+        raise
+    else:
+      message_transforms = None
+
+    if clear_message_transforms:
+      clear_messages = CLEAR_MESSAGE_TRANSFORMATIONS_VALUE
+    else:
+      clear_messages = None
 
     update_settings = [
         _SubscriptionUpdateSetting('ackDeadlineSeconds', ack_deadline),
@@ -707,6 +814,8 @@ class SubscriptionsClient(object):
             'pushConfig.noWrapper', push_config_no_wrapper
         ),
         _SubscriptionUpdateSetting('pubsubExportConfig', pubsub_export_config),
+        _SubscriptionUpdateSetting('messageTransforms', message_transforms),
+        _SubscriptionUpdateSetting('messageTransforms', clear_messages),
     ]
     subscription = self.messages.Subscription(
         name=subscription_ref.RelativeName()

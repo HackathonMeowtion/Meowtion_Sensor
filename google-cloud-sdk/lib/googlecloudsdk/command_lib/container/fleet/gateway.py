@@ -18,11 +18,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from typing import List
+from typing import List, Union
 
 from googlecloudsdk.api_lib.cloudresourcemanager import projects_api
 from googlecloudsdk.api_lib.container import util as container_util
 from googlecloudsdk.api_lib.container.fleet.connectgateway import client as gateway_client
+from googlecloudsdk.api_lib.container.fleet.connectgateway import util as gateway_util
 from googlecloudsdk.api_lib.services import enable_api
 from googlecloudsdk.api_lib.util import apis
 from googlecloudsdk.calliope import base
@@ -35,6 +36,7 @@ from googlecloudsdk.command_lib.container.fleet.memberships import util
 from googlecloudsdk.command_lib.projects import util as project_util
 from googlecloudsdk.core import log
 from googlecloudsdk.core import properties
+from googlecloudsdk.core.util import platforms
 
 KUBECONTEXT_FORMAT = 'connectgateway_{project}_{location}_{membership}'
 SERVER_FORMAT = 'https://{service_name}/{version}/projects/{project_number}/locations/{location}/{collection}/{membership}'
@@ -51,6 +53,7 @@ REQUIRED_CLIENT_PERMISSIONS = [
 class GetCredentialsCommand(hub_base.HubCommand, base.Command):
   """GetCredentialsCommand is a base class with util functions for Gateway credential generating commands."""
 
+  # TODO(b/368039642): Remove once we're sure server-side generation is stable
   def RunGetCredentials(self, membership_id, arg_location, arg_namespace=None):
     container_util.CheckKubectlInstalled()
     project_id = hub_base.HubCommand.Project()
@@ -112,6 +115,7 @@ class GetCredentialsCommand(hub_base.HubCommand, base.Command):
       membership_id: str,
       arg_location: str,
       force_use_agent: bool = False,
+      arg_namespace: Union[str, None] = None,
   ):
     """RunServerSide generates credentials using server-side kubeconfig generation.
 
@@ -121,6 +125,7 @@ class GetCredentialsCommand(hub_base.HubCommand, base.Command):
       arg_location: The location of the membership to generate credentials for.
       force_use_agent: Whether to force the use of Connect Agent in generated
         credentials.
+      arg_namespace: The namespace to use in the kubeconfig context.
     """
     log.status.Print('Fetching Gateway kubeconfig...')
     container_util.CheckKubectlInstalled()
@@ -132,11 +137,19 @@ class GetCredentialsCommand(hub_base.HubCommand, base.Command):
     # gkehub.gateway.get, which would lead to unclear errors when using kubectl.
     self.RunIamCheck(project_id, REQUIRED_SERVER_PERMISSIONS)
 
+    operating_system = None
+    if platforms.OperatingSystem.IsWindows():
+      operating_system = gateway_util.WindowsOperatingSystem(
+          self.ReleaseTrack()
+      )
+
     with overrides.RegionalGatewayEndpoint(arg_location):
       client = gateway_client.GatewayClient(self.ReleaseTrack())
       resp = client.GenerateCredentials(
           name=f'projects/{project_number}/locations/{arg_location}/memberships/{membership_id}',
           force_use_agent=force_use_agent,
+          kubernetes_namespace=arg_namespace,
+          operating_system=operating_system,
       )
 
     new = kconfig.Kubeconfig.LoadFromBytes(resp.kubeconfig)

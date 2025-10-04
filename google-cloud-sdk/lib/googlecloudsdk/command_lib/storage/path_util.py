@@ -20,10 +20,17 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import copy
+import random
 
 from googlecloudsdk.command_lib.storage import storage_url
 from googlecloudsdk.core import properties
 from googlecloudsdk.core.util import platforms
+
+
+def generate_random_int_for_path():
+  """Generates random integer for making file paths not conflict."""
+  # Inspired by gsutil composite object prefixes.
+  return str(random.randint(1, 10**10))
 
 
 def sanitize_file_resource_for_windows(resource):
@@ -49,9 +56,9 @@ def sanitize_file_resource_for_windows(resource):
     return resource
 
   sanitized_resource = copy.deepcopy(resource)
-  sanitized_resource.storage_url.object_name = (
+  sanitized_resource.storage_url.resource_name = (
       platforms.MakePathWindowsCompatible(
-          sanitized_resource.storage_url.object_name
+          sanitized_resource.storage_url.resource_name
       )
   )
   return sanitized_resource

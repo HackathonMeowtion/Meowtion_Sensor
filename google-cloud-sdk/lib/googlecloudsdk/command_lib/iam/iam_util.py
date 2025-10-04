@@ -39,107 +39,8 @@ from googlecloudsdk.core.console import console_io
 from googlecloudsdk.core.util import files
 import six
 
-# Kluge for fixing inconsistency in python message
-# generation from proto. See b/124063772.
-kms_message = core_apis.GetMessagesModule('cloudkms', 'v1')
-encoding.AddCustomJsonFieldMapping(
-    kms_message.CloudkmsProjectsLocationsEkmConfigGetIamPolicyRequest,
-    'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
-encoding.AddCustomJsonFieldMapping(
-    kms_message.CloudkmsProjectsLocationsEkmConnectionsGetIamPolicyRequest,
-    'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
-encoding.AddCustomJsonFieldMapping(
-    kms_message.CloudkmsProjectsLocationsKeyRingsGetIamPolicyRequest,
-    'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
-
-encoding.AddCustomJsonFieldMapping(
-    kms_message.CloudkmsProjectsLocationsKeyRingsCryptoKeysGetIamPolicyRequest,
-    'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
-
-encoding.AddCustomJsonFieldMapping(
-    kms_message.CloudkmsProjectsLocationsKeyRingsImportJobsGetIamPolicyRequest,
-    'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
-secrets_message = core_apis.GetMessagesModule('secretmanager', 'v1')
-encoding.AddCustomJsonFieldMapping(
-    secrets_message.SecretmanagerProjectsSecretsGetIamPolicyRequest,
-    'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
-encoding.AddCustomJsonFieldMapping(
-    secrets_message.SecretmanagerProjectsLocationsSecretsGetIamPolicyRequest,
-    'options_requestedPolicyVersion',
-    'options.requestedPolicyVersion',
-)
-
-secrets_message_beta = core_apis.GetMessagesModule('secretmanager', 'v1beta2')
-encoding.AddCustomJsonFieldMapping(
-    secrets_message_beta.SecretmanagerProjectsSecretsGetIamPolicyRequest,
-    'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
-encoding.AddCustomJsonFieldMapping(
-    secrets_message_beta.SecretmanagerProjectsLocationsSecretsGetIamPolicyRequest,
-    'options_requestedPolicyVersion',
-    'options.requestedPolicyVersion',
-)
 
 msgs = core_apis.GetMessagesModule('iam', 'v1')
-encoding.AddCustomJsonFieldMapping(
-    msgs.IamProjectsServiceAccountsGetIamPolicyRequest,
-    'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
-
-privateca_message = core_apis.GetMessagesModule('privateca', 'v1')
-encoding.AddCustomJsonFieldMapping(
-    privateca_message.PrivatecaProjectsLocationsCaPoolsGetIamPolicyRequest,
-    'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
-encoding.AddCustomJsonFieldMapping(
-    privateca_message
-    .PrivatecaProjectsLocationsCertificateTemplatesGetIamPolicyRequest,
-    'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
-
-clouddeploy_message = core_apis.GetMessagesModule('clouddeploy', 'v1')
-encoding.AddCustomJsonFieldMapping(
-    clouddeploy_message
-    .ClouddeployProjectsLocationsDeliveryPipelinesGetIamPolicyRequest,
-    'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
-encoding.AddCustomJsonFieldMapping(
-    clouddeploy_message.ClouddeployProjectsLocationsTargetsGetIamPolicyRequest,
-    'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
-encoding.AddCustomJsonFieldMapping(
-    clouddeploy_message
-    .ClouddeployProjectsLocationsCustomTargetTypesGetIamPolicyRequest,
-    'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
-
-binaryauthorization_message_v1alpha2 = core_apis.GetMessagesModule(
-    'binaryauthorization', 'v1alpha2')
-encoding.AddCustomJsonFieldMapping(
-    binaryauthorization_message_v1alpha2
-    .BinaryauthorizationProjectsAttestorsGetIamPolicyRequest,
-    'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
-encoding.AddCustomJsonFieldMapping(
-    binaryauthorization_message_v1alpha2
-    .BinaryauthorizationProjectsPolicyGetIamPolicyRequest,
-    'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
-
-binaryauthorization_message_v1beta1 = core_apis.GetMessagesModule(
-    'binaryauthorization', 'v1beta1')
-encoding.AddCustomJsonFieldMapping(
-    binaryauthorization_message_v1beta1
-    .BinaryauthorizationProjectsAttestorsGetIamPolicyRequest,
-    'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
-encoding.AddCustomJsonFieldMapping(
-    binaryauthorization_message_v1beta1
-    .BinaryauthorizationProjectsPolicyGetIamPolicyRequest,
-    'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
-
-binaryauthorization_message_v1 = core_apis.GetMessagesModule(
-    'binaryauthorization', 'v1')
-encoding.AddCustomJsonFieldMapping(
-    binaryauthorization_message_v1
-    .BinaryauthorizationProjectsPolicyGetIamPolicyRequest,
-    'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
-
-run_message_v1 = core_apis.GetMessagesModule('run', 'v1')
-encoding.AddCustomJsonFieldMapping(
-    run_message_v1.RunProjectsLocationsServicesGetIamPolicyRequest,
-    'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
-
 MANAGED_BY = (
     msgs.IamProjectsServiceAccountsKeysListRequest.KeyTypesValueValuesEnum)
 CREATE_KEY_TYPES = (
@@ -158,7 +59,9 @@ SERVICE_ACCOUNT_KEY_FORMAT = """
         name.scope(keys):label=KEY_ID,
         validAfterTime:label=CREATED_AT,
         validBeforeTime:label=EXPIRES_AT,
-        disabled:label=DISABLED
+        disabled:label=DISABLED,
+        disable_reason:label=DISABLE_REASON,
+        extended_status:label=EXTENDED_STATUS
     )
 """
 CONDITION_FORMAT_EXCEPTION = gcloud_exceptions.InvalidArgumentException(
@@ -1016,17 +919,53 @@ def ParseYamlToTrustStore(yaml_dict):
   return config.trustStore
 
 
-def GetDetailedHelpForSetIamPolicy(collection,
-                                   example_id='',
-                                   example_see_more='',
-                                   additional_flags='',
-                                   use_an=False):
+def ParseYamlOrJsonToInlineCertificateIssuanceConfig(yaml_dict):
+  """Construct a InlineCertificateIssuanceConfig protorpc.Message from the content of a Yaml file.
+
+  Args:
+    yaml_dict: YAML file content to parse.
+
+  Returns:
+    a InlineCertificateIssuanceConfig from the parsed YAML file.
+  Raises:
+    DecodeError if the Yaml file content could not be parsed.
+  """
+  config = messages_util.DictToMessageWithErrorCheck(
+      yaml_dict, msgs.WorkloadIdentityPool
+  )
+  return config.inlineCertificateIssuanceConfig
+
+
+def ParseYamlOrJsonToInlineTrustConfig(yaml_dict):
+  """Construct a InlineTrustConfig protorpc.Message from the content of a Yaml file.
+
+  Args:
+    yaml_dict: YAML file content to parse.
+
+  Returns:
+    a InlineTrustConfig from the parsed YAML file.
+  Raises:
+    DecodeError if the Yaml file content could not be parsed.
+  """
+  config = messages_util.DictToMessageWithErrorCheck(
+      yaml_dict, msgs.WorkloadIdentityPool
+  )
+  return config.inlineTrustConfig
+
+
+def GetDetailedHelpForSetIamPolicy(
+    collection,
+    example_id='',
+    example_see_more='',
+    additional_flags='',
+    use_an=False,
+):
   """Returns a detailed_help for a set-iam-policy command.
 
   Args:
     collection: Name of the command collection (ex: "project", "dataset")
-    example_id: Collection identifier to display in a sample command
-        (ex: "my-project", '1234')
+    example_id: Collection identifier to display in a sample command (ex:
+      "my-project", '1234')
     example_see_more: Optional "See ... for details" message. If not specified,
       includes a default reference to IAM managing-policies documentation
     additional_flags: str, additional flags to include in the example command

@@ -47,10 +47,11 @@ Recommendation: To check for possible causes of SSH connectivity issues and get
 recommendations, rerun the ssh command with the --troubleshoot option.
 
 {0}
-
+"""
+_RECOMMEND_IAP = """
 Or, to investigate an IAP tunneling issue:
 
-{1}
+{0}
 """
 
 ReleaseTrack = {
@@ -154,37 +155,76 @@ def AddInternalIPArg(group):
         """)
 
 
+def TroubleshootHelp():
+  """Generate the help text for troubleshot argument."""
+  help_text = """\
+          If you can't connect to a virtual machine (VM) instance using SSH, you can investigate the problem using the `--troubleshoot` flag:
+
+            $ {command} VM_NAME --zone=ZONE --troubleshoot"""
+  if base_classes.SupportIAP():
+    help_text += """ [--tunnel-through-iap]"""
+  help_text += """
+
+          The troubleshoot flag runs tests and returns recommendations for the following types of issues:
+          - VM status"""
+  if base_classes.SupportNetworkConnectivityTest():
+    help_text += """
+          - Network connectivity"""
+  help_text += """
+          - User permissions
+          - Virtual Private Cloud (VPC) settings
+          - VM boot"""
+  if base_classes.SupportIAP():
+    help_text += """
+
+          If you specify the `--tunnel-through-iap` flag, the tool also checks IAP port forwarding."""
+  return help_text + """
+          """
+
+
+def RecommendMessage(
+    release_track: str,
+    project_name: str,
+    zone_name: str,
+    instance_name: str,
+    ssh_key_file: str,
+    force_key_file_overwrite: bool,
+) -> str:
+  """Generate the recommend message for troubleshot."""
+  command = 'gcloud {0}compute ssh {1} --project={2} --zone={3} '.format(
+      release_track, instance_name, project_name, zone_name
+  )
+  if ssh_key_file:
+    command += '--ssh-key-file={0} '.format(ssh_key_file)
+  if force_key_file_overwrite:
+    command += '--force-key-file-overwrite '
+  command += '--troubleshoot'
+  recommend_message = RECOMMEND_MESSAGE.format(command)
+  if not base_classes.SupportIAP():
+    return recommend_message
+  recommend_iap = _RECOMMEND_IAP.format(command + ' --tunnel-through-iap')
+  return recommend_message + recommend_iap
+
+
 def AddTroubleshootArg(parser):
   parser.add_argument(
       '--troubleshoot',
       action='store_true',
-      help="""\
-          If you can't connect to a virtual machine (VM) instance using SSH, you can investigate the problem using the `--troubleshoot` flag:
-
-            $ {command} VM_NAME --zone=ZONE --troubleshoot [--tunnel-through-iap]
-
-          The troubleshoot flag runs tests and returns recommendations for four types of issues:
-          - VM status
-          - Network connectivity
-          - User permissions
-          - Virtual Private Cloud (VPC) settings
-          - VM boot
-
-          If you specify the `--tunnel-through-iap` flag, the tool also checks IAP port forwarding.
-          """)
+      help=TroubleshootHelp())
 
 
 # pylint: disable=unused-argument
 def RunTroubleshooting(project=None, zone=None, instance=None,
                        iap_tunnel_args=None):
   """Run each category of troubleshoot action."""
-  network_args = {
-      'project': project,
-      'zone': zone,
-      'instance': instance,
-  }
-  network = network_troubleshooter.NetworkTroubleshooter(**network_args)
-  network()
+  if base_classes.SupportNetworkConnectivityTest():
+    network_args = {
+        'project': project,
+        'zone': zone,
+        'instance': instance,
+    }
+    network = network_troubleshooter.NetworkTroubleshooter(**network_args)
+    network()
 
   user_permission_args = {
       'project': project,
@@ -222,6 +262,7 @@ def RunTroubleshooting(project=None, zone=None, instance=None,
   vm_boot()
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Ssh(base.Command):
   """SSH into a virtual machine instance."""
@@ -241,7 +282,8 @@ class Ssh(base.Command):
     AddSSHArgs(parser)
     AddContainerArg(parser)
     AddTroubleshootArg(parser)
-    iap_tunnel.AddHostBasedTunnelArgs(parser)
+    if base_classes.SupportIAP():
+      iap_tunnel.AddHostBasedTunnelArgs(parser)
 
     flags.AddZoneFlag(
         parser, resource_type='instance', operation_type='connect to')
@@ -249,7 +291,8 @@ class Ssh(base.Command):
 
     routing_group = parser.add_mutually_exclusive_group()
     AddInternalIPArg(routing_group)
-    iap_tunnel.AddSshTunnelArgs(parser, routing_group)
+    if base_classes.SupportIAP():
+      iap_tunnel.AddSshTunnelArgs(parser, routing_group)
 
   def Run(self, args):
     """See ssh_utils.BaseSSHCLICommand.Run."""
@@ -268,12 +311,15 @@ class Ssh(base.Command):
     ssh_helper = ssh_utils.BaseSSHCLIHelper()
     ssh_helper.Run(args)
 
+    iap_tunnel_args = None
     if on_prem:
       user, ip = ssh_utils.GetUserAndInstance(args.user_host)
       remote = ssh.Remote(ip, user)
 
-      iap_tunnel_args = iap_tunnel.CreateOnPremSshTunnelArgs(
-          args, self.ReleaseTrack(), ip)
+      if base_classes.SupportIAP():
+        iap_tunnel_args = iap_tunnel.CreateOnPremSshTunnelArgs(
+            args, self.ReleaseTrack(), ip
+        )
       instance_address = ip
       internal_address = ip
       oslogin_state = ssh.OsloginState()
@@ -290,9 +336,14 @@ class Ssh(base.Command):
       else:
         host_keys = ssh_helper.GetHostKeysFromGuestAttributes(
             client, instance_ref, instance, project)
-      iap_tunnel_args = iap_tunnel.CreateSshTunnelArgs(
-          args, self.ReleaseTrack(), instance_ref,
-          ssh_utils.GetExternalInterface(instance, no_raise=True))
+
+      if base_classes.SupportIAP():
+        iap_tunnel_args = iap_tunnel.CreateSshTunnelArgs(
+            args,
+            self.ReleaseTrack(),
+            instance_ref,
+            ssh_utils.GetExternalInterface(instance, no_raise=True),
+        )
 
       internal_address = ssh_utils.GetInternalIPAddress(instance)
 
@@ -355,17 +406,20 @@ class Ssh(base.Command):
     if not args.plain:
       if not identity_file_list:
         identity_file = ssh_helper.keys.key_file
-      options = ssh_helper.GetConfig(ssh_utils.HostKeyAlias(instance),
-                                     args.strict_host_key_checking,
-                                     host_keys_to_add=host_keys)
+      options = ssh_helper.GetConfig(
+          ssh_utils.HostKeyAlias(instance),
+          args.strict_host_key_checking,
+          host_keys_to_add=host_keys,
+      )
 
     if oslogin_state.third_party_user or oslogin_state.require_certificates:
-      # Use the region if present; fall back to parsing region from zone.
-      region = args.region if args.region else args.zone[:args.zone.rindex('-')]
-      cert_file = ssh.CertFileFromRegion(region)
+      cert_file = ssh.CertFileFromComputeInstance(
+          project.name, instance_ref.zone, instance.id
+      )
 
-    extra_flags = ssh.ParseAndSubstituteSSHFlags(args, remote, instance_address,
-                                                 internal_address)
+    extra_flags = ssh.ParseAndSubstituteSSHFlags(
+        args, remote, instance_address, internal_address
+    )
     remainder = []
 
     if args.ssh_args:
@@ -448,6 +502,9 @@ class Ssh(base.Command):
                                                      instance_ref, project))
       raise e
 
+    if cert_file:
+      ssh.DeleteCertificateFile(project.name, instance_ref.zone, instance.id)
+
     if return_code:
       # This is the return code of the remote command.  Problems with SSH itself
       # will result in ssh.CommandError being raised above.
@@ -456,18 +513,19 @@ class Ssh(base.Command):
   def createRecommendMessage(self, args, instance_name, instance_ref, project):
     release_track = ReleaseTrack.get(str(self.ReleaseTrack()).lower())
     release_track = release_track + ' ' if release_track else ''
-    command = 'gcloud {0}compute ssh {1} --project={2} --zone={3} '.format(
-        release_track, instance_name, project.name,
-        args.zone or instance_ref.zone)
-    if args.ssh_key_file:
-      command += '--ssh-key-file={0} '.format(args.ssh_key_file)
-    if args.force_key_file_overwrite:
-      command += '--force-key-file-overwrite '
-    command += '--troubleshoot'
-    command_iap = command + ' --tunnel-through-iap'
-    return RECOMMEND_MESSAGE.format(command, command_iap)
+    zone_name = args.zone or instance_ref.zone
+    project_name = project.name
+    return RecommendMessage(
+        release_track,
+        project_name,
+        zone_name,
+        instance_name,
+        args.ssh_key_file,
+        args.force_key_file_overwrite,
+    )
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
 class SshAlphaBeta(Ssh):
   """SSH into a virtual machine instance (Beta)."""

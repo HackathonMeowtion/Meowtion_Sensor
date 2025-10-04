@@ -82,6 +82,14 @@ _HUMAN_FRIENDLY_OPERATION_TYPE_SUFFIXES = {
         'past': 'deleted',
         'present': 'delete'
     },
+    'releaseExternalIpv6Address': {
+        'past': 'deleted',
+        'present': 'delete'
+    },
+    'reserveExternalIpv6Address': {
+        'past': 'created',
+        'present': 'create'
+    },
     'insert': {
         'past': 'created',
         'present': 'create'
@@ -99,6 +107,16 @@ _HUMAN_FRIENDLY_OPERATION_TYPE_SUFFIXES = {
         'present': 'complete invalidation for'
     }
 }
+
+# The set of operation types for multi-nested resources.
+# For example, ReservationSubBlocks.performMaintenance is a multi-nested
+# resource because ReservationSubBlocks has the following parent resource name
+# format:
+# reservations/<reservation-name>/<reservation-block-name>/<reservation-subblock-name>.
+_MULTI_NESTED_RESOURCE_OPERATION_TYPES = [
+    'ReservationSubBlocks.performMaintenance',
+    'ReservationSubBlocks.reportFaulty',
+]
 
 
 def _HumanFriendlyNamesForOp(op_type):
@@ -264,6 +282,13 @@ class OperationData(object):
     resource_params = self.resource_service.GetMethodConfig(
         'Get'
     ).ordered_params
+    # b/394563040 - Temporary fix for issue where InvalidUserInputError is
+    # printed after update operation completes for wireGroups
+    if (
+        'crossSiteNetwork' in resource_params
+        and 'global' not in resource_params
+    ):
+      resource_params.insert(1, 'global')
     name_field = resource_params[-1]
     if len(resource_params) == 4:
       # This is a nested resource, which means it has four params
@@ -278,6 +303,17 @@ class OperationData(object):
         )
       parent_resource_field = resource_params[2]
       parent_resource_name = target_link.split('/')[-3]
+
+      # Create the parent resource name for multi-nested resources.
+      for op_type in _MULTI_NESTED_RESOURCE_OPERATION_TYPES:
+        if self.operation.operationType.startswith(op_type):
+          parent_resource_name = '{}/{}/{}/{}'.format(
+              target_link.split('/')[-6],
+              target_link.split('/')[-5],
+              target_link.split('/')[-4],
+              target_link.split('/')[-3],
+          )
+          break
       setattr(request, parent_resource_field, parent_resource_name)
     resource_name = self.followup_override or path_simplifier.Name(target_link)
     setattr(request, name_field, resource_name)

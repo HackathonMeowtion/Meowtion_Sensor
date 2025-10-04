@@ -14,15 +14,12 @@
 # limitations under the License.
 """Package for the groups CLI subcommands."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 from googlecloudsdk.calliope import base
 
 
 # TODO(b/274633761) make command public after suv2 launch.
+@base.UniverseCompatible
 @base.Hidden
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
 class Groups(base.Group):
   """View service group information."""

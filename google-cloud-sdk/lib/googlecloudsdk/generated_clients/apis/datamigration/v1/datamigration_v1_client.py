@@ -42,6 +42,7 @@ class DatamigrationV1(base_api.BaseApiClient):
     self.projects_locations_connectionProfiles = self.ProjectsLocationsConnectionProfilesService(self)
     self.projects_locations_conversionWorkspaces_mappingRules = self.ProjectsLocationsConversionWorkspacesMappingRulesService(self)
     self.projects_locations_conversionWorkspaces = self.ProjectsLocationsConversionWorkspacesService(self)
+    self.projects_locations_migrationJobs_objects = self.ProjectsLocationsMigrationJobsObjectsService(self)
     self.projects_locations_migrationJobs = self.ProjectsLocationsMigrationJobsService(self)
     self.projects_locations_operations = self.ProjectsLocationsOperationsService(self)
     self.projects_locations_privateConnections = self.ProjectsLocationsPrivateConnectionsService(self)
@@ -861,6 +862,178 @@ class DatamigrationV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+  class ProjectsLocationsMigrationJobsObjectsService(base_api.BaseApiService):
+    """Service class for the projects_locations_migrationJobs_objects resource."""
+
+    _NAME = 'projects_locations_migrationJobs_objects'
+
+    def __init__(self, client):
+      super(DatamigrationV1.ProjectsLocationsMigrationJobsObjectsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Get(self, request, global_params=None):
+      r"""Use this method to get details about a migration job object.
+
+      Args:
+        request: (DatamigrationProjectsLocationsMigrationJobsObjectsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (MigrationJobObject) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/migrationJobs/{migrationJobsId}/objects/{objectsId}',
+        http_method='GET',
+        method_id='datamigration.projects.locations.migrationJobs.objects.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}',
+        request_field='',
+        request_type_name='DatamigrationProjectsLocationsMigrationJobsObjectsGetRequest',
+        response_type_name='MigrationJobObject',
+        supports_download=False,
+    )
+
+    def GetIamPolicy(self, request, global_params=None):
+      r"""Gets the access control policy for a resource. Returns an empty policy if the resource exists and does not have a policy set.
+
+      Args:
+        request: (DatamigrationProjectsLocationsMigrationJobsObjectsGetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Policy) The response message.
+      """
+      config = self.GetMethodConfig('GetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/migrationJobs/{migrationJobsId}/objects/{objectsId}:getIamPolicy',
+        http_method='GET',
+        method_id='datamigration.projects.locations.migrationJobs.objects.getIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=['options_requestedPolicyVersion'],
+        relative_path='v1/{+resource}:getIamPolicy',
+        request_field='',
+        request_type_name='DatamigrationProjectsLocationsMigrationJobsObjectsGetIamPolicyRequest',
+        response_type_name='Policy',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Use this method to list the objects of a specific migration job.
+
+      Args:
+        request: (DatamigrationProjectsLocationsMigrationJobsObjectsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListMigrationJobObjectsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/migrationJobs/{migrationJobsId}/objects',
+        http_method='GET',
+        method_id='datamigration.projects.locations.migrationJobs.objects.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['pageSize', 'pageToken'],
+        relative_path='v1/{+parent}/objects',
+        request_field='',
+        request_type_name='DatamigrationProjectsLocationsMigrationJobsObjectsListRequest',
+        response_type_name='ListMigrationJobObjectsResponse',
+        supports_download=False,
+    )
+
+    def Lookup(self, request, global_params=None):
+      r"""Use this method to look up a migration job object by its source object identifier.
+
+      Args:
+        request: (DatamigrationProjectsLocationsMigrationJobsObjectsLookupRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (MigrationJobObject) The response message.
+      """
+      config = self.GetMethodConfig('Lookup')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Lookup.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/migrationJobs/{migrationJobsId}/objects:lookup',
+        http_method='POST',
+        method_id='datamigration.projects.locations.migrationJobs.objects.lookup',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1/{+parent}/objects:lookup',
+        request_field='lookupMigrationJobObjectRequest',
+        request_type_name='DatamigrationProjectsLocationsMigrationJobsObjectsLookupRequest',
+        response_type_name='MigrationJobObject',
+        supports_download=False,
+    )
+
+    def SetIamPolicy(self, request, global_params=None):
+      r"""Sets the access control policy on the specified resource. Replaces any existing policy. Can return `NOT_FOUND`, `INVALID_ARGUMENT`, and `PERMISSION_DENIED` errors.
+
+      Args:
+        request: (DatamigrationProjectsLocationsMigrationJobsObjectsSetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Policy) The response message.
+      """
+      config = self.GetMethodConfig('SetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/migrationJobs/{migrationJobsId}/objects/{objectsId}:setIamPolicy',
+        http_method='POST',
+        method_id='datamigration.projects.locations.migrationJobs.objects.setIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1/{+resource}:setIamPolicy',
+        request_field='setIamPolicyRequest',
+        request_type_name='DatamigrationProjectsLocationsMigrationJobsObjectsSetIamPolicyRequest',
+        response_type_name='Policy',
+        supports_download=False,
+    )
+
+    def TestIamPermissions(self, request, global_params=None):
+      r"""Returns permissions that a caller has on the specified resource. If the resource does not exist, this will return an empty set of permissions, not a `NOT_FOUND` error. Note: This operation is designed to be used for building permission-aware UIs and command-line tools, not for authorization checking. This operation may "fail open" without warning.
+
+      Args:
+        request: (DatamigrationProjectsLocationsMigrationJobsObjectsTestIamPermissionsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (TestIamPermissionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('TestIamPermissions')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    TestIamPermissions.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/migrationJobs/{migrationJobsId}/objects/{objectsId}:testIamPermissions',
+        http_method='POST',
+        method_id='datamigration.projects.locations.migrationJobs.objects.testIamPermissions',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1/{+resource}:testIamPermissions',
+        request_field='testIamPermissionsRequest',
+        request_type_name='DatamigrationProjectsLocationsMigrationJobsObjectsTestIamPermissionsRequest',
+        response_type_name='TestIamPermissionsResponse',
+        supports_download=False,
+    )
+
   class ProjectsLocationsMigrationJobsService(base_api.BaseApiService):
     """Service class for the projects_locations_migrationJobs resource."""
 
@@ -948,6 +1121,33 @@ class DatamigrationV1(base_api.BaseApiClient):
         relative_path='v1/{+name}:demoteDestination',
         request_field='demoteDestinationRequest',
         request_type_name='DatamigrationProjectsLocationsMigrationJobsDemoteDestinationRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def FetchSourceObjects(self, request, global_params=None):
+      r"""Retrieves objects from the source database that can be selected for data migration. This is applicable for the following migrations: 1. PostgreSQL to Cloud SQL for PostgreSQL 2. PostgreSQL to AlloyDB for PostgreSQL.
+
+      Args:
+        request: (DatamigrationProjectsLocationsMigrationJobsFetchSourceObjectsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('FetchSourceObjects')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    FetchSourceObjects.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/migrationJobs/{migrationJobsId}:fetchSourceObjects',
+        http_method='GET',
+        method_id='datamigration.projects.locations.migrationJobs.fetchSourceObjects',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}:fetchSourceObjects',
+        request_field='',
+        request_type_name='DatamigrationProjectsLocationsMigrationJobsFetchSourceObjectsRequest',
         response_type_name='Operation',
         supports_download=False,
     )
@@ -1341,7 +1541,7 @@ class DatamigrationV1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (DatamigrationProjectsLocationsOperationsCancelRequest) input message
@@ -1477,7 +1677,7 @@ class DatamigrationV1(base_api.BaseApiClient):
         method_id='datamigration.projects.locations.privateConnections.create',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['privateConnectionId', 'requestId', 'skipValidation'],
+        query_params=['privateConnectionId', 'requestId', 'skipValidation', 'validateOnly'],
         relative_path='v1/{+parent}/privateConnections',
         request_field='privateConnection',
         request_type_name='DatamigrationProjectsLocationsPrivateConnectionsCreateRequest',
@@ -1657,6 +1857,33 @@ class DatamigrationV1(base_api.BaseApiClient):
       self._upload_configs = {
           }
 
+    def ConvertApplicationCode(self, request, global_params=None):
+      r"""Convert the provided source code from accessing the source database to accessing the destination database.
+
+      Args:
+        request: (DatamigrationProjectsLocationsConvertApplicationCodeRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ConvertApplicationCodeResponse) The response message.
+      """
+      config = self.GetMethodConfig('ConvertApplicationCode')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ConvertApplicationCode.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}:convertApplicationCode',
+        http_method='POST',
+        method_id='datamigration.projects.locations.convertApplicationCode',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}:convertApplicationCode',
+        request_field='convertApplicationCodeRequest',
+        request_type_name='DatamigrationProjectsLocationsConvertApplicationCodeRequest',
+        response_type_name='ConvertApplicationCodeResponse',
+        supports_download=False,
+    )
+
     def FetchStaticIps(self, request, global_params=None):
       r"""Fetches a set of static IP addresses that need to be allowlisted by the customer when using the static-IP connectivity method.
 
@@ -1730,7 +1957,7 @@ class DatamigrationV1(base_api.BaseApiClient):
         method_id='datamigration.projects.locations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['extraLocationTypes', 'filter', 'pageSize', 'pageToken'],
         relative_path='v1/{+name}/locations',
         request_field='',
         request_type_name='DatamigrationProjectsLocationsListRequest',

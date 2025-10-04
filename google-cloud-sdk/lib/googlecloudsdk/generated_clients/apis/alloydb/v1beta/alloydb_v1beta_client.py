@@ -709,6 +709,33 @@ class AlloydbV1beta(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def Export(self, request, global_params=None):
+      r"""Exports data from the cluster. Imperative only.
+
+      Args:
+        request: (AlloydbProjectsLocationsClustersExportRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Export')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Export.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/clusters/{clustersId}:export',
+        http_method='POST',
+        method_id='alloydb.projects.locations.clusters.export',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta/{+name}:export',
+        request_field='exportClusterRequest',
+        request_type_name='AlloydbProjectsLocationsClustersExportRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
     def Get(self, request, global_params=None):
       r"""Gets details of a single Cluster.
 
@@ -733,6 +760,33 @@ class AlloydbV1beta(base_api.BaseApiClient):
         request_field='',
         request_type_name='AlloydbProjectsLocationsClustersGetRequest',
         response_type_name='Cluster',
+        supports_download=False,
+    )
+
+    def Import(self, request, global_params=None):
+      r"""Imports data to the cluster. Imperative only.
+
+      Args:
+        request: (AlloydbProjectsLocationsClustersImportRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Import')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Import.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/clusters/{clustersId}:import',
+        http_method='POST',
+        method_id='alloydb.projects.locations.clusters.import',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta/{+name}:import',
+        request_field='importClusterRequest',
+        request_type_name='AlloydbProjectsLocationsClustersImportRequest',
+        response_type_name='Operation',
         supports_download=False,
     )
 
@@ -844,6 +898,87 @@ class AlloydbV1beta(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def RestoreFromCloudSQL(self, request, global_params=None):
+      r"""Restores an AlloyDB cluster from a CloudSQL resource.
+
+      Args:
+        request: (AlloydbProjectsLocationsClustersRestoreFromCloudSQLRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('RestoreFromCloudSQL')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    RestoreFromCloudSQL.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/clusters:restoreFromCloudSQL',
+        http_method='POST',
+        method_id='alloydb.projects.locations.clusters.restoreFromCloudSQL',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta/{+parent}/clusters:restoreFromCloudSQL',
+        request_field='restoreFromCloudSQLRequest',
+        request_type_name='AlloydbProjectsLocationsClustersRestoreFromCloudSQLRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Switchover(self, request, global_params=None):
+      r"""Switches the roles of PRIMARY and SECONDARY clusters without any data loss. This promotes the SECONDARY cluster to PRIMARY and sets up the original PRIMARY cluster to replicate from this newly promoted cluster.
+
+      Args:
+        request: (AlloydbProjectsLocationsClustersSwitchoverRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Switchover')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Switchover.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/clusters/{clustersId}:switchover',
+        http_method='POST',
+        method_id='alloydb.projects.locations.clusters.switchover',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta/{+name}:switchover',
+        request_field='switchoverClusterRequest',
+        request_type_name='AlloydbProjectsLocationsClustersSwitchoverRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Upgrade(self, request, global_params=None):
+      r"""Upgrades a single Cluster. Imperative only.
+
+      Args:
+        request: (AlloydbProjectsLocationsClustersUpgradeRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Upgrade')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Upgrade.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/clusters/{clustersId}:upgrade',
+        http_method='PATCH',
+        method_id='alloydb.projects.locations.clusters.upgrade',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta/{+name}:upgrade',
+        request_field='upgradeClusterRequest',
+        request_type_name='AlloydbProjectsLocationsClustersUpgradeRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
   class ProjectsLocationsOperationsService(base_api.BaseApiService):
     """Service class for the projects_locations_operations resource."""
 
@@ -855,7 +990,7 @@ class AlloydbV1beta(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AlloydbProjectsLocationsOperationsCancelRequest) input message
@@ -991,7 +1126,7 @@ class AlloydbV1beta(base_api.BaseApiClient):
         method_id='alloydb.projects.locations.supportedDatabaseFlags.list',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['pageSize', 'pageToken'],
+        query_params=['pageSize', 'pageToken', 'scope'],
         relative_path='v1beta/{+parent}/supportedDatabaseFlags',
         request_field='',
         request_type_name='AlloydbProjectsLocationsSupportedDatabaseFlagsListRequest',
@@ -1055,7 +1190,7 @@ class AlloydbV1beta(base_api.BaseApiClient):
         method_id='alloydb.projects.locations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['extraLocationTypes', 'filter', 'pageSize', 'pageToken'],
         relative_path='v1beta/{+name}/locations',
         request_field='',
         request_type_name='AlloydbProjectsLocationsListRequest',

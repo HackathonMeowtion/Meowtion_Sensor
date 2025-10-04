@@ -54,16 +54,6 @@ class AptArtifact(_messages.Message):
   packageType = _messages.EnumField('PackageTypeValueValuesEnum', 6)
 
 
-class ArtifactregistryMediaDownloadRequest(_messages.Message):
-  r"""A ArtifactregistryMediaDownloadRequest object.
-
-  Fields:
-    name: Required. The name of the file to download.
-  """
-
-  name = _messages.StringField(1, required=True)
-
-
 class ArtifactregistryProjectsGetProjectSettingsRequest(_messages.Message):
   r"""A ArtifactregistryProjectsGetProjectSettingsRequest object.
 
@@ -88,6 +78,9 @@ class ArtifactregistryProjectsLocationsListRequest(_messages.Message):
   r"""A ArtifactregistryProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -98,10 +91,11 @@ class ArtifactregistryProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class ArtifactregistryProjectsLocationsOperationsGetRequest(_messages.Message):
@@ -169,6 +163,17 @@ class ArtifactregistryProjectsLocationsRepositoriesDeleteRequest(_messages.Messa
   name = _messages.StringField(1, required=True)
 
 
+class ArtifactregistryProjectsLocationsRepositoriesFilesDownloadRequest(_messages.Message):
+  r"""A ArtifactregistryProjectsLocationsRepositoriesFilesDownloadRequest
+  object.
+
+  Fields:
+    name: Required. The name of the file to download.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
 class ArtifactregistryProjectsLocationsRepositoriesFilesGetRequest(_messages.Message):
   r"""A ArtifactregistryProjectsLocationsRepositoriesFilesGetRequest object.
 
@@ -185,13 +190,37 @@ class ArtifactregistryProjectsLocationsRepositoriesFilesListRequest(_messages.Me
   Fields:
     filter: An expression for filtering the results of the request. Filter
       rules are case insensitive. The fields eligible for filtering are: *
-      `name` * `owner` An example of using a filter: *
-      `name="projects/p1/locations/us-
-      central1/repositories/repo1/files/a/b/*"` --> Files with an ID starting
-      with "a/b/". * `owner="projects/p1/locations/us-
-      central1/repositories/repo1/packages/pkg1/versions/1.0"` --> Files owned
-      by the version `1.0` in package `pkg1`.
-    pageSize: The maximum number of files to return.
+      `name` * `owner` * `annotations` Examples of using a filter: To filter
+      the results of your request to files with the name `my_file.txt` in
+      project `my-project` in the `us-central` region, in repository `my-
+      repo`, append the following filter expression to your request: *
+      `name="projects/my-project/locations/us-central1/repositories/my-
+      repo/files/my-file.txt"` You can also use wildcards to match any number
+      of characters before or after the value: * `name="projects/my-
+      project/locations/us-central1/repositories/my-repo/files/my-*"` *
+      `name="projects/my-project/locations/us-central1/repositories/my-
+      repo/files/*file.txt"` * `name="projects/my-project/locations/us-
+      central1/repositories/my-repo/files/*file*"` To filter the results of
+      your request to files owned by the version `1.0` in package `pkg1`,
+      append the following filter expression to your request: *
+      `owner="projects/my-project/locations/us-central1/repositories/my-
+      repo/packages/my-package/versions/1.0"` To filter the results of your
+      request to files with the annotation key-value pair [`external_link`:
+      `external_link_value`], append the following filter expression to your
+      request: * `"annotations.external_link:external_link_value"` To filter
+      just for a specific annotation key `external_link`, append the following
+      filter expression to your request: * `"annotations.external_link"` If
+      the annotation key or value contains special characters, you can escape
+      them by surrounding the value with backticks. For example, to filter the
+      results of your request to files with the annotation key-value pair
+      [`external.link`:`https://example.com/my-file`], append the following
+      filter expression to your request: * ``
+      "annotations.`external.link`:`https://example.com/my-file`" `` You can
+      also filter with annotations with a wildcard to match any number of
+      characters before or after the value: * ``
+      "annotations.*_link:`*example.com*`" ``
+    pageSize: The maximum number of files to return. Maximum page size is
+      1,000.
     pageToken: The next_page_token value returned from a previous list
       request, if any.
     parent: Required. The name of the repository whose files will be listed.
@@ -245,6 +274,7 @@ class ArtifactregistryProjectsLocationsRepositoriesListRequest(_messages.Message
   r"""A ArtifactregistryProjectsLocationsRepositoriesListRequest object.
 
   Fields:
+    orderBy: Optional. The field to order the results by.
     pageSize: The maximum number of repositories to return. Maximum page size
       is 1,000.
     pageToken: The next_page_token value returned from a previous list
@@ -253,9 +283,10 @@ class ArtifactregistryProjectsLocationsRepositoriesListRequest(_messages.Message
       be listed.
   """
 
-  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(2)
-  parent = _messages.StringField(3, required=True)
+  orderBy = _messages.StringField(1)
+  pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(3)
+  parent = _messages.StringField(4, required=True)
 
 
 class ArtifactregistryProjectsLocationsRepositoriesPackagesDeleteRequest(_messages.Message):
@@ -285,6 +316,7 @@ class ArtifactregistryProjectsLocationsRepositoriesPackagesListRequest(_messages
   object.
 
   Fields:
+    orderBy: Optional. The field to order the results by.
     pageSize: The maximum number of packages to return. Maximum page size is
       1,000.
     pageToken: The next_page_token value returned from a previous list
@@ -293,9 +325,10 @@ class ArtifactregistryProjectsLocationsRepositoriesPackagesListRequest(_messages
       listed.
   """
 
-  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(2)
-  parent = _messages.StringField(3, required=True)
+  orderBy = _messages.StringField(1)
+  pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(3)
+  parent = _messages.StringField(4, required=True)
 
 
 class ArtifactregistryProjectsLocationsRepositoriesPackagesPatchRequest(_messages.Message):
@@ -361,12 +394,24 @@ class ArtifactregistryProjectsLocationsRepositoriesPackagesTagsListRequest(_mess
   Fields:
     filter: An expression for filtering the results of the request. Filter
       rules are case insensitive. The fields eligible for filtering are: *
-      `version` An example of using a filter: *
-      `version="projects/p1/locations/us-
-      central1/repositories/repo1/packages/pkg1/versions/1.0"` --> Tags that
-      are applied to the version `1.0` in package `pkg1`.
+      `name` * `version` Examples of using a filter: To filter the results of
+      your request to tags with the name `my-tag` in package `my-package` in
+      repository `my-repo` in project "`y-project` in the us-central region,
+      append the following filter expression to your request: *
+      `name="projects/my-project/locations/us-central1/repositories/my-
+      repo/packages/my-package/tags/my-tag"` You can also use wildcards to
+      match any number of characters before or after the value: *
+      `name="projects/my-project/locations/us-central1/repositories/my-
+      repo/packages/my-package/tags/my*"` * `name="projects/my-
+      project/locations/us-central1/repositories/my-repo/packages/my-
+      package/tags/*tag"` * `name="projects/my-project/locations/us-
+      central1/repositories/my-repo/packages/my-package/tags/*tag*"` To filter
+      the results of your request to tags applied to the version `1.0` in
+      package `my-package`, append the following filter expression to your
+      request: * `version="projects/my-project/locations/us-
+      central1/repositories/my-repo/packages/my-package/versions/1.0"`
     pageSize: The maximum number of tags to return. Maximum page size is
-      10,000.
+      1,000.
     pageToken: The next_page_token value returned from a previous list
       request, if any.
     parent: The name of the parent package whose tags will be listed. For
@@ -492,7 +537,8 @@ class ArtifactregistryProjectsLocationsRepositoriesPatchRequest(_messages.Messag
 
   Fields:
     name: The name of the repository, for example: `projects/p1/locations/us-
-      central1/repositories/repo1`.
+      central1/repositories/repo1`. For each location in a project, repository
+      names must be unique.
     repository: A Repository resource to be passed as the request body.
     updateMask: The update mask applies to the resource. For the `FieldMask`
       definition, see https://developers.google.com/protocol-
@@ -728,8 +774,8 @@ class GoogleDevtoolsArtifactregistryV1beta2File(_messages.Message):
   Fields:
     createTime: Output only. The time when the File was created.
     hashes: The hashes of the file content.
-    name: The name of the file, for example: "projects/p1/locations/us-
-      central1/repositories/repo1/files/a%2Fb%2Fc.txt". If the file ID part
+    name: The name of the file, for example: `projects/p1/locations/us-
+      central1/repositories/repo1/files/a%2Fb%2Fc.txt`. If the file ID part
       contains slashes, they are escaped.
     owner: The name of the Package or Version that owns this file, if any.
     sizeBytes: The size of the File in bytes.
@@ -1314,7 +1360,8 @@ class ProjectSettings(_messages.Message):
     name: The name of the project's settings. Always of the form:
       projects/{project-id}/projectSettings In update request: never set In
       response: always set
-    pullPercent: A integer attribute.
+    pullPercent: The percentage of pull traffic to redirect from GCR to AR
+      when using partial redirection.
   """
 
   class LegacyRedirectionStateValueValuesEnum(_messages.Enum):
@@ -1375,9 +1422,10 @@ class Repository(_messages.Message):
     mavenConfig: Maven repository config contains repository level
       configuration for the repositories of maven type.
     name: The name of the repository, for example: `projects/p1/locations/us-
-      central1/repositories/repo1`.
-    satisfiesPzs: Output only. If set, the repository satisfies physical zone
-      separation.
+      central1/repositories/repo1`. For each location in a project, repository
+      names must be unique.
+    satisfiesPzi: Output only. Whether or not this repository satisfies PZI.
+    satisfiesPzs: Output only. Whether or not this repository satisfies PZS.
     sizeBytes: Output only. The size, in bytes, of all artifact storage in
       this repository. Repositories that are generally available or in public
       preview use this to calculate storage costs.
@@ -1440,9 +1488,10 @@ class Repository(_messages.Message):
   labels = _messages.MessageField('LabelsValue', 5)
   mavenConfig = _messages.MessageField('MavenRepositoryConfig', 6)
   name = _messages.StringField(7)
-  satisfiesPzs = _messages.BooleanField(8)
-  sizeBytes = _messages.IntegerField(9)
-  updateTime = _messages.StringField(10)
+  satisfiesPzi = _messages.BooleanField(8)
+  satisfiesPzs = _messages.BooleanField(9)
+  sizeBytes = _messages.IntegerField(10)
+  updateTime = _messages.StringField(11)
 
 
 class SetIamPolicyRequest(_messages.Message):
@@ -1583,8 +1632,8 @@ class Tag(_messages.Message):
       have characters in [a-zA-Z0-9\-._~:@], anything else must be URL
       encoded.
     version: The name of the version the tag refers to, for example:
-      "projects/p1/locations/us-
-      central1/repositories/repo1/packages/pkg1/versions/sha256:5243811" If
+      `projects/p1/locations/us-
+      central1/repositories/repo1/packages/pkg1/versions/sha256:5243811` If
       the package or version ID parts contain slashes, the slashes are
       escaped.
   """
@@ -1694,8 +1743,8 @@ class Version(_messages.Message):
       version. The fields returned are defined by the underlying repository-
       specific resource. Currently, the resources could be: DockerImage
       MavenArtifact
-    name: The name of the version, for example: "projects/p1/locations/us-
-      central1/repositories/repo1/packages/pkg1/versions/art1". If the package
+    name: The name of the version, for example: `projects/p1/locations/us-
+      central1/repositories/repo1/packages/pkg1/versions/art1`. If the package
       or version ID parts contain slashes, the slashes are escaped.
     relatedTags: Output only. A list of related tags. Will contain up to 100
       tags that reference this version.
@@ -1774,3 +1823,5 @@ encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    ArtifactregistryProjectsLocationsRepositoriesGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')

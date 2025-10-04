@@ -33,11 +33,13 @@ class AccessLevel(_messages.Message):
   be applied.
 
   Fields:
+    accessLevelFeatures: Output only. Access level features that are used to
+      determine the behavior of the access level.
     basic: A `BasicLevel` composed of `Conditions`.
     custom: A `CustomLevel` written in the Common Expression Language.
     description: Description of the `AccessLevel` and its use. Does not affect
       behavior.
-    name: Required. Resource name for the `AccessLevel`. Format:
+    name: Identifier. Resource name for the `AccessLevel`. Format:
       `accessPolicies/{access_policy}/accessLevels/{access_level}`. The
       `access_level` component must begin with a letter, followed by
       alphanumeric characters or `_`. Its maximum length is 50 characters.
@@ -45,11 +47,27 @@ class AccessLevel(_messages.Message):
     title: Human readable title. Must be unique within the Policy.
   """
 
-  basic = _messages.MessageField('BasicLevel', 1)
-  custom = _messages.MessageField('CustomLevel', 2)
-  description = _messages.StringField(3)
-  name = _messages.StringField(4)
-  title = _messages.StringField(5)
+  accessLevelFeatures = _messages.MessageField('AccessLevelFeatures', 1)
+  basic = _messages.MessageField('BasicLevel', 2)
+  custom = _messages.MessageField('CustomLevel', 3)
+  description = _messages.StringField(4)
+  name = _messages.StringField(5)
+  title = _messages.StringField(6)
+
+
+class AccessLevelFeatures(_messages.Message):
+  r"""Fields capturing features about the access level. Output only.
+
+  Fields:
+    canBeNested: Output only. Indicates that the access level is able to be
+      nested in other access levels.
+    hasAmendableConditions: Output only. Indicates whether there is a
+      amendable response defined within access level conditions. Set to false
+      if deny is the only configured result for all conditions.
+  """
+
+  canBeNested = _messages.BooleanField(1)
+  hasAmendableConditions = _messages.BooleanField(2)
 
 
 class AccessPolicy(_messages.Message):
@@ -62,9 +80,10 @@ class AccessPolicy(_messages.Message):
   Fields:
     etag: Output only. An opaque identifier for the current version of the
       `AccessPolicy`. This will always be a strongly validated etag, meaning
-      that two Access Polices will be identical if and only if their etags are
-      identical. Clients should not expect this to be in any specific format.
-    name: Resource name of the `AccessPolicy`. Format:
+      that two Access Policies will be identical if and only if their etags
+      are identical. Clients should not expect this to be in any specific
+      format.
+    name: Identifier. Resource name of the `AccessPolicy`. Format:
       `accessPolicies/{access_policy}`
     parent: Immutable. The parent of this `AccessPolicy` in the Cloud Resource
       Hierarchy Format: `organizations/{organization_id}`
@@ -88,6 +107,34 @@ class AccessPolicy(_messages.Message):
   parent = _messages.StringField(3)
   scopes = _messages.StringField(4, repeated=True)
   title = _messages.StringField(5)
+
+
+class AccessScope(_messages.Message):
+  r"""Access scope represents the client scope, etc. to which the settings
+  will be applied to.
+
+  Fields:
+    clientScope: Optional. Client scope for this access scope.
+  """
+
+  clientScope = _messages.MessageField('ClientScope', 1)
+
+
+class AccessSettings(_messages.Message):
+  r"""Access settings represent the set of conditions that must be met for
+  access to be granted. At least one of the fields must be set.
+
+  Fields:
+    accessLevels: Optional. Access level that a user must have to be granted
+      access. Only one access level is supported, not multiple. This repeated
+      field must have exactly one element. Example:
+      "accessPolicies/9522/accessLevels/device_trusted"
+    sessionSettings: Optional. Session settings applied to user access on a
+      given AccessScope.
+  """
+
+  accessLevels = _messages.StringField(1, repeated=True)
+  sessionSettings = _messages.MessageField('SessionSettings', 2)
 
 
 class AccesscontextmanagerAccessPoliciesAccessLevelsCreateRequest(_messages.Message):
@@ -206,7 +253,7 @@ class AccesscontextmanagerAccessPoliciesAccessLevelsPatchRequest(_messages.Messa
 
   Fields:
     accessLevel: A AccessLevel resource to be passed as the request body.
-    name: Required. Resource name for the `AccessLevel`. Format:
+    name: Identifier. Resource name for the `AccessLevel`. Format:
       `accessPolicies/{access_policy}/accessLevels/{access_level}`. The
       `access_level` component must begin with a letter, followed by
       alphanumeric characters or `_`. Its maximum length is 50 characters.
@@ -318,10 +365,10 @@ class AccesscontextmanagerAccessPoliciesAuthorizedOrgsDescsPatchRequest(_message
   Fields:
     authorizedOrgsDesc: A AuthorizedOrgsDesc resource to be passed as the
       request body.
-    name: Resource name for the `AuthorizedOrgsDesc`. Format: `accessPolicies/
-      {access_policy}/authorizedOrgsDescs/{authorized_orgs_desc}`. The
-      `authorized_orgs_desc` component must begin with a letter, followed by
-      alphanumeric characters or `_`. After you create an
+    name: Identifier. Resource name for the `AuthorizedOrgsDesc`. Format: `acc
+      essPolicies/{access_policy}/authorizedOrgsDescs/{authorized_orgs_desc}`.
+      The `authorized_orgs_desc` component must begin with a letter, followed
+      by alphanumeric characters or `_`. After you create an
       `AuthorizedOrgsDesc`, you cannot change its `name`.
     updateMask: Required. Mask to control which fields get updated. Must be
       non-empty.
@@ -392,7 +439,7 @@ class AccesscontextmanagerAccessPoliciesPatchRequest(_messages.Message):
 
   Fields:
     accessPolicy: A AccessPolicy resource to be passed as the request body.
-    name: Resource name of the `AccessPolicy`. Format:
+    name: Identifier. Resource name of the `AccessPolicy`. Format:
       `accessPolicies/{access_policy}`
     updateMask: Required. Mask to control which fields get updated. Must be
       non-empty.
@@ -479,7 +526,7 @@ class AccesscontextmanagerAccessPoliciesServicePerimetersPatchRequest(_messages.
   object.
 
   Fields:
-    name: Required. Resource name for the `ServicePerimeter`. Format:
+    name: Identifier. Resource name for the `ServicePerimeter`. Format:
       `accessPolicies/{access_policy}/servicePerimeters/{service_perimeter}`.
       The `service_perimeter` component must begin with a letter, followed by
       alphanumeric characters or `_`. After you create a `ServicePerimeter`,
@@ -613,6 +660,11 @@ class AccesscontextmanagerOrganizationsGcpUserAccessBindingsListRequest(_message
   object.
 
   Fields:
+    filter: Optional. The literal filter pipelines to be returned. See
+      https://google.aip.dev/160 for more details. Accepts values: *
+      principal:group_key * principal:service_account OR
+      principal:service_account_project_number. If this field is empty or not
+      one of the above, the default value is "principal:group_key".
     pageSize: Optional. Maximum number of items to return. The server may
       return fewer items. If left blank, the server may return any number of
       items.
@@ -621,9 +673,10 @@ class AccesscontextmanagerOrganizationsGcpUserAccessBindingsListRequest(_message
     parent: Required. Example: "organizations/256"
   """
 
-  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(2)
-  parent = _messages.StringField(3, required=True)
+  filter = _messages.StringField(1)
+  pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(3)
+  parent = _messages.StringField(4, required=True)
 
 
 class AccesscontextmanagerOrganizationsGcpUserAccessBindingsPatchRequest(_messages.Message):
@@ -631,24 +684,36 @@ class AccesscontextmanagerOrganizationsGcpUserAccessBindingsPatchRequest(_messag
   object.
 
   Fields:
+    append: Optional. This field controls whether or not certain repeated
+      settings in the update request overwrite or append to existing settings
+      on the binding. If true, then append. Otherwise overwrite. So far, only
+      scoped_access_settings with session_settings supports appending. Global
+      access_levels, access_levels in scoped_access_settings,
+      dry_run_access_levels, and session_settings are not compatible with
+      append functionality, and the request will return an error if
+      append=true when these settings are in the update_mask. The request will
+      also return an error if append=true when "scoped_access_settings" is not
+      set in the update_mask.
     gcpUserAccessBinding: A GcpUserAccessBinding resource to be passed as the
       request body.
-    name: Immutable. Assigned by the server during creation. The last segment
-      has an arbitrary length and has only URI unreserved characters (as
-      defined by [RFC 3986 Section
+    name: Immutable. Identifier. Assigned by the server during creation. The
+      last segment has an arbitrary length and has only URI unreserved
+      characters (as defined by [RFC 3986 Section
       2.3](https://tools.ietf.org/html/rfc3986#section-2.3)). Should not be
       specified by the client during creation. Example:
       "organizations/256/gcpUserAccessBindings/b3-BhcX_Ud5N"
     updateMask: Required. Only the fields specified in this mask are updated.
       Because name and group_key cannot be changed, update_mask is required
       and may only contain the following fields: `access_levels`,
-      `dry_run_access_levels`, `restricted_client_applications`,
-      `reauth_settings`. Example: update_mask { paths: "access_levels" }
+      `dry_run_access_levels`, `session_settings`, and
+      `scoped_access_settings`. Example: update_mask { paths: "access_levels"
+      }
   """
 
-  gcpUserAccessBinding = _messages.MessageField('GcpUserAccessBinding', 1)
-  name = _messages.StringField(2, required=True)
-  updateMask = _messages.StringField(3)
+  append = _messages.BooleanField(1)
+  gcpUserAccessBinding = _messages.MessageField('GcpUserAccessBinding', 2)
+  name = _messages.StringField(3, required=True)
+  updateMask = _messages.StringField(4)
 
 
 class AccesscontextmanagerServicesGetRequest(_messages.Message):
@@ -674,6 +739,18 @@ class AccesscontextmanagerServicesListRequest(_messages.Message):
 
   pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
   pageToken = _messages.StringField(2)
+
+
+class AddRequestHeader(_messages.Message):
+  r"""Adds a request header to the API.
+
+  Fields:
+    key: HTTP header key.
+    value: HTTP header value.
+  """
+
+  key = _messages.StringField(1)
+  value = _messages.StringField(2)
 
 
 class ApiOperation(_messages.Message):
@@ -814,10 +891,10 @@ class AuthorizedOrgsDesc(_messages.Message):
       `AuthorizedOrgsDesc` resource.
     authorizationType: A granular control type for authorization levels. Valid
       value is `AUTHORIZATION_TYPE_TRUST`.
-    name: Resource name for the `AuthorizedOrgsDesc`. Format: `accessPolicies/
-      {access_policy}/authorizedOrgsDescs/{authorized_orgs_desc}`. The
-      `authorized_orgs_desc` component must begin with a letter, followed by
-      alphanumeric characters or `_`. After you create an
+    name: Identifier. Resource name for the `AuthorizedOrgsDesc`. Format: `acc
+      essPolicies/{access_policy}/authorizedOrgsDescs/{authorized_orgs_desc}`.
+      The `authorized_orgs_desc` component must begin with a letter, followed
+      by alphanumeric characters or `_`. After you create an
       `AuthorizedOrgsDesc`, you cannot change its `name`.
     orgs: The list of organization ids in this AuthorizedOrgsDesc. Format:
       `organizations/` Example: `organizations/123456`
@@ -1005,6 +1082,18 @@ class Binding(_messages.Message):
   role = _messages.StringField(3)
 
 
+class ClientScope(_messages.Message):
+  r"""Client scope represents the application, etc. subject to this binding's
+  restrictions.
+
+  Fields:
+    restrictedClientApplication: Optional. The application that is subject to
+      this binding's scope.
+  """
+
+  restrictedClientApplication = _messages.MessageField('Application', 1)
+
+
 class CommitServicePerimetersRequest(_messages.Message):
   r"""A request to commit dry-run specs in all Service Perimeters belonging to
   an Access Policy.
@@ -1068,6 +1157,11 @@ class Condition(_messages.Message):
       which does not exist is an error. All access levels listed must be
       granted for the Condition to be true. Example:
       "`accessPolicies/MY_POLICY/accessLevels/LEVEL_NAME"`
+    risk: The request must have acceptable risk profile. Following constraints
+      apply to its use: - It cannot be negated and cannot be nested. - If set,
+      no other attributes can be applied within a Condition. - If set, you may
+      optionally specify a amendable response.
+    unsatisfiedResult: The result to apply if the condition is not met.
     vpcNetworkSources: The request must originate from one of the provided VPC
       networks in Google Cloud. Cannot specify this field together with
       `ip_subnetworks`.
@@ -1079,7 +1173,9 @@ class Condition(_messages.Message):
   negate = _messages.BooleanField(4)
   regions = _messages.StringField(5, repeated=True)
   requiredAccessLevels = _messages.StringField(6, repeated=True)
-  vpcNetworkSources = _messages.MessageField('VpcNetworkSource', 7, repeated=True)
+  risk = _messages.MessageField('Risk', 7)
+  unsatisfiedResult = _messages.MessageField('UnsatisfiedResult', 8)
+  vpcNetworkSources = _messages.MessageField('VpcNetworkSource', 9, repeated=True)
 
 
 class CustomLevel(_messages.Message):
@@ -1184,10 +1280,12 @@ class EgressFrom(_messages.Message):
   Fields:
     identities: A list of identities that are allowed access through
       EgressPolicy. Identities can be an individual user, service account,
-      Google group, or third-party identity. The `v1` identities that have the
-      prefix `user`, `group`, `serviceAccount`, `principal`, and
-      `principalSet` in https://cloud.google.com/iam/docs/principal-
-      identifiers#v1 are supported.
+      Google group, or third-party identity. For third-party identity, only
+      single identities are supported and other identity types are not
+      supported. The `v1` identities that have the prefix `user`, `group`,
+      `serviceAccount`, and `principal` in
+      https://cloud.google.com/iam/docs/principal-identifiers#v1 are
+      supported.
     identityType: Specifies the type of identities that are allowed access to
       outside the perimeter. If left unspecified, then members of `identities`
       field will be allowed access.
@@ -1260,10 +1358,15 @@ class EgressPolicy(_messages.Message):
       EgressPolicy to apply.
     egressTo: Defines the conditions on the ApiOperation and destination
       resources that cause this EgressPolicy to apply.
+    title: Optional. Human-readable title for the egress rule. The title must
+      be unique within the perimeter and can not exceed 100 characters. Within
+      the access policy, the combined length of all rule titles must not
+      exceed 240,000 characters.
   """
 
   egressFrom = _messages.MessageField('EgressFrom', 1)
   egressTo = _messages.MessageField('EgressTo', 2)
+  title = _messages.StringField(3)
 
 
 class EgressSource(_messages.Message):
@@ -1280,9 +1383,14 @@ class EgressSource(_messages.Message):
       origins within the perimeter. Example:
       `accessPolicies/MY_POLICY/accessLevels/MY_LEVEL`. If a single `*` is
       specified for `access_level`, then all EgressSources will be allowed.
+    resource: A Google Cloud resource from the service perimeter that you want
+      to allow to access data outside the perimeter. This field supports only
+      projects. The project format is `projects/{project_number}`. You can't
+      use `*` in this field to allow all Google Cloud resources.
   """
 
   accessLevel = _messages.StringField(1)
+  resource = _messages.StringField(2)
 
 
 class EgressTo(_messages.Message):
@@ -1358,7 +1466,7 @@ class Expr(_messages.Message):
 
 class GcpUserAccessBinding(_messages.Message):
   r"""Restricts access to Cloud Console and Google Cloud APIs for a set of
-  users using Context-Aware Access. Next ID: 9
+  users using Context-Aware Access.
 
   Fields:
     accessLevels: Optional. Access level that a user must have to be granted
@@ -1370,29 +1478,39 @@ class GcpUserAccessBinding(_messages.Message):
       be logged. Only one access level is supported, not multiple. This list
       must have exactly one element. Example:
       "accessPolicies/9522/accessLevels/device_trusted"
-    groupKey: Optional. Immutable. Google Group id whose members are subject
-      to this binding's restrictions. See "id" in the [G Suite Directory API's
-      Groups resource] (https://developers.google.com/admin-
+    groupKey: Optional. Immutable. Google Group id whose users are subject to
+      this binding's restrictions. See "id" in the [Google Workspace Directory
+      API's Group Resource] (https://developers.google.com/admin-
       sdk/directory/v1/reference/groups#resource). If a group's email
       address/alias is changed, this resource will continue to point at the
       changed group. This field does not accept group email addresses or
       aliases. Example: "01d520gv4vjcrht"
-    name: Immutable. Assigned by the server during creation. The last segment
-      has an arbitrary length and has only URI unreserved characters (as
-      defined by [RFC 3986 Section
+    name: Immutable. Identifier. Assigned by the server during creation. The
+      last segment has an arbitrary length and has only URI unreserved
+      characters (as defined by [RFC 3986 Section
       2.3](https://tools.ietf.org/html/rfc3986#section-2.3)). Should not be
       specified by the client during creation. Example:
       "organizations/256/gcpUserAccessBindings/b3-BhcX_Ud5N"
+    principal: Optional. Immutable. The principal that is subject to the
+      access policies in this policy binding.
     restrictedClientApplications: Optional. A list of applications that are
       subject to this binding's restrictions. If the list is empty, the
       binding restrictions will universally apply to all applications.
+    scopedAccessSettings: Optional. A list of scoped access settings that set
+      this binding's restrictions on a subset of applications. This field
+      cannot be set if restricted_client_applications is set.
+    sessionSettings: Optional. The Google Cloud session length (GCSL) policy
+      for the group key.
   """
 
   accessLevels = _messages.StringField(1, repeated=True)
   dryRunAccessLevels = _messages.StringField(2, repeated=True)
   groupKey = _messages.StringField(3)
   name = _messages.StringField(4)
-  restrictedClientApplications = _messages.MessageField('Application', 5, repeated=True)
+  principal = _messages.MessageField('Principal', 5)
+  restrictedClientApplications = _messages.MessageField('Application', 6, repeated=True)
+  scopedAccessSettings = _messages.MessageField('ScopedAccessSettings', 7, repeated=True)
+  sessionSettings = _messages.MessageField('SessionSettings', 8)
 
 
 class GetIamPolicyRequest(_messages.Message):
@@ -1441,10 +1559,12 @@ class IngressFrom(_messages.Message):
   Fields:
     identities: A list of identities that are allowed access through
       IngressPolicy. Identities can be an individual user, service account,
-      Google group, or third-party identity. The `v1` identities that have the
-      prefix `user`, `group`, `serviceAccount`, `principal`, and
-      `principalSet` in https://cloud.google.com/iam/docs/principal-
-      identifiers#v1 are supported.
+      Google group, or third-party identity. For third-party identity, only
+      single identities are supported and other identity types are not
+      supported. The `v1` identities that have the prefix `user`, `group`,
+      `serviceAccount`, and `principal` in
+      https://cloud.google.com/iam/docs/principal-identifiers#v1 are
+      supported.
     identityType: Specifies the type of identities that are allowed access
       from outside the perimeter. If left unspecified, then members of
       `identities` field will be allowed access.
@@ -1492,10 +1612,15 @@ class IngressPolicy(_messages.Message):
       this IngressPolicy to apply.
     ingressTo: Defines the conditions on the ApiOperation and request
       destination that cause this IngressPolicy to apply.
+    title: Optional. Human-readable title for the ingress rule. The title must
+      be unique within the perimeter and can not exceed 100 characters. Within
+      the access policy, the combined length of all rule titles must not
+      exceed 240,000 characters.
   """
 
   ingressFrom = _messages.MessageField('IngressFrom', 1)
   ingressTo = _messages.MessageField('IngressTo', 2)
+  title = _messages.StringField(3)
 
 
 class IngressSource(_messages.Message):
@@ -1640,6 +1765,16 @@ class MethodSelector(_messages.Message):
 
   method = _messages.StringField(1)
   permission = _messages.StringField(2)
+
+
+class Modifier(_messages.Message):
+  r"""Modifier to apply to the API requests.
+
+  Fields:
+    addRequestHeader: Adds additional HTTP request headers.
+  """
+
+  addRequestHeader = _messages.MessageField('AddRequestHeader', 1)
 
 
 class Operation(_messages.Message):
@@ -1871,6 +2006,30 @@ class Policy(_messages.Message):
   version = _messages.IntegerField(4, variant=_messages.Variant.INT32)
 
 
+class Principal(_messages.Message):
+  r"""The comprehensive identity container supporting all 1p and 3p
+  identities. Only one of them can be set to create an access binding. Next
+  ID: 5
+
+  Fields:
+    federatedPrincipal: Immutable. IAM federated principal name to assign
+      policies to workforce/workload federated identities. Can be principal
+      set or single principal, here are some examples: Single principal: princ
+      ipal://iam.googleapis.com/projects/{project_number}/locations/global/wor
+      kloadIdentityPools/{pool_id}/subject/{subject_attribute_value}
+      PrincipalSet: principalSet://iam.googleapis.com/projects/{project_number
+      }/locations/global/workloadIdentityPools/{pool_id}/*
+    serviceAccount: Immutable. Service account email used to assign policies
+      to a single 1p service account.
+    serviceAccountProjectNumber: Immutable. Project number used to assign
+      policies to all service accounts in a Google Cloud project.
+  """
+
+  federatedPrincipal = _messages.StringField(1)
+  serviceAccount = _messages.StringField(2)
+  serviceAccountProjectNumber = _messages.StringField(3)
+
+
 class ReplaceAccessLevelsRequest(_messages.Message):
   r"""A request to replace all existing Access Levels in an Access Policy with
   the Access Levels provided. This is done atomically.
@@ -1933,6 +2092,73 @@ class ReplaceServicePerimetersResponse(_messages.Message):
   servicePerimeters = _messages.MessageField('ServicePerimeter', 1, repeated=True)
 
 
+class Risk(_messages.Message):
+  r"""Risk-based access level.
+
+  Fields:
+    userManagedRisk: The user managed risk associated with the access level.
+  """
+
+  userManagedRisk = _messages.MessageField('UserManagedRisk', 1)
+
+
+class RiskType(_messages.Message):
+  r"""The type of the risk used to calculate the access level risk score.
+
+  Fields:
+    atypicalLocation: The request is from an identity that has issued requests
+      from atypical locations.
+    identityReputation: The request is from an identity that has a low
+      reputation (e.g. due to dormancy).
+    maliciousActivity: The request is from an identity that has performed
+      potentially malicious activity (e.g. mass deletion of backups).
+    maliciousSource: The request is associated with signals (e.g. network)
+      that indicate a malicious source.
+    repeatAction: The request is from an identity that has issued repeated,
+      suspicious requests (e.g. too many requests with permission denied).
+  """
+
+  atypicalLocation = _messages.BooleanField(1)
+  identityReputation = _messages.BooleanField(2)
+  maliciousActivity = _messages.BooleanField(3)
+  maliciousSource = _messages.BooleanField(4)
+  repeatAction = _messages.BooleanField(5)
+
+
+class ScopedAccessSettings(_messages.Message):
+  r"""A relationship between access settings and its scope.
+
+  Fields:
+    activeSettings: Optional. Access settings for this scoped access settings.
+      This field may be empty if dry_run_settings is set.
+    dryRunSettings: Optional. Dry-run access settings for this scoped access
+      settings. This field may be empty if active_settings is set.
+    scope: Optional. Application, etc. to which the access settings will be
+      applied to. Implicitly, this is the scoped access settings key; as such,
+      it must be unique and non-empty.
+  """
+
+  activeSettings = _messages.MessageField('AccessSettings', 1)
+  dryRunSettings = _messages.MessageField('AccessSettings', 2)
+  scope = _messages.MessageField('AccessScope', 3)
+
+
+class ServicePattern(_messages.Message):
+  r"""Service patterns used to allow access.
+
+  Fields:
+    modifiers: Modifiers to apply to the requests that match the URL pattern.
+    pattern: URL pattern to allow. Only patterns of ".googleapis.com/*",
+      "www.googleapis.com//*" and "*.appspot.com/* form are supported, where
+      should be alphanumerical name.
+    service: Supported service to allow.
+  """
+
+  modifiers = _messages.MessageField('Modifier', 1, repeated=True)
+  pattern = _messages.StringField(2)
+  service = _messages.StringField(3)
+
+
 class ServicePerimeter(_messages.Message):
   r"""`ServicePerimeter` describes a set of Google Cloud resources which can
   freely import and export data amongst themselves, but not export outside of
@@ -1956,7 +2182,11 @@ class ServicePerimeter(_messages.Message):
   Fields:
     description: Description of the `ServicePerimeter` and its use. Does not
       affect behavior.
-    name: Required. Resource name for the `ServicePerimeter`. Format:
+    etag: Optional. An opaque identifier for the current version of the
+      `ServicePerimeter`. This identifier does not follow any specific format.
+      If an etag is not provided, the operation will be performed as if a
+      valid etag is provided.
+    name: Identifier. Resource name for the `ServicePerimeter`. Format:
       `accessPolicies/{access_policy}/servicePerimeters/{service_perimeter}`.
       The `service_perimeter` component must begin with a letter, followed by
       alphanumeric characters or `_`. After you create a `ServicePerimeter`,
@@ -2005,12 +2235,13 @@ class ServicePerimeter(_messages.Message):
     PERIMETER_TYPE_BRIDGE = 1
 
   description = _messages.StringField(1)
-  name = _messages.StringField(2)
-  perimeterType = _messages.EnumField('PerimeterTypeValueValuesEnum', 3)
-  spec = _messages.MessageField('ServicePerimeterConfig', 4)
-  status = _messages.MessageField('ServicePerimeterConfig', 5)
-  title = _messages.StringField(6)
-  useExplicitDryRunSpec = _messages.BooleanField(7)
+  etag = _messages.StringField(2)
+  name = _messages.StringField(3)
+  perimeterType = _messages.EnumField('PerimeterTypeValueValuesEnum', 4)
+  spec = _messages.MessageField('ServicePerimeterConfig', 5)
+  status = _messages.MessageField('ServicePerimeterConfig', 6)
+  title = _messages.StringField(7)
+  useExplicitDryRunSpec = _messages.BooleanField(8)
 
 
 class ServicePerimeterConfig(_messages.Message):
@@ -2036,7 +2267,7 @@ class ServicePerimeterConfig(_messages.Message):
       separately. Access is granted if any Ingress Policy grants it. Must be
       empty for a perimeter bridge.
     resources: A list Google Cloud resources that are inside of the service
-      perimeter. Only projects and VPCs are allowed. Project format:
+      perimeter. Only projects, VPCs are allowed. Project format:
       `projects/{project_number}`. VPC network format: `//compute.googleapis.c
       om/projects/{PROJECT_ID}/global/networks/{NETWORK_NAME}`.
     restrictedServices: Google Cloud services that are subject to the Service
@@ -2052,6 +2283,61 @@ class ServicePerimeterConfig(_messages.Message):
   resources = _messages.StringField(4, repeated=True)
   restrictedServices = _messages.StringField(5, repeated=True)
   vpcAccessibleServices = _messages.MessageField('VpcAccessibleServices', 6)
+
+
+class SessionSettings(_messages.Message):
+  r"""Stores settings related to Google Cloud Session Length including session
+  duration, the type of challenge (i.e. method) they should face when their
+  session expires, and other related settings.
+
+  Enums:
+    SessionReauthMethodValueValuesEnum: Optional. Session method when user's
+      Google Cloud session is up.
+
+  Fields:
+    maxInactivity: Optional. How long a user is allowed to take between
+      actions before a new access token must be issued. Only set for Google
+      Cloud apps.
+    sessionLength: Optional. The session length. Setting this field to zero is
+      equal to disabling reauth. Also can set infinite session by flipping the
+      enabled bit to false below. If use_oidc_max_age is true, for OIDC apps,
+      the session length will be the minimum of this field and OIDC max_age
+      param.
+    sessionLengthEnabled: Optional. This field enables or disables Google
+      Cloud session length. When false, all fields set above will be
+      disregarded and the session length is basically infinite.
+    sessionReauthMethod: Optional. Session method when user's Google Cloud
+      session is up.
+    useOidcMaxAge: Optional. Only useful for OIDC apps. When false, the OIDC
+      max_age param, if passed in the authentication request will be ignored.
+      When true, the re-auth period will be the minimum of the session_length
+      field and the max_age OIDC param.
+  """
+
+  class SessionReauthMethodValueValuesEnum(_messages.Enum):
+    r"""Optional. Session method when user's Google Cloud session is up.
+
+    Values:
+      SESSION_REAUTH_METHOD_UNSPECIFIED: If method is undefined in the API,
+        LOGIN will be used by default.
+      LOGIN: The user will be prompted to perform regular login. Users who are
+        enrolled for two-step verification and haven't chosen "Remember this
+        computer" will be prompted for their second factor.
+      SECURITY_KEY: The user will be prompted to authenticate using their
+        security key. If no security key has been configured, then
+        authentication will fallback to LOGIN.
+      PASSWORD: The user will be prompted for their password.
+    """
+    SESSION_REAUTH_METHOD_UNSPECIFIED = 0
+    LOGIN = 1
+    SECURITY_KEY = 2
+    PASSWORD = 3
+
+  maxInactivity = _messages.StringField(1)
+  sessionLength = _messages.StringField(2)
+  sessionLengthEnabled = _messages.BooleanField(3)
+  sessionReauthMethod = _messages.EnumField('SessionReauthMethodValueValuesEnum', 4)
+  useOidcMaxAge = _messages.BooleanField(5)
 
 
 class SetIamPolicyRequest(_messages.Message):
@@ -2190,6 +2476,7 @@ class SupportedService(_messages.Message):
   properties.
 
   Enums:
+    ServiceSupportStageValueValuesEnum: The support stage of the service.
     SupportStageValueValuesEnum: The support stage of the service.
 
   Fields:
@@ -2202,11 +2489,29 @@ class SupportedService(_messages.Message):
       controls/docs/supported-products) for details.
     name: The service name/address of the supported service, such as
       'service.googleapis.com'
+    serviceSupportStage: The support stage of the service.
     supportStage: The support stage of the service.
     supportedMethods: The list of the supported methods. This field exists
       only in response to GetSupportedService
     title: The name of the supported product, such as 'Cloud Product API'.
   """
+
+  class ServiceSupportStageValueValuesEnum(_messages.Enum):
+    r"""The support stage of the service.
+
+    Values:
+      SERVICE_SUPPORT_STAGE_UNSPECIFIED: Do not use this default value.
+      GA: GA features are open to all developers and are considered stable and
+        fully qualified for production use.
+      PREVIEW: PREVIEW indicates a pre-release stage where the product is
+        functionally complete but undergoing real-world testing.
+      DEPRECATED: Deprecated features are scheduled to be shut down and
+        removed.
+    """
+    SERVICE_SUPPORT_STAGE_UNSPECIFIED = 0
+    GA = 1
+    PREVIEW = 2
+    DEPRECATED = 3
 
   class SupportStageValueValuesEnum(_messages.Enum):
     r"""The support stage of the service.
@@ -2255,9 +2560,10 @@ class SupportedService(_messages.Message):
   availableOnRestrictedVip = _messages.BooleanField(1)
   knownLimitations = _messages.BooleanField(2)
   name = _messages.StringField(3)
-  supportStage = _messages.EnumField('SupportStageValueValuesEnum', 4)
-  supportedMethods = _messages.MessageField('MethodSelector', 5, repeated=True)
-  title = _messages.StringField(6)
+  serviceSupportStage = _messages.EnumField('ServiceSupportStageValueValuesEnum', 4)
+  supportStage = _messages.EnumField('SupportStageValueValuesEnum', 5)
+  supportedMethods = _messages.MessageField('MethodSelector', 6, repeated=True)
+  title = _messages.StringField(7)
 
 
 class TestIamPermissionsRequest(_messages.Message):
@@ -2284,11 +2590,58 @@ class TestIamPermissionsResponse(_messages.Message):
   permissions = _messages.StringField(1, repeated=True)
 
 
+class UnsatisfiedResult(_messages.Message):
+  r"""The result to apply if the condition is not met. By default, the result
+  is deny.
+
+  Enums:
+    ResultTypeValueValuesEnum: The type of result to apply if the condition is
+      not met.
+
+  Fields:
+    amendments: List of amendments to apply if the condition is not met. If
+      ALL amendments are satisfied, the condition is as well. For example, a
+      successful user reauthentication may resolve a failing risk condition. -
+      It applies only when result_type == AMENDABLE. - Only a single amendment
+      i.e. "responses.reauthRequired" is allowed today.
+    resultType: The type of result to apply if the condition is not met.
+  """
+
+  class ResultTypeValueValuesEnum(_messages.Enum):
+    r"""The type of result to apply if the condition is not met.
+
+    Values:
+      DENY: Default type of result.
+      AMENDABLE: The result is amendable. Currently, the only supported
+        amendable is reauth.
+    """
+    DENY = 0
+    AMENDABLE = 1
+
+  amendments = _messages.StringField(1, repeated=True)
+  resultType = _messages.EnumField('ResultTypeValueValuesEnum', 2)
+
+
+class UserManagedRisk(_messages.Message):
+  r"""User managed risk associated with the access level.
+
+  Fields:
+    riskType: The type of the risks associated with the access level.
+  """
+
+  riskType = _messages.MessageField('RiskType', 1)
+
+
 class VpcAccessibleServices(_messages.Message):
   r"""Specifies how APIs are allowed to communicate within the Service
   Perimeter.
 
+  Enums:
+    ServicePatternsEnforcementScopesValueListEntryValuesEnum:
+
   Fields:
+    allowedServicePatterns: Specifies which Google services are allowed to be
+      accessed from VPC networks in the service perimeter.
     allowedServices: The list of APIs usable within the Service Perimeter.
       Must be empty unless 'enable_restriction' is True. You can specify a
       list of individual services, as well as include the 'RESTRICTED-
@@ -2296,10 +2649,28 @@ class VpcAccessibleServices(_messages.Message):
       protected by the perimeter.
     enableRestriction: Whether to restrict API calls within the Service
       Perimeter to the list of APIs specified in 'allowed_services'.
+    servicePatternsEnforcementScopes: Defines the enforcement scopes of
+      service patterns.
   """
 
-  allowedServices = _messages.StringField(1, repeated=True)
-  enableRestriction = _messages.BooleanField(2)
+  class ServicePatternsEnforcementScopesValueListEntryValuesEnum(_messages.Enum):
+    r"""ServicePatternsEnforcementScopesValueListEntryValuesEnum enum type.
+
+    Values:
+      SERVICE_PATTERNS_ENFORCEMENT_SCOPE_UNSPECIFIED: Default value. This can
+        not be used.
+      GOOGLE_APIS_VIA_PRIVATE_PATH: Enables VPC Accessible Services
+        enforcement for all APIs (including unsupported APIs) for Private
+        Google Access configured with Private VIP and Private Service Connect
+        Endpoint for Global Google APIs that uses 'all-apis' bundle.
+    """
+    SERVICE_PATTERNS_ENFORCEMENT_SCOPE_UNSPECIFIED = 0
+    GOOGLE_APIS_VIA_PRIVATE_PATH = 1
+
+  allowedServicePatterns = _messages.MessageField('ServicePattern', 1, repeated=True)
+  allowedServices = _messages.StringField(2, repeated=True)
+  enableRestriction = _messages.BooleanField(3)
+  servicePatternsEnforcementScopes = _messages.EnumField('ServicePatternsEnforcementScopesValueListEntryValuesEnum', 4, repeated=True)
 
 
 class VpcNetworkSource(_messages.Message):

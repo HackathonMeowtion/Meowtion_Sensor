@@ -17,6 +17,7 @@
 from googlecloudsdk.calliope.concepts import concepts
 from googlecloudsdk.calliope.concepts import deps
 from googlecloudsdk.core import properties
+from googlecloudsdk.core import resources
 
 
 def GetProject(args):
@@ -26,6 +27,16 @@ def GetProject(args):
 def GetLocation(args):
   return args.location or properties.VALUES.config_delivery.location.Get(
       required=True
+  )
+
+
+def AddLessFlag(parser):
+  parser.add_argument(
+      '--less',
+      required=False,
+      default=False,
+      action='store_true',
+      help='Show less verbose output.',
   )
 
 
@@ -50,7 +61,7 @@ def AddFleetPackageFlag(parser):
 def AddSourceFlag(parser):
   parser.add_argument(
       '--source',
-      required=False,
+      required=True,
       help='Source file containing Fleet Package configuration.',
   )
 
@@ -73,9 +84,46 @@ def AddResourceBundleFlag(parser):
   )
 
 
+def AddSkipCreatingVariantResourcesFlag(parser):
+  parser.add_argument(
+      '--skip-creating-variant-resources',
+      required=False,
+      help='Whether to opt-in to the alternate variant upload flow.',
+      default=False,
+      hidden=True,
+      action='store_true',
+  )
+
+
+def AddForceDeleteFlag(parser, resource_name):
+  parser.add_argument(
+      '--force',
+      required=False,
+      default=False,
+      action='store_true',
+      help=(
+          'If true, force deletion of any child resources. Otherwise,'
+          f' attempting to delete a {resource_name} with children will fail.'
+      ),
+  )
+
+
 def AddLifecycleFlag(parser):
   parser.add_argument(
       '--lifecycle', required=False, help='Lifecycle of the Release.'
+  )
+
+
+def AddVariantsPatternFlag(parser):
+  parser.add_argument(
+      '--variants-pattern',
+      required=False,
+      default='*',  # default to include all files in the provided directory.
+      help="""Glob pattern to Variants of the Release, to be paired with the
+        ``--source'' arg.
+        ex: --source=/manifests-dir/ --variants-pattern=```**```,
+            --source=/manifests-dir/ --variants-pattern=us-```*```.yaml,
+            --source=/manifests/dir/ --variants-pattern=```*/*```.yaml""",
   )
 
 
@@ -109,14 +157,6 @@ def RolloutAttributeConfig():
   )
 
 
-def GetLocationResourceSpec():
-  return concepts.ResourceSpec(
-      'configdelivery.projects.locations',
-      resource_name='location',
-      projectsId=ProjectAttributeConfig(),
-  )
-
-
 def GetFleetPackageResourceSpec():
   return concepts.ResourceSpec(
       'configdelivery.projects.locations.fleetPackages',
@@ -136,3 +176,21 @@ def GetRolloutResourceSpec():
       locationsId=LocationAttributeConfig(),
       projectsId=ProjectAttributeConfig(),
   )
+
+
+def AddUriFlags(parser, collection, api_version):
+  """Adds `--uri` flag to the parser object for list commands.
+
+  Args:
+    parser: The argparse parser.
+    collection: str, The resource collection name.
+    api_version: str, The API version to use.
+  """
+
+  def _GetResourceUri(resource):
+    resource_relative_name = resources.REGISTRY.ParseRelativeName(
+        resource.name, collection=collection, api_version=api_version
+    )
+    return resource_relative_name.SelfLink()
+
+  parser.display_info.AddUriFunc(_GetResourceUri)

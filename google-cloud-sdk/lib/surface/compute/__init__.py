@@ -41,6 +41,7 @@ DETAILED_HELP = {
 }
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA, base.ReleaseTrack.BETA,
                     base.ReleaseTrack.ALPHA)
 class Compute(base.Group):
@@ -62,3 +63,9 @@ class Compute(base.Group):
     self.EnableSelfSignedJwtForTracks(
         [base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA]
     )
+
+
+@base.Hidden
+@base.ReleaseTracks(base.ReleaseTrack.PREVIEW)
+class ComputePreview(Compute):
+  """A hidden group."""

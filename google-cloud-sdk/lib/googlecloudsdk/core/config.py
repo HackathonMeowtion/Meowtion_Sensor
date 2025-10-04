@@ -498,10 +498,15 @@ class SqliteConfigStore(object):
 
     Returns:
       The JSON value for this attribute or None.
+
+    Raises:
+      sqlite3.DataError: if the attribute value is None.
     """
     attr_value = self._LoadAttribute(config_attr, required)
     if attr_value is None:
-      return None
+      raise sqlite3.DataError(
+          'The attribute [{attr}] is not set.'.format(attr=config_attr)
+      )
     try:
       return json.loads(attr_value)
     except ValueError:
@@ -534,33 +539,40 @@ class SqliteConfigStore(object):
     except OSError as e:
       logging.warning('Could not delete config from cache: %s', str(e))
 
-  def _DeleteAttribute(self, config_attr: str):
-    """Deletes a specified attribute from the config."""
-    try:
-      self._Execute(
-          'DELETE FROM config WHERE config_attr = ?',
-          (config_attr,),
-      )
-      # Check if deletion itself was successful
-      with self._cursor as cur:
-        if cur.RowCount() < 1:
-          logging.warning(
-              'Could not delete attribute [%s] from cache in config store'
-              ' [%s].',
-              config_attr,
-              self._config_name,
-          )
+  def _DeleteAttribute(self, config_attr: str) -> bool:
+    """Deletes a specified attribute from the config.
 
-    except sqlite3.OperationalError as e:
-      logging.warning(
-          'Could not delete attribute [%s] from cache: %s',
-          config_attr,
-          str(e),
-      )
+    Args:
+      config_attr: string, the primary key of the attribute to delete.
 
-  def Remove(self, config_attr):
-    """Removes an attribute from the config."""
-    self._DeleteAttribute(config_attr)
+    Returns:
+      Whether the attribute was successfully deleted.
+
+    Raises:
+      sqlite3.OperationalError: if the attribute could not be deleted.
+    """
+    self._Execute(
+        'DELETE FROM config WHERE config_attr = ?',
+        (config_attr,),
+    )
+    # Check if deletion itself was successful
+    if self._cursor.RowCount() < 1:
+      raise sqlite3.OperationalError(
+          'Could not delete attribute [%s] from config store [%s].'
+          % (config_attr, self._config_name)
+      )
+    return True
+
+  def Remove(self, config_attr: str) -> bool:
+    """Removes an attribute from the config.
+
+    Args:
+      config_attr: string, the primary key of the attribute to remove.
+
+    Returns:
+      Whether the attribute was successfully removed.
+    """
+    return self._DeleteAttribute(config_attr)
 
 
 def _GetSqliteStore(config_name) -> SqliteConfigStore:
@@ -691,15 +703,6 @@ class Paths(object):
       str, The path to the file.
     """
     return os.path.join(self.global_config_dir, '.metricsUUID')
-
-  @property
-  def feature_flags_config_path(self):
-    """Gets the path to the file to store the cached feature flags config file.
-
-    Returns:
-      str, The path to the file.
-    """
-    return os.path.join(self.global_config_dir, '.feature_flags_config.yaml')
 
   @property
   def update_check_cache_path(self):

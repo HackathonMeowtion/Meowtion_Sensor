@@ -92,7 +92,7 @@ def replace_autoclass_value_with_prefixed_time(bucket_resource,
 def replace_bucket_values_with_present_string(bucket_resource):
   """Updates fields with complex data to a simple 'Present' string."""
   for field in _BUCKET_FIELDS_WITH_PRESENT_VALUE:
-    value = getattr(bucket_resource, field)
+    value = getattr(bucket_resource, field, None)
     if value and not isinstance(value, errors.CloudApiError):
       setattr(bucket_resource, field, PRESENT_STRING)
 
@@ -139,5 +139,8 @@ def reformat_custom_fields_for_gsutil(object_resource):
   metadata_lines = []
   for k, v in iterable_metadata:
     metadata_lines.append(
-        resource_util.get_padded_metadata_key_value_line(k, v, extra_indent=2))
+        resource_util.get_gsutil_padded_object_metadata_key_value_line(
+            k, v, indent=2
+        )
+    )
   object_resource.custom_fields = '\n' + '\n'.join(metadata_lines)

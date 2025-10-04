@@ -15,10 +15,6 @@
 
 """services enable command."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 from googlecloudsdk.api_lib.services import services_util
 from googlecloudsdk.api_lib.services import serviceusage
 from googlecloudsdk.calliope import base
@@ -106,6 +102,7 @@ _DETAILED_HELP = {
 
 
 # TODO(b/321801975) make command public after preview.
+@base.UniverseCompatible
 @base.Hidden
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
 class EnableAlpha(base.SilentCommand):
@@ -122,7 +119,8 @@ class EnableAlpha(base.SilentCommand):
     common_flags.available_service_flag(suffix='to enable').AddToParser(parser)
     common_flags.add_resource_args(parser)
     base.ASYNC_FLAG.AddToParser(parser)
-    common_flags.validate_only_args(parser)
+    common_flags.validate_only_args(parser, suffix='enable')
+    common_flags.skip_dependency_flag(parser)
 
   def Run(self, args):
     """Run 'services enable'.
@@ -134,18 +132,15 @@ class EnableAlpha(base.SilentCommand):
     Returns:
       Nothing.
     """
-    if args.IsSpecified('project'):
-      project = args.project
-    else:
-      project = properties.VALUES.core.project.Get(required=True)
-    if args.IsSpecified('folder'):
-      folder = args.folder
-    else:
-      folder = None
-    if args.IsSpecified('organization'):
-      organization = args.organization
-    else:
-      organization = None
+    project = (
+        args.project
+        if args.IsSpecified('project')
+        else properties.VALUES.core.project.Get(required=True)
+    )
+    folder = args.folder if args.IsSpecified('folder') else None
+    organization = (
+        args.organization if args.IsSpecified('organization') else None
+    )
 
     op = serviceusage.AddEnableRule(
         args.service,
@@ -153,16 +148,22 @@ class EnableAlpha(base.SilentCommand):
         folder=folder,
         organization=organization,
         validate_only=args.validate_only,
+        skip_dependency=args.skip_dependency,
     )
-    if not args.validate_only:
-      if args.async_:
-        cmd = _OP_WAIT_CMD.format(op.name)
-        log.status.Print(
-            'Asynchronous operation is in progress... '
-            'Use the following command to wait for its '
-            'completion:\n {0}'.format(cmd)
-        )
-    log.status.Print('Operation finished successfully')
+
+    if args.async_:
+      cmd = _OP_WAIT_CMD.format(op.name)
+      log.status.Print(
+          'Asynchronous operation is in progress... '
+          'Use the following command to wait for its '
+          f'completion:\n {cmd}'
+      )
+      return
+    op = services_util.WaitOperation(op.name, serviceusage.GetOperationV2Beta)
+    if args.validate_only:
+      services_util.PrintOperation(op)
+    else:
+      services_util.PrintOperationWithResponse(op)
 
 EnableAlpha.detailed_help = _DETAILED_HELP_ALPHA
 
@@ -202,9 +203,11 @@ class Enable(base.SilentCommand):
       return
     if args.async_:
       cmd = _OP_WAIT_CMD.format(op.name)
-      log.status.Print('Asynchronous operation is in progress... '
-                       'Use the following command to wait for its '
-                       'completion:\n {0}'.format(cmd))
+      log.status.Print(
+          'Asynchronous operation is in progress... '
+          'Use the following command to wait for its '
+          f'completion:\n {cmd}'
+      )
       return
     op = services_util.WaitOperation(op.name, serviceusage.GetOperation)
     services_util.PrintOperation(op)

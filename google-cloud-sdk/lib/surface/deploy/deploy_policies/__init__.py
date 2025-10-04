@@ -14,15 +14,14 @@
 # limitations under the License.
 """The Deploy Policy command group for Google Cloud Deploy."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from googlecloudsdk.calliope import base
 
 
-@base.Hidden
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.ReleaseTracks(
+    base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA, base.ReleaseTrack.GA
+)
+@base.DefaultUniverseOnly
 class DeployPolicies(base.Group):
   """Create and manage Deploy Policy resources for Google Cloud Deploy."""
 

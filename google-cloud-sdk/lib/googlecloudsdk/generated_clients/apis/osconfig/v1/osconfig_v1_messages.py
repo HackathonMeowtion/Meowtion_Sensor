@@ -491,6 +491,60 @@ class GoogleCloudOsconfigV1OSPolicyAssignmentOperationMetadata(_messages.Message
   rolloutUpdateTime = _messages.StringField(5)
 
 
+class GoogleCloudOsconfigV2OperationMetadata(_messages.Message):
+  r"""Represents the metadata of the long-running operation.
+
+  Fields:
+    apiVersion: Output only. API version used to start the operation.
+    createTime: Output only. The time the operation was created.
+    endTime: Output only. The time the operation finished running.
+    requestedCancellation: Output only. Identifies whether the user has
+      requested cancellation of the operation. Operations that have been
+      cancelled successfully have Operation.error value with a
+      google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+    statusMessage: Output only. Human-readable status of the operation, if
+      any.
+    target: Output only. Server-defined resource path for the target of the
+      operation.
+    verb: Output only. Name of the verb executed by the operation.
+  """
+
+  apiVersion = _messages.StringField(1)
+  createTime = _messages.StringField(2)
+  endTime = _messages.StringField(3)
+  requestedCancellation = _messages.BooleanField(4)
+  statusMessage = _messages.StringField(5)
+  target = _messages.StringField(6)
+  verb = _messages.StringField(7)
+
+
+class GoogleCloudOsconfigV2betaOperationMetadata(_messages.Message):
+  r"""Represents the metadata of the long-running operation.
+
+  Fields:
+    apiVersion: Output only. API version used to start the operation.
+    createTime: Output only. The time the operation was created.
+    endTime: Output only. The time the operation finished running.
+    requestedCancellation: Output only. Identifies whether the user has
+      requested cancellation of the operation. Operations that have been
+      cancelled successfully have Operation.error value with a
+      google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+    statusMessage: Output only. Human-readable status of the operation, if
+      any.
+    target: Output only. Server-defined resource path for the target of the
+      operation.
+    verb: Output only. Name of the verb executed by the operation.
+  """
+
+  apiVersion = _messages.StringField(1)
+  createTime = _messages.StringField(2)
+  endTime = _messages.StringField(3)
+  requestedCancellation = _messages.BooleanField(4)
+  statusMessage = _messages.StringField(5)
+  target = _messages.StringField(6)
+  verb = _messages.StringField(7)
+
+
 class Inventory(_messages.Message):
   r"""This API resource represents the available inventory data for a Compute
   Engine virtual machine (VM) instance at a given point in time. You can use
@@ -584,7 +638,7 @@ class InventoryItem(_messages.Message):
     r"""The specific type of inventory, correlating to its specific details.
 
     Values:
-      TYPE_UNSPECIFIED: Invalid. An type must be specified.
+      TYPE_UNSPECIFIED: Invalid. A type must be specified.
       INSTALLED_PACKAGE: This represents a package that is installed on the
         VM.
       AVAILABLE_PACKAGE: This represents an update that is available for a
@@ -893,6 +947,20 @@ class ListVulnerabilityReportsResponse(_messages.Message):
 
   nextPageToken = _messages.StringField(1)
   vulnerabilityReports = _messages.MessageField('VulnerabilityReport', 2, repeated=True)
+
+
+class MessageSet(_messages.Message):
+  r"""This is proto2's version of MessageSet. DEPRECATED: DO NOT USE FOR NEW
+  FIELDS. If you are using editions or proto2, please make your own extendable
+  messages for your use case. If you are using proto3, please use `Any`
+  instead. MessageSet was the implementation of extensions for proto1. When
+  proto2 was introduced, extensions were implemented as a first-class feature.
+  This schema for MessageSet was meant to be a "bridge" solution to migrate
+  MessageSet-bearing messages from proto1 to proto2. This schema has been
+  open-sourced only to facilitate the migration of Google products with
+  MessageSet-bearing messages to open-source environments.
+  """
+
 
 
 class MonthlySchedule(_messages.Message):
@@ -1234,7 +1302,10 @@ class OSPolicyAssignmentReportOSPolicyCompliance(_messages.Message):
       policy. Instead, the agent unexpectedly started working on a different
       task. This mostly happens when the agent or VM unexpectedly restarts
       while applying OS policies. * `internal-service-errors`: Internal
-      service errors were encountered while attempting to apply the policy.
+      service errors were encountered while attempting to apply the policy. *
+      `os-policy-execution-pending`: OS policy was assigned to the given VM,
+      but was not executed yet. Typically this is a transient condition that
+      will go away after the next policy execution cycle.
     osPolicyId: The OS policy id
     osPolicyResourceCompliances: Compliance data for each resource within the
       policy that is applied to the VM.
@@ -1279,7 +1350,9 @@ class OSPolicyAssignmentReportOSPolicyComplianceOSPolicyResourceCompliance(_mess
       skipped by the agent because errors were encountered while executing
       prior resources in the OS policy. * `os-policy-execution-attempt-
       failed`: The execution of the OS policy containing this resource failed
-      and the compliance state couldn't be determined.
+      and the compliance state couldn't be determined. * `os-policy-execution-
+      pending`: OS policy that owns this resource was assigned to the given
+      VM, but was not executed yet.
     configSteps: Ordered list of configuration completed by the agent for the
       OS policy resource.
     execResourceOutput: ExecResource specific output.
@@ -1465,7 +1538,7 @@ class OSPolicyResourceExecResourceExec(_messages.Message):
       (that is created by this Exec) whose content will be recorded in
       OSPolicyResourceCompliance after a successful run. Absence or failure to
       read this file will result in this ExecResource being non-compliant.
-      Output file size is limited to 100K bytes.
+      Output file size is limited to 500K bytes.
     script: An inline script. The size of the script is limited to 32KiB.
   """
 
@@ -2187,11 +2260,15 @@ class OsconfigProjectsLocationsOsPolicyAssignmentsCreateRequest(_messages.Messag
     parent: Required. The parent resource name in the form:
       projects/{project}/locations/{location}. Note: Specify the zone of your
       VMs as the location.
+    requestId: Optional. A unique identifier for this request. Restricted to
+      36 ASCII characters. A random UUID is recommended. This request is only
+      idempotent if a `request_id` is provided.
   """
 
   oSPolicyAssignment = _messages.MessageField('OSPolicyAssignment', 1)
   osPolicyAssignmentId = _messages.StringField(2)
   parent = _messages.StringField(3, required=True)
+  requestId = _messages.StringField(4)
 
 
 class OsconfigProjectsLocationsOsPolicyAssignmentsDeleteRequest(_messages.Message):
@@ -2199,9 +2276,13 @@ class OsconfigProjectsLocationsOsPolicyAssignmentsDeleteRequest(_messages.Messag
 
   Fields:
     name: Required. The name of the OS policy assignment to be deleted
+    requestId: Optional. A unique identifier for this request. Restricted to
+      36 ASCII characters. A random UUID is recommended. This request is only
+      idempotent if a `request_id` is provided.
   """
 
   name = _messages.StringField(1, required=True)
+  requestId = _messages.StringField(2)
 
 
 class OsconfigProjectsLocationsOsPolicyAssignmentsGetRequest(_messages.Message):
@@ -2279,18 +2360,26 @@ class OsconfigProjectsLocationsOsPolicyAssignmentsPatchRequest(_messages.Message
   r"""A OsconfigProjectsLocationsOsPolicyAssignmentsPatchRequest object.
 
   Fields:
+    allowMissing: Optional. If set to true, and the OS policy assignment is
+      not found, a new OS policy assignment will be created. In this
+      situation, `update_mask` is ignored.
     name: Resource name. Format: `projects/{project_number}/locations/{locatio
       n}/osPolicyAssignments/{os_policy_assignment_id}` This field is ignored
       when you create an OS policy assignment.
     oSPolicyAssignment: A OSPolicyAssignment resource to be passed as the
       request body.
+    requestId: Optional. A unique identifier for this request. Restricted to
+      36 ASCII characters. A random UUID is recommended. This request is only
+      idempotent if a `request_id` is provided.
     updateMask: Optional. Field mask that controls which fields of the
       assignment should be updated.
   """
 
-  name = _messages.StringField(1, required=True)
-  oSPolicyAssignment = _messages.MessageField('OSPolicyAssignment', 2)
-  updateMask = _messages.StringField(3)
+  allowMissing = _messages.BooleanField(1)
+  name = _messages.StringField(2, required=True)
+  oSPolicyAssignment = _messages.MessageField('OSPolicyAssignment', 3)
+  requestId = _messages.StringField(4)
+  updateMask = _messages.StringField(5)
 
 
 class OsconfigProjectsPatchDeploymentsCreateRequest(_messages.Message):
@@ -3124,19 +3213,49 @@ class Status(_messages.Message):
   message = _messages.StringField(3)
 
 
+class StatusProto(_messages.Message):
+  r"""Wire-format for a Status object
+
+  Fields:
+    canonicalCode: copybara:strip_begin(b/383363683)
+      copybara:strip_end_and_replace optional int32 canonical_code = 6;
+    code: Numeric code drawn from the space specified below. Often, this is
+      the canonical error space, and code is drawn from
+      google3/util/task/codes.proto copybara:strip_begin(b/383363683)
+      copybara:strip_end_and_replace optional int32 code = 1;
+    message: Detail message copybara:strip_begin(b/383363683)
+      copybara:strip_end_and_replace optional string message = 3;
+    messageSet: message_set associates an arbitrary proto message with the
+      status. copybara:strip_begin(b/383363683) copybara:strip_end_and_replace
+      optional proto2.bridge.MessageSet message_set = 5;
+    space: copybara:strip_begin(b/383363683) Space to which this status
+      belongs copybara:strip_end_and_replace optional string space = 2; //
+      Space to which this status belongs
+  """
+
+  canonicalCode = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  code = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  message = _messages.StringField(3)
+  messageSet = _messages.MessageField('MessageSet', 4)
+  space = _messages.StringField(5)
+
+
 class TimeOfDay(_messages.Message):
   r"""Represents a time of day. The date and time zone are either not
   significant or are specified elsewhere. An API may choose to allow leap
   seconds. Related types are google.type.Date and `google.protobuf.Timestamp`.
 
   Fields:
-    hours: Hours of day in 24 hour format. Should be from 0 to 23. An API may
-      choose to allow the value "24:00:00" for scenarios like business closing
-      time.
-    minutes: Minutes of hour of day. Must be from 0 to 59.
-    nanos: Fractions of seconds in nanoseconds. Must be from 0 to 999,999,999.
-    seconds: Seconds of minutes of the time. Must normally be from 0 to 59. An
-      API may allow the value 60 if it allows leap-seconds.
+    hours: Hours of a day in 24 hour format. Must be greater than or equal to
+      0 and typically must be less than or equal to 23. An API may choose to
+      allow the value "24:00:00" for scenarios like business closing time.
+    minutes: Minutes of an hour. Must be greater than or equal to 0 and less
+      than or equal to 59.
+    nanos: Fractions of seconds, in nanoseconds. Must be greater than or equal
+      to 0 and less than or equal to 999,999,999.
+    seconds: Seconds of a minute. Must be greater than or equal to 0 and
+      typically must be less than or equal to 59. An API may allow the value
+      60 if it allows leap-seconds.
   """
 
   hours = _messages.IntegerField(1, variant=_messages.Variant.INT32)
@@ -3150,8 +3269,9 @@ class TimeZone(_messages.Message):
   Database](https://www.iana.org/time-zones).
 
   Fields:
-    id: IANA Time Zone Database time zone, e.g. "America/New_York".
-    version: Optional. IANA Time Zone Database version number, e.g. "2019a".
+    id: IANA Time Zone Database time zone. For example "America/New_York".
+    version: Optional. IANA Time Zone Database version number. For example
+      "2019a".
   """
 
   id = _messages.StringField(1)
@@ -3165,7 +3285,13 @@ class VulnerabilityReport(_messages.Message):
   reports](https://cloud.google.com/compute/docs/instances/os-inventory-
   management#vulnerability-reports).
 
+  Enums:
+    HighestUpgradableCveSeverityValueValuesEnum: Output only. Highest level of
+      severity among all the upgradable vulnerabilities with CVEs attached.
+
   Fields:
+    highestUpgradableCveSeverity: Output only. Highest level of severity among
+      all the upgradable vulnerabilities with CVEs attached.
     name: Output only. The `vulnerabilityReport` API resource name. Format: `p
       rojects/{project_number}/locations/{location}/instances/{instance_id}/vu
       lnerabilityReport`
@@ -3174,9 +3300,37 @@ class VulnerabilityReport(_messages.Message):
     vulnerabilities: Output only. List of vulnerabilities affecting the VM.
   """
 
-  name = _messages.StringField(1)
-  updateTime = _messages.StringField(2)
-  vulnerabilities = _messages.MessageField('VulnerabilityReportVulnerability', 3, repeated=True)
+  class HighestUpgradableCveSeverityValueValuesEnum(_messages.Enum):
+    r"""Output only. Highest level of severity among all the upgradable
+    vulnerabilities with CVEs attached.
+
+    Values:
+      VULNERABILITY_SEVERITY_LEVEL_UNSPECIFIED: Default SeverityLevel. This
+        value is unused.
+      NONE: Vulnerability has no severity level.
+      MINIMAL: Vulnerability severity level is minimal. This is level below
+        the low severity level.
+      LOW: Vulnerability severity level is low. This is level below the medium
+        severity level.
+      MEDIUM: Vulnerability severity level is medium. This is level below the
+        high severity level.
+      HIGH: Vulnerability severity level is high. This is level below the
+        critical severity level.
+      CRITICAL: Vulnerability severity level is critical. This is the highest
+        severity level.
+    """
+    VULNERABILITY_SEVERITY_LEVEL_UNSPECIFIED = 0
+    NONE = 1
+    MINIMAL = 2
+    LOW = 3
+    MEDIUM = 4
+    HIGH = 5
+    CRITICAL = 6
+
+  highestUpgradableCveSeverity = _messages.EnumField('HighestUpgradableCveSeverityValueValuesEnum', 1)
+  name = _messages.StringField(2)
+  updateTime = _messages.StringField(3)
+  vulnerabilities = _messages.MessageField('VulnerabilityReportVulnerability', 4, repeated=True)
 
 
 class VulnerabilityReportVulnerability(_messages.Message):

@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from googlecloudsdk.api_lib.netapp import util as netapp_api_util
 from googlecloudsdk.api_lib.netapp.volumes.replications import client as replications_client
 from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.netapp import flags
@@ -27,6 +28,7 @@ from googlecloudsdk.command_lib.util.concepts import concept_parsers
 from googlecloudsdk.core import log
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Create(base.CreateCommand):
   """Create a Cloud NetApp Volume Replication."""
@@ -46,13 +48,23 @@ class Create(base.CreateCommand):
 
   @staticmethod
   def Args(parser):
+    return Create._ReplicationArgs(parser, Create._RELEASE_TRACK)
+
+  @staticmethod
+  def _ReplicationArgs(parser, release_track):
     """Add args for creating a Replication."""
     concept_parsers.ConceptParser(
         [flags.GetReplicationPresentationSpec('The Replication to create.')]
     ).AddToParser(parser)
+    messages = netapp_api_util.GetMessagesModule(
+        release_track=release_track
+    )
     replications_flags.AddReplicationVolumeArg(parser)
     replications_flags.AddReplicationReplicationScheduleArg(parser)
-    replications_flags.AddReplicationDestinationVolumeParametersArg(parser)
+    replications_flags.AddReplicationDestinationVolumeParametersArg(
+        parser, messages
+    )
+    replications_flags.AddReplicationClusterLocationArg(parser)
     flags.AddResourceAsyncFlag(parser)
     flags.AddResourceDescriptionArg(parser, 'Replication')
     labels_util.AddCreateLabelsFlags(parser)
@@ -78,6 +90,7 @@ class Create(base.CreateCommand):
         labels=labels,
         replication_schedule=replication_schedule_enum,
         destination_volume_parameters=args.destination_volume_parameters,
+        cluster_location=args.cluster_location,
     )
     result = client.CreateReplication(
         replication_ref, volume_ref, args.async_, replication
@@ -99,3 +112,17 @@ class CreateBeta(Create):
 
   _RELEASE_TRACK = base.ReleaseTrack.BETA
 
+  @staticmethod
+  def Args(parser):
+    return CreateBeta._ReplicationArgs(parser, CreateBeta._RELEASE_TRACK)
+
+
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class CreateAlpha(CreateBeta):
+  """Create a Cloud NetApp Volume Replication."""
+
+  _RELEASE_TRACK = base.ReleaseTrack.ALPHA
+
+  @staticmethod
+  def Args(parser):
+    return CreateAlpha._ReplicationArgs(parser, CreateAlpha._RELEASE_TRACK)

@@ -34,6 +34,21 @@ regionDefaultGlobal:
       hint: |
         use default global location
 
+regionDefaultAll:
+  name: region
+  collection: networkconnectivity.projects.locations
+  attributes:
+  - *project
+  - &regionDefaultAll
+    parameter_name: locationsId
+    attribute_name: region
+    help: |
+      The location ID.
+    fallthroughs:
+    - value: "-"
+      hint: |
+        use default wildcard location
+
 location:
   name: location
   collection: networkconnectivity.projects.locations
@@ -68,6 +83,21 @@ hub:
     attribute_name: hub
     help: Id of the hub.
 
+hubDefaultAll:
+  name: hub
+  collection: networkconnectivity.projects.locations.global.hubs
+  request_id_field: hubId
+  attributes:
+  - *project
+  - &hubDefaultAll
+    parameter_name: hubsId
+    attribute_name: hub
+    help: Id of the hub.
+    fallthroughs:
+    - value: "-"
+      hint: |-
+        if hub is empty, will use the wildcard '-' to indicate all hubs
+
 internalRange:
   name: internal range
   collection: networkconnectivity.projects.locations.internalRanges
@@ -92,6 +122,22 @@ spoke:
     attribute_name: spoke
     help: Id of the spoke.
 
+spokeDefaultAll:
+  name: spoke
+  collection: networkconnectivity.projects.locations.spokes
+  request_id_field: spokeId
+  attributes:
+  - *project
+  - *regionDefaultAll
+  - &spokeDefaultAll
+    parameter_name: spokesId
+    attribute_name: spoke
+    fallthroughs:
+    - value: "-"
+      hint: |-
+        if spoke is empty, will use the wildcard '-' to list all spokes
+    help: Id of the spoke.
+
 policyBasedRoute:
   name: policy based route
   collection: networkconnectivity.projects.locations.global.policyBasedRoutes
@@ -114,6 +160,22 @@ routeTable:
     parameter_name: routeTablesId
     attribute_name: route_table
     help: Id of the route table.
+
+routeTableDefaultAll:
+  name: route table
+  collection: networkconnectivity.projects.locations.global.hubs.routeTables
+  request_id_field: routeTablesId
+  attributes:
+  - *project
+  - *hubDefaultAll
+  - &routeTableDefaultAll
+    parameter_name: routeTablesId
+    attribute_name: route_table
+    help: Id of the route table.
+    fallthroughs:
+    - value: "-"
+      hint: |
+        if route table is empty, will use wildcard '-' to list all route tables
 
 route:
   name: route
@@ -163,3 +225,16 @@ regionalEndpoint:
     parameter_name: regionalEndpointsId
     attribute_name: regional_endpoint
     help: Id of the regionalEndpoint.
+
+gatewayAdvertisedRoute:
+  name: gatewayAdvertisedRoute
+  collection: networkconnectivity.projects.locations.spokes.gatewayAdvertisedRoutes
+  request_id_field: gatewayAdvertisedRouteId
+  attributes:
+  - *project
+  - *region
+  - *spoke
+  - &gatewayAdvertisedRoute
+    parameter_name: gatewayAdvertisedRoutesId
+    attribute_name: gateway_advertised_route
+    help: Id of the gateway advertised route.

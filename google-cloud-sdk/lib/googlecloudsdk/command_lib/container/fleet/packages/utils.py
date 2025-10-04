@@ -16,6 +16,7 @@
 
 import glob
 import os
+import pathlib
 
 from googlecloudsdk.core import yaml
 
@@ -23,9 +24,75 @@ _DEFAULT_API_VERSION = 'v1alpha'
 _RESOURCE_BUNDLE_PROJECT_SEGMENT = 1
 _RESOURCE_BUNDLE_LOCATION_SEGMENT = 3
 
+ROLLOUTS_DESCRIBE_ROLLING_TRUNCATED_MESSAGES_FORMAT = """table(info.rolloutStrategyInfo.rollingStrategyInfo.clusters.membership.basename():label=CLUSTER,
+                    info.rolloutStrategyInfo.rollingStrategyInfo.clusters.current.version:label=CURRENT_VERSION,
+                    info.rolloutStrategyInfo.rollingStrategyInfo.clusters.current.syncState:label=SYNC_STATE,
+                    info.rolloutStrategyInfo.rollingStrategyInfo.clusters.desired.version:label=DESIRED_VERSION,
+                    info.rolloutStrategyInfo.rollingStrategyInfo.clusters.startTime:label=START_TIME,
+                    info.rolloutStrategyInfo.rollingStrategyInfo.clusters.endTime:label=END_TIME,
+                    info.rolloutStrategyInfo.rollingStrategyInfo.clusters.state:label=STATE,
+                    trim_message():label=MESSAGE)"""
+
+ROLLOUTS_DESCRIBE_ALLATONCE_TRUNCATED_MESSAGES_FORMAT = """table(info.rolloutStrategyInfo.allAtOnceStrategyInfo.clusters.membership.basename():label=CLUSTER,
+                    info.rolloutStrategyInfo.allAtOnceStrategyInfo.clusters.current.version:label=CURRENT_VERSION,
+                    info.rolloutStrategyInfo.allAtOnceStrategyInfo.clusters.current.syncState:label=SYNC_STATE,
+                    info.rolloutStrategyInfo.allAtOnceStrategyInfo.clusters.desired.version:label=DESIRED_VERSION,
+                    info.rolloutStrategyInfo.allAtOnceStrategyInfo.clusters.startTime:label=START_TIME,
+                    info.rolloutStrategyInfo.allAtOnceStrategyInfo.clusters.endTime:label=END_TIME,
+                    info.rolloutStrategyInfo.allAtOnceStrategyInfo.clusters.state:label=STATE,
+                    trim_message():label=MESSAGE)"""
+
+ROLLOUTS_DESCRIBE_ROLLING_FULL_MESSAGES_FORMAT = """table(info.rolloutStrategyInfo.rollingStrategyInfo.clusters.membership.basename():label=CLUSTER,
+                    info.rolloutStrategyInfo.rollingStrategyInfo.clusters.current.version:label=CURRENT_VERSION,
+                    info.rolloutStrategyInfo.rollingStrategyInfo.clusters.current.syncState:label=SYNC_STATE,
+                    info.rolloutStrategyInfo.rollingStrategyInfo.clusters.desired.version:label=DESIRED_VERSION,
+                    info.rolloutStrategyInfo.rollingStrategyInfo.clusters.startTime:label=START_TIME,
+                    info.rolloutStrategyInfo.rollingStrategyInfo.clusters.endTime:label=END_TIME,
+                    info.rolloutStrategyInfo.rollingStrategyInfo.clusters.state:label=STATE,
+                    all_messages():label=MESSAGES)"""
+
+ROLLOUTS_DESCRIBE_ALLATONCE_FULL_MESSAGES_FORMAT = """table(info.rolloutStrategyInfo.allAtOnceStrategyInfo.clusters.membership.basename():label=CLUSTER,
+                    info.rolloutStrategyInfo.allAtOnceStrategyInfo.clusters.current.version:label=CURRENT_VERSION,
+                    info.rolloutStrategyInfo.allAtOnceStrategyInfo.clusters.current.syncState:label=SYNC_STATE,
+                    info.rolloutStrategyInfo.allAtOnceStrategyInfo.clusters.desired.version:label=DESIRED_VERSION,
+                    info.rolloutStrategyInfo.allAtOnceStrategyInfo.clusters.startTime:label=START_TIME,
+                    info.rolloutStrategyInfo.allAtOnceStrategyInfo.clusters.endTime:label=END_TIME,
+                    info.rolloutStrategyInfo.allAtOnceStrategyInfo.clusters.state:label=STATE,
+                    all_messages():label=MESSAGES)"""
+
 
 def ApiVersion():
   return _DEFAULT_API_VERSION
+
+
+def FormatForRolloutsDescribe(rollout, args, less=False):
+  """Sets format for `rollouts describe` depending on rollout strategy.
+
+  Args:
+    rollout: Rollout from `rollouts describe`
+    args: Command line args
+    less: Whether to show truncate rollout messages
+
+  Returns:
+    None
+  """
+  if rollout is None:
+    return
+  if rollout.info and rollout.info.rolloutStrategyInfo:
+    if rollout.info.rolloutStrategyInfo.rollingStrategyInfo:
+      if less:
+        args.format = ROLLOUTS_DESCRIBE_ROLLING_TRUNCATED_MESSAGES_FORMAT
+      else:
+        args.format = ROLLOUTS_DESCRIBE_ROLLING_FULL_MESSAGES_FORMAT
+      args.flatten = ['info.rolloutStrategyInfo.rollingStrategyInfo.clusters[]']
+    if rollout.info.rolloutStrategyInfo.allAtOnceStrategyInfo:
+      if less:
+        args.format = ROLLOUTS_DESCRIBE_ALLATONCE_TRUNCATED_MESSAGES_FORMAT
+      else:
+        args.format = ROLLOUTS_DESCRIBE_ALLATONCE_FULL_MESSAGES_FORMAT
+      args.flatten = [
+          'info.rolloutStrategyInfo.allAtOnceStrategyInfo.clusters[]'
+      ]
 
 
 def _LoadResourcesFromFile(path):
@@ -52,9 +119,7 @@ def _AllFilesUnderDir(path):
 
 
 def _VariantNameFromPath(path):
-  file_name = path.split('/')[-1]
-  variant_name = file_name.split('.')[0]
-  return variant_name
+  return pathlib.Path(path).stem
 
 
 def _VariantNameFromDir(path):
@@ -64,21 +129,56 @@ def _VariantNameFromDir(path):
   return variant_name
 
 
-def _SplitResourceBundleNameFromFleetPackage(fleet_package):
-  resource_bundle_name = fleet_package.resourceBundleSelector.resourceBundle
-  return resource_bundle_name.split('/')
+def ExpandPathForUser(path):
+  return os.path.expanduser(path)
 
 
-def ProjectFromFleetPackage(fleet_package):
-  """Project segment parsed from Fleet Package file input."""
-  split_bundle = _SplitResourceBundleNameFromFleetPackage(fleet_package)
-  return split_bundle[_RESOURCE_BUNDLE_PROJECT_SEGMENT]
+def _ExpandPathForUserAndVars(path):
+  user_expanded_path = os.path.expanduser(path)
+  vars_expanded_path = user_expanded_path
+  if '$' in vars_expanded_path:
+    vars_expanded_path = os.path.expandvars(vars_expanded_path)
+  return vars_expanded_path
 
 
-def LocationFromFleetPackage(fleet_package):
-  """Location segment parsed from Fleet Package file input."""
-  split_bundle = _SplitResourceBundleNameFromFleetPackage(fleet_package)
-  return split_bundle[_RESOURCE_BUNDLE_LOCATION_SEGMENT]
+def GlobPatternFromSourceAndVariantsPattern(source, variants_pattern=None):
+  """Creates glob pattern by combining source and variants_pattern.
+
+  Args:
+    source: Directory or source configuration file.
+    variants_pattern: Optional variants_pattern for use with source.
+
+  Returns:
+    A glob_pattern for use with 'VariantsFromGlobPattern'. If source
+    is a directory, the pattern is applied within the directory. If source is
+    not a directory i.e., a file, the pattern is not applied.
+
+    Ex: source=/cfg/, variants_pattern='*.yaml'; returns '/cfg/*.yaml'.
+        source=manifest.yaml, variants_pattern=*; returns manifest.yaml.
+  """
+  if not variants_pattern:
+    return source
+  expanded_source = _ExpandPathForUserAndVars(source)
+  expanded_variants_pattern = _ExpandPathForUserAndVars(variants_pattern)
+  if os.path.isdir(expanded_source):
+    return os.path.join(expanded_source, expanded_variants_pattern)
+  else:
+    return expanded_source
+
+
+def _FileNotFoundMessage(path):
+  return f'Source file or dir not found: {path}.'
+
+
+def _FileWrongTypeMessage(path):
+  return f'Source is not of type directory or file: {path}.'
+
+
+def ValidateSource(source):
+  expanded_source = _ExpandPathForUserAndVars(source)
+  if not os.path.isdir(expanded_source) and not os.path.isfile(expanded_source):
+    if not os.path.exists(expanded_source):
+      raise FileNotFoundError(_FileNotFoundMessage(expanded_source))
 
 
 def VariantsFromGlobPattern(glob_pattern):
@@ -97,8 +197,11 @@ def VariantsFromGlobPattern(glob_pattern):
       {'us-a': [resources...], 'us-b': [resources...]}
   """
   user_expanded_glob = os.path.expanduser(glob_pattern)
-  expanded_glob = os.path.expandvars(user_expanded_glob)
+  expanded_glob = user_expanded_glob
+  if '$' in expanded_glob:
+    expanded_glob = os.path.expandvars(expanded_glob)
   paths = glob.glob(expanded_glob)
+  paths.sort()
   variants = {}
   if len(paths) == 1:
     if os.path.isfile(paths[0]):
@@ -109,7 +212,7 @@ def VariantsFromGlobPattern(glob_pattern):
       files_list = _AllFilesUnderDir(paths[0])
       all_resources = []
       for file in files_list:
-        full_file_path = os.path.join(paths[0], file)
+        full_file_path = os.path.abspath(file)
         resources = _LoadResourcesFromFile(full_file_path)
         if resources:
           all_resources.extend(resources)
@@ -126,7 +229,7 @@ def VariantsFromGlobPattern(glob_pattern):
         files_list = _AllFilesUnderDir(path)
         all_resources = []
         for file in files_list:
-          full_file_path = os.path.join(path, file)
+          full_file_path = os.path.abspath(file)
           resources = _LoadResourcesFromFile(full_file_path)
           if resources:
             all_resources.extend(resources)
@@ -134,3 +237,157 @@ def VariantsFromGlobPattern(glob_pattern):
           variant_name = _VariantNameFromDir(path)
           variants[variant_name] = all_resources
   return variants
+
+
+def TransformTrimClusterLevelMessages(resource):
+  """Shows the first cluster-level message and truncates it if it's too long.
+
+  Args:
+    resource: A RolloutInfo resource
+
+  Returns:
+    Message limited to 40 characters
+  """
+  truncated_message_length = 40
+  messages = _GetClusterLevelMessagesFromResource(resource)
+  if not messages:
+    return ''
+  if len(messages) >= 1 and len(messages[0]) > truncated_message_length:
+    return messages[0][:truncated_message_length] + '...'
+  return messages[0]
+
+
+def TransformTrimRolloutLevelMessage(resource):
+  """Trims rollout-level message if it's too long.
+
+  Args:
+    resource: A Rollout resource
+
+  Returns:
+    String message limited to 40 characters
+  """
+  rollout_info = resource.get('info', {})
+  if rollout_info:
+    rollout_message = rollout_info.get('message', '')
+    if rollout_message:
+      if len(rollout_message) > 40:
+        return rollout_message[:40] + '...'
+      return rollout_message
+  return ''
+
+
+def _GetClusterLevelMessagesFromResource(resource):
+  """Gathers cluster-level messages from a Rollout resource.
+
+  Args:
+    resource: A Rollout resource, from `... rollouts describe ...`
+
+  Returns:
+    A list of messages from the Rollout resource.
+  """
+  messages = []
+  if not resource:
+    return []
+  rollout_strategy_info = resource.get('info', {}).get(
+      'rolloutStrategyInfo', {}
+  )
+  for rollout_info in rollout_strategy_info.values():
+    clusters = rollout_info.get('clusters', [])
+    if 'messages' in clusters:
+      messages.extend(clusters.get('messages', []))
+    current = clusters.get('current', {})
+    if 'messages' in current:
+      messages.extend(current.get('messages', []))
+
+  info_errors = resource.get('info', {}).get('errors', [])
+  if info_errors:
+    for error in info_errors:
+      info_message = error.get('errorMessage', '')
+      if info_message:
+        messages.append(info_message)
+
+  return messages
+
+
+def TransformAllClusterLevelMessages(resource):
+  """Returns all cluster-level messages from a Rollout resource.
+
+  Args:
+    resource: A Rollout resource, from `... rollouts describe ...`
+
+  Returns:
+    A single string or string array of cluster-level messages.
+  """
+  messages = _GetClusterLevelMessagesFromResource(resource)
+  if not messages:
+    return ''
+  elif len(messages) == 1:
+    return messages[0]
+  return messages
+
+
+def TransformListFleetPackageErrors(resource):
+  """Gathers errors from 'info.Errors' and returns their errorMessages."""
+  messages = []
+  if resource is None:
+    return ''
+
+  errors = resource.get('info', {}).get('errors', [])
+  for error in errors:
+    error_message = error.get('errorMessage', '')
+    if error_message:
+      messages.append(error_message)
+
+  if not messages:
+    return ''
+  elif len(messages) == 1:
+    return messages[0]
+  return messages
+
+
+def UpsertFleetPackageName(fleet_package, fully_qualified_name):
+  """Upserts the correct fleet package name into fleet package resource.
+
+  Args:
+    fleet_package: A user-inputted FleetPackage which may or may not have a name
+    fully_qualified_name: The fully qualified name of the FleetPackage resource.
+
+  Returns:
+    A FleetPackage that definitely has the correct fully qualified name.
+  """
+  if not fleet_package.name:
+    fleet_package.name = fully_qualified_name
+  return fleet_package
+
+
+def FixFleetPackagePathForCloudBuild(fleet_package):
+  """Removes leading slash from fleet package path if it uses Cloud Build.
+
+  If we don't remove the leading slash, parsing the path will fail for cloud
+  build. See b/352756986#comment13
+
+  Args:
+    fleet_package: A user-inputted FleetPackage which may need its path fixed.
+
+  Returns:
+    A FleetPackage with a fixed path if it uses Cloud Build, unchanged if it
+    doesn't use Cloud Build.
+  """
+  if _FleetPackageUsesCloudBuild(fleet_package):
+    path = fleet_package.resourceBundleSelector.cloudBuildRepository.path
+    if path is not None and path.startswith('/'):
+      if path == '/':
+        fleet_package.resourceBundleSelector.cloudBuildRepository.path = './'
+      else:
+        fleet_package.resourceBundleSelector.cloudBuildRepository.path = (
+            fleet_package.resourceBundleSelector.cloudBuildRepository.path[1:]
+        )
+  return fleet_package
+
+
+def _FleetPackageUsesCloudBuild(fleet_package):
+  return (
+      fleet_package
+      and fleet_package.resourceBundleSelector
+      and fleet_package.resourceBundleSelector.cloudBuildRepository is not None
+  )

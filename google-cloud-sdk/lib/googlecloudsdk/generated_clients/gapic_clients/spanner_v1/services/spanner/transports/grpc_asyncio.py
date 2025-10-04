@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ from typing import Awaitable, Callable, Dict, Optional, Sequence, Tuple, Union
 
 from google.api_core import gapic_v1
 from google.api_core import grpc_helpers_async
+from google.api_core import exceptions as core_exceptions
+from google.api_core import retry_async as retries
 from google.auth import credentials as ga_credentials   # type: ignore
 from google.auth.transport.grpc import SslCredentials  # type: ignore
 
@@ -70,7 +72,6 @@ class SpannerGrpcAsyncIOTransport(SpannerTransport):
                 the credentials from the environment.
             credentials_file (Optional[str]): A file with credentials that can
                 be loaded with :func:`google.auth.load_credentials_from_file`.
-                This argument is ignored if ``channel`` is provided.
             scopes (Optional[Sequence[str]]): A optional list of scopes needed for this
                 service. These are only used when credentials are not specified and
                 are passed to :func:`google.auth.default`.
@@ -98,7 +99,7 @@ class SpannerGrpcAsyncIOTransport(SpannerTransport):
             credentials: Optional[ga_credentials.Credentials] = None,
             credentials_file: Optional[str] = None,
             scopes: Optional[Sequence[str]] = None,
-            channel: Optional[aio.Channel] = None,
+            channel: Optional[Union[aio.Channel, Callable[..., aio.Channel]]] = None,
             api_mtls_endpoint: Optional[str] = None,
             client_cert_source: Optional[Callable[[], Tuple[bytes, bytes]]] = None,
             ssl_channel_credentials: Optional[grpc.ChannelCredentials] = None,
@@ -112,21 +113,24 @@ class SpannerGrpcAsyncIOTransport(SpannerTransport):
 
         Args:
             host (Optional[str]):
-                 The hostname to connect to.
+                 The hostname to connect to (default: 'spanner.googleapis.com').
             credentials (Optional[google.auth.credentials.Credentials]): The
                 authorization credentials to attach to requests. These
                 credentials identify the application to the service; if none
                 are specified, the client will attempt to ascertain the
                 credentials from the environment.
-                This argument is ignored if ``channel`` is provided.
+                This argument is ignored if a ``channel`` instance is provided.
             credentials_file (Optional[str]): A file with credentials that can
                 be loaded with :func:`google.auth.load_credentials_from_file`.
-                This argument is ignored if ``channel`` is provided.
+                This argument is ignored if a ``channel`` instance is provided.
             scopes (Optional[Sequence[str]]): A optional list of scopes needed for this
                 service. These are only used when credentials are not specified and
                 are passed to :func:`google.auth.default`.
-            channel (Optional[aio.Channel]): A ``Channel`` instance through
-                which to make calls.
+            channel (Optional[Union[aio.Channel, Callable[..., aio.Channel]]]):
+                A ``Channel`` instance through which to make calls, or a Callable
+                that constructs and returns one. If set to None, ``self.create_channel``
+                is used to create the channel. If a Callable is given, it will be called
+                with the same arguments as used in ``self.create_channel``.
             api_mtls_endpoint (Optional[str]): Deprecated. The mutual TLS endpoint.
                 If provided, it overrides the ``host`` argument and tries to create
                 a mutual TLS channel with client SSL credentials from
@@ -136,11 +140,11 @@ class SpannerGrpcAsyncIOTransport(SpannerTransport):
                 private key bytes, both in PEM format. It is ignored if
                 ``api_mtls_endpoint`` is None.
             ssl_channel_credentials (grpc.ChannelCredentials): SSL credentials
-                for the grpc channel. It is ignored if ``channel`` is provided.
+                for the grpc channel. It is ignored if a ``channel`` instance is provided.
             client_cert_source_for_mtls (Optional[Callable[[], Tuple[bytes, bytes]]]):
                 A callback to provide client certificate bytes and private key bytes,
                 both in PEM format. It is used to configure a mutual TLS channel. It is
-                ignored if ``channel`` or ``ssl_channel_credentials`` is provided.
+                ignored if a ``channel`` instance or ``ssl_channel_credentials`` is provided.
             quota_project_id (Optional[str]): An optional project to use for billing
                 and quota.
             client_info (google.api_core.gapic_v1.client_info.ClientInfo):
@@ -166,7 +170,7 @@ class SpannerGrpcAsyncIOTransport(SpannerTransport):
         if client_cert_source:
             warnings.warn("client_cert_source is deprecated", DeprecationWarning)
 
-        if channel:
+        if isinstance(channel, aio.Channel):
             # Ignore credentials if a channel was passed.
             credentials = False
             # If a channel was explicitly provided, set it.
@@ -206,7 +210,9 @@ class SpannerGrpcAsyncIOTransport(SpannerTransport):
         )
 
         if not self._grpc_channel:
-            self._grpc_channel = type(self).create_channel(
+            # initialize with the provided callable or the default channel
+            channel_init = channel or type(self).create_channel
+            self._grpc_channel = channel_init(
                 self._host,
                 # use the credentials which are saved
                 credentials=self._credentials,
@@ -252,14 +258,14 @@ class SpannerGrpcAsyncIOTransport(SpannerTransport):
         transaction internally, and count toward the one transaction
         limit.
 
-        Active sessions use additional server resources, so it is a good
+        Active sessions use additional server resources, so it's a good
         idea to delete idle and unneeded sessions. Aside from explicit
-        deletes, Cloud Spanner may delete sessions for which no
-        operations are sent for more than an hour. If a session is
-        deleted, requests to it return ``NOT_FOUND``.
+        deletes, Cloud Spanner can delete sessions when no operations
+        are sent for more than an hour. If a session is deleted,
+        requests to it return ``NOT_FOUND``.
 
         Idle sessions can be kept alive by sending a trivial SQL query
-        periodically, e.g., ``"SELECT 1"``.
+        periodically, for example, ``"SELECT 1"``.
 
         Returns:
             Callable[[~.CreateSessionRequest],
@@ -315,7 +321,7 @@ class SpannerGrpcAsyncIOTransport(SpannerTransport):
             Awaitable[spanner.Session]]:
         r"""Return a callable for the get session method over gRPC.
 
-        Gets a session. Returns ``NOT_FOUND`` if the session does not
+        Gets a session. Returns ``NOT_FOUND`` if the session doesn't
         exist. This is mainly useful for determining whether a session
         is still alive.
 
@@ -370,7 +376,7 @@ class SpannerGrpcAsyncIOTransport(SpannerTransport):
         r"""Return a callable for the delete session method over gRPC.
 
         Ends a session, releasing server resources associated
-        with it. This will asynchronously trigger cancellation
+        with it. This asynchronously triggers the cancellation
         of any operations that are running with this session.
 
         Returns:
@@ -398,7 +404,7 @@ class SpannerGrpcAsyncIOTransport(SpannerTransport):
         r"""Return a callable for the execute sql method over gRPC.
 
         Executes an SQL statement, returning all results in a single
-        reply. This method cannot be used to return a result set larger
+        reply. This method can't be used to return a result set larger
         than 10 MiB; if the query yields more data than that, the query
         fails with a ``FAILED_PRECONDITION`` error.
 
@@ -411,6 +417,9 @@ class SpannerGrpcAsyncIOTransport(SpannerTransport):
         calling
         [ExecuteStreamingSql][google.spanner.v1.Spanner.ExecuteStreamingSql]
         instead.
+
+        The query string can be SQL or `Graph Query Language
+        (GQL) <https://cloud.google.com/spanner/docs/reference/standard-sql/graph-intro>`__.
 
         Returns:
             Callable[[~.ExecuteSqlRequest],
@@ -442,6 +451,9 @@ class SpannerGrpcAsyncIOTransport(SpannerTransport):
         limit on the size of the returned result set. However, no
         individual row in the result set can exceed 100 MiB, and no
         column value can exceed 10 MiB.
+
+        The query string can be SQL or `Graph Query Language
+        (GQL) <https://cloud.google.com/spanner/docs/reference/standard-sql/graph-intro>`__.
 
         Returns:
             Callable[[~.ExecuteSqlRequest],
@@ -509,7 +521,7 @@ class SpannerGrpcAsyncIOTransport(SpannerTransport):
         Reads rows from the database using key lookups and scans, as a
         simple key/value style alternative to
         [ExecuteSql][google.spanner.v1.Spanner.ExecuteSql]. This method
-        cannot be used to return a result set larger than 10 MiB; if the
+        can't be used to return a result set larger than 10 MiB; if the
         read matches more data than that, the read fails with a
         ``FAILED_PRECONDITION`` error.
 
@@ -614,7 +626,7 @@ class SpannerGrpcAsyncIOTransport(SpannerTransport):
         any time; commonly, the cause is conflicts with concurrent
         transactions. However, it can also happen for a variety of other
         reasons. If ``Commit`` returns ``ABORTED``, the caller should
-        re-attempt the transaction from the beginning, re-using the same
+        retry the transaction from the beginning, reusing the same
         session.
 
         On very rare occasions, ``Commit`` might return ``UNKNOWN``.
@@ -648,7 +660,7 @@ class SpannerGrpcAsyncIOTransport(SpannerTransport):
             Awaitable[empty_pb2.Empty]]:
         r"""Return a callable for the rollback method over gRPC.
 
-        Rolls back a transaction, releasing any locks it holds. It is a
+        Rolls back a transaction, releasing any locks it holds. It's a
         good idea to call this for any transaction that includes one or
         more [Read][google.spanner.v1.Spanner.Read] or
         [ExecuteSql][google.spanner.v1.Spanner.ExecuteSql] requests and
@@ -656,8 +668,7 @@ class SpannerGrpcAsyncIOTransport(SpannerTransport):
 
         ``Rollback`` returns ``OK`` if it successfully aborts the
         transaction, the transaction was already aborted, or the
-        transaction is not found. ``Rollback`` never returns
-        ``ABORTED``.
+        transaction isn't found. ``Rollback`` never returns ``ABORTED``.
 
         Returns:
             Callable[[~.RollbackRequest],
@@ -689,12 +700,12 @@ class SpannerGrpcAsyncIOTransport(SpannerTransport):
         [ExecuteStreamingSql][google.spanner.v1.Spanner.ExecuteStreamingSql]
         to specify a subset of the query result to read. The same
         session and read-only transaction must be used by the
-        PartitionQueryRequest used to create the partition tokens and
-        the ExecuteSqlRequests that use the partition tokens.
+        ``PartitionQueryRequest`` used to create the partition tokens
+        and the ``ExecuteSqlRequests`` that use the partition tokens.
 
         Partition tokens become invalid when the session used to create
         them is deleted, is idle for too long, begins a new transaction,
-        or becomes too old. When any of these happen, it is not possible
+        or becomes too old. When any of these happen, it isn't possible
         to resume the query, and the whole operation must be restarted
         from the beginning.
 
@@ -728,15 +739,15 @@ class SpannerGrpcAsyncIOTransport(SpannerTransport):
         [StreamingRead][google.spanner.v1.Spanner.StreamingRead] to
         specify a subset of the read result to read. The same session
         and read-only transaction must be used by the
-        PartitionReadRequest used to create the partition tokens and the
-        ReadRequests that use the partition tokens. There are no
+        ``PartitionReadRequest`` used to create the partition tokens and
+        the ``ReadRequests`` that use the partition tokens. There are no
         ordering guarantees on rows returned among the returned
-        partition tokens, or even within each individual StreamingRead
-        call issued with a partition_token.
+        partition tokens, or even within each individual
+        ``StreamingRead`` call issued with a ``partition_token``.
 
         Partition tokens become invalid when the session used to create
         them is deleted, is idle for too long, begins a new transaction,
-        or becomes too old. When any of these happen, it is not possible
+        or becomes too old. When any of these happen, it isn't possible
         to resume the read, and the whole operation must be restarted
         from the beginning.
 
@@ -764,25 +775,23 @@ class SpannerGrpcAsyncIOTransport(SpannerTransport):
             Awaitable[spanner.BatchWriteResponse]]:
         r"""Return a callable for the batch write method over gRPC.
 
-        Batches the supplied mutation groups in a collection
-        of efficient transactions. All mutations in a group are
-        committed atomically. However, mutations across groups
-        can be committed non-atomically in an unspecified order
-        and thus, they must be independent of each other.
-        Partial failure is possible, i.e., some groups may have
-        been committed successfully, while some may have failed.
-        The results of individual batches are streamed into the
-        response as the batches are applied.
+        Batches the supplied mutation groups in a collection of
+        efficient transactions. All mutations in a group are committed
+        atomically. However, mutations across groups can be committed
+        non-atomically in an unspecified order and thus, they must be
+        independent of each other. Partial failure is possible, that is,
+        some groups might have been committed successfully, while some
+        might have failed. The results of individual batches are
+        streamed into the response as the batches are applied.
 
-        BatchWrite requests are not replay protected, meaning
-        that each mutation group may be applied more than once.
-        Replays of non-idempotent mutations may have undesirable
-        effects. For example, replays of an insert mutation may
-        produce an already exists error or if you use generated
-        or commit timestamp-based keys, it may result in
-        additional rows being added to the mutation's table. We
-        recommend structuring your mutation groups to be
-        idempotent to avoid this issue.
+        ``BatchWrite`` requests are not replay protected, meaning that
+        each mutation group can be applied more than once. Replays of
+        non-idempotent mutations can have undesirable effects. For
+        example, replays of an insert mutation can produce an already
+        exists error or if you use generated or commit timestamp-based
+        keys, it can result in additional rows being added to the
+        mutation's table. We recommend structuring your mutation groups
+        to be idempotent to avoid this issue.
 
         Returns:
             Callable[[~.BatchWriteRequest],
@@ -801,6 +810,221 @@ class SpannerGrpcAsyncIOTransport(SpannerTransport):
                 response_deserializer=spanner.BatchWriteResponse.deserialize,
             )
         return self._stubs['batch_write']
+
+    def _prep_wrapped_messages(self, client_info):
+        """ Precompute the wrapped methods, overriding the base class method to use async wrappers."""
+        self._wrapped_methods = {
+            self.create_session: gapic_v1.method_async.wrap_method(
+                self.create_session,
+                default_retry=retries.AsyncRetry(
+                    initial=0.25,
+                    maximum=32.0,
+                    multiplier=1.3,
+                    predicate=retries.if_exception_type(
+                        core_exceptions.ResourceExhausted,
+                        core_exceptions.ServiceUnavailable,
+                    ),
+                    deadline=30.0,
+                ),
+                default_timeout=30.0,
+                client_info=client_info,
+            ),
+            self.batch_create_sessions: gapic_v1.method_async.wrap_method(
+                self.batch_create_sessions,
+                default_retry=retries.AsyncRetry(
+                    initial=0.25,
+                    maximum=32.0,
+                    multiplier=1.3,
+                    predicate=retries.if_exception_type(
+                        core_exceptions.ResourceExhausted,
+                        core_exceptions.ServiceUnavailable,
+                    ),
+                    deadline=60.0,
+                ),
+                default_timeout=60.0,
+                client_info=client_info,
+            ),
+            self.get_session: gapic_v1.method_async.wrap_method(
+                self.get_session,
+                default_retry=retries.AsyncRetry(
+                    initial=0.25,
+                    maximum=32.0,
+                    multiplier=1.3,
+                    predicate=retries.if_exception_type(
+                        core_exceptions.ResourceExhausted,
+                        core_exceptions.ServiceUnavailable,
+                    ),
+                    deadline=30.0,
+                ),
+                default_timeout=30.0,
+                client_info=client_info,
+            ),
+            self.list_sessions: gapic_v1.method_async.wrap_method(
+                self.list_sessions,
+                default_retry=retries.AsyncRetry(
+                    initial=0.25,
+                    maximum=32.0,
+                    multiplier=1.3,
+                    predicate=retries.if_exception_type(
+                        core_exceptions.ResourceExhausted,
+                        core_exceptions.ServiceUnavailable,
+                    ),
+                    deadline=3600.0,
+                ),
+                default_timeout=3600.0,
+                client_info=client_info,
+            ),
+            self.delete_session: gapic_v1.method_async.wrap_method(
+                self.delete_session,
+                default_retry=retries.AsyncRetry(
+                    initial=0.25,
+                    maximum=32.0,
+                    multiplier=1.3,
+                    predicate=retries.if_exception_type(
+                        core_exceptions.ResourceExhausted,
+                        core_exceptions.ServiceUnavailable,
+                    ),
+                    deadline=30.0,
+                ),
+                default_timeout=30.0,
+                client_info=client_info,
+            ),
+            self.execute_sql: gapic_v1.method_async.wrap_method(
+                self.execute_sql,
+                default_retry=retries.AsyncRetry(
+                    initial=0.25,
+                    maximum=32.0,
+                    multiplier=1.3,
+                    predicate=retries.if_exception_type(
+                        core_exceptions.ResourceExhausted,
+                        core_exceptions.ServiceUnavailable,
+                    ),
+                    deadline=30.0,
+                ),
+                default_timeout=30.0,
+                client_info=client_info,
+            ),
+            self.execute_streaming_sql: gapic_v1.method_async.wrap_method(
+                self.execute_streaming_sql,
+                default_timeout=3600.0,
+                client_info=client_info,
+            ),
+            self.execute_batch_dml: gapic_v1.method_async.wrap_method(
+                self.execute_batch_dml,
+                default_retry=retries.AsyncRetry(
+                    initial=0.25,
+                    maximum=32.0,
+                    multiplier=1.3,
+                    predicate=retries.if_exception_type(
+                        core_exceptions.ResourceExhausted,
+                        core_exceptions.ServiceUnavailable,
+                    ),
+                    deadline=30.0,
+                ),
+                default_timeout=30.0,
+                client_info=client_info,
+            ),
+            self.read: gapic_v1.method_async.wrap_method(
+                self.read,
+                default_retry=retries.AsyncRetry(
+                    initial=0.25,
+                    maximum=32.0,
+                    multiplier=1.3,
+                    predicate=retries.if_exception_type(
+                        core_exceptions.ResourceExhausted,
+                        core_exceptions.ServiceUnavailable,
+                    ),
+                    deadline=30.0,
+                ),
+                default_timeout=30.0,
+                client_info=client_info,
+            ),
+            self.streaming_read: gapic_v1.method_async.wrap_method(
+                self.streaming_read,
+                default_timeout=3600.0,
+                client_info=client_info,
+            ),
+            self.begin_transaction: gapic_v1.method_async.wrap_method(
+                self.begin_transaction,
+                default_retry=retries.AsyncRetry(
+                    initial=0.25,
+                    maximum=32.0,
+                    multiplier=1.3,
+                    predicate=retries.if_exception_type(
+                        core_exceptions.ResourceExhausted,
+                        core_exceptions.ServiceUnavailable,
+                    ),
+                    deadline=30.0,
+                ),
+                default_timeout=30.0,
+                client_info=client_info,
+            ),
+            self.commit: gapic_v1.method_async.wrap_method(
+                self.commit,
+                default_retry=retries.AsyncRetry(
+                    initial=0.25,
+                    maximum=32.0,
+                    multiplier=1.3,
+                    predicate=retries.if_exception_type(
+                        core_exceptions.ResourceExhausted,
+                        core_exceptions.ServiceUnavailable,
+                    ),
+                    deadline=3600.0,
+                ),
+                default_timeout=3600.0,
+                client_info=client_info,
+            ),
+            self.rollback: gapic_v1.method_async.wrap_method(
+                self.rollback,
+                default_retry=retries.AsyncRetry(
+                    initial=0.25,
+                    maximum=32.0,
+                    multiplier=1.3,
+                    predicate=retries.if_exception_type(
+                        core_exceptions.ResourceExhausted,
+                        core_exceptions.ServiceUnavailable,
+                    ),
+                    deadline=30.0,
+                ),
+                default_timeout=30.0,
+                client_info=client_info,
+            ),
+            self.partition_query: gapic_v1.method_async.wrap_method(
+                self.partition_query,
+                default_retry=retries.AsyncRetry(
+                    initial=0.25,
+                    maximum=32.0,
+                    multiplier=1.3,
+                    predicate=retries.if_exception_type(
+                        core_exceptions.ResourceExhausted,
+                        core_exceptions.ServiceUnavailable,
+                    ),
+                    deadline=30.0,
+                ),
+                default_timeout=30.0,
+                client_info=client_info,
+            ),
+            self.partition_read: gapic_v1.method_async.wrap_method(
+                self.partition_read,
+                default_retry=retries.AsyncRetry(
+                    initial=0.25,
+                    maximum=32.0,
+                    multiplier=1.3,
+                    predicate=retries.if_exception_type(
+                        core_exceptions.ResourceExhausted,
+                        core_exceptions.ServiceUnavailable,
+                    ),
+                    deadline=30.0,
+                ),
+                default_timeout=30.0,
+                client_info=client_info,
+            ),
+            self.batch_write: gapic_v1.method_async.wrap_method(
+                self.batch_write,
+                default_timeout=3600.0,
+                client_info=client_info,
+            ),
+         }
 
     def close(self):
         return self.grpc_channel.close()

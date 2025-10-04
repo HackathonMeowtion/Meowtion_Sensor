@@ -222,3 +222,25 @@ def AddTargetServiceAndProducerForwardingRuleArgs(parser):
       required=False,
       help='URL of the target service that receives forwarded traffic.',
   )
+
+
+def AddTargetServiceArgsForUpdate(parser):
+  """Adds target-service flags for update."""
+  parser.add_argument(
+      '--target-service',
+      required=False,
+      help='URL of the target service that receives forwarded traffic.',
+  )
+
+
+def AddShowNatIpsFlag(parser):
+  """Adds the --show-nat-ips flag."""
+  parser.add_argument(
+      '--show-nat-ips',
+      action='store_true',
+      default=None,
+      help="""Determines whether to include the NAT IPs of connected endpoints in the
+        service attachment output. If enabled (--show-nat-ips), the output
+        will include the list of NAT IPs for each connected PSC endpoint and
+        any endpoints propagated from them.""",
+  )

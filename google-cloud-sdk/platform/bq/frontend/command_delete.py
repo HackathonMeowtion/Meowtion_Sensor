@@ -7,18 +7,27 @@ from __future__ import print_function
 
 from typing import Optional
 
-
 from absl import app
 from absl import flags
 
+import bq_flags
+from clients import client_connection
+from clients import client_data_transfer
 from clients import client_dataset
+from clients import client_job
+from clients import client_model
+from clients import client_reservation
+from clients import client_routine
+from clients import client_row_access_policy
+from clients import client_table
+from clients import utils as bq_client_utils
 from frontend import bigquery_command
 from frontend import bq_cached_client
 from frontend import utils as frontend_utils
+from frontend import utils_flags
+from frontend import utils_id as frontend_id_utils
 from utils import bq_error
 from utils import bq_id_utils
-
-FLAGS = flags.FLAGS
 
 # These aren't relevant for user-facing docstrings:
 # pylint: disable=g-doc-return-or-yield
@@ -26,6 +35,8 @@ FLAGS = flags.FLAGS
 
 
 class Delete(bigquery_command.BigqueryCmd):
+  """The Delete CLI command."""
+
   usage = """rm [-f] [-r] [(-d|-t)] <identifier>"""
 
   def __init__(self, name: str, fv: flags.FlagValues):
@@ -90,6 +101,12 @@ class Delete(bigquery_command.BigqueryCmd):
         flag_values=fv,
     )
     flags.DEFINE_boolean(
+        'reservation_group',
+        False,
+        'Delete a reservation group described by this identifier.',
+        flag_values=fv,
+    )
+    flags.DEFINE_boolean(
         'model',
         False,
         'Remove model with this model ID.',
@@ -101,6 +118,12 @@ class Delete(bigquery_command.BigqueryCmd):
     )
     flags.DEFINE_boolean(
         'connection', False, 'Delete a connection.', flag_values=fv
+    )
+    flags.DEFINE_boolean(
+        'migration_workflow',
+        False,
+        'Delete a migration workflow.',
+        flag_values=fv,
     )
     self._ProcessCommandRc(fv)
 
@@ -125,40 +148,53 @@ class Delete(bigquery_command.BigqueryCmd):
       bq rm --reservation --project_id=proj --location=us reservation_name
       bq rm --reservation_assignment --project_id=proj --location=us
           assignment_name
+      bq rm --reservation_group --project_id=proj --location=us
+          reservation_group_name
     """
 
     client = bq_cached_client.Client.Get()
 
     # pylint: disable=g-doc-exception
-    if (
-        self.d
-        + self.t
-        + self.j
-        + self.routine
-        + self.transfer_config
-        + self.reservation
-        + self.reservation_assignment
-        + self.capacity_commitment
-        + self.connection
-    ) > 1:
+    if frontend_utils.ValidateAtMostOneSelected(
+        self.d,
+        self.t,
+        self.j,
+        self.routine,
+        self.transfer_config,
+        self.reservation,
+        self.reservation_assignment,
+        self.capacity_commitment,
+        self.reservation_group,
+        self.connection,
+    ):
       raise app.UsageError('Cannot specify more than one resource type.')
     if not identifier:
       raise app.UsageError('Must provide an identifier for rm.')
 
     if self.t:
-      reference = client.GetTableReference(identifier)
+      reference = bq_client_utils.GetTableReference(
+          id_fallbacks=client, identifier=identifier
+      )
     elif self.m:
-      reference = client.GetModelReference(identifier)
+      reference = bq_client_utils.GetModelReference(
+          id_fallbacks=client, identifier=identifier
+      )
     elif self.routine:
-      reference = client.GetRoutineReference(identifier)
+      reference = bq_client_utils.GetRoutineReference(
+          id_fallbacks=client, identifier=identifier
+      )
     elif self.d:
-      reference = client.GetDatasetReference(identifier)
+      reference = bq_client_utils.GetDatasetReference(
+          id_fallbacks=client, identifier=identifier
+      )
     elif self.j:
-      reference = client.GetJobReference(
-          identifier, default_location=FLAGS.location
+      reference = bq_client_utils.GetJobReference(
+          id_fallbacks=client,
+          identifier=identifier,
+          default_location=bq_flags.LOCATION.value,
       )
     elif self.transfer_config:
-      formatted_identifier = bq_id_utils.FormatDataTransferIdentifiers(
+      formatted_identifier = frontend_id_utils.FormatDataTransferIdentifiers(
           client, identifier
       )
       reference = bq_id_utils.ApiClientHelper.TransferConfigReference(
@@ -166,11 +202,14 @@ class Delete(bigquery_command.BigqueryCmd):
       )
     elif self.reservation:
       try:
-        reference = client.GetReservationReference(
-            identifier=identifier, default_location=FLAGS.location
+        reference = bq_client_utils.GetReservationReference(
+            id_fallbacks=client,
+            identifier=identifier,
+            default_location=bq_flags.LOCATION.value,
         )
-        client.DeleteReservation(
-            reference
+        client_reservation.DeleteReservation(
+            client=client.GetReservationApiClient(),
+            reference=reference,
         )
         print("Reservation '%s' successfully deleted." % identifier)
       except BaseException as e:
@@ -179,10 +218,14 @@ class Delete(bigquery_command.BigqueryCmd):
         )
     elif self.reservation_assignment:
       try:
-        reference = client.GetReservationAssignmentReference(
-            identifier=identifier, default_location=FLAGS.location
+        reference = bq_client_utils.GetReservationAssignmentReference(
+            id_fallbacks=client,
+            identifier=identifier,
+            default_location=bq_flags.LOCATION.value,
         )
-        client.DeleteReservationAssignment(reference)
+        client_reservation.DeleteReservationAssignment(
+            client=client.GetReservationApiClient(), reference=reference
+        )
         print("Reservation assignment '%s' successfully deleted." % identifier)
       except BaseException as e:
         raise bq_error.BigqueryError(
@@ -190,22 +233,57 @@ class Delete(bigquery_command.BigqueryCmd):
         )
     elif self.capacity_commitment:
       try:
-        reference = client.GetCapacityCommitmentReference(
-            identifier=identifier, default_location=FLAGS.location
+        reference = bq_client_utils.GetCapacityCommitmentReference(
+            id_fallbacks=client,
+            identifier=identifier,
+            default_location=bq_flags.LOCATION.value,
         )
-        client.DeleteCapacityCommitment(reference, self.force)
+        client_reservation.DeleteCapacityCommitment(
+            client=client.GetReservationApiClient(),
+            reference=reference,
+            force=self.force,
+        )
         print("Capacity commitment '%s' successfully deleted." % identifier)
       except BaseException as e:
         raise bq_error.BigqueryError(
             "Failed to delete capacity commitment '%s': %s" % (identifier, e)
         )
+    elif self.reservation_group:
+      try:
+        utils_flags.fail_if_not_using_alpha_feature(
+            bq_flags.AlphaFeatures.RESERVATION_GROUPS
+        )
+        reference = bq_client_utils.GetReservationGroupReference(
+            id_fallbacks=client,
+            identifier=identifier,
+            default_location=bq_flags.LOCATION.value,
+        )
+        client_reservation.DeleteReservationGroup(
+            reservation_group_client=client.GetReservationApiClient(),
+            reference=reference,
+        )
+        # TODO(b/392704450): Refactor the print and error handling for
+        # reservation resources.
+        print("Reservation group '%s' successfully deleted." % identifier)
+      except BaseException as e:
+        raise bq_error.BigqueryError(
+            "Failed to delete reservation group '%s': %s" % (identifier, e)
+        )
     elif self.connection:
-      reference = client.GetConnectionReference(
-          identifier=identifier, default_location=FLAGS.location
+      reference = bq_client_utils.GetConnectionReference(
+          id_fallbacks=client,
+          identifier=identifier,
+          default_location=bq_flags.LOCATION.value,
       )
-      client.DeleteConnection(reference)
+      client_connection.DeleteConnection(
+          client=client.GetConnectionV1ApiClient(), reference=reference
+      )
+    elif self.migration_workflow:
+      reference = identifier
     else:
-      reference = client.GetReference(identifier)
+      reference = bq_client_utils.GetReference(
+          id_fallbacks=client, identifier=identifier
+      )
       bq_id_utils.typecheck(
           reference,
           (
@@ -234,38 +312,53 @@ class Delete(bigquery_command.BigqueryCmd):
     ):
       raise app.UsageError('Cannot specify -r with %r' % (reference,))
 
+    if self.migration_workflow and self.r:
+      raise app.UsageError('Cannot specify -r with %r' % (reference,))
+
     if not self.force:
       if (
           (
               isinstance(
                   reference, bq_id_utils.ApiClientHelper.DatasetReference
               )
-              and client.DatasetExists(reference)
+              and client_dataset.DatasetExists(
+                  apiclient=client.apiclient, reference=reference
+              )
           )
           or (
               isinstance(reference, bq_id_utils.ApiClientHelper.TableReference)
-              and client.TableExists(reference)
+              and client_table.table_exists(
+                  apiclient=client.apiclient, reference=reference
+              )
           )
           or (
               isinstance(reference, bq_id_utils.ApiClientHelper.JobReference)
-              and client.JobExists(reference)
+              and client_job.JobExists(client, reference)
           )
           or (
               isinstance(reference, bq_id_utils.ApiClientHelper.ModelReference)
-              and client.ModelExists(reference)
+              and client_model.model_exists(
+                  model_client=client.GetModelsApiClient(), reference=reference
+              )
           )
           or (
               isinstance(
                   reference, bq_id_utils.ApiClientHelper.RoutineReference
               )
-              and client.RoutineExists(reference)
+              and client_routine.RoutineExists(
+                  routines_api_client=client.GetRoutinesApiClient(),
+                  reference=reference,
+              )
           )
           or (
               isinstance(
                   reference, bq_id_utils.ApiClientHelper.TransferConfigReference
               )
-              and client.TransferExists(reference)
+              and client_data_transfer.transfer_exists(
+                  client.GetTransferV1ApiClient(), reference
+              )
           )
+          or self.migration_workflow
       ):
         if 'y' != frontend_utils.PromptYN(
             'rm: remove %r? (y/N) ' % (reference,)
@@ -274,6 +367,13 @@ class Delete(bigquery_command.BigqueryCmd):
           return 0
 
     if isinstance(reference, bq_id_utils.ApiClientHelper.DatasetReference):
+      # Prompt for confirmation has already occurred.
+      self.PossiblyDelegateToGcloudAndExit(
+          resource='datasets',
+          bq_command='rm',
+          identifier=identifier,
+          command_flags_for_this_resource={'recursive': self.recursive},
+      )
       client_dataset.DeleteDataset(
           client.apiclient,
           reference,
@@ -281,14 +381,37 @@ class Delete(bigquery_command.BigqueryCmd):
           delete_contents=self.recursive,
       )
     elif isinstance(reference, bq_id_utils.ApiClientHelper.TableReference):
-      client.DeleteTable(reference, ignore_not_found=self.force)
+      client_table.delete_table(
+          apiclient=client.apiclient,
+          reference=reference,
+          ignore_not_found=self.force,
+      )
     elif isinstance(reference, bq_id_utils.ApiClientHelper.JobReference):
-      client.DeleteJob(reference, ignore_not_found=self.force)
+      client_job.DeleteJob(client, reference, ignore_not_found=self.force)
     elif isinstance(reference, bq_id_utils.ApiClientHelper.ModelReference):
-      client.DeleteModel(reference, ignore_not_found=self.force)
+      client_model.delete_model(
+          model_client=client.GetModelsApiClient(),
+          reference=reference,
+          ignore_not_found=self.force,
+      )
     elif isinstance(reference, bq_id_utils.ApiClientHelper.RoutineReference):
-      client.DeleteRoutine(reference, ignore_not_found=self.force)
+      client_routine.DeleteRoutine(
+          routines_api_client=client.GetRoutinesApiClient(),
+          reference=reference,
+          ignore_not_found=self.force,
+      )
     elif isinstance(
         reference, bq_id_utils.ApiClientHelper.TransferConfigReference
     ):
-      client.DeleteTransferConfig(reference, ignore_not_found=self.force)
+      client_data_transfer.delete_transfer_config(
+          client.GetTransferV1ApiClient(),
+          reference,
+          ignore_not_found=self.force,
+      )
+    elif self.migration_workflow:
+      # Prompt for confirmation has already occurred.
+      self.DelegateToGcloudAndExit(
+          'migration_workflows',
+          'rm',
+          identifier,
+      )

@@ -31,6 +31,11 @@ HTTP_ERROR_FORMAT = (
     'ResponseError: code={status_code}, message={status_message}'
 )
 
+ASYNC_OPERATION_MESSAGE = (
+    'Run [backup-dr operations describe {}]'
+    ' to check the status of this operation.'
+)
+
 
 class BackupDrClientBase(object):
   """Base class for Backup and DR API client wrappers."""
@@ -51,6 +56,8 @@ class BackupDrClientBase(object):
 
   def GetOperationRef(self, operation):
     """Converts an Operation to a Resource that can be used with `waiter.WaitFor`."""
+    if operation.name is None:
+      return 'None'
     return resources.REGISTRY.ParseRelativeName(
         operation.name, collection='backupdr.projects.locations.operations'
     )
@@ -91,3 +98,32 @@ class BackupDrClientBase(object):
     return waiter.WaitFor(
         poller, operation_ref, message, max_wait_ms=max_wait.seconds * 1000
     )
+
+
+class RestrictedDict(dict):
+  """Restricted dict only allows specific keys, useful in creating a config object."""
+
+  def __init__(self, allowed_keys, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.allowed_keys = allowed_keys
+
+  def __setitem__(self, key, value):
+    if key not in self.allowed_keys:
+      raise KeyError(
+          f"The Key '{key}' is not one of  [{', '.join(self.allowed_keys)}]"
+      )
+    super().__setitem__(key, value)
+
+  def update(self, other=None, **kwargs):
+    # Check keys in 'other' if it's a dictionary-like object
+    if other:
+      other_keys = other.keys() if isinstance(other, dict) else other
+      invalid_keys = set(other_keys) - set(self.allowed_keys)
+      if invalid_keys:
+        raise KeyError(
+            f'The Keys {invalid_keys} are not part of '
+            f' [{",".join(self.allowed_keys)}]'
+        )
+
+    # Update the dictionary
+    super().update(other, **kwargs)

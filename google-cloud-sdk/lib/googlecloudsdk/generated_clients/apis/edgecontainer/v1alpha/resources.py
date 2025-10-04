@@ -24,6 +24,67 @@ DOCS_URL = 'https://cloud.google.com/edge-cloud'
 class Collections(enum.Enum):
   """Collections for all supported apis."""
 
+  ORGANIZATIONS = (
+      'organizations',
+      'organizations/{organizationsId}',
+      {},
+      ['organizationsId'],
+      True
+  )
+  ORGANIZATIONS_LOCATIONS = (
+      'organizations.locations',
+      '{+name}',
+      {
+          '':
+              'organizations/{organizationsId}/locations/{locationsId}',
+      },
+      ['name'],
+      True
+  )
+  ORGANIZATIONS_LOCATIONS_IDENTITYPROVIDERS = (
+      'organizations.locations.identityProviders',
+      '{+name}',
+      {
+          '':
+              'organizations/{organizationsId}/locations/{locationsId}/'
+              'identityProviders/{identityProvidersId}',
+      },
+      ['name'],
+      True
+  )
+  ORGANIZATIONS_LOCATIONS_OPERATIONS = (
+      'organizations.locations.operations',
+      '{+name}',
+      {
+          '':
+              'organizations/{organizationsId}/locations/{locationsId}/'
+              'operations/{operationsId}',
+      },
+      ['name'],
+      True
+  )
+  ORGANIZATIONS_LOCATIONS_ZONES = (
+      'organizations.locations.zones',
+      '{+name}',
+      {
+          '':
+              'organizations/{organizationsId}/locations/{locationsId}/zones/'
+              '{zonesId}',
+      },
+      ['name'],
+      True
+  )
+  ORGANIZATIONS_LOCATIONS_ZONES_ZONALPROJECTS = (
+      'organizations.locations.zones.zonalProjects',
+      '{+name}',
+      {
+          '':
+              'organizations/{organizationsId}/locations/{locationsId}/zones/'
+              '{zonesId}/zonalProjects/{zonalProjectsId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS = (
       'projects',
       'projects/{projectsId}',
@@ -85,6 +146,17 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_LOCATIONS_SERVICEACCOUNTS = (
+      'projects.locations.serviceAccounts',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/serviceAccounts/'
+              '{serviceAccountsId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS_LOCATIONS_VPNCONNECTIONS = (
       'projects.locations.vpnConnections',
       '{+name}',
@@ -94,6 +166,24 @@ class Collections(enum.Enum):
               '{vpnConnectionsId}',
       },
       ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_ZONALSERVICES = (
+      'projects.locations.zonalServices',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/zonalServices/'
+              '{zonalServicesId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_ZONES = (
+      'projects.locations.zones',
+      'projects/{projectsId}/locations/{locationsId}/zones/{zonesId}',
+      {},
+      ['projectsId', 'locationsId', 'zonesId'],
       True
   )
 

@@ -191,8 +191,9 @@ def _SetBuildSteps(
           images=[tag],
           steps=[
               messages.BuildStep(
-                  name='gcr.io/cloud-builders/docker',
+                  name='gcr.io/cloud-builders/gcb-internal',
                   args=[
+                      'docker',
                       'build',
                       '--network',
                       'cloudbuild',
@@ -298,7 +299,7 @@ def _SetBuildSteps(
           '--config', 'Config file path must not be empty.'
       )
     build_config = config.LoadCloudbuildConfigFromPath(
-        arg_config, messages, params=substitutions
+        arg_config, messages, params=substitutions, no_source=no_source,
     )
 
   # If timeout was set by flag, overwrite the config file.
@@ -306,6 +307,14 @@ def _SetBuildSteps(
     build_config.timeout = timeout_str
 
   return build_config
+
+
+def _IsNonDefaultUniverse():
+  """Returns true if the command is running in a non-default universe."""
+  return (
+      properties.VALUES.core.universe_domain.Get()
+      != properties.VALUES.core.universe_domain.default
+  )
 
 
 def SetSource(
@@ -330,11 +339,13 @@ def SetSource(
   default_bucket_location = cloudbuild_util.DEFAULT_REGION
   if gcs_source_staging_dir is None:
     default_gcs_source = True
-    if (
-        build_region != cloudbuild_util.DEFAULT_REGION
-        and arg_bucket_behavior is not None
-        and flags.GetDefaultBuckestBehavior(arg_bucket_behavior)
-        == messages.BuildOptions.DefaultLogsBucketBehaviorValueValuesEnum.REGIONAL_USER_OWNED_BUCKET
+    if build_region != cloudbuild_util.DEFAULT_REGION and (
+        (_IsNonDefaultUniverse() and arg_bucket_behavior is None)
+        or (
+            arg_bucket_behavior is not None
+            and flags.GetDefaultBuckestBehavior(arg_bucket_behavior)
+            == messages.BuildOptions.DefaultLogsBucketBehaviorValueValuesEnum.REGIONAL_USER_OWNED_BUCKET
+        )
     ):
       default_bucket_location = build_region
       default_bucket_name = staging_bucket_util.GetDefaultRegionalStagingBucket(
@@ -372,6 +383,18 @@ def SetSource(
       )
       return build_config
 
+    if re.match(
+        r'projects/.*/locations/.*/connections/.*/gitRepositoryLinks/.*', source
+    ):
+      build_config.source = messages.Source(
+          developerConnectConfig=messages.DeveloperConnectConfig(
+              gitRepositoryLink=source,
+              dir=arg_dir,
+              revision=arg_revision,
+          )
+      )
+      return build_config
+
     suffix = '.tgz'
     if source.startswith('gs://') or os.path.isfile(source):
       _, suffix = os.path.splitext(source)
@@ -400,12 +423,12 @@ def SetSource(
         )
     except api_exceptions.HttpForbiddenError:
       raise BucketForbiddenError(
-          'The user is forbidden from accessing the bucket [{}]. Please check '
-          "your organization's policy or if the user has the "
-          '"serviceusage.services.use" permission. Giving the user Owner, '
-          'Editor, or Viewer roles may also fix this issue. Alternatively, use '
-          'the --no-source option and access your source code via a different '
-          'method.'.format(gcs_source_staging_dir.bucket)
+          'The user is forbidden from accessing the bucket [{}]. Please check'
+          " your organization's policy or if the user has the"
+          ' "serviceusage.services.use" permission. Giving the user a role with'
+          ' this permission such as Service Usage Admin may fix this issue.'
+          ' Alternatively, use the --no-source option and access your source'
+          ' code via a different method.'.format(gcs_source_staging_dir.bucket)
       )
     except storage_api.BucketInWrongProjectError:
       # If we're using the default bucket but it already exists in a different
@@ -432,13 +455,23 @@ def SetSource(
         ignore_file=ignore_file,
         hide_logs=hide_logs,
     )
-    build_config.source = messages.Source(
-        storageSource=messages.StorageSource(
-            bucket=staged_source_obj.bucket,
-            object=staged_source_obj.name,
-            generation=staged_source_obj.generation,
-        )
-    )
+
+    if suffix == '.json':
+      build_config.source = messages.Source(
+          storageSourceManifest=messages.StorageSourceManifest(
+              bucket=staged_source_obj.bucket,
+              object=staged_source_obj.name,
+              generation=staged_source_obj.generation,
+          )
+      )
+    else:
+      build_config.source = messages.Source(
+          storageSource=messages.StorageSource(
+              bucket=staged_source_obj.bucket,
+              object=staged_source_obj.name,
+              generation=staged_source_obj.generation,
+          )
+      )
   else:
     # No source
     if not no_source:
@@ -564,6 +597,11 @@ def _SetDefaultLogsBucketBehavior(
       to analyze.
   """
   if arg_bucket_behavior is not None:
+    if _IsNonDefaultUniverse() and arg_bucket_behavior == 'legacy-bucket':
+      raise c_exceptions.InvalidArgumentException(
+          '--default-buckets-behavior',
+          'The legacy-bucket option is not supported in this environment.',
+      )
     bucket_behavior = flags.GetDefaultBuckestBehavior(arg_bucket_behavior)
     if not build_config.options:
       build_config.options = messages.BuildOptions()
@@ -756,6 +794,9 @@ def DetermineBuildRegion(build_config, desired_region=None):
   """
   # If the build is configured to run in a worker pool, use the worker
   # pool's resource ID to determine which regional GCB service to send it to.
+  if desired_region is None:
+    desired_region = properties.VALUES.builds.region.Get()
+
   wp_options = build_config.options
   if not wp_options:
     return desired_region

@@ -60,11 +60,19 @@ def GetCredentialsFromFlags() -> GoogleAuthCredentialsUnionType:
     logging.info('Loading auth credentials with --use_gce_service_account')
     return compute_engine.Credentials(
         quota_project_id=bq_utils.GetResolvedQuotaProjectID(
-            bq_auth_flags.QUOTA_PROJECT_ID.value, fallback_project_id=None
+            bq_auth_flags.QUOTA_PROJECT_ID.value, bq_flags.PROJECT_ID.value
         ),
     )
   else:
     logging.info('No `use_gce_service_account`, load credentials elsewhere')
+
+  if bq_auth_flags.SERVICE_ACCOUNT.value:
+    raise app.UsageError(
+        'The flag --service_account is not supported. '
+        'To use a service account please follow'
+        ' https://cloud.google.com/docs/authentication/'
+        'use-service-account-impersonation#gcloud-config.'
+    )
 
 
   return gcloud_credential_loader.LoadCredential()

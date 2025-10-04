@@ -22,6 +22,7 @@ import sys
 import textwrap
 
 from googlecloudsdk.api_lib.artifacts import exceptions as ar_exceptions
+from googlecloudsdk.calliope import actions
 from googlecloudsdk.calliope import arg_parsers
 from googlecloudsdk.calliope import base
 from googlecloudsdk.calliope.concepts import concepts
@@ -31,12 +32,16 @@ from googlecloudsdk.core import properties
 
 _PACKAGE_TYPE_CHOICES = {
     'MAVEN': 'Maven package.',
-    'GO': 'Go standard library and third party packages.'
+    'GO': 'Go standard library and third party packages.',
+    'NPM': 'NPM package.',
+    'PYTHON': 'Python package.',
+    'RUST': 'Rust package.',
+    'RUBYGEMS': 'RubyGems package.',
+    'COMPOSER': 'PHP Composer package.',
+    'NUGET': 'NuGet package.',
 }
 
-_EXPERIMENTAL_PACKAGE_TYPE_CHOICES = {
-    'GO': 'Go third party package.',
-}
+_EXPERIMENTAL_PACKAGE_TYPE_CHOICES = {}
 
 
 def RepoAttributeConfig():
@@ -53,6 +58,12 @@ def LocationAttributeConfig():
       name='location',
       help_text='Location of the {resource}.',
       fallthroughs=fts)
+
+
+def PackageAttributeConfig():
+  return concepts.ResourceParameterAttributeConfig(
+      name='package',
+      help_text='Package of the {resource}.')
 
 
 def GetRepoResourceSpec():
@@ -89,6 +100,48 @@ def GetFileResourceSpec():
       projectsId=concepts.DEFAULT_PROJECT_ATTRIBUTE_CONFIG,
       locationsId=LocationAttributeConfig(),
       repositoriesId=RepoAttributeConfig())
+
+
+def GetAttachmentResourceSpec():
+  return concepts.ResourceSpec(
+      'artifactregistry.projects.locations.repositories.attachments',
+      resource_name='attachment',
+      projectsId=concepts.DEFAULT_PROJECT_ATTRIBUTE_CONFIG,
+      locationsId=LocationAttributeConfig(),
+      repositoriesId=RepoAttributeConfig(),
+  )
+
+
+def GetPackageResourceSpec():
+  return concepts.ResourceSpec(
+      'artifactregistry.projects.locations.repositories.packages',
+      resource_name='package',
+      projectsId=concepts.DEFAULT_PROJECT_ATTRIBUTE_CONFIG,
+      locationsId=LocationAttributeConfig(),
+      repositoriesId=RepoAttributeConfig(),
+  )
+
+
+def GetVersionResourceSpec():
+  return concepts.ResourceSpec(
+      'artifactregistry.projects.locations.repositories.packages.versions',
+      resource_name='version',
+      projectsId=concepts.DEFAULT_PROJECT_ATTRIBUTE_CONFIG,
+      locationsId=LocationAttributeConfig(),
+      repositoriesId=RepoAttributeConfig(),
+      packagesId=PackageAttributeConfig(),
+  )
+
+
+def GetTagResourceSpec():
+  return concepts.ResourceSpec(
+      'artifactregistry.projects.locations.repositories.packages.tags',
+      resource_name='tag',
+      projectsId=concepts.DEFAULT_PROJECT_ATTRIBUTE_CONFIG,
+      locationsId=LocationAttributeConfig(),
+      repositoriesId=RepoAttributeConfig(),
+      packagesId=PackageAttributeConfig(),
+  )
 
 
 def GetScopeFlag():
@@ -181,9 +234,45 @@ def GetRequiredFileFlag():
   return concept_parsers.ConceptParser.ForResource(
       'file',
       GetFileResourceSpec(),
-      ('The Artifact Registry file name. If not specified, '
-       'the current artifacts/location is used.'),
-      required=True)
+      'The Artifact Registry file name.',
+      required=True,
+  )
+
+
+def GetRequiredAttachmentFlag():
+  return concept_parsers.ConceptParser.ForResource(
+      'attachment',
+      GetAttachmentResourceSpec(),
+      'The Artifact Registry attachment name.',
+      required=True,
+  )
+
+
+def GetOptionalAttachmentFlag():
+  return concept_parsers.ConceptParser.ForResource(
+      'attachment',
+      GetAttachmentResourceSpec(),
+      'The Artifact Registry attachment name.',
+      required=False,
+  )
+
+
+def GetRequiredVersionFlag():
+  return concept_parsers.ConceptParser.ForResource(
+      'version',
+      GetVersionResourceSpec(),
+      'The Artifact Registry version name.',
+      required=True,
+  )
+
+
+def GetRequiredTagFlag():
+  return concept_parsers.ConceptParser.ForResource(
+      'tag',
+      GetTagResourceSpec(),
+      'The Artifact Registry tag name.',
+      required=True,
+  )
 
 
 def GetAllowOverwriteFlag():
@@ -223,6 +312,15 @@ def GetOptionalLocationFlag():
        'artifacts/location property. Otherwise, omitting this flag '
        'lists repositories across all locations.'),
       required=False)
+
+
+def GetOptionalAALocationFlag():
+  return base.Argument(
+      '--location',
+      help=('If specified, all requests to Artifact Analysis for occurrences'
+            ' will go to location specified'),
+      required=False,
+  )
 
 
 def GetIncludeTagsFlag():
@@ -420,6 +518,14 @@ def GetOnDemandScanningFakeExtractionFlag():
 def GetAdditionalPackageTypesFlag():
   return base.Argument(
       '--additional-package-types',
+      action=actions.DeprecationAction(
+          '--additional-package-types',
+          warn=(
+              'This flag is deprecated as scanning for all package types is '
+              'now the default. To skip scanning for specific package types, '
+              'use --skip-package-types.'
+          ),
+      ),
       type=arg_parsers.ArgList(
           choices=_PACKAGE_TYPE_CHOICES,
           element_type=lambda package_type: package_type.upper(),
@@ -435,6 +541,14 @@ def GetAdditionalPackageTypesFlag():
 def GetExperimentalPackageTypesFlag():
   return base.Argument(
       '--experimental-package-types',
+      action=actions.DeprecationAction(
+          '--experimental-package-types',
+          warn=(
+              'This flag is deprecated as scanning for all package types is '
+              'now the default. To skip scanning for specific package types, '
+              'use --skip-package-types.'
+          ),
+      ),
       type=arg_parsers.ArgList(
           choices=_EXPERIMENTAL_PACKAGE_TYPE_CHOICES,
           element_type=lambda package_type: package_type.upper(),
@@ -446,6 +560,18 @@ def GetExperimentalPackageTypesFlag():
           ' addition to OS packages and officially supported third party'
           ' packages.'
       ),
+  )
+
+
+def GetSkipPackageTypesFlag():
+  return base.Argument(
+      '--skip-package-types',
+      type=arg_parsers.ArgList(
+          choices=_PACKAGE_TYPE_CHOICES,
+          element_type=lambda package_type: package_type.upper(),
+      ),
+      metavar='SKIP_PACKAGE_TYPES',
+      help='A comma-separated list of package types to skip when scanning.',
   )
 
 
@@ -466,5 +592,15 @@ def GetSkipExistingFlag():
       help=(
           'If specified, skip uploading files that already exist in the'
           ' repository, and continue to upload the remaining files.'
+      ),
+  )
+
+
+def GetChunkSize():
+  return base.Argument(
+      '--chunk-size',
+      help=(
+          'If specified, the chunk size (bytes) to use for downloading the'
+          ' package.'
       ),
   )

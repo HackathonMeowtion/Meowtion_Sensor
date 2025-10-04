@@ -27,11 +27,18 @@ def _MaybeAddOption(args, name, value):
 
 def _GetGoogleAuthFlagValue(argv):
   for arg in argv[1:]:
-    if re.fullmatch(r'--use_google_auth(=True)*', arg):
+    if re.fullmatch(r'--use_google_auth(=(T|t)rue)*', arg):
       return True
-    if re.fullmatch(r'(--nouse_google_auth|--use_google_auth=False)', arg):
+    if re.fullmatch(r'(--nouse_google_auth|--use_google_auth=(F|f)alse)', arg):
       return False
   return None
+
+
+def _IsOAuthAccessTokenFlagPresent(argv):
+  for arg in argv[1:]:
+    if re.fullmatch(r'--oauth_access_token=.+', arg):
+      return True
+  return False
 
 
 def main():
@@ -47,12 +54,17 @@ def main():
   cmd_args = [arg for arg in argv[1:] if not arg.startswith('-')]
   use_google_auth = _GetGoogleAuthFlagValue(argv)
   use_google_auth_unspecified = use_google_auth is None
+  nouse_google_auth = not use_google_auth and not use_google_auth_unspecified
   args = []
   print_logging = False
   if len(cmd_args) == 1 and cmd_args[0] == 'info':
     print_logging = True
-  if cmd_args and cmd_args[0] not in ('version', 'help'):
-    # Check for credentials only if they are needed.
+  # Check for credentials only if they are needed.
+  if (
+      cmd_args
+      and cmd_args[0] not in ('version', 'help')
+      and not _IsOAuthAccessTokenFlagPresent(argv)
+  ):
     store.IMPERSONATION_TOKEN_PROVIDER = (
         iamcred_util.ImpersonationAccessTokenProvider()
     )
@@ -76,33 +88,25 @@ def main():
       if print_logging:
         print('Using a GCE service account')
       args = ['--use_gce_service_account']
-    elif os.path.isfile(adc_path):
+    elif os.path.isfile(adc_path) and nouse_google_auth:
       if print_logging:
         print('Using an ADC path')
       args = [
+          '--nouse_google_auth',
           '--application_default_credential_file',
           adc_path,
           '--credential_file',
           single_store_path,
       ]
     else:
-      if print_logging:
-        print(
-            'Falling back to p12 credentials. '
-            'WARNING these are being deprecated.'
-        )
       p12_key_path = config.Paths().LegacyCredentialsP12KeyPath(account)
       if os.path.isfile(p12_key_path):
-        if use_google_auth_unspecified:
-          # Unless explicitly disabled, use Google Auth by default since p12 key
-          # handling is deprecated in legacy auth libraries.
-          print(
-              'Using Google Auth since the P12 service account key format is'
-              ' detected. Note that the P12 key format has been depreacated in'
-              ' favor of the newer JSON key format.'
-          )
-          args = ['--use_google_auth']
-        else:
+        if nouse_google_auth:
+          if print_logging:
+            print(
+                'Falling back to p12 credentials. '
+                'WARNING these are being deprecated.'
+            )
           print(
               'Using the deprecated P12 service account key format with legacy'
               ' auth may introduce security vulnerabilities and will soon be'
@@ -111,6 +115,7 @@ def main():
               ' your use case.'
           )
           args = [
+              '--nouse_google_auth',
               '--service_account',
               account,
               '--service_account_credential_file',
@@ -118,9 +123,6 @@ def main():
               '--service_account_private_key_file',
               p12_key_path,
           ]
-      else:
-        # Don't have any credentials we can pass.
-        raise store.NoCredentialsForAccountException(account)
 
     use_client_cert = (
         os.getenv('GOOGLE_API_USE_CLIENT_CERTIFICATE', 'false').upper()
@@ -152,7 +154,7 @@ def main():
   )
 
   if print_logging:
-    print('Complete gcloud args:', args)
+    print('Args passed from gcloud:', args)
 
   bootstrapping.ExecutePythonTool('platform/bq', 'bq.py', *args)
 

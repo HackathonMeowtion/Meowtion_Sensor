@@ -243,6 +243,8 @@ class Workstations:
         'ServerAliveInterval': '0',
     }
 
+    extra_flags = self._ParseSshFlags(args)
+
     remainder = []
     if args.ssh_args:
       remainder.extend(args.ssh_args)
@@ -255,12 +257,23 @@ class Workstations:
         remote=remote,
         port=port,
         options=options,
+        extra_flags=extra_flags,
         tty=tty,
         remainder=remainder,
         remote_command=remote_command,
     )
 
     return cmd.Run(self.env)
+
+  def _ParseSshFlags(self, args):
+    """Obtain extra flags from the command arguments."""
+    extra_flags = []
+    if args.ssh_flag:
+      for flag in args.ssh_flag:
+        if flag and flag != '--':
+          for flag_part in flag.split():
+            extra_flags.append(flag_part)
+    return extra_flags
 
   def _FetchAccessToken(self, workstation, threaded=False):
     try:
@@ -292,11 +305,19 @@ class Workstations:
 
   def _AcceptConnection(self, client, _):
     """Opens a WebSocket connection."""
+    cert_reqs = ssl.CERT_REQUIRED
+    ca_certs = certs.where()
+
     custom_ca_certs = properties.VALUES.core.custom_ca_certs_file.Get()
+    no_validate = (
+        properties.VALUES.auth.disable_ssl_validation.GetBool() or False
+    )
+
+    if no_validate:
+      ca_certs = None
+      cert_reqs = ssl.CERT_NONE
     if custom_ca_certs:
       ca_certs = custom_ca_certs
-    else:
-      ca_certs = certs.where()
 
     server = websocket.WebSocketApp(
         'wss://%s/_workstation/tcp/%d' % (self.host, self.port),
@@ -307,24 +328,50 @@ class Workstations:
     )
 
     def Run():
-      server.run_forever(
-          sslopt={
-              'cert_reqs': ssl.CERT_REQUIRED,
-              'ca_certs': ca_certs,
-          }
-      )
+      proxy_type = properties.VALUES.proxy.proxy_type.Get()
+      if proxy_type == 'http' or proxy_type == 'http_no_tunnel':
+        http_proxy_host = properties.VALUES.proxy.address.Get()
+        http_proxy_port = properties.VALUES.proxy.port.Get()
+        http_proxy_auth = (
+            properties.VALUES.proxy.username.Get(),
+            properties.VALUES.proxy.password.Get(),
+        )
+
+        server.run_forever(
+            sslopt={
+                'cert_reqs': cert_reqs,
+                'ca_certs': ca_certs,
+            },
+            proxy_type='http',
+            http_proxy_host=http_proxy_host,
+            http_proxy_port=http_proxy_port,
+            http_proxy_auth=http_proxy_auth,
+        )
+      else:
+        server.run_forever(
+            sslopt={
+                'cert_reqs': cert_reqs,
+                'ca_certs': ca_certs,
+            },
+            proxy_type=proxy_type,
+        )
 
     t = threading.Thread(target=Run)
     t.daemon = True
     t.start()
 
   def _ForwardClientToServer(self, client, server):
+    """Forwards data from the client to the server."""
     def Forward():
       while True:
         data = client.recv(4096)
         if not data:
           break
-        server.send(data)
+        try:
+          server.send(data)
+        except websocket_exceptions.WebSocketConnectionClosedException:
+          log.error('Connection to Cloud Workstation lost.')
+          break
 
     t = threading.Thread(target=Forward)
     t.daemon = True

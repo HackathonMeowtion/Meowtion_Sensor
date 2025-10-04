@@ -30,12 +30,13 @@ from googlecloudsdk.command_lib.util.args import labels_util
 from googlecloudsdk.core import log
 
 
-def _GetLogConfig(args):
+def _GetLogConfig(args, api_version):
   """Converts the dict representation of the log_config to proto.
 
   Args:
     args: args with log_level parsed ordered dict. If log-level flag is set,
-          enable option should also be set.
+      enable option should also be set.
+    api_version: API version (e.g. v1apha1)
 
   Returns:
     a value of messages.WasmPluginLogConfig or None,
@@ -44,14 +45,17 @@ def _GetLogConfig(args):
 
   if args.log_config is None:
     return None
-  return util.GetLogConfig(args.log_config[0])
+  return util.GetLogConfig(args.log_config[0], api_version)
 
 
 def GetPluginConfigData(args):
   return args.plugin_config or args.plugin_config_file
 
 
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(
+    base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA, base.ReleaseTrack.GA
+)
 class Update(base.UpdateCommand):
   """Update a `WasmPlugin` resource."""
 
@@ -88,21 +92,22 @@ class Update(base.UpdateCommand):
           $ {command} my-plugin --main-version=v1
           --description="A new description." --labels=label1=value1
           --image=...-docker.pkg.dev/my-project/repository/container:tag
-          """)
+          """),
   }
 
   @classmethod
   def Args(cls, parser):
+    api_version = util.GetApiVersion(cls.ReleaseTrack())
     flags.AddWasmPluginResource(
         parser=parser,
-        api_version=util.GetApiVersion(cls.ReleaseTrack()),
+        api_version=api_version,
         message='The ID of the `WasmPlugin` to update.',
     )
 
     base.ASYNC_FLAG.AddToParser(parser)
     labels_util.AddCreateLabelsFlags(parser)
     flags.AddDescriptionFlag(parser)
-    flags.AddLogConfigFlag(parser)
+    flags.AddLogConfigFlag(parser, api_version)
 
     flags.AddWasmPluginVersionArgs(
         parser=parser,
@@ -121,6 +126,7 @@ class Update(base.UpdateCommand):
     parser.display_info.AddFormat('yaml')
 
   def Run(self, args):
+    api_version = util.GetApiVersion(self.ReleaseTrack())
     update_wasm_plugin_and_create_version = None
     if (
         args.main_version is not None
@@ -139,7 +145,13 @@ class Update(base.UpdateCommand):
     else:
       raise calliope_exceptions.ConflictingArgumentsException(
           '--async',
-          'If --async flag is set, --image and --config flags can\'t be used.',
+          "If --async flag is set, --image and --config flags can't be used.",
+      )
+    # --main-version="" is not allowed.
+    if args.IsSpecified('main_version') and not args.main_version:
+      raise calliope_exceptions.RequiredArgumentException(
+          '--main-version',
+          'Flag --main-version cannot be empty.',
       )
     if not update_wasm_plugin_and_create_version:
       if (
@@ -176,7 +188,7 @@ class Update(base.UpdateCommand):
     labels = labels_util.ParseCreateArgs(
         args, wp_client.messages.WasmPlugin.LabelsValue
     )
-    log_config = _GetLogConfig(args)
+    log_config = _GetLogConfig(args, api_version)
 
     update_mask = []
     if args.IsSpecified('description'):
@@ -197,8 +209,9 @@ class Update(base.UpdateCommand):
         log_config=log_config,
     )
 
-    log.status.Print('Update request issued for: [{}]'.format(
-        wasm_plugin_ref.Name()))
+    log.status.Print(
+        'Update request issued for: [{}]'.format(wasm_plugin_ref.Name())
+    )
 
     if args.async_:
       log.status.Print('Check operation [{}] for status.'.format(op_ref.name))

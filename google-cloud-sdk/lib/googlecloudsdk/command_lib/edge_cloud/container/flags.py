@@ -223,8 +223,7 @@ def AddExternalLbIpv6AddressPools(parser):
 
 
 def AddExternalLoadBalancerAddressPools(parser):
-  """Adds external load balancer address pools.
-  """
+  """Adds external load balancer address pools."""
 
   external_lb_config_address_pools_help_text = """
       Path to a YAML/JSON file containing external load balancer pool configuration.
@@ -237,25 +236,18 @@ def AddExternalLoadBalancerAddressPools(parser):
 
       For example,
 
+      ```
       {
-
         "externalLoadBalancerAddressPools": [
-
           {
-
             "addressPool": "MyLoadBalancerPool",
-
             "ipv4Range": ["10.200.0.200-10.200.0.204","10.200.0.300/30"],
-
             "avoidBuggyIps": "false",
-
             "manualAssign": "true"
-
           }
-
         ]
-
       }
+      ```
 
       *address_pool*::: Optional. A name that identifies an address pool. If a name is not specified, an auto-generated one will be used.
 
@@ -340,6 +332,32 @@ def AddControlPlaneSharedDeploymentPolicy(parser):
   )
 
 
+def AddControlPlaneNodeStorageSchema(parser):
+  parser.add_argument(
+      '--control-plane-node-storage-schema',
+      help="""
+      Name for the storage schema of control plane nodes.
+      """,
+  )
+
+
+def AddControlPlaneNodeSystemPartitionSize(parser):
+  parser.add_argument(
+      '--control-plane-node-system-partition-size-gib',
+      hidden=True,
+      type=int,
+      choices=[100, 300],
+      help="""
+      Specifies the system partition size in GiB for the control plane nodes.
+      This parameter is optional. Valid values are 100 and 300 to set the system
+      partition size to 100GiB and 300GiB, respectively. If this parameter is
+      not specified, the system partition is created using the default size
+      specified in the system storage schema applicable to the control plane
+      nodes.
+      """,
+  )
+
+
 def AddLROMaximumTimeout(parser):
   parser.add_argument(
       '--lro-timeout',
@@ -405,6 +423,17 @@ def AddOfflineCredential(parser):
   )
 
 
+def AddUseGoogleManagedKey(parser):
+  parser.add_argument(
+      '--use-google-managed-key',
+      action='store_true',
+      help="""
+      Once specified, a Google-managed key will be used for the control plane
+      disk encryption.
+      """,
+  )
+
+
 def AddNodeCount(parser, required=True):
   parser.add_argument(
       '--node-count',
@@ -449,15 +478,55 @@ def AddLocalDiskKMSKey(parser):
   )
 
 
-def AddNodeLabels(parser):
+def AddNodeLabelsForCreateNodePool(parser):
   parser.add_argument(
       '--node-labels',
       help="""
       Comma-delimited list of key-value pairs that comprise labels for the
-      individual nodes in the node pool.
+      individual nodes in the node pool. This flag sets the Kubernetes
+      labels, unlike `--labels` which sets the cloud resource labels.
       """,
       metavar='KEY=VALUE',
       type=arg_parsers.ArgDict(),
+  )
+
+
+def AddNodeLabelsForUpdateNodePool(parser):
+  parser.add_argument(
+      '--node-labels',
+      help="""
+      Comma-delimited list of key-value pairs that comprise labels for the
+      individual nodes in the node pool. This flag updates the Kubernetes
+      labels, unlike `--update-labels`, `--remove-labels`, and `--clear-labels`
+      which update the cloud resource labels.
+      """,
+      metavar='KEY=VALUE',
+      type=arg_parsers.ArgDict(),
+  )
+
+
+def AddNodeStorageSchema(parser):
+  parser.add_argument(
+      '--node-storage-schema',
+      help="""
+      Name for the storage schema of worker nodes.
+      """,
+  )
+
+
+def AddNodeSystemPartitionSize(parser):
+  parser.add_argument(
+      '--node-system-partition-size-gib',
+      hidden=True,
+      type=int,
+      choices=[100, 300],
+      help="""
+      Specifies the system partition size in GiB for the worker nodes. This
+      parameter is optional. Valid values are 100 and 300 to set the system
+      partition size to 100GiB and 300GiB, respectively. If this parameter is
+      not specified, the system partition is created using the default size
+      specified in the system storage schema applicable to the worker nodes.
+      """,
   )
 
 
@@ -466,10 +535,82 @@ def AddOfflineRebootTtL(parser):
       '--offline-reboot-ttl',
       type=arg_parsers.Duration(),
       help="""
-      Limits how long a machine can reboot offline(without connection to google)
-      , specified as a duration relative to the machine's most-recent connection
-      to google. The parameter should be a ISO 8601 duration string, for example
-      , "1dT1h2m3s".
+        Specifies the maximum duration a node can reboot offline (without
+        connection to Google) and then rejoin its cluster to resume its
+        designated workloads. This duration is relative to the machine's most
+        recent connection to Google. The maximum allowed duration is 7 days.
+        To disallow offline reboot, set the duration to "PT0S". The parameter
+        should be an ISO 8601 duration string, for example, "P1DT1H2M3S".
       """,
+  )
+
+
+def AddZoneStorageKMSKey(parser):
+  parser.add_argument(
+      '--zone-storage-kms-key',
+      help="""
+      Google Cloud KMS key that will be used to encrypt and decrypt the root key
+      for zone storage encryption. The zone storage KMS key is only
+      applicable to the storage infra cluster. The Edge Container service
+      account for this project must have
+      `roles/cloudkms.cryptoKeyEncrypterDecrypter` on the key.
+
+      If not provided, a Google-managed key will be used by default.
+      """,
+  )
+
+
+def AddEnableRobinCNS(parser):
+  parser.add_argument(
+      '--enable-robin-cns',
+      action='store_true',
       hidden=True,
+      help="""
+      If set, Robin CNS will be enabled on the cluster.
+
+      WARNING:
+      Enabling Robin CNS is irreversible. Once enabled, it cannot be disabled.
+      Enabling Robin CNS will take over all unused local Persistent Volumes (PVs)
+      in the cluster. Any data on these PVs will be permanently lost.
+      """,
+  )
+
+
+def AddContainerDefaultRuntimeClass(parser):
+  parser.add_argument(
+      '--container-default-runtime-class',
+      help="""
+      Name of the default runtime class for containers. It supports two values
+      RUNC and GVISOR.
+      """,
+  )
+
+
+def AddEnableClusterIsolation(parser):
+  parser.add_argument(
+      '--enable-cluster-isolation',
+      help="""
+      If set, the cluster will be created in a secure cluster isolation mode.
+      """,
+  )
+
+
+def AddEnableGoogleGroupAuthentication(parser):
+  parser.add_argument(
+      '--enable-google-group-authentication',
+      action='store_true',
+      help="""
+      If set, the cluster will be configured to use Google Group authentication.
+      """,
+  )
+
+
+def AddEnableRemoteBackup(parser):
+  parser.add_argument(
+      '--enable-remote-backup',
+      action='store_true',
+      hidden=True,
+      help="""
+      If set, the cluster will be created with remote backup featureenabled.
+      """,
   )

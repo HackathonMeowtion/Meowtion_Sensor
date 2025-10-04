@@ -29,6 +29,7 @@ class FleetDefaultMemberConfigObject(file_parsers.YamlConfigObject):
   """Fleet Default Member Config abstraction."""
 
   MANAGEMENT_KEY = 'management'
+  CONFIGAPI_KEY = 'configapi'
 
   def GetManagement(self):
     try:
@@ -38,12 +39,19 @@ class FleetDefaultMemberConfigObject(file_parsers.YamlConfigObject):
 
     return management
 
+  def GetConfigapi(self):
+    try:
+      configapi = self[self.CONFIGAPI_KEY]
+    except KeyError:
+      return None
+    return configapi
+
 
 def ParseFleetDefaultMemberConfig(yaml_config, msg):
-  """Parses the ASM Fleet Default MEmber Config from a yaml file.
+  """Parses the ASM Fleet Default Member Config from a yaml file.
 
   Args:
-    yaml_config: object containing arguments passed as flags with the command
+    yaml_config: Object containing arguments passed as flags with the command.
     msg: The gkehub messages package.
 
   Returns:
@@ -62,7 +70,8 @@ def ParseFleetDefaultMemberConfig(yaml_config, msg):
   # Create empty MemberConfig.
   member_config = msg.ServiceMeshMembershipSpec()
 
-  # The config must contain a value of 'automatic' or 'manual' for the
+  # The config must contain a value of 'automatic' or 'manual' or
+  # 'not_installed' for the
   # 'management' field.
   if management == 'automatic':
     member_config.management = (
@@ -77,6 +86,12 @@ def ParseFleetDefaultMemberConfig(yaml_config, msg):
             'MANAGEMENT_MANUAL'
         )
     )
+  elif management == 'not_installed':
+    member_config.management = (
+        msg.ServiceMeshMembershipSpec.ManagementValueValuesEnum(
+            'MANAGEMENT_NOT_INSTALLED'
+        )
+    )
   elif management is None or management == 'unspecified':
     member_config.management = (
         msg.ServiceMeshMembershipSpec.ManagementValueValuesEnum(
@@ -87,6 +102,97 @@ def ParseFleetDefaultMemberConfig(yaml_config, msg):
   else:
     status_msg = ('management [{}] is not supported.').format(management)
     log.status.Print(status_msg)
+
+  return member_config
+
+
+def ParseFleetDefaultMemberConfigV2(yaml_config, msg):
+  """Parses the ASM Fleet Default Member Config from a yaml file.
+
+  Args:
+    yaml_config: Object containing arguments passed as flags with the command.
+    msg: The gkehub messages package.
+
+  Returns:
+    member_config: The Membership spec configuration
+  """
+
+  if len(yaml_config.data) != 1:
+    raise exceptions.Error('Input config file must contain one YAML document.')
+  config = yaml_config.data[0]
+
+  management = config.GetManagement()
+  configapi = config.GetConfigapi()
+
+  if management is None and configapi is None:
+    raise exceptions.Error('Missing required field .management or .configapi')
+
+  if management is not None and configapi is not None:
+    raise exceptions.Error(
+        'Both .management and .configapi cannot be set at the same time.'
+    )
+
+  # Create empty MemberConfig.
+  member_config = msg.ServiceMeshMembershipSpec()
+
+  # The config must contain a value of 'automatic' or 'manual'
+  # or 'not_installed' for the
+  # 'management' field.
+  if management == 'automatic':
+    member_config.management = (
+        msg.ServiceMeshMembershipSpec.ManagementValueValuesEnum(
+            'MANAGEMENT_AUTOMATIC'
+        )
+    )
+  # Provision Google proto from Google ClientConfig dictionary.
+  elif management == 'manual':
+    member_config.management = (
+        msg.ServiceMeshMembershipSpec.ManagementValueValuesEnum(
+            'MANAGEMENT_MANUAL'
+        )
+    )
+  elif management == 'not_installed':
+    member_config.management = (
+        msg.ServiceMeshMembershipSpec.ManagementValueValuesEnum(
+            'MANAGEMENT_NOT_INSTALLED'
+        )
+    )
+  elif management is None or management == 'unspecified':
+    member_config.management = (
+        msg.ServiceMeshMembershipSpec.ManagementValueValuesEnum(
+            'MANAGEMENT_UNSPECIFIED'
+        )
+    )
+  # Unsupported configuration found.
+  else:
+    status_msg = ('management [{}] is not supported.').format(management)
+    log.status.Print(status_msg)
+
+  # parse configapi setting
+
+  if configapi == 'istio':
+    member_config.configApi = (
+        msg.ServiceMeshMembershipSpec.ConfigApiValueValuesEnum(
+            'CONFIG_API_ISTIO'
+        )
+    )
+  elif configapi == 'gateway':
+    member_config.configApi = (
+        msg.ServiceMeshMembershipSpec.ConfigApiValueValuesEnum(
+            'CONFIG_API_GATEWAY'
+        )
+    )
+  elif configapi is None or configapi == 'unspecified':
+    member_config.configApi = (
+        msg.ServiceMeshMembershipSpec.ConfigApiValueValuesEnum(
+            'CONFIG_API_UNSPECIFIED'
+        )
+    )
+  else:
+    status_msg = (
+        'configapi [{}] is not supported. Use one of istio or gateway'
+    ).format(configapi)
+    raise exceptions.Error(status_msg)
 
   return member_config
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Utilities to load Google Auth credentials from gcloud."""
 
+import datetime
 import logging
-import os
 import subprocess
 from typing import Iterator, List, Optional
 
@@ -11,47 +11,82 @@ from google.oauth2 import credentials as google_oauth2
 import bq_auth_flags
 import bq_flags
 import bq_utils
+from auth import utils as bq_auth_utils
+from gcloud_wrapper import gcloud_runner
 from utils import bq_error
+from utils import bq_gcloud_utils
+
+ERROR_TEXT_PRODUCED_IF_GCLOUD_NOT_FOUND = "No such file or directory: 'gcloud'"
+
+_GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive'
+_GCP_SCOPE = 'https://www.googleapis.com/auth/cloud-platform'
 
 
 def LoadCredential() -> google_oauth2.Credentials:
   """Loads credentials by calling gcloud commands."""
-  logging.info('Loading auth credentials from gcloud')
-  gcloud_path = _GetGcloudPath()
-  access_token = _GetAccessTokenAndPrintOutput(gcloud_path)
-  refresh_token = _GetRefreshTokenAndPrintOutput(gcloud_path)
+  gcloud_config = bq_gcloud_utils.load_config()
+  account = gcloud_config.get('core', {}).get('account', '')
+  logging.info('Loading auth credentials from gcloud for account: %s', account)
+
+  is_service_account = bq_utils.IsServiceAccount(account)
+  access_token = _GetAccessTokenAndPrintOutput(is_service_account)
+  # Service accounts use the refresh_handler instead of the token for refresh.
+  refresh_token = (
+      None if is_service_account else _GetRefreshTokenAndPrintOutput()
+  )
+  refresh_handler = (
+      _ServiceAccountRefreshHandler if is_service_account else None
+  )
+  fallback_quota_project_id = _GetFallbackQuotaProjectId(
+      is_service_account=is_service_account,
+      has_refresh_token=refresh_token is not None,
+  )
+
   return google_oauth2.Credentials(
+      account=account,
       token=access_token,
       refresh_token=refresh_token,
+      refresh_handler=refresh_handler,
+      client_id=bq_auth_utils.get_client_id(),
+      client_secret=bq_auth_utils.get_client_secret(),
+      token_uri=bq_auth_utils.get_token_uri(),
       quota_project_id=bq_utils.GetResolvedQuotaProjectID(
-          bq_auth_flags.QUOTA_PROJECT_ID.value, bq_flags.PROJECT_ID.value
+          bq_auth_flags.QUOTA_PROJECT_ID.value, fallback_quota_project_id
       ),
   )
 
 
-def _GetGcloudPath() -> str:
-  if 'nt' == os.name:
-    return 'gcloud.cmd'
-  return 'gcloud'
+def _GetScopes() -> List[str]:
+  scopes = []
+  if bq_flags.ENABLE_GDRIVE.value:
+    drive_scope = _GDRIVE_SCOPE
+    scopes.extend([drive_scope, _GCP_SCOPE])
+  return scopes
 
 
-def _GetAccessTokenAndPrintOutput(gcloud_path: str) -> Optional[str]:
-  return _GetTokenFromGcloudAndPrintOtherOutput(
-      [gcloud_path, 'auth', 'print-access-token']
-  )
+def _GetAccessTokenAndPrintOutput(
+    is_service_account: bool, scopes: Optional[List[str]] = None
+) -> Optional[str]:
+  scopes = _GetScopes() if scopes is None else scopes
+  if is_service_account and scopes:
+    return _GetTokenFromGcloudAndPrintOtherOutput(
+        ['auth', 'print-access-token', '--scopes', ','.join(scopes)]
+    )
+  return _GetTokenFromGcloudAndPrintOtherOutput(['auth', 'print-access-token'])
 
 
-def _GetRefreshTokenAndPrintOutput(gcloud_path: str) -> Optional[str]:
-  return _GetTokenFromGcloudAndPrintOtherOutput(
-      [gcloud_path, 'auth', 'print-refresh-token']
-  )
+def _GetRefreshTokenAndPrintOutput() -> Optional[str]:
+  return _GetTokenFromGcloudAndPrintOtherOutput(['auth', 'print-refresh-token'])
 
 
-def _GetTokenFromGcloudAndPrintOtherOutput(cmd: List[str]) -> Optional[str]:
+def _GetTokenFromGcloudAndPrintOtherOutput(
+    cmd: List[str],
+    stderr: Optional[int] = subprocess.STDOUT,
+) -> Optional[str]:
   """Returns a token or prints other messages from the given gcloud command."""
   try:
     token = None
-    for output in _RunGcloudCommand(cmd):
+    for output in _RunGcloudCommand(cmd, stderr):
       if output and ' ' not in output:
         # Token is a non-empty string of non-space characters.
         token = output
@@ -76,11 +111,12 @@ def _GetTokenFromGcloudAndPrintOtherOutput(cmd: List[str]) -> Optional[str]:
       return None
     else:
       raise bq_error.BigqueryError(
-          'Error retrieving auth credentials from gcloud: %s' % str(e)
+          'Error retrieving auth credentials from gcloud: %s'
+          % _UpdateReauthMessage(str(e))
       )
   except Exception as e:  # pylint: disable=broad-exception-caught
     single_line_error_msg = str(e).replace('\n', '')
-    if "No such file or directory: 'gcloud'" in single_line_error_msg:
+    if ERROR_TEXT_PRODUCED_IF_GCLOUD_NOT_FOUND in single_line_error_msg:
       raise bq_error.BigqueryError(
           "'gcloud' not found but is required for authentication. To install,"
           ' follow these instructions:'
@@ -91,24 +127,21 @@ def _GetTokenFromGcloudAndPrintOtherOutput(cmd: List[str]) -> Optional[str]:
     )
 
 
-def _RunGcloudCommand(cmd: List[str]) -> Iterator[str]:
+def _RunGcloudCommand(
+    cmd: List[str], stderr: Optional[int] = subprocess.STDOUT
+) -> Iterator[str]:
   """Runs the given gcloud command, yields the output, and returns the final status code."""
-  popen = subprocess.Popen(
-      cmd,
-      stdout=subprocess.PIPE,
-      stderr=subprocess.STDOUT,
-      universal_newlines=True,
-  )
+  proc = gcloud_runner.run_gcloud_command(cmd, stderr=stderr)
   error_msgs = []
-  if popen.stdout:
-    for stdout_line in iter(popen.stdout.readline, ''):
+  if proc.stdout:
+    for stdout_line in iter(proc.stdout.readline, ''):
       line = str(stdout_line).strip()
       if line.startswith('ERROR:') or error_msgs:
         error_msgs.append(line)
       else:
         yield line
-    popen.stdout.close()
-  return_code = popen.wait()
+    proc.stdout.close()
+  return_code = proc.wait()
   if return_code:
     raise bq_error.BigqueryError('\n'.join(error_msgs))
 
@@ -118,3 +151,44 @@ def _GetReauthMessage() -> str:
       ' --enable-gdrive-access' if bq_flags.ENABLE_GDRIVE.value else ''
   )
   return 'To re-authenticate, run:\n\n%s' % gcloud_command
+
+
+def _UpdateReauthMessage(message: str) -> str:
+  if '$ gcloud auth login' not in message or not bq_flags.ENABLE_GDRIVE.value:
+    return message
+  return message.replace(
+      '$ gcloud auth login',
+      '$ gcloud auth login --enable-gdrive-access',
+  )
+
+
+def _GetFallbackQuotaProjectId(
+    is_service_account: bool, has_refresh_token: bool
+) -> Optional[str]:
+  # When the credential type is not a service account - determined by the
+  # account name or whether we can get a non-empty refresh token - set a
+  # fallback quota project ID to be the resource project ID. When the credential
+  # type is a service account, don't set any fallback quota project ID.
+  if is_service_account:
+    return None
+  if not has_refresh_token:
+    return None
+  return bq_flags.PROJECT_ID.value
+
+
+def _ServiceAccountRefreshHandler(request, scopes):
+  """Refreshes the access token for a service account."""
+  del request  # Unused.
+  access_token = _GetAccessTokenAndPrintOutput(
+      is_service_account=True, scopes=scopes
+  )
+  # According to
+  # https://cloud.google.com/docs/authentication/token-types#at-lifetime
+  # and https://cloud.google.com/sdk/gcloud/reference/auth/print-access-token,
+  # the access token lifetime from gcloud auth print-access-token is 1 hour,
+  # but set token expiry to 55 minutes from now to be safe.
+  expiry = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
+      minutes=55
+  )
+  expiry = expiry.replace(tzinfo=None)
+  return access_token, expiry

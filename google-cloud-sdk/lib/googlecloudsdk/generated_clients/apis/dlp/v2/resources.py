@@ -78,6 +78,17 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  ORGANIZATIONS_LOCATIONS_CONNECTIONS = (
+      'organizations.locations.connections',
+      '{+name}',
+      {
+          '':
+              'organizations/{organizationsId}/locations/{locationsId}/'
+              'connections/{connectionsId}',
+      },
+      ['name'],
+      True
+  )
   ORGANIZATIONS_LOCATIONS_DEIDENTIFYTEMPLATES = (
       'organizations.locations.deidentifyTemplates',
       '{+name}',
@@ -96,6 +107,17 @@ class Collections(enum.Enum):
           '':
               'organizations/{organizationsId}/locations/{locationsId}/'
               'discoveryConfigs/{discoveryConfigsId}',
+      },
+      ['name'],
+      True
+  )
+  ORGANIZATIONS_LOCATIONS_FILESTOREDATAPROFILES = (
+      'organizations.locations.fileStoreDataProfiles',
+      '{+name}',
+      {
+          '':
+              'organizations/{organizationsId}/locations/{locationsId}/'
+              'fileStoreDataProfiles/{fileStoreDataProfilesId}',
       },
       ['name'],
       True
@@ -286,6 +308,17 @@ class Collections(enum.Enum):
           '':
               'projects/{projectsId}/locations/{locationsId}/dlpJobs/'
               '{dlpJobsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_FILESTOREDATAPROFILES = (
+      'projects.locations.fileStoreDataProfiles',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'fileStoreDataProfiles/{fileStoreDataProfilesId}',
       },
       ['name'],
       True

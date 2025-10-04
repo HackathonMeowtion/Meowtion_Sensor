@@ -29,7 +29,8 @@ from googlecloudsdk.core import log
 from googlecloudsdk.core import resources
 
 
-@base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.GA)
 class Create(base.Command):
   """Create a new VPC spoke.
 
@@ -38,7 +39,9 @@ class Create(base.Command):
 
   @staticmethod
   def Args(parser):
-    flags.AddSpokeResourceArg(parser, 'to create', global_spoke_command=True)
+    flags.AddSpokeResourceArg(
+        parser, 'to create', flags.ResourceLocationType.GLOBAL_ONLY
+    )
     flags.AddRegionGroup(parser, hide_global_arg=False, hide_region_arg=True)
     flags.AddHubFlag(parser)
     flags.AddGroupFlag(parser)
@@ -49,7 +52,7 @@ class Create(base.Command):
         parser, hide_exclude_export_ranges_flag=False
     )
     flags.AddIncludeExportRangesFlag(
-        parser, hide_include_export_ranges_flag=True
+        parser, hide_include_export_ranges_flag=False
     )
     labels_util.AddCreateLabelsFlags(parser)
 
@@ -59,22 +62,42 @@ class Create(base.Command):
     )
 
     spoke_ref = args.CONCEPTS.spoke.Parse()
-    labels = labels_util.ParseCreateArgs(
-        args, client.messages.Spoke.LabelsValue
-    )
-    spoke = client.messages.Spoke(
-        hub=args.hub,
-        group=args.group,
-        linkedVpcNetwork=client.messages.LinkedVpcNetwork(
-            uri=args.vpc_network,
-            excludeExportRanges=args.exclude_export_ranges,
-            includeExportRanges=args.include_export_ranges,
-        ),
-        description=args.description,
-        labels=labels,
-    )
 
-    op_ref = client.CreateVPCSpoke(spoke_ref, spoke)
+    if self.ReleaseTrack() == base.ReleaseTrack.BETA:
+      labels = labels_util.ParseCreateArgs(
+          args,
+          client.messages.GoogleCloudNetworkconnectivityV1betaSpoke.LabelsValue,
+      )
+
+      spoke = client.messages.GoogleCloudNetworkconnectivityV1betaSpoke(
+          hub=args.hub,
+          group=args.group,
+          linkedVpcNetwork=client.messages.GoogleCloudNetworkconnectivityV1betaLinkedVpcNetwork(
+              uri=args.vpc_network,
+              excludeExportRanges=args.exclude_export_ranges,
+              includeExportRanges=args.include_export_ranges,
+          ),
+          description=args.description,
+          labels=labels,
+      )
+      op_ref = client.CreateSpokeBeta(spoke_ref, spoke)
+    else:
+      labels = labels_util.ParseCreateArgs(
+          args, client.messages.Spoke.LabelsValue
+      )
+
+      spoke = client.messages.Spoke(
+          hub=args.hub,
+          group=args.group,
+          linkedVpcNetwork=client.messages.LinkedVpcNetwork(
+              uri=args.vpc_network,
+              excludeExportRanges=args.exclude_export_ranges,
+              includeExportRanges=args.include_export_ranges,
+          ),
+          description=args.description,
+          labels=labels,
+      )
+      op_ref = client.CreateSpoke(spoke_ref, spoke)
 
     log.status.Print('Create request issued for: [{}]'.format(spoke_ref.Name()))
 

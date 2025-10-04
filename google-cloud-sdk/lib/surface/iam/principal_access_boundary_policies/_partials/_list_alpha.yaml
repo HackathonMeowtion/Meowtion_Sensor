@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*- #
-# Copyright 2024 Google LLC. All Rights Reserved.
+# Copyright 2025 Google LLC. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 # AUTOGEN_CLI_VERSION: HEAD
 - release_tracks:
   - ALPHA
+  auto_generated: true
   hidden: true
   help_text:
     brief: List PrincipalAccessBoundaryPolicy instances.
@@ -35,7 +36,8 @@
         Format:
           `organizations/{organization_id}/locations/{location}`
       is_positional: false
-      resource_spec: !REF googlecloudsdk.command_lib.iam.v3alpha_resources:organization_location
+      is_primary_resource: true
+      resource_spec: !REF googlecloudsdk.command_lib.iam.v3alpha_resources:organizations_locations
       required: true
   request:
     api_version: v3alpha

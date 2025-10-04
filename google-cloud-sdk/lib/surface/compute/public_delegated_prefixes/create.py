@@ -20,13 +20,16 @@ from __future__ import unicode_literals
 
 from googlecloudsdk.api_lib.compute import base_classes
 from googlecloudsdk.api_lib.compute import public_delegated_prefixes
+from googlecloudsdk.api_lib.compute import utils as compute_api
 from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.compute import flags as compute_flags
 from googlecloudsdk.command_lib.compute.public_delegated_prefixes import flags
+from googlecloudsdk.command_lib.util.apis import arg_utils
 from googlecloudsdk.core import log
 
 
-@base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.GA)
+@base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.UniverseCompatible
 class Create(base.CreateCommand):
   r"""Creates a Compute Engine public delegated prefix.
 
@@ -37,14 +40,18 @@ class Create(base.CreateCommand):
     $ {command} my-public-delegated-prefix --public-advertised-prefix=my-pap \
       --range=120.120.10.128/27 --global
   """
-  support_ipv6_pdp = False
+
+  _api_version = compute_api.COMPUTE_GA_API_VERSION
+  _include_internal_subnetwork_creation_mode = False
 
   @classmethod
   def Args(cls, parser):
     flags.MakePublicDelegatedPrefixesArg().AddArgument(parser)
-    flags.AddCreatePdpArgsToParser(parser, cls.support_ipv6_pdp)
+    flags.AddCreatePdpArgsToParser(
+        parser, cls._include_internal_subnetwork_creation_mode
+    )
 
-  def Run(self, args):
+  def _Run(self, args):
     holder = base_classes.ComputeApiHolder(self.ReleaseTrack())
     pdp_client = public_delegated_prefixes.PublicDelegatedPrefixesClient(
         holder.client, holder.client.messages, holder.resources
@@ -55,53 +62,48 @@ class Create(base.CreateCommand):
         scope_lister=compute_flags.GetDefaultScopeLister(holder.client),
     )
 
-    if self.support_ipv6_pdp:
-      if args.mode:
-        input_mode = (
-            holder.client.messages.PublicDelegatedPrefix.ModeValueValuesEnum(
-                args.mode
-            )
-        )
-      else:
-        input_mode = None
-
-      result = pdp_client.Create(
-          pdp_ref,
-          parent_pap_prefix=args.public_advertised_prefix
-          if args.public_advertised_prefix
-          else None,
-          parent_pdp_prefix=args.public_delegated_prefix
-          if args.public_delegated_prefix
-          else None,
-          ip_cidr_range=args.range,
-          description=args.description,
-          enable_live_migration=args.enable_live_migration,
-          mode=input_mode,
-          allocatable_prefix_length=int(args.allocatable_prefix_length)
-          if args.allocatable_prefix_length
-          else None,
+    if args.mode:
+      input_mode = arg_utils.ChoiceToEnum(
+          args.mode,
+          holder.client.messages.PublicDelegatedPrefix.ModeValueValuesEnum,
       )
     else:
-      result = pdp_client.Create(
-          pdp_ref,
-          parent_pap_prefix=args.public_advertised_prefix
-          if args.public_advertised_prefix
-          else None,
-          parent_pdp_prefix=args.public_delegated_prefix
-          if args.public_delegated_prefix
-          else None,
-          ip_cidr_range=args.range,
-          description=args.description,
-          enable_live_migration=args.enable_live_migration,
-          mode=None,
-          allocatable_prefix_length=None,
+      input_mode = None
+
+    if hasattr(args, 'purpose') and args.purpose:
+      purpose = arg_utils.ChoiceToEnum(
+          args.purpose,
+          holder.client.messages.PublicDelegatedPrefix.PurposeValueValuesEnum,
       )
+    else:
+      purpose = None
+
+    result = pdp_client.Create(
+        pdp_ref,
+        parent_pap_prefix=args.public_advertised_prefix
+        if args.public_advertised_prefix
+        else None,
+        parent_pdp_prefix=args.public_delegated_prefix
+        if args.public_delegated_prefix
+        else None,
+        ip_cidr_range=args.range,
+        description=args.description,
+        enable_live_migration=args.enable_live_migration,
+        mode=input_mode,
+        allocatable_prefix_length=int(args.allocatable_prefix_length)
+        if args.allocatable_prefix_length
+        else None,
+        purpose=purpose,
+    )
     log.CreatedResource(pdp_ref.Name(), 'public delegated prefix')
     return result
 
+  def Run(self, args):
+    return self._Run(args)
 
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
-class CreateAlpha(Create):
+
+@base.ReleaseTracks(base.ReleaseTrack.BETA)
+class CreateBeta(Create):
   r"""Creates a Compute Engine public delegated prefix.
 
   ## EXAMPLES
@@ -111,4 +113,30 @@ class CreateAlpha(Create):
     $ {command} my-public-delegated-prefix --public-advertised-prefix=my-pap \
       --range=120.120.10.128/27 --global
   """
-  support_ipv6_pdp = True
+
+  _api_version = compute_api.COMPUTE_BETA_API_VERSION
+  _include_internal_subnetwork_creation_mode = False
+
+
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class CreateAlpha(CreateBeta):
+  r"""Creates a Compute Engine public delegated prefix.
+
+  ## EXAMPLES
+
+  To create a public delegated prefix:
+
+    $ {command} my-public-delegated-prefix --public-advertised-prefix=my-pap \
+      --range=120.120.10.128/27 --global
+  """
+
+  _api_version = compute_api.COMPUTE_ALPHA_API_VERSION
+  _include_internal_subnetwork_creation_mode = True
+
+  @classmethod
+  def Args(cls, parser):
+    flags.AddPdpPurpose(parser)
+    super(CreateAlpha, cls).Args(parser)
+
+  def Run(self, args):
+    return self._Run(args)

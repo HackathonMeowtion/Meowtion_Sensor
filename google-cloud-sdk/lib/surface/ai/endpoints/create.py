@@ -33,6 +33,19 @@ from googlecloudsdk.command_lib.util.args import labels_util
 from googlecloudsdk.core import log
 
 
+def _AddArgsGa(parser):
+  flags.GetDisplayNameArg('endpoint').AddToParser(parser)
+  flags.AddRegionResourceArg(
+      parser, 'to create endpoint', prompt_func=region_util.PromptForOpRegion)
+  flags.GetDescriptionArg('endpoint').AddToParser(parser)
+  flags.GetUserSpecifiedIdArg('endpoint').AddToParser(parser)
+  labels_util.AddCreateLabelsFlags(parser)
+  flags.GetEndpointNetworkArg().AddToParser(parser)
+  flags.GetEncryptionKmsKeyNameArg().AddToParser(parser)
+  flags.GetHiddenGdceZoneArg().AddToParser(parser)
+  flags.AddRequestResponseLoggingConfigGroupArgs(parser)
+
+
 def _AddArgs(parser):
   flags.GetDisplayNameArg('endpoint').AddToParser(parser)
   flags.AddRegionResourceArg(
@@ -42,6 +55,8 @@ def _AddArgs(parser):
   labels_util.AddCreateLabelsFlags(parser)
   flags.GetEndpointNetworkArg().AddToParser(parser)
   flags.GetEncryptionKmsKeyNameArg().AddToParser(parser)
+  flags.GetHiddenGdceZoneArg().AddToParser(parser)
+  flags.GetGdcZoneArg().AddToParser(parser)
   flags.AddRequestResponseLoggingConfigGroupArgs(parser)
 
 
@@ -68,17 +83,21 @@ def _Run(args, version):
           request_response_logging_rate=args.request_response_logging_rate)
     else:
       op = endpoints_client.CreateBeta(
-          region_ref, args.display_name,
+          region_ref,
+          args.display_name,
           labels_util.ParseCreateArgs(
               args,
-              endpoints_client.messages.GoogleCloudAiplatformV1beta1Endpoint
-              .LabelsValue),
+              endpoints_client.messages.GoogleCloudAiplatformV1beta1Endpoint.LabelsValue,
+          ),
           description=args.description,
           network=args.network,
           endpoint_id=args.endpoint_id,
           encryption_kms_key_name=args.encryption_kms_key_name,
+          gdce_zone=args.gdce_zone,
+          gdc_zone=args.gdc_zone,
           request_response_logging_table=args.request_response_logging_table,
-          request_response_logging_rate=args.request_response_logging_rate)
+          request_response_logging_rate=args.request_response_logging_rate,
+      )
     response_msg = operations_util.WaitForOpMaybe(
         operation_client, op, endpoints_util.ParseOperation(op.name))
     if response_msg is not None:
@@ -90,6 +109,7 @@ def _Run(args, version):
 
 
 @base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.UniverseCompatible
 class CreateGa(base.CreateCommand):
   """Create a new Vertex AI endpoint.
 
@@ -104,14 +124,15 @@ class CreateGa(base.CreateCommand):
 
   @staticmethod
   def Args(parser):
-    _AddArgs(parser)
+    _AddArgsGa(parser)
 
   def Run(self, args):
     return _Run(args, constants.GA_VERSION)
 
 
 @base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.ALPHA)
-class CreateBeta(CreateGa):
+@base.UniverseCompatible
+class CreateBeta(base.CreateCommand):
   """Create a new Vertex AI endpoint.
 
   ## EXAMPLES
@@ -122,6 +143,10 @@ class CreateBeta(CreateGa):
     $ {command} --project=example --region=us-central1
     --display-name=my_endpoint
   """
+
+  @staticmethod
+  def Args(parser):
+    _AddArgs(parser)
 
   def Run(self, args):
     return _Run(args, constants.BETA_VERSION)

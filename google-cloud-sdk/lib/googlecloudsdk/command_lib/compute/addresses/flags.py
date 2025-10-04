@@ -176,14 +176,14 @@ def AddNetworkTier(parser):
       type=lambda x: x.upper(),
       help="""\
       The network tier to assign to the reserved IP addresses. ``NETWORK_TIER''
-      must be one of: `PREMIUM`, `STANDARD`, `FIXED_STANDARD`.
-      The default value is `PREMIUM`.
+      must be one of: `PREMIUM`, `STANDARD`. The default value is `PREMIUM`.
 
       While regional external addresses (`--region` specified, `--subnet`
       omitted) can use either `PREMIUM` or `STANDARD`, global external
       addresses (`--global` specified, `--subnet` omitted) can only use
       `PREMIUM`. Internal addresses can only use `PREMIUM`.
-      """)
+      """,
+  )
 
 
 def AddIPv6EndPointType(parser):
@@ -229,3 +229,20 @@ def AddMoveArguments(parser):
       help='Name of moved new address. If not specified, current '
       'address\'s name is used.')
   parser.add_argument('--description', help='Description of moved new address.')
+
+
+def IpCollectionArgument(required=False):
+  return compute_flags.ResourceArgument(
+      resource_name='ipCollection',
+      name='--ip-collection',
+      required=required,
+      regional_collection='compute.publicDelegatedPrefixes',
+      region_hidden=True,
+      short_help='Resource reference to a public delegated prefix.',
+      detailed_help=(
+          'If specified, the public delegated prefix (PDP) from which to '
+          'allocate the BYOIP IP address. The PDP must support enhanced IPv4 '
+          'allocations. If not specified, the address will be allocated from '
+          'the Google-owned IP pool.'
+      ),
+  )

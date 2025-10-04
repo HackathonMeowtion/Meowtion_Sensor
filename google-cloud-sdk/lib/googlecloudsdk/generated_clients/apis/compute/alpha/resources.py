@@ -59,6 +59,13 @@ class Collections(enum.Enum):
       ['project', 'backendService'],
       True
   )
+  CROSSSITENETWORKS = (
+      'crossSiteNetworks',
+      'projects/{project}/global/crossSiteNetworks/{crossSiteNetwork}',
+      {},
+      ['project', 'crossSiteNetwork'],
+      True
+  )
   DISKSETTINGS = (
       'diskSettings',
       'projects/{project}/zones/{zone}/diskSettings',
@@ -101,6 +108,13 @@ class Collections(enum.Enum):
       ['project', 'firewall'],
       True
   )
+  FOLDERS = (
+      'folders',
+      'folders/{foldersId}',
+      {},
+      ['foldersId'],
+      True
+  )
   FORWARDINGRULES = (
       'forwardingRules',
       'projects/{project}/regions/{region}/forwardingRules/{forwardingRule}',
@@ -120,6 +134,16 @@ class Collections(enum.Enum):
       'projects/{project}/global/addresses/{address}',
       {},
       ['project', 'address'],
+      True
+  )
+  GLOBALFOLDEROPERATIONS = (
+      'globalFolderOperations',
+      '{+folder}/global/operations/{operation}',
+      {
+          '':
+              'folders/{foldersId}/global/operations/{operation}',
+      },
+      ['folder', 'operation'],
       True
   )
   GLOBALFORWARDINGRULES = (
@@ -156,6 +180,21 @@ class Collections(enum.Enum):
       '{publicDelegatedPrefix}',
       {},
       ['project', 'publicDelegatedPrefix'],
+      True
+  )
+  GLOBALVMEXTENSIONPOLICIES = (
+      'globalVmExtensionPolicies',
+      'projects/{project}/global/vmExtensionPolicies/'
+      '{globalVmExtensionPolicy}',
+      {},
+      ['project', 'globalVmExtensionPolicy'],
+      True
+  )
+  HACONTROLLERS = (
+      'haControllers',
+      'projects/{project}/regions/{region}/haControllers/{haController}',
+      {},
+      ['project', 'region', 'haController'],
       True
   )
   HEALTHCHECKS = (
@@ -237,11 +276,27 @@ class Collections(enum.Enum):
       ['project', 'zone', 'instance'],
       True
   )
+  INSTANTSNAPSHOTGROUPS = (
+      'instantSnapshotGroups',
+      'projects/{project}/zones/{zone}/instantSnapshotGroups/'
+      '{instantSnapshotGroup}',
+      {},
+      ['project', 'zone', 'instantSnapshotGroup'],
+      True
+  )
   INSTANTSNAPSHOTS = (
       'instantSnapshots',
       'projects/{project}/zones/{zone}/instantSnapshots/{instantSnapshot}',
       {},
       ['project', 'zone', 'instantSnapshot'],
+      True
+  )
+  INTERCONNECTATTACHMENTGROUPS = (
+      'interconnectAttachmentGroups',
+      'projects/{project}/global/interconnectAttachmentGroups/'
+      '{interconnectAttachmentGroup}',
+      {},
+      ['project', 'interconnectAttachmentGroup'],
       True
   )
   INTERCONNECTATTACHMENTS = (
@@ -250,6 +305,13 @@ class Collections(enum.Enum):
       '{interconnectAttachment}',
       {},
       ['project', 'region', 'interconnectAttachment'],
+      True
+  )
+  INTERCONNECTGROUPS = (
+      'interconnectGroups',
+      'projects/{project}/global/interconnectGroups/{interconnectGroup}',
+      {},
+      ['project', 'interconnectGroup'],
       True
   )
   INTERCONNECTLOCATIONS = (
@@ -333,11 +395,11 @@ class Collections(enum.Enum):
       ['project', 'firewallPolicy'],
       True
   )
-  NETWORKPLACEMENTS = (
-      'networkPlacements',
-      'projects/{project}/global/networkPlacements/{networkPlacement}',
+  NETWORKPROFILES = (
+      'networkProfiles',
+      'projects/{project}/global/networkProfiles/{networkProfile}',
       {},
-      ['project', 'networkPlacement'],
+      ['project', 'networkProfile'],
       True
   )
   NETWORKS = (
@@ -389,6 +451,16 @@ class Collections(enum.Enum):
       ['project', 'region', 'packetMirroring'],
       True
   )
+  PREVIEWFEATURES = (
+      'previewFeatures',
+      'projects/{project}/global/previewFeatures/{previewFeature}',
+      {
+          '':
+              'projects/{project}/global/previewFeatures/{previewFeature}',
+      },
+      ['project', 'previewFeature'],
+      True
+  )
   PROJECTS = (
       'projects',
       'projects/{project}',
@@ -412,6 +484,13 @@ class Collections(enum.Enum):
       ['project', 'region', 'publicDelegatedPrefix'],
       True
   )
+  RECOVERABLESNAPSHOTS = (
+      'recoverableSnapshots',
+      'projects/{project}/global/recoverableSnapshots/{recoverableSnapshot}',
+      {},
+      ['project', 'recoverableSnapshot'],
+      True
+  )
   REGIONACCELERATORTYPES = (
       'regionAcceleratorTypes',
       'projects/{project}/regions/{region}/acceleratorTypes/{acceleratorType}',
@@ -426,6 +505,13 @@ class Collections(enum.Enum):
       ['project', 'region', 'autoscaler'],
       True
   )
+  REGIONBACKENDBUCKETS = (
+      'regionBackendBuckets',
+      'projects/{project}/regions/{region}/backendBuckets/{backendBucket}',
+      {},
+      ['project', 'region', 'backendBucket'],
+      True
+  )
   REGIONBACKENDSERVICES = (
       'regionBackendServices',
       'projects/{project}/regions/{region}/backendServices/{backendService}',
@@ -438,6 +524,14 @@ class Collections(enum.Enum):
       'projects/{project}/regions/{region}/commitments/{commitment}',
       {},
       ['project', 'region', 'commitment'],
+      True
+  )
+  REGIONCOMPOSITEHEALTHCHECKS = (
+      'regionCompositeHealthChecks',
+      'projects/{project}/regions/{region}/compositeHealthChecks/'
+      '{compositeHealthCheck}',
+      {},
+      ['project', 'region', 'compositeHealthCheck'],
       True
   )
   REGIONDISKSETTINGS = (
@@ -461,6 +555,14 @@ class Collections(enum.Enum):
       ['project', 'region', 'disk'],
       True
   )
+  REGIONHEALTHAGGREGATIONPOLICIES = (
+      'regionHealthAggregationPolicies',
+      'projects/{project}/regions/{region}/healthAggregationPolicies/'
+      '{healthAggregationPolicy}',
+      {},
+      ['project', 'region', 'healthAggregationPolicy'],
+      True
+  )
   REGIONHEALTHCHECKSERVICES = (
       'regionHealthCheckServices',
       'projects/{project}/regions/{region}/healthCheckServices/'
@@ -474,6 +576,21 @@ class Collections(enum.Enum):
       'projects/{project}/regions/{region}/healthChecks/{healthCheck}',
       {},
       ['project', 'region', 'healthCheck'],
+      True
+  )
+  REGIONHEALTHSOURCES = (
+      'regionHealthSources',
+      'projects/{project}/regions/{region}/healthSources/{healthSource}',
+      {},
+      ['project', 'region', 'healthSource'],
+      True
+  )
+  REGIONINSTANCEGROUPMANAGERRESIZEREQUESTS = (
+      'regionInstanceGroupManagerResizeRequests',
+      'projects/{project}/regions/{region}/instanceGroupManagers/'
+      '{instanceGroupManager}/resizeRequests/{resizeRequest}',
+      {},
+      ['project', 'region', 'instanceGroupManager', 'resizeRequest'],
       True
   )
   REGIONINSTANCEGROUPMANAGERS = (
@@ -499,6 +616,14 @@ class Collections(enum.Enum):
       ['project', 'region', 'instanceTemplate'],
       True
   )
+  REGIONINSTANTSNAPSHOTGROUPS = (
+      'regionInstantSnapshotGroups',
+      'projects/{project}/regions/{region}/instantSnapshotGroups/'
+      '{instantSnapshotGroup}',
+      {},
+      ['project', 'region', 'instantSnapshotGroup'],
+      True
+  )
   REGIONINSTANTSNAPSHOTS = (
       'regionInstantSnapshots',
       'projects/{project}/regions/{region}/instantSnapshots/{instantSnapshot}',
@@ -511,6 +636,21 @@ class Collections(enum.Enum):
       'projects/{project}/regions/{region}/machineTypes/{machineType}',
       {},
       ['project', 'region', 'machineType'],
+      True
+  )
+  REGIONMULTIMIGMEMBERS = (
+      'regionMultiMigMembers',
+      'projects/{project}/regions/{region}/multiMigs/{multiMig}/'
+      'multiMigMembers/{multiMigMember}',
+      {},
+      ['project', 'region', 'multiMig', 'multiMigMember'],
+      True
+  )
+  REGIONMULTIMIGS = (
+      'regionMultiMigs',
+      'projects/{project}/regions/{region}/multiMigs/{multiMig}',
+      {},
+      ['project', 'region', 'multiMig'],
       True
   )
   REGIONNETWORKENDPOINTGROUPS = (
@@ -526,6 +666,13 @@ class Collections(enum.Enum):
       'projects/{project}/regions/{region}/firewallPolicies/{firewallPolicy}',
       {},
       ['project', 'region', 'firewallPolicy'],
+      True
+  )
+  REGIONNETWORKPOLICIES = (
+      'regionNetworkPolicies',
+      'projects/{project}/regions/{region}/networkPolicies/{networkPolicy}',
+      {},
+      ['project', 'region', 'networkPolicy'],
       True
   )
   REGIONNOTIFICATIONENDPOINTS = (
@@ -623,6 +770,29 @@ class Collections(enum.Enum):
       ['project', 'region'],
       True
   )
+  RELIABILITYRISKS = (
+      'reliabilityRisks',
+      'projects/{project}/global/reliabilityRisks/{reliabilityRisk}',
+      {},
+      ['project', 'reliabilityRisk'],
+      True
+  )
+  RESERVATIONBLOCKS = (
+      'reservationBlocks',
+      'projects/{project}/zones/{zone}/reservations/{reservation}/'
+      'reservationBlocks/{reservationBlock}',
+      {},
+      ['project', 'zone', 'reservation', 'reservationBlock'],
+      True
+  )
+  RESERVATIONSUBBLOCKS = (
+      'reservationSubBlocks',
+      'projects/{project}/zones/{zone}/{parentName}/reservationSubBlocks/'
+      '{reservationSubBlock}',
+      {},
+      ['project', 'zone', 'parentName', 'reservationSubBlock'],
+      True
+  )
   RESERVATIONS = (
       'reservations',
       'projects/{project}/zones/{zone}/reservations/{reservation}',
@@ -672,6 +842,13 @@ class Collections(enum.Enum):
       '{serviceAttachment}',
       {},
       ['project', 'region', 'serviceAttachment'],
+      True
+  )
+  SNAPSHOTGROUPS = (
+      'snapshotGroups',
+      'projects/{project}/global/snapshotGroups/{snapshotGroup}',
+      {},
+      ['project', 'snapshotGroup'],
       True
   )
   SNAPSHOTSETTINGS = (
@@ -801,6 +978,28 @@ class Collections(enum.Enum):
       ['project', 'region', 'vpnTunnel'],
       True
   )
+  WIREGROUPS = (
+      'wireGroups',
+      'projects/{project}/global/crossSiteNetworks/{crossSiteNetwork}/'
+      'wireGroups/{wireGroup}',
+      {
+          '':
+              'projects/{project}/global/crossSiteNetworks/'
+              '{crossSiteNetwork}/wireGroups/{wireGroup}',
+      },
+      ['project', 'crossSiteNetwork', 'wireGroup'],
+      True
+  )
+  ZONEFOLDEROPERATIONS = (
+      'zoneFolderOperations',
+      '{+folder}/zones/{zone}/operations/{operation}',
+      {
+          '':
+              'folders/{foldersId}/zones/{zone}/operations/{operation}',
+      },
+      ['folder', 'zone', 'operation'],
+      True
+  )
   ZONEOPERATIONS = (
       'zoneOperations',
       'projects/{project}/zones/{zone}/operations/{operation}',
@@ -815,10 +1014,25 @@ class Collections(enum.Enum):
       ['project', 'zone', 'queuedResource'],
       True
   )
+  ZONEVMEXTENSIONPOLICIES = (
+      'zoneVmExtensionPolicies',
+      'projects/{project}/zones/{zone}/vmExtensionPolicies/'
+      '{vmExtensionPolicy}',
+      {
+          '':
+              'projects/{project}/zones/{zone}/vmExtensionPolicies/'
+              '{vmExtensionPolicy}',
+      },
+      ['project', 'zone', 'vmExtensionPolicy'],
+      True
+  )
   ZONES = (
       'zones',
       'projects/{project}/zones/{zone}',
-      {},
+      {
+          '':
+              'projects/{project}/zones/{zone}',
+      },
       ['project', 'zone'],
       True
   )

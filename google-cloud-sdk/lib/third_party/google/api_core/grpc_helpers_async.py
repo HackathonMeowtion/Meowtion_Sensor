@@ -152,14 +152,13 @@ class _WrappedStreamStreamCall(
 
 
 # public type alias denoting the return type of async streaming gapic calls
-GrpcAsyncStream = _WrappedStreamResponseMixin[P]
+GrpcAsyncStream = _WrappedStreamResponseMixin
 # public type alias denoting the return type of unary gapic calls
-AwaitableGrpcCall = _WrappedUnaryResponseMixin[P]
+AwaitableGrpcCall = _WrappedUnaryResponseMixin
 
 
 def _wrap_unary_errors(callable_):
     """Map errors for Unary-Unary async callables."""
-    grpc_helpers._patch_callable_name(callable_)
 
     @functools.wraps(callable_)
     def error_remapped_callable(*args, **kwargs):
@@ -169,23 +168,13 @@ def _wrap_unary_errors(callable_):
     return error_remapped_callable
 
 
-def _wrap_stream_errors(callable_):
+def _wrap_stream_errors(callable_, wrapper_type):
     """Map errors for streaming RPC async callables."""
-    grpc_helpers._patch_callable_name(callable_)
 
     @functools.wraps(callable_)
     async def error_remapped_callable(*args, **kwargs):
         call = callable_(*args, **kwargs)
-
-        if isinstance(call, aio.UnaryStreamCall):
-            call = _WrappedUnaryStreamCall().with_call(call)
-        elif isinstance(call, aio.StreamUnaryCall):
-            call = _WrappedStreamUnaryCall().with_call(call)
-        elif isinstance(call, aio.StreamStreamCall):
-            call = _WrappedStreamStreamCall().with_call(call)
-        else:
-            raise TypeError("Unexpected type of call %s" % type(call))
-
+        call = wrapper_type().with_call(call)
         await call.wait_for_connection()
         return call
 
@@ -207,10 +196,16 @@ def wrap_errors(callable_):
 
     Returns: Callable: The wrapped gRPC callable.
     """
-    if isinstance(callable_, aio.UnaryUnaryMultiCallable):
-        return _wrap_unary_errors(callable_)
+    grpc_helpers._patch_callable_name(callable_)
+
+    if isinstance(callable_, aio.UnaryStreamMultiCallable):
+        return _wrap_stream_errors(callable_, _WrappedUnaryStreamCall)
+    elif isinstance(callable_, aio.StreamUnaryMultiCallable):
+        return _wrap_stream_errors(callable_, _WrappedStreamUnaryCall)
+    elif isinstance(callable_, aio.StreamStreamMultiCallable):
+        return _wrap_stream_errors(callable_, _WrappedStreamStreamCall)
     else:
-        return _wrap_stream_errors(callable_)
+        return _wrap_unary_errors(callable_)
 
 
 def create_channel(
@@ -241,6 +236,18 @@ def create_channel(
         credentials_file (str): A file with credentials that can be loaded with
             :func:`google.auth.load_credentials_from_file`. This argument is
             mutually exclusive with credentials.
+
+            .. warning::
+                Important: If you accept a credential configuration (credential JSON/File/Stream)
+                from an external source for authentication to Google Cloud Platform, you must
+                validate it before providing it to any Google API or client library. Providing an
+                unvalidated credential configuration to Google APIs or libraries can compromise
+                the security of your systems and data. For more information, refer to
+                `Validate credential configurations from external sources`_.
+
+            .. _Validate credential configurations from external sources:
+
+            https://cloud.google.com/docs/authentication/external/externally-sourced-credentials
         quota_project_id (str): An optional project to use for billing and quota.
         default_scopes (Sequence[str]): Default scopes passed by a Google client
             library. Use 'scopes' for user-defined scopes.

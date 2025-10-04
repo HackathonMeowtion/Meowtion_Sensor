@@ -30,7 +30,7 @@ instancePartition:
   - parameter_name: instancePartitionsId
     attribute_name: instancePartition
     help: |
-      The name of the Cloud Spanner instance partition.
+      The name of the Spanner instance partition.
   disable_auto_completers: false
 
 database:
@@ -66,7 +66,7 @@ backupSchedule:
   - *instance
   - *database
   - parameter_name: backupSchedulesId
-    attribute_name: backupSchedule
+    attribute_name: backup_schedule
     help: |
       The name of the Cloud Spanner backup schedule.
   disable_auto_completers: false

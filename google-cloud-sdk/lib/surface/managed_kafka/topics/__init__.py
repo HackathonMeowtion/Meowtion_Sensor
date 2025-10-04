@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Apache Kafka for BigQuery topics operations."""
+"""Managed Service for Apache Kafka topics operations."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -20,8 +20,10 @@ from __future__ import unicode_literals
 from googlecloudsdk.calliope import base
 
 
-@base.Hidden
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(
+    base.ReleaseTrack.GA, base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA
+)
 class Topics(base.Group):
-  """Administer Apache Kafka for BigQuery topics."""
+  """Administer Managed Service for Apache Kafka topics."""
   category = base.DATA_ANALYTICS_CATEGORY

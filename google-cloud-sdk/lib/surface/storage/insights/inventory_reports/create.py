@@ -28,6 +28,7 @@ from googlecloudsdk.command_lib.storage import storage_url
 from googlecloudsdk.core import log
 
 
+@base.DefaultUniverseOnly
 class Create(base.Command):
   """Create a new inventory report config."""
 
@@ -72,7 +73,7 @@ class Create(base.Command):
       destination = storage_url.CloudUrl(
           scheme=source_bucket.scheme,
           bucket_name=source_bucket.bucket_name,
-          object_name='inventory_reports/')
+          resource_name='inventory_reports/')
 
     if args.schedule_starts is not None:
       start_date = args.schedule_starts

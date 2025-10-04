@@ -48,7 +48,8 @@ DETAILED_HELP = {
 }
 
 
-@base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.GA)
+@base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.DefaultUniverseOnly
 class List(base.ListCommand):
   """List Compute Engine managed instance group resize requests."""
 
@@ -60,23 +61,50 @@ class List(base.ListCommand):
     instance_groups_flags.MakeZonalInstanceGroupManagerArg().AddArgument(
         parser)
 
-  def _Run(self, args, holder):
-    client = holder.client
+  def Run(self, args):
+    """Creates and issues an instanceGroupManagerResizeRequests.list request.
 
-    group_ref = (instance_groups_flags.MakeZonalInstanceGroupManagerArg().
-                 ResolveAsResource(
-                     args,
-                     holder.resources,
-                     default_scope=compute_scope.ScopeEnum.ZONE,
-                     scope_lister=flags.GetDefaultScopeLister(client)))
+    Args:
+      args: the argparse arguments that this command was invoked with.
 
-    service = client.apitools_client.instanceGroupManagerResizeRequests
-    # TODO(b/278989992): Add support for regional request.
-    request = (client.messages.
-               ComputeInstanceGroupManagerResizeRequestsListRequest(
-                   instanceGroupManager=group_ref.Name(),
-                   zone=group_ref.zone,
-                   project=group_ref.project))
+    Returns:
+      List of resize requests.
+    """
+
+    holder = base_classes.ComputeApiHolder(self.ReleaseTrack())
+    resource_arg = instance_groups_flags.MakeZonalInstanceGroupManagerArg()
+    igm_ref = self._GetIgmRef(args, holder, resource_arg)
+    return self._Run(holder.client, igm_ref)
+
+  def _GetIgmRef(self, args, holder, resource_arg):
+    return resource_arg.ResolveAsResource(
+        args,
+        holder.resources,
+        default_scope=compute_scope.ScopeEnum.ZONE,
+        scope_lister=flags.GetDefaultScopeLister(holder.client),
+    )
+
+  def _Run(self, client, igm_ref):
+    if igm_ref.Collection() == 'compute.instanceGroupManagers':
+      service = client.apitools_client.instanceGroupManagerResizeRequests
+      request = (
+          client.messages.ComputeInstanceGroupManagerResizeRequestsListRequest(
+              instanceGroupManager=igm_ref.Name(),
+              zone=igm_ref.zone,
+              project=igm_ref.project,
+          )
+      )
+    elif igm_ref.Collection() == 'compute.regionInstanceGroupManagers':
+      service = client.apitools_client.regionInstanceGroupManagerResizeRequests
+      request = client.messages.ComputeRegionInstanceGroupManagerResizeRequestsListRequest(
+          instanceGroupManager=igm_ref.Name(),
+          region=igm_ref.region,
+          project=igm_ref.project,
+      )
+    else:
+      raise ValueError(
+          'Unknown reference type {0}'.format(igm_ref.Collection())
+      )
 
     errors = []
     results = list(request_helper.MakeRequests(
@@ -89,38 +117,45 @@ class List(base.ListCommand):
       utils.RaiseToolException(errors)
     return results
 
-  def Run(self, args):
-    """Creates and issues an instanceGroupManagerResizeRequests.list request.
 
-    Args:
-      args: the argparse arguments that this command was invoked with.
-
-    Returns:
-      List of resize requests.
-    """
-    holder = base_classes.ComputeApiHolder(self.ReleaseTrack())
-    return self._Run(args, holder)
-
-
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
-class ListAlpha(List):
+@base.ReleaseTracks(base.ReleaseTrack.BETA)
+class ListBeta(List):
   """List Compute Engine managed instance group resize requests."""
 
   detailed_help = DETAILED_HELP
 
   @classmethod
   def Args(cls, parser):
-    super().Args(parser)
-    rr_flags.AddOutputFormat(parser, base.ReleaseTrack.ALPHA)
+    rr_flags.AddOutputFormat(parser, base.ReleaseTrack.BETA)
+    instance_groups_flags.MULTISCOPE_INSTANCE_GROUP_MANAGER_ARG.AddArgument(
+        parser)
 
   def Run(self, args):
-    """Creates and issues an instanceGroupManagerResizeRequests.list request.
+    """Creates and issues an instanceGroupManagerResizeRequests.list request."""
 
-    Args:
-      args: the argparse arguments that this command was invoked with.
-
-    Returns:
-      List of resize requests and their queuing policies.
-    """
     holder = base_classes.ComputeApiHolder(self.ReleaseTrack())
-    return self._Run(args, holder)
+    resource_arg = instance_groups_flags.MULTISCOPE_INSTANCE_GROUP_MANAGER_ARG
+    igm_ref = self._GetIgmRef(args, holder, resource_arg)
+    return self._Run(holder.client, igm_ref)
+
+  def _GetIgmRef(self, args, holder, resource_arg):
+    igm_ref = resource_arg.ResolveAsResource(
+        args,
+        holder.resources,
+        default_scope=compute_scope.ScopeEnum.ZONE,
+        scope_lister=flags.GetDefaultScopeLister(holder.client),
+    )
+    return igm_ref
+
+
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class ListAlpha(ListBeta):
+  """List Compute Engine managed instance group resize requests."""
+
+  detailed_help = DETAILED_HELP
+
+  @classmethod
+  def Args(cls, parser):
+    rr_flags.AddOutputFormat(parser, base.ReleaseTrack.ALPHA)
+    instance_groups_flags.MULTISCOPE_INSTANCE_GROUP_MANAGER_ARG.AddArgument(
+        parser)

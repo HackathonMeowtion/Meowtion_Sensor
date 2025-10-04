@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*- #
-# Copyright 2022 Google LLC. All Rights Reserved.
+# Copyright 2025 Google LLC. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ from googlecloudsdk.command_lib.container.gkemulticloud import constants
 from googlecloudsdk.command_lib.container.gkemulticloud import endpoint_util
 from googlecloudsdk.command_lib.container.gkemulticloud import errors
 from googlecloudsdk.command_lib.container.gkemulticloud import flags
+from googlecloudsdk.command_lib.run import exceptions as run_exceptions
 from googlecloudsdk.command_lib.run import pretty_print
 from googlecloudsdk.core import exceptions
 from googlecloudsdk.core.console import console_io
@@ -59,10 +60,20 @@ $ {command} my-cluster --location=us-west1 --platform-version=PLATFORM_VERSION -
 To register and set cluster admin users, run:
 
 $ {command} my-cluster --location=us-west1 --platform-version=PLATFORM_VERSION --fleet-project=FLEET_PROJECT_NUM --distribution=DISTRIBUTION --context=CLUSTER_CONTEXT --issuer-url=https://ISSUER_URL --admin-users=USER1,USER2
+
+To specify custom tolerations and labels for system component pods, run:
+
+$ {command} my-cluster --location=us-west1 --platform-version=PLATFORM_VERSION --fleet-project=FLEET_PROJECT_NUM --distribution=DISTRIBUTION --context=CLUSTER_CONTEXT --system-component-tolerations=TOLERATIONS --system-component-labels=LABELS
+
+where TOLERATIONS have the format:
+  key=value:Effect:NoSchedule (examples: key1=value1:Equal:NoSchedule,key2:Exists:PreferNoSchedule, :Exists:NoExecute)
+and LABELS have the format:
+  key=value (examples: key1=value1,key2="")
 """
 
 
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.GA)
+@base.DefaultUniverseOnly
 class Register(base.CreateCommand):
   """Register an Attached cluster."""
 
@@ -79,20 +90,35 @@ class Register(base.CreateCommand):
     attached_flags.AddAdminUsers(parser)
     attached_flags.AddKubectl(parser)
     attached_flags.AddProxyConfig(parser)
+    attached_flags.AddSkipClusterAdminCheck(parser)
+    attached_flags.AddSystemComponentTolerations(parser)
+    attached_flags.AddSystemComponentLabels(parser)
 
     flags.AddAnnotations(parser)
     flags.AddValidateOnly(parser, 'cluster to create')
     flags.AddFleetProject(parser)
     flags.AddDescription(parser)
     flags.AddLogging(parser, True)
-    flags.AddMonitoringConfig(parser, True)
+    flags.AddMonitoringConfig(parser, True, True)
     flags.AddBinauthzEvaluationMode(parser)
     flags.AddAdminGroups(parser)
+    flags.AddWorkloadVulnerabilityScanning(parser)
+    flags.AddTagBindings(parser)
 
     parser.display_info.AddFormat(constants.ATTACHED_CLUSTERS_FORMAT)
 
   def Run(self, args):
     location = resource_args.ParseAttachedClusterResourceArg(args).locationsId
+    if (
+        attached_flags.GetHasPrivateIssuer(args)
+        and attached_flags.GetDistribution(args) == 'eks'
+    ):
+      raise run_exceptions.ArgumentError(
+          'Distributions of type "eks" cannot use the `has-private-issuer`'
+          ' flag.'
+      )
+    # Validate system component tolerations early to fail fast.
+    attached_flags.GetSystemComponentTolerations(args)
     with endpoint_util.GkemulticloudEndpointOverride(location):
       cluster_ref = resource_args.ParseAttachedClusterResourceArg(args)
       manifest = self._get_manifest(args, cluster_ref)
@@ -102,7 +128,8 @@ class Register(base.CreateCommand):
           context=attached_flags.GetContext(args),
           enable_workload_identity=True,
       ) as kube_client:
-        kube_client.CheckClusterAdminPermissions()
+        if not attached_flags.GetSkipClusterAdminCheck(args):
+          kube_client.CheckClusterAdminPermissions()
 
         if attached_flags.GetHasPrivateIssuer(args):
           pretty_print.Info('Fetching cluster OIDC information')

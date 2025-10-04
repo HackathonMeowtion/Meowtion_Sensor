@@ -38,20 +38,61 @@ import six
 
 CONTEXT_AWARE_ACCESS_DENIED_ERROR = 'access_denied'
 CONTEXT_AWARE_ACCESS_DENIED_ERROR_DESCRIPTION = 'Account restricted'
+# TODO: b/339747060 - Revert back to the old message when b/309559824 is fixed.
+# CONTEXT_AWARE_ACCESS_HELP_MSG = (
+#     'Access was blocked by Context Aware Access, please contact your'
+#     ' administrator to gain access.'
+# )
+
 CONTEXT_AWARE_ACCESS_HELP_MSG = (
-    'Access was blocked due to an organization policy, please contact your '
-    'admin to gain access.'
+    'Access was blocked by Context Aware Access. If you are using gcloud on a'
+    ' remote machine via SSH and your organization requires gcloud from a'
+    ' company managed device, please first CRD (Chrome Remote Desktop) or RDP'
+    ' (Remote Desktop Protocol) into your remote machine and log into Chrome'
+    ' using your credentials to register your remote machine. After that, you'
+    ' may need to wait for a few minutes before retrying. If you are using'
+    " cloud shell, you don't need to run `gcloud auth login` and can run"
+    ' your gcloud commands directly.'
+)
+CONTEXT_AWARE_ACCESS_HELP_MSG_GOOGLER = (
+    'Access was blocked by Context Aware Access. Possible solutions:\n\n 1.'
+    " Please restart your terminal if you haven't already and try again. \n\n"
+    ' 2. If you are using gcloud on Cloudtop or other remote machines via SSH'
+    ' and your organization requires gcloud from a company managed device,'
+    ' please first CRD (Chrome Remote Desktop) or RDP (Remote Desktop Protocol)'
+    ' into your remote machine and log into Chrome using your credentials to'
+    ' register your remote machine. After that, you may need to wait for a few'
+    ' minutes before retrying. \n\n 3. Please do not use gcloud in Cloud Shell'
+    ' as it is not a Google managed device. Choose corp machines instead, for'
+    ' example, gMac, gLinux, gWindows, or Cloudtop.\n\n If you are not able to'
+    ' do any of the above, please apply for policy exemption via'
+    ' go/gcloud-cba-exemption. If you have any questions, please reach out to'
+    ' go/gcloud-cba-investigation.'
+)
+# The suggestion is to set CLOUDSDK_CONTEXT_AWARE_USE_CLIENT_CERTIFICATE to
+# true because properties.VALUES.context_aware.use_client_certificate.GetBool()
+# would be overridden by the environment variable, and does not solve the issue.
+CONTEXT_AWARE_ACCESS_MTLS_HELP_MSG_GOOGLER = (
+    'Access was blocked by Context Aware Access. You can try to fix this by'
+    ' updating the context_aware/use_client_certificate flag to true. To do'
+    ' that, run `gcloud config set context_aware/use_client_certificate true`'
+    ' and try running your command again. If your device has the env variable'
+    ' CLOUDSDK_CONTEXT_AWARE_USE_CLIENT_CERTIFICATE configured, ensure it is'
+    ' set to true as that overrides the gcloud properties flag.'
 )
 
 
 def IsContextAwareAccessDeniedError(exc):
   exc_text = six.text_type(exc)
-  return (CONTEXT_AWARE_ACCESS_DENIED_ERROR in exc_text and
-          CONTEXT_AWARE_ACCESS_DENIED_ERROR_DESCRIPTION in exc_text)
+  return (
+      CONTEXT_AWARE_ACCESS_DENIED_ERROR in exc_text
+      and CONTEXT_AWARE_ACCESS_DENIED_ERROR_DESCRIPTION in exc_text
+  )
 
 
 DEFAULT_AUTO_DISCOVERY_FILE_PATH = os.path.join(
-    files.GetHomeDir(), '.secureConnect', 'context_aware_metadata.json')
+    files.GetHomeDir(), '.secureConnect', 'context_aware_metadata.json'
+)
 
 
 def _AutoDiscoveryFilePath():
@@ -63,16 +104,36 @@ def _AutoDiscoveryFilePath():
   return DEFAULT_AUTO_DISCOVERY_FILE_PATH
 
 
+class ContextAwareAccessError:
+  """Get ContextAwareAccessError based on the users organization."""
+
+  @staticmethod
+  def Get():
+    """Get ContextAwareAccessError based on the users organization.
+
+    Returns:
+      str: Context aware access help message.
+    """
+    if properties.IsInternalUserCheck():
+      if not properties.VALUES.context_aware.use_client_certificate.GetBool():
+        return CONTEXT_AWARE_ACCESS_MTLS_HELP_MSG_GOOGLER
+      else:
+        return CONTEXT_AWARE_ACCESS_HELP_MSG_GOOGLER
+    return CONTEXT_AWARE_ACCESS_HELP_MSG
+
+
 class ConfigException(exceptions.Error):
 
   def __init__(self):
     super(ConfigException, self).__init__(
         'Use of client certificate requires endpoint verification agent. '
-        'Run `gcloud topic client-certificate` for installation guide.')
+        'Run `gcloud topic client-certificate` for installation guide.'
+    )
 
 
 class CertProvisionException(exceptions.Error):
   """Represents errors when provisioning a client certificate."""
+
   pass
 
 
@@ -90,14 +151,12 @@ def SSLCredentials(config_path):
     Tuple[bytes, bytes]: client certificate and private key bytes in PEM format.
   """
   try:
-    (
-        has_cert,
-        cert_bytes,
-        key_bytes,
-        _
-    ) = _mtls_helper.get_client_ssl_credentials(
-        generate_encrypted_key=False,
-        context_aware_metadata_path=config_path)
+    (has_cert, cert_bytes, key_bytes, _) = (
+        _mtls_helper.get_client_ssl_credentials(
+            generate_encrypted_key=False,
+            context_aware_metadata_path=config_path,
+        )
+    )
     if has_cert:
       return cert_bytes, key_bytes
   except google_auth_exceptions.ClientCertError as caught_exc:
@@ -123,17 +182,13 @@ def EncryptedSSLCredentials(config_path):
     Tuple[str, bytes]: cert and key file path and passphrase bytes.
   """
   try:
-    (
-        has_cert,
-        cert_bytes,
-        key_bytes,
-        passphrase_bytes
-    ) = _mtls_helper.get_client_ssl_credentials(
-        generate_encrypted_key=True,
-        context_aware_metadata_path=config_path)
+    (has_cert, cert_bytes, key_bytes, passphrase_bytes) = (
+        _mtls_helper.get_client_ssl_credentials(
+            generate_encrypted_key=True, context_aware_metadata_path=config_path
+        )
+    )
     if has_cert:
-      cert_path = os.path.join(
-          config.Paths().global_config_dir, 'caa_cert.pem')
+      cert_path = os.path.join(config.Paths().global_config_dir, 'caa_cert.pem')
       with files.BinaryFileWriter(cert_path) as f:
         f.write(cert_bytes)
         f.write(key_bytes)
@@ -204,12 +259,23 @@ def _RepairECP(cert_config_file_path):
       sdk_root=None, url=None, platform_filter=platform
   )
 
-  already_installed = updater.EnsureInstalledAndRestart(
-      ['enterprise-certificate-proxy'],
-      'Device appears to be enrolled in Certificate Base Access but is missing'
-      ' criticial components. Installing enterprise-certificate-proxy and'
-      ' restarting gcloud.',
-  )
+  try:
+    already_installed = updater.EnsureInstalledAndRestart(
+        ['enterprise-certificate-proxy'],
+        'Device appears to be enrolled in Certificate Based Access but is'
+        ' missing critical components. Installing enterprise-certificate-proxy'
+        ' and restarting gcloud.',
+    )
+  except exceptions.RequiresAdminRightsError as e:
+    raise exceptions.Error(
+        'Enterprise Certificate Proxy cannot be repaired because you do not'
+        ' have permission to modify the Google Cloud SDK installation'
+        ' directory [{sdk_root}]. Please reinstall Google Cloud SDK in a'
+        ' location where you have write permissions, such as your home'
+        ' directory.'.format(
+            sdk_root=config.Paths().sdk_root
+        )
+    ) from e
 
   if already_installed:
     enterprise_certificate_config.update_config(
@@ -305,8 +371,9 @@ class _ConfigImpl(object):
 
     # Encrypted cert stored in a file
     encrypted_cert_path, password = EncryptedSSLCredentials(config_path)
-    return _OnDiskCertConfigImpl(config_path, cert_bytes, key_bytes,
-                                 encrypted_cert_path, password)
+    return _OnDiskCertConfigImpl(
+        config_path, cert_bytes, key_bytes, encrypted_cert_path, password
+    )
 
   def __init__(self, config_type):
     self.config_type = config_type
@@ -316,8 +383,9 @@ class _EnterpriseCertConfigImpl(_ConfigImpl):
   """Represents the configurations associated with context aware access through a enterprise certificate on TPM or OS key store."""
 
   def __init__(self, certificate_config_file_path):
-    super(_EnterpriseCertConfigImpl,
-          self).__init__(ConfigType.ENTERPRISE_CERTIFICATE)
+    super(_EnterpriseCertConfigImpl, self).__init__(
+        ConfigType.ENTERPRISE_CERTIFICATE
+    )
     self.certificate_config_file_path = certificate_config_file_path
 
 
@@ -330,8 +398,14 @@ class _OnDiskCertConfigImpl(_ConfigImpl):
   Only one instance of Config can be created for the program.
   """
 
-  def __init__(self, config_path, client_cert_bytes, client_key_bytes,
-               encrypted_client_cert_path, encrypted_client_cert_password):
+  def __init__(
+      self,
+      config_path,
+      client_cert_bytes,
+      client_key_bytes,
+      encrypted_client_cert_path,
+      encrypted_client_cert_password,
+  ):
     super(_OnDiskCertConfigImpl, self).__init__(ConfigType.ON_DISK_CERTIFICATE)
     self.config_path = config_path
     self.client_cert_bytes = client_cert_bytes
@@ -342,12 +416,14 @@ class _OnDiskCertConfigImpl(_ConfigImpl):
 
   def CleanUp(self):
     """Cleanup any files or resource provisioned during config init."""
-    if (self.encrypted_client_cert_path is not None and
-        os.path.exists(self.encrypted_client_cert_path)):
+    if self.encrypted_client_cert_path is not None and os.path.exists(
+        self.encrypted_client_cert_path
+    ):
       try:
         os.remove(self.encrypted_client_cert_path)
-        log.debug('unprovisioned client cert - %s',
-                  self.encrypted_client_cert_path)
+        log.debug(
+            'unprovisioned client cert - %s', self.encrypted_client_cert_path
+        )
       except files.Error as e:
         log.error('failed to remove client certificate - %s', e)
 

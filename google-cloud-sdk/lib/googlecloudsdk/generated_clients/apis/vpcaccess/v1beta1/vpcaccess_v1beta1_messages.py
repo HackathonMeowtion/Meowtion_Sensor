@@ -23,8 +23,8 @@ class Connector(_messages.Message):
   Fields:
     connectedProjects: Output only. List of projects using the connector.
     createTime: Output only. The creation time of the connector.
-    ipCidrRange: The range of internal addresses that follows RFC 4632
-      notation. Example: `10.132.0.0/28`.
+    ipCidrRange: Optional. The range of internal addresses that follows RFC
+      4632 notation. Example: `10.132.0.0/28`.
     lastRestartTime: Output only. The last restart time of the connector.
     machineType: Machine type of VM Instance underlying connector. Default is
       e2-micro
@@ -46,9 +46,9 @@ class Connector(_messages.Message):
       use of `min-throughput` is discouraged in favor of `min-instances`.
     name: The resource name in the format
       `projects/*/locations/*/connectors/*`.
-    network: Name of a VPC network.
+    network: Optional. Name of a VPC network.
     state: Output only. State of the VPC access connector.
-    subnet: The subnet in which to house the VPC Access Connector.
+    subnet: Optional. The subnet in which to house the VPC Access Connector.
   """
 
   class StateValueValuesEnum(_messages.Enum):
@@ -482,13 +482,13 @@ class Subnet(_messages.Message):
   r"""The subnet in which to house the connector
 
   Fields:
-    name: Subnet name (relative, not fully qualified). E.g. if the full subnet
-      selfLink is https://compute.googleapis.com/compute/v1/projects/{project}
-      /regions/{region}/subnetworks/{subnetName} the correct input for this
-      field would be {subnetName}
-    projectId: Project in which the subnet exists. If not set, this project is
-      assumed to be the project for which the connector create request was
-      issued.
+    name: Optional. Subnet name (relative, not fully qualified). E.g. if the
+      full subnet selfLink is https://compute.googleapis.com/compute/v1/projec
+      ts/{project}/regions/{region}/subnetworks/{subnetName} the correct input
+      for this field would be {subnetName}
+    projectId: Optional. Project in which the subnet exists. If not set, this
+      project is assumed to be the project for which the connector create
+      request was issued.
   """
 
   name = _messages.StringField(1)
@@ -565,6 +565,9 @@ class VpcaccessProjectsLocationsListRequest(_messages.Message):
   r"""A VpcaccessProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -575,10 +578,11 @@ class VpcaccessProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class VpcaccessProjectsLocationsOperationsGetRequest(_messages.Message):

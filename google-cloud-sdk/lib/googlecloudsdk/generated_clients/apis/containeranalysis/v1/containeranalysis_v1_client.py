@@ -97,6 +97,87 @@ class ContaineranalysisV1(base_api.BaseApiClient):
       self._upload_configs = {
           }
 
+    def BatchCreate(self, request, global_params=None):
+      r"""Creates new notes in batch.
+
+      Args:
+        request: (ContaineranalysisProjectsLocationsNotesBatchCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (BatchCreateNotesResponse) The response message.
+      """
+      config = self.GetMethodConfig('BatchCreate')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    BatchCreate.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/notes:batchCreate',
+        http_method='POST',
+        method_id='containeranalysis.projects.locations.notes.batchCreate',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1/{+parent}/notes:batchCreate',
+        request_field='batchCreateNotesRequest',
+        request_type_name='ContaineranalysisProjectsLocationsNotesBatchCreateRequest',
+        response_type_name='BatchCreateNotesResponse',
+        supports_download=False,
+    )
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new note.
+
+      Args:
+        request: (ContaineranalysisProjectsLocationsNotesCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Note) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/notes',
+        http_method='POST',
+        method_id='containeranalysis.projects.locations.notes.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['noteId'],
+        relative_path='v1/{+parent}/notes',
+        request_field='note',
+        request_type_name='ContaineranalysisProjectsLocationsNotesCreateRequest',
+        response_type_name='Note',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes the specified note.
+
+      Args:
+        request: (ContaineranalysisProjectsLocationsNotesDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Empty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/notes/{notesId}',
+        http_method='DELETE',
+        method_id='containeranalysis.projects.locations.notes.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}',
+        request_field='',
+        request_type_name='ContaineranalysisProjectsLocationsNotesDeleteRequest',
+        response_type_name='Empty',
+        supports_download=False,
+    )
+
     def Get(self, request, global_params=None):
       r"""Gets the specified note.
 
@@ -124,6 +205,33 @@ class ContaineranalysisV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def GetIamPolicy(self, request, global_params=None):
+      r"""Gets the access control policy for a note or an occurrence resource. Requires `containeranalysis.notes.setIamPolicy` or `containeranalysis.occurrences.setIamPolicy` permission if the resource is a note or occurrence, respectively. The resource takes the format `projects/[PROJECT_ID]/notes/[NOTE_ID]` for notes and `projects/[PROJECT_ID]/occurrences/[OCCURRENCE_ID]` for occurrences.
+
+      Args:
+        request: (ContaineranalysisProjectsLocationsNotesGetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Policy) The response message.
+      """
+      config = self.GetMethodConfig('GetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/notes/{notesId}:getIamPolicy',
+        http_method='POST',
+        method_id='containeranalysis.projects.locations.notes.getIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1/{+resource}:getIamPolicy',
+        request_field='getIamPolicyRequest',
+        request_type_name='ContaineranalysisProjectsLocationsNotesGetIamPolicyRequest',
+        response_type_name='Policy',
+        supports_download=False,
+    )
+
     def List(self, request, global_params=None):
       r"""Lists notes for the specified project.
 
@@ -143,11 +251,92 @@ class ContaineranalysisV1(base_api.BaseApiClient):
         method_id='containeranalysis.projects.locations.notes.list',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['filter', 'pageSize', 'pageToken', 'returnPartialSuccess'],
         relative_path='v1/{+parent}/notes',
         request_field='',
         request_type_name='ContaineranalysisProjectsLocationsNotesListRequest',
         response_type_name='ListNotesResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates the specified note.
+
+      Args:
+        request: (ContaineranalysisProjectsLocationsNotesPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Note) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/notes/{notesId}',
+        http_method='PATCH',
+        method_id='containeranalysis.projects.locations.notes.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1/{+name}',
+        request_field='note',
+        request_type_name='ContaineranalysisProjectsLocationsNotesPatchRequest',
+        response_type_name='Note',
+        supports_download=False,
+    )
+
+    def SetIamPolicy(self, request, global_params=None):
+      r"""Sets the access control policy on the specified note or occurrence. Requires `containeranalysis.notes.setIamPolicy` or `containeranalysis.occurrences.setIamPolicy` permission if the resource is a note or an occurrence, respectively. The resource takes the format `projects/[PROJECT_ID]/notes/[NOTE_ID]` for notes and `projects/[PROJECT_ID]/occurrences/[OCCURRENCE_ID]` for occurrences.
+
+      Args:
+        request: (ContaineranalysisProjectsLocationsNotesSetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Policy) The response message.
+      """
+      config = self.GetMethodConfig('SetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/notes/{notesId}:setIamPolicy',
+        http_method='POST',
+        method_id='containeranalysis.projects.locations.notes.setIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1/{+resource}:setIamPolicy',
+        request_field='setIamPolicyRequest',
+        request_type_name='ContaineranalysisProjectsLocationsNotesSetIamPolicyRequest',
+        response_type_name='Policy',
+        supports_download=False,
+    )
+
+    def TestIamPermissions(self, request, global_params=None):
+      r"""Returns the permissions that a caller has on the specified note or occurrence. Requires list permission on the project (for example, `containeranalysis.notes.list`). The resource takes the format `projects/[PROJECT_ID]/notes/[NOTE_ID]` for notes and `projects/[PROJECT_ID]/occurrences/[OCCURRENCE_ID]` for occurrences.
+
+      Args:
+        request: (ContaineranalysisProjectsLocationsNotesTestIamPermissionsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (TestIamPermissionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('TestIamPermissions')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    TestIamPermissions.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/notes/{notesId}:testIamPermissions',
+        http_method='POST',
+        method_id='containeranalysis.projects.locations.notes.testIamPermissions',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1/{+resource}:testIamPermissions',
+        request_field='testIamPermissionsRequest',
+        request_type_name='ContaineranalysisProjectsLocationsNotesTestIamPermissionsRequest',
+        response_type_name='TestIamPermissionsResponse',
         supports_download=False,
     )
 
@@ -160,6 +349,87 @@ class ContaineranalysisV1(base_api.BaseApiClient):
       super(ContaineranalysisV1.ProjectsLocationsOccurrencesService, self).__init__(client)
       self._upload_configs = {
           }
+
+    def BatchCreate(self, request, global_params=None):
+      r"""Creates new occurrences in batch.
+
+      Args:
+        request: (ContaineranalysisProjectsLocationsOccurrencesBatchCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (BatchCreateOccurrencesResponse) The response message.
+      """
+      config = self.GetMethodConfig('BatchCreate')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    BatchCreate.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/occurrences:batchCreate',
+        http_method='POST',
+        method_id='containeranalysis.projects.locations.occurrences.batchCreate',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1/{+parent}/occurrences:batchCreate',
+        request_field='batchCreateOccurrencesRequest',
+        request_type_name='ContaineranalysisProjectsLocationsOccurrencesBatchCreateRequest',
+        response_type_name='BatchCreateOccurrencesResponse',
+        supports_download=False,
+    )
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new occurrence.
+
+      Args:
+        request: (ContaineranalysisProjectsLocationsOccurrencesCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Occurrence) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/occurrences',
+        http_method='POST',
+        method_id='containeranalysis.projects.locations.occurrences.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1/{+parent}/occurrences',
+        request_field='occurrence',
+        request_type_name='ContaineranalysisProjectsLocationsOccurrencesCreateRequest',
+        response_type_name='Occurrence',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes the specified occurrence. For example, use this method to delete an occurrence when the occurrence is no longer applicable for the given resource.
+
+      Args:
+        request: (ContaineranalysisProjectsLocationsOccurrencesDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Empty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/occurrences/{occurrencesId}',
+        http_method='DELETE',
+        method_id='containeranalysis.projects.locations.occurrences.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}',
+        request_field='',
+        request_type_name='ContaineranalysisProjectsLocationsOccurrencesDeleteRequest',
+        response_type_name='Empty',
+        supports_download=False,
+    )
 
     def Get(self, request, global_params=None):
       r"""Gets the specified occurrence.
@@ -185,6 +455,33 @@ class ContaineranalysisV1(base_api.BaseApiClient):
         request_field='',
         request_type_name='ContaineranalysisProjectsLocationsOccurrencesGetRequest',
         response_type_name='Occurrence',
+        supports_download=False,
+    )
+
+    def GetIamPolicy(self, request, global_params=None):
+      r"""Gets the access control policy for a note or an occurrence resource. Requires `containeranalysis.notes.setIamPolicy` or `containeranalysis.occurrences.setIamPolicy` permission if the resource is a note or occurrence, respectively. The resource takes the format `projects/[PROJECT_ID]/notes/[NOTE_ID]` for notes and `projects/[PROJECT_ID]/occurrences/[OCCURRENCE_ID]` for occurrences.
+
+      Args:
+        request: (ContaineranalysisProjectsLocationsOccurrencesGetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Policy) The response message.
+      """
+      config = self.GetMethodConfig('GetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/occurrences/{occurrencesId}:getIamPolicy',
+        http_method='POST',
+        method_id='containeranalysis.projects.locations.occurrences.getIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1/{+resource}:getIamPolicy',
+        request_field='getIamPolicyRequest',
+        request_type_name='ContaineranalysisProjectsLocationsOccurrencesGetIamPolicyRequest',
+        response_type_name='Policy',
         supports_download=False,
     )
 
@@ -234,7 +531,7 @@ class ContaineranalysisV1(base_api.BaseApiClient):
         method_id='containeranalysis.projects.locations.occurrences.getVulnerabilitySummary',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['filter'],
+        query_params=['filter', 'returnPartialSuccess'],
         relative_path='v1/{+parent}/occurrences:vulnerabilitySummary',
         request_field='',
         request_type_name='ContaineranalysisProjectsLocationsOccurrencesGetVulnerabilitySummaryRequest',
@@ -261,11 +558,92 @@ class ContaineranalysisV1(base_api.BaseApiClient):
         method_id='containeranalysis.projects.locations.occurrences.list',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['filter', 'pageSize', 'pageToken', 'returnPartialSuccess'],
         relative_path='v1/{+parent}/occurrences',
         request_field='',
         request_type_name='ContaineranalysisProjectsLocationsOccurrencesListRequest',
         response_type_name='ListOccurrencesResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates the specified occurrence.
+
+      Args:
+        request: (ContaineranalysisProjectsLocationsOccurrencesPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Occurrence) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/occurrences/{occurrencesId}',
+        http_method='PATCH',
+        method_id='containeranalysis.projects.locations.occurrences.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1/{+name}',
+        request_field='occurrence',
+        request_type_name='ContaineranalysisProjectsLocationsOccurrencesPatchRequest',
+        response_type_name='Occurrence',
+        supports_download=False,
+    )
+
+    def SetIamPolicy(self, request, global_params=None):
+      r"""Sets the access control policy on the specified note or occurrence. Requires `containeranalysis.notes.setIamPolicy` or `containeranalysis.occurrences.setIamPolicy` permission if the resource is a note or an occurrence, respectively. The resource takes the format `projects/[PROJECT_ID]/notes/[NOTE_ID]` for notes and `projects/[PROJECT_ID]/occurrences/[OCCURRENCE_ID]` for occurrences.
+
+      Args:
+        request: (ContaineranalysisProjectsLocationsOccurrencesSetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Policy) The response message.
+      """
+      config = self.GetMethodConfig('SetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/occurrences/{occurrencesId}:setIamPolicy',
+        http_method='POST',
+        method_id='containeranalysis.projects.locations.occurrences.setIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1/{+resource}:setIamPolicy',
+        request_field='setIamPolicyRequest',
+        request_type_name='ContaineranalysisProjectsLocationsOccurrencesSetIamPolicyRequest',
+        response_type_name='Policy',
+        supports_download=False,
+    )
+
+    def TestIamPermissions(self, request, global_params=None):
+      r"""Returns the permissions that a caller has on the specified note or occurrence. Requires list permission on the project (for example, `containeranalysis.notes.list`). The resource takes the format `projects/[PROJECT_ID]/notes/[NOTE_ID]` for notes and `projects/[PROJECT_ID]/occurrences/[OCCURRENCE_ID]` for occurrences.
+
+      Args:
+        request: (ContaineranalysisProjectsLocationsOccurrencesTestIamPermissionsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (TestIamPermissionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('TestIamPermissions')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    TestIamPermissions.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/occurrences/{occurrencesId}:testIamPermissions',
+        http_method='POST',
+        method_id='containeranalysis.projects.locations.occurrences.testIamPermissions',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1/{+resource}:testIamPermissions',
+        request_field='testIamPermissionsRequest',
+        request_type_name='ContaineranalysisProjectsLocationsOccurrencesTestIamPermissionsRequest',
+        response_type_name='TestIamPermissionsResponse',
         supports_download=False,
     )
 
@@ -517,7 +895,7 @@ class ContaineranalysisV1(base_api.BaseApiClient):
         method_id='containeranalysis.projects.notes.list',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['filter', 'pageSize', 'pageToken', 'returnPartialSuccess'],
         relative_path='v1/{+parent}/notes',
         request_field='',
         request_type_name='ContaineranalysisProjectsNotesListRequest',
@@ -797,7 +1175,7 @@ class ContaineranalysisV1(base_api.BaseApiClient):
         method_id='containeranalysis.projects.occurrences.getVulnerabilitySummary',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['filter'],
+        query_params=['filter', 'returnPartialSuccess'],
         relative_path='v1/{+parent}/occurrences:vulnerabilitySummary',
         request_field='',
         request_type_name='ContaineranalysisProjectsOccurrencesGetVulnerabilitySummaryRequest',
@@ -824,7 +1202,7 @@ class ContaineranalysisV1(base_api.BaseApiClient):
         method_id='containeranalysis.projects.occurrences.list',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['filter', 'pageSize', 'pageToken', 'returnPartialSuccess'],
         relative_path='v1/{+parent}/occurrences',
         request_field='',
         request_type_name='ContaineranalysisProjectsOccurrencesListRequest',

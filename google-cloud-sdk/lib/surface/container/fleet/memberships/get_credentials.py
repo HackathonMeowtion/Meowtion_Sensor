@@ -21,7 +21,6 @@ from __future__ import unicode_literals
 import textwrap
 
 from googlecloudsdk.api_lib.container.fleet import util as fleet_util
-from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.container.fleet import gateway
 from googlecloudsdk.command_lib.container.fleet import resources
 
@@ -63,50 +62,42 @@ class GetCredentials(gateway.GetCredentialsCommand):
         """),
         location_help=textwrap.dedent("""\
           The location of the membership resource, e.g. `us-central1`.
-          If not specified, defaults to `global`.
+          If not specified, attempts to automatically choose the correct region.
         """),
         membership_required=True,
         positional=True,
     )
 
-    if cls.ReleaseTrack() is base.ReleaseTrack.ALPHA:
-      group = parser.add_group(
-          required=False, hidden=True, help='Server-side generation options.'
-      )
-      group.add_argument(
-          '--use-server-side-generation',
-          action='store_true',
-          required=True,
-          help=textwrap.dedent("""\
-            Generate the kubeconfig using an API call rather than generating
-            it locally.
-          """),
-      )
+    # TODO(b/368039642): Remove once we're sure server-side generation is stable
+    parser.add_argument(
+        '--use-client-side-generation',
+        action='store_true',
+        required=False,
+        hidden=True,
+        help=textwrap.dedent("""\
+          Generate the kubeconfig locally rather than generating
+          it using an API call.
+        """),
+    )
 
-      group.add_argument(
-          '--force-use-agent',
-          action='store_true',
-          required=False,
-          hidden=True,
-          help=textwrap.dedent("""\
-            Force the use of Connect Agent-based transport.
-          """),
-      )
+    parser.add_argument(
+        '--force-use-agent',
+        action='store_true',
+        required=False,
+        hidden=True,
+        help=textwrap.dedent("""\
+          Force the use of Connect Agent-based transport.
+        """),
+    )
 
   def Run(self, args):
     membership_name = resources.ParseMembershipArg(args)
     location = fleet_util.MembershipLocation(membership_name)
     membership_id = fleet_util.MembershipShortname(membership_name)
 
-    if (
-        hasattr(args, 'use_server_side_generation')
-        and args.use_server_side_generation
-    ):
-      force_use_agent = (
-          False
-          if not hasattr(args, 'force_use_agent')
-          else args.force_use_agent
-      )
-      self.RunServerSide(membership_id, location, force_use_agent)
-    else:
+    if args.use_client_side_generation:
       self.RunGetCredentials(membership_id, location)
+    else:
+      self.RunServerSide(
+          membership_id, location, force_use_agent=args.force_use_agent
+      )

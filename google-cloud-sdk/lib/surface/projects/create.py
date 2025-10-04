@@ -45,6 +45,7 @@ ID_DESCRIPTION = ('Project IDs are immutable and can be set only during '
                   'Project IDs must be between 6 and 30 characters.')
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA, base.ReleaseTrack.BETA,
                     base.ReleaseTrack.ALPHA)
 class Create(base.CreateCommand):
@@ -89,7 +90,7 @@ class Create(base.CreateCommand):
       )
     else:
       type_ = arg_parsers.RegexpValidator(
-          r'^(?!.*-$)(((?:[a-z][\.a-z0-9-]{5,29})\:?)?(?:[a-z][a-z0-9-]{5,29})$)',
+          r'^(?!.*-$)(((?:[a-z][\.a-z0-9-]{2,29})\:?)?(?:[a-z][a-z0-9-]{5,29})$)',
           ID_DESCRIPTION,
       )
     parser.add_argument(
@@ -98,21 +99,33 @@ class Create(base.CreateCommand):
         type=type_,
         nargs='?',
         help='ID for the project you want to create.\n\n{0}'.format(
-            ID_DESCRIPTION))
+            ID_DESCRIPTION
+        ),
+    )
     parser.add_argument(
         '--name',
-        help='Name for the project you want to create. '
-        'If not specified, will use project id as name.')
+        help=(
+            'Name for the project you want to create. '
+            'If not specified, will use project id as name.'
+        ),
+    )
     parser.add_argument(
         '--enable-cloud-apis',
         action='store_true',
-        default=True,
-        help='Enable `cloudapis.googleapis.com` during creation.')
+        default=True
+        if properties.VALUES.core.universe_domain.Get() == 'googleapis.com'
+        else False,
+        help=arg_parsers.UniverseHelpText(
+            default='Enable `cloudapis.googleapis.com` during creation.',
+            universe_help='This is not available.\n',
+        ),
+    )
     parser.add_argument(
         '--set-as-default',
         action='store_true',
         default=False,
-        help='Set newly created project as [core.project] property.')
+        help='Set newly created project as [core/project] property.',
+    )
     flags.TagsFlag().AddToParser(parser)
     flags.OrganizationIdFlag('to use as a parent').AddToParser(parser)
     flags.FolderIdFlag('to use as a parent').AddToParser(parser)
@@ -125,13 +138,13 @@ class Create(base.CreateCommand):
     if not project_id and args.name:
       candidate = command_lib_util.IdFromName(args.name)
       if candidate and console_io.PromptContinue(
-          'No project id provided.',
-          'Use [{}] as project id'.format(candidate),
+          'No project ID provided.',
+          'Use [{}] as project ID'.format(candidate),
           throw_if_unattended=True):
         project_id = candidate
     if not project_id:
       raise exceptions.RequiredArgumentException(
-          'PROJECT_ID', 'an id or a name must be provided for the new project')
+          'PROJECT_ID', 'an ID or a name must be provided for the new project')
     project_ref = command_lib_util.ParseProject(project_id)
     labels = labels_util.ParseCreateArgs(
         args, projects_util.GetMessages().Project.LabelsValue)

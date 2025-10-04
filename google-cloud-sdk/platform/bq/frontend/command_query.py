@@ -10,18 +10,23 @@ import logging
 import sys
 from typing import Optional
 
-
 from absl import app
 from absl import flags
-from pyglib import appcommands
 
+import bq_flags
 from clients import bigquery_client
 from clients import bigquery_client_extended
+from clients import client_data_transfer
+from clients import client_job
+from clients import client_table
 from clients import utils as bq_client_utils
 from frontend import bigquery_command
 from frontend import bq_cached_client
+from frontend import flags as frontend_flags
 from frontend import utils as frontend_utils
 from frontend import utils_data_transfer
+from frontend import utils_flags
+from frontend import utils_formatting
 from utils import bq_error
 from utils import bq_id_utils
 from pyglib import stringutil
@@ -110,6 +115,13 @@ class Query(bigquery_command.BigqueryCmd):
         'replace',
         False,
         'If true, erase existing contents before loading new data.',
+        flag_values=fv,
+    )
+    flags.DEFINE_boolean(
+        'replace_data',
+        False,
+        'If true, erase existing contents only, other table metadata like'
+        ' schema is kept.',
         flag_values=fv,
     )
     flags.DEFINE_boolean(
@@ -363,6 +375,27 @@ class Query(bigquery_command.BigqueryCmd):
         'Whether to run the query as continuous query',
         flag_values=fv,
     )
+    flags.DEFINE_enum_class(
+        'job_creation_mode',
+        None,
+        bigquery_client.BigqueryClient.JobCreationMode,
+        'An option on job creation. Options include:'
+        '\n JOB_CREATION_REQUIRED'
+        '\n JOB_CREATION_OPTIONAL'
+        '\n Specifying JOB_CREATION_OPTIONAL may speed up the query if the'
+        ' query engine decides to bypass job creation.',
+        flag_values=fv,
+    )
+    flags.DEFINE_integer(
+        'max_slots',
+        None,
+        'Cap on target rate of slot consumption by the query. Requires'
+        ' --alpha=query_max_slots to be specified.',
+        flag_values=fv,
+    )
+    self.reservation_id_for_a_job_flag = (
+        frontend_flags.define_reservation_id_for_a_job(flag_values=fv)
+    )
     self._ProcessCommandRc(fv)
 
   def RunWithArgs(self, *args) -> Optional[int]:
@@ -421,8 +454,8 @@ class Query(bigquery_command.BigqueryCmd):
     if not query:
       query = sys.stdin.read()
     client = bq_cached_client.Client.Get()
-    if FLAGS.location:
-      kwds['location'] = FLAGS.location
+    if bq_flags.LOCATION.value:
+      kwds['location'] = bq_flags.LOCATION.value
     kwds['use_legacy_sql'] = self.use_legacy_sql
     time_partitioning = frontend_utils.ParseTimePartitioning(
         self.time_partitioning_type,
@@ -468,7 +501,9 @@ class Query(bigquery_command.BigqueryCmd):
 
     if self.schedule or self.no_auto_scheduling:
       transfer_client = client.GetTransferV1ApiClient()
-      reference = 'projects/' + (client.GetProjectReference().projectId)
+      reference = 'projects/' + (
+          bq_client_utils.GetProjectReference(id_fallbacks=client).projectId
+      )
       scheduled_queries_reference = reference + '/dataSources/scheduled_query'
       try:
         transfer_client.projects().dataSources().get(
@@ -495,7 +530,7 @@ class Query(bigquery_command.BigqueryCmd):
         auth_info = utils_data_transfer.RetrieveAuthorizationInfo(
             reference, 'scheduled_query', transfer_client
         )
-      schedule_args = bigquery_client_extended.TransferScheduleArgs(
+      schedule_args = client_data_transfer.TransferScheduleArgs(
           schedule=self.schedule,
           disable_auto_scheduling=self.no_auto_scheduling,
       )
@@ -505,23 +540,28 @@ class Query(bigquery_command.BigqueryCmd):
       target_dataset = self.target_dataset
       if self.destination_table:
         target_dataset = (
-            client.GetTableReference(self.destination_table)
+            bq_client_utils.GetTableReference(
+                id_fallbacks=client, identifier=self.destination_table
+            )
             .GetDatasetReference()
             .datasetId
         )
-        destination_table = client.GetTableReference(
-            self.destination_table
+        destination_table = bq_client_utils.GetTableReference(
+            id_fallbacks=client, identifier=self.destination_table
         ).tableId
         params['destination_table_name_template'] = destination_table
       if self.append_table:
         params['write_disposition'] = 'WRITE_APPEND'
       if self.replace:
         params['write_disposition'] = 'WRITE_TRUNCATE'
+      if self.replace_data:
+        params['write_disposition'] = 'WRITE_TRUNCATE_DATA'
       if self.time_partitioning_field:
         params['partitioning_field'] = self.time_partitioning_field
       if self.time_partitioning_type:
         params['partitioning_type'] = self.time_partitioning_type
-      transfer_name = client.CreateTransferConfig(
+      transfer_name = client_data_transfer.create_transfer_config(
+          transfer_client=client.GetTransferV1ApiClient(),
           reference=reference,
           data_source='scheduled_query',
           target_dataset=target_dataset,
@@ -530,7 +570,7 @@ class Query(bigquery_command.BigqueryCmd):
           auth_info=auth_info,
           destination_kms_key=self.destination_kms_key,
           schedule_args=schedule_args,
-          location=FLAGS.location,
+          location=bq_flags.LOCATION.value,
       )
       print("Transfer configuration '%s' successfully created." % transfer_name)
       return
@@ -560,6 +600,15 @@ class Query(bigquery_command.BigqueryCmd):
       )
     if self.create_session:
       kwds['create_session'] = self.create_session
+    if self.reservation_id_for_a_job_flag.present:
+      kwds['reservation_id'] = self.reservation_id_for_a_job_flag.value
+    if self.job_timeout_ms:
+      kwds['job_timeout_ms'] = self.job_timeout_ms
+    if self.max_slots is not None:
+      utils_flags.fail_if_not_using_alpha_feature(
+          bq_flags.AlphaFeatures.QUERY_MAX_SLOTS
+      )
+      kwds['max_slots'] = self.max_slots
     if self.rpc:
       if self.allow_large_results:
         raise app.UsageError(
@@ -579,14 +628,19 @@ class Query(bigquery_command.BigqueryCmd):
         raise app.UsageError('flatten_results cannot be specified in rpc mode.')
       if self.continuous:
         raise app.UsageError('continuous cannot be specified in rpc mode.')
+      kwds['job_creation_mode'] = self.job_creation_mode
       kwds['max_results'] = self.max_rows
-      logging.debug('Calling client.RunQueryRpc(%s, %s)', query, kwds)
-      fields, rows, execution = client.RunQueryRpc(query, **kwds)
+      use_full_timestamp = False
+      logging.debug('Calling client_job.RunQueryRpc(%s, %s)', query, kwds)
+      fields, rows, execution = client_job.RunQueryRpc(
+          client, query,
+          **kwds
+      )
       if self.dry_run:
         frontend_utils.PrintDryRunInfo(execution)
       else:
         bq_cached_client.Factory.ClientTablePrinter.GetTablePrinter().PrintTable(
-            fields, rows
+            fields, rows, use_full_timestamp=use_full_timestamp
         )
         # If we are here, the job succeeded, but print warnings if any.
         frontend_utils.PrintJobMessages(execution)
@@ -595,6 +649,8 @@ class Query(bigquery_command.BigqueryCmd):
         kwds['write_disposition'] = 'WRITE_APPEND'
       if self.destination_table and self.replace:
         kwds['write_disposition'] = 'WRITE_TRUNCATE'
+      if self.destination_table and self.replace_data:
+        kwds['write_disposition'] = 'WRITE_TRUNCATE_DATA'
       if self.require_cache:
         kwds['create_disposition'] = 'CREATE_NEVER'
       if (
@@ -615,22 +671,25 @@ class Query(bigquery_command.BigqueryCmd):
       kwds['allow_large_results'] = self.allow_large_results
       kwds['flatten_results'] = self.flatten_results
       kwds['continuous'] = self.continuous
-      kwds['job_id'] = frontend_utils.GetJobIdFromFlags()
-      if self.job_timeout_ms:
-        kwds['job_timeout_ms'] = self.job_timeout_ms
+      kwds['job_id'] = utils_flags.get_job_id_from_flags()
+      kwds['job_creation_mode'] = self.job_creation_mode
 
       logging.debug('Calling client.Query(%s, %s)', query, kwds)
-      job = client.Query(query, **kwds)
+      job = client_job.Query(client, query, **kwds)
 
       if self.dry_run:
         frontend_utils.PrintDryRunInfo(job)
-      elif not FLAGS.sync:
+      elif not bq_flags.SYNCHRONOUS_MODE.value:
         self.PrintJobStartInfo(job)
       else:
         self._PrintQueryJobResults(client, job)
     if read_schema:
-      client.UpdateTable(
-          client.GetTableReference(self.destination_table), read_schema
+      client_table.update_table(
+          apiclient=client.apiclient,
+          reference=bq_client_utils.GetTableReference(
+              id_fallbacks=client, identifier=self.destination_table
+          ),
+          schema=read_schema,
       )
 
   def _PrintQueryJobResults(
@@ -675,7 +734,8 @@ class Query(bigquery_command.BigqueryCmd):
     # Fetch one more child job than the maximum, so we can tell if some of the
     # child jobs are missing.
     child_jobs = list(
-        client.ListJobs(
+        client_job.ListJobs(
+            bqclient=client,
             reference=bq_id_utils.ApiClientHelper.ProjectReference.Create(
                 projectId=job['jobReference']['projectId']
             ),
@@ -715,8 +775,8 @@ class Query(bigquery_command.BigqueryCmd):
         .get('evaluationKind', '')
         == 'STATEMENT'
     ]
-    is_raw_json = FLAGS.format == 'json'
-    is_json = is_raw_json or FLAGS.format == 'prettyjson'
+    is_raw_json = bq_flags.FORMAT.value == 'json'
+    is_json = is_raw_json or bq_flags.FORMAT.value == 'prettyjson'
     if is_json:
       sys.stdout.write('[')
     statements_printed = 0
@@ -763,30 +823,48 @@ class Query(bigquery_command.BigqueryCmd):
                   stack_frame['startColumn'],
               )
           )
-      self.PrintNonScriptQueryJobResults(client, child_job_info)
+      self.PrintNonScriptQueryJobResults(
+          client, child_job_info, json_escape=is_json
+      )
       statements_printed = statements_printed + 1
     if is_json:
       sys.stdout.write(']\n')
 
   def PrintNonScriptQueryJobResults(
-      self, client: bigquery_client_extended.BigqueryClientExtended, job
+      self,
+      client: bigquery_client_extended.BigqueryClientExtended,
+      job,
+      json_escape: bool = False,
   ) -> None:
-    printable_job_info = bq_client_utils.FormatJobInfo(job)
+    printable_job_info = utils_formatting.format_job_info(job)
     is_assert_job = job['statistics']['query']['statementType'] == 'ASSERT'
     if (
         not bq_client_utils.IsFailedJob(job)
         and not frontend_utils.IsSuccessfulDmlOrDdlJob(printable_job_info)
         and not is_assert_job
     ):
+      use_full_timestamp = False
       # ReadSchemaAndJobRows can handle failed jobs, but cannot handle
       # a successful DML job if the destination table is already deleted.
       # DML, DDL, and ASSERT do not have query result, so skip
       # ReadSchemaAndJobRows.
-      fields, rows = client.ReadSchemaAndJobRows(
-          job['jobReference'], start_row=self.start_row, max_rows=self.max_rows
+      fields, rows = client_job.ReadSchemaAndJobRows(
+          client,
+          job['jobReference'],
+          start_row=self.start_row,
+          max_rows=self.max_rows,
       )
       bq_cached_client.Factory.ClientTablePrinter.GetTablePrinter().PrintTable(
-          fields, rows
+          fields, rows, use_full_timestamp=use_full_timestamp
       )
-    # If we are here, the job succeeded, but print warnings if any.
+    elif json_escape:
+      print(
+          json.dumps(
+              frontend_utils.GetJobMessagesForPrinting(printable_job_info)
+          )
+      )
+      return
+    # If JSON escaping is not enabled, always print job messages, regardless
+    # of job type or succeeded/failed status. Even successful query jobs will
+    # have messages in some cases, such as when run in a session.
     frontend_utils.PrintJobMessages(printable_job_info)

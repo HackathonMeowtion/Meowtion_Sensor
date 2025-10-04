@@ -18,7 +18,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import functools
+import operator
 import os
+import re
 import time
 
 from apitools.base.py import exceptions as apitools_exceptions
@@ -243,6 +246,7 @@ Must specify sandbox type.
 SANDBOX_TYPE_NOT_SUPPORTED = """\
 Provided sandbox type '{type}' not supported.
 """
+
 TPU_SERVING_MODE_ERROR = """\
 Cannot specify --tpu-ipv4-cidr with --enable-tpu-service-networking."""
 
@@ -262,6 +266,22 @@ MANGED_CONFIG_TYPE_NOT_SUPPORTED = """\
 Invalid managed config type '{type}' for argument --managed-config. Valid values are: autofleet, disabled'
 """
 
+COMPLIANCE_MODE_NOT_SUPPORTED = """\
+Invalid mode '{mode}' for '--compliance' (must be one of 'enabled', 'disabled').
+"""
+
+COMPLIANCE_DISABLED_CONFIGURATION = """\
+Cannot specify --compliance-standards with --compliance=disabled
+"""
+
+AUTO_MONITORING_NOT_SUPPORTED_WITHOUT_MANAGED_PROMETHEUS = """\
+Cannot enable Auto Monitoring without enabling Managed Prometheus.
+"""
+
+COMPLIANCE_INVALID_STANDARDS_CONFIGURATION = """\
+Invalid value '{standards}' for --compliance-standards: must provide a list of standards separated by commas.
+"""
+
 SECURITY_POSTURE_MODE_NOT_SUPPORTED = """\
 Invalid mode '{mode}' for '--security-posture' (must be one of 'disabled', 'standard', 'enterprise').
 """
@@ -273,12 +293,58 @@ Invalid mode '{mode}' for '--workload-vulnerability-scanning' (must be one of 'd
 HOST_MAINTENANCE_INTERVAL_TYPE_NOT_SUPPORTED = """\
 Provided host maintenance interval type '{type}' is not supported.
 """
+OPPORTUNISTIC_MAINTENANCE_FIELD_NOT_SUPPORTED = """\
+Provided opportunistic maintenance field '{field}' with value '{value}' is not supported. This field must end with 's' only.
+"""
 
 NODECONFIGDEFAULTS_READONLY_PORT_NOT_SUPPORTED = """\
 nodePoolDefaults.nodeKubeletConfig is not supported on GKE Autopilot clusters.
 """
 
-MAX_NODES_PER_POOL = 1000
+ADDITIONAL_SUBNETWORKS_NOT_FOUND = """\
+Can not remove subnetwork {subnetwork}: not found in additional subnetworks
+"""
+
+ADDITIONAL_SUBNETWORKS_POD_RANG_ENOT_FOUND = """\
+Can not remove pod ipv4 range {range}: not found in additional subnetworks
+"""
+
+CLUSTER_TIER_NOT_SUPPORTED = """\
+Provided cluster tier '{tier}' is not supported.
+"""
+
+NETWORK_TIER_NOT_SUPPORTED = """\
+Provided network tier '{network_tier}' is not supported.
+"""
+
+TPU_TOPOLOGY_INCORRECT_FORMAT_ERROR_MSG = """\
+Invalid format '{topology}' for argument --tpu-topology. Must provide 2-3 integers separated by 'x' (e.g. 2x4 or 2x2x4)
+"""
+
+MACHINE_TYPE_INCORRECT_FORMAT_ERROR_MSG = """\
+Invalid machine type '{machine_type}' for argument --machine-type. Unable to parse the number of chips.
+"""
+CONFIDENTIAL_NODE_TYPE_NOT_SUPPORTED = """\
+Invalid type '{type}' for '--confidential-node-type' (must be one of {choices}).
+"""
+
+ANONYMOUS_AUTHENTICATION_MODE_NOT_SUPPORTED = """\
+Anonymous authentication mode '{mode}' is not supported.
+"""
+
+MEMBERSHIP_TYPE_NOT_SUPPORTED = """\
+Fleet membership type '{type}' is not supported.
+"""
+
+ROUTE_BASED_CLUSTERS_NOT_SUPPORTED_WITH_STACK_TYPE_IPV6 = """\
+Route-based clusters are not supported with stack type IPV6.
+"""
+
+CONTROL_PLANE_EGRESS_NOT_SUPPORTED = """\
+Control plane egress '{mode}' is not supported.
+"""
+
+DEFAULT_MAX_NODES_PER_POOL = 1000
 
 MAX_AUTHORIZED_NETWORKS_CIDRS_PRIVATE = 100
 MAX_AUTHORIZED_NETWORKS_CIDRS_PUBLIC = 50
@@ -294,6 +360,8 @@ GCPFILESTORECSIDRIVER = 'GcpFilestoreCsiDriver'
 GCSFUSECSIDRIVER = 'GcsFuseCsiDriver'
 STATEFULHA = 'StatefulHA'
 PARALLELSTORECSIDRIVER = 'ParallelstoreCsiDriver'
+HIGHSCALECHECKPOINTING = 'HighScaleCheckpointing'
+LUSTRECSIDRIVER = 'LustreCsiDriver'
 RAYOPERATOR = 'RayOperator'
 ISTIO = 'Istio'
 NETWORK_POLICY = 'NetworkPolicy'
@@ -331,6 +399,8 @@ ADDONS_OPTIONS = DEFAULT_ADDONS + [
     GCSFUSECSIDRIVER,
     STATEFULHA,
     PARALLELSTORECSIDRIVER,
+    HIGHSCALECHECKPOINTING,
+    LUSTRECSIDRIVER,
     RAYOPERATOR,
 ]
 BETA_ADDONS_OPTIONS = ADDONS_OPTIONS + [
@@ -348,6 +418,9 @@ API_SERVER = 'API_SERVER'
 SCHEDULER = 'SCHEDULER'
 CONTROLLER_MANAGER = 'CONTROLLER_MANAGER'
 ADDON_MANAGER = 'ADDON_MANAGER'
+KCP_SSHD = 'KCP_SSHD'
+KCP_CONNECTION = 'KCP_CONNECTION'
+KCP_HPA = 'KCP_HPA'
 STORAGE = 'STORAGE'
 HPA_COMPONENT = 'HPA'
 POD = 'POD'
@@ -356,6 +429,8 @@ DEPLOYMENT = 'DEPLOYMENT'
 STATEFULSET = 'STATEFULSET'
 CADVISOR = 'CADVISOR'
 KUBELET = 'KUBELET'
+DCGM = 'DCGM'
+JOBSET = 'JOBSET'
 LOGGING_OPTIONS = [
     NONE,
     SYSTEM,
@@ -364,6 +439,9 @@ LOGGING_OPTIONS = [
     SCHEDULER,
     CONTROLLER_MANAGER,
     ADDON_MANAGER,
+    KCP_SSHD,
+    KCP_CONNECTION,
+    KCP_HPA,
 ]
 MONITORING_OPTIONS = [
     NONE,
@@ -380,6 +458,8 @@ MONITORING_OPTIONS = [
     STATEFULSET,
     CADVISOR,
     KUBELET,
+    DCGM,
+    JOBSET,
 ]
 PRIMARY_LOGS_OPTIONS = [
     APISERVER,
@@ -389,6 +469,17 @@ PRIMARY_LOGS_OPTIONS = [
 ]
 PLACEMENT_OPTIONS = ['UNSPECIFIED', 'COMPACT']
 LOCATION_POLICY_OPTIONS = ['BALANCED', 'ANY']
+
+# gcloud-disable-gdu-domain
+SUBNETWORK_URL_PATTERN = (
+    r'^https://www.googleapis.com/compute/[a-z1-9_]+/(?P<resource>.*)$'
+)
+ZONE_PATTERN = '^[^-]+-[^-]+-[^-]+$'
+
+TPU_TOPOLOGY_PATTERN = r'^\d{1,3}x\d{1,3}(x\d{1,3})?$'
+
+CLUSTER = 'cluster'
+NODEPOOL = 'nodepool'
 
 
 def CheckResponse(response):
@@ -452,8 +543,10 @@ def InitAPIAdapter(api_version, adapter):
   return adapter(registry, api_client, messages)
 
 
-_SERVICE_ACCOUNT_SCOPES = ('https://www.googleapis.com/auth/cloud-platform',
-                           'https://www.googleapis.com/auth/userinfo.email')
+_SERVICE_ACCOUNT_SCOPES = (
+    'https://www.googleapis.com/auth/cloud-platform',
+    'https://www.googleapis.com/auth/userinfo.email',
+)
 
 
 def NodeIdentityOptionsToNodeConfig(options, node_config):
@@ -544,9 +637,11 @@ class CreateClusterOptions(object):
       local_nvme_ssd_block=None,
       ephemeral_storage=None,
       ephemeral_storage_local_ssd=None,
+      data_cache_count=None,
       boot_disk_kms_key=None,
       node_pool_name=None,
       tags=None,
+      tag_bindings=None,
       autoprovisioning_network_tags=None,
       node_labels=None,
       node_taints=None,
@@ -570,6 +665,8 @@ class CreateClusterOptions(object):
       placement_type=None,
       placement_policy=None,
       enable_queued_provisioning=None,
+      max_run_duration=None,
+      flex_start=None,
       enable_autorepair=None,
       enable_autoupgrade=None,
       service_account=None,
@@ -613,6 +710,7 @@ class CreateClusterOptions(object):
       security_profile=None,
       security_profile_runtime_rules=None,
       autoscaling_profile=None,
+      hpa_profile=None,
       database_encryption_key=None,
       metadata=None,
       enable_network_egress_metering=None,
@@ -640,6 +738,7 @@ class CreateClusterOptions(object):
       maintenance_window_end=None,
       maintenance_window_recurrence=None,
       enable_cost_allocation=None,
+      gpudirect_strategy=None,
       max_surge_upgrade=None,
       max_unavailable_upgrade=None,
       enable_autoprovisioning=None,
@@ -670,6 +769,7 @@ class CreateClusterOptions(object):
       autopilot=None,
       private_ipv6_google_access_type=None,
       enable_confidential_nodes=None,
+      confidential_node_type=None,
       enable_confidential_storage=None,
       cluster_dns=None,
       cluster_dns_scope=None,
@@ -687,12 +787,13 @@ class CreateClusterOptions(object):
       logging=None,
       monitoring=None,
       enable_managed_prometheus=None,
+      auto_monitoring_scope=None,
+      managed_otel_scope=None,
       maintenance_interval=None,
       disable_pod_cidr_overprovision=None,
       stack_type=None,
       ipv6_access_type=None,
       enable_workload_config_audit=None,
-      pod_autoscaling_direct_metrics_opt_in=None,
       enable_workload_vulnerability_scanning=None,
       enable_autoprovisioning_surge_upgrade=None,
       enable_autoprovisioning_blue_green_upgrade=None,
@@ -702,6 +803,7 @@ class CreateClusterOptions(object):
       managed_config=None,
       fleet_project=None,
       enable_fleet=None,
+      membership_type=None,
       gateway_api=None,
       logging_variant=None,
       enable_multi_networking=None,
@@ -712,10 +814,11 @@ class CreateClusterOptions(object):
       enable_insecure_kubelet_readonly_port=None,
       autoprovisioning_enable_insecure_kubelet_readonly_port=None,
       enable_k8s_beta_apis=None,
+      compliance=None,
+      compliance_standards=None,
       security_posture=None,
       workload_vulnerability_scanning=None,
       enable_runtime_vulnerability_insight=None,
-      enable_dns_endpoint=None,
       workload_policies=None,
       enable_fqdn_network_policy=None,
       host_maintenance_interval=None,
@@ -724,8 +827,43 @@ class CreateClusterOptions(object):
       resource_manager_tags=None,
       autoprovisioning_resource_manager_tags=None,
       enable_secret_manager=None,
+      enable_secret_manager_rotation=None,
+      secret_manager_rotation_interval=None,
+      enable_secret_sync=None,
+      enable_secret_sync_rotation=None,
+      secret_sync_rotation_interval=None,
       enable_cilium_clusterwide_network_policy=None,
       storage_pools=None,
+      local_ssd_encryption_mode=None,
+      enable_ray_cluster_logging=None,
+      enable_ray_cluster_monitoring=None,
+      enable_insecure_binding_system_authenticated=None,
+      enable_insecure_binding_system_unauthenticated=None,
+      enable_dns_access=None,
+      cluster_ca=None,
+      aggregation_ca=None,
+      etcd_api_ca=None,
+      etcd_peer_ca=None,
+      service_account_signing_keys=None,
+      service_account_verification_keys=None,
+      control_plane_disk_encryption_key=None,
+      gkeops_etcd_backup_encryption_key=None,
+      disable_l4_lb_firewall_reconciliation=None,
+      tier=None,
+      enable_ip_access=None,
+      enable_authorized_networks_on_private_endpoint=None,
+      patch_update=None,
+      anonymous_authentication_config=None,
+      enable_auto_ipam=None,
+      enable_k8s_tokens_via_dns=None,
+      enable_legacy_lustre_port=None,
+      enable_default_compute_class=None,
+      enable_k8s_certs_via_dns=None,
+      boot_disk_provisioned_iops=None,
+      boot_disk_provisioned_throughput=None,
+      network_tier=None,
+      control_plane_egress_mode=None,
+      autopilot_privileged_admission=None,
   ):
     self.node_machine_type = node_machine_type
     self.node_source_image = node_source_image
@@ -743,13 +881,16 @@ class CreateClusterOptions(object):
     self.enable_cloud_logging = enable_cloud_logging
     self.enable_cloud_monitoring = enable_cloud_monitoring
     self.enable_stackdriver_kubernetes = enable_stackdriver_kubernetes
-    self.enable_logging_monitoring_system_only = enable_logging_monitoring_system_only
-    self.enable_workload_monitoring_eap = enable_workload_monitoring_eap,
+    self.enable_logging_monitoring_system_only = (
+        enable_logging_monitoring_system_only
+    )
+    self.enable_workload_monitoring_eap = (enable_workload_monitoring_eap,)
     self.subnetwork = subnetwork
     self.addons = addons
     self.istio_config = istio_config
     self.cloud_run_config = cloud_run_config
     self.local_ssd_count = local_ssd_count
+    self.data_cache_count = data_cache_count
     self.local_ssd_volume_configs = local_ssd_volume_configs
     self.ephemeral_storage = ephemeral_storage
     self.ephemeral_storage_local_ssd = ephemeral_storage_local_ssd
@@ -757,6 +898,7 @@ class CreateClusterOptions(object):
     self.boot_disk_kms_key = boot_disk_kms_key
     self.node_pool_name = node_pool_name
     self.tags = tags
+    self.tag_bindings = tag_bindings
     self.autoprovisioning_network_tags = autoprovisioning_network_tags
     self.node_labels = node_labels
     self.node_taints = node_taints
@@ -779,6 +921,8 @@ class CreateClusterOptions(object):
     self.placement_type = placement_type
     self.placement_policy = placement_policy
     self.enable_queued_provisioning = enable_queued_provisioning
+    self.max_run_duration = max_run_duration
+    self.flex_start = flex_start
     self.enable_autorepair = enable_autorepair
     self.enable_autoupgrade = enable_autoupgrade
     self.service_account = service_account
@@ -819,14 +963,19 @@ class CreateClusterOptions(object):
     self.enable_private_ipv6_access = enable_private_ipv6_access
     self.enable_intra_node_visibility = enable_intra_node_visibility
     self.enable_vertical_pod_autoscaling = enable_vertical_pod_autoscaling
-    self.enable_experimental_vertical_pod_autoscaling = enable_experimental_vertical_pod_autoscaling
+    self.enable_experimental_vertical_pod_autoscaling = (
+        enable_experimental_vertical_pod_autoscaling
+    )
     self.security_profile = security_profile
     self.security_profile_runtime_rules = security_profile_runtime_rules
     self.autoscaling_profile = autoscaling_profile
+    self.hpa_profile = hpa_profile
     self.database_encryption_key = database_encryption_key
     self.metadata = metadata
     self.enable_network_egress_metering = enable_network_egress_metering
-    self.enable_resource_consumption_metering = enable_resource_consumption_metering
+    self.enable_resource_consumption_metering = (
+        enable_resource_consumption_metering
+    )
     self.workload_pool = workload_pool
     self.identity_provider = identity_provider
     self.enable_workload_certificates = enable_workload_certificates
@@ -854,6 +1003,7 @@ class CreateClusterOptions(object):
     self.maintenance_window_end = maintenance_window_end
     self.maintenance_window_recurrence = maintenance_window_recurrence
     self.enable_cost_allocation = enable_cost_allocation
+    self.gpudirect_strategy = gpudirect_strategy
     self.max_surge_upgrade = max_surge_upgrade
     self.max_unavailable_upgrade = max_unavailable_upgrade
     self.enable_autoprovisioning = enable_autoprovisioning
@@ -869,8 +1019,12 @@ class CreateClusterOptions(object):
     self.max_accelerator = max_accelerator
     self.autoprovisioning_image_type = autoprovisioning_image_type
     self.autoprovisioning_max_surge_upgrade = autoprovisioning_max_surge_upgrade
-    self.autoprovisioning_max_unavailable_upgrade = autoprovisioning_max_unavailable_upgrade
-    self.enable_autoprovisioning_autoupgrade = enable_autoprovisioning_autoupgrade
+    self.autoprovisioning_max_unavailable_upgrade = (
+        autoprovisioning_max_unavailable_upgrade
+    )
+    self.enable_autoprovisioning_autoupgrade = (
+        enable_autoprovisioning_autoupgrade
+    )
     self.enable_autoprovisioning_autorepair = enable_autoprovisioning_autorepair
     self.reservation_affinity = reservation_affinity
     self.reservation = reservation
@@ -884,15 +1038,19 @@ class CreateClusterOptions(object):
     self.autopilot = autopilot
     self.private_ipv6_google_access_type = private_ipv6_google_access_type
     self.enable_confidential_nodes = enable_confidential_nodes
+    self.confidential_node_type = confidential_node_type
     self.enable_confidential_storage = enable_confidential_storage
     self.storage_pools = storage_pools
+    self.local_ssd_encryption_mode = local_ssd_encryption_mode
     self.cluster_dns = cluster_dns
     self.cluster_dns_scope = cluster_dns_scope
     self.cluster_dns_domain = cluster_dns_domain
     self.additive_vpc_scope_dns_domain = additive_vpc_scope_dns_domain
     self.disable_additive_vpc_scope = disable_additive_vpc_scope
     self.kubernetes_objects_changes_target = kubernetes_objects_changes_target
-    self.kubernetes_objects_snapshots_target = kubernetes_objects_snapshots_target
+    self.kubernetes_objects_snapshots_target = (
+        kubernetes_objects_snapshots_target
+    )
     self.enable_gcfs = enable_gcfs
     self.enable_image_streaming = enable_image_streaming
     self.private_endpoint_subnetwork = private_endpoint_subnetwork
@@ -904,21 +1062,33 @@ class CreateClusterOptions(object):
     self.logging = logging
     self.monitoring = monitoring
     self.enable_managed_prometheus = enable_managed_prometheus
+    self.auto_monitoring_scope = auto_monitoring_scope
+    self.managed_otel_scope = managed_otel_scope
     self.maintenance_interval = maintenance_interval
     self.disable_pod_cidr_overprovision = disable_pod_cidr_overprovision
     self.stack_type = stack_type
     self.ipv6_access_type = ipv6_access_type
     self.enable_workload_config_audit = enable_workload_config_audit
-    self.pod_autoscaling_direct_metrics_opt_in = pod_autoscaling_direct_metrics_opt_in
-    self.enable_workload_vulnerability_scanning = enable_workload_vulnerability_scanning
-    self.enable_autoprovisioning_surge_upgrade = enable_autoprovisioning_surge_upgrade
-    self.enable_autoprovisioning_blue_green_upgrade = enable_autoprovisioning_blue_green_upgrade
-    self.autoprovisioning_standard_rollout_policy = autoprovisioning_standard_rollout_policy
-    self.autoprovisioning_node_pool_soak_duration = autoprovisioning_node_pool_soak_duration
+    self.enable_workload_vulnerability_scanning = (
+        enable_workload_vulnerability_scanning
+    )
+    self.enable_autoprovisioning_surge_upgrade = (
+        enable_autoprovisioning_surge_upgrade
+    )
+    self.enable_autoprovisioning_blue_green_upgrade = (
+        enable_autoprovisioning_blue_green_upgrade
+    )
+    self.autoprovisioning_standard_rollout_policy = (
+        autoprovisioning_standard_rollout_policy
+    )
+    self.autoprovisioning_node_pool_soak_duration = (
+        autoprovisioning_node_pool_soak_duration
+    )
     self.enable_google_cloud_access = enable_google_cloud_access
     self.managed_config = managed_config
     self.fleet_project = fleet_project
     self.enable_fleet = enable_fleet
+    self.membership_type = membership_type
     self.gateway_api = gateway_api
     self.logging_variant = logging_variant
     self.enable_multi_networking = enable_multi_networking
@@ -932,12 +1102,13 @@ class CreateClusterOptions(object):
     )
 
     self.enable_k8s_beta_apis = enable_k8s_beta_apis
+    self.compliance = compliance
+    self.compliance_standards = compliance_standards
     self.security_posture = security_posture
     self.workload_vulnerability_scanning = workload_vulnerability_scanning
     self.enable_runtime_vulnerability_insight = (
         enable_runtime_vulnerability_insight
     )
-    self.enable_dns_endpoint = enable_dns_endpoint
     self.workload_policies = workload_policies
     self.enable_fqdn_network_policy = enable_fqdn_network_policy
     self.host_maintenance_interval = host_maintenance_interval
@@ -948,9 +1119,51 @@ class CreateClusterOptions(object):
         autoprovisioning_resource_manager_tags
     )
     self.enable_secret_manager = enable_secret_manager
+    self.enable_secret_manager_rotation = enable_secret_manager_rotation
+    self.secret_manager_rotation_interval = secret_manager_rotation_interval
+    self.enable_secret_sync = enable_secret_sync
+    self.enable_secret_sync_rotation = enable_secret_sync_rotation
+    self.secret_sync_rotation_interval = secret_sync_rotation_interval
     self.enable_cilium_clusterwide_network_policy = (
         enable_cilium_clusterwide_network_policy
     )
+    self.enable_ray_cluster_logging = enable_ray_cluster_logging
+    self.enable_ray_cluster_monitoring = enable_ray_cluster_monitoring
+    self.enable_insecure_binding_system_authenticated = (
+        enable_insecure_binding_system_authenticated
+    )
+    self.enable_insecure_binding_system_unauthenticated = (
+        enable_insecure_binding_system_unauthenticated
+    )
+    self.enable_dns_access = enable_dns_access
+    self.cluster_ca = cluster_ca
+    self.aggregation_ca = aggregation_ca
+    self.etcd_api_ca = etcd_api_ca
+    self.etcd_peer_ca = etcd_peer_ca
+    self.service_account_signing_keys = service_account_signing_keys
+    self.service_account_verification_keys = service_account_verification_keys
+    self.control_plane_disk_encryption_key = control_plane_disk_encryption_key
+    self.gkeops_etcd_backup_encryption_key = gkeops_etcd_backup_encryption_key
+    self.disable_l4_lb_firewall_reconciliation = (
+        disable_l4_lb_firewall_reconciliation
+    )
+    self.tier = tier
+    self.enable_ip_access = enable_ip_access
+    self.enable_authorized_networks_on_private_endpoint = (
+        enable_authorized_networks_on_private_endpoint
+    )
+    self.anonymous_authentication_config = anonymous_authentication_config
+    self.patch_update = patch_update
+    self.enable_auto_ipam = enable_auto_ipam
+    self.enable_k8s_tokens_via_dns = enable_k8s_tokens_via_dns
+    self.enable_legacy_lustre_port = enable_legacy_lustre_port
+    self.enable_default_compute_class = enable_default_compute_class
+    self.enable_k8s_certs_via_dns = enable_k8s_certs_via_dns
+    self.boot_disk_provisioned_iops = boot_disk_provisioned_iops
+    self.boot_disk_provisioned_throughput = boot_disk_provisioned_throughput
+    self.network_tier = network_tier
+    self.control_plane_egress_mode = control_plane_egress_mode
+    self.autopilot_privileged_admission = autopilot_privileged_admission
 
 
 class UpdateClusterOptions(object):
@@ -1000,6 +1213,7 @@ class UpdateClusterOptions(object):
       security_profile=None,
       security_profile_runtime_rules=None,
       autoscaling_profile=None,
+      hpa_profile=None,
       enable_peering_route_sharing=None,
       workload_pool=None,
       identity_provider=None,
@@ -1054,6 +1268,8 @@ class UpdateClusterOptions(object):
       enable_image_streaming=None,
       enable_managed_prometheus=None,
       disable_managed_prometheus=None,
+      auto_monitoring_scope=None,
+      managed_otel_scope=None,
       maintenance_interval=None,
       dataplane_v2=None,
       enable_dataplane_v2_metrics=None,
@@ -1062,7 +1278,6 @@ class UpdateClusterOptions(object):
       disable_dataplane_v2_flow_observability=None,
       dataplane_v2_observability_mode=None,
       enable_workload_config_audit=None,
-      pod_autoscaling_direct_metrics_opt_in=None,
       enable_workload_vulnerability_scanning=None,
       enable_autoprovisioning_surge_upgrade=None,
       enable_autoprovisioning_blue_green_upgrade=None,
@@ -1077,10 +1292,14 @@ class UpdateClusterOptions(object):
       removed_additional_pod_ipv4_ranges=None,
       fleet_project=None,
       enable_fleet=None,
+      membership_type=None,
+      unset_membership_type=None,
       clear_fleet_project=None,
       enable_security_posture=None,
       network_performance_config=None,
       enable_k8s_beta_apis=None,
+      compliance=None,
+      compliance_standards=None,
       security_posture=None,
       workload_vulnerability_scanning=None,
       enable_runtime_vulnerability_insight=None,
@@ -1095,9 +1314,46 @@ class UpdateClusterOptions(object):
       convert_to_autopilot=None,
       convert_to_standard=None,
       enable_secret_manager=None,
+      enable_secret_manager_rotation=None,
+      secret_manager_rotation_interval=None,
+      enable_secret_sync=None,
+      enable_secret_sync_rotation=None,
+      secret_sync_rotation_interval=None,
       enable_cilium_clusterwide_network_policy=None,
       enable_insecure_kubelet_readonly_port=None,
       autoprovisioning_enable_insecure_kubelet_readonly_port=None,
+      enable_ray_cluster_logging=None,
+      enable_ray_cluster_monitoring=None,
+      enable_insecure_binding_system_authenticated=None,
+      enable_insecure_binding_system_unauthenticated=None,
+      additional_ip_ranges=None,
+      remove_additional_ip_ranges=None,
+      enable_private_nodes=None,
+      enable_dns_access=None,
+      disable_l4_lb_firewall_reconciliation=None,
+      enable_l4_lb_firewall_reconciliation=None,
+      tier=None,
+      autoprovisioning_cgroup_mode=None,
+      enable_ip_access=None,
+      enable_authorized_networks_on_private_endpoint=None,
+      enable_autopilot_compatibility_auditing=None,
+      service_account_signing_keys=None,
+      service_account_verification_keys=None,
+      control_plane_disk_encryption_key=None,
+      anonymous_authentication_config=None,
+      patch_update=None,
+      enable_auto_ipam=None,
+      disable_auto_ipam=None,
+      enable_k8s_tokens_via_dns=None,
+      enable_legacy_lustre_port=None,
+      enable_default_compute_class=None,
+      enable_k8s_certs_via_dns=None,
+      boot_disk_provisioned_iops=None,
+      boot_disk_provisioned_throughput=None,
+      network_tier=None,
+      control_plane_egress_mode=None,
+      control_plane_soak_duration=None,
+      autopilot_privileged_admission=None,
   ):
     self.version = version
     self.update_master = bool(update_master)
@@ -1106,7 +1362,9 @@ class UpdateClusterOptions(object):
     self.monitoring_service = monitoring_service
     self.logging_service = logging_service
     self.enable_stackdriver_kubernetes = enable_stackdriver_kubernetes
-    self.enable_logging_monitoring_system_only = enable_logging_monitoring_system_only
+    self.enable_logging_monitoring_system_only = (
+        enable_logging_monitoring_system_only
+    )
     self.enable_workload_monitoring_eap = enable_workload_monitoring_eap
     self.no_master_logs = no_master_logs
     self.master_logs = master_logs
@@ -1135,10 +1393,13 @@ class UpdateClusterOptions(object):
     self.master_authorized_networks = master_authorized_networks
     self.enable_pod_security_policy = enable_pod_security_policy
     self.enable_vertical_pod_autoscaling = enable_vertical_pod_autoscaling
-    self.enable_experimental_vertical_pod_autoscaling = enable_experimental_vertical_pod_autoscaling
+    self.enable_experimental_vertical_pod_autoscaling = (
+        enable_experimental_vertical_pod_autoscaling
+    )
     self.security_profile = security_profile
     self.security_profile_runtime_rules = security_profile_runtime_rules
     self.autoscaling_profile = autoscaling_profile
+    self.hpa_profile = hpa_profile
     self.enable_intra_node_visibility = enable_intra_node_visibility
     self.enable_l4_ilb_subsetting = enable_l4_ilb_subsetting
     self.enable_peering_route_sharing = enable_peering_route_sharing
@@ -1155,7 +1416,8 @@ class UpdateClusterOptions(object):
     self.resource_usage_bigquery_dataset = resource_usage_bigquery_dataset
     self.enable_network_egress_metering = enable_network_egress_metering
     self.enable_resource_consumption_metering = (
-        enable_resource_consumption_metering)
+        enable_resource_consumption_metering
+    )
     self.database_encryption_key = database_encryption_key
     self.disable_database_encryption = disable_database_encryption
     self.enable_cost_allocation = enable_cost_allocation
@@ -1173,8 +1435,12 @@ class UpdateClusterOptions(object):
     self.release_channel = release_channel
     self.autoprovisioning_image_type = autoprovisioning_image_type
     self.autoprovisioning_max_surge_upgrade = autoprovisioning_max_surge_upgrade
-    self.autoprovisioning_max_unavailable_upgrade = autoprovisioning_max_unavailable_upgrade
-    self.enable_autoprovisioning_autoupgrade = enable_autoprovisioning_autoupgrade
+    self.autoprovisioning_max_unavailable_upgrade = (
+        autoprovisioning_max_unavailable_upgrade
+    )
+    self.enable_autoprovisioning_autoupgrade = (
+        enable_autoprovisioning_autoupgrade
+    )
     self.enable_autoprovisioning_autorepair = enable_autoprovisioning_autorepair
     self.autoprovisioning_min_cpu_platform = autoprovisioning_min_cpu_platform
     self.enable_tpu = enable_tpu
@@ -1184,7 +1450,9 @@ class UpdateClusterOptions(object):
     self.notification_config = notification_config
     self.private_ipv6_google_access_type = private_ipv6_google_access_type
     self.kubernetes_objects_changes_target = kubernetes_objects_changes_target
-    self.kubernetes_objects_snapshots_target = kubernetes_objects_snapshots_target
+    self.kubernetes_objects_snapshots_target = (
+        kubernetes_objects_snapshots_target
+    )
     self.disable_autopilot = disable_autopilot
     self.add_cross_connect_subnetworks = add_cross_connect_subnetworks
     self.remove_cross_connect_subnetworks = remove_cross_connect_subnetworks
@@ -1196,6 +1464,8 @@ class UpdateClusterOptions(object):
     self.enable_image_streaming = enable_image_streaming
     self.enable_managed_prometheus = enable_managed_prometheus
     self.disable_managed_prometheus = disable_managed_prometheus
+    self.auto_monitoring_scope = auto_monitoring_scope
+    self.managed_otel_scope = managed_otel_scope
     self.maintenance_interval = maintenance_interval
     self.dataplane_v2 = dataplane_v2
     self.enable_dataplane_v2_metrics = enable_dataplane_v2_metrics
@@ -1208,12 +1478,21 @@ class UpdateClusterOptions(object):
     )
     self.dataplane_v2_observability_mode = dataplane_v2_observability_mode
     self.enable_workload_config_audit = enable_workload_config_audit
-    self.pod_autoscaling_direct_metrics_opt_in = pod_autoscaling_direct_metrics_opt_in
-    self.enable_workload_vulnerability_scanning = enable_workload_vulnerability_scanning
-    self.enable_autoprovisioning_surge_upgrade = enable_autoprovisioning_surge_upgrade
-    self.enable_autoprovisioning_blue_green_upgrade = enable_autoprovisioning_blue_green_upgrade
-    self.autoprovisioning_standard_rollout_policy = autoprovisioning_standard_rollout_policy
-    self.autoprovisioning_node_pool_soak_duration = autoprovisioning_node_pool_soak_duration
+    self.enable_workload_vulnerability_scanning = (
+        enable_workload_vulnerability_scanning
+    )
+    self.enable_autoprovisioning_surge_upgrade = (
+        enable_autoprovisioning_surge_upgrade
+    )
+    self.enable_autoprovisioning_blue_green_upgrade = (
+        enable_autoprovisioning_blue_green_upgrade
+    )
+    self.autoprovisioning_standard_rollout_policy = (
+        autoprovisioning_standard_rollout_policy
+    )
+    self.autoprovisioning_node_pool_soak_duration = (
+        autoprovisioning_node_pool_soak_duration
+    )
     self.enable_private_endpoint = enable_private_endpoint
     self.enable_google_cloud_access = enable_google_cloud_access
     self.stack_type = stack_type
@@ -1223,10 +1502,14 @@ class UpdateClusterOptions(object):
     self.removed_additional_pod_ipv4_ranges = removed_additional_pod_ipv4_ranges
     self.fleet_project = fleet_project
     self.enable_fleet = enable_fleet
+    self.membership_type = membership_type
+    self.unset_membership_type = unset_membership_type
     self.clear_fleet_project = clear_fleet_project
     self.enable_security_posture = enable_security_posture
     self.network_performance_config = network_performance_config
     self.enable_k8s_beta_apis = enable_k8s_beta_apis
+    self.compliance = compliance
+    self.compliance_standards = compliance_standards
     self.security_posture = security_posture
     self.workload_vulnerability_scanning = workload_vulnerability_scanning
     self.enable_runtime_vulnerability_insight = (
@@ -1245,6 +1528,11 @@ class UpdateClusterOptions(object):
     self.convert_to_autopilot = convert_to_autopilot
     self.convert_to_standard = convert_to_standard
     self.enable_secret_manager = enable_secret_manager
+    self.enable_secret_manager_rotation = enable_secret_manager_rotation
+    self.secret_manager_rotation_interval = secret_manager_rotation_interval
+    self.enable_secret_sync = enable_secret_sync
+    self.enable_secret_sync_rotation = enable_secret_sync_rotation
+    self.secret_sync_rotation_interval = secret_sync_rotation_interval
     self.enable_cilium_clusterwide_network_policy = (
         enable_cilium_clusterwide_network_policy
     )
@@ -1254,6 +1542,51 @@ class UpdateClusterOptions(object):
     self.autoprovisioning_enable_insecure_kubelet_readonly_port = (
         autoprovisioning_enable_insecure_kubelet_readonly_port
     )
+    self.enable_ray_cluster_logging = enable_ray_cluster_logging
+    self.enable_ray_cluster_monitoring = enable_ray_cluster_monitoring
+    self.enable_insecure_binding_system_authenticated = (
+        enable_insecure_binding_system_authenticated
+    )
+    self.enable_insecure_binding_system_unauthenticated = (
+        enable_insecure_binding_system_unauthenticated
+    )
+    self.additional_ip_ranges = additional_ip_ranges
+    self.remove_additional_ip_ranges = remove_additional_ip_ranges
+    self.enable_private_nodes = enable_private_nodes
+    self.enable_dns_access = enable_dns_access
+    self.disable_l4_lb_firewall_reconciliation = (
+        disable_l4_lb_firewall_reconciliation
+    )
+    self.enable_l4_lb_firewall_reconciliation = (
+        enable_l4_lb_firewall_reconciliation
+    )
+    self.tier = tier
+    self.autoprovisioning_cgroup_mode = autoprovisioning_cgroup_mode
+    self.enable_ip_access = enable_ip_access
+    self.enable_authorized_networks_on_private_endpoint = (
+        enable_authorized_networks_on_private_endpoint
+    )
+    self.autopilot_privileged_admission = autopilot_privileged_admission
+    self.enable_autopilot_compatibility_auditing = (
+        enable_autopilot_compatibility_auditing
+    )
+    self.service_account_verification_keys = service_account_verification_keys
+    self.service_account_signing_keys = service_account_signing_keys
+    self.control_plane_disk_encryption_key = control_plane_disk_encryption_key
+    self.anonymous_authentication_config = anonymous_authentication_config
+    self.patch_update = patch_update
+    self.enable_auto_ipam = enable_auto_ipam
+    self.disable_auto_ipam = disable_auto_ipam
+    self.enable_k8s_tokens_via_dns = enable_k8s_tokens_via_dns
+    self.enable_legacy_lustre_port = enable_legacy_lustre_port
+    self.enable_default_compute_class = enable_default_compute_class
+    self.enable_k8s_certs_via_dns = enable_k8s_certs_via_dns
+    self.boot_disk_provisioned_iops = boot_disk_provisioned_iops
+    self.boot_disk_provisioned_throughput = boot_disk_provisioned_throughput
+    self.network_tier = network_tier
+    self.control_plane_egress_mode = control_plane_egress_mode
+    self.control_plane_soak_duration = control_plane_soak_duration
+    self.autopilot_privileged_admission = autopilot_privileged_admission
 
 
 class SetMasterAuthOptions(object):
@@ -1292,6 +1625,7 @@ class CreateNodePoolOptions(object):
       ephemeral_storage_local_ssd=None,
       boot_disk_kms_key=None,
       tags=None,
+      tag_bindings=None,
       node_labels=None,
       labels=None,
       node_taints=None,
@@ -1312,6 +1646,8 @@ class CreateNodePoolOptions(object):
       placement_policy=None,
       tpu_topology=None,
       enable_queued_provisioning=None,
+      max_run_duration=None,
+      flex_start=None,
       enable_autorepair=None,
       enable_autoupgrade=None,
       service_account=None,
@@ -1324,6 +1660,7 @@ class CreateNodePoolOptions(object):
       sandbox=None,
       metadata=None,
       linux_sysctls=None,
+      gpudirect_strategy=None,
       max_surge_upgrade=None,
       max_unavailable_upgrade=None,
       node_locations=None,
@@ -1348,6 +1685,7 @@ class CreateNodePoolOptions(object):
       maintenance_interval=None,
       network_performance_config=None,
       enable_confidential_nodes=None,
+      confidential_node_type=None,
       enable_confidential_storage=None,
       disable_pod_cidr_overprovision=None,
       enable_fast_socket=None,
@@ -1360,12 +1698,19 @@ class CreateNodePoolOptions(object):
       enable_nested_virtualization=None,
       performance_monitoring_unit=None,
       sole_tenant_node_affinity_file=None,
+      sole_tenant_min_node_cpus=None,
       host_maintenance_interval=None,
+      opportunistic_maintenance=None,
       enable_insecure_kubelet_readonly_port=None,
       resource_manager_tags=None,
       containerd_config_from_file=None,
       secondary_boot_disks=None,
       storage_pools=None,
+      local_ssd_encryption_mode=None,
+      boot_disk_provisioned_iops=None,
+      boot_disk_provisioned_throughput=None,
+      data_cache_count=None,
+      accelerator_network_profile=None,
   ):
     self.machine_type = machine_type
     self.disk_size_gb = disk_size_gb
@@ -1373,12 +1718,14 @@ class CreateNodePoolOptions(object):
     self.node_version = node_version
     self.num_nodes = num_nodes
     self.local_ssd_count = local_ssd_count
+    self.data_cache_count = data_cache_count
     self.local_ssd_volume_configs = local_ssd_volume_configs
     self.ephemeral_storage = ephemeral_storage
     self.ephemeral_storage_local_ssd = ephemeral_storage_local_ssd
     self.local_nvme_ssd_block = local_nvme_ssd_block
     self.boot_disk_kms_key = boot_disk_kms_key
     self.tags = tags
+    self.tag_bindings = tag_bindings
     self.labels = labels
     self.node_labels = node_labels
     self.node_taints = node_taints
@@ -1399,6 +1746,8 @@ class CreateNodePoolOptions(object):
     self.placement_policy = placement_policy
     self.tpu_topology = tpu_topology
     self.enable_queued_provisioning = enable_queued_provisioning
+    self.max_run_duration = max_run_duration
+    self.flex_start = flex_start
     self.enable_autorepair = enable_autorepair
     self.enable_autoupgrade = enable_autoupgrade
     self.service_account = service_account
@@ -1411,6 +1760,7 @@ class CreateNodePoolOptions(object):
     self.sandbox = sandbox
     self.metadata = metadata
     self.linux_sysctls = linux_sysctls
+    self.gpudirect_strategy = gpudirect_strategy
     self.max_surge_upgrade = max_surge_upgrade
     self.max_unavailable_upgrade = max_unavailable_upgrade
     self.node_locations = node_locations
@@ -1437,6 +1787,7 @@ class CreateNodePoolOptions(object):
     self.maintenance_interval = maintenance_interval
     self.network_performance_config = network_performance_config
     self.enable_confidential_nodes = enable_confidential_nodes
+    self.confidential_node_type = confidential_node_type
     self.enable_confidential_storage = enable_confidential_storage
     self.disable_pod_cidr_overprovision = disable_pod_cidr_overprovision
     self.enable_fast_socket = enable_fast_socket
@@ -1447,61 +1798,76 @@ class CreateNodePoolOptions(object):
     self.additional_node_network = additional_node_network
     self.additional_pod_network = additional_pod_network
     self.sole_tenant_node_affinity_file = sole_tenant_node_affinity_file
+    self.sole_tenant_min_node_cpus = sole_tenant_min_node_cpus
     self.host_maintenance_interval = host_maintenance_interval
+    self.opportunistic_maintenance = opportunistic_maintenance
     self.enable_insecure_kubelet_readonly_port = (
-        enable_insecure_kubelet_readonly_port)
+        enable_insecure_kubelet_readonly_port
+    )
     self.resource_manager_tags = resource_manager_tags
     self.containerd_config_from_file = containerd_config_from_file
     self.secondary_boot_disks = secondary_boot_disks
     self.storage_pools = storage_pools
+    self.local_ssd_encryption_mode = local_ssd_encryption_mode
+    self.boot_disk_provisioned_iops = boot_disk_provisioned_iops
+    self.boot_disk_provisioned_throughput = boot_disk_provisioned_throughput
+    self.accelerator_network_profile = accelerator_network_profile
 
 
 class UpdateNodePoolOptions(object):
   """Options to pass to UpdateNodePool."""
 
-  def __init__(self,
-               enable_autorepair=None,
-               enable_autoupgrade=None,
-               enable_autoscaling=None,
-               max_nodes=None,
-               min_nodes=None,
-               total_max_nodes=None,
-               total_min_nodes=None,
-               location_policy=None,
-               enable_autoprovisioning=None,
-               workload_metadata=None,
-               workload_metadata_from_node=None,
-               node_locations=None,
-               max_surge_upgrade=None,
-               max_unavailable_upgrade=None,
-               system_config_from_file=None,
-               node_labels=None,
-               labels=None,
-               node_taints=None,
-               tags=None,
-               enable_private_nodes=None,
-               enable_gcfs=None,
-               gvnic=None,
-               enable_image_streaming=None,
-               enable_blue_green_upgrade=None,
-               enable_surge_upgrade=None,
-               node_pool_soak_duration=None,
-               standard_rollout_policy=None,
-               autoscaled_rollout_policy=None,
-               network_performance_config=None,
-               enable_confidential_nodes=None,
-               enable_fast_socket=None,
-               logging_variant=None,
-               accelerators=None,
-               windows_os_version=None,
-               enable_insecure_kubelet_readonly_port=None,
-               resource_manager_tags=None,
-               containerd_config_from_file=None,
-               secondary_boot_disks=None,
-               machine_type=None,
-               disk_type=None,
-               disk_size_gb=None,
-               enable_queued_provisioning=None):
+  def __init__(
+      self,
+      enable_autorepair=None,
+      enable_autoupgrade=None,
+      enable_autoscaling=None,
+      max_nodes=None,
+      min_nodes=None,
+      total_max_nodes=None,
+      total_min_nodes=None,
+      location_policy=None,
+      enable_autoprovisioning=None,
+      workload_metadata=None,
+      workload_metadata_from_node=None,
+      node_locations=None,
+      max_surge_upgrade=None,
+      max_unavailable_upgrade=None,
+      system_config_from_file=None,
+      node_labels=None,
+      labels=None,
+      node_taints=None,
+      tags=None,
+      enable_private_nodes=None,
+      enable_gcfs=None,
+      gvnic=None,
+      enable_image_streaming=None,
+      enable_blue_green_upgrade=None,
+      enable_surge_upgrade=None,
+      node_pool_soak_duration=None,
+      standard_rollout_policy=None,
+      autoscaled_rollout_policy=None,
+      network_performance_config=None,
+      enable_confidential_nodes=None,
+      confidential_node_type=None,
+      enable_fast_socket=None,
+      logging_variant=None,
+      accelerators=None,
+      windows_os_version=None,
+      enable_insecure_kubelet_readonly_port=None,
+      resource_manager_tags=None,
+      containerd_config_from_file=None,
+      secondary_boot_disks=None,
+      machine_type=None,
+      disk_type=None,
+      disk_size_gb=None,
+      enable_queued_provisioning=None,
+      max_run_duration=None,
+      flex_start=None,
+      storage_pools=None,
+      boot_disk_provisioned_iops=None,
+      boot_disk_provisioned_throughput=None,
+  ):
     self.enable_autorepair = enable_autorepair
     self.enable_autoupgrade = enable_autoupgrade
     self.enable_autoscaling = enable_autoscaling
@@ -1533,11 +1899,13 @@ class UpdateNodePoolOptions(object):
     self.autoscaled_rollout_policy = autoscaled_rollout_policy
     self.network_performance_config = network_performance_config
     self.enable_confidential_nodes = enable_confidential_nodes
+    self.confidential_node_type = confidential_node_type
     self.enable_fast_socket = enable_fast_socket
     self.logging_variant = logging_variant
     self.windows_os_version = windows_os_version
     self.enable_insecure_kubelet_readonly_port = (
-        enable_insecure_kubelet_readonly_port)
+        enable_insecure_kubelet_readonly_port
+    )
     self.resource_manager_tags = resource_manager_tags
     self.containerd_config_from_file = containerd_config_from_file
     self.secondary_boot_disks = secondary_boot_disks
@@ -1545,49 +1913,72 @@ class UpdateNodePoolOptions(object):
     self.disk_type = disk_type
     self.disk_size_gb = disk_size_gb
     self.enable_queued_provisioning = enable_queued_provisioning
+    self.max_run_duration = max_run_duration
+    self.flex_start = flex_start
+    self.storage_pools = storage_pools
     self.enable_insecure_kubelet_readonly_port = (
         enable_insecure_kubelet_readonly_port
     )
+    self.provisioned_iops = boot_disk_provisioned_iops
+    self.provisioned_throughput = boot_disk_provisioned_throughput
 
   def IsAutoscalingUpdate(self):
-    return (self.enable_autoscaling is not None or self.max_nodes is not None or
-            self.min_nodes is not None or self.total_max_nodes is not None or
-            self.total_min_nodes is not None or
-            self.enable_autoprovisioning is not None or
-            self.location_policy is not None)
+    return (
+        self.enable_autoscaling is not None
+        or self.max_nodes is not None
+        or self.min_nodes is not None
+        or self.total_max_nodes is not None
+        or self.total_min_nodes is not None
+        or self.enable_autoprovisioning is not None
+        or self.location_policy is not None
+    )
 
   def IsNodePoolManagementUpdate(self):
-    return (self.enable_autorepair is not None or
-            self.enable_autoupgrade is not None)
+    return (
+        self.enable_autorepair is not None
+        or self.enable_autoupgrade is not None
+    )
 
   def IsUpdateNodePoolRequest(self):
-    return (self.workload_metadata is not None or
-            self.workload_metadata_from_node is not None or
-            self.node_locations is not None or
-            self.max_surge_upgrade is not None or
-            self.max_unavailable_upgrade is not None or
-            self.system_config_from_file is not None or
-            self.labels is not None or self.node_labels is not None or
-            self.node_taints is not None or self.tags is not None or
-            self.enable_private_nodes is not None or
-            self.enable_gcfs is not None or self.gvnic is not None or
-            self.enable_image_streaming is not None or
-            self.enable_surge_upgrade is not None or
-            self.enable_blue_green_upgrade is not None or
-            self.node_pool_soak_duration is not None or
-            self.standard_rollout_policy is not None or
-            self.network_performance_config is not None or
-            self.enable_confidential_nodes is not None or
-            self.enable_fast_socket is not None or
-            self.logging_variant is not None or
-            self.windows_os_version is not None or
-            self.accelerators is not None or
-            self.resource_manager_tags is not None or
-            self.containerd_config_from_file is not None or
-            self.machine_type is not None or
-            self.disk_type is not None or
-            self.disk_size_gb is not None or
-            self.enable_queued_provisioning is not None)
+    return (
+        self.workload_metadata is not None
+        or self.workload_metadata_from_node is not None
+        or self.node_locations is not None
+        or self.max_surge_upgrade is not None
+        or self.max_unavailable_upgrade is not None
+        or self.system_config_from_file is not None
+        or self.labels is not None
+        or self.node_labels is not None
+        or self.node_taints is not None
+        or self.tags is not None
+        or self.enable_private_nodes is not None
+        or self.enable_gcfs is not None
+        or self.gvnic is not None
+        or self.enable_image_streaming is not None
+        or self.enable_surge_upgrade is not None
+        or self.enable_blue_green_upgrade is not None
+        or self.node_pool_soak_duration is not None
+        or self.standard_rollout_policy is not None
+        or self.autoscaled_rollout_policy is not None
+        or self.network_performance_config is not None
+        or self.enable_confidential_nodes is not None
+        or self.confidential_node_type is not None
+        or self.enable_fast_socket is not None
+        or self.logging_variant is not None
+        or self.windows_os_version is not None
+        or self.accelerators is not None
+        or self.resource_manager_tags is not None
+        or self.containerd_config_from_file is not None
+        or self.machine_type is not None
+        or self.disk_type is not None
+        or self.disk_size_gb is not None
+        or self.enable_queued_provisioning is not None
+        or self.max_run_duration is not None
+        or self.flex_start is not None
+        or self.storage_pools is not None
+        or self.provisioned_iops is not None
+        or self.provisioned_throughput is not None
+    )
 
 
 class APIAdapter(object):
@@ -1609,7 +2000,8 @@ class APIAdapter(object):
             'projectId': project,
             'zone': location,
         },
-        collection='container.projects.zones.clusters')
+        collection='container.projects.zones.clusters',
+    )
 
   def ParseOperation(self, operation_id, location, project=None):
     project = project or properties.VALUES.core.project.GetOrFail()
@@ -1619,7 +2011,8 @@ class APIAdapter(object):
             'projectId': project,
             'zone': location,
         },
-        collection='container.projects.zones.operations')
+        collection='container.projects.zones.operations',
+    )
 
   def ParseNodePool(self, node_pool_id, location, project=None):
     project = project or properties.VALUES.core.project.GetOrFail()
@@ -1630,7 +2023,8 @@ class APIAdapter(object):
             'clusterId': properties.VALUES.container.cluster.GetOrFail,
             'zone': location,
         },
-        collection='container.projects.zones.clusters.nodePools')
+        collection='container.projects.zones.clusters.nodePools',
+    )
 
   def GetCluster(self, cluster_ref):
     """Get a running cluster.
@@ -1648,8 +2042,68 @@ class APIAdapter(object):
     try:
       return self.client.projects_locations_clusters.Get(
           self.messages.ContainerProjectsLocationsClustersGetRequest(
-              name=ProjectLocationCluster(cluster_ref.projectId, cluster_ref
-                                          .zone, cluster_ref.clusterId)))
+              name=ProjectLocationCluster(
+                  cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+              )
+          )
+      )
+    except apitools_exceptions.HttpNotFoundError as error:
+      api_error = exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
+      # Cluster couldn't be found, maybe user got the location wrong?
+      self.CheckClusterOtherZones(cluster_ref, api_error)
+    except apitools_exceptions.HttpError as error:
+      raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
+
+  def GetClusterUpgradeInfo(self, cluster_ref):
+    """Get cluster upgrade info.
+
+    Args:
+      cluster_ref: cluster Resource to get upgrade info for.
+
+    Returns:
+      Cluster Upgrade Info message.
+    Raises:
+      Error: if cluster cannot be found or caller is missing permissions. Will
+        attempt to find similar clusters in other zones for a more useful error
+        if the user has list permissions.
+    """
+    try:
+      return self.client.projects_locations_clusters.FetchClusterUpgradeInfo(
+          self.messages.ContainerProjectsLocationsClustersFetchClusterUpgradeInfoRequest(
+              name=ProjectLocationCluster(
+                  cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+              )
+          )
+      )
+    except apitools_exceptions.HttpNotFoundError as error:
+      api_error = exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
+      # Cluster couldn't be found, maybe user got the location wrong?
+      self.CheckClusterOtherZones(cluster_ref, api_error)
+    except apitools_exceptions.HttpError as error:
+      raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
+
+  def CompleteControlPlaneUpgrade(self, cluster_ref):
+    """Complete control plane upgrade for a cluster.
+
+    Args:
+      cluster_ref: cluster Resource to complete control plane upgrade for.
+
+    Returns:
+      The operation to be executed.
+    Raises:
+      exceptions.HttpException: if cluster cannot be found or caller is missing
+        permissions. Will attempt to find similar clusters in other zones for a
+        more useful error if the user has list permissions.
+    """
+    try:
+      op = self.client.projects_locations_clusters.CompleteControlPlaneUpgrade(
+          self.messages.ContainerProjectsLocationsClustersCompleteControlPlaneUpgradeRequest(
+              name=ProjectLocationCluster(
+                  cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+              )
+          )
+      )
+      return self.ParseOperation(op.name, cluster_ref.zone)
     except apitools_exceptions.HttpNotFoundError as error:
       api_error = exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
       # Cluster couldn't be found, maybe user got the location wrong?
@@ -1672,10 +2126,12 @@ class APIAdapter(object):
     """
     try:
       return self.client.projects_locations_clusters.CheckAutopilotCompatibility(
-          self.messages
-          .ContainerProjectsLocationsClustersCheckAutopilotCompatibilityRequest(
-              name=ProjectLocationCluster(cluster_ref.projectId, cluster_ref
-                                          .zone, cluster_ref.clusterId)))
+          self.messages.ContainerProjectsLocationsClustersCheckAutopilotCompatibilityRequest(
+              name=ProjectLocationCluster(
+                  cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+              )
+          )
+      )
     except apitools_exceptions.HttpNotFoundError as error:
       api_error = exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
       # Cluster couldn't be found, maybe user got the location wrong?
@@ -1699,10 +2155,12 @@ class APIAdapter(object):
         NO_SUCH_CLUSTER_ERROR_MSG.format(
             error=api_error,
             name=cluster_ref.clusterId,
-            project=cluster_ref.projectId))
+            project=cluster_ref.projectId,
+        )
+    )
     try:
       clusters = self.ListClusters(cluster_ref.projectId).clusters
-    except apitools_exceptions.HttpForbiddenError as error:
+    except apitools_exceptions.HttpForbiddenError:
       # Raise the default 404 Not Found error.
       # 403 Forbidden error shouldn't be raised for this unrequested list.
       raise not_found_error
@@ -1722,7 +2180,9 @@ class APIAdapter(object):
                 error=api_error,
                 name=cluster_ref.clusterId,
                 wrong_zone=self.Zone(cluster_ref),
-                zone=cluster.zone))
+                zone=cluster.zone,
+            )
+        )
     # Couldn't find a cluster with that name.
     raise not_found_error
 
@@ -1733,26 +2193,34 @@ class APIAdapter(object):
       for np in cluster.nodePools:
         if np.name == pool_name:
           return np
-      msg = NO_SUCH_NODE_POOL_ERROR_MSG.format(
-          cluster=cluster.name, name=pool_name) + os.linesep
+      msg = (
+          NO_SUCH_NODE_POOL_ERROR_MSG.format(
+              cluster=cluster.name, name=pool_name
+          )
+          + os.linesep
+      )
     elif len(cluster.nodePools) == 1:
       return cluster.nodePools[0]
     # Couldn't find a node pool with that name or a node pool was not specified.
     msg += NO_NODE_POOL_SELECTED_ERROR_MSG + os.linesep.join(
-        [np.name for np in cluster.nodePools])
+        [np.name for np in cluster.nodePools]
+    )
     raise util.Error(msg)
 
   def GetOperation(self, operation_ref):
     return self.client.projects_locations_operations.Get(
         self.messages.ContainerProjectsLocationsOperationsGetRequest(
-            name=ProjectLocationOperation(operation_ref.projectId, operation_ref
-                                          .zone, operation_ref.operationId)))
+            name=ProjectLocationOperation(
+                operation_ref.projectId,
+                operation_ref.zone,
+                operation_ref.operationId,
+            )
+        )
+    )
 
-  def WaitForOperation(self,
-                       operation_ref,
-                       message,
-                       timeout_s=1200,
-                       poll_period_s=5):
+  def WaitForOperation(
+      self, operation_ref, message, timeout_s=1200, poll_period_s=5
+  ):
     """Poll container Operation until its status is done or timeout reached.
 
     Args:
@@ -1768,33 +2236,53 @@ class APIAdapter(object):
     Raises:
       Error: if the operation times out or finishes with an error.
     """
-    detail_message = None
-    with progress_tracker.ProgressTracker(
-        message, autotick=True, detail_message_callback=lambda: detail_message):
-      start_time = time.time()
-      while timeout_s > (time.time() - start_time):
+
+    def _MustGetOperation():
+      """Gets the operation or throws an exception, with limited retries."""
+      # It's unusual for operation polling to fail, so retry a few times. It's
+      # a bit overly broad to retry all errors, but since it's so unusual to
+      # get an error at all, this is the simplest approach. The type of error
+      # that is most likely to be a true positive is a not found error, but
+      # that's also the most likely to be resolveable via retry.
+      for attempt in range(3):
         try:
-          operation = self.GetOperation(operation_ref)
-          if self.IsOperationFinished(operation):
-            # Success!
-            log.info('Operation %s succeeded after %.3f seconds', operation,
-                     (time.time() - start_time))
-            break
-          detail_message = operation.detail
+          return self.GetOperation(operation_ref)
         except apitools_exceptions.HttpError as error:
-          log.debug('GetOperation failed: %s', error)
-          if error.status_code == six.moves.http_client.FORBIDDEN:
+          log.debug('GetOperation failed (attempt %d): %s', attempt + 1, error)
+          time.sleep(poll_period_s)
+          if attempt == 2:
             raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
-          # Keep trying until we timeout in case error is transient.
-        time.sleep(poll_period_s)
-    if not self.IsOperationFinished(operation):
-      log.err.Print('Timed out waiting for operation {0}'.format(operation))
+
+    def _WaitForOperation():
+      """Retries getting the operation until it finishes, times out or fails."""
+      detail_message = None
+      with progress_tracker.ProgressTracker(
+          message, autotick=True, detail_message_callback=lambda: detail_message
+      ):
+        start_time = time.time()
+        op = _MustGetOperation()
+        while timeout_s > (time.time() - start_time):
+          if self.IsOperationFinished(op):
+            duration = time.time() - start_time
+            log.info(f'Operation {op} finished after {duration:.3} seconds')
+            return op
+
+          detail_message = op.detail
+          time.sleep(poll_period_s)
+          op = _MustGetOperation()
+
+        log.err.Print(f'Timed out waiting for operation {op}')
+        raise util.Error(
+            f'Operation [{op}] is still running, check its status via '
+            + f"'gcloud container operations describe {op.name}'"
+        )
+
+    operation = _WaitForOperation()
+    if operation.statusMessage:
       raise util.Error(
-          'Operation [{0}] is still running, check its status via \'gcloud container operations describe {1}\''
-          .format(operation, operation.name))
-    if self.GetOperationError(operation):
-      raise util.Error('Operation [{0}] finished with error: {1}'.format(
-          operation, self.GetOperationError(operation)))
+          f'Operation [{operation}] finished with error: '
+          + f'{operation.statusMessage}'
+      )
 
     return operation
 
@@ -1803,11 +2291,33 @@ class APIAdapter(object):
     return cluster_ref.zone
 
   def CreateClusterCommon(self, cluster_ref, options):
-    """Returns a CreateCluster operation."""
+    """Returns a CreateCluster operation.
+
+    This function is for code that is common across all channels, and the
+    return value is intended to be modified by each.
+
+    Args:
+      cluster_ref: A Cluster message from the calling channel.
+      options: User selected options passed to the cluster creation.
+
+    Returns:
+      A CreateCluster operation.
+
+    Raises:
+      A util.Error if options selected are invalid.
+    """
     node_config = self.ParseNodeConfig(options)
     pools = self.ParseNodePools(options, node_config)
 
     cluster = self.messages.Cluster(name=cluster_ref.clusterId, nodePools=pools)
+    if options.tag_bindings:
+      # Assign the dictionary to the cluster.tags field
+      cluster.tags = self.messages.Cluster.TagsValue(
+          additionalProperties=[
+              self.messages.Cluster.TagsValue.AdditionalProperty(key=k, value=v)
+              for k, v in sorted(options.tag_bindings.items())
+          ]
+      )
     if options.additional_zones:
       cluster.locations = sorted([cluster_ref.zone] + options.additional_zones)
     if options.node_locations:
@@ -1826,11 +2336,15 @@ class APIAdapter(object):
         # When "enable-stackdriver-kubernetes" is true, the
         # "enable-cloud-logging" and "enable-cloud-monitoring" flags can be
         # used to explicitly disable logging or monitoring
-        if (options.enable_cloud_logging is not None and
-            not options.enable_cloud_logging):
+        if (
+            options.enable_cloud_logging is not None
+            and not options.enable_cloud_logging
+        ):
           cluster.loggingService = 'none'
-        if (options.enable_cloud_monitoring is not None and
-            not options.enable_cloud_monitoring):
+        if (
+            options.enable_cloud_monitoring is not None
+            and not options.enable_cloud_monitoring
+        ):
           cluster.monitoringService = 'none'
       else:
         cluster.loggingService = 'none'
@@ -1852,38 +2366,68 @@ class APIAdapter(object):
       cluster.subnetwork = options.subnetwork
     if options.addons:
       addons = self._AddonsConfig(
-          disable_ingress=INGRESS not in options.addons
+          disable_ingress=not options.addons.get(INGRESS, False)
           and not options.autopilot,
-          disable_hpa=HPA not in options.addons and not options.autopilot,
-          disable_dashboard=DASHBOARD not in options.addons,
-          disable_network_policy=(NETWORK_POLICY not in options.addons),
-          enable_node_local_dns=(NODELOCALDNS in options.addons or None),
-          enable_gcepd_csi_driver=(GCEPDCSIDRIVER in options.addons),
-          enable_filestore_csi_driver=(GCPFILESTORECSIDRIVER in options.addons),
-          enable_application_manager=(APPLICATIONMANAGER in options.addons),
-          enable_cloud_build=(CLOUDBUILD in options.addons),
-          enable_backup_restore=(BACKUPRESTORE in options.addons),
-          enable_gcsfuse_csi_driver=(GCSFUSECSIDRIVER in options.addons),
-          enable_stateful_ha=(STATEFULHA in options.addons),
-          enable_parallelstore_csi_driver=(
-              PARALLELSTORECSIDRIVER in options.addons
+          disable_hpa=not options.addons.get(HPA, False)
+          and not options.autopilot,
+          disable_dashboard=not options.addons.get(DASHBOARD, False),
+          disable_network_policy=not options.addons.get(NETWORK_POLICY, False),
+          enable_node_local_dns=options.addons.get(NODELOCALDNS),
+          enable_gcepd_csi_driver=options.addons.get(GCEPDCSIDRIVER, False),
+          enable_filestore_csi_driver=options.addons.get(
+              GCPFILESTORECSIDRIVER, False
           ),
-          enable_ray_operator=(RAYOPERATOR in options.addons),
+          enable_application_manager=options.addons.get(
+              APPLICATIONMANAGER, False
+          ),
+          enable_cloud_build=options.addons.get(CLOUDBUILD, False),
+          enable_backup_restore=options.addons.get(BACKUPRESTORE, False),
+          enable_gcsfuse_csi_driver=options.addons.get(GCSFUSECSIDRIVER, False),
+          enable_stateful_ha=options.addons.get(STATEFULHA, False),
+          enable_parallelstore_csi_driver=options.addons.get(
+              PARALLELSTORECSIDRIVER, False
+          ),
+          enable_high_scale_checkpointing=options.addons.get(
+              HIGHSCALECHECKPOINTING, False
+          ),
+          enable_lustre_csi_driver=options.addons.get(LUSTRECSIDRIVER, False),
+          enable_ray_operator=options.addons.get(RAYOPERATOR, False),
       )
       # CONFIGCONNECTOR is disabled by default.
       if CONFIGCONNECTOR in options.addons:
         if not options.enable_stackdriver_kubernetes and (
-            (options.monitoring is not None and
-             SYSTEM not in options.monitoring) or
-            (options.logging is not None and SYSTEM not in options.logging)):
+            (
+                options.monitoring is not None
+                and SYSTEM not in options.monitoring
+            )
+            or (options.logging is not None and SYSTEM not in options.logging)
+        ):
           raise util.Error(
-              CONFIGCONNECTOR_STACKDRIVER_KUBERNETES_DISABLED_ERROR_MSG)
+              CONFIGCONNECTOR_STACKDRIVER_KUBERNETES_DISABLED_ERROR_MSG
+          )
         if options.workload_pool is None:
           raise util.Error(CONFIGCONNECTOR_WORKLOAD_IDENTITY_DISABLED_ERROR_MSG)
         addons.configConnectorConfig = self.messages.ConfigConnectorConfig(
-            enabled=True)
+            enabled=True
+        )
+      if options.enable_ray_cluster_logging is not None:
+        addons.rayOperatorConfig.rayClusterLoggingConfig = (
+            self.messages.RayClusterLoggingConfig(
+                enabled=options.enable_ray_cluster_logging
+            )
+        )
+      if options.enable_ray_cluster_monitoring is not None:
+        addons.rayOperatorConfig.rayClusterMonitoringConfig = (
+            self.messages.RayClusterMonitoringConfig(
+                enabled=options.enable_ray_cluster_monitoring
+            )
+        )
+      if options.enable_legacy_lustre_port is not None:
+        addons.lustreCsiDriverConfig.enableLegacyLustrePort = (
+            options.enable_legacy_lustre_port
+        )
+
       cluster.addonsConfig = addons
-    self.ParseMasterAuthorizedNetworkOptions(options, cluster)
 
     if options.enable_kubernetes_alpha:
       cluster.enableKubernetesAlpha = options.enable_kubernetes_alpha
@@ -1901,7 +2445,8 @@ class APIAdapter(object):
       if not options.enable_ip_alias:
         raise util.Error(DEFAULT_MAX_PODS_PER_NODE_WITHOUT_IP_ALIAS_ERROR_MSG)
       cluster.defaultMaxPodsConstraint = self.messages.MaxPodsConstraint(
-          maxPodsPerNode=options.default_max_pods_per_node)
+          maxPodsPerNode=options.default_max_pods_per_node
+      )
 
     if options.disable_default_snat:
       if not options.enable_ip_alias:
@@ -1909,31 +2454,38 @@ class APIAdapter(object):
       if not options.enable_private_nodes:
         raise util.Error(DISABLE_DEFAULT_SNAT_WITHOUT_PRIVATE_NODES_ERROR_MSG)
       default_snat_status = self.messages.DefaultSnatStatus(
-          disabled=options.disable_default_snat)
+          disabled=options.disable_default_snat
+      )
       if cluster.networkConfig is None:
         cluster.networkConfig = self.messages.NetworkConfig(
-            defaultSnatStatus=default_snat_status)
+            defaultSnatStatus=default_snat_status
+        )
       else:
         cluster.networkConfig.defaultSnatStatus = default_snat_status
 
     if options.dataplane_v2 is not None and options.dataplane_v2:
       if cluster.networkConfig is None:
         cluster.networkConfig = self.messages.NetworkConfig()
-      cluster.networkConfig.datapathProvider = \
-            self.messages.NetworkConfig.DatapathProviderValueValuesEnum.ADVANCED_DATAPATH
+      cluster.networkConfig.datapathProvider = (
+          self.messages.NetworkConfig.DatapathProviderValueValuesEnum.ADVANCED_DATAPATH
+      )
 
     if options.enable_l4_ilb_subsetting:
       if cluster.networkConfig is None:
         cluster.networkConfig = self.messages.NetworkConfig(
-            enableL4ilbSubsetting=options.enable_l4_ilb_subsetting)
+            enableL4ilbSubsetting=options.enable_l4_ilb_subsetting
+        )
       else:
-        cluster.networkConfig.enableL4ilbSubsetting = options.enable_l4_ilb_subsetting
+        cluster.networkConfig.enableL4ilbSubsetting = (
+            options.enable_l4_ilb_subsetting
+        )
 
     dns_config = self.ParseClusterDNSOptions(options)
     if dns_config is not None:
       if cluster.networkConfig is None:
         cluster.networkConfig = self.messages.NetworkConfig(
-            dnsConfig=dns_config)
+            dnsConfig=dns_config
+        )
       else:
         cluster.networkConfig.dnsConfig = dns_config
 
@@ -1941,23 +2493,27 @@ class APIAdapter(object):
     if gateway_config is not None:
       if cluster.networkConfig is None:
         cluster.networkConfig = self.messages.NetworkConfig(
-            gatewayApiConfig=gateway_config)
+            gatewayApiConfig=gateway_config
+        )
       else:
         cluster.networkConfig.gatewayApiConfig = gateway_config
 
     if options.enable_legacy_authorization is not None:
       cluster.legacyAbac = self.messages.LegacyAbac(
-          enabled=bool(options.enable_legacy_authorization))
+          enabled=bool(options.enable_legacy_authorization)
+      )
 
     # Only Calico is currently supported as a network policy provider.
     if options.enable_network_policy:
       cluster.networkPolicy = self.messages.NetworkPolicy(
           enabled=options.enable_network_policy,
-          provider=self.messages.NetworkPolicy.ProviderValueValuesEnum.CALICO)
+          provider=self.messages.NetworkPolicy.ProviderValueValuesEnum.CALICO,
+      )
 
     if options.enable_binauthz is not None:
       cluster.binaryAuthorization = self.messages.BinaryAuthorization(
-          enabled=options.enable_binauthz)
+          enabled=options.enable_binauthz
+      )
 
     if options.binauthz_evaluation_mode is not None:
       if options.binauthz_policy_bindings is not None:
@@ -1968,7 +2524,14 @@ class APIAdapter(object):
         )
         for binding in options.binauthz_policy_bindings:
           cluster.binaryAuthorization.policyBindings.append(
-              self.messages.PolicyBinding(name=binding['name'])
+              self.messages.PolicyBinding(
+                  name=binding['name'],
+                  enforcementMode=self.messages.PolicyBinding.EnforcementModeValueValuesEnum(  # pylint:disable=g-long-ternary
+                      binding['enforcement-mode']
+                  )
+                  if 'enforcement-mode' in binding
+                  else None,
+              )
           )
       else:
         cluster.binaryAuthorization = self.messages.BinaryAuthorization(
@@ -1993,7 +2556,10 @@ class APIAdapter(object):
       cluster.maintenancePolicy = self.messages.MaintenancePolicy(
           window=self.messages.MaintenanceWindow(
               dailyMaintenanceWindow=self.messages.DailyMaintenanceWindow(
-                  startTime=options.maintenance_window)))
+                  startTime=options.maintenance_window
+              )
+          )
+      )
     elif options.maintenance_window_start is not None:
       window_start = options.maintenance_window_start.isoformat()
       window_end = options.maintenance_window_end.isoformat()
@@ -2001,48 +2567,73 @@ class APIAdapter(object):
           window=self.messages.MaintenanceWindow(
               recurringWindow=self.messages.RecurringTimeWindow(
                   window=self.messages.TimeWindow(
-                      startTime=window_start, endTime=window_end),
-                  recurrence=options.maintenance_window_recurrence)))
+                      startTime=window_start, endTime=window_end
+                  ),
+                  recurrence=options.maintenance_window_recurrence,
+              )
+          )
+      )
 
     self.ParseResourceLabels(options, cluster)
 
     if options.enable_pod_security_policy is not None:
       cluster.podSecurityPolicyConfig = self.messages.PodSecurityPolicyConfig(
-          enabled=options.enable_pod_security_policy)
+          enabled=options.enable_pod_security_policy
+      )
+    if options.patch_update is not None:
+      cluster.gkeAutoUpgradeConfig = _GetGkeAutoUpgradeConfig(
+          options, self.messages
+      )
 
     if options.security_group is not None:
       # The presence of the --security_group="foo" flag implies enabled=True.
       cluster.authenticatorGroupsConfig = (
           self.messages.AuthenticatorGroupsConfig(
-              enabled=True, securityGroup=options.security_group))
+              enabled=True, securityGroup=options.security_group
+          )
+      )
     if options.enable_shielded_nodes is not None:
       cluster.shieldedNodes = self.messages.ShieldedNodes(
-          enabled=options.enable_shielded_nodes)
+          enabled=options.enable_shielded_nodes
+      )
 
     if options.workload_pool:
       cluster.workloadIdentityConfig = self.messages.WorkloadIdentityConfig(
-          workloadPool=options.workload_pool)
+          workloadPool=options.workload_pool
+      )
 
-    self.ParseIPAliasOptions(options, cluster)
+    is_cluster_ipv6 = (
+        options.stack_type and options.stack_type.lower() == 'ipv6'
+    )
+    if not is_cluster_ipv6:
+      # IP Alias is a no-op for IPv6-only clusters.
+      self.ParseIPAliasOptions(options, cluster)
+
     self.ParseAllowRouteOverlapOptions(options, cluster)
     self.ParsePrivateClusterOptions(options, cluster)
     self.ParseTpuOptions(options, cluster)
     if options.enable_vertical_pod_autoscaling is not None:
       cluster.verticalPodAutoscaling = self.messages.VerticalPodAutoscaling(
-          enabled=options.enable_vertical_pod_autoscaling)
+          enabled=options.enable_vertical_pod_autoscaling
+      )
 
     if options.resource_usage_bigquery_dataset:
       bigquery_destination = self.messages.BigQueryDestination(
-          datasetId=options.resource_usage_bigquery_dataset)
-      cluster.resourceUsageExportConfig = \
+          datasetId=options.resource_usage_bigquery_dataset
+      )
+      cluster.resourceUsageExportConfig = (
           self.messages.ResourceUsageExportConfig(
-              bigqueryDestination=bigquery_destination)
+              bigqueryDestination=bigquery_destination
+          )
+      )
       if options.enable_network_egress_metering:
         cluster.resourceUsageExportConfig.enableNetworkEgressMetering = True
       if options.enable_resource_consumption_metering is not None:
-        cluster.resourceUsageExportConfig.consumptionMeteringConfig = \
+        cluster.resourceUsageExportConfig.consumptionMeteringConfig = (
             self.messages.ConsumptionMeteringConfig(
-                enabled=options.enable_resource_consumption_metering)
+                enabled=options.enable_resource_consumption_metering
+            )
+        )
     elif options.enable_network_egress_metering is not None:
       raise util.Error(ENABLE_NETWORK_EGRESS_METERING_ERROR_MSG)
     elif options.enable_resource_consumption_metering is not None:
@@ -2055,24 +2646,30 @@ class APIAdapter(object):
     # be disabled.
     if options.user is not None or options.issue_client_certificate is not None:
       cluster.masterAuth = self.messages.MasterAuth(
-          username=options.user, password=options.password)
+          username=options.user, password=options.password
+      )
       if options.issue_client_certificate is not None:
         cluster.masterAuth.clientCertificateConfig = (
             self.messages.ClientCertificateConfig(
-                issueClientCertificate=options.issue_client_certificate))
+                issueClientCertificate=options.issue_client_certificate
+            )
+        )
 
     if options.enable_intra_node_visibility is not None:
       if cluster.networkConfig is None:
         cluster.networkConfig = self.messages.NetworkConfig(
-            enableIntraNodeVisibility=options.enable_intra_node_visibility)
+            enableIntraNodeVisibility=options.enable_intra_node_visibility
+        )
       else:
-        cluster.networkConfig.enableIntraNodeVisibility = \
+        cluster.networkConfig.enableIntraNodeVisibility = (
             options.enable_intra_node_visibility
+        )
 
     if options.database_encryption_key:
       cluster.databaseEncryption = self.messages.DatabaseEncryption(
           keyName=options.database_encryption_key,
-          state=self.messages.DatabaseEncryption.StateValueValuesEnum.ENCRYPTED)
+          state=self.messages.DatabaseEncryption.StateValueValuesEnum.ENCRYPTED,
+      )
 
     if options.boot_disk_kms_key:
       for pool in cluster.nodePools:
@@ -2080,40 +2677,70 @@ class APIAdapter(object):
 
     cluster.releaseChannel = _GetReleaseChannel(options, self.messages)
 
+    if options.patch_update is not None:
+      cluster.gkeAutoUpgradeConfig = _GetGkeAutoUpgradeConfig(
+          options, self.messages
+      )
+
     if options.autopilot:
       cluster.autopilot = self.messages.Autopilot()
-      cluster.autopilot.enabled = True
-
-      if options.workload_policies:
-        if cluster.autopilot.workloadPolicyConfig is None:
-          cluster.autopilot.workloadPolicyConfig = (
-              self.messages.WorkloadPolicyConfig())
-        if options.workload_policies == 'allow-net-admin':
-          cluster.autopilot.workloadPolicyConfig.allowNetAdmin = True
+      cluster.autopilot.enabled = options.autopilot
 
       if options.enable_secret_manager:
         if cluster.secretManagerConfig is None:
           cluster.secretManagerConfig = self.messages.SecretManagerConfig(
               enabled=False
           )
+
+      if options.enable_secret_sync:
+        if cluster.secretSyncConfig is None:
+          cluster.secretSyncConfig = self.messages.SecretSyncConfig(
+              enabled=False
+          )
+
       if options.boot_disk_kms_key:
         if cluster.autoscaling is None:
           cluster.autoscaling = self.messages.ClusterAutoscaling()
         if cluster.autoscaling.autoprovisioningNodePoolDefaults is None:
-          cluster.autoscaling.autoprovisioningNodePoolDefaults = self.messages.AutoprovisioningNodePoolDefaults(
+          cluster.autoscaling.autoprovisioningNodePoolDefaults = (
+              self.messages.AutoprovisioningNodePoolDefaults()
           )
-        cluster.autoscaling.autoprovisioningNodePoolDefaults.bootDiskKmsKey = options.boot_disk_kms_key
+        cluster.autoscaling.autoprovisioningNodePoolDefaults.bootDiskKmsKey = (
+            options.boot_disk_kms_key
+        )
+
+    if options.workload_policies:
+      if cluster.autopilot is None:
+        cluster.autopilot = self.messages.Autopilot()
+        cluster.autopilot.enabled = False
+      if cluster.autopilot.workloadPolicyConfig is None:
+        cluster.autopilot.workloadPolicyConfig = (
+            self.messages.WorkloadPolicyConfig()
+        )
+      if options.workload_policies == 'allow-net-admin':
+        cluster.autopilot.workloadPolicyConfig.allowNetAdmin = True
 
     if options.enable_confidential_nodes:
       cluster.confidentialNodes = self.messages.ConfidentialNodes(
-          enabled=options.enable_confidential_nodes)
+          enabled=options.enable_confidential_nodes
+      )
+
+    if options.confidential_node_type is not None:
+      cluster.confidentialNodes = self.messages.ConfidentialNodes(
+          enabled=options.enable_confidential_nodes,
+          confidentialInstanceType=_ConfidentialNodeTypeEnumFromString(
+              options, self.messages
+          ),
+      )
 
     if options.private_ipv6_google_access_type is not None:
       if cluster.networkConfig is None:
         cluster.networkConfig = self.messages.NetworkConfig()
-      cluster.networkConfig.privateIpv6GoogleAccess = util.GetPrivateIpv6GoogleAccessTypeMapper(
-          self.messages, hidden=False).GetEnumForChoice(
-              options.private_ipv6_google_access_type)
+      cluster.networkConfig.privateIpv6GoogleAccess = (
+          util.GetPrivateIpv6GoogleAccessTypeMapper(
+              self.messages, hidden=False
+          ).GetEnumForChoice(options.private_ipv6_google_access_type)
+      )
 
     # Apply node kubelet config on non-autopilot clusters.
     if options.enable_insecure_kubelet_readonly_port is not None:
@@ -2160,18 +2787,22 @@ class APIAdapter(object):
         cluster.nodePoolDefaults = self.messages.NodePoolDefaults()
       if cluster.nodePoolDefaults.nodeConfigDefaults is None:
         cluster.nodePoolDefaults.nodeConfigDefaults = (
-            self.messages.NodeConfigDefaults())
+            self.messages.NodeConfigDefaults()
+        )
       cluster.nodePoolDefaults.nodeConfigDefaults.gcfsConfig = (
-          self.messages.GcfsConfig(enabled=options.enable_gcfs))
+          self.messages.GcfsConfig(enabled=options.enable_gcfs)
+      )
 
     if options.containerd_config_from_file is not None:
       if cluster.nodePoolDefaults is None:
         cluster.nodePoolDefaults = self.messages.NodePoolDefaults()
       if cluster.nodePoolDefaults.nodeConfigDefaults is None:
         cluster.nodePoolDefaults.nodeConfigDefaults = (
-            self.messages.NodeConfigDefaults())
+            self.messages.NodeConfigDefaults()
+        )
       cluster.nodePoolDefaults.nodeConfigDefaults.containerdConfig = (
-          self.messages.ContainerdConfig())
+          self.messages.ContainerdConfig()
+      )
       util.LoadContainerdConfigFromYAML(
           cluster.nodePoolDefaults.nodeConfigDefaults.containerdConfig,
           options.containerd_config_from_file,
@@ -2181,8 +2812,9 @@ class APIAdapter(object):
     if options.autoprovisioning_network_tags:
       if cluster.nodePoolAutoConfig is None:
         cluster.nodePoolAutoConfig = self.messages.NodePoolAutoConfig()
-      cluster.nodePoolAutoConfig.networkTags = (
-          self.messages.NetworkTags(tags=options.autoprovisioning_network_tags))
+      cluster.nodePoolAutoConfig.networkTags = self.messages.NetworkTags(
+          tags=options.autoprovisioning_network_tags
+      )
 
     if options.autoprovisioning_resource_manager_tags is not None:
       if cluster.nodePoolAutoConfig is None:
@@ -2197,122 +2829,199 @@ class APIAdapter(object):
         cluster.nodePoolDefaults = self.messages.NodePoolDefaults()
       if cluster.nodePoolDefaults.nodeConfigDefaults is None:
         cluster.nodePoolDefaults.nodeConfigDefaults = (
-            self.messages.NodeConfigDefaults())
+            self.messages.NodeConfigDefaults()
+        )
       cluster.nodePoolDefaults.nodeConfigDefaults.gcfsConfig = (
-          self.messages.GcfsConfig(enabled=options.enable_image_streaming))
+          self.messages.GcfsConfig(enabled=options.enable_image_streaming)
+      )
 
     if options.maintenance_interval:
       if cluster.nodePoolDefaults is None:
         cluster.nodePoolDefaults = self.messages.NodePoolDefaults()
       if cluster.nodePoolDefaults.nodeConfigDefaults is None:
         cluster.nodePoolDefaults.nodeConfigDefaults = (
-            self.messages.NodeConfigDefaults())
+            self.messages.NodeConfigDefaults()
+        )
       cluster.nodePoolDefaults.nodeConfigDefaults.stableFleetConfig = (
-          _GetStableFleetConfig(options, self.messages))
+          _GetStableFleetConfig(options, self.messages)
+      )
 
     if options.enable_mesh_certificates:
       if not options.workload_pool:
         raise util.Error(
             PREREQUISITE_OPTION_ERROR_MSG.format(
-                prerequisite='workload-pool', opt='enable-mesh-certificates'))
+                prerequisite='workload-pool', opt='enable-mesh-certificates'
+            )
+        )
       if cluster.meshCertificates is None:
         cluster.meshCertificates = self.messages.MeshCertificates()
-      cluster.meshCertificates.enableCertificates = options.enable_mesh_certificates
+      cluster.meshCertificates.enableCertificates = (
+          options.enable_mesh_certificates
+      )
 
     _AddNotificationConfigToCluster(cluster, options, self.messages)
 
     cluster.loggingConfig = _GetLoggingConfig(options, self.messages)
-    cluster.monitoringConfig = _GetMonitoringConfig(options, self.messages)
+    cluster.monitoringConfig = _GetMonitoringConfig(
+        options, self.messages, False, None
+    )
+    if options.managed_otel_scope:
+      cluster.managedOpentelemetryConfig = _GetManagedOpenTelemetryConfig(
+          options, self.messages
+      )
 
     if options.enable_service_externalips is not None:
       if cluster.networkConfig is None:
         cluster.networkConfig = self.messages.NetworkConfig()
-      cluster.networkConfig.serviceExternalIpsConfig = self.messages.ServiceExternalIPsConfig(
-          enabled=options.enable_service_externalips)
+      cluster.networkConfig.serviceExternalIpsConfig = (
+          self.messages.ServiceExternalIPsConfig(
+              enabled=options.enable_service_externalips
+          )
+      )
 
     if options.enable_identity_service:
       cluster.identityServiceConfig = self.messages.IdentityServiceConfig(
-          enabled=options.enable_identity_service)
+          enabled=options.enable_identity_service
+      )
 
     if options.enable_workload_config_audit is not None:
       if cluster.protectConfig is None:
         cluster.protectConfig = self.messages.ProtectConfig(
-            workloadConfig=self.messages.WorkloadConfig())
+            workloadConfig=self.messages.WorkloadConfig()
+        )
       if options.enable_workload_config_audit:
         cluster.protectConfig.workloadConfig.auditMode = (
-            self.messages.WorkloadConfig.AuditModeValueValuesEnum.BASIC)
+            self.messages.WorkloadConfig.AuditModeValueValuesEnum.BASIC
+        )
       else:
         cluster.protectConfig.workloadConfig.auditMode = (
-            self.messages.WorkloadConfig.AuditModeValueValuesEnum.DISABLED)
+            self.messages.WorkloadConfig.AuditModeValueValuesEnum.DISABLED
+        )
 
     if options.enable_workload_vulnerability_scanning is not None:
       if cluster.protectConfig is None:
         cluster.protectConfig = self.messages.ProtectConfig()
       if options.enable_workload_vulnerability_scanning:
         cluster.protectConfig.workloadVulnerabilityMode = (
-            self.messages.ProtectConfig.WorkloadVulnerabilityModeValueValuesEnum
-            .BASIC)
+            self.messages.ProtectConfig.WorkloadVulnerabilityModeValueValuesEnum.BASIC
+        )
       else:
         cluster.protectConfig.workloadVulnerabilityMode = (
-            self.messages.ProtectConfig.WorkloadVulnerabilityModeValueValuesEnum
-            .DISABLED)
+            self.messages.ProtectConfig.WorkloadVulnerabilityModeValueValuesEnum.DISABLED
+        )
 
-    if options.pod_autoscaling_direct_metrics_opt_in is not None:
-      pod_autoscaling_config = self.messages.PodAutoscaling(
-          directMetricsOptIn=options.pod_autoscaling_direct_metrics_opt_in)
-      cluster.podAutoscaling = pod_autoscaling_config
-
-    if options.private_endpoint_subnetwork is not None:
-      if cluster.privateClusterConfig is None:
-        cluster.privateClusterConfig = self.messages.PrivateClusterConfig()
-      cluster.privateClusterConfig.privateEndpointSubnetwork = options.private_endpoint_subnetwork
+    if options.hpa_profile is not None:
+      if cluster.podAutoscaling is None:
+        cluster.podAutoscaling = self.messages.PodAutoscaling()
+      if options.hpa_profile.lower() == 'performance':
+        cluster.podAutoscaling.hpaProfile = (
+            self.messages.PodAutoscaling.HpaProfileValueValuesEnum.PERFORMANCE
+        )
+      elif options.hpa_profile.lower() == 'none':
+        cluster.podAutoscaling.hpaProfile = (
+            self.messages.PodAutoscaling.HpaProfileValueValuesEnum.NONE
+        )
 
     if options.managed_config is not None:
       if options.managed_config.lower() == 'autofleet':
         cluster.managedConfig = self.messages.ManagedConfig(
-            type=self.messages.ManagedConfig.TypeValueValuesEnum.AUTOFLEET)
+            type=self.messages.ManagedConfig.TypeValueValuesEnum.AUTOFLEET
+        )
       elif options.managed_config.lower() == 'disabled':
         cluster.managedConfig = self.messages.ManagedConfig(
-            type=self.messages.ManagedConfig.TypeValueValuesEnum.DISABLED)
+            type=self.messages.ManagedConfig.TypeValueValuesEnum.DISABLED
+        )
       else:
         raise util.Error(
-            MANGED_CONFIG_TYPE_NOT_SUPPORTED.format(
-                type=options.managed_config))
+            MANGED_CONFIG_TYPE_NOT_SUPPORTED.format(type=options.managed_config)
+        )
 
     if options.enable_fleet:
       if cluster.fleet is None:
         cluster.fleet = self.messages.Fleet()
       cluster.fleet.project = cluster_ref.projectId
+      if options.membership_type is not None:
+        cluster.fleet = _GetFleetMembershipType(options,
+                                                self.messages, cluster.fleet)
 
     if options.fleet_project:
       if cluster.fleet is None:
         cluster.fleet = self.messages.Fleet()
       cluster.fleet.project = options.fleet_project
+      if options.membership_type is not None:
+        cluster.fleet = _GetFleetMembershipType(options,
+                                                self.messages, cluster.fleet)
 
     if options.logging_variant is not None:
       if cluster.nodePoolDefaults is None:
         cluster.nodePoolDefaults = self.messages.NodePoolDefaults()
       if cluster.nodePoolDefaults.nodeConfigDefaults is None:
         cluster.nodePoolDefaults.nodeConfigDefaults = (
-            self.messages.NodeConfigDefaults())
+            self.messages.NodeConfigDefaults()
+        )
       if cluster.nodePoolDefaults.nodeConfigDefaults.loggingConfig is None:
         cluster.nodePoolDefaults.nodeConfigDefaults.loggingConfig = (
-            self.messages.NodePoolLoggingConfig())
-      cluster.nodePoolDefaults.nodeConfigDefaults.loggingConfig.variantConfig = (
-          self.messages.LoggingVariantConfig(
-              variant=VariantConfigEnumFromString(self.messages,
-                                                  options.logging_variant)))
+            self.messages.NodePoolLoggingConfig()
+        )
+      cluster.nodePoolDefaults.nodeConfigDefaults.loggingConfig.variantConfig = self.messages.LoggingVariantConfig(
+          variant=VariantConfigEnumFromString(
+              self.messages, options.logging_variant
+          )
+      )
 
     if options.enable_cost_allocation:
       cluster.costManagementConfig = self.messages.CostManagementConfig(
-          enabled=True)
+          enabled=True
+      )
 
     if options.enable_multi_networking:
       if cluster.networkConfig is None:
         cluster.networkConfig = self.messages.NetworkConfig(
-            enableMultiNetworking=options.enable_multi_networking)
+            enableMultiNetworking=options.enable_multi_networking
+        )
       else:
-        cluster.networkConfig.enableMultiNetworking = options.enable_multi_networking
+        cluster.networkConfig.enableMultiNetworking = (
+            options.enable_multi_networking
+        )
+
+    if options.compliance is not None:
+      if cluster.compliancePostureConfig is None:
+        cluster.compliancePostureConfig = (
+            self.messages.CompliancePostureConfig()
+        )
+      if options.compliance.lower() == 'enabled':
+        cluster.compliancePostureConfig.mode = (
+            self.messages.CompliancePostureConfig.ModeValueValuesEnum.ENABLED
+        )
+      elif options.compliance.lower() == 'disabled':
+        cluster.compliancePostureConfig.mode = (
+            self.messages.CompliancePostureConfig.ModeValueValuesEnum.DISABLED
+        )
+      else:
+        raise util.Error(
+            COMPLIANCE_MODE_NOT_SUPPORTED.format(
+                mode=options.compliance.lower()
+            )
+        )
+
+    if options.compliance_standards is not None:
+      # --compliance=disabled and --compliance-standards=a,b,c are mutually
+      # exclusive.
+      if (
+          options.compliance is not None
+          and options.compliance.lower() == 'disabled'
+      ):
+        raise util.Error(COMPLIANCE_DISABLED_CONFIGURATION)
+
+      if options.compliance is None:
+        cluster.compliancePostureConfig = (
+            self.messages.CompliancePostureConfig()
+        )
+
+      cluster.compliancePostureConfig.complianceStandards = [
+          self.messages.ComplianceStandard(standard=standard)
+          for standard in options.compliance_standards.split(',')
+      ]
 
     if options.enable_security_posture is not None:
       if cluster.securityPostureConfig is None:
@@ -2373,7 +3082,8 @@ class APIAdapter(object):
     if options.enable_runtime_vulnerability_insight is not None:
       if cluster.runtimeVulnerabilityInsightConfig is None:
         cluster.runtimeVulnerabilityInsightConfig = (
-            self.messages.RuntimeVulnerabilityInsightConfig())
+            self.messages.RuntimeVulnerabilityInsightConfig()
+        )
       if options.enable_runtime_vulnerability_insight:
         cluster.runtimeVulnerabilityInsightConfig.mode = (
             self.messages.RuntimeVulnerabilityInsightConfig.ModeValueValuesEnum.PREMIUM_VULNERABILITY_SCAN
@@ -2387,7 +3097,8 @@ class APIAdapter(object):
       perf = self._GetClusterNetworkPerformanceConfig(options)
       if cluster.networkConfig is None:
         cluster.networkConfig = self.messages.NetworkConfig(
-            networkPerformanceConfig=perf)
+            networkPerformanceConfig=perf
+        )
       else:
         cluster.networkConfig.networkPerformanceConfig = perf
 
@@ -2400,9 +3111,11 @@ class APIAdapter(object):
         cluster.nodePoolDefaults = self.messages.NodePoolDefaults()
       if cluster.nodePoolDefaults.nodeConfigDefaults is None:
         cluster.nodePoolDefaults.nodeConfigDefaults = (
-            self.messages.NodeConfigDefaults())
+            self.messages.NodeConfigDefaults()
+        )
       cluster.nodePoolDefaults.nodeConfigDefaults.hostMaintenancePolicy = (
-          _GetHostMaintenancePolicy(options, self.messages))
+          _GetHostMaintenancePolicy(options, self.messages, CLUSTER)
+      )
 
     if options.in_transit_encryption is not None:
       if cluster.networkConfig is None:
@@ -2417,6 +3130,51 @@ class APIAdapter(object):
       if cluster.secretManagerConfig is None:
         cluster.secretManagerConfig = self.messages.SecretManagerConfig()
       cluster.secretManagerConfig.enabled = options.enable_secret_manager
+    if options.enable_secret_manager_rotation is not None:
+      if cluster.secretManagerConfig is None:
+        cluster.secretManagerConfig = self.messages.SecretManagerConfig()
+      if cluster.secretManagerConfig.rotationConfig is None:
+        cluster.secretManagerConfig.rotationConfig = (
+            self.messages.RotationConfig()
+        )
+      cluster.secretManagerConfig.rotationConfig.enabled = (
+          options.enable_secret_manager_rotation
+      )
+    if options.secret_manager_rotation_interval is not None:
+      if cluster.secretManagerConfig is None:
+        cluster.secretManagerConfig = self.messages.SecretManagerConfig()
+      if cluster.secretManagerConfig.rotationConfig is None:
+        cluster.secretManagerConfig.rotationConfig = (
+            self.messages.RotationConfig()
+        )
+      cluster.secretManagerConfig.rotationConfig.rotationInterval = (
+          options.secret_manager_rotation_interval
+      )
+
+    if options.enable_secret_sync is not None:
+      if cluster.secretSyncConfig is None:
+        cluster.secretSyncConfig = self.messages.SecretSyncConfig()
+      cluster.secretSyncConfig.enabled = options.enable_secret_sync
+    if options.enable_secret_sync_rotation is not None:
+      if cluster.secretSyncConfig is None:
+        cluster.secretSyncConfig = self.messages.SecretSyncConfig()
+      if cluster.secretSyncConfig.rotationConfig is None:
+        cluster.secretSyncConfig.rotationConfig = (
+            self.messages.SyncRotationConfig()
+        )
+      cluster.secretSyncConfig.rotationConfig.enabled = (
+          options.enable_secret_sync_rotation
+      )
+    if options.secret_sync_rotation_interval is not None:
+      if cluster.secretSyncConfig is None:
+        cluster.secretSyncConfig = self.messages.SecretSyncConfig()
+      if cluster.secretSyncConfig.rotationConfig is None:
+        cluster.secretSyncConfig.rotationConfig = (
+            self.messages.SyncRotationConfig()
+        )
+      cluster.secretSyncConfig.rotationConfig.rotationInterval = (
+          options.secret_sync_rotation_interval
+      )
 
     if options.enable_cilium_clusterwide_network_policy is not None:
       if cluster.networkConfig is None:
@@ -2429,7 +3187,112 @@ class APIAdapter(object):
       if cluster.networkConfig is None:
         cluster.networkConfig = self.messages.NetworkConfig()
       cluster.networkConfig.enableFqdnNetworkPolicy = (
-          options.enable_fqdn_network_policy)
+          options.enable_fqdn_network_policy
+      )
+
+    if options.enable_insecure_binding_system_authenticated is not None:
+      if cluster.rbacBindingConfig is None:
+        cluster.rbacBindingConfig = self.messages.RBACBindingConfig()
+      cluster.rbacBindingConfig.enableInsecureBindingSystemAuthenticated = (
+          options.enable_insecure_binding_system_authenticated
+      )
+
+    if options.enable_insecure_binding_system_unauthenticated is not None:
+      if cluster.rbacBindingConfig is None:
+        cluster.rbacBindingConfig = self.messages.RBACBindingConfig()
+      cluster.rbacBindingConfig.enableInsecureBindingSystemUnauthenticated = (
+          options.enable_insecure_binding_system_unauthenticated
+      )
+
+    if options.autopilot_privileged_admission is not None:
+      if cluster.autopilot is None:
+        cluster.autopilot = self.messages.Autopilot()
+        cluster.autopilot.enabled = False
+      if cluster.autopilot.privilegedAdmissionConfig is None:
+        admission_values = options.autopilot_privileged_admission.split(',')
+        cluster.autopilot.privilegedAdmissionConfig = self.messages.PrivilegedAdmissionConfig(
+            allowlistPaths=admission_values
+        )
+    if options.cluster_ca is not None:
+      if cluster.userManagedKeysConfig is None:
+        cluster.userManagedKeysConfig = self.messages.UserManagedKeysConfig()
+      cluster.userManagedKeysConfig.clusterCa = options.cluster_ca
+    if options.aggregation_ca is not None:
+      if cluster.userManagedKeysConfig is None:
+        cluster.userManagedKeysConfig = self.messages.UserManagedKeysConfig()
+      cluster.userManagedKeysConfig.aggregationCa = options.aggregation_ca
+    if options.etcd_peer_ca is not None:
+      if cluster.userManagedKeysConfig is None:
+        cluster.userManagedKeysConfig = self.messages.UserManagedKeysConfig()
+      cluster.userManagedKeysConfig.etcdPeerCa = options.etcd_peer_ca
+    if options.etcd_api_ca is not None:
+      if cluster.userManagedKeysConfig is None:
+        cluster.userManagedKeysConfig = self.messages.UserManagedKeysConfig()
+      cluster.userManagedKeysConfig.etcdApiCa = options.etcd_api_ca
+    if options.service_account_verification_keys is not None:
+      if cluster.userManagedKeysConfig is None:
+        cluster.userManagedKeysConfig = self.messages.UserManagedKeysConfig()
+      cluster.userManagedKeysConfig.serviceAccountVerificationKeys.extend(
+          options.service_account_verification_keys
+      )
+    if options.service_account_signing_keys is not None:
+      if cluster.userManagedKeysConfig is None:
+        cluster.userManagedKeysConfig = self.messages.UserManagedKeysConfig()
+      cluster.userManagedKeysConfig.serviceAccountSigningKeys.extend(
+          options.service_account_signing_keys
+      )
+    if options.control_plane_disk_encryption_key is not None:
+      if cluster.userManagedKeysConfig is None:
+        cluster.userManagedKeysConfig = self.messages.UserManagedKeysConfig()
+      cluster.userManagedKeysConfig.controlPlaneDiskEncryptionKey = (
+          options.control_plane_disk_encryption_key
+      )
+    if options.gkeops_etcd_backup_encryption_key is not None:
+      if cluster.userManagedKeysConfig is None:
+        cluster.userManagedKeysConfig = self.messages.UserManagedKeysConfig()
+      cluster.userManagedKeysConfig.gkeopsEtcdBackupEncryptionKey = (
+          options.gkeops_etcd_backup_encryption_key
+      )
+    if options.disable_l4_lb_firewall_reconciliation is not None:
+      if cluster.networkConfig is None:
+        cluster.networkConfig = self.messages.NetworkConfig()
+      cluster.networkConfig.disableL4LbFirewallReconciliation = (
+          options.disable_l4_lb_firewall_reconciliation
+      )
+
+    if options.tier is not None:
+      cluster.enterpriseConfig = _GetEnterpriseConfig(options, self.messages)
+
+    self._ParseControlPlaneEndpointsConfig(options, cluster)
+
+    if options.enable_private_nodes is not None:
+      if cluster.networkConfig is None:
+        cluster.networkConfig = self.messages.NetworkConfig()
+      cluster.networkConfig.defaultEnablePrivateNodes = (
+          options.enable_private_nodes
+      )
+
+    if options.anonymous_authentication_config is not None:
+      cluster.anonymousAuthenticationConfig = _GetAnonymousAuthenticationConfig(
+          options, self.messages
+      )
+
+    if options.enable_auto_ipam is not None:
+      if cluster.ipAllocationPolicy is None:
+        cluster.ipAllocationPolicy = self.messages.IPAllocationPolicy()
+      cluster.ipAllocationPolicy.autoIpamConfig = self.messages.AutoIpamConfig(
+          enabled=True
+      )
+
+    if options.network_tier is not None:
+      if cluster.ipAllocationPolicy is None:
+        cluster.ipAllocationPolicy = self.messages.IPAllocationPolicy()
+      cluster.ipAllocationPolicy.networkTierConfig = _GetNetworkTierConfig(options, self.messages)
+
+    if options.control_plane_egress_mode is not None:
+      if cluster.controlPlaneEgress is None:
+        cluster.controlPlaneEgress = self.messages.ControlPlaneEgress()
+      cluster.controlPlaneEgress = _GetControlPlaneEgress(options, self.messages)
 
     return cluster
 
@@ -2440,9 +3303,9 @@ class APIAdapter(object):
     for config in network_perf_args:
       total_tier = config.get('total-egress-bandwidth-tier', '').upper()
       if total_tier:
-        network_perf_configs.totalEgressBandwidthTier = (
-            self.messages.ClusterNetworkPerformanceConfig
-            .TotalEgressBandwidthTierValueValuesEnum(total_tier))
+        network_perf_configs.totalEgressBandwidthTier = self.messages.ClusterNetworkPerformanceConfig.TotalEgressBandwidthTierValueValuesEnum(
+            total_tier
+        )
 
     return network_perf_configs
 
@@ -2457,6 +3320,11 @@ class APIAdapter(object):
       node_config.diskType = options.disk_type
     if options.node_source_image:
       raise util.Error('cannot specify node source image in container v1 api')
+    if (
+        options.boot_disk_provisioned_iops
+        or options.boot_disk_provisioned_throughput
+    ):
+      node_config.bootDisk = self.ParseBootDiskConfig(options)
 
     NodeIdentityOptionsToNodeConfig(options, node_config)
 
@@ -2468,6 +3336,7 @@ class APIAdapter(object):
     self._AddLocalNvmeSsdBlockToNodeConfig(node_config, options)
     self._AddEnableConfidentialStorageToNodeConfig(node_config, options)
     self._AddStoragePoolsToNodeConfig(node_config, options)
+    self._AddLocalSsdEncryptionModeToNodeConfig(node_config, options)
 
     if options.tags:
       node_config.tags = options.tags
@@ -2528,7 +3397,37 @@ class APIAdapter(object):
       gvnic = self.messages.VirtualNIC(enabled=options.gvnic)
       node_config.gvnic = gvnic
 
+    if options.gpudirect_strategy is not None:
+      if options.gpudirect_strategy == 'RDMA':
+        node_config.gpuDirectConfig = self.messages.GPUDirectConfig(
+            gpuDirectStrategy=(
+                self.messages.GPUDirectConfig.GpuDirectStrategyValueValuesEnum.RDMA
+            )
+        )
+      elif options.gpudirect_strategy == 'TCPX':
+        node_config.gpuDirectConfig = self.messages.GPUDirectConfig(
+            gpuDirectStrategy=(
+                self.messages.GPUDirectConfig.GpuDirectStrategyValueValuesEnum.TCPX
+            )
+        )
+
+    if options.max_run_duration is not None:
+      node_config.maxRunDuration = options.max_run_duration
+
+    if options.flex_start is not None:
+      node_config.flexStart = options.flex_start
+
     return node_config
+
+  def ParseBootDiskConfig(self, options):
+    boot_disk_config = self.messages.BootDisk()
+    if options.boot_disk_provisioned_iops:
+      boot_disk_config.provisionedIops = options.boot_disk_provisioned_iops
+    if options.boot_disk_provisioned_throughput:
+      boot_disk_config.provisionedThroughput = (
+          options.boot_disk_provisioned_throughput
+      )
+    return boot_disk_config
 
   def ParseAdvancedMachineFeatures(self, options, node_config):
     """Parses advanced machine feature node config options."""
@@ -2540,11 +3439,15 @@ class APIAdapter(object):
     if options.performance_monitoring_unit:
       features.performanceMonitoringUnit = (
           features.PerformanceMonitoringUnitValueValuesEnum(
-              options.performance_monitoring_unit.upper()))
+              options.performance_monitoring_unit.upper()
+          )
+      )
 
-    if (options.threads_per_core
+    if (
+        options.threads_per_core
         or options.enable_nested_virtualization
-        or options.performance_monitoring_unit):
+        or options.performance_monitoring_unit
+    ):
       node_config.advancedMachineFeatures = features
 
   def ParseCustomNodeConfig(self, options, node_config):
@@ -2569,7 +3472,9 @@ class APIAdapter(object):
     Returns:
       List of node pools.
     """
-    max_nodes_per_pool = options.max_nodes_per_pool or MAX_NODES_PER_POOL
+    max_nodes_per_pool = (
+        options.max_nodes_per_pool or DEFAULT_MAX_NODES_PER_POOL
+    )
     pools = (options.num_nodes + max_nodes_per_pool - 1) // max_nodes_per_pool
     if pools == 1:
       pool_names = ['default-pool']  # pool consistency with server default
@@ -2639,21 +3544,27 @@ class APIAdapter(object):
       # Accelerator count defaults to 1.
       count = int(options.accelerators.get('count', 1))
       accelerator_config = self.messages.AcceleratorConfig(
-          acceleratorType=type_name, acceleratorCount=count)
+          acceleratorType=type_name, acceleratorCount=count
+      )
 
       gpu_partition_size = options.accelerators.get('gpu-partition-size', '')
       if gpu_partition_size:
         accelerator_config.gpuPartitionSize = gpu_partition_size
 
       max_time_shared_clients_per_gpu = int(
-          options.accelerators.get('max-time-shared-clients-per-gpu', 0))
+          options.accelerators.get('max-time-shared-clients-per-gpu', 0)
+      )
       if max_time_shared_clients_per_gpu:
-        accelerator_config.maxTimeSharedClientsPerGpu = max_time_shared_clients_per_gpu
+        accelerator_config.maxTimeSharedClientsPerGpu = (
+            max_time_shared_clients_per_gpu
+        )
 
-      gpu_sharing_strategy = options.accelerators.get('gpu-sharing-strategy',
-                                                      None)
+      gpu_sharing_strategy = options.accelerators.get(
+          'gpu-sharing-strategy', None
+      )
       max_shared_clients_per_gpu = options.accelerators.get(
-          'max-shared-clients-per-gpu', None)
+          'max-shared-clients-per-gpu', None
+      )
       if max_shared_clients_per_gpu or gpu_sharing_strategy:
         if max_shared_clients_per_gpu is None:
           # The validation for this field is handled in the server.
@@ -2661,7 +3572,9 @@ class APIAdapter(object):
         else:
           max_shared_clients_per_gpu = int(max_shared_clients_per_gpu)
 
-        strategy_enum = self.messages.GPUSharingConfig.GpuSharingStrategyValueValuesEnum
+        strategy_enum = (
+            self.messages.GPUSharingConfig.GpuSharingStrategyValueValuesEnum
+        )
         if gpu_sharing_strategy is None:
           # The GPU sharing strategy will be time-sharing by default.
           gpu_sharing_strategy = strategy_enum.TIME_SHARING
@@ -2674,12 +3587,11 @@ class APIAdapter(object):
 
         gpu_sharing_config = self.messages.GPUSharingConfig(
             maxSharedClientsPerGpu=max_shared_clients_per_gpu,
-            gpuSharingStrategy=gpu_sharing_strategy)
+            gpuSharingStrategy=gpu_sharing_strategy,
+        )
         accelerator_config.gpuSharingConfig = gpu_sharing_config
 
-      gpu_driver_version = options.accelerators.get(
-          'gpu-driver-version', None
-      )
+      gpu_driver_version = options.accelerators.get('gpu-driver-version', None)
       if gpu_driver_version is not None:
         if gpu_driver_version.lower() == 'default':
           gpu_driver_version = (
@@ -2721,22 +3633,29 @@ class APIAdapter(object):
 
   def ParseIPAliasOptions(self, options, cluster):
     """Parses the options for IP Alias."""
-    ip_alias_only_options = [('services-ipv4-cidr', options.services_ipv4_cidr),
-                             ('create-subnetwork', options.create_subnetwork),
-                             ('cluster-secondary-range-name',
-                              options.cluster_secondary_range_name),
-                             ('services-secondary-range-name',
-                              options.services_secondary_range_name),
-                             ('disable-pod-cidr-overprovision',
-                              options.disable_pod_cidr_overprovision),
-                             ('stack-type', options.stack_type),
-                             ('ipv6-access-type', options.ipv6_access_type)]
+    ip_alias_only_options = [
+        ('services-ipv4-cidr', options.services_ipv4_cidr),
+        ('create-subnetwork', options.create_subnetwork),
+        ('cluster-secondary-range-name', options.cluster_secondary_range_name),
+        (
+            'services-secondary-range-name',
+            options.services_secondary_range_name,
+        ),
+        (
+            'disable-pod-cidr-overprovision',
+            options.disable_pod_cidr_overprovision,
+        ),
+        ('stack-type', options.stack_type),
+        ('ipv6-access-type', options.ipv6_access_type),
+    ]
     if not options.enable_ip_alias:
       for name, opt in ip_alias_only_options:
         if opt:
           raise util.Error(
               PREREQUISITE_OPTION_ERROR_MSG.format(
-                  prerequisite='enable-ip-alias', opt=name))
+                  prerequisite='enable-ip-alias', opt=name
+              )
+          )
 
     if options.subnetwork and options.create_subnetwork is not None:
       raise util.Error(CREATE_SUBNETWORK_WITH_SUBNETWORK_ERROR_MSG)
@@ -2749,7 +3668,8 @@ class APIAdapter(object):
         for key in options.create_subnetwork:
           if key not in ['name', 'range']:
             raise util.Error(
-                CREATE_SUBNETWORK_INVALID_KEY_ERROR_MSG.format(key=key))
+                CREATE_SUBNETWORK_INVALID_KEY_ERROR_MSG.format(key=key)
+            )
         subnetwork_name = options.create_subnetwork.get('name', None)
         node_ipv4_cidr = options.create_subnetwork.get('range', None)
 
@@ -2761,24 +3681,31 @@ class APIAdapter(object):
           nodeIpv4CidrBlock=node_ipv4_cidr,
           servicesIpv4CidrBlock=options.services_ipv4_cidr,
           clusterSecondaryRangeName=options.cluster_secondary_range_name,
-          servicesSecondaryRangeName=options.services_secondary_range_name)
+          servicesSecondaryRangeName=options.services_secondary_range_name,
+      )
       if options.disable_pod_cidr_overprovision is not None:
-        policy.podCidrOverprovisionConfig = self.messages.PodCIDROverprovisionConfig(
-            disable=options.disable_pod_cidr_overprovision)
+        policy.podCidrOverprovisionConfig = (
+            self.messages.PodCIDROverprovisionConfig(
+                disable=options.disable_pod_cidr_overprovision
+            )
+        )
       if options.tpu_ipv4_cidr:
         policy.tpuIpv4CidrBlock = options.tpu_ipv4_cidr
       if options.stack_type is not None:
         policy.stackType = util.GetCreateStackTypeMapper(
-            self.messages).GetEnumForChoice(options.stack_type)
+            self.messages
+        ).GetEnumForChoice(options.stack_type)
       if options.ipv6_access_type is not None:
         policy.ipv6AccessType = util.GetIpv6AccessTypeMapper(
-            self.messages).GetEnumForChoice(options.ipv6_access_type)
+            self.messages
+        ).GetEnumForChoice(options.ipv6_access_type)
 
       cluster.clusterIpv4Cidr = None
       cluster.ipAllocationPolicy = policy
     elif options.enable_ip_alias is not None:
       cluster.ipAllocationPolicy = self.messages.IPAllocationPolicy(
-          useRoutes=True)
+          useRoutes=True
+      )
 
     return cluster
 
@@ -2802,9 +3729,11 @@ class APIAdapter(object):
       cluster.ipAllocationPolicy.allowRouteOverlap = True
 
   def ParsePrivateClusterOptions(self, options, cluster):
-    """Parses the options for Private Clusters."""
-    if (options.enable_private_nodes is not None and
-        options.private_cluster is not None):
+    """Parses the options for Private Clusters (for backward compatibility)."""
+    if (
+        options.enable_private_nodes is not None
+        and options.private_cluster is not None
+    ):
       raise util.Error(ENABLE_PRIVATE_NODES_WITH_PRIVATE_CLUSTER_ERROR_MSG)
 
     if options.enable_private_nodes is None:
@@ -2813,24 +3742,30 @@ class APIAdapter(object):
     if options.enable_private_nodes and not options.enable_ip_alias:
       raise util.Error(
           PREREQUISITE_OPTION_ERROR_MSG.format(
-              prerequisite='enable-ip-alias', opt='enable-private-nodes'))
+              prerequisite='enable-ip-alias', opt='enable-private-nodes'
+          )
+      )
 
     if options.enable_private_endpoint and not options.enable_private_nodes:
       raise util.Error(
           PREREQUISITE_OPTION_ERROR_MSG.format(
-              prerequisite='enable-private-nodes',
-              opt='enable-private-endpoint'))
+              prerequisite='enable-private-nodes', opt='enable-private-endpoint'
+          )
+      )
 
     if options.master_ipv4_cidr and not options.enable_private_nodes:
       raise util.Error(
           PREREQUISITE_OPTION_ERROR_MSG.format(
-              prerequisite='enable-private-nodes', opt='master-ipv4-cidr'))
+              prerequisite='enable-private-nodes', opt='master-ipv4-cidr'
+          )
+      )
 
-    if options.enable_private_nodes:
+    if options.master_ipv4_cidr:
       config = self.messages.PrivateClusterConfig(
           enablePrivateNodes=options.enable_private_nodes,
           enablePrivateEndpoint=options.enable_private_endpoint,
-          masterIpv4CidrBlock=options.master_ipv4_cidr)
+          masterIpv4CidrBlock=options.master_ipv4_cidr,
+      )
       cluster.privateClusterConfig = config
     return cluster
 
@@ -2840,20 +3775,26 @@ class APIAdapter(object):
       # Raises error if use --enable-tpu without --enable-ip-alias.
       raise util.Error(
           PREREQUISITE_OPTION_ERROR_MSG.format(
-              prerequisite='enable-ip-alias', opt='enable-tpu'))
+              prerequisite='enable-ip-alias', opt='enable-tpu'
+          )
+      )
 
     if not options.enable_tpu and options.tpu_ipv4_cidr:
       # Raises error if use --tpu-ipv4-cidr without --enable-tpu.
       raise util.Error(
           PREREQUISITE_OPTION_ERROR_MSG.format(
-              prerequisite='enable-tpu', opt='tpu-ipv4-cidr'))
+              prerequisite='enable-tpu', opt='tpu-ipv4-cidr'
+          )
+      )
 
     if not options.enable_tpu and options.enable_tpu_service_networking:
       # Raises error if use --enable-tpu-service-networking without
       # --enable-tpu.
       raise util.Error(
           PREREQUISITE_OPTION_ERROR_MSG.format(
-              prerequisite='enable-tpu', opt='enable-tpu-service-networking'))
+              prerequisite='enable-tpu', opt='enable-tpu-service-networking'
+          )
+      )
 
     if options.enable_tpu:
       cluster.enableTpu = options.enable_tpu
@@ -2861,50 +3802,88 @@ class APIAdapter(object):
         tpu_config = self.messages.TpuConfig(
             enabled=options.enable_tpu,
             ipv4CidrBlock=options.tpu_ipv4_cidr,
-            useServiceNetworking=options.enable_tpu_service_networking)
+            useServiceNetworking=options.enable_tpu_service_networking,
+        )
         cluster.tpuConfig = tpu_config
 
   def ParseMasterAuthorizedNetworkOptions(self, options, cluster):
     """Parses the options for master authorized networks."""
-    if (options.master_authorized_networks and
-        not options.enable_master_authorized_networks):
+    if (
+        options.master_authorized_networks
+        and not options.enable_master_authorized_networks
+    ):
       # Raise error if use --master-authorized-networks without
       # --enable-master-authorized-networks.
       raise util.Error(MISMATCH_AUTHORIZED_NETWORKS_ERROR_MSG)
     elif options.enable_master_authorized_networks is None:
-      cluster.masterAuthorizedNetworksConfig = None
+      if (
+          cluster.controlPlaneEndpointsConfig is not None
+          and cluster.controlPlaneEndpointsConfig.ipEndpointsConfig is not None
+      ):
+        (
+            cluster.controlPlaneEndpointsConfig.ipEndpointsConfig.authorizedNetworksConfig
+        ) = None
     elif not options.enable_master_authorized_networks:
       authorized_networks = self.messages.MasterAuthorizedNetworksConfig(
-          enabled=False)
-      cluster.masterAuthorizedNetworksConfig = authorized_networks
+          enabled=False
+      )
+      self._InitIPEndpointsConfigIfRequired(cluster)
+      (
+          cluster.controlPlaneEndpointsConfig.ipEndpointsConfig.authorizedNetworksConfig
+      ) = authorized_networks
     else:
       authorized_networks = self.messages.MasterAuthorizedNetworksConfig(
-          enabled=options.enable_master_authorized_networks)
+          enabled=options.enable_master_authorized_networks
+      )
       if options.master_authorized_networks:
         for network in options.master_authorized_networks:
           authorized_networks.cidrBlocks.append(
-              self.messages.CidrBlock(cidrBlock=network))
-      cluster.masterAuthorizedNetworksConfig = authorized_networks
+              self.messages.CidrBlock(cidrBlock=network)
+          )
+      self._InitIPEndpointsConfigIfRequired(cluster)
+      (
+          cluster.controlPlaneEndpointsConfig.ipEndpointsConfig.authorizedNetworksConfig
+      ) = authorized_networks
 
     if options.enable_google_cloud_access is not None:
-      if cluster.masterAuthorizedNetworksConfig is None:
-        cluster.masterAuthorizedNetworksConfig = (
-            self.messages.MasterAuthorizedNetworksConfig(enabled=False))
+      self._InitIPEndpointsConfigIfRequired(cluster)
+      if (
+          cluster.controlPlaneEndpointsConfig.ipEndpointsConfig.authorizedNetworksConfig
+      ) is None:
+        (
+            cluster.controlPlaneEndpointsConfig.ipEndpointsConfig.authorizedNetworksConfig
+        ) = self.messages.MasterAuthorizedNetworksConfig(enabled=False)
+      (
+          cluster.controlPlaneEndpointsConfig.ipEndpointsConfig.authorizedNetworksConfig.gcpPublicCidrsAccessEnabled
+      ) = options.enable_google_cloud_access
 
-      cluster.masterAuthorizedNetworksConfig.gcpPublicCidrsAccessEnabled = (
-          options.enable_google_cloud_access)
+    if options.enable_authorized_networks_on_private_endpoint is not None:
+      self._InitIPEndpointsConfigIfRequired(cluster)
+      if (
+          cluster.controlPlaneEndpointsConfig.ipEndpointsConfig.authorizedNetworksConfig
+      ) is None:
+        (
+            cluster.controlPlaneEndpointsConfig.ipEndpointsConfig.authorizedNetworksConfig
+        ) = self.messages.MasterAuthorizedNetworksConfig(enabled=False)
+      (
+          cluster.controlPlaneEndpointsConfig.ipEndpointsConfig.authorizedNetworksConfig.privateEndpointEnforcementEnabled
+      ) = options.enable_authorized_networks_on_private_endpoint
 
-  def ParseClusterDNSOptions(self, options, is_update=False):
+  def ParseClusterDNSOptions(self, options, is_update=False, cluster_ref=None):
     """Parses the options for ClusterDNS."""
     if options.cluster_dns is None:
       if options.cluster_dns_scope:
         raise util.Error(
             PREREQUISITE_OPTION_ERROR_MSG.format(
-                prerequisite='cluster-dns', opt='cluster-dns-scope'))
+                prerequisite='cluster-dns', opt='cluster-dns-scope'
+            )
+        )
       if options.cluster_dns_domain:
         raise util.Error(
             PREREQUISITE_OPTION_ERROR_MSG.format(
-                prerequisite='cluster-dns', opt='cluster-dns-domain'))
+                prerequisite='cluster-dns', opt='cluster-dns-domain'
+            )
+        )
 
     # Check if the request has no flags related to DNS.
     if (
@@ -2917,15 +3896,33 @@ class APIAdapter(object):
       return
 
     dns_config = self.messages.DNSConfig()
+    # Use current config as base for updates
+    if is_update:
+      cluster = self.GetCluster(cluster_ref)
+      if cluster.networkConfig and cluster.networkConfig.dnsConfig:
+        dns_config = cluster.networkConfig.dnsConfig
 
     if options.cluster_dns is not None:
       provider_enum = self.messages.DNSConfig.ClusterDnsValueValuesEnum
       if options.cluster_dns.lower() == 'clouddns':
-        dns_config.clusterDns = provider_enum.CLOUD_DNS
+        desired_cluster_dns = provider_enum.CLOUD_DNS
       elif options.cluster_dns.lower() == 'kubedns':
-        dns_config.clusterDns = provider_enum.KUBE_DNS
+        desired_cluster_dns = provider_enum.KUBE_DNS
       else:  # 'default' or not specified
-        dns_config.clusterDns = provider_enum.PLATFORM_DEFAULT
+        desired_cluster_dns = provider_enum.PLATFORM_DEFAULT
+
+      if desired_cluster_dns != dns_config.clusterDns:
+        if is_update:
+          console_io.PromptContinue(
+              message=(
+                  'All the node-pools in the cluster need to be re-created '
+                  'by the user to start using the new DNS provider. It is '
+                  'highly recommended to perform this step shortly after '
+                  'completing the update.'
+              ),
+              cancel_on_no=True,
+          )
+        dns_config.clusterDns = desired_cluster_dns
 
     if options.cluster_dns_scope is not None:
       scope_enum = self.messages.DNSConfig.ClusterDnsScopeValueValuesEnum
@@ -2976,35 +3973,38 @@ class APIAdapter(object):
       The operation to be executed.
     """
     cluster = self.CreateClusterCommon(cluster_ref, options)
-    if (options.enable_autoprovisioning is not None or
-        options.autoscaling_profile is not None):
+    if (
+        options.enable_autoprovisioning is not None
+        or options.autoscaling_profile is not None
+        or options.enable_default_compute_class is not None
+    ):
       cluster.autoscaling = self.CreateClusterAutoscalingCommon(
-          cluster_ref, options, False)
+          cluster_ref, options, False
+      )
     if options.addons:
       # CloudRun is disabled by default.
       if any((v in options.addons) for v in CLOUDRUN_ADDONS):
         if not options.enable_stackdriver_kubernetes and (
-            (options.monitoring is not None and
-             SYSTEM not in options.monitoring) or
-            (options.logging is not None and SYSTEM not in options.logging)):
+            (
+                options.monitoring is not None
+                and SYSTEM not in options.monitoring
+            )
+            or (options.logging is not None and SYSTEM not in options.logging)
+        ):
           raise util.Error(CLOUDRUN_STACKDRIVER_KUBERNETES_DISABLED_ERROR_MSG)
         if INGRESS not in options.addons:
           raise util.Error(CLOUDRUN_INGRESS_KUBERNETES_DISABLED_ERROR_MSG)
         load_balancer_type = _GetCloudRunLoadBalancerType(
-            options, self.messages)
+            options, self.messages
+        )
         cluster.addonsConfig.cloudRunConfig = self.messages.CloudRunConfig(
-            disabled=False, loadBalancerType=load_balancer_type)
-
-    if options.enable_master_global_access is not None:
-      if cluster.privateClusterConfig is None:
-        cluster.privateClusterConfig = self.messages.PrivateClusterConfig()
-      cluster.privateClusterConfig.masterGlobalAccessConfig = \
-          self.messages.PrivateClusterMasterGlobalAccessConfig(
-              enabled=options.enable_master_global_access)
+            disabled=False, loadBalancerType=load_balancer_type
+        )
 
     req = self.messages.CreateClusterRequest(
         parent=ProjectLocation(cluster_ref.projectId, cluster_ref.zone),
-        cluster=cluster)
+        cluster=cluster,
+    )
     operation = self.client.projects_locations_clusters.Create(req)
     return self.ParseOperation(operation.name, cluster_ref.zone)
 
@@ -3025,14 +4025,26 @@ class APIAdapter(object):
     if for_update:
       cluster = self.GetCluster(cluster_ref) if cluster_ref else None
       if cluster and cluster.autoscaling:
-        autoscaling.enableNodeAutoprovisioning = cluster.autoscaling.enableNodeAutoprovisioning
+        autoscaling.enableNodeAutoprovisioning = (
+            cluster.autoscaling.enableNodeAutoprovisioning
+        )
+        autoscaling.defaultComputeClassConfig = (
+            cluster.autoscaling.defaultComputeClassConfig
+        )
     else:
       autoscaling.enableNodeAutoprovisioning = options.enable_autoprovisioning
 
+    if options.enable_default_compute_class is not None:
+      autoscaling.defaultComputeClassConfig = (
+          self.messages.DefaultComputeClassConfig(
+              enabled=options.enable_default_compute_class,
+          )
+      )
     resource_limits = []
     if options.autoprovisioning_config_file is not None:
       util.ValidateAutoprovisioningConfigFile(
-          options.autoprovisioning_config_file)
+          options.autoprovisioning_config_file
+      )
       # Create using config file only.
       config = yaml.load(options.autoprovisioning_config_file)
       resource_limits = config.get(RESOURCE_LIMITS)
@@ -3050,8 +4062,7 @@ class APIAdapter(object):
       if management_settings:
         enable_autoupgrade = management_settings.get(ENABLE_AUTO_UPGRADE)
         enable_autorepair = management_settings.get(ENABLE_AUTO_REPAIR)
-      autoprovisioning_locations = \
-          config.get(AUTOPROVISIONING_LOCATIONS)
+      autoprovisioning_locations = config.get(AUTOPROVISIONING_LOCATIONS)
       min_cpu_platform = config.get(MIN_CPU_PLATFORM)
       autoprovisioning_image_type = config.get(IMAGE_TYPE)
       boot_disk_kms_key = config.get(BOOT_DISK_KMS_KEY)
@@ -3062,8 +4073,9 @@ class APIAdapter(object):
       enable_integrity_monitoring = None
       if shielded_instance_config:
         enable_secure_boot = shielded_instance_config.get(ENABLE_SECURE_BOOT)
-        enable_integrity_monitoring = \
-            shielded_instance_config.get(ENABLE_INTEGRITY_MONITORING)
+        enable_integrity_monitoring = shielded_instance_config.get(
+            ENABLE_INTEGRITY_MONITORING
+        )
     else:
       resource_limits = self.ResourceLimitsFromFlags(options)
       service_account = options.autoprovisioning_service_account
@@ -3090,25 +4102,31 @@ class APIAdapter(object):
         scopes = []
       management = None
       upgrade_settings = None
-      if (max_surge_upgrade is not None or
-          max_unavailable_upgrade is not None or
-          options.enable_autoprovisioning_blue_green_upgrade or
-          options.enable_autoprovisioning_surge_upgrade or
-          options.autoprovisioning_standard_rollout_policy is not None or
-          options.autoprovisioning_node_pool_soak_duration is not None):
+      if (
+          max_surge_upgrade is not None
+          or max_unavailable_upgrade is not None
+          or options.enable_autoprovisioning_blue_green_upgrade
+          or options.enable_autoprovisioning_surge_upgrade
+          or options.autoprovisioning_standard_rollout_policy is not None
+          or options.autoprovisioning_node_pool_soak_duration is not None
+      ):
         upgrade_settings = self.UpdateUpgradeSettingsForNAP(
-            options, max_surge_upgrade, max_unavailable_upgrade)
+            options, max_surge_upgrade, max_unavailable_upgrade
+        )
       if enable_autorepair is not None or enable_autoupgrade is not None:
-        management = (
-            self.messages.NodeManagement(
-                autoUpgrade=enable_autoupgrade, autoRepair=enable_autorepair))
+        management = self.messages.NodeManagement(
+            autoUpgrade=enable_autoupgrade, autoRepair=enable_autorepair
+        )
       shielded_instance_config = None
-      if (enable_secure_boot is not None or
-          enable_integrity_monitoring is not None):
+      if (
+          enable_secure_boot is not None
+          or enable_integrity_monitoring is not None
+      ):
         shielded_instance_config = self.messages.ShieldedInstanceConfig()
         shielded_instance_config.enableSecureBoot = enable_secure_boot
-        shielded_instance_config.enableIntegrityMonitoring = \
+        shielded_instance_config.enableIntegrityMonitoring = (
             enable_integrity_monitoring
+        )
       if for_update:
         autoscaling.autoprovisioningNodePoolDefaults = (
             self.messages.AutoprovisioningNodePoolDefaults(
@@ -3140,64 +4158,98 @@ class APIAdapter(object):
             )
         )
       if autoprovisioning_locations:
-        autoscaling.autoprovisioningLocations = \
-            sorted(autoprovisioning_locations)
+        autoscaling.autoprovisioningLocations = sorted(
+            autoprovisioning_locations
+        )
 
     if options.autoscaling_profile is not None:
       autoscaling.autoscalingProfile = self.CreateAutoscalingProfileCommon(
-          options)
+          options
+      )
 
     self.ValidateClusterAutoscaling(autoscaling, for_update)
     return autoscaling
 
   def UpdateUpgradeSettingsForNAP(self, options, max_surge, max_unavailable):
-    """Updates upgrade setting for autoprovisioned node pool."""
+    """Updates upgrade settings for autoprovisioned node pool."""
 
-    if options.enable_autoprovisioning_surge_upgrade and options.enable_autoprovisioning_blue_green_upgrade:
+    if (
+        options.enable_autoprovisioning_surge_upgrade
+        and options.enable_autoprovisioning_blue_green_upgrade
+    ):
       raise util.Error(
-          'UpgradeSettings must contain only one of: --enable-autoprovisioning-surge-upgrade, --enable-autoprovisioning-blue-green-upgrade'
+          'UpgradeSettings must contain only one of:'
+          ' --enable-autoprovisioning-surge-upgrade,'
+          ' --enable-autoprovisioning-blue-green-upgrade'
       )
 
     upgrade_settings = self.messages.UpgradeSettings()
     upgrade_settings.maxSurge = max_surge
     upgrade_settings.maxUnavailable = max_unavailable
     if options.enable_autoprovisioning_surge_upgrade:
-      upgrade_settings.strategy = self.messages.UpgradeSettings.StrategyValueValuesEnum.SURGE
+      upgrade_settings.strategy = (
+          self.messages.UpgradeSettings.StrategyValueValuesEnum.SURGE
+      )
     if options.enable_autoprovisioning_blue_green_upgrade:
-      upgrade_settings.strategy = self.messages.UpgradeSettings.StrategyValueValuesEnum.BLUE_GREEN
-    if options.autoprovisioning_standard_rollout_policy is not None or options.autoprovisioning_node_pool_soak_duration is not None:
+      upgrade_settings.strategy = (
+          self.messages.UpgradeSettings.StrategyValueValuesEnum.BLUE_GREEN
+      )
+    if (
+        options.autoprovisioning_standard_rollout_policy is not None
+        or options.autoprovisioning_node_pool_soak_duration is not None
+    ):
       upgrade_settings.blueGreenSettings = self.UpdateBlueGreenSettingsForNAP(
-          upgrade_settings, options)
+          upgrade_settings, options
+      )
     return upgrade_settings
 
   def UpdateBlueGreenSettingsForNAP(self, upgrade_settings, options):
-    """Update blue green settings field in upgrade_settings for autoprovisioned node pool.
-    """
-    blue_green_settings = upgrade_settings.blueGreenSettings or self.messages.BlueGreenSettings(
+    """Update blue green settings field in upgrade_settings for autoprovisioned node pool."""
+    blue_green_settings = (
+        upgrade_settings.blueGreenSettings or self.messages.BlueGreenSettings()
     )
     if options.autoprovisioning_node_pool_soak_duration is not None:
-      blue_green_settings.nodePoolSoakDuration = options.autoprovisioning_node_pool_soak_duration
-
-    if options.autoprovisioning_standard_rollout_policy is not None:
-      standard_rollout_policy = blue_green_settings.standardRolloutPolicy or self.messages.StandardRolloutPolicy(
+      blue_green_settings.nodePoolSoakDuration = (
+          options.autoprovisioning_node_pool_soak_duration
       )
 
-      if 'batch-node-count' in options.autoprovisioning_standard_rollout_policy and 'batch-percent' in options.autoprovisioning_standard_rollout_policy:
+    if options.autoprovisioning_standard_rollout_policy is not None:
+      standard_rollout_policy = (
+          blue_green_settings.standardRolloutPolicy
+          or self.messages.StandardRolloutPolicy()
+      )
+
+      if (
+          'batch-node-count' in options.autoprovisioning_standard_rollout_policy
+          and 'batch-percent'
+          in options.autoprovisioning_standard_rollout_policy
+      ):
         raise util.Error(
-            'Autoprovisioning StandardRolloutPolicy must contain only one of: batch-node-count, batch-percent'
+            'Autoprovisioning StandardRolloutPolicy must contain only one of:'
+            ' batch-node-count, batch-percent'
         )
 
-      standard_rollout_policy.batchPercentage = standard_rollout_policy.batchNodeCount = None
+      standard_rollout_policy.batchPercentage = (
+          standard_rollout_policy.batchNodeCount
+      ) = None
       if 'batch-node-count' in options.autoprovisioning_standard_rollout_policy:
-        standard_rollout_policy.batchNodeCount = options.autoprovisioning_standard_rollout_policy[
-            'batch-node-count']
+        standard_rollout_policy.batchNodeCount = (
+            options.autoprovisioning_standard_rollout_policy['batch-node-count']
+        )
       elif 'batch-percent' in options.autoprovisioning_standard_rollout_policy:
-        standard_rollout_policy.batchPercentage = options.autoprovisioning_standard_rollout_policy[
-            'batch-percent']
+        standard_rollout_policy.batchPercentage = (
+            options.autoprovisioning_standard_rollout_policy['batch-percent']
+        )
 
-      if 'batch-soak-duration' in options.autoprovisioning_standard_rollout_policy:
-        standard_rollout_policy.batchSoakDuration = options.autoprovisioning_standard_rollout_policy[
-            'batch-soak-duration']
+      if (
+          'batch-soak-duration'
+          in options.autoprovisioning_standard_rollout_policy
+      ):
+        standard_rollout_policy.batchSoakDuration = (
+            options.autoprovisioning_standard_rollout_policy[
+                'batch-soak-duration'
+            ]
+        )
       blue_green_settings.standardRolloutPolicy = standard_rollout_policy
     return blue_green_settings
 
@@ -3221,7 +4273,8 @@ class APIAdapter(object):
     return arg_utils.ChoiceToEnum(
         choice=arg_utils.EnumNameToChoice(options.autoscaling_profile),
         enum_type=profiles_enum,
-        valid_choices=valid_choices)
+        valid_choices=valid_choices,
+    )
 
   def ValidateClusterAutoscaling(self, autoscaling, for_update):
     """Validate cluster autoscaling configuration.
@@ -3236,16 +4289,21 @@ class APIAdapter(object):
     if autoscaling.enableNodeAutoprovisioning:
       if not for_update or autoscaling.resourceLimits:
         cpu_found = any(
-            limit.resourceType == 'cpu' for limit in autoscaling.resourceLimits)
-        mem_found = any(limit.resourceType == 'memory'
-                        for limit in autoscaling.resourceLimits)
+            limit.resourceType == 'cpu' for limit in autoscaling.resourceLimits
+        )
+        mem_found = any(
+            limit.resourceType == 'memory'
+            for limit in autoscaling.resourceLimits
+        )
         if not cpu_found or not mem_found:
           raise util.Error(NO_AUTOPROVISIONING_LIMITS_ERROR_MSG)
         defaults = autoscaling.autoprovisioningNodePoolDefaults
         if defaults:
           if defaults.upgradeSettings:
             max_surge_found = defaults.upgradeSettings.maxSurge is not None
-            max_unavailable_found = defaults.upgradeSettings.maxUnavailable is not None
+            max_unavailable_found = (
+                defaults.upgradeSettings.maxUnavailable is not None
+            )
             if max_unavailable_found != max_surge_found:
               raise util.Error(BOTH_AUTOPROVISIONING_UPGRADE_SETTINGS_ERROR_MSG)
           if defaults.management:
@@ -3253,40 +4311,55 @@ class APIAdapter(object):
             auto_repair_found = defaults.management.autoRepair is not None
             if auto_repair_found != auto_upgrade_found:
               raise util.Error(
-                  BOTH_AUTOPROVISIONING_MANAGEMENT_SETTINGS_ERROR_MSG)
+                  BOTH_AUTOPROVISIONING_MANAGEMENT_SETTINGS_ERROR_MSG
+              )
           if defaults.shieldedInstanceConfig:
-            secure_boot_found = defaults.shieldedInstanceConfig.enableSecureBoot is not None
-            integrity_monitoring_found = defaults.shieldedInstanceConfig.enableIntegrityMonitoring is not None
+            secure_boot_found = (
+                defaults.shieldedInstanceConfig.enableSecureBoot is not None
+            )
+            integrity_monitoring_found = (
+                defaults.shieldedInstanceConfig.enableIntegrityMonitoring
+                is not None
+            )
             if secure_boot_found != integrity_monitoring_found:
               raise util.Error(
-                  BOTH_AUTOPROVISIONING_SHIELDED_INSTANCE_SETTINGS_ERROR_MSG)
+                  BOTH_AUTOPROVISIONING_SHIELDED_INSTANCE_SETTINGS_ERROR_MSG
+              )
     elif autoscaling.resourceLimits:
       raise util.Error(LIMITS_WITHOUT_AUTOPROVISIONING_MSG)
-    elif autoscaling.autoprovisioningNodePoolDefaults and \
-        (autoscaling.autoprovisioningNodePoolDefaults.serviceAccount or
-         autoscaling.autoprovisioningNodePoolDefaults.oauthScopes):
+    elif autoscaling.autoprovisioningNodePoolDefaults and (
+        autoscaling.autoprovisioningNodePoolDefaults.serviceAccount
+        or autoscaling.autoprovisioningNodePoolDefaults.oauthScopes
+    ):
       raise util.Error(DEFAULTS_WITHOUT_AUTOPROVISIONING_MSG)
 
-  def _GetClusterTelemetryType(self, options, logging_service,
-                               monitoring_service):
+  def _GetClusterTelemetryType(
+      self, options, logging_service, monitoring_service
+  ):
     """Gets the cluster telemetry from create options."""
     # If enable_stackdriver_kubernetes is set to false cluster telemetry
     # will be set to DISABLED.
-    if (options.enable_stackdriver_kubernetes is not None and
-        not options.enable_stackdriver_kubernetes):
+    if (
+        options.enable_stackdriver_kubernetes is not None
+        and not options.enable_stackdriver_kubernetes
+    ):
       return self.messages.ClusterTelemetry.TypeValueValuesEnum.DISABLED
 
     # If either logging service or monitoring service is explicitly disabled we
     # do not set the cluster telemtry.
-    if (options.enable_stackdriver_kubernetes and
-        (logging_service == 'none' or monitoring_service == 'none')):
+    if options.enable_stackdriver_kubernetes and (
+        logging_service == 'none' or monitoring_service == 'none'
+    ):
       return None
 
     # When enable_stackdriver_kubernetes is set to true and neither logging nor
     # monitoring service are explicitly disabled we set the Cluster Telemetry
     # to ENABLED.
-    if (options.enable_stackdriver_kubernetes and logging_service != 'none' and
-        monitoring_service != 'none'):
+    if (
+        options.enable_stackdriver_kubernetes
+        and logging_service != 'none'
+        and monitoring_service != 'none'
+    ):
       return self.messages.ClusterTelemetry.TypeValueValuesEnum.ENABLED
 
     # When enable_logging_monitoring_system_only is set to true we set the
@@ -3311,13 +4384,17 @@ class APIAdapter(object):
           self.messages.ResourceLimit(
               resourceType='cpu',
               minimum=options.min_cpu,
-              maximum=options.max_cpu))
+              maximum=options.max_cpu,
+          )
+      )
     if options.min_memory is not None or options.max_memory is not None:
       new_resource_limits.append(
           self.messages.ResourceLimit(
               resourceType='memory',
               minimum=options.min_memory,
-              maximum=options.max_memory))
+              maximum=options.max_memory,
+          )
+      )
     if options.max_accelerator is not None:
       accelerator_type = options.max_accelerator.get('type')
       min_count = 0
@@ -3329,12 +4406,13 @@ class APIAdapter(object):
           self.messages.ResourceLimit(
               resourceType=options.max_accelerator.get('type'),
               minimum=min_count,
-              maximum=options.max_accelerator.get('count', 0)))
+              maximum=options.max_accelerator.get('count', 0),
+          )
+      )
     return new_resource_limits
 
   def UpdateClusterCommon(self, cluster_ref, options):
     """Returns an UpdateCluster operation."""
-
     update = None
     if not options.version:
       options.version = '-'
@@ -3344,17 +4422,26 @@ class APIAdapter(object):
           desiredNodePoolId=options.node_pool,
           desiredImageType=options.image_type,
           desiredImage=options.image,
-          desiredImageProject=options.image_project)
+          desiredImageProject=options.image_project,
+      )
       # security_profile may be set in upgrade command
       if options.security_profile is not None:
         update.securityProfile = self.messages.SecurityProfile(
-            name=options.security_profile)
+            name=options.security_profile
+        )
     elif options.update_master:
       update = self.messages.ClusterUpdate(desiredMasterVersion=options.version)
       # security_profile may be set in upgrade command
       if options.security_profile is not None:
         update.securityProfile = self.messages.SecurityProfile(
-            name=options.security_profile)
+            name=options.security_profile
+        )
+      # control_plane_soak_duration may be set in upgrade command for rollback
+      # safe upgrades
+      if options.control_plane_soak_duration is not None:
+        update.desiredRollbackSafeUpgrade = self.messages.RollbackSafeUpgrade(
+            controlPlaneSoakDuration=options.control_plane_soak_duration
+        )
     elif options.enable_stackdriver_kubernetes:
       update = self.messages.ClusterUpdate()
       update.desiredLoggingService = 'logging.googleapis.com/kubernetes'
@@ -3369,29 +4456,67 @@ class APIAdapter(object):
         update.desiredMonitoringService = options.monitoring_service
       if options.logging_service:
         update.desiredLoggingService = options.logging_service
-    elif (options.logging or options.monitoring or
-          options.enable_managed_prometheus or
-          options.disable_managed_prometheus or
-          options.enable_dataplane_v2_metrics or
-          options.disable_dataplane_v2_metrics or
-          options.enable_dataplane_v2_flow_observability or
-          options.disable_dataplane_v2_flow_observability or
-          options.dataplane_v2_observability_mode):
+    elif (
+        options.logging
+        or options.monitoring
+        or options.enable_managed_prometheus
+        or options.disable_managed_prometheus
+        or options.auto_monitoring_scope
+        or options.enable_dataplane_v2_metrics
+        or options.disable_dataplane_v2_metrics
+        or options.enable_dataplane_v2_flow_observability
+        or options.disable_dataplane_v2_flow_observability
+        or options.dataplane_v2_observability_mode
+    ):
       logging = _GetLoggingConfig(options, self.messages)
       # Fix incorrectly omitting required field.
-      if ((options.dataplane_v2_observability_mode or
-           options.enable_dataplane_v2_flow_observability or
-           options.disable_dataplane_v2_flow_observability) and
-          options.enable_dataplane_v2_metrics is None and
-          options.disable_dataplane_v2_metrics is None):
+      if (
+          (
+              options.dataplane_v2_observability_mode
+              or options.enable_dataplane_v2_flow_observability
+              or options.disable_dataplane_v2_flow_observability
+          )
+          and options.enable_dataplane_v2_metrics is None
+          and options.disable_dataplane_v2_metrics is None
+      ):
         cluster = self.GetCluster(cluster_ref)
-        if (cluster and cluster.monitoringConfig and
-            cluster.monitoringConfig.advancedDatapathObservabilityConfig):
-          if cluster.monitoringConfig.advancedDatapathObservabilityConfig.enableMetrics:
+        if (
+            cluster
+            and cluster.monitoringConfig
+            and cluster.monitoringConfig.advancedDatapathObservabilityConfig
+        ):
+          if (
+              cluster.monitoringConfig.advancedDatapathObservabilityConfig.enableMetrics
+          ):
             options.enable_dataplane_v2_metrics = True
           else:
             options.disable_dataplane_v2_metrics = True
-      monitoring = _GetMonitoringConfig(options, self.messages)
+
+      monitoring = None
+      if options.auto_monitoring_scope:
+        cluster = self.GetCluster(cluster_ref)
+
+        if cluster is None:
+          raise util.Error(
+              'Cannot enable Auto Monitoring. The cluster does not exist.'
+          )
+
+        if (
+            cluster.monitoringConfig.managedPrometheusConfig is None
+            or not cluster.monitoringConfig.managedPrometheusConfig.enabled
+        ) and options.auto_monitoring_scope == 'ALL':
+
+          raise util.Error(
+              AUTO_MONITORING_NOT_SUPPORTED_WITHOUT_MANAGED_PROMETHEUS
+          )
+
+        if cluster.monitoringConfig.managedPrometheusConfig.enabled:
+          monitoring = _GetMonitoringConfig(options, self.messages, True, True)
+        else:
+          monitoring = _GetMonitoringConfig(options, self.messages, True, False)
+      else:
+        monitoring = _GetMonitoringConfig(options, self.messages, False, None)
+
       update = self.messages.ClusterUpdate()
       if logging:
         update.desiredLoggingConfig = logging
@@ -3404,45 +4529,93 @@ class APIAdapter(object):
           disable_hpa=options.disable_addons.get(HPA),
           disable_dashboard=options.disable_addons.get(DASHBOARD),
           disable_network_policy=options.disable_addons.get(NETWORK_POLICY),
-          enable_node_local_dns=not disable_node_local_dns if \
-             disable_node_local_dns is not None else None)
+          enable_node_local_dns=not disable_node_local_dns
+          if disable_node_local_dns is not None
+          else None,
+      )
       if options.disable_addons.get(CONFIGCONNECTOR) is not None:
-        addons.configConnectorConfig = (
-            self.messages.ConfigConnectorConfig(
-                enabled=(not options.disable_addons.get(CONFIGCONNECTOR))))
+        addons.configConnectorConfig = self.messages.ConfigConnectorConfig(
+            enabled=(not options.disable_addons.get(CONFIGCONNECTOR))
+        )
       if options.disable_addons.get(GCEPDCSIDRIVER) is not None:
         addons.gcePersistentDiskCsiDriverConfig = (
             self.messages.GcePersistentDiskCsiDriverConfig(
-                enabled=not options.disable_addons.get(GCEPDCSIDRIVER)))
+                enabled=not options.disable_addons.get(GCEPDCSIDRIVER)
+            )
+        )
       if options.disable_addons.get(GCPFILESTORECSIDRIVER) is not None:
-        addons.gcpFilestoreCsiDriverConfig = self.messages.GcpFilestoreCsiDriverConfig(
-            enabled=not options.disable_addons.get(GCPFILESTORECSIDRIVER))
+        addons.gcpFilestoreCsiDriverConfig = (
+            self.messages.GcpFilestoreCsiDriverConfig(
+                enabled=not options.disable_addons.get(GCPFILESTORECSIDRIVER)
+            )
+        )
       if options.disable_addons.get(GCSFUSECSIDRIVER) is not None:
         addons.gcsFuseCsiDriverConfig = self.messages.GcsFuseCsiDriverConfig(
-            enabled=not options.disable_addons.get(GCSFUSECSIDRIVER))
+            enabled=not options.disable_addons.get(GCSFUSECSIDRIVER)
+        )
       if options.disable_addons.get(STATEFULHA) is not None:
-        addons.statefulHaConfig = (
-            self.messages.StatefulHAConfig(
-                enabled=not options.disable_addons.get(STATEFULHA)))
+        addons.statefulHaConfig = self.messages.StatefulHAConfig(
+            enabled=not options.disable_addons.get(STATEFULHA)
+        )
       if options.disable_addons.get(PARALLELSTORECSIDRIVER) is not None:
         addons.parallelstoreCsiDriverConfig = (
             self.messages.ParallelstoreCsiDriverConfig(
                 enabled=not options.disable_addons.get(PARALLELSTORECSIDRIVER)
             )
         )
+      if options.disable_addons.get(HIGHSCALECHECKPOINTING) is not None:
+        addons.highScaleCheckpointingConfig = (
+            self.messages.HighScaleCheckpointingConfig(
+                enabled=not options.disable_addons.get(HIGHSCALECHECKPOINTING)
+            )
+        )
+      if options.disable_addons.get(LUSTRECSIDRIVER) is not None:
+        addons.lustreCsiDriverConfig = (
+            self.messages.LustreCsiDriverConfig(
+                enabled=not options.disable_addons.get(LUSTRECSIDRIVER)
+            )
+        )
       if options.disable_addons.get(BACKUPRESTORE) is not None:
-        addons.gkeBackupAgentConfig = (
-            self.messages.GkeBackupAgentConfig(
-                enabled=not options.disable_addons.get(BACKUPRESTORE)))
+        addons.gkeBackupAgentConfig = self.messages.GkeBackupAgentConfig(
+            enabled=not options.disable_addons.get(BACKUPRESTORE)
+        )
       if options.disable_addons.get(RAYOPERATOR) is not None:
-        addons.rayOperatorConfig = (
-            self.messages.RayOperatorConfig(
-                enabled=not options.disable_addons.get(RAYOPERATOR)))
+        addons.rayOperatorConfig = self.messages.RayOperatorConfig(
+            enabled=not options.disable_addons.get(RAYOPERATOR)
+        )
+      update = self.messages.ClusterUpdate(desiredAddonsConfig=addons)
+    elif (
+        options.enable_ray_cluster_logging is not None
+        or options.enable_ray_cluster_monitoring is not None
+        or options.enable_legacy_lustre_port is not None
+    ):
+      addons = self._AddonsConfig(options, self.messages)
+
+      if options.enable_ray_cluster_logging is not None:
+        addons.rayOperatorConfig.rayClusterLoggingConfig = (
+            self.messages.RayClusterLoggingConfig(
+                enabled=options.enable_ray_cluster_logging
+            )
+        )
+
+      if options.enable_ray_cluster_monitoring is not None:
+        addons.rayOperatorConfig.rayClusterMonitoringConfig = (
+            self.messages.RayClusterMonitoringConfig(
+                enabled=options.enable_ray_cluster_monitoring
+            )
+        )
+
+      if options.enable_legacy_lustre_port is not None:
+        addons.lustreCsiDriverConfig.enableLegacyLustrePort = (
+            options.enable_legacy_lustre_port
+        )
+
       update = self.messages.ClusterUpdate(desiredAddonsConfig=addons)
     elif options.enable_autoscaling is not None:
       # For update, we can either enable or disable.
       autoscaling = self.messages.NodePoolAutoscaling(
-          enabled=options.enable_autoscaling)
+          enabled=options.enable_autoscaling
+      )
       if options.enable_autoscaling:
         autoscaling.minNodeCount = options.min_nodes
         autoscaling.maxNodeCount = options.max_nodes
@@ -3450,50 +4623,56 @@ class APIAdapter(object):
         autoscaling.totalMaxNodeCount = options.total_max_nodes
         if options.location_policy is not None:
           autoscaling.locationPolicy = LocationPolicyEnumFromString(
-              self.messages, options.location_policy)
+              self.messages, options.location_policy
+          )
       update = self.messages.ClusterUpdate(
           desiredNodePoolId=options.node_pool,
-          desiredNodePoolAutoscaling=autoscaling)
+          desiredNodePoolAutoscaling=autoscaling,
+      )
     elif options.locations:
       update = self.messages.ClusterUpdate(desiredLocations=options.locations)
-    elif options.enable_master_authorized_networks is not None:
-      # For update, we can either enable or disable.
-      authorized_networks = self.messages.MasterAuthorizedNetworksConfig(
-          enabled=options.enable_master_authorized_networks)
-      if options.master_authorized_networks:
-        for network in options.master_authorized_networks:
-          authorized_networks.cidrBlocks.append(
-              self.messages.CidrBlock(cidrBlock=network))
+    elif (
+        options.enable_autoprovisioning is not None
+        or options.autoscaling_profile is not None
+        or options.enable_default_compute_class is not None
+    ):
+      autoscaling = self.CreateClusterAutoscalingCommon(
+          cluster_ref, options, True
+      )
       update = self.messages.ClusterUpdate(
-          desiredMasterAuthorizedNetworksConfig=authorized_networks)
-    elif options.enable_autoprovisioning is not None or \
-         options.autoscaling_profile is not None:
-      autoscaling = self.CreateClusterAutoscalingCommon(cluster_ref, options,
-                                                        True)
-      update = self.messages.ClusterUpdate(
-          desiredClusterAutoscaling=autoscaling)
+          desiredClusterAutoscaling=autoscaling
+      )
     elif options.enable_pod_security_policy is not None:
       config = self.messages.PodSecurityPolicyConfig(
-          enabled=options.enable_pod_security_policy)
+          enabled=options.enable_pod_security_policy
+      )
       update = self.messages.ClusterUpdate(
-          desiredPodSecurityPolicyConfig=config)
+          desiredPodSecurityPolicyConfig=config
+      )
     elif options.enable_vertical_pod_autoscaling is not None:
       vertical_pod_autoscaling = self.messages.VerticalPodAutoscaling(
-          enabled=options.enable_vertical_pod_autoscaling)
+          enabled=options.enable_vertical_pod_autoscaling
+      )
       update = self.messages.ClusterUpdate(
-          desiredVerticalPodAutoscaling=vertical_pod_autoscaling)
+          desiredVerticalPodAutoscaling=vertical_pod_autoscaling
+      )
     elif options.resource_usage_bigquery_dataset is not None:
       export_config = self.messages.ResourceUsageExportConfig(
           bigqueryDestination=self.messages.BigQueryDestination(
-              datasetId=options.resource_usage_bigquery_dataset))
+              datasetId=options.resource_usage_bigquery_dataset
+          )
+      )
       if options.enable_network_egress_metering:
         export_config.enableNetworkEgressMetering = True
       if options.enable_resource_consumption_metering is not None:
-        export_config.consumptionMeteringConfig = \
+        export_config.consumptionMeteringConfig = (
             self.messages.ConsumptionMeteringConfig(
-                enabled=options.enable_resource_consumption_metering)
+                enabled=options.enable_resource_consumption_metering
+            )
+        )
       update = self.messages.ClusterUpdate(
-          desiredResourceUsageExportConfig=export_config)
+          desiredResourceUsageExportConfig=export_config
+      )
     elif options.enable_network_egress_metering is not None:
       raise util.Error(ENABLE_NETWORK_EGRESS_METERING_ERROR_MSG)
     elif options.enable_resource_consumption_metering is not None:
@@ -3501,32 +4680,39 @@ class APIAdapter(object):
     elif options.clear_resource_usage_bigquery_dataset is not None:
       export_config = self.messages.ResourceUsageExportConfig()
       update = self.messages.ClusterUpdate(
-          desiredResourceUsageExportConfig=export_config)
+          desiredResourceUsageExportConfig=export_config
+      )
     elif options.security_profile is not None:
       # security_profile is set in update command
       security_profile = self.messages.SecurityProfile(
-          name=options.security_profile)
+          name=options.security_profile
+      )
       update = self.messages.ClusterUpdate(securityProfile=security_profile)
     elif options.enable_intra_node_visibility is not None:
       intra_node_visibility_config = self.messages.IntraNodeVisibilityConfig(
-          enabled=options.enable_intra_node_visibility)
+          enabled=options.enable_intra_node_visibility
+      )
       update = self.messages.ClusterUpdate(
-          desiredIntraNodeVisibilityConfig=intra_node_visibility_config)
-    elif options.enable_master_global_access is not None:
-      # For update, we can either enable or disable.
-      master_global_access_config = self.messages.PrivateClusterMasterGlobalAccessConfig(
-          enabled=options.enable_master_global_access)
-      private_cluster_config = self.messages.PrivateClusterConfig(
-          masterGlobalAccessConfig=master_global_access_config)
+          desiredIntraNodeVisibilityConfig=intra_node_visibility_config
+      )
+    elif options.managed_otel_scope:
+      managed_otel_config = _GetManagedOpenTelemetryConfig(
+          options, self.messages
+      )
       update = self.messages.ClusterUpdate(
-          desiredPrivateClusterConfig=private_cluster_config)
+          desiredManagedOpentelemetryConfig=managed_otel_config)
 
-    if (options.security_profile is not None and
-        options.security_profile_runtime_rules is not None):
-      update.securityProfile.disableRuntimeRules = \
+    if (
+        options.security_profile is not None
+        and options.security_profile_runtime_rules is not None
+    ):
+      update.securityProfile.disableRuntimeRules = (
           not options.security_profile_runtime_rules
-    if (options.master_authorized_networks and
-        not options.enable_master_authorized_networks):
+      )
+    if (
+        options.master_authorized_networks
+        and not options.enable_master_authorized_networks
+    ):
       # Raise error if use --master-authorized-networks without
       # --enable-master-authorized-networks.
       raise util.Error(MISMATCH_AUTHORIZED_NETWORKS_ERROR_MSG)
@@ -3535,141 +4721,188 @@ class APIAdapter(object):
       update = self.messages.ClusterUpdate(
           desiredDatabaseEncryption=self.messages.DatabaseEncryption(
               keyName=options.database_encryption_key,
-              state=self.messages.DatabaseEncryption.StateValueValuesEnum
-              .ENCRYPTED))
+              state=self.messages.DatabaseEncryption.StateValueValuesEnum.ENCRYPTED,
+          )
+      )
 
     elif options.disable_database_encryption:
       update = self.messages.ClusterUpdate(
           desiredDatabaseEncryption=self.messages.DatabaseEncryption(
-              state=self.messages.DatabaseEncryption.StateValueValuesEnum
-              .DECRYPTED))
+              state=self.messages.DatabaseEncryption.StateValueValuesEnum.DECRYPTED
+          )
+      )
 
     if options.enable_shielded_nodes is not None:
       update = self.messages.ClusterUpdate(
           desiredShieldedNodes=self.messages.ShieldedNodes(
-              enabled=options.enable_shielded_nodes))
+              enabled=options.enable_shielded_nodes
+          )
+      )
     if options.enable_tpu is not None:
       update = self.messages.ClusterUpdate(
-          desiredTpuConfig=_GetTpuConfigForClusterUpdate(
-              options, self.messages))
+          desiredTpuConfig=_GetTpuConfigForClusterUpdate(options, self.messages)
+      )
 
     if options.release_channel is not None:
       update = self.messages.ClusterUpdate(
-          desiredReleaseChannel=_GetReleaseChannel(options, self.messages))
+          desiredReleaseChannel=_GetReleaseChannel(options, self.messages)
+      )
+
+    if options.patch_update is not None:
+      update = self.messages.ClusterUpdate(
+          gkeAutoUpgradeConfig=_GetGkeAutoUpgradeConfig(options, self.messages)
+      )
 
     if options.disable_default_snat is not None:
       disable_default_snat = self.messages.DefaultSnatStatus(
-          disabled=options.disable_default_snat)
+          disabled=options.disable_default_snat
+      )
       update = self.messages.ClusterUpdate(
-          desiredDefaultSnatStatus=disable_default_snat)
+          desiredDefaultSnatStatus=disable_default_snat
+      )
     if options.enable_l4_ilb_subsetting is not None:
       ilb_subsettting_config = self.messages.ILBSubsettingConfig(
-          enabled=options.enable_l4_ilb_subsetting)
+          enabled=options.enable_l4_ilb_subsetting
+      )
       update = self.messages.ClusterUpdate(
-          desiredL4ilbSubsettingConfig=ilb_subsettting_config)
+          desiredL4ilbSubsettingConfig=ilb_subsettting_config
+      )
     if options.private_ipv6_google_access_type is not None:
       update = self.messages.ClusterUpdate(
-          desiredPrivateIpv6GoogleAccess=util
-          .GetPrivateIpv6GoogleAccessTypeMapperForUpdate(
-              self.messages, hidden=False).GetEnumForChoice(
-                  options.private_ipv6_google_access_type))
+          desiredPrivateIpv6GoogleAccess=util.GetPrivateIpv6GoogleAccessTypeMapperForUpdate(
+              self.messages, hidden=False
+          ).GetEnumForChoice(
+              options.private_ipv6_google_access_type
+          )
+      )
 
-    dns_config = self.ParseClusterDNSOptions(options, is_update=True)
+    dns_config = self.ParseClusterDNSOptions(
+        options, is_update=True, cluster_ref=cluster_ref
+    )
     if dns_config is not None:
       update = self.messages.ClusterUpdate(desiredDnsConfig=dns_config)
 
     gateway_config = self.ParseGatewayOptions(options)
     if gateway_config is not None:
       update = self.messages.ClusterUpdate(
-          desiredGatewayApiConfig=gateway_config)
+          desiredGatewayApiConfig=gateway_config
+      )
 
     if options.notification_config is not None:
       update = self.messages.ClusterUpdate(
           desiredNotificationConfig=_GetNotificationConfigForClusterUpdate(
-              options, self.messages))
+              options, self.messages
+          )
+      )
 
     if options.disable_autopilot is not None:
       update = self.messages.ClusterUpdate(
-          desiredAutopilot=self.messages.Autopilot(enabled=False))
+          desiredAutopilot=self.messages.Autopilot(enabled=False)
+      )
 
     if options.security_group is not None:
       update = self.messages.ClusterUpdate(
-          desiredAuthenticatorGroupsConfig=self.messages
-          .AuthenticatorGroupsConfig(
-              enabled=True, securityGroup=options.security_group))
+          desiredAuthenticatorGroupsConfig=self.messages.AuthenticatorGroupsConfig(
+              enabled=True, securityGroup=options.security_group
+          )
+      )
 
     if options.enable_gcfs is not None:
       update = self.messages.ClusterUpdate(
           desiredGcfsConfig=self.messages.GcfsConfig(
-              enabled=options.enable_gcfs))
+              enabled=options.enable_gcfs
+          )
+      )
 
     if options.autoprovisioning_network_tags is not None:
       update = self.messages.ClusterUpdate(
           desiredNodePoolAutoConfigNetworkTags=self.messages.NetworkTags(
-              tags=options.autoprovisioning_network_tags))
+              tags=options.autoprovisioning_network_tags
+          )
+      )
 
     if options.autoprovisioning_resource_manager_tags is not None:
       tags = options.autoprovisioning_resource_manager_tags
       rm_tags = self._ResourceManagerTags(tags)
       update = self.messages.ClusterUpdate(
-          desiredNodePoolAutoConfigResourceManagerTags=rm_tags)
+          desiredNodePoolAutoConfigResourceManagerTags=rm_tags
+      )
 
     if options.enable_image_streaming is not None:
       update = self.messages.ClusterUpdate(
           desiredGcfsConfig=self.messages.GcfsConfig(
-              enabled=options.enable_image_streaming))
+              enabled=options.enable_image_streaming
+          )
+      )
 
     if options.enable_mesh_certificates is not None:
       update = self.messages.ClusterUpdate(
           desiredMeshCertificates=self.messages.MeshCertificates(
-              enableCertificates=options.enable_mesh_certificates))
+              enableCertificates=options.enable_mesh_certificates
+          )
+      )
 
     if options.maintenance_interval is not None:
       update = self.messages.ClusterUpdate(
-          desiredStableFleetConfig=_GetStableFleetConfig(
-              options, self.messages))
+          desiredStableFleetConfig=_GetStableFleetConfig(options, self.messages)
+      )
 
     if options.enable_service_externalips is not None:
       update = self.messages.ClusterUpdate(
-          desiredServiceExternalIpsConfig=self.messages
-          .ServiceExternalIPsConfig(enabled=options.enable_service_externalips))
+          desiredServiceExternalIpsConfig=self.messages.ServiceExternalIPsConfig(
+              enabled=options.enable_service_externalips
+          )
+      )
 
     if options.enable_identity_service is not None:
       update = self.messages.ClusterUpdate(
           desiredIdentityServiceConfig=self.messages.IdentityServiceConfig(
-              enabled=options.enable_identity_service))
+              enabled=options.enable_identity_service
+          )
+      )
 
-    if options.enable_workload_config_audit is not None or options.enable_workload_vulnerability_scanning is not None:
+    if (
+        options.enable_workload_config_audit is not None
+        or options.enable_workload_vulnerability_scanning is not None
+    ):
       protect_config = self.messages.ProtectConfig()
       if options.enable_workload_config_audit is not None:
         protect_config.workloadConfig = self.messages.WorkloadConfig()
         if options.enable_workload_config_audit:
           protect_config.workloadConfig.auditMode = (
-              self.messages.WorkloadConfig.AuditModeValueValuesEnum.BASIC)
+              self.messages.WorkloadConfig.AuditModeValueValuesEnum.BASIC
+          )
         else:
           protect_config.workloadConfig.auditMode = (
-              self.messages.WorkloadConfig.AuditModeValueValuesEnum.DISABLED)
+              self.messages.WorkloadConfig.AuditModeValueValuesEnum.DISABLED
+          )
 
       if options.enable_workload_vulnerability_scanning is not None:
         if options.enable_workload_vulnerability_scanning:
           protect_config.workloadVulnerabilityMode = (
-              self.messages.ProtectConfig
-              .WorkloadVulnerabilityModeValueValuesEnum.BASIC)
+              self.messages.ProtectConfig.WorkloadVulnerabilityModeValueValuesEnum.BASIC
+          )
         else:
           protect_config.workloadVulnerabilityMode = (
-              self.messages.ProtectConfig
-              .WorkloadVulnerabilityModeValueValuesEnum.DISABLED)
+              self.messages.ProtectConfig.WorkloadVulnerabilityModeValueValuesEnum.DISABLED
+          )
       update = self.messages.ClusterUpdate(desiredProtectConfig=protect_config)
 
-    if options.pod_autoscaling_direct_metrics_opt_in is not None:
-      pod_autoscaling_config = self.messages.PodAutoscaling(
-          directMetricsOptIn=options.pod_autoscaling_direct_metrics_opt_in)
-      update = self.messages.ClusterUpdate(
-          desiredPodAutoscaling=pod_autoscaling_config)
-
-    if options.enable_private_endpoint is not None:
-      update = self.messages.ClusterUpdate(
-          desiredEnablePrivateEndpoint=options.enable_private_endpoint)
+    if options.hpa_profile is not None:
+      if options.hpa_profile == 'performance':
+        pod_autoscaling_config = self.messages.PodAutoscaling(
+            hpaProfile=self.messages.PodAutoscaling.HpaProfileValueValuesEnum.PERFORMANCE
+        )
+        update = self.messages.ClusterUpdate(
+            desiredPodAutoscaling=pod_autoscaling_config
+        )
+      elif options.hpa_profile == 'none':
+        pod_autoscaling_config = self.messages.PodAutoscaling(
+            hpaProfile=self.messages.PodAutoscaling.HpaProfileValueValuesEnum.NONE
+        )
+        update = self.messages.ClusterUpdate(
+            desiredPodAutoscaling=pod_autoscaling_config
+        )
 
     if options.logging_variant is not None:
       logging_config = self.messages.NodePoolLoggingConfig()
@@ -3690,29 +4923,60 @@ class APIAdapter(object):
       if options.additional_pod_ipv4_ranges:
         update.additionalPodRangesConfig = (
             self.messages.AdditionalPodRangesConfig(
-                podRangeNames=options.additional_pod_ipv4_ranges))
+                podRangeNames=options.additional_pod_ipv4_ranges
+            )
+        )
       if options.removed_additional_pod_ipv4_ranges:
         update.removedAdditionalPodRangesConfig = (
             self.messages.AdditionalPodRangesConfig(
-                podRangeNames=options.removed_additional_pod_ipv4_ranges))
+                podRangeNames=options.removed_additional_pod_ipv4_ranges
+            )
+        )
 
     if options.stack_type is not None:
       update = self.messages.ClusterUpdate(
           desiredStackType=util.GetUpdateStackTypeMapper(
-              self.messages).GetEnumForChoice(options.stack_type))
+              self.messages
+          ).GetEnumForChoice(options.stack_type)
+      )
 
     if options.enable_cost_allocation is not None:
       update = self.messages.ClusterUpdate(
           desiredCostManagementConfig=self.messages.CostManagementConfig(
-              enabled=options.enable_cost_allocation))
-
+              enabled=options.enable_cost_allocation
+          )
+      )
+    membership_types = {
+        'LIGHTWEIGHT': (
+            self.messages.Fleet.MembershipTypeValueValuesEnum.LIGHTWEIGHT
+        ),
+        'MEMBERSHIP_TYPE_UNSPECIFIED': (
+            self.messages.Fleet.MembershipTypeValueValuesEnum.MEMBERSHIP_TYPE_UNSPECIFIED
+        ),
+    }
     if options.enable_fleet:
       update = self.messages.ClusterUpdate(
-          desiredFleet=self.messages.Fleet(project=cluster_ref.projectId))
+          desiredFleet=self.messages.Fleet(
+              project=cluster_ref.projectId,
+              membershipType=membership_types.get(options.membership_type, None)
+          )
+      )
 
     if options.fleet_project:
       update = self.messages.ClusterUpdate(
-          desiredFleet=self.messages.Fleet(project=options.fleet_project))
+          desiredFleet=self.messages.Fleet(
+              project=options.fleet_project,
+              membershipType=membership_types.get(options.membership_type, None)
+          )
+      )
+
+    if options.unset_membership_type:
+      fleet_project = options.fleet_project or cluster_ref.projectId
+      update = self.messages.ClusterUpdate(
+          desiredFleet=self.messages.Fleet
+          (membershipType=None,
+           project=fleet_project),
+      )
 
     if options.enable_k8s_beta_apis is not None:
       config_obj = self.messages.K8sBetaAPIConfig()
@@ -3721,7 +4985,66 @@ class APIAdapter(object):
 
     if options.clear_fleet_project:
       update = self.messages.ClusterUpdate(
-          desiredFleet=self.messages.Fleet(project=''))
+          desiredFleet=self.messages.Fleet(project='')
+      )
+
+    if (
+        options.compliance is not None
+        or options.compliance_standards is not None
+    ):
+      # --compliance=disabled and --compliance-standards=a,b,c are mutually
+      # exclusive.
+      if options.compliance == 'disabled' and options.compliance_standards:
+        raise util.Error(COMPLIANCE_DISABLED_CONFIGURATION)
+
+      # Desired configuration to set.
+      compliance_update = self.messages.CompliancePostureConfig()
+      # Current configuration, if any.
+      cluster = self.GetCluster(cluster_ref)
+
+      compliance_mode = (
+          options.compliance.lower() if options.compliance else None
+      )
+      if (
+          compliance_mode is None
+      ):  # If not provided, look for current configuration.
+        if cluster.compliancePostureConfig is not None:
+          compliance_update.mode = cluster.compliancePostureConfig.mode
+      elif compliance_mode == 'disabled':
+        compliance_update.mode = (
+            self.messages.CompliancePostureConfig.ModeValueValuesEnum.DISABLED
+        )
+      elif compliance_mode == 'enabled':
+        compliance_update.mode = (
+            self.messages.CompliancePostureConfig.ModeValueValuesEnum.ENABLED
+        )
+      else:  # Invalid input.
+        raise util.Error(
+            COMPLIANCE_MODE_NOT_SUPPORTED.format(mode=options.compliance)
+        )
+
+      if options.compliance_standards is None:
+        # If not provided, look for current configuration.
+        if cluster.compliancePostureConfig is not None:
+          compliance_update.complianceStandards = (
+              cluster.compliancePostureConfig.complianceStandards
+          )
+        # Otherwise do nothing.
+      elif not options.compliance_standards:  # Empty input is invalid.
+        raise util.Error(
+            COMPLIANCE_INVALID_STANDARDS_CONFIGURATION.format(
+                standards=options.compliance_standards
+            )
+        )
+      else:  # If a list, build new standards configuration.
+        compliance_update.complianceStandards = [
+            self.messages.ComplianceStandard(standard=standard)
+            for standard in options.compliance_standards.split(',')
+        ]
+
+      update = self.messages.ClusterUpdate(
+          desiredCompliancePostureConfig=compliance_update
+      )
 
     if options.enable_security_posture is not None:
       security_posture_config = self.messages.SecurityPostureConfig()
@@ -3734,7 +5057,8 @@ class APIAdapter(object):
             self.messages.SecurityPostureConfig.ModeValueValuesEnum.DISABLED
         )
       update = self.messages.ClusterUpdate(
-          desiredSecurityPostureConfig=security_posture_config)
+          desiredSecurityPostureConfig=security_posture_config
+      )
 
     if options.security_posture is not None:
       security_posture_config = self.messages.SecurityPostureConfig()
@@ -3786,7 +5110,8 @@ class APIAdapter(object):
 
     if options.enable_runtime_vulnerability_insight is not None:
       runtime_vulnerability_insight_config = (
-          self.messages.RuntimeVulnerabilityInsightConfig())
+          self.messages.RuntimeVulnerabilityInsightConfig()
+      )
       if options.enable_runtime_vulnerability_insight:
         runtime_vulnerability_insight_config.mode = (
             self.messages.RuntimeVulnerabilityInsightConfig.ModeValueValuesEnum.PREMIUM_VULNERABILITY_SCAN
@@ -3797,12 +5122,13 @@ class APIAdapter(object):
         )
       update = self.messages.ClusterUpdate(
           desiredRuntimeVulnerabilityInsightConfig=(
-              runtime_vulnerability_insight_config))
+              runtime_vulnerability_insight_config
+          )
+      )
 
     if options.network_performance_config:
       perf = self._GetClusterNetworkPerformanceConfig(options)
-      update = self.messages.ClusterUpdate(
-          desiredNetworkPerformanceConfig=perf)
+      update = self.messages.ClusterUpdate(desiredNetworkPerformanceConfig=perf)
 
     if options.workload_policies is not None:
       workload_policies = self.messages.WorkloadPolicyConfig()
@@ -3823,7 +5149,8 @@ class APIAdapter(object):
     if options.host_maintenance_interval is not None:
       update = self.messages.ClusterUpdate(
           desiredHostMaintenancePolicy=_GetHostMaintenancePolicy(
-              options, self.messages)
+              options, self.messages, CLUSTER
+          )
       )
 
     if options.in_transit_encryption is not None:
@@ -3837,22 +5164,79 @@ class APIAdapter(object):
 
     if options.enable_multi_networking is not None:
       update = self.messages.ClusterUpdate(
-          desiredEnableMultiNetworking=options.enable_multi_networking)
+          desiredEnableMultiNetworking=options.enable_multi_networking
+      )
 
     if options.containerd_config_from_file is not None:
       update = self.messages.ClusterUpdate(
-          desiredContainerdConfig=self.messages.ContainerdConfig())
+          desiredContainerdConfig=self.messages.ContainerdConfig()
+      )
       util.LoadContainerdConfigFromYAML(
           update.desiredContainerdConfig,
           options.containerd_config_from_file,
           self.messages,
       )
 
-    if options.enable_secret_manager is not None:
+    if (
+        options.enable_secret_manager_rotation is not None
+        or options.secret_manager_rotation_interval is not None
+        or options.enable_secret_manager is not None
+    ):
+      old_cluster = self.GetCluster(cluster_ref)
+      secret_manager_config = old_cluster.secretManagerConfig
+      if options.enable_secret_manager is not None:
+        if secret_manager_config is None:
+          secret_manager_config = self.messages.SecretManagerConfig()
+        secret_manager_config.enabled = options.enable_secret_manager
+      if options.enable_secret_manager_rotation is not None:
+        if secret_manager_config is None:
+          secret_manager_config = self.messages.SecretManagerConfig()
+        if secret_manager_config.rotationConfig is None:
+          secret_manager_config.rotationConfig = self.messages.RotationConfig()
+        secret_manager_config.rotationConfig.enabled = (
+            options.enable_secret_manager_rotation
+        )
+      if options.secret_manager_rotation_interval is not None:
+        if secret_manager_config is None:
+          secret_manager_config = self.messages.SecretManagerConfig()
+        if secret_manager_config.rotationConfig is None:
+          secret_manager_config.rotationConfig = self.messages.RotationConfig()
+        secret_manager_config.rotationConfig.rotationInterval = (
+            options.secret_manager_rotation_interval
+        )
       update = self.messages.ClusterUpdate(
-          desiredSecretManagerConfig=self.messages.SecretManagerConfig(
-              enabled=options.enable_secret_manager
-          )
+          desiredSecretManagerConfig=secret_manager_config
+      )
+
+    if (
+        options.enable_secret_sync is not None
+        or options.secret_sync_rotation_interval is not None
+        or options.enable_secret_sync_rotation is not None
+    ):
+      old_cluster = self.GetCluster(cluster_ref)
+      secret_sync_config = old_cluster.secretSyncConfig
+      if options.enable_secret_sync is not None:
+        if secret_sync_config is None:
+          secret_sync_config = self.messages.SecretSyncConfig()
+        secret_sync_config.enabled = options.enable_secret_sync
+      if options.enable_secret_sync_rotation is not None:
+        if secret_sync_config is None:
+          secret_sync_config = self.messages.SecretSyncConfig()
+        if secret_sync_config.rotationConfig is None:
+          secret_sync_config.rotationConfig = self.messages.SyncRotationConfig()
+        secret_sync_config.rotationConfig.enabled = (
+            options.enable_secret_sync_rotation
+        )
+      if options.secret_sync_rotation_interval is not None:
+        if secret_sync_config is None:
+          secret_sync_config = self.messages.SecretSyncConfig()
+        if secret_sync_config.rotationConfig is None:
+          secret_sync_config.rotationConfig = self.messages.RotationConfig()
+        secret_sync_config.rotationConfig.rotationInterval = (
+            options.secret_sync_rotation_interval
+        )
+      update = self.messages.ClusterUpdate(
+          desiredSecretSyncConfig=secret_sync_config
       )
 
     if options.enable_cilium_clusterwide_network_policy is not None:
@@ -3864,7 +5248,224 @@ class APIAdapter(object):
 
     if options.enable_fqdn_network_policy is not None:
       update = self.messages.ClusterUpdate(
-          desiredEnableFqdnNetworkPolicy=options.enable_fqdn_network_policy)
+          desiredEnableFqdnNetworkPolicy=options.enable_fqdn_network_policy
+      )
+
+    if (
+        options.enable_insecure_binding_system_authenticated is not None
+        or options.enable_insecure_binding_system_unauthenticated is not None
+    ):
+      confg = self.messages.RBACBindingConfig()
+      if options.enable_insecure_binding_system_authenticated is not None:
+        confg.enableInsecureBindingSystemAuthenticated = (
+            options.enable_insecure_binding_system_authenticated
+        )
+      if options.enable_insecure_binding_system_unauthenticated is not None:
+        confg.enableInsecureBindingSystemUnauthenticated = (
+            options.enable_insecure_binding_system_unauthenticated
+        )
+      update = self.messages.ClusterUpdate(desiredRBACBindingConfig=confg)
+
+    if options.autopilot_privileged_admission is not None:
+      allowlist_paths = options.autopilot_privileged_admission
+      if isinstance(allowlist_paths, str):
+        allowlist_paths = [
+            p.strip() for p in allowlist_paths.split(',') if p.strip()
+        ]
+
+      update = self.messages.ClusterUpdate(
+          desiredPrivilegedAdmissionConfig=self.messages.PrivilegedAdmissionConfig(
+              allowlistPaths=allowlist_paths
+          )
+      )
+
+    if options.enable_private_nodes is not None:
+      update = self.messages.ClusterUpdate(
+          desiredDefaultEnablePrivateNodes=options.enable_private_nodes
+      )
+
+    if (
+        options.enable_dns_access is not None
+        or options.enable_ip_access is not None
+        or options.enable_master_global_access is not None
+        or options.enable_private_endpoint is not None
+        or options.enable_master_authorized_networks is not None
+        or options.enable_google_cloud_access is not None
+        or options.enable_authorized_networks_on_private_endpoint is not None
+        or options.enable_k8s_tokens_via_dns is not None
+        or options.enable_k8s_certs_via_dns is not None
+    ):
+      cp_endpoints_config = self._GetDesiredControlPlaneEndpointsConfig(
+          cluster_ref, options
+      )
+      update = self.messages.ClusterUpdate(
+          desiredControlPlaneEndpointsConfig=cp_endpoints_config
+      )
+
+    if (
+        options.additional_ip_ranges is not None
+        or options.remove_additional_ip_ranges is not None
+    ):
+      cluster = self.GetCluster(cluster_ref)
+      desired_ip_ranges = {}
+      if cluster.ipAllocationPolicy:
+        config = cluster.ipAllocationPolicy.additionalIpRangesConfigs
+        if config:
+          for ip_range in config:
+            secondary_ranges = set(ip_range.podIpv4RangeNames)
+            desired_ip_ranges[ip_range.subnetwork] = secondary_ranges
+
+      if options.additional_ip_ranges is not None:
+        for ip_range in options.additional_ip_ranges:
+          subnetwork = SubnetworkNameToPath(
+              ip_range['subnetwork'], cluster_ref.projectId, cluster_ref.zone
+          )
+          secondary_ranges = (
+              desired_ip_ranges[subnetwork]
+              if subnetwork in desired_ip_ranges
+              else set()
+          )
+          secondary_ranges.add(ip_range['pod-ipv4-range'])
+          desired_ip_ranges[subnetwork] = secondary_ranges
+
+      if options.remove_additional_ip_ranges is not None:
+        for ip_remove in options.remove_additional_ip_ranges:
+          subnetwork = SubnetworkNameToPath(
+              ip_remove['subnetwork'], cluster_ref.projectId, cluster_ref.zone
+          )
+          if subnetwork not in desired_ip_ranges:
+            raise util.Error(
+                ADDITIONAL_SUBNETWORKS_NOT_FOUND.format(subnetwork=subnetwork)
+            )
+          if 'pod-ipv4-range' in ip_remove:
+            removed_range = ip_remove['pod-ipv4-range']
+            try:
+              desired_ip_ranges[subnetwork].remove(removed_range)
+              if not desired_ip_ranges[subnetwork]:
+                desired_ip_ranges.pop(subnetwork)
+            except KeyError:
+              raise util.Error(
+                  ADDITIONAL_SUBNETWORKS_POD_RANG_ENOT_FOUND.format(
+                      range=removed_range
+                  )
+              )
+          else:
+            desired_ip_ranges.pop(subnetwork)
+
+      update = self.messages.ClusterUpdate(
+          desiredAdditionalIpRangesConfig=self.messages.DesiredAdditionalIPRangesConfig(
+              additionalIpRangesConfigs=[
+                  self.messages.AdditionalIPRangesConfig(
+                      subnetwork=subnetwork,
+                      podIpv4RangeNames=list(secondary_ranges),
+                  )
+                  for subnetwork, secondary_ranges in desired_ip_ranges.items()
+              ]
+          )
+      )
+
+    if options.disable_l4_lb_firewall_reconciliation:
+      update = self.messages.ClusterUpdate(
+          desiredDisableL4LbFirewallReconciliation=True
+      )
+    if options.enable_l4_lb_firewall_reconciliation:
+      update = self.messages.ClusterUpdate(
+          desiredDisableL4LbFirewallReconciliation=False
+      )
+
+    if options.tier is not None:
+      update = self.messages.ClusterUpdate(
+          desiredEnterpriseConfig=_GetDesiredEnterpriseConfig(
+              options, self.messages
+          )
+      )
+
+    if options.enable_autopilot_compatibility_auditing is not None:
+      workload_policies = self.messages.WorkloadPolicyConfig()
+      workload_policies.autopilotCompatibilityAuditingEnabled = (
+          options.enable_autopilot_compatibility_auditing
+      )
+      update = self.messages.ClusterUpdate(
+          desiredAutopilotWorkloadPolicyConfig=workload_policies
+      )
+
+    if options.service_account_verification_keys is not None:
+      cluster = self.GetCluster(cluster_ref)
+      updated_user_managed_keys_config = self.messages.UserManagedKeysConfig()
+      if cluster.userManagedKeysConfig is not None:
+        updated_user_managed_keys_config = cluster.userManagedKeysConfig
+      updated_user_managed_keys_config.serviceAccountVerificationKeys = (
+          options.service_account_verification_keys
+      )
+      update = self.messages.ClusterUpdate(
+          desiredUserManagedKeysConfig=updated_user_managed_keys_config
+      )
+
+    if options.service_account_signing_keys is not None:
+      cluster = self.GetCluster(cluster_ref)
+      updated_user_managed_keys_config = self.messages.UserManagedKeysConfig()
+      if cluster.userManagedKeysConfig is not None:
+        updated_user_managed_keys_config = cluster.userManagedKeysConfig
+      updated_user_managed_keys_config.serviceAccountSigningKeys = (
+          options.service_account_signing_keys
+      )
+      update = self.messages.ClusterUpdate(
+          desiredUserManagedKeysConfig=updated_user_managed_keys_config
+      )
+    if options.control_plane_disk_encryption_key is not None:
+      cluster = self.GetCluster(cluster_ref)
+      updated_user_managed_keys_config = self.messages.UserManagedKeysConfig()
+      if cluster.userManagedKeysConfig is not None:
+        updated_user_managed_keys_config = cluster.userManagedKeysConfig
+      updated_user_managed_keys_config.controlPlaneDiskEncryptionKey = (
+          options.control_plane_disk_encryption_key
+      )
+      update = self.messages.ClusterUpdate(
+          desiredUserManagedKeysConfig=updated_user_managed_keys_config
+      )
+    if options.disable_auto_ipam:
+      update = self.messages.ClusterUpdate(
+          desiredAutoIpamConfig=self.messages.AutoIpamConfig(enabled=False)
+      )
+    if options.enable_auto_ipam:
+      update = self.messages.ClusterUpdate(
+          desiredAutoIpamConfig=self.messages.AutoIpamConfig(enabled=True)
+      )
+    if options.anonymous_authentication_config is not None:
+      modes = {
+          'LIMITED': (
+              self.messages.DesiredAnonymousAuthenticationConfig.ModeValueValuesEnum.LIMITED
+          ),
+          'ENABLED': (
+              self.messages.DesiredAnonymousAuthenticationConfig.ModeValueValuesEnum.ENABLED
+          ),
+      }
+      config = self.messages.DesiredAnonymousAuthenticationConfig()
+      config.mode = modes[options.anonymous_authentication_config]
+      update = self.messages.ClusterUpdate(
+          desiredAnonymousAuthenticationConfig=config
+      )
+    if options.network_tier is not None:
+      update = self.messages.ClusterUpdate(
+          desiredNetworkTierConfig=_GetNetworkTierConfig(
+              options, self.messages
+          )
+      )
+
+    if options.control_plane_egress_mode is not None:
+      modes = {
+          'NONE': (
+              self.messages.DesiredControlPlaneEgress.ModeValueValuesEnum.NONE
+          ),
+          'VIA_CONTROL_PLANE': (
+              self.messages.DesiredControlPlaneEgress.ModeValueValuesEnum.VIA_CONTROL_PLANE
+          ),
+      }
+      config = self.messages.DesiredControlPlaneEgress()
+      config.mode = modes[options.control_plane_egress_mode]
+      update = self.messages.ClusterUpdate(
+          desiredControlPlaneEgress=config
+      )
 
     return update
 
@@ -3886,11 +5487,15 @@ class APIAdapter(object):
     if options.workload_pool:
       update = self.messages.ClusterUpdate(
           desiredWorkloadIdentityConfig=self.messages.WorkloadIdentityConfig(
-              workloadPool=options.workload_pool))
+              workloadPool=options.workload_pool
+          )
+      )
     elif options.disable_workload_identity:
       update = self.messages.ClusterUpdate(
           desiredWorkloadIdentityConfig=self.messages.WorkloadIdentityConfig(
-              workloadPool=''))
+              workloadPool=''
+          )
+      )
 
     if not update:
       # if reached here, it's possible:
@@ -3903,55 +5508,73 @@ class APIAdapter(object):
 
     if options.disable_addons is not None:
       if any(
-          (options.disable_addons.get(v) is not None) for v in CLOUDRUN_ADDONS):
+          (options.disable_addons.get(v) is not None) for v in CLOUDRUN_ADDONS
+      ):
         load_balancer_type = _GetCloudRunLoadBalancerType(
-            options, self.messages)
+            options, self.messages
+        )
         update.desiredAddonsConfig.cloudRunConfig = (
             self.messages.CloudRunConfig(
                 disabled=any(
                     options.disable_addons.get(v) or False
-                    for v in CLOUDRUN_ADDONS),
-                loadBalancerType=load_balancer_type))
+                    for v in CLOUDRUN_ADDONS
+                ),
+                loadBalancerType=load_balancer_type,
+            )
+        )
 
     op = self.client.projects_locations_clusters.Update(
         self.messages.UpdateClusterRequest(
-            name=ProjectLocationCluster(cluster_ref.projectId, cluster_ref.zone,
-                                        cluster_ref.clusterId),
-            update=update))
+            name=ProjectLocationCluster(
+                cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+            ),
+            update=update,
+        )
+    )
 
     return self.ParseOperation(op.name, cluster_ref.zone)
 
   def SetLoggingService(self, cluster_ref, logging_service):
     op = self.client.projects_locations_clusters.SetLogging(
         self.messages.SetLoggingServiceRequest(
-            name=ProjectLocationCluster(cluster_ref.projectId, cluster_ref.zone,
-                                        cluster_ref.clusterId),
-            loggingService=logging_service))
+            name=ProjectLocationCluster(
+                cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+            ),
+            loggingService=logging_service,
+        )
+    )
     return self.ParseOperation(op.name, cluster_ref.zone)
 
   def SetLegacyAuthorization(self, cluster_ref, enable_legacy_authorization):
     op = self.client.projects_locations_clusters.SetLegacyAbac(
         self.messages.SetLegacyAbacRequest(
-            name=ProjectLocationCluster(cluster_ref.projectId, cluster_ref.zone,
-                                        cluster_ref.clusterId),
-            enabled=bool(enable_legacy_authorization)))
+            name=ProjectLocationCluster(
+                cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+            ),
+            enabled=bool(enable_legacy_authorization),
+        )
+    )
     return self.ParseOperation(op.name, cluster_ref.zone)
 
-  def _AddonsConfig(self,
-                    disable_ingress=None,
-                    disable_hpa=None,
-                    disable_dashboard=None,
-                    disable_network_policy=None,
-                    enable_node_local_dns=None,
-                    enable_gcepd_csi_driver=None,
-                    enable_filestore_csi_driver=None,
-                    enable_application_manager=None,
-                    enable_cloud_build=None,
-                    enable_backup_restore=None,
-                    enable_gcsfuse_csi_driver=None,
-                    enable_stateful_ha=None,
-                    enable_parallelstore_csi_driver=None,
-                    enable_ray_operator=None):
+  def _AddonsConfig(
+      self,
+      disable_ingress=None,
+      disable_hpa=None,
+      disable_dashboard=None,
+      disable_network_policy=None,
+      enable_node_local_dns=None,
+      enable_gcepd_csi_driver=None,
+      enable_filestore_csi_driver=None,
+      enable_application_manager=None,
+      enable_cloud_build=None,
+      enable_backup_restore=None,
+      enable_gcsfuse_csi_driver=None,
+      enable_stateful_ha=None,
+      enable_parallelstore_csi_driver=None,
+      enable_high_scale_checkpointing=None,
+      enable_lustre_csi_driver=None,
+      enable_ray_operator=None,
+  ):
     """Generates an AddonsConfig object given specific parameters.
 
     Args:
@@ -3968,6 +5591,8 @@ class APIAdapter(object):
       enable_gcsfuse_csi_driver: whether to enable GcsFuseCsiDriver.
       enable_stateful_ha: whether to enable StatefulHA addon.
       enable_parallelstore_csi_driver: whether to enable ParallelstoreCsiDriver.
+      enable_high_scale_checkpointing: whether to enable HighScaleCheckpointing.
+      enable_lustre_csi_driver: whether to enable LustreCsiDriver.
       enable_ray_operator: whether to enable RayOperator.
 
     Returns:
@@ -3977,41 +5602,58 @@ class APIAdapter(object):
     addons = self.messages.AddonsConfig()
     if disable_ingress is not None:
       addons.httpLoadBalancing = self.messages.HttpLoadBalancing(
-          disabled=disable_ingress)
+          disabled=disable_ingress
+      )
     if disable_hpa is not None:
       addons.horizontalPodAutoscaling = self.messages.HorizontalPodAutoscaling(
-          disabled=disable_hpa)
+          disabled=disable_hpa
+      )
     if disable_dashboard is not None:
       addons.kubernetesDashboard = self.messages.KubernetesDashboard(
-          disabled=disable_dashboard)
+          disabled=disable_dashboard
+      )
     # Network policy is disabled by default.
     if disable_network_policy is not None:
       addons.networkPolicyConfig = self.messages.NetworkPolicyConfig(
-          disabled=disable_network_policy)
+          disabled=disable_network_policy
+      )
     if enable_node_local_dns is not None:
       addons.dnsCacheConfig = self.messages.DnsCacheConfig(
-          enabled=enable_node_local_dns)
+          enabled=enable_node_local_dns
+      )
     if enable_gcepd_csi_driver:
-      addons.gcePersistentDiskCsiDriverConfig = self.messages.GcePersistentDiskCsiDriverConfig(
-          enabled=True)
+      addons.gcePersistentDiskCsiDriverConfig = (
+          self.messages.GcePersistentDiskCsiDriverConfig(enabled=True)
+      )
     if enable_filestore_csi_driver:
-      addons.gcpFilestoreCsiDriverConfig = self.messages.GcpFilestoreCsiDriverConfig(
-          enabled=True)
+      addons.gcpFilestoreCsiDriverConfig = (
+          self.messages.GcpFilestoreCsiDriverConfig(enabled=True)
+      )
     if enable_application_manager:
       addons.kalmConfig = self.messages.KalmConfig(enabled=True)
     if enable_cloud_build:
       addons.cloudBuildConfig = self.messages.CloudBuildConfig(enabled=True)
     if enable_backup_restore:
       addons.gkeBackupAgentConfig = self.messages.GkeBackupAgentConfig(
-          enabled=True)
+          enabled=True
+      )
     if enable_gcsfuse_csi_driver:
       addons.gcsFuseCsiDriverConfig = self.messages.GcsFuseCsiDriverConfig(
-          enabled=True)
+          enabled=True
+      )
     if enable_stateful_ha:
       addons.statefulHaConfig = self.messages.StatefulHAConfig(enabled=True)
     if enable_parallelstore_csi_driver:
       addons.parallelstoreCsiDriverConfig = (
           self.messages.ParallelstoreCsiDriverConfig(enabled=True)
+      )
+    if enable_high_scale_checkpointing:
+      addons.highScaleCheckpointingConfig = (
+          self.messages.HighScaleCheckpointingConfig(enabled=True)
+      )
+    if enable_lustre_csi_driver:
+      addons.lustreCsiDriverConfig = (
+          self.messages.LustreCsiDriverConfig(enabled=True)
       )
     if enable_ray_operator:
       addons.rayOperatorConfig = self.messages.RayOperatorConfig(enabled=True)
@@ -4034,10 +5676,14 @@ class APIAdapter(object):
       else:
         raise util.Error(
             LOCAL_SSD_INCORRECT_FORMAT_ERROR_MSG.format(
-                err_format=config['format']))
+                err_format=config['format']
+            )
+        )
       local_ssd_volume_configs_list.append(
           self.messages.LocalSsdVolumeConfig(
-              count=count, type=ssd_type, format=ssd_format))
+              count=count, type=ssd_type, format=ssd_format
+          )
+      )
     node_config.localSsdVolumeConfigs = local_ssd_volume_configs_list
 
   def _AddEphemeralStorageToNodeConfig(self, node_config, options):
@@ -4048,17 +5694,40 @@ class APIAdapter(object):
     if 'local-ssd-count' in config:
       count = config['local-ssd-count']
     node_config.ephemeralStorageConfig = self.messages.EphemeralStorageConfig(
-        localSsdCount=count)
+        localSsdCount=count
+    )
 
   def _AddEphemeralStorageLocalSsdToNodeConfig(self, node_config, options):
-    if options.ephemeral_storage_local_ssd is None:
+    """Add EphemeralStorageLocalSsdConfig to nodeConfig."""
+    # pylint: disable=line-too-long
+    if (
+        options.ephemeral_storage_local_ssd is None
+        and options.data_cache_count is None
+    ):
+      return
+    elif (
+        options.ephemeral_storage_local_ssd is None
+        and options.data_cache_count is not None
+    ):
+      node_config.ephemeralStorageLocalSsdConfig = (
+          self.messages.EphemeralStorageLocalSsdConfig(
+              dataCacheCount=int(options.data_cache_count)
+          )
+      )
       return
     config = options.ephemeral_storage_local_ssd
     count = None
     if 'count' in config:
       count = config['count']
-    node_config.ephemeralStorageLocalSsdConfig = self.messages.EphemeralStorageLocalSsdConfig(
-        localSsdCount=count)
+    dcount = None
+    if options.data_cache_count is not None:
+      dcount = int(options.data_cache_count)
+    node_config.ephemeralStorageLocalSsdConfig = (
+        self.messages.EphemeralStorageLocalSsdConfig(
+            localSsdCount=count, dataCacheCount=dcount
+        )
+    )
+    # pylint: enable=line-too-long
 
   def _AddLocalNvmeSsdBlockToNodeConfig(self, node_config, options):
     if options.local_nvme_ssd_block is None:
@@ -4068,7 +5737,8 @@ class APIAdapter(object):
     if 'count' in config:
       count = config['count']
     node_config.localNvmeSsdBlockConfig = self.messages.LocalNvmeSsdBlockConfig(
-        localSsdCount=count)
+        localSsdCount=count
+    )
 
   def _AddEnableConfidentialStorageToNodeConfig(self, node_config, options):
     if not options.enable_confidential_storage:
@@ -4080,6 +5750,18 @@ class APIAdapter(object):
       return
     node_config.storagePools = options.storage_pools
 
+  def _AddLocalSsdEncryptionModeToNodeConfig(self, node_config, options):
+    """Add localSsdEncryptionMode to nodeConfig."""
+    if options.local_ssd_encryption_mode is not None:
+      if options.local_ssd_encryption_mode == 'EPHEMERAL_KEY_ENCRYPTION':
+        node_config.localSsdEncryptionMode = (
+            node_config.LocalSsdEncryptionModeValueValuesEnum.EPHEMERAL_KEY_ENCRYPTION
+        )
+      elif options.local_ssd_encryption_mode == 'STANDARD_ENCRYPTION':
+        node_config.localSsdEncryptionMode = (
+            node_config.LocalSsdEncryptionModeValueValuesEnum.STANDARD_ENCRYPTION
+        )
+
   def _AddNodeTaintsToNodeConfig(self, node_config, options):
     """Add nodeTaints to nodeConfig."""
     if options.node_taints is None:
@@ -4090,7 +5772,8 @@ class APIAdapter(object):
       strs = value.split(':')
       if len(strs) != 2:
         raise util.Error(
-            NODE_TAINT_INCORRECT_FORMAT_ERROR_MSG.format(key=key, value=value))
+            NODE_TAINT_INCORRECT_FORMAT_ERROR_MSG.format(key=key, value=value)
+        )
       value = strs[0]
       taint_effect = strs[1]
       if taint_effect == 'NoSchedule':
@@ -4101,9 +5784,11 @@ class APIAdapter(object):
         effect = effect_enum.NO_EXECUTE
       else:
         raise util.Error(
-            NODE_TAINT_INCORRECT_EFFECT_ERROR_MSG.format(effect=strs[1]))
+            NODE_TAINT_INCORRECT_EFFECT_ERROR_MSG.format(effect=strs[1])
+        )
       taints.append(
-          self.messages.NodeTaint(key=key, value=value, effect=effect))
+          self.messages.NodeTaint(key=key, value=value, effect=effect)
+      )
 
     node_config.taints = taints
 
@@ -4123,113 +5808,133 @@ class APIAdapter(object):
       option = options.workload_metadata
       if option == 'GCE_METADATA':
         node_config.workloadMetadataConfig = messages.WorkloadMetadataConfig(
-            mode=messages.WorkloadMetadataConfig.ModeValueValuesEnum
-            .GCE_METADATA)
+            mode=messages.WorkloadMetadataConfig.ModeValueValuesEnum.GCE_METADATA
+        )
       elif option == 'GKE_METADATA':
         node_config.workloadMetadataConfig = messages.WorkloadMetadataConfig(
-            mode=messages.WorkloadMetadataConfig.ModeValueValuesEnum
-            .GKE_METADATA)
+            mode=messages.WorkloadMetadataConfig.ModeValueValuesEnum.GKE_METADATA
+        )
       else:
         raise util.Error(
-            UNKNOWN_WORKLOAD_METADATA_ERROR_MSG.format(option=option))
+            UNKNOWN_WORKLOAD_METADATA_ERROR_MSG.format(option=option)
+        )
     elif options.workload_metadata_from_node is not None:
       option = options.workload_metadata_from_node
       if option == 'GCE_METADATA':
         node_config.workloadMetadataConfig = messages.WorkloadMetadataConfig(
-            mode=messages.WorkloadMetadataConfig.ModeValueValuesEnum
-            .GCE_METADATA)
+            mode=messages.WorkloadMetadataConfig.ModeValueValuesEnum.GCE_METADATA
+        )
       elif option == 'GKE_METADATA':
         node_config.workloadMetadataConfig = messages.WorkloadMetadataConfig(
-            mode=messages.WorkloadMetadataConfig.ModeValueValuesEnum
-            .GKE_METADATA)
+            mode=messages.WorkloadMetadataConfig.ModeValueValuesEnum.GKE_METADATA
+        )
       # the following options are deprecated
       elif option == 'SECURE':
         node_config.workloadMetadataConfig = messages.WorkloadMetadataConfig(
-            nodeMetadata=messages.WorkloadMetadataConfig
-            .NodeMetadataValueValuesEnum.SECURE)
+            nodeMetadata=messages.WorkloadMetadataConfig.NodeMetadataValueValuesEnum.SECURE
+        )
       elif option == 'EXPOSED':
         node_config.workloadMetadataConfig = messages.WorkloadMetadataConfig(
-            nodeMetadata=messages.WorkloadMetadataConfig
-            .NodeMetadataValueValuesEnum.EXPOSE)
+            nodeMetadata=messages.WorkloadMetadataConfig.NodeMetadataValueValuesEnum.EXPOSE
+        )
       elif option == 'GKE_METADATA_SERVER':
         node_config.workloadMetadataConfig = messages.WorkloadMetadataConfig(
-            nodeMetadata=messages.WorkloadMetadataConfig
-            .NodeMetadataValueValuesEnum.GKE_METADATA_SERVER)
+            nodeMetadata=messages.WorkloadMetadataConfig.NodeMetadataValueValuesEnum.GKE_METADATA_SERVER
+        )
       else:
         raise util.Error(
-            UNKNOWN_WORKLOAD_METADATA_ERROR_MSG.format(option=option))
+            UNKNOWN_WORKLOAD_METADATA_ERROR_MSG.format(option=option)
+        )
 
   def SetNetworkPolicyCommon(self, options):
     """Returns a SetNetworkPolicy operation."""
     return self.messages.NetworkPolicy(
         enabled=options.enabled,
         # Only Calico is currently supported as a network policy provider.
-        provider=self.messages.NetworkPolicy.ProviderValueValuesEnum.CALICO)
+        provider=self.messages.NetworkPolicy.ProviderValueValuesEnum.CALICO,
+    )
 
   def SetNetworkPolicy(self, cluster_ref, options):
     netpol = self.SetNetworkPolicyCommon(options)
     req = self.messages.SetNetworkPolicyRequest(
-        name=ProjectLocationCluster(cluster_ref.projectId, cluster_ref.zone,
-                                    cluster_ref.clusterId),
-        networkPolicy=netpol)
+        name=ProjectLocationCluster(
+            cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+        ),
+        networkPolicy=netpol,
+    )
     return self.ParseOperation(
         self.client.projects_locations_clusters.SetNetworkPolicy(req).name,
-        cluster_ref.zone)
+        cluster_ref.zone,
+    )
 
   def SetMasterAuthCommon(self, options):
     """Returns a SetMasterAuth action."""
     update = self.messages.MasterAuth(
-        username=options.username, password=options.password)
+        username=options.username, password=options.password
+    )
     if options.action == SetMasterAuthOptions.SET_PASSWORD:
       action = (
-          self.messages.SetMasterAuthRequest.ActionValueValuesEnum.SET_PASSWORD)
+          self.messages.SetMasterAuthRequest.ActionValueValuesEnum.SET_PASSWORD
+      )
     elif options.action == SetMasterAuthOptions.GENERATE_PASSWORD:
       action = (
-          self.messages.SetMasterAuthRequest.ActionValueValuesEnum
-          .GENERATE_PASSWORD)
+          self.messages.SetMasterAuthRequest.ActionValueValuesEnum.GENERATE_PASSWORD
+      )
     else:  # options.action == SetMasterAuthOptions.SET_USERNAME
       action = (
-          self.messages.SetMasterAuthRequest.ActionValueValuesEnum.SET_USERNAME)
+          self.messages.SetMasterAuthRequest.ActionValueValuesEnum.SET_USERNAME
+      )
     return update, action
 
   def SetMasterAuth(self, cluster_ref, options):
     update, action = self.SetMasterAuthCommon(options)
     req = self.messages.SetMasterAuthRequest(
-        name=ProjectLocationCluster(cluster_ref.projectId, cluster_ref.zone,
-                                    cluster_ref.clusterId),
+        name=ProjectLocationCluster(
+            cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+        ),
         action=action,
-        update=update)
+        update=update,
+    )
     op = self.client.projects_locations_clusters.SetMasterAuth(req)
     return self.ParseOperation(op.name, cluster_ref.zone)
 
   def StartIpRotation(self, cluster_ref, rotate_credentials):
     operation = self.client.projects_locations_clusters.StartIpRotation(
         self.messages.StartIPRotationRequest(
-            name=ProjectLocationCluster(cluster_ref.projectId, cluster_ref.zone,
-                                        cluster_ref.clusterId),
-            rotateCredentials=rotate_credentials))
+            name=ProjectLocationCluster(
+                cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+            ),
+            rotateCredentials=rotate_credentials,
+        )
+    )
     return self.ParseOperation(operation.name, cluster_ref.zone)
 
   def CompleteIpRotation(self, cluster_ref):
     operation = self.client.projects_locations_clusters.CompleteIpRotation(
         self.messages.CompleteIPRotationRequest(
-            name=ProjectLocationCluster(cluster_ref.projectId, cluster_ref.zone,
-                                        cluster_ref.clusterId)))
+            name=ProjectLocationCluster(
+                cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+            )
+        )
+    )
     return self.ParseOperation(operation.name, cluster_ref.zone)
 
   def _SendMaintenancePolicyRequest(self, cluster_ref, policy):
-    """Given a policy, sends a SetMaintenancePolicy request and returns the operation.
-    """
+    """Given a policy, sends a SetMaintenancePolicy request and returns the operation."""
     req = self.messages.SetMaintenancePolicyRequest(
-        name=ProjectLocationCluster(cluster_ref.projectId, cluster_ref.zone,
-                                    cluster_ref.clusterId),
-        maintenancePolicy=policy)
+        name=ProjectLocationCluster(
+            cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+        ),
+        maintenancePolicy=policy,
+    )
     operation = self.client.projects_locations_clusters.SetMaintenancePolicy(
-        req)
+        req
+    )
     return self.ParseOperation(operation.name, cluster_ref.zone)
 
-  def SetDailyMaintenanceWindow(self, cluster_ref, existing_policy,
-                                maintenance_window):
+  def SetDailyMaintenanceWindow(
+      self, cluster_ref, existing_policy, maintenance_window
+  ):
     """Sets the daily maintenance window for a cluster."""
     # Special behavior for removing the window. This actually removes the
     # recurring window too, if set (since anyone using this command if there's
@@ -4238,7 +5943,8 @@ class APIAdapter(object):
       daily_window = None
     else:
       daily_window = self.messages.DailyMaintenanceWindow(
-          startTime=maintenance_window)
+          startTime=maintenance_window
+      )
 
     if existing_policy is None:
       existing_policy = self.messages.MaintenancePolicy()
@@ -4268,8 +5974,11 @@ class APIAdapter(object):
     try:
       operation = self.client.projects_locations_clusters.Delete(
           self.messages.ContainerProjectsLocationsClustersDeleteRequest(
-              name=ProjectLocationCluster(cluster_ref.projectId, cluster_ref
-                                          .zone, cluster_ref.clusterId)))
+              name=ProjectLocationCluster(
+                  cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+              )
+          )
+      )
       return self.ParseOperation(operation.name, cluster_ref.zone)
     except apitools_exceptions.HttpNotFoundError as error:
       api_error = exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
@@ -4280,7 +5989,8 @@ class APIAdapter(object):
     if not location:
       location = '-'
     req = self.messages.ContainerProjectsLocationsClustersListRequest(
-        parent=ProjectLocation(project, location))
+        parent=ProjectLocation(project, location)
+    )
     return self.client.projects_locations_clusters.List(req)
 
   def CreateNodePoolCommon(self, node_pool_ref, options):
@@ -4294,6 +6004,11 @@ class APIAdapter(object):
       node_config.diskType = options.disk_type
     if options.image_type:
       node_config.imageType = options.image_type
+    if (
+        options.boot_disk_provisioned_iops
+        or options.boot_disk_provisioned_throughput
+    ):
+      node_config.bootDisk = self.ParseBootDiskConfig(options)
 
     self.ParseAdvancedMachineFeatures(options, node_config)
 
@@ -4316,6 +6031,7 @@ class APIAdapter(object):
     self._AddEphemeralStorageLocalSsdToNodeConfig(node_config, options)
     self._AddLocalNvmeSsdBlockToNodeConfig(node_config, options)
     self._AddStoragePoolsToNodeConfig(node_config, options)
+    self._AddLocalSsdEncryptionModeToNodeConfig(node_config, options)
     if options.enable_confidential_storage:
       node_config.enableConfidentialStorage = (
           options.enable_confidential_storage
@@ -4356,16 +6072,33 @@ class APIAdapter(object):
 
     if options.enable_image_streaming is not None:
       gcfs_config = self.messages.GcfsConfig(
-          enabled=options.enable_image_streaming)
+          enabled=options.enable_image_streaming
+      )
       node_config.gcfsConfig = gcfs_config
 
     if options.gvnic is not None:
       gvnic = self.messages.VirtualNIC(enabled=options.gvnic)
       node_config.gvnic = gvnic
 
+    if options.max_run_duration is not None:
+      node_config.maxRunDuration = options.max_run_duration
+
+    if options.flex_start is not None:
+      node_config.flexStart = options.flex_start
+
     if options.enable_confidential_nodes:
       confidential_nodes = self.messages.ConfidentialNodes(
-          enabled=options.enable_confidential_nodes)
+          enabled=options.enable_confidential_nodes
+      )
+      node_config.confidentialNodes = confidential_nodes
+
+    if options.confidential_node_type is not None:
+      confidential_nodes = self.messages.ConfidentialNodes(
+          enabled=options.enable_confidential_nodes,
+          confidentialInstanceType=_ConfidentialNodeTypeEnumFromString(
+              options, self.messages, for_node_pool=True
+          ),
+      )
       node_config.confidentialNodes = confidential_nodes
 
     if options.enable_fast_socket is not None:
@@ -4374,18 +6107,22 @@ class APIAdapter(object):
 
     if options.maintenance_interval:
       node_config.stableFleetConfig = _GetStableFleetConfig(
-          options, self.messages)
+          options, self.messages
+      )
 
     if options.logging_variant is not None:
       logging_config = self.messages.NodePoolLoggingConfig()
       logging_config.variantConfig = self.messages.LoggingVariantConfig(
-          variant=VariantConfigEnumFromString(self.messages,
-                                              options.logging_variant))
+          variant=VariantConfigEnumFromString(
+              self.messages, options.logging_variant
+          )
+      )
       node_config.loggingConfig = logging_config
 
-    if options.host_maintenance_interval:
+    if options.host_maintenance_interval or options.opportunistic_maintenance:
       node_config.hostMaintenancePolicy = _GetHostMaintenancePolicy(
-          options, self.messages)
+          options, self.messages, NODEPOOL
+      )
 
     if options.containerd_config_from_file is not None:
       node_config.containerdConfig = self.messages.ContainerdConfig()
@@ -4402,12 +6139,24 @@ class APIAdapter(object):
     _AddSandboxConfigToNodeConfig(node_config, options, self.messages)
     _AddWindowsNodeConfigToNodeConfig(node_config, options, self.messages)
 
+    # if we are using a multi-host TPU (tpu_topology is specified)
+    # and num_nodes is not specified, calculate the
+    # num_nodes based on the tpu_topology as the new default. If not
+    # a multi-host TPU, default num_nodes to 3.
+    if (options.tpu_topology is not None) and (options.num_nodes is None):
+      options.num_nodes = TpuTopologyToNumNodes(
+          options.tpu_topology, options.machine_type
+      )
+    elif options.num_nodes is None:
+      options.num_nodes = 3
+
     pool = self.messages.NodePool(
         name=node_pool_ref.nodePoolId,
         initialNodeCount=options.num_nodes,
         config=node_config,
         version=options.node_version,
-        management=self._GetNodeManagement(options))
+        management=self._GetNodeManagement(options),
+    )
 
     if options.enable_autoscaling or options.enable_autoprovisioning:
       pool.autoscaling = self.messages.NodePoolAutoscaling()
@@ -4489,6 +6238,20 @@ class APIAdapter(object):
     if options.placement_policy is not None:
       pool.placementPolicy.policyName = options.placement_policy
 
+    if options.gpudirect_strategy is not None:
+      if options.gpudirect_strategy == 'RDMA':
+        node_config.gpuDirectConfig = self.messages.GPUDirectConfig(
+            gpuDirectStrategy=(
+                self.messages.GPUDirectConfig.GpuDirectStrategyValueValuesEnum.RDMA
+            )
+        )
+      elif options.gpudirect_strategy == 'TCPX':
+        node_config.gpuDirectConfig = self.messages.GPUDirectConfig(
+            gpuDirectStrategy=(
+                self.messages.GPUDirectConfig.GpuDirectStrategyValueValuesEnum.TCPX
+            )
+        )
+
     if options.tpu_topology:
       if pool.placementPolicy is None:
         pool.placementPolicy = self.messages.PlacementPolicy()
@@ -4504,6 +6267,12 @@ class APIAdapter(object):
           util.LoadSoleTenantConfigFromNodeAffinityYaml(
               options.sole_tenant_node_affinity_file, self.messages
           )
+      )
+    if options.sole_tenant_min_node_cpus is not None:
+      if node_config.soleTenantConfig is None:
+        node_config.soleTenantConfig = self.messages.SoleTenantConfig()
+      node_config.soleTenantConfig.minNodeCpus = (
+          options.sole_tenant_min_node_cpus
       )
 
     if options.secondary_boot_disks is not None:
@@ -4537,24 +6306,52 @@ class APIAdapter(object):
     pool = self.CreateNodePoolCommon(node_pool_ref, options)
     req = self.messages.CreateNodePoolRequest(
         nodePool=pool,
-        parent=ProjectLocationCluster(node_pool_ref.projectId,
-                                      node_pool_ref.zone,
-                                      node_pool_ref.clusterId))
+        parent=ProjectLocationCluster(
+            node_pool_ref.projectId, node_pool_ref.zone, node_pool_ref.clusterId
+        ),
+    )
     operation = self.client.projects_locations_clusters_nodePools.Create(req)
     return self.ParseOperation(operation.name, node_pool_ref.zone)
 
   def ListNodePools(self, cluster_ref):
     req = self.messages.ContainerProjectsLocationsClustersNodePoolsListRequest(
-        parent=ProjectLocationCluster(cluster_ref.projectId, cluster_ref.zone,
-                                      cluster_ref.clusterId))
+        parent=ProjectLocationCluster(
+            cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+        )
+    )
     return self.client.projects_locations_clusters_nodePools.List(req)
 
   def GetNodePool(self, node_pool_ref):
     req = self.messages.ContainerProjectsLocationsClustersNodePoolsGetRequest(
         name=ProjectLocationClusterNodePool(
-            node_pool_ref.projectId, node_pool_ref.zone,
-            node_pool_ref.clusterId, node_pool_ref.nodePoolId))
+            node_pool_ref.projectId,
+            node_pool_ref.zone,
+            node_pool_ref.clusterId,
+            node_pool_ref.nodePoolId,
+        )
+    )
     return self.client.projects_locations_clusters_nodePools.Get(req)
+
+  def GetNodePoolUpgradeInfo(self, node_pool_ref):
+    """Get node pool upgrade info.
+
+    Args:
+      node_pool_ref: NodePool Resource to get upgrade info for.
+
+    Returns:
+      NodePool Upgrade Info message.
+    """
+    req = self.messages.ContainerProjectsLocationsClustersNodePoolsFetchNodePoolUpgradeInfoRequest(
+        name=ProjectLocationClusterNodePool(
+            node_pool_ref.projectId,
+            node_pool_ref.zone,
+            node_pool_ref.clusterId,
+            node_pool_ref.nodePoolId,
+        )
+    )
+    return self.client.projects_locations_clusters_nodePools.FetchNodePoolUpgradeInfo(
+        req
+    )
 
   def UpdateNodePoolNodeManagement(self, node_pool_ref, options):
     """Updates node pool's node management configuration.
@@ -4599,7 +6396,9 @@ class APIAdapter(object):
         autoscaling.totalMinNodeCount = 0
         autoscaling.totalMaxNodeCount = 0
         autoscaling.autoprovisioned = False
-        autoscaling.locationPolicy = self.messages.NodePoolAutoscaling.LocationPolicyValueValuesEnum.LOCATION_POLICY_UNSPECIFIED
+        autoscaling.locationPolicy = (
+            self.messages.NodePoolAutoscaling.LocationPolicyValueValuesEnum.LOCATION_POLICY_UNSPECIFIED
+        )
     if options.enable_autoprovisioning is not None:
       autoscaling.autoprovisioned = options.enable_autoprovisioning
       if autoscaling.autoprovisioned:
@@ -4616,52 +6415,83 @@ class APIAdapter(object):
       autoscaling.totalMinNodeCount = options.total_min_nodes
     if options.location_policy is not None:
       autoscaling.locationPolicy = LocationPolicyEnumFromString(
-          self.messages, options.location_policy)
+          self.messages, options.location_policy
+      )
     return autoscaling
 
   def UpdateBlueGreenSettings(self, upgrade_settings, options):
     """Update blue green settings field in upgrade_settings."""
-    blue_green_settings = upgrade_settings.blueGreenSettings or self.messages.BlueGreenSettings(
+    if (
+        options.standard_rollout_policy is not None
+        and options.autoscaled_rollout_policy is not None
+    ):
+      raise util.Error(
+          'BlueGreenSettings must contain only one of:'
+          ' --standard-rollout-policy, --autoscaled-rollout-policy'
+      )
+    blue_green_settings = (
+        upgrade_settings.blueGreenSettings or self.messages.BlueGreenSettings()
     )
     if options.node_pool_soak_duration is not None:
       blue_green_settings.nodePoolSoakDuration = options.node_pool_soak_duration
 
     if options.standard_rollout_policy is not None:
-      standard_rollout_policy = blue_green_settings.standardRolloutPolicy or self.messages.StandardRolloutPolicy(
+      standard_rollout_policy = (
+          blue_green_settings.standardRolloutPolicy
+          or self.messages.StandardRolloutPolicy()
       )
 
-      if 'batch-node-count' in options.standard_rollout_policy and 'batch-percent' in options.standard_rollout_policy:
+      if (
+          'batch-node-count' in options.standard_rollout_policy
+          and 'batch-percent' in options.standard_rollout_policy
+      ):
         raise util.Error(
-            'StandardRolloutPolicy must contain only one of: batch-node-count, batch-percent'
+            'StandardRolloutPolicy must contain only one of: batch-node-count,'
+            ' batch-percent'
         )
 
-      standard_rollout_policy.batchPercentage = standard_rollout_policy.batchNodeCount = None
+      standard_rollout_policy.batchNodeCount = None
+      standard_rollout_policy.batchPercentage = None
       if 'batch-node-count' in options.standard_rollout_policy:
-        standard_rollout_policy.batchNodeCount = options.standard_rollout_policy[
-            'batch-node-count']
+        standard_rollout_policy.batchNodeCount = (
+            options.standard_rollout_policy['batch-node-count']
+        )
       elif 'batch-percent' in options.standard_rollout_policy:
-        standard_rollout_policy.batchPercentage = options.standard_rollout_policy[
-            'batch-percent']
+        standard_rollout_policy.batchPercentage = (
+            options.standard_rollout_policy['batch-percent']
+        )
 
       if 'batch-soak-duration' in options.standard_rollout_policy:
-        standard_rollout_policy.batchSoakDuration = options.standard_rollout_policy[
-            'batch-soak-duration']
+        standard_rollout_policy.batchSoakDuration = (
+            options.standard_rollout_policy['batch-soak-duration']
+        )
       blue_green_settings.standardRolloutPolicy = standard_rollout_policy
-    # autoscaled rollout policy has no fields yet.
-    if options.autoscaled_rollout_policy:
-      blue_green_settings.autoscaledRolloutPolicy = (
-          self.messages.AutoscaledRolloutPolicy()
+      blue_green_settings.autoscaledRolloutPolicy = None
+    elif options.autoscaled_rollout_policy is not None:
+      autoscaled_rollout_policy = (
+          blue_green_settings.autoscaledRolloutPolicy
+          or self.messages.AutoscaledRolloutPolicy()
       )
+
+      autoscaled_rollout_policy.waitForDrainDuration = None
+      if 'wait-for-drain-duration' in options.autoscaled_rollout_policy:
+        autoscaled_rollout_policy.waitForDrainDuration = (
+            options.autoscaled_rollout_policy['wait-for-drain-duration']
+        )
+      blue_green_settings.autoscaledRolloutPolicy = autoscaled_rollout_policy
+      blue_green_settings.standardRolloutPolicy = None
+
     return blue_green_settings
 
   def UpdateUpgradeSettings(self, node_pool_ref, options, pool=None):
-    """Updates node pool's upgrade setting."""
+    """Updates node pool's upgrade settings."""
     if pool is None:
       pool = self.GetNodePool(node_pool_ref)
 
     if options.enable_surge_upgrade and options.enable_blue_green_upgrade:
       raise util.Error(
-          'UpgradeSettings must contain only one of: --enable-surge-upgrade, --enable-blue-green-upgrade'
+          'UpgradeSettings must contain only one of: --enable-surge-upgrade,'
+          ' --enable-blue-green-upgrade'
       )
 
     upgrade_settings = pool.upgradeSettings
@@ -4672,15 +6502,21 @@ class APIAdapter(object):
     if options.max_unavailable_upgrade is not None:
       upgrade_settings.maxUnavailable = options.max_unavailable_upgrade
     if options.enable_surge_upgrade:
-      upgrade_settings.strategy = self.messages.UpgradeSettings.StrategyValueValuesEnum.SURGE
+      upgrade_settings.strategy = (
+          self.messages.UpgradeSettings.StrategyValueValuesEnum.SURGE
+      )
     if options.enable_blue_green_upgrade:
-      upgrade_settings.strategy = self.messages.UpgradeSettings.StrategyValueValuesEnum.BLUE_GREEN
-    if options.standard_rollout_policy is not None or options.node_pool_soak_duration is not None:
+      upgrade_settings.strategy = (
+          self.messages.UpgradeSettings.StrategyValueValuesEnum.BLUE_GREEN
+      )
+    if (
+        options.standard_rollout_policy is not None
+        or options.node_pool_soak_duration is not None
+        or options.autoscaled_rollout_policy is not None
+    ):
       upgrade_settings.blueGreenSettings = self.UpdateBlueGreenSettings(
-          upgrade_settings, options)
-    if options.autoscaled_rollout_policy:
-      upgrade_settings.blueGreenSettings = self.UpdateBlueGreenSettings(
-          upgrade_settings, options)
+          upgrade_settings, options
+      )
     return upgrade_settings
 
   def UpdateNodePoolRequest(self, node_pool_ref, options):
@@ -4701,23 +6537,32 @@ class APIAdapter(object):
             node_pool_ref.zone,
             node_pool_ref.clusterId,
             node_pool_ref.nodePoolId,
-        ))
+        )
+    )
 
     self.ParseAcceleratorOptions(options, update_request)
 
-    if options.workload_metadata is not None or options.workload_metadata_from_node is not None:
-      self._AddWorkloadMetadataToNodeConfig(update_request, options,
-                                            self.messages)
+    if (
+        options.workload_metadata is not None
+        or options.workload_metadata_from_node is not None
+    ):
+      self._AddWorkloadMetadataToNodeConfig(
+          update_request, options, self.messages
+      )
     elif options.node_locations is not None:
       update_request.locations = sorted(options.node_locations)
-    elif (options.enable_blue_green_upgrade or options.enable_surge_upgrade or
-          options.max_surge_upgrade is not None or
-          options.max_unavailable_upgrade is not None or
-          options.standard_rollout_policy is not None or
-          options.node_pool_soak_duration is not None
-          or options.autoscaled_rollout_policy):
+    elif (
+        options.enable_blue_green_upgrade
+        or options.enable_surge_upgrade
+        or options.max_surge_upgrade is not None
+        or options.max_unavailable_upgrade is not None
+        or options.standard_rollout_policy is not None
+        or options.node_pool_soak_duration is not None
+        or options.autoscaled_rollout_policy is not None
+    ):
       update_request.upgradeSettings = self.UpdateUpgradeSettings(
-          node_pool_ref, options)
+          node_pool_ref, options
+      )
     elif (
         options.system_config_from_file is not None
         or options.enable_insecure_kubelet_readonly_port is not None
@@ -4743,9 +6588,9 @@ class APIAdapter(object):
 
     elif options.containerd_config_from_file is not None:
       containerd_config = self.messages.ContainerdConfig()
-      util.LoadContainerdConfigFromYAML(containerd_config,
-                                        options.containerd_config_from_file,
-                                        self.messages)
+      util.LoadContainerdConfigFromYAML(
+          containerd_config, options.containerd_config_from_file, self.messages
+      )
       update_request.containerdConfig = containerd_config
     elif options.labels is not None:
       resource_labels = self.messages.ResourceLabels()
@@ -4772,8 +6617,8 @@ class APIAdapter(object):
         strs = value.split(':')
         if len(strs) != 2:
           raise util.Error(
-              NODE_TAINT_INCORRECT_FORMAT_ERROR_MSG.format(
-                  key=key, value=value))
+              NODE_TAINT_INCORRECT_FORMAT_ERROR_MSG.format(key=key, value=value)
+          )
         value = strs[0]
         taint_effect = strs[1]
         if taint_effect == 'NoSchedule':
@@ -4784,9 +6629,11 @@ class APIAdapter(object):
           effect = effect_enum.NO_EXECUTE
         else:
           raise util.Error(
-              NODE_TAINT_INCORRECT_EFFECT_ERROR_MSG.format(effect=strs[1]))
+              NODE_TAINT_INCORRECT_EFFECT_ERROR_MSG.format(effect=strs[1])
+          )
         taints.append(
-            self.messages.NodeTaint(key=key, value=value, effect=effect))
+            self.messages.NodeTaint(key=key, value=value, effect=effect)
+        )
       node_taints = self.messages.NodeTaints()
       node_taints.taints = taints
       update_request.taints = node_taints
@@ -4804,18 +6651,32 @@ class APIAdapter(object):
     elif options.gvnic is not None:
       gvnic = self.messages.VirtualNIC(enabled=options.gvnic)
       update_request.gvnic = gvnic
+    elif options.max_run_duration is not None:
+      update_request.maxRunDuration = options.max_run_duration
+    elif options.flex_start is not None:
+      update_request.flexStart = options.flex_start
     elif options.enable_image_streaming is not None:
       gcfs_config = self.messages.GcfsConfig(
-          enabled=options.enable_image_streaming)
+          enabled=options.enable_image_streaming
+      )
       update_request.gcfsConfig = gcfs_config
     elif options.network_performance_config is not None:
       network_config = self.messages.NodeNetworkConfig()
-      network_config.networkPerformanceConfig = self._GetNetworkPerformanceConfig(
-          options)
+      network_config.networkPerformanceConfig = (
+          self._GetNetworkPerformanceConfig(options)
+      )
       update_request.nodeNetworkConfig = network_config
     elif options.enable_confidential_nodes is not None:
       confidential_nodes = self.messages.ConfidentialNodes(
-          enabled=options.enable_confidential_nodes)
+          enabled=options.enable_confidential_nodes
+      )
+      update_request.confidentialNodes = confidential_nodes
+    elif options.confidential_node_type is not None:
+      confidential_nodes = self.messages.ConfidentialNodes(
+          confidentialInstanceType=_ConfidentialNodeTypeEnumFromString(
+              options, self.messages, for_node_pool=True
+          )
+      )
       update_request.confidentialNodes = confidential_nodes
     elif options.enable_fast_socket is not None:
       fast_socket = self.messages.FastSocket(enabled=options.enable_fast_socket)
@@ -4823,29 +6684,55 @@ class APIAdapter(object):
     elif options.logging_variant is not None:
       logging_config = self.messages.NodePoolLoggingConfig()
       logging_config.variantConfig = self.messages.LoggingVariantConfig(
-          variant=VariantConfigEnumFromString(self.messages,
-                                              options.logging_variant))
+          variant=VariantConfigEnumFromString(
+              self.messages, options.logging_variant
+          )
+      )
       update_request.loggingConfig = logging_config
     elif options.windows_os_version is not None:
       windows_node_config = self.messages.WindowsNodeConfig()
       if options.windows_os_version == 'ltsc2022':
-        windows_node_config.osVersion = self.messages.WindowsNodeConfig.OsVersionValueValuesEnum.OS_VERSION_LTSC2022
+        windows_node_config.osVersion = (
+            self.messages.WindowsNodeConfig.OsVersionValueValuesEnum.OS_VERSION_LTSC2022
+        )
       else:
-        windows_node_config.osVersion = self.messages.WindowsNodeConfig.OsVersionValueValuesEnum.OS_VERSION_LTSC2019
+        windows_node_config.osVersion = (
+            self.messages.WindowsNodeConfig.OsVersionValueValuesEnum.OS_VERSION_LTSC2019
+        )
       update_request.windowsNodeConfig = windows_node_config
     elif options.resource_manager_tags is not None:
       tags = options.resource_manager_tags
       update_request.resourceManagerTags = self._ResourceManagerTags(tags)
-    elif (options.machine_type is not None or
-          options.disk_type is not None or
-          options.disk_size_gb is not None):
+    elif (
+        options.machine_type is not None
+        or options.disk_type is not None
+        or options.disk_size_gb is not None
+        or options.provisioned_iops is not None
+        or options.provisioned_throughput is not None
+    ):
       update_request.machineType = options.machine_type
       update_request.diskType = options.disk_type
       update_request.diskSizeGb = options.disk_size_gb
+      # This is nested because iops/throughput are grouped with disk type/size.
+      # In the future they will all modify the BootDisk message.
+      if (
+          options.provisioned_iops is not None
+          or options.provisioned_throughput is not None
+      ):
+        boot_disk_cfg = self.messages.BootDisk()
+        if options.provisioned_iops is not None:
+          boot_disk_cfg.provisionedIops = options.provisioned_iops
+        if options.provisioned_throughput is not None:
+          boot_disk_cfg.provisionedThroughput = options.provisioned_throughput
+        update_request.bootDisk = boot_disk_cfg
+
     elif options.enable_queued_provisioning is not None:
       update_request.queuedProvisioning = self.messages.QueuedProvisioning()
       update_request.queuedProvisioning.enabled = (
-          options.enable_queued_provisioning)
+          options.enable_queued_provisioning
+      )
+    elif options.storage_pools is not None:
+      update_request.storagePools = options.storage_pools
     return update_request
 
   def UpdateNodePool(self, node_pool_ref, options):
@@ -4854,25 +6741,33 @@ class APIAdapter(object):
       autoscaling = self.UpdateNodePoolAutoscaling(node_pool_ref, options)
       update = self.messages.ClusterUpdate(
           desiredNodePoolId=node_pool_ref.nodePoolId,
-          desiredNodePoolAutoscaling=autoscaling)
+          desiredNodePoolAutoscaling=autoscaling,
+      )
       operation = self.client.projects_locations_clusters.Update(
           self.messages.UpdateClusterRequest(
-              name=ProjectLocationCluster(node_pool_ref.projectId,
-                                          node_pool_ref.zone,
-                                          node_pool_ref.clusterId),
-              update=update))
+              name=ProjectLocationCluster(
+                  node_pool_ref.projectId,
+                  node_pool_ref.zone,
+                  node_pool_ref.clusterId,
+              ),
+              update=update,
+          )
+      )
       return self.ParseOperation(operation.name, node_pool_ref.zone)
     elif options.IsNodePoolManagementUpdate():
       management = self.UpdateNodePoolNodeManagement(node_pool_ref, options)
-      req = (
-          self.messages.SetNodePoolManagementRequest(
-              name=ProjectLocationClusterNodePool(node_pool_ref.projectId,
-                                                  node_pool_ref.zone,
-                                                  node_pool_ref.clusterId,
-                                                  node_pool_ref.nodePoolId),
-              management=management))
+      req = self.messages.SetNodePoolManagementRequest(
+          name=ProjectLocationClusterNodePool(
+              node_pool_ref.projectId,
+              node_pool_ref.zone,
+              node_pool_ref.clusterId,
+              node_pool_ref.nodePoolId,
+          ),
+          management=management,
+      )
       operation = (
-          self.client.projects_locations_clusters_nodePools.SetManagement(req))
+          self.client.projects_locations_clusters_nodePools.SetManagement(req)
+      )
     elif options.IsUpdateNodePoolRequest():
       req = self.UpdateNodePoolRequest(node_pool_ref, options)
       operation = self.client.projects_locations_clusters_nodePools.Update(req)
@@ -4885,74 +6780,96 @@ class APIAdapter(object):
     operation = self.client.projects_locations_clusters_nodePools.Delete(
         self.messages.ContainerProjectsLocationsClustersNodePoolsDeleteRequest(
             name=ProjectLocationClusterNodePool(
-                node_pool_ref.projectId, node_pool_ref.zone,
-                node_pool_ref.clusterId, node_pool_ref.nodePoolId)))
+                node_pool_ref.projectId,
+                node_pool_ref.zone,
+                node_pool_ref.clusterId,
+                node_pool_ref.nodePoolId,
+            )
+        )
+    )
     return self.ParseOperation(operation.name, node_pool_ref.zone)
 
   def RollbackUpgrade(self, node_pool_ref, respect_pdb=None):
+    """Rolls back an upgrade for a node pool."""
     operation = self.client.projects_locations_clusters_nodePools.Rollback(
         self.messages.RollbackNodePoolUpgradeRequest(
             name=ProjectLocationClusterNodePool(
-                node_pool_ref.projectId, node_pool_ref.zone,
-                node_pool_ref.clusterId, node_pool_ref.nodePoolId),
-            respectPdb=respect_pdb))
+                node_pool_ref.projectId,
+                node_pool_ref.zone,
+                node_pool_ref.clusterId,
+                node_pool_ref.nodePoolId,
+            ),
+            respectPdb=respect_pdb,
+        )
+    )
     return self.ParseOperation(operation.name, node_pool_ref.zone)
 
   def CompleteNodePoolUpgrade(self, node_pool_ref):
     req = self.messages.ContainerProjectsLocationsClustersNodePoolsCompleteUpgradeRequest(
         name=ProjectLocationClusterNodePool(
-            node_pool_ref.projectId, node_pool_ref.zone,
-            node_pool_ref.clusterId, node_pool_ref.nodePoolId))
+            node_pool_ref.projectId,
+            node_pool_ref.zone,
+            node_pool_ref.clusterId,
+            node_pool_ref.nodePoolId,
+        )
+    )
     return self.client.projects_locations_clusters_nodePools.CompleteUpgrade(
-        req)
+        req
+    )
 
   def CancelOperation(self, op_ref):
     req = self.messages.CancelOperationRequest(
-        name=ProjectLocationOperation(op_ref.projectId, op_ref.zone,
-                                      op_ref.operationId))
+        name=ProjectLocationOperation(
+            op_ref.projectId, op_ref.zone, op_ref.operationId
+        )
+    )
     return self.client.projects_locations_operations.Cancel(req)
 
   def IsRunning(self, cluster):
-    return (
-        cluster.status == self.messages.Cluster.StatusValueValuesEnum.RUNNING)
+    return cluster.status == self.messages.Cluster.StatusValueValuesEnum.RUNNING
 
   def IsDegraded(self, cluster):
     return (
-        cluster.status == self.messages.Cluster.StatusValueValuesEnum.DEGRADED)
+        cluster.status == self.messages.Cluster.StatusValueValuesEnum.DEGRADED
+    )
 
   def GetDegradedWarning(self, cluster):
     if cluster.conditions:
       codes = [condition.code for condition in cluster.conditions]
       messages = [condition.message for condition in cluster.conditions]
-      return ('Codes: {0}\n' 'Messages: {1}.').format(codes, messages)
+      return ('Codes: {0}\nMessages: {1}.').format(codes, messages)
     else:
       return gke_constants.DEFAULT_DEGRADED_WARNING
-
-  def GetOperationError(self, operation):
-    return operation.statusMessage
 
   def ListOperations(self, project, location=None):
     if not location:
       location = '-'
     req = self.messages.ContainerProjectsLocationsOperationsListRequest(
-        parent=ProjectLocation(project, location))
+        parent=ProjectLocation(project, location)
+    )
     return self.client.projects_locations_operations.List(req)
 
   def IsOperationFinished(self, operation):
     return (
-        operation.status == self.messages.Operation.StatusValueValuesEnum.DONE)
+        operation.status == self.messages.Operation.StatusValueValuesEnum.DONE
+    )
 
   def GetServerConfig(self, project, location):
     req = self.messages.ContainerProjectsLocationsGetServerConfigRequest(
-        name=ProjectLocation(project, location))
+        name=ProjectLocation(project, location)
+    )
     return self.client.projects_locations.GetServerConfig(req)
 
   def ResizeNodePool(self, cluster_ref, pool_name, size):
     req = self.messages.SetNodePoolSizeRequest(
-        name=ProjectLocationClusterNodePool(cluster_ref.projectId,
-                                            cluster_ref.zone,
-                                            cluster_ref.clusterId, pool_name),
-        nodeCount=size)
+        name=ProjectLocationClusterNodePool(
+            cluster_ref.projectId,
+            cluster_ref.zone,
+            cluster_ref.clusterId,
+            pool_name,
+        ),
+        nodeCount=size,
+    )
     operation = self.client.projects_locations_clusters_nodePools.SetSize(req)
     return self.ParseOperation(operation.name, cluster_ref.zone)
 
@@ -4985,13 +6902,16 @@ class APIAdapter(object):
       A NetworkConfig object that contains the options for how the network
       for the nodepool needs to be configured.
     """
-    if (options.pod_ipv4_range is None and
-        options.create_pod_ipv4_range is None and
-        options.enable_private_nodes is None and
-        options.network_performance_config is None and
-        options.disable_pod_cidr_overprovision is None and
-        options.additional_node_network is None and
-        options.additional_pod_network is None):
+    if (
+        options.pod_ipv4_range is None
+        and options.create_pod_ipv4_range is None
+        and options.enable_private_nodes is None
+        and options.network_performance_config is None
+        and options.disable_pod_cidr_overprovision is None
+        and options.additional_node_network is None
+        and options.additional_pod_network is None
+        and options.accelerator_network_profile is None
+    ):
       return None
 
     network_config = self.messages.NodeNetworkConfig()
@@ -5001,16 +6921,21 @@ class APIAdapter(object):
       for key in options.create_pod_ipv4_range:
         if key not in ['name', 'range']:
           raise util.Error(
-              CREATE_POD_RANGE_INVALID_KEY_ERROR_MSG.format(key=key))
+              CREATE_POD_RANGE_INVALID_KEY_ERROR_MSG.format(key=key)
+          )
       network_config.createPodRange = True
       network_config.podRange = options.create_pod_ipv4_range.get('name', None)
       network_config.podIpv4CidrBlock = options.create_pod_ipv4_range.get(
-          'range', None)
+          'range', None
+      )
     if options.enable_private_nodes is not None:
       network_config.enablePrivateNodes = options.enable_private_nodes
     if options.disable_pod_cidr_overprovision is not None:
-      network_config.podCidrOverprovisionConfig = self.messages.PodCIDROverprovisionConfig(
-          disable=options.disable_pod_cidr_overprovision)
+      network_config.podCidrOverprovisionConfig = (
+          self.messages.PodCIDROverprovisionConfig(
+              disable=options.disable_pod_cidr_overprovision
+          )
+      )
 
     if options.additional_node_network is not None:
       network_config.additionalNodeNetworkConfigs = []
@@ -5019,20 +6944,30 @@ class APIAdapter(object):
         node_network_config_msg.network = node_network_option['network']
         node_network_config_msg.subnetwork = node_network_option['subnetwork']
         network_config.additionalNodeNetworkConfigs.append(
-            node_network_config_msg)
+            node_network_config_msg
+        )
 
     if options.additional_pod_network is not None:
       network_config.additionalPodNetworkConfigs = []
       for pod_network_option in options.additional_pod_network:
         pod_network_config_msg = self.messages.AdditionalPodNetworkConfig()
         pod_network_config_msg.subnetwork = pod_network_option.get(
-            'subnetwork', None)
+            'subnetwork', None
+        )
         pod_network_config_msg.secondaryPodRange = pod_network_option[
-            'pod-ipv4-range']
+            'pod-ipv4-range'
+        ]
         pod_network_config_msg.maxPodsPerNode = self.messages.MaxPodsConstraint(
-            maxPodsPerNode=pod_network_option.get('max-pods-per-node', None))
+            maxPodsPerNode=pod_network_option.get('max-pods-per-node', None)
+        )
         network_config.additionalPodNetworkConfigs.append(
-            pod_network_config_msg)
+            pod_network_config_msg
+        )
+
+    if options.accelerator_network_profile is not None:
+      network_config.acceleratorNetworkProfile = (
+          options.accelerator_network_profile
+      )
 
     return network_config
 
@@ -5046,7 +6981,8 @@ class APIAdapter(object):
       total_tier = config.get('total-egress-bandwidth-tier', '').upper()
       if total_tier:
         network_perf_configs.totalEgressBandwidthTier = self.messages.NetworkPerformanceConfig.TotalEgressBandwidthTierValueValuesEnum(
-            total_tier)
+            total_tier
+        )
 
     return network_perf_configs
 
@@ -5080,10 +7016,13 @@ class APIAdapter(object):
     labels, fingerprint = self.UpdateLabelsCommon(cluster_ref, update_labels)
     operation = self.client.projects_locations_clusters.SetResourceLabels(
         self.messages.SetLabelsRequest(
-            name=ProjectLocationCluster(cluster_ref.projectId, cluster_ref.zone,
-                                        cluster_ref.clusterId),
+            name=ProjectLocationCluster(
+                cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+            ),
             resourceLabels=labels,
-            labelFingerprint=fingerprint))
+            labelFingerprint=fingerprint,
+        )
+    )
     return self.ParseOperation(operation.name, cluster_ref.zone)
 
   def RemoveLabelsCommon(self, cluster_ref, remove_labels):
@@ -5116,15 +7055,17 @@ class APIAdapter(object):
     for k in remove_labels:
       try:
         clus_labels.pop(k)
-      except KeyError as error:
+      except KeyError:
         # if at least one label not found on cluster, raise error
         raise util.Error(
-            NO_SUCH_LABEL_ERROR_MSG.format(cluster=clus.name, name=k))
+            NO_SUCH_LABEL_ERROR_MSG.format(cluster=clus.name, name=k)
+        )
 
     labels = self.messages.SetLabelsRequest.ResourceLabelsValue()
     for k, v in sorted(six.iteritems(clus_labels)):
       labels.additionalProperties.append(
-          labels.AdditionalProperty(key=k, value=v))
+          labels.AdditionalProperty(key=k, value=v)
+      )
     return labels, clus.labelFingerprint
 
   def RemoveLabels(self, cluster_ref, remove_labels):
@@ -5132,10 +7073,13 @@ class APIAdapter(object):
     labels, fingerprint = self.RemoveLabelsCommon(cluster_ref, remove_labels)
     operation = self.client.projects_locations_clusters.SetResourceLabels(
         self.messages.SetLabelsRequest(
-            name=ProjectLocationCluster(cluster_ref.projectId, cluster_ref.zone,
-                                        cluster_ref.clusterId),
+            name=ProjectLocationCluster(
+                cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+            ),
             resourceLabels=labels,
-            labelFingerprint=fingerprint))
+            labelFingerprint=fingerprint,
+        )
+    )
     return self.ParseOperation(operation.name, cluster_ref.zone)
 
   def GetIamPolicy(self, cluster_ref):
@@ -5144,9 +7088,14 @@ class APIAdapter(object):
   def SetIamPolicy(self, cluster_ref):
     raise NotImplementedError('GetIamPolicy is not overridden')
 
-  def SetRecurringMaintenanceWindow(self, cluster_ref, existing_policy,
-                                    window_start, window_end,
-                                    window_recurrence):
+  def SetRecurringMaintenanceWindow(
+      self,
+      cluster_ref,
+      existing_policy,
+      window_start,
+      window_end,
+      window_recurrence,
+  ):
     """Sets a recurring maintenance window as the maintenance policy for a cluster.
 
     Args:
@@ -5161,8 +7110,10 @@ class APIAdapter(object):
     """
     recurring_window = self.messages.RecurringTimeWindow(
         window=self.messages.TimeWindow(
-            startTime=window_start.isoformat(), endTime=window_end.isoformat()),
-        recurrence=window_recurrence)
+            startTime=window_start.isoformat(), endTime=window_end.isoformat()
+        ),
+        recurrence=window_recurrence,
+    )
     if existing_policy is None:
       existing_policy = self.messages.MaintenancePolicy()
     if existing_policy.window is None:
@@ -5173,9 +7124,14 @@ class APIAdapter(object):
 
   def RemoveMaintenanceWindow(self, cluster_ref, existing_policy):
     """Removes the recurring or daily maintenance policy."""
-    if (existing_policy is None or existing_policy.window is None or
-        (existing_policy.window.dailyMaintenanceWindow is None and
-         existing_policy.window.recurringWindow is None)):
+    if (
+        existing_policy is None
+        or existing_policy.window is None
+        or (
+            existing_policy.window.dailyMaintenanceWindow is None
+            and existing_policy.window.recurringWindow is None
+        )
+    ):
       raise util.Error(NOTHING_TO_UPDATE_ERROR_MSG)
     existing_policy.window.dailyMaintenanceWindow = None
     existing_policy.window.recurringWindow = None
@@ -5198,12 +7154,15 @@ class APIAdapter(object):
     if policy is None:
       policy = self.messages.MaintenancePolicy(
           window=self.messages.MaintenanceWindow(
-              maintenanceExclusions=empty_excl))
+              maintenanceExclusions=empty_excl
+          )
+      )
     elif policy.window is None:
       # Shouldn't happen due to defaulting on the server, but easy enough to
       # handle.
       policy.window = self.messages.MaintenanceWindow(
-          maintenanceExclusions=empty_excl)
+          maintenanceExclusions=empty_excl
+      )
     elif policy.window.maintenanceExclusions is None:
       policy.window.maintenanceExclusions = empty_excl
     return policy
@@ -5211,12 +7170,19 @@ class APIAdapter(object):
   def _GetMaintenanceExclusionNames(self, maintenance_policy):
     """Returns a list of maintenance exclusion names from the policy."""
     return [
-        p.key for p in
-        maintenance_policy.window.maintenanceExclusions.additionalProperties
+        p.key
+        for p in maintenance_policy.window.maintenanceExclusions.additionalProperties
     ]
 
-  def AddMaintenanceExclusion(self, cluster_ref, existing_policy, window_name,
-                              window_start, window_end, window_scope):
+  def AddMaintenanceExclusion(
+      self,
+      cluster_ref,
+      existing_policy,
+      window_name,
+      window_start,
+      window_end,
+      window_scope,
+  ):
     """Adds a maintenance exclusion to the cluster's maintenance policy.
 
     Args:
@@ -5236,7 +7202,8 @@ class APIAdapter(object):
       Error if a maintenance exclusion of that name already exists.
     """
     existing_policy = self._NormalizeMaintenanceExclusionsForPolicy(
-        existing_policy)
+        existing_policy
+    )
 
     if window_start is None:
       window_start = times.Now(times.UTC)
@@ -5248,7 +7215,9 @@ class APIAdapter(object):
     if window_name in self._GetMaintenanceExclusionNames(existing_policy):
       raise util.Error(
           'A maintenance exclusion named {0} already exists.'.format(
-              window_name))
+              window_name
+          )
+      )
 
     # Note: we're using external/python/gcloud_deps/apitools/base/protorpclite
     # which does *not* handle maps very nicely. We actually have a
@@ -5257,35 +7226,40 @@ class APIAdapter(object):
     # third_party/apis/container/v1alpha1/container_v1alpha1_messages.py.
     exclusions = existing_policy.window.maintenanceExclusions
     window = self.messages.TimeWindow(
-        startTime=window_start.isoformat(), endTime=window_end.isoformat())
+        startTime=window_start.isoformat(), endTime=window_end.isoformat()
+    )
     if window_scope is not None:
       if window_scope == 'no_upgrades':
         window.maintenanceExclusionOptions = self.messages.MaintenanceExclusionOptions(
-            scope=self.messages.MaintenanceExclusionOptions.ScopeValueValuesEnum
-            .NO_UPGRADES)
+            scope=self.messages.MaintenanceExclusionOptions.ScopeValueValuesEnum.NO_UPGRADES
+        )
       if window_scope == 'no_minor_upgrades':
         window.maintenanceExclusionOptions = self.messages.MaintenanceExclusionOptions(
-            scope=self.messages.MaintenanceExclusionOptions.ScopeValueValuesEnum
-            .NO_MINOR_UPGRADES)
+            scope=self.messages.MaintenanceExclusionOptions.ScopeValueValuesEnum.NO_MINOR_UPGRADES
+        )
       if window_scope == 'no_minor_or_node_upgrades':
         window.maintenanceExclusionOptions = self.messages.MaintenanceExclusionOptions(
-            scope=self.messages.MaintenanceExclusionOptions.ScopeValueValuesEnum
-            .NO_MINOR_OR_NODE_UPGRADES)
+            scope=self.messages.MaintenanceExclusionOptions.ScopeValueValuesEnum.NO_MINOR_OR_NODE_UPGRADES
+        )
 
     exclusions.additionalProperties.append(
-        exclusions.AdditionalProperty(key=window_name, value=window))
+        exclusions.AdditionalProperty(key=window_name, value=window)
+    )
     return self._SendMaintenancePolicyRequest(cluster_ref, existing_policy)
 
-  def RemoveMaintenanceExclusion(self, cluster_ref, existing_policy,
-                                 exclusion_name):
+  def RemoveMaintenanceExclusion(
+      self, cluster_ref, existing_policy, exclusion_name
+  ):
     """Removes a maintenance exclusion from the maintenance policy by name."""
     existing_policy = self._NormalizeMaintenanceExclusionsForPolicy(
-        existing_policy)
+        existing_policy
+    )
     existing_exclusions = self._GetMaintenanceExclusionNames(existing_policy)
     if exclusion_name not in existing_exclusions:
-      message = ('No maintenance exclusion with name {0} exists. Existing '
-                 'exclusions: {1}.').format(exclusion_name,
-                                            ', '.join(existing_exclusions))
+      message = (
+          'No maintenance exclusion with name {0} exists. Existing '
+          'exclusions: {1}.'
+      ).format(exclusion_name, ', '.join(existing_exclusions))
       raise util.Error(message)
 
     props = []
@@ -5321,17 +7295,19 @@ class APIAdapter(object):
         parent=project_ref.RelativeName(),
         # max pageSize accepted by GKE
         pageSize=500,
-        filter=filters)
+        filter=filters,
+    )
     return self.client.projects_aggregated_usableSubnetworks.List(req)
 
-  def ModifyCrossConnectSubnetworks(self,
-                                    cluster_ref,
-                                    existing_cross_connect_config,
-                                    add_subnetworks=None,
-                                    remove_subnetworks=None,
-                                    clear_all_subnetworks=None):
-    """Add/Remove/Clear cross connect subnetworks and schedule cluster update request.
-    """
+  def ModifyCrossConnectSubnetworks(
+      self,
+      cluster_ref,
+      existing_cross_connect_config,
+      add_subnetworks=None,
+      remove_subnetworks=None,
+      clear_all_subnetworks=None,
+  ):
+    """Add/Remove/Clear cross connect subnetworks and schedule cluster update request."""
     items = existing_cross_connect_config.items
     if clear_all_subnetworks:
       items = []
@@ -5346,33 +7322,45 @@ class APIAdapter(object):
       ])
 
     cross_connect_config = self.messages.CrossConnectConfig(
-        fingerprint=existing_cross_connect_config.fingerprint, items=items)
+        fingerprint=existing_cross_connect_config.fingerprint, items=items
+    )
     private_cluster_config = self.messages.PrivateClusterConfig(
-        crossConnectConfig=cross_connect_config)
+        crossConnectConfig=cross_connect_config
+    )
     update = self.messages.ClusterUpdate(
-        desiredPrivateClusterConfig=private_cluster_config)
+        desiredPrivateClusterConfig=private_cluster_config
+    )
     op = self.client.projects_locations_clusters.Update(
         self.messages.UpdateClusterRequest(
-            name=ProjectLocationCluster(cluster_ref.projectId, cluster_ref.zone,
-                                        cluster_ref.clusterId),
-            update=update))
+            name=ProjectLocationCluster(
+                cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+            ),
+            update=update,
+        )
+    )
 
     return self.ParseOperation(op.name, cluster_ref.zone)
 
-  def ModifyGoogleCloudAccess(self, cluster_ref, existing_authorized_networks,
-                              goole_cloud_access):
+  def ModifyGoogleCloudAccess(
+      self, cluster_ref, existing_authorized_networks, goole_cloud_access
+  ):
     """Update enable_google_cloud_access and schedule cluster update request."""
     authorized_networks = self.messages.MasterAuthorizedNetworksConfig(
         enabled=existing_authorized_networks.enabled,
         cidrBlocks=existing_authorized_networks.cidrBlocks,
-        gcpPublicCidrsAccessEnabled=goole_cloud_access)
+        gcpPublicCidrsAccessEnabled=goole_cloud_access,
+    )
     update = self.messages.ClusterUpdate(
-        desiredMasterAuthorizedNetworksConfig=authorized_networks)
+        desiredMasterAuthorizedNetworksConfig=authorized_networks
+    )
     op = self.client.projects_locations_clusters.Update(
         self.messages.UpdateClusterRequest(
-            name=ProjectLocationCluster(cluster_ref.projectId, cluster_ref.zone,
-                                        cluster_ref.clusterId),
-            update=update))
+            name=ProjectLocationCluster(
+                cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+            ),
+            update=update,
+        )
+    )
     return self.ParseOperation(op.name, cluster_ref.zone)
 
   def ModifyInsecureKubeletReadonlyPortEnabled(
@@ -5472,16 +7460,376 @@ class APIAdapter(object):
         binary_authorization.policyBindings = []
         for binding in binauthz_policy_bindings:
           binary_authorization.policyBindings.append(
-              self.messages.PolicyBinding(name=binding['name'])
+              self.messages.PolicyBinding(
+                  name=binding['name'],
+                  enforcementMode=self.messages.PolicyBinding.EnforcementModeValueValuesEnum(  # pylint:disable=g-long-ternary
+                      binding['enforcement-mode']
+                  )
+                  if 'enforcement-mode' in binding
+                  else None,
+              )
           )
     update = self.messages.ClusterUpdate(
-        desiredBinaryAuthorization=binary_authorization)
+        desiredBinaryAuthorization=binary_authorization
+    )
     op = self.client.projects_locations_clusters.Update(
         self.messages.UpdateClusterRequest(
-            name=ProjectLocationCluster(cluster_ref.projectId, cluster_ref.zone,
-                                        cluster_ref.clusterId),
-            update=update))
+            name=ProjectLocationCluster(
+                cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+            ),
+            update=update,
+        )
+    )
     return self.ParseOperation(op.name, cluster_ref.zone)
+
+  def ModifyRayClusterLoggingConfig(
+      self, cluster_ref, enable_ray_cluster_logging
+  ):
+    """Enables Ray cluster log collection when using RayOperator addon."""
+
+    ray_operator_config = self.messages.RayOperatorConfig(
+        enabled=True,
+        rayClusterLoggingConfig=self.messages.RayClusterLoggingConfig(
+            enabled=enable_ray_cluster_logging
+        ),
+    )
+    addons_config = self.messages.AddonsConfig(
+        rayOperatorConfig=ray_operator_config
+    )
+    update = self.messages.ClusterUpdate(desiredAddonsConfig=addons_config)
+    op = self.client.projects_locations_clusters.Update(
+        self.messages.UpdateClusterRequest(
+            name=ProjectLocationCluster(
+                cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+            ),
+            update=update,
+        )
+    )
+    return self.ParseOperation(op.name, cluster_ref.zone)
+
+  def ModifyRayClusterMonitoringConfig(
+      self, cluster_ref, enable_ray_cluster_monitoring
+  ):
+    """Enables Ray cluster metrics collection when using RayOperator addon."""
+
+    ray_operator_config = self.messages.RayOperatorConfig(
+        enabled=True,
+        rayClusterMonitoringConfig=self.messages.RayClusterMonitoringConfig(
+            enabled=enable_ray_cluster_monitoring
+        ),
+    )
+    addons_config = self.messages.AddonsConfig(
+        rayOperatorConfig=ray_operator_config
+    )
+    update = self.messages.ClusterUpdate(desiredAddonsConfig=addons_config)
+    op = self.client.projects_locations_clusters.Update(
+        self.messages.UpdateClusterRequest(
+            name=ProjectLocationCluster(
+                cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+            ),
+            update=update,
+        )
+    )
+    return self.ParseOperation(op.name, cluster_ref.zone)
+
+  def ModifyRBACBindingConfig(
+      self,
+      cluster_ref,
+      enable_insecure_binding_system_authenticated,
+      enable_insecure_binding_system_unauthenticated,
+  ):
+    """Modify the RBACBindingConfig message."""
+    rbac_binding_config = self.messages.RBACBindingConfig()
+    if enable_insecure_binding_system_authenticated is not None:
+      rbac_binding_config.enableInsecureBindingSystemAuthenticated = (
+          enable_insecure_binding_system_authenticated
+      )
+    if enable_insecure_binding_system_unauthenticated is not None:
+      rbac_binding_config.enableInsecureBindingSystemUnauthenticated = (
+          enable_insecure_binding_system_unauthenticated
+      )
+    update = self.messages.ClusterUpdate(
+        desiredRbacBindingConfig=rbac_binding_config
+    )
+    op = self.client.projects_locations_clusters.Update(
+        self.messages.UpdateClusterRequest(
+            name=ProjectLocationCluster(
+                cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+            ),
+            update=update,
+        )
+    )
+    return self.ParseOperation(op.name, cluster_ref.zone)
+
+  def ModifyAutoprovisioningCgroupMode(self, cluster_ref, cgroup_mode):
+    """Updates the cgroup mode on autoprovisioned node-pools or on autopilot clusters."""
+    # pylint: disable=line-too-long
+    cgroup_mode_map = {
+        'default': (
+            self.messages.LinuxNodeConfig.CgroupModeValueValuesEnum.CGROUP_MODE_UNSPECIFIED
+        ),
+        'v1': (
+            self.messages.LinuxNodeConfig.CgroupModeValueValuesEnum.CGROUP_MODE_V1
+        ),
+        'v2': (
+            self.messages.LinuxNodeConfig.CgroupModeValueValuesEnum.CGROUP_MODE_V2
+        ),
+    }
+    linux_config = self.messages.LinuxNodeConfig(
+        cgroupMode=cgroup_mode_map[cgroup_mode]
+    )
+    update = self.messages.ClusterUpdate(
+        desiredNodePoolAutoConfigLinuxNodeConfig=linux_config
+    )
+    op = self.client.projects_locations_clusters.Update(
+        self.messages.UpdateClusterRequest(
+            name=ProjectLocationCluster(
+                cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+            ),
+            update=update,
+        )
+    )
+    return self.ParseOperation(op.name, cluster_ref.zone)
+
+  def ModifyAnonymousAuthenticationConfig(
+      self, cluster_ref, anonymous_authentication_config
+  ):
+    """Updates the anonymous authentication config on the cluster."""
+    update = self.messages.ClusterUpdate()
+    available_modes = {
+        'LIMITED': (
+            self.messages.AnonymousAuthenticationConfig.ModeValueValuesEnum.LIMITED
+        ),
+        'ENABLED': (
+            self.messages.AnonymousAuthenticationConfig.ModeValueValuesEnum.ENABLED
+        ),
+    }
+    if anonymous_authentication_config is not None:
+      update.desiredAnonymousAuthenticationConfig = (
+          self.messages.AnonymousAuthenticationConfig(
+              mode=available_modes[anonymous_authentication_config]
+          )
+      )
+    op = self.client.projects_locations_clusters.Update(
+        self.messages.UpdateClusterRequest(
+            name=ProjectLocationCluster(
+                cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+            ),
+            update=update,
+        )
+    )
+    return self.ParseOperation(op.name, cluster_ref.zone)
+
+  def ModifyLegacyLustrePortEnabled(
+      self, cluster_ref, enable_legacy_lustre_port
+  ):
+    """Enables legacy lustre port when using the Lustre Csi Driver add on.
+
+    Args:
+      cluster_ref: The cluster to update.
+      enable_legacy_lustre_port: Whether to enable legacy lustre port.
+
+    Returns:
+      Modifies LustreCsiDriverConfig and returns the operation for update.
+    """
+    lustre_csi_driver_config = self.messages.LustreCsiDriverConfig(
+        enabled=True,
+        enableLegacyLustrePort=enable_legacy_lustre_port,
+    )
+    addons_config = self.messages.AddonsConfig(
+        lustreCsiDriverConfig=lustre_csi_driver_config
+    )
+    update = self.messages.ClusterUpdate(desiredAddonsConfig=addons_config)
+    op = self.client.projects_locations_clusters.Update(
+        self.messages.UpdateClusterRequest(
+            name=ProjectLocationCluster(
+                cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+            ),
+            update=update,
+        )
+    )
+    return self.ParseOperation(op.name, cluster_ref.zone)
+
+  def ModifyControlPlaneEgress(
+      self, cluster_ref, control_plane_egress_mode
+  ):
+    """Updates the control plane egress config on the cluster."""
+    update = self.messages.ClusterUpdate()
+    available_modes = {
+        'NONE': (
+            self.messages.ControlPlaneEgress.ModeValueValuesEnum.NONE
+        ),
+        'VIA_CONTROL_PLANE': (
+            self.messages.ControlPlaneEgress.ModeValueValuesEnum.VIA_CONTROL_PLANE
+        ),
+    }
+    if control_plane_egress_mode is not None:
+      update.desiredControlPlaneEgress = (
+          self.messages.ControlPlaneEgress(
+              mode=available_modes[control_plane_egress_mode]
+          )
+      )
+    op = self.client.projects_locations_clusters.Update(
+        self.messages.UpdateClusterRequest(
+            name=ProjectLocationCluster(
+                cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+            ),
+            update=update,
+        )
+    )
+    return self.ParseOperation(op.name, cluster_ref.zone)
+
+  def _GetDesiredControlPlaneEndpointsConfig(self, cluster_ref, options):
+    """Gets the DesiredControlPlaneEndpointsConfig from options."""
+    cp_endpoints_config = self.messages.ControlPlaneEndpointsConfig()
+    # update dnsEndpointConfig sub-section
+    if(
+        options.enable_dns_access is not None
+        or options.enable_k8s_tokens_via_dns is not None
+        or options.enable_k8s_certs_via_dns is not None
+    ):
+      cp_endpoints_config.dnsEndpointConfig = self.messages.DNSEndpointConfig()
+      if options.enable_dns_access is not None:
+        cp_endpoints_config.dnsEndpointConfig.allowExternalTraffic = (
+            options.enable_dns_access
+        )
+      if options.enable_k8s_tokens_via_dns is not None:
+        cp_endpoints_config.dnsEndpointConfig.enableK8sTokensViaDns = (
+            options.enable_k8s_tokens_via_dns
+        )
+      if options.enable_k8s_certs_via_dns is not None:
+        cp_endpoints_config.dnsEndpointConfig.enableK8sCertsViaDns = (
+            options.enable_k8s_certs_via_dns
+        )
+    # update ipEndpointConfig sub-section
+    if (
+        options.enable_ip_access is not None
+        or options.enable_master_global_access is not None
+        or options.enable_private_endpoint is not None
+        or options.enable_master_authorized_networks is not None
+        or options.enable_google_cloud_access is not None
+        or options.enable_authorized_networks_on_private_endpoint is not None
+    ):
+      ip_endpoints_config = self.messages.IPEndpointsConfig()
+
+      if options.enable_ip_access is not None:
+        ip_endpoints_config.enabled = options.enable_ip_access
+      if options.enable_master_global_access is not None:
+        ip_endpoints_config.globalAccess = options.enable_master_global_access
+      if options.enable_private_endpoint is not None:
+        ip_endpoints_config.enablePublicEndpoint = (
+            not options.enable_private_endpoint
+        )
+
+      if (
+          options.enable_master_authorized_networks is not None
+          or options.master_authorized_networks is not None
+      ):
+        if options.enable_master_authorized_networks is None:
+          raise util.Error(MISMATCH_AUTHORIZED_NETWORKS_ERROR_MSG)
+        authorized_networks = self.messages.MasterAuthorizedNetworksConfig(
+            enabled=options.enable_master_authorized_networks
+        )
+        if options.master_authorized_networks:
+          for network in options.master_authorized_networks:
+            authorized_networks.cidrBlocks.append(
+                self.messages.CidrBlock(cidrBlock=network)
+            )
+        ip_endpoints_config.authorizedNetworksConfig = authorized_networks
+
+      if options.enable_google_cloud_access is not None:
+        if ip_endpoints_config.authorizedNetworksConfig is None:
+          # preserver current state of MAN (enabled/disabled + cirds)
+          # if not provided in the request
+          cluster = self.GetCluster(cluster_ref)
+          authorized_networks = self.messages.MasterAuthorizedNetworksConfig(
+              enabled=cluster.controlPlaneEndpointsConfig.ipEndpointsConfig.authorizedNetworksConfig.enabled,
+              cidrBlocks=cluster.controlPlaneEndpointsConfig.ipEndpointsConfig.authorizedNetworksConfig.cidrBlocks,
+          )
+          ip_endpoints_config.authorizedNetworksConfig = authorized_networks
+        (
+            ip_endpoints_config.authorizedNetworksConfig.gcpPublicCidrsAccessEnabled
+        ) = options.enable_google_cloud_access
+
+      if options.enable_authorized_networks_on_private_endpoint is not None:
+        if ip_endpoints_config.authorizedNetworksConfig is None:
+          # preserver current state of MAN (enabled/disabled + cirds)
+          # if not provided in the request
+          cluster = self.GetCluster(cluster_ref)
+          authorized_networks = self.messages.MasterAuthorizedNetworksConfig(
+              enabled=cluster.controlPlaneEndpointsConfig.ipEndpointsConfig.authorizedNetworksConfig.enabled,
+              cidrBlocks=cluster.controlPlaneEndpointsConfig.ipEndpointsConfig.authorizedNetworksConfig.cidrBlocks,
+          )
+          ip_endpoints_config.authorizedNetworksConfig = authorized_networks
+        (
+            ip_endpoints_config.authorizedNetworksConfig.privateEndpointEnforcementEnabled
+        ) = options.enable_authorized_networks_on_private_endpoint
+
+      cp_endpoints_config.ipEndpointsConfig = ip_endpoints_config
+    return cp_endpoints_config
+
+  def _ParseControlPlaneEndpointsConfig(self, options, cluster):
+    """Parses the options for control plane endpoints config (creation flow)."""
+    if options.enable_dns_access is not None:
+      self._InitDNSEndpointConfigIfRequired(cluster)
+      cluster.controlPlaneEndpointsConfig.dnsEndpointConfig.allowExternalTraffic = (
+          options.enable_dns_access
+      )
+    if options.enable_k8s_tokens_via_dns is not None:
+      self._InitDNSEndpointConfigIfRequired(cluster)
+      cluster.controlPlaneEndpointsConfig.dnsEndpointConfig.enableK8sTokensViaDns = (
+          options.enable_k8s_tokens_via_dns
+      )
+    if options.enable_k8s_certs_via_dns is not None:
+      self._InitDNSEndpointConfigIfRequired(cluster)
+      cluster.controlPlaneEndpointsConfig.dnsEndpointConfig.enableK8sCertsViaDns = (
+          options.enable_k8s_certs_via_dns
+      )
+    if options.enable_ip_access is not None:
+      self._InitIPEndpointsConfigIfRequired(cluster)
+      cluster.controlPlaneEndpointsConfig.ipEndpointsConfig.enabled = (
+          options.enable_ip_access
+      )
+    if options.enable_master_global_access is not None:
+      self._InitIPEndpointsConfigIfRequired(cluster)
+      cluster.controlPlaneEndpointsConfig.ipEndpointsConfig.globalAccess = (
+          options.enable_master_global_access
+      )
+    if options.enable_private_endpoint is not None:
+      self._InitIPEndpointsConfigIfRequired(cluster)
+      cluster.controlPlaneEndpointsConfig.ipEndpointsConfig.enablePublicEndpoint = (
+          not options.enable_private_endpoint
+      )
+
+    if options.private_endpoint_subnetwork is not None:
+      self._InitIPEndpointsConfigIfRequired(cluster)
+      cluster.controlPlaneEndpointsConfig.ipEndpointsConfig.privateEndpointSubnetwork = (
+          options.private_endpoint_subnetwork
+      )
+
+    self.ParseMasterAuthorizedNetworkOptions(options, cluster)
+
+  def _InitDNSEndpointConfigIfRequired(self, cluster):
+    """Initializes the DNSEndpointConfig on the cluster object if it is none."""
+    if cluster.controlPlaneEndpointsConfig is None:
+      cluster.controlPlaneEndpointsConfig = (
+          self.messages.ControlPlaneEndpointsConfig()
+      )
+    if cluster.controlPlaneEndpointsConfig.dnsEndpointConfig is None:
+      cluster.controlPlaneEndpointsConfig.dnsEndpointConfig = (
+          self.messages.DNSEndpointConfig()
+      )
+
+  def _InitIPEndpointsConfigIfRequired(self, cluster):
+    """Initializes the IPEndpointsConfig on the cluster object if it is none."""
+    if cluster.controlPlaneEndpointsConfig is None:
+      cluster.controlPlaneEndpointsConfig = (
+          self.messages.ControlPlaneEndpointsConfig()
+      )
+    if cluster.controlPlaneEndpointsConfig.ipEndpointsConfig is None:
+      cluster.controlPlaneEndpointsConfig.ipEndpointsConfig = (
+          self.messages.IPEndpointsConfig()
+      )
 
 
 class V1Adapter(APIAdapter):
@@ -5497,29 +7845,39 @@ class V1Beta1Adapter(V1Adapter):
       # CloudRun is disabled by default.
       if any((v in options.addons) for v in CLOUDRUN_ADDONS):
         if not options.enable_stackdriver_kubernetes and (
-            (options.monitoring is not None and
-             SYSTEM not in options.monitoring) or
-            (options.logging is not None and SYSTEM not in options.logging)):
+            (
+                options.monitoring is not None
+                and SYSTEM not in options.monitoring
+            )
+            or (options.logging is not None and SYSTEM not in options.logging)
+        ):
           raise util.Error(CLOUDRUN_STACKDRIVER_KUBERNETES_DISABLED_ERROR_MSG)
         if INGRESS not in options.addons:
           raise util.Error(CLOUDRUN_INGRESS_KUBERNETES_DISABLED_ERROR_MSG)
         load_balancer_type = _GetCloudRunLoadBalancerType(
-            options, self.messages)
+            options, self.messages
+        )
         cluster.addonsConfig.cloudRunConfig = self.messages.CloudRunConfig(
-            disabled=False, loadBalancerType=load_balancer_type)
+            disabled=False, loadBalancerType=load_balancer_type
+        )
       # CloudBuild is disabled by default.
       if CLOUDBUILD in options.addons:
         if not options.enable_stackdriver_kubernetes and (
-            (options.monitoring is not None and
-             SYSTEM not in options.monitoring) or
-            (options.logging is not None and SYSTEM not in options.logging)):
+            (
+                options.monitoring is not None
+                and SYSTEM not in options.monitoring
+            )
+            or (options.logging is not None and SYSTEM not in options.logging)
+        ):
           raise util.Error(CLOUDBUILD_STACKDRIVER_KUBERNETES_DISABLED_ERROR_MSG)
         cluster.addonsConfig.cloudBuildConfig = self.messages.CloudBuildConfig(
-            enabled=True)
+            enabled=True
+        )
       # BackupRestore is disabled by default.
       if BACKUPRESTORE in options.addons:
-        cluster.addonsConfig.gkeBackupAgentConfig = self.messages.GkeBackupAgentConfig(
-            enabled=True)
+        cluster.addonsConfig.gkeBackupAgentConfig = (
+            self.messages.GkeBackupAgentConfig(enabled=True)
+        )
       # Istio is disabled by default.
       if ISTIO in options.addons:
         istio_auth = self.messages.IstioConfig.AuthValueValuesEnum.AUTH_NONE
@@ -5531,50 +7889,79 @@ class V1Beta1Adapter(V1Adapter):
             if auth_config == 'MTLS_STRICT':
               istio_auth = mtls
         cluster.addonsConfig.istioConfig = self.messages.IstioConfig(
-            disabled=False, auth=istio_auth)
-    if (options.enable_autoprovisioning is not None or
-        options.autoscaling_profile is not None):
+            disabled=False, auth=istio_auth
+        )
+    if (
+        options.enable_autoprovisioning is not None
+        or options.max_cpu is not None
+        or options.min_cpu is not None
+        or options.max_memory is not None
+        or options.min_memory is not None
+        or options.autoprovisioning_image_type is not None
+        or options.max_accelerator is not None
+        or options.min_accelerator is not None
+        or options.autoprovisioning_service_account is not None
+        or options.autoprovisioning_scopes is not None
+        or options.enable_autoprovisioning_surge_upgrade is not None
+        or options.enable_autoprovisioning_blue_green_upgrade is not None
+        or options.autoprovisioning_max_surge_upgrade is not None
+        or options.autoprovisioning_max_unavailable_upgrade is not None
+        or options.autoprovisioning_standard_rollout_policy is not None
+        or options.autoprovisioning_node_pool_soak_duration is not None
+        or options.enable_autoprovisioning_autoupgrade is not None
+        or options.enable_autoprovisioning_autorepair is not None
+        or options.autoprovisioning_locations is not None
+        or options.autoprovisioning_min_cpu_platform is not None
+        or options.autoscaling_profile is not None
+        or options.enable_default_compute_class is not None
+    ):
       cluster.autoscaling = self.CreateClusterAutoscalingCommon(
-          None, options, False)
+          None, options, False
+      )
     if options.enable_workload_certificates:
       if not options.workload_pool:
         raise util.Error(
             PREREQUISITE_OPTION_ERROR_MSG.format(
-                prerequisite='workload-pool',
-                opt='enable-workload-certificates'))
+                prerequisite='workload-pool', opt='enable-workload-certificates'
+            )
+        )
       if cluster.workloadCertificates is None:
         cluster.workloadCertificates = self.messages.WorkloadCertificates()
-      cluster.workloadCertificates.enableCertificates = options.enable_workload_certificates
+      cluster.workloadCertificates.enableCertificates = (
+          options.enable_workload_certificates
+      )
     if options.enable_alts:
       if not options.workload_pool:
         raise util.Error(
             PREREQUISITE_OPTION_ERROR_MSG.format(
-                prerequisite='workload-pool', opt='enable-alts'))
+                prerequisite='workload-pool', opt='enable-alts'
+            )
+        )
       if cluster.workloadAltsConfig is None:
         cluster.workloadAltsConfig = self.messages.WorkloadALTSConfig()
       cluster.workloadAltsConfig.enableAlts = options.enable_alts
     if options.enable_gke_oidc:
       cluster.gkeOidcConfig = self.messages.GkeOidcConfig(
-          enabled=options.enable_gke_oidc)
+          enabled=options.enable_gke_oidc
+      )
     if options.enable_identity_service:
       cluster.identityServiceConfig = self.messages.IdentityServiceConfig(
-          enabled=options.enable_identity_service)
-    if options.enable_master_global_access is not None:
-      if cluster.privateClusterConfig is None:
-        cluster.privateClusterConfig = self.messages.PrivateClusterConfig()
-      cluster.privateClusterConfig.masterGlobalAccessConfig = \
-          self.messages.PrivateClusterMasterGlobalAccessConfig(
-              enabled=options.enable_master_global_access)
+          enabled=options.enable_identity_service
+      )
     if options.security_group is not None:
       # The presence of the --security_group="foo" flag implies enabled=True.
       cluster.authenticatorGroupsConfig = (
           self.messages.AuthenticatorGroupsConfig(
-              enabled=True, securityGroup=options.security_group))
+              enabled=True, securityGroup=options.security_group
+          )
+      )
     _AddPSCPrivateClustersOptionsToClusterForCreateCluster(
-        cluster, options, self.messages)
+        cluster, options, self.messages
+    )
 
     cluster_telemetry_type = self._GetClusterTelemetryType(
-        options, cluster.loggingService, cluster.monitoringService)
+        options, cluster.loggingService, cluster.monitoringService
+    )
     if cluster_telemetry_type is not None:
       cluster.clusterTelemetry = self.messages.ClusterTelemetry()
       cluster.clusterTelemetry.type = cluster_telemetry_type
@@ -5589,67 +7976,77 @@ class V1Beta1Adapter(V1Adapter):
     if options.enable_service_externalips is not None:
       if cluster.networkConfig is None:
         cluster.networkConfig = self.messages.NetworkConfig()
-      cluster.networkConfig.serviceExternalIpsConfig = self.messages.ServiceExternalIPsConfig(
-          enabled=options.enable_service_externalips)
+      cluster.networkConfig.serviceExternalIpsConfig = (
+          self.messages.ServiceExternalIPsConfig(
+              enabled=options.enable_service_externalips
+          )
+      )
     if options.identity_provider:
       if options.workload_pool:
-        cluster.workloadIdentityConfig.identityProvider = options.identity_provider
+        cluster.workloadIdentityConfig.identityProvider = (
+            options.identity_provider
+        )
       else:
         raise util.Error(
             PREREQUISITE_OPTION_ERROR_MSG.format(
-                prerequisite='workload-pool', opt='identity-provider'))
+                prerequisite='workload-pool', opt='identity-provider'
+            )
+        )
 
     if options.datapath_provider is not None:
       if cluster.networkConfig is None:
         cluster.networkConfig = self.messages.NetworkConfig()
       if options.datapath_provider.lower() == 'legacy':
-        cluster.networkConfig.datapathProvider = \
+        cluster.networkConfig.datapathProvider = (
             self.messages.NetworkConfig.DatapathProviderValueValuesEnum.LEGACY_DATAPATH
+        )
       elif options.datapath_provider.lower() == 'advanced':
-        cluster.networkConfig.datapathProvider = \
+        cluster.networkConfig.datapathProvider = (
             self.messages.NetworkConfig.DatapathProviderValueValuesEnum.ADVANCED_DATAPATH
+        )
       else:
         raise util.Error(
             DATAPATH_PROVIDER_ILL_SPECIFIED_ERROR_MSG.format(
-                provider=options.datapath_provider))
+                provider=options.datapath_provider
+            )
+        )
 
     cluster.master = _GetMasterForClusterCreate(options, self.messages)
 
-    cluster.kubernetesObjectsExportConfig = _GetKubernetesObjectsExportConfigForClusterCreate(
-        options, self.messages)
+    cluster.kubernetesObjectsExportConfig = (
+        _GetKubernetesObjectsExportConfigForClusterCreate(
+            options, self.messages
+        )
+    )
 
     if options.enable_experimental_vertical_pod_autoscaling is not None:
       cluster.verticalPodAutoscaling = self.messages.VerticalPodAutoscaling(
-          enableExperimentalFeatures=options
-          .enable_experimental_vertical_pod_autoscaling)
+          enableExperimentalFeatures=options.enable_experimental_vertical_pod_autoscaling
+      )
       if options.enable_experimental_vertical_pod_autoscaling:
         cluster.verticalPodAutoscaling.enabled = True
 
     if options.enable_cost_allocation:
       cluster.costManagementConfig = self.messages.CostManagementConfig(
-          enabled=True)
+          enabled=True
+      )
 
     if options.stack_type is not None:
-      cluster.ipAllocationPolicy.stackType = util.GetCreateStackTypeMapper(
-          self.messages).GetEnumForChoice(options.stack_type)
+      if options.stack_type.lower() == 'ipv6':
+        self._ParseIPv6Options(options, cluster)
+      else:
+        cluster.ipAllocationPolicy.stackType = util.GetCreateStackTypeMapper(
+            self.messages
+        ).GetEnumForChoice(options.stack_type)
     if options.ipv6_access_type is not None:
       cluster.ipAllocationPolicy.ipv6AccessType = util.GetIpv6AccessTypeMapper(
-          self.messages).GetEnumForChoice(options.ipv6_access_type)
-
-    if options.enable_dns_endpoint is not None:
-      if cluster.controlPlaneEndpointsConfig is None:
-        cluster.controlPlaneEndpointsConfig = (
-            self.messages.ControlPlaneEndpointsConfig()
-        )
-      dns_endpoint_config = self.messages.DNSEndpointConfig(
-          enabled=options.enable_dns_endpoint)
-      cluster.controlPlaneEndpointsConfig.dnsEndpointConfig = (
-          dns_endpoint_config
-      )
+          self.messages
+      ).GetEnumForChoice(options.ipv6_access_type)
 
     req = self.messages.CreateClusterRequest(
         parent=ProjectLocation(cluster_ref.projectId, cluster_ref.zone),
-        cluster=cluster)
+        cluster=cluster,
+    )
     operation = self.client.projects_locations_clusters.Create(req)
     return self.ParseOperation(operation.name, cluster_ref.zone)
 
@@ -5657,11 +8054,1074 @@ class V1Beta1Adapter(V1Adapter):
     pool = self.CreateNodePoolCommon(node_pool_ref, options)
     req = self.messages.CreateNodePoolRequest(
         nodePool=pool,
-        parent=ProjectLocationCluster(node_pool_ref.projectId,
-                                      node_pool_ref.zone,
-                                      node_pool_ref.clusterId))
+        parent=ProjectLocationCluster(
+            node_pool_ref.projectId, node_pool_ref.zone, node_pool_ref.clusterId
+        ),
+    )
     operation = self.client.projects_locations_clusters_nodePools.Create(req)
     return self.ParseOperation(operation.name, node_pool_ref.zone)
+
+  def UpdateClusterCommon(self, cluster_ref, options):
+    """Returns an UpdateCluster operation."""
+    update = None
+    if not options.version:
+      options.version = '-'
+    if options.update_nodes:
+      update = self.messages.ClusterUpdate(
+          desiredNodeVersion=options.version,
+          desiredNodePoolId=options.node_pool,
+          desiredImageType=options.image_type,
+          desiredImage=options.image,
+          desiredImageProject=options.image_project,
+      )
+      # security_profile may be set in upgrade command
+      if options.security_profile is not None:
+        update.securityProfile = self.messages.SecurityProfile(
+            name=options.security_profile
+        )
+    elif options.update_master:
+      update = self.messages.ClusterUpdate(desiredMasterVersion=options.version)
+      # security_profile may be set in upgrade command
+      if options.security_profile is not None:
+        update.securityProfile = self.messages.SecurityProfile(
+            name=options.security_profile
+        )
+      # control_plane_soak_duration may be set in upgrade command for rollback
+      # safe upgrades
+      if options.control_plane_soak_duration is not None:
+        update.desiredRollbackSafeUpgrade = self.messages.RollbackSafeUpgrade(
+            controlPlaneSoakDuration=options.control_plane_soak_duration
+        )
+    elif options.enable_stackdriver_kubernetes:
+      update = self.messages.ClusterUpdate()
+      update.desiredLoggingService = 'logging.googleapis.com/kubernetes'
+      update.desiredMonitoringService = 'monitoring.googleapis.com/kubernetes'
+    elif options.enable_stackdriver_kubernetes is not None:
+      update = self.messages.ClusterUpdate()
+      update.desiredLoggingService = 'none'
+      update.desiredMonitoringService = 'none'
+    elif options.monitoring_service or options.logging_service:
+      update = self.messages.ClusterUpdate()
+      if options.monitoring_service:
+        update.desiredMonitoringService = options.monitoring_service
+      if options.logging_service:
+        update.desiredLoggingService = options.logging_service
+    elif (
+        options.logging
+        or options.monitoring
+        or options.enable_managed_prometheus
+        or options.disable_managed_prometheus
+        or options.auto_monitoring_scope
+        or options.enable_dataplane_v2_metrics
+        or options.disable_dataplane_v2_metrics
+        or options.enable_dataplane_v2_flow_observability
+        or options.disable_dataplane_v2_flow_observability
+        or options.dataplane_v2_observability_mode
+    ):
+      logging = _GetLoggingConfig(options, self.messages)
+      # Fix incorrectly omitting required field.
+      if (
+          (
+              options.dataplane_v2_observability_mode
+              or options.enable_dataplane_v2_flow_observability
+              or options.disable_dataplane_v2_flow_observability
+          )
+          and options.enable_dataplane_v2_metrics is None
+          and options.disable_dataplane_v2_metrics is None
+      ):
+        cluster = self.GetCluster(cluster_ref)
+        if (
+            cluster
+            and cluster.monitoringConfig
+            and cluster.monitoringConfig.advancedDatapathObservabilityConfig
+        ):
+          if (
+              cluster.monitoringConfig.advancedDatapathObservabilityConfig.enableMetrics
+          ):
+            options.enable_dataplane_v2_metrics = True
+          else:
+            options.disable_dataplane_v2_metrics = True
+
+      monitoring = None
+      if options.auto_monitoring_scope:
+        cluster = self.GetCluster(cluster_ref)
+
+        if cluster is None:
+          raise util.Error(
+              'Cannot enable Auto Monitoring. The cluster does not exist.'
+          )
+
+        if (
+            cluster.monitoringConfig.managedPrometheusConfig is None
+            or not cluster.monitoringConfig.managedPrometheusConfig.enabled
+        ) and options.auto_monitoring_scope == 'ALL':
+
+          raise util.Error(
+              AUTO_MONITORING_NOT_SUPPORTED_WITHOUT_MANAGED_PROMETHEUS
+          )
+
+        if cluster.monitoringConfig.managedPrometheusConfig.enabled:
+          monitoring = _GetMonitoringConfig(options, self.messages, True, True)
+        else:
+          monitoring = _GetMonitoringConfig(options, self.messages, True, False)
+      else:
+        monitoring = _GetMonitoringConfig(options, self.messages, False, None)
+
+      update = self.messages.ClusterUpdate()
+      if logging:
+        update.desiredLoggingConfig = logging
+      if monitoring:
+        update.desiredMonitoringConfig = monitoring
+    elif options.disable_addons:
+      disable_node_local_dns = options.disable_addons.get(NODELOCALDNS)
+      addons = self._AddonsConfig(
+          disable_ingress=options.disable_addons.get(INGRESS),
+          disable_hpa=options.disable_addons.get(HPA),
+          disable_dashboard=options.disable_addons.get(DASHBOARD),
+          disable_network_policy=options.disable_addons.get(NETWORK_POLICY),
+          enable_node_local_dns=not disable_node_local_dns
+          if disable_node_local_dns is not None
+          else None,
+      )
+      if options.disable_addons.get(CONFIGCONNECTOR) is not None:
+        addons.configConnectorConfig = self.messages.ConfigConnectorConfig(
+            enabled=(not options.disable_addons.get(CONFIGCONNECTOR))
+        )
+      if options.disable_addons.get(GCEPDCSIDRIVER) is not None:
+        addons.gcePersistentDiskCsiDriverConfig = (
+            self.messages.GcePersistentDiskCsiDriverConfig(
+                enabled=not options.disable_addons.get(GCEPDCSIDRIVER)
+            )
+        )
+      if options.disable_addons.get(GCPFILESTORECSIDRIVER) is not None:
+        addons.gcpFilestoreCsiDriverConfig = (
+            self.messages.GcpFilestoreCsiDriverConfig(
+                enabled=not options.disable_addons.get(GCPFILESTORECSIDRIVER)
+            )
+        )
+      if options.disable_addons.get(GCSFUSECSIDRIVER) is not None:
+        addons.gcsFuseCsiDriverConfig = self.messages.GcsFuseCsiDriverConfig(
+            enabled=not options.disable_addons.get(GCSFUSECSIDRIVER)
+        )
+      if options.disable_addons.get(STATEFULHA) is not None:
+        addons.statefulHaConfig = self.messages.StatefulHAConfig(
+            enabled=not options.disable_addons.get(STATEFULHA)
+        )
+      if options.disable_addons.get(PARALLELSTORECSIDRIVER) is not None:
+        addons.parallelstoreCsiDriverConfig = (
+            self.messages.ParallelstoreCsiDriverConfig(
+                enabled=not options.disable_addons.get(PARALLELSTORECSIDRIVER)
+            )
+        )
+      if options.disable_addons.get(HIGHSCALECHECKPOINTING) is not None:
+        addons.highScaleCheckpointingConfig = (
+            self.messages.HighScaleCheckpointingConfig(
+                enabled=not options.disable_addons.get(HIGHSCALECHECKPOINTING)
+            )
+        )
+      if options.disable_addons.get(LUSTRECSIDRIVER) is not None:
+        addons.lustreCsiDriverConfig = self.messages.LustreCsiDriverConfig(
+            enabled=not options.disable_addons.get(LUSTRECSIDRIVER)
+        )
+      if options.disable_addons.get(BACKUPRESTORE) is not None:
+        addons.gkeBackupAgentConfig = self.messages.GkeBackupAgentConfig(
+            enabled=not options.disable_addons.get(BACKUPRESTORE)
+        )
+      if options.disable_addons.get(RAYOPERATOR) is not None:
+        addons.rayOperatorConfig = self.messages.RayOperatorConfig(
+            enabled=not options.disable_addons.get(RAYOPERATOR)
+        )
+      update = self.messages.ClusterUpdate(desiredAddonsConfig=addons)
+    elif (
+        options.enable_ray_cluster_logging is not None
+        or options.enable_ray_cluster_monitoring is not None
+        or options.enable_legacy_lustre_port is not None
+    ):
+      addons = self._AddonsConfig(options, self.messages)
+
+      if options.enable_ray_cluster_logging is not None:
+        addons.rayOperatorConfig.rayClusterLoggingConfig = (
+            self.messages.RayClusterLoggingConfig(
+                enabled=options.enable_ray_cluster_logging
+            )
+        )
+
+      if options.enable_ray_cluster_monitoring is not None:
+        addons.rayOperatorConfig.rayClusterMonitoringConfig = (
+            self.messages.RayClusterMonitoringConfig(
+                enabled=options.enable_ray_cluster_monitoring
+            )
+        )
+
+      if options.enable_legacy_lustre_port is not None:
+        addons.lustreCsiDriverConfig.enableLegacyLustrePort = (
+            options.enable_legacy_lustre_port
+        )
+
+      update = self.messages.ClusterUpdate(desiredAddonsConfig=addons)
+    elif options.enable_autoscaling is not None:
+      # For update, we can either enable or disable.
+      autoscaling = self.messages.NodePoolAutoscaling(
+          enabled=options.enable_autoscaling
+      )
+      if options.enable_autoscaling:
+        autoscaling.minNodeCount = options.min_nodes
+        autoscaling.maxNodeCount = options.max_nodes
+        autoscaling.totalMinNodeCount = options.total_min_nodes
+        autoscaling.totalMaxNodeCount = options.total_max_nodes
+        if options.location_policy is not None:
+          autoscaling.locationPolicy = LocationPolicyEnumFromString(
+              self.messages, options.location_policy
+          )
+      update = self.messages.ClusterUpdate(
+          desiredNodePoolId=options.node_pool,
+          desiredNodePoolAutoscaling=autoscaling,
+      )
+    elif options.locations:
+      update = self.messages.ClusterUpdate(desiredLocations=options.locations)
+    elif (
+        options.enable_autoprovisioning is not None
+        or options.max_cpu is not None
+        or options.min_cpu is not None
+        or options.max_memory is not None
+        or options.min_memory is not None
+        or options.autoprovisioning_image_type is not None
+        or options.max_accelerator is not None
+        or options.min_accelerator is not None
+        or options.autoprovisioning_service_account is not None
+        or options.autoprovisioning_scopes is not None
+        or options.enable_autoprovisioning_surge_upgrade is not None
+        or options.enable_autoprovisioning_blue_green_upgrade is not None
+        or options.autoprovisioning_max_surge_upgrade is not None
+        or options.autoprovisioning_max_unavailable_upgrade is not None
+        or options.autoprovisioning_standard_rollout_policy is not None
+        or options.autoprovisioning_node_pool_soak_duration is not None
+        or options.enable_autoprovisioning_autoupgrade is not None
+        or options.enable_autoprovisioning_autorepair is not None
+        or options.autoprovisioning_locations is not None
+        or options.autoprovisioning_min_cpu_platform is not None
+        or options.autoscaling_profile is not None
+        or options.enable_default_compute_class is not None
+    ):
+      autoscaling = self.CreateClusterAutoscalingCommon(
+          cluster_ref, options, True
+      )
+      update = self.messages.ClusterUpdate(
+          desiredClusterAutoscaling=autoscaling
+      )
+    elif options.enable_pod_security_policy is not None:
+      config = self.messages.PodSecurityPolicyConfig(
+          enabled=options.enable_pod_security_policy
+      )
+      update = self.messages.ClusterUpdate(
+          desiredPodSecurityPolicyConfig=config
+      )
+    elif options.enable_vertical_pod_autoscaling is not None:
+      vertical_pod_autoscaling = self.messages.VerticalPodAutoscaling(
+          enabled=options.enable_vertical_pod_autoscaling
+      )
+      update = self.messages.ClusterUpdate(
+          desiredVerticalPodAutoscaling=vertical_pod_autoscaling
+      )
+    elif options.resource_usage_bigquery_dataset is not None:
+      export_config = self.messages.ResourceUsageExportConfig(
+          bigqueryDestination=self.messages.BigQueryDestination(
+              datasetId=options.resource_usage_bigquery_dataset
+          )
+      )
+      if options.enable_network_egress_metering:
+        export_config.enableNetworkEgressMetering = True
+      if options.enable_resource_consumption_metering is not None:
+        export_config.consumptionMeteringConfig = (
+            self.messages.ConsumptionMeteringConfig(
+                enabled=options.enable_resource_consumption_metering
+            )
+        )
+      update = self.messages.ClusterUpdate(
+          desiredResourceUsageExportConfig=export_config
+      )
+    elif options.enable_network_egress_metering is not None:
+      raise util.Error(ENABLE_NETWORK_EGRESS_METERING_ERROR_MSG)
+    elif options.enable_resource_consumption_metering is not None:
+      raise util.Error(ENABLE_RESOURCE_CONSUMPTION_METERING_ERROR_MSG)
+    elif options.clear_resource_usage_bigquery_dataset is not None:
+      export_config = self.messages.ResourceUsageExportConfig()
+      update = self.messages.ClusterUpdate(
+          desiredResourceUsageExportConfig=export_config
+      )
+    elif options.security_profile is not None:
+      # security_profile is set in update command
+      security_profile = self.messages.SecurityProfile(
+          name=options.security_profile
+      )
+      update = self.messages.ClusterUpdate(securityProfile=security_profile)
+    elif options.enable_intra_node_visibility is not None:
+      intra_node_visibility_config = self.messages.IntraNodeVisibilityConfig(
+          enabled=options.enable_intra_node_visibility
+      )
+      update = self.messages.ClusterUpdate(
+          desiredIntraNodeVisibilityConfig=intra_node_visibility_config
+      )
+    elif options.managed_otel_scope:
+      managed_otel_config = _GetManagedOpenTelemetryConfig(
+          options, self.messages
+      )
+      update = self.messages.ClusterUpdate(
+          desiredManagedOpentelemetryConfig=managed_otel_config)
+
+    if (
+        options.security_profile is not None
+        and options.security_profile_runtime_rules is not None
+    ):
+      update.securityProfile.disableRuntimeRules = (
+          not options.security_profile_runtime_rules
+      )
+    if (
+        options.master_authorized_networks
+        and not options.enable_master_authorized_networks
+    ):
+      # Raise error if use --master-authorized-networks without
+      # --enable-master-authorized-networks.
+      raise util.Error(MISMATCH_AUTHORIZED_NETWORKS_ERROR_MSG)
+
+    if options.database_encryption_key:
+      update = self.messages.ClusterUpdate(
+          desiredDatabaseEncryption=self.messages.DatabaseEncryption(
+              keyName=options.database_encryption_key,
+              state=self.messages.DatabaseEncryption.StateValueValuesEnum.ENCRYPTED,
+          )
+      )
+
+    elif options.disable_database_encryption:
+      update = self.messages.ClusterUpdate(
+          desiredDatabaseEncryption=self.messages.DatabaseEncryption(
+              state=self.messages.DatabaseEncryption.StateValueValuesEnum.DECRYPTED
+          )
+      )
+
+    if options.enable_shielded_nodes is not None:
+      update = self.messages.ClusterUpdate(
+          desiredShieldedNodes=self.messages.ShieldedNodes(
+              enabled=options.enable_shielded_nodes
+          )
+      )
+    if options.enable_tpu is not None:
+      update = self.messages.ClusterUpdate(
+          desiredTpuConfig=_GetTpuConfigForClusterUpdate(options, self.messages)
+      )
+
+    if options.release_channel is not None:
+      update = self.messages.ClusterUpdate(
+          desiredReleaseChannel=_GetReleaseChannel(options, self.messages)
+      )
+
+    if options.patch_update is not None:
+      update = self.messages.ClusterUpdate(
+          gkeAutoUpgradeConfig=_GetGkeAutoUpgradeConfig(options, self.messages)
+      )
+
+    if options.disable_default_snat is not None:
+      disable_default_snat = self.messages.DefaultSnatStatus(
+          disabled=options.disable_default_snat
+      )
+      update = self.messages.ClusterUpdate(
+          desiredDefaultSnatStatus=disable_default_snat
+      )
+    if options.enable_l4_ilb_subsetting is not None:
+      ilb_subsettting_config = self.messages.ILBSubsettingConfig(
+          enabled=options.enable_l4_ilb_subsetting
+      )
+      update = self.messages.ClusterUpdate(
+          desiredL4ilbSubsettingConfig=ilb_subsettting_config
+      )
+    if options.private_ipv6_google_access_type is not None:
+      update = self.messages.ClusterUpdate(
+          desiredPrivateIpv6GoogleAccess=util.GetPrivateIpv6GoogleAccessTypeMapperForUpdate(
+              self.messages, hidden=False
+          ).GetEnumForChoice(
+              options.private_ipv6_google_access_type
+          )
+      )
+
+    dns_config = self.ParseClusterDNSOptions(
+        options, is_update=True, cluster_ref=cluster_ref
+    )
+    if dns_config is not None:
+      update = self.messages.ClusterUpdate(desiredDnsConfig=dns_config)
+
+    gateway_config = self.ParseGatewayOptions(options)
+    if gateway_config is not None:
+      update = self.messages.ClusterUpdate(
+          desiredGatewayApiConfig=gateway_config
+      )
+
+    if options.notification_config is not None:
+      update = self.messages.ClusterUpdate(
+          desiredNotificationConfig=_GetNotificationConfigForClusterUpdate(
+              options, self.messages
+          )
+      )
+
+    if options.disable_autopilot is not None:
+      update = self.messages.ClusterUpdate(
+          desiredAutopilot=self.messages.Autopilot(enabled=False)
+      )
+
+    if options.security_group is not None:
+      update = self.messages.ClusterUpdate(
+          desiredAuthenticatorGroupsConfig=self.messages.AuthenticatorGroupsConfig(
+              enabled=True, securityGroup=options.security_group
+          )
+      )
+
+    if options.enable_gcfs is not None:
+      update = self.messages.ClusterUpdate(
+          desiredGcfsConfig=self.messages.GcfsConfig(
+              enabled=options.enable_gcfs
+          )
+      )
+
+    if options.autoprovisioning_network_tags is not None:
+      update = self.messages.ClusterUpdate(
+          desiredNodePoolAutoConfigNetworkTags=self.messages.NetworkTags(
+              tags=options.autoprovisioning_network_tags
+          )
+      )
+
+    if options.autoprovisioning_resource_manager_tags is not None:
+      tags = options.autoprovisioning_resource_manager_tags
+      rm_tags = self._ResourceManagerTags(tags)
+      update = self.messages.ClusterUpdate(
+          desiredNodePoolAutoConfigResourceManagerTags=rm_tags
+      )
+
+    if options.enable_image_streaming is not None:
+      update = self.messages.ClusterUpdate(
+          desiredGcfsConfig=self.messages.GcfsConfig(
+              enabled=options.enable_image_streaming
+          )
+      )
+
+    if options.enable_mesh_certificates is not None:
+      update = self.messages.ClusterUpdate(
+          desiredMeshCertificates=self.messages.MeshCertificates(
+              enableCertificates=options.enable_mesh_certificates
+          )
+      )
+
+    if options.maintenance_interval is not None:
+      update = self.messages.ClusterUpdate(
+          desiredStableFleetConfig=_GetStableFleetConfig(options, self.messages)
+      )
+
+    if options.enable_service_externalips is not None:
+      update = self.messages.ClusterUpdate(
+          desiredServiceExternalIpsConfig=self.messages.ServiceExternalIPsConfig(
+              enabled=options.enable_service_externalips
+          )
+      )
+
+    if options.enable_identity_service is not None:
+      update = self.messages.ClusterUpdate(
+          desiredIdentityServiceConfig=self.messages.IdentityServiceConfig(
+              enabled=options.enable_identity_service
+          )
+      )
+
+    if (
+        options.enable_workload_config_audit is not None
+        or options.enable_workload_vulnerability_scanning is not None
+    ):
+      protect_config = self.messages.ProtectConfig()
+      if options.enable_workload_config_audit is not None:
+        protect_config.workloadConfig = self.messages.WorkloadConfig()
+        if options.enable_workload_config_audit:
+          protect_config.workloadConfig.auditMode = (
+              self.messages.WorkloadConfig.AuditModeValueValuesEnum.BASIC
+          )
+        else:
+          protect_config.workloadConfig.auditMode = (
+              self.messages.WorkloadConfig.AuditModeValueValuesEnum.DISABLED
+          )
+
+      if options.enable_workload_vulnerability_scanning is not None:
+        if options.enable_workload_vulnerability_scanning:
+          protect_config.workloadVulnerabilityMode = (
+              self.messages.ProtectConfig.WorkloadVulnerabilityModeValueValuesEnum.BASIC
+          )
+        else:
+          protect_config.workloadVulnerabilityMode = (
+              self.messages.ProtectConfig.WorkloadVulnerabilityModeValueValuesEnum.DISABLED
+          )
+      update = self.messages.ClusterUpdate(desiredProtectConfig=protect_config)
+
+    if options.hpa_profile is not None:
+      if options.hpa_profile == 'performance':
+        pod_autoscaling_config = self.messages.PodAutoscaling(
+            hpaProfile=self.messages.PodAutoscaling.HpaProfileValueValuesEnum.PERFORMANCE
+        )
+        update = self.messages.ClusterUpdate(
+            desiredPodAutoscaling=pod_autoscaling_config
+        )
+      elif options.hpa_profile == 'none':
+        pod_autoscaling_config = self.messages.PodAutoscaling(
+            hpaProfile=self.messages.PodAutoscaling.HpaProfileValueValuesEnum.NONE
+        )
+        update = self.messages.ClusterUpdate(
+            desiredPodAutoscaling=pod_autoscaling_config
+        )
+
+    if options.logging_variant is not None:
+      logging_config = self.messages.NodePoolLoggingConfig()
+      logging_config.variantConfig = self.messages.LoggingVariantConfig(
+          variant=VariantConfigEnumFromString(
+              self.messages, options.logging_variant
+          )
+      )
+      update = self.messages.ClusterUpdate(
+          desiredNodePoolLoggingConfig=logging_config
+      )
+
+    if (
+        options.additional_pod_ipv4_ranges
+        or options.removed_additional_pod_ipv4_ranges
+    ):
+      update = self.messages.ClusterUpdate()
+      if options.additional_pod_ipv4_ranges:
+        update.additionalPodRangesConfig = (
+            self.messages.AdditionalPodRangesConfig(
+                podRangeNames=options.additional_pod_ipv4_ranges
+            )
+        )
+      if options.removed_additional_pod_ipv4_ranges:
+        update.removedAdditionalPodRangesConfig = (
+            self.messages.AdditionalPodRangesConfig(
+                podRangeNames=options.removed_additional_pod_ipv4_ranges
+            )
+        )
+
+    if options.stack_type is not None:
+      update = self.messages.ClusterUpdate(
+          desiredStackType=util.GetUpdateStackTypeMapper(
+              self.messages
+          ).GetEnumForChoice(options.stack_type)
+      )
+
+    if options.enable_cost_allocation is not None:
+      update = self.messages.ClusterUpdate(
+          desiredCostManagementConfig=self.messages.CostManagementConfig(
+              enabled=options.enable_cost_allocation
+          )
+      )
+    membership_types = {
+        'LIGHTWEIGHT': (
+            self.messages.Fleet.MembershipTypeValueValuesEnum.LIGHTWEIGHT
+        ),
+        'MEMBERSHIP_TYPE_UNSPECIFIED': (
+            self.messages.Fleet.MembershipTypeValueValuesEnum.MEMBERSHIP_TYPE_UNSPECIFIED
+        ),
+    }
+    if options.enable_fleet:
+      update = self.messages.ClusterUpdate(
+          desiredFleet=self.messages.Fleet(
+              project=cluster_ref.projectId,
+              membershipType=membership_types.get(
+                  options.membership_type, None
+              ),
+          )
+      )
+
+    if options.fleet_project:
+      update = self.messages.ClusterUpdate(
+          desiredFleet=self.messages.Fleet(
+              project=options.fleet_project,
+              membershipType=membership_types.get(
+                  options.membership_type, None
+              ),
+          )
+      )
+
+    if options.unset_membership_type:
+      fleet_project = options.fleet_project or cluster_ref.projectId
+      update = self.messages.ClusterUpdate(
+          desiredFleet=self.messages.Fleet(
+              membershipType=None, project=fleet_project
+          ),
+      )
+
+    if options.enable_k8s_beta_apis is not None:
+      config_obj = self.messages.K8sBetaAPIConfig()
+      config_obj.enabledApis = options.enable_k8s_beta_apis
+      update = self.messages.ClusterUpdate(desiredK8sBetaApis=config_obj)
+
+    if options.clear_fleet_project:
+      update = self.messages.ClusterUpdate(
+          desiredFleet=self.messages.Fleet(project='')
+      )
+
+    if (
+        options.compliance is not None
+        or options.compliance_standards is not None
+    ):
+      # --compliance=disabled and --compliance-standards=a,b,c are mutually
+      # exclusive.
+      if options.compliance == 'disabled' and options.compliance_standards:
+        raise util.Error(COMPLIANCE_DISABLED_CONFIGURATION)
+
+      # Desired configuration to set.
+      compliance_update = self.messages.CompliancePostureConfig()
+      # Current configuration, if any.
+      cluster = self.GetCluster(cluster_ref)
+
+      compliance_mode = (
+          options.compliance.lower() if options.compliance else None
+      )
+      if (
+          compliance_mode is None
+      ):  # If not provided, look for current configuration.
+        if cluster.compliancePostureConfig is not None:
+          compliance_update.mode = cluster.compliancePostureConfig.mode
+      elif compliance_mode == 'disabled':
+        compliance_update.mode = (
+            self.messages.CompliancePostureConfig.ModeValueValuesEnum.DISABLED
+        )
+      elif compliance_mode == 'enabled':
+        compliance_update.mode = (
+            self.messages.CompliancePostureConfig.ModeValueValuesEnum.ENABLED
+        )
+      else:  # Invalid input.
+        raise util.Error(
+            COMPLIANCE_MODE_NOT_SUPPORTED.format(mode=options.compliance)
+        )
+
+      if options.compliance_standards is None:
+        # If not provided, look for current configuration.
+        if cluster.compliancePostureConfig is not None:
+          compliance_update.complianceStandards = (
+              cluster.compliancePostureConfig.complianceStandards
+          )
+        # Otherwise do nothing.
+      elif not options.compliance_standards:  # Empty input is invalid.
+        raise util.Error(
+            COMPLIANCE_INVALID_STANDARDS_CONFIGURATION.format(
+                standards=options.compliance_standards
+            )
+        )
+      else:  # If a list, build new standards configuration.
+        compliance_update.complianceStandards = [
+            self.messages.ComplianceStandard(standard=standard)
+            for standard in options.compliance_standards.split(',')
+        ]
+
+      update = self.messages.ClusterUpdate(
+          desiredCompliancePostureConfig=compliance_update
+      )
+
+    if options.enable_security_posture is not None:
+      security_posture_config = self.messages.SecurityPostureConfig()
+      if options.enable_security_posture:
+        security_posture_config.mode = (
+            self.messages.SecurityPostureConfig.ModeValueValuesEnum.BASIC
+        )
+      else:
+        security_posture_config.mode = (
+            self.messages.SecurityPostureConfig.ModeValueValuesEnum.DISABLED
+        )
+      update = self.messages.ClusterUpdate(
+          desiredSecurityPostureConfig=security_posture_config
+      )
+
+    if options.security_posture is not None:
+      security_posture_config = self.messages.SecurityPostureConfig()
+      if options.security_posture.lower() == 'enterprise':
+        security_posture_config.mode = (
+            self.messages.SecurityPostureConfig.ModeValueValuesEnum.ENTERPRISE
+        )
+      elif options.security_posture.lower() == 'standard':
+        security_posture_config.mode = (
+            self.messages.SecurityPostureConfig.ModeValueValuesEnum.BASIC
+        )
+      elif options.security_posture.lower() == 'disabled':
+        security_posture_config.mode = (
+            self.messages.SecurityPostureConfig.ModeValueValuesEnum.DISABLED
+        )
+      else:
+        raise util.Error(
+            SECURITY_POSTURE_MODE_NOT_SUPPORTED.format(
+                mode=options.security_posture.lower()
+            )
+        )
+      update = self.messages.ClusterUpdate(
+          desiredSecurityPostureConfig=security_posture_config
+      )
+
+    if options.workload_vulnerability_scanning is not None:
+      security_posture_config = self.messages.SecurityPostureConfig()
+      if options.workload_vulnerability_scanning.lower() == 'standard':
+        security_posture_config.vulnerabilityMode = (
+            self.messages.SecurityPostureConfig.VulnerabilityModeValueValuesEnum.VULNERABILITY_BASIC
+        )
+      elif options.workload_vulnerability_scanning.lower() == 'disabled':
+        security_posture_config.vulnerabilityMode = (
+            self.messages.SecurityPostureConfig.VulnerabilityModeValueValuesEnum.VULNERABILITY_DISABLED
+        )
+      elif options.workload_vulnerability_scanning.lower() == 'enterprise':
+        security_posture_config.vulnerabilityMode = (
+            self.messages.SecurityPostureConfig.VulnerabilityModeValueValuesEnum.VULNERABILITY_ENTERPRISE
+        )
+      else:
+        raise util.Error(
+            WORKLOAD_VULNERABILITY_SCANNING_MODE_NOT_SUPPORTED.format(
+                mode=options.workload_vulnerability_scanning.lower()
+            )
+        )
+      update = self.messages.ClusterUpdate(
+          desiredSecurityPostureConfig=security_posture_config
+      )
+
+    if options.enable_runtime_vulnerability_insight is not None:
+      runtime_vulnerability_insight_config = (
+          self.messages.RuntimeVulnerabilityInsightConfig()
+      )
+      if options.enable_runtime_vulnerability_insight:
+        runtime_vulnerability_insight_config.mode = (
+            self.messages.RuntimeVulnerabilityInsightConfig.ModeValueValuesEnum.PREMIUM_VULNERABILITY_SCAN
+        )
+      else:
+        runtime_vulnerability_insight_config.mode = (
+            self.messages.RuntimeVulnerabilityInsightConfig.ModeValueValuesEnum.DISABLED
+        )
+      update = self.messages.ClusterUpdate(
+          desiredRuntimeVulnerabilityInsightConfig=(
+              runtime_vulnerability_insight_config
+          )
+      )
+
+    if options.network_performance_config:
+      perf = self._GetClusterNetworkPerformanceConfig(options)
+      update = self.messages.ClusterUpdate(desiredNetworkPerformanceConfig=perf)
+
+    if options.workload_policies is not None:
+      workload_policies = self.messages.WorkloadPolicyConfig()
+      if options.workload_policies == 'allow-net-admin':
+        workload_policies.allowNetAdmin = True
+      update = self.messages.ClusterUpdate(
+          desiredAutopilotWorkloadPolicyConfig=workload_policies
+      )
+
+    if options.remove_workload_policies is not None:
+      workload_policies = self.messages.WorkloadPolicyConfig()
+      if options.remove_workload_policies == 'allow-net-admin':
+        workload_policies.allowNetAdmin = False
+      update = self.messages.ClusterUpdate(
+          desiredAutopilotWorkloadPolicyConfig=workload_policies
+      )
+
+    if options.host_maintenance_interval is not None:
+      update = self.messages.ClusterUpdate(
+          desiredHostMaintenancePolicy=_GetHostMaintenancePolicy(
+              options, self.messages, CLUSTER
+          )
+      )
+
+    if options.in_transit_encryption is not None:
+      update = self.messages.ClusterUpdate(
+          desiredInTransitEncryptionConfig=util.GetUpdateInTransitEncryptionConfigMapper(
+              self.messages
+          ).GetEnumForChoice(
+              options.in_transit_encryption
+          )
+      )
+
+    if options.enable_multi_networking is not None:
+      update = self.messages.ClusterUpdate(
+          desiredEnableMultiNetworking=options.enable_multi_networking
+      )
+
+    if options.containerd_config_from_file is not None:
+      update = self.messages.ClusterUpdate(
+          desiredContainerdConfig=self.messages.ContainerdConfig()
+      )
+      util.LoadContainerdConfigFromYAML(
+          update.desiredContainerdConfig,
+          options.containerd_config_from_file,
+          self.messages,
+      )
+
+    if (
+        options.enable_secret_manager_rotation is not None
+        or options.secret_manager_rotation_interval is not None
+        or options.enable_secret_manager is not None
+    ):
+      old_cluster = self.GetCluster(cluster_ref)
+      secret_manager_config = old_cluster.secretManagerConfig
+      if options.enable_secret_manager is not None:
+        if secret_manager_config is None:
+          secret_manager_config = self.messages.SecretManagerConfig()
+        secret_manager_config.enabled = options.enable_secret_manager
+      if options.enable_secret_manager_rotation is not None:
+        if secret_manager_config is None:
+          secret_manager_config = self.messages.SecretManagerConfig()
+        if secret_manager_config.rotationConfig is None:
+          secret_manager_config.rotationConfig = self.messages.RotationConfig()
+        secret_manager_config.rotationConfig.enabled = (
+            options.enable_secret_manager_rotation
+        )
+      if options.secret_manager_rotation_interval is not None:
+        if secret_manager_config is None:
+          secret_manager_config = self.messages.SecretManagerConfig()
+        if secret_manager_config.rotationConfig is None:
+          secret_manager_config.rotationConfig = self.messages.RotationConfig()
+        secret_manager_config.rotationConfig.rotationInterval = (
+            options.secret_manager_rotation_interval
+        )
+      update = self.messages.ClusterUpdate(
+          desiredSecretManagerConfig=secret_manager_config
+      )
+
+    if (
+        options.enable_secret_sync is not None
+        or options.secret_sync_rotation_interval is not None
+        or options.enable_secret_sync_rotation is not None
+    ):
+      old_cluster = self.GetCluster(cluster_ref)
+      secret_sync_config = old_cluster.secretSyncConfig
+      if options.enable_secret_sync is not None:
+        if secret_sync_config is None:
+          secret_sync_config = self.messages.SecretSyncConfig()
+        secret_sync_config.enabled = options.enable_secret_sync
+      if options.enable_secret_sync_rotation is not None:
+        if secret_sync_config is None:
+          secret_sync_config = self.messages.SecretSyncConfig()
+        if secret_sync_config.rotationConfig is None:
+          secret_sync_config.rotationConfig = self.messages.SyncRotationConfig()
+        secret_sync_config.rotationConfig.enabled = (
+            options.enable_secret_sync_rotation
+        )
+      if options.secret_sync_rotation_interval is not None:
+        if secret_sync_config is None:
+          secret_sync_config = self.messages.SecretSyncConfig()
+        if secret_sync_config.rotationConfig is None:
+          secret_sync_config.rotationConfig = self.messages.RotationConfig()
+        secret_sync_config.rotationConfig.rotationInterval = (
+            options.secret_sync_rotation_interval
+        )
+      update = self.messages.ClusterUpdate(
+          desiredSecretSyncConfig=secret_sync_config
+      )
+
+    if options.enable_cilium_clusterwide_network_policy is not None:
+      update = self.messages.ClusterUpdate(
+          desiredEnableCiliumClusterwideNetworkPolicy=(
+              options.enable_cilium_clusterwide_network_policy
+          )
+      )
+
+    if options.enable_fqdn_network_policy is not None:
+      update = self.messages.ClusterUpdate(
+          desiredEnableFqdnNetworkPolicy=options.enable_fqdn_network_policy
+      )
+
+    if (
+        options.enable_insecure_binding_system_authenticated is not None
+        or options.enable_insecure_binding_system_unauthenticated is not None
+    ):
+      confg = self.messages.RBACBindingConfig()
+      if options.enable_insecure_binding_system_authenticated is not None:
+        confg.enableInsecureBindingSystemAuthenticated = (
+            options.enable_insecure_binding_system_authenticated
+        )
+      if options.enable_insecure_binding_system_unauthenticated is not None:
+        confg.enableInsecureBindingSystemUnauthenticated = (
+            options.enable_insecure_binding_system_unauthenticated
+        )
+      update = self.messages.ClusterUpdate(desiredRBACBindingConfig=confg)
+
+    if options.autopilot_privileged_admission is not None:
+      allowlist_paths = options.autopilot_privileged_admission
+      if isinstance(allowlist_paths, str):
+        allowlist_paths = [
+            p.strip() for p in allowlist_paths.split(',') if p.strip()
+        ]
+
+      update = self.messages.ClusterUpdate(
+          desiredPrivilegedAdmissionConfig=self.messages.PrivilegedAdmissionConfig(
+              allowlistPaths=allowlist_paths
+          )
+      )
+
+    if options.enable_private_nodes is not None:
+      update = self.messages.ClusterUpdate(
+          desiredDefaultEnablePrivateNodes=options.enable_private_nodes
+      )
+
+    if (
+        options.enable_dns_access is not None
+        or options.enable_ip_access is not None
+        or options.enable_master_global_access is not None
+        or options.enable_private_endpoint is not None
+        or options.enable_master_authorized_networks is not None
+        or options.enable_google_cloud_access is not None
+        or options.enable_authorized_networks_on_private_endpoint is not None
+        or options.enable_k8s_tokens_via_dns is not None
+        or options.enable_k8s_certs_via_dns is not None
+    ):
+      cp_endpoints_config = self._GetDesiredControlPlaneEndpointsConfig(
+          cluster_ref, options
+      )
+      update = self.messages.ClusterUpdate(
+          desiredControlPlaneEndpointsConfig=cp_endpoints_config
+      )
+
+    if (
+        options.additional_ip_ranges is not None
+        or options.remove_additional_ip_ranges is not None
+    ):
+      cluster = self.GetCluster(cluster_ref)
+      desired_ip_ranges = {}
+      if cluster.ipAllocationPolicy:
+        config = cluster.ipAllocationPolicy.additionalIpRangesConfigs
+        if config:
+          for ip_range in config:
+            secondary_ranges = set(ip_range.podIpv4RangeNames)
+            desired_ip_ranges[ip_range.subnetwork] = secondary_ranges
+
+      if options.additional_ip_ranges is not None:
+        for ip_range in options.additional_ip_ranges:
+          subnetwork = SubnetworkNameToPath(
+              ip_range['subnetwork'], cluster_ref.projectId, cluster_ref.zone
+          )
+          secondary_ranges = (
+              desired_ip_ranges[subnetwork]
+              if subnetwork in desired_ip_ranges
+              else set()
+          )
+          secondary_ranges.add(ip_range['pod-ipv4-range'])
+          desired_ip_ranges[subnetwork] = secondary_ranges
+
+      if options.remove_additional_ip_ranges is not None:
+        for ip_remove in options.remove_additional_ip_ranges:
+          subnetwork = SubnetworkNameToPath(
+              ip_remove['subnetwork'], cluster_ref.projectId, cluster_ref.zone
+          )
+          if subnetwork not in desired_ip_ranges:
+            raise util.Error(
+                ADDITIONAL_SUBNETWORKS_NOT_FOUND.format(subnetwork=subnetwork)
+            )
+          if 'pod-ipv4-range' in ip_remove:
+            removed_range = ip_remove['pod-ipv4-range']
+            try:
+              desired_ip_ranges[subnetwork].remove(removed_range)
+              if not desired_ip_ranges[subnetwork]:
+                desired_ip_ranges.pop(subnetwork)
+            except KeyError:
+              raise util.Error(
+                  ADDITIONAL_SUBNETWORKS_POD_RANG_ENOT_FOUND.format(
+                      range=removed_range
+                  )
+              )
+          else:
+            desired_ip_ranges.pop(subnetwork)
+
+      update = self.messages.ClusterUpdate(
+          desiredAdditionalIpRangesConfig=self.messages.DesiredAdditionalIPRangesConfig(
+              additionalIpRangesConfigs=[
+                  self.messages.AdditionalIPRangesConfig(
+                      subnetwork=subnetwork,
+                      podIpv4RangeNames=list(secondary_ranges),
+                  )
+                  for subnetwork, secondary_ranges in desired_ip_ranges.items()
+              ]
+          )
+      )
+
+    if options.disable_l4_lb_firewall_reconciliation:
+      update = self.messages.ClusterUpdate(
+          desiredDisableL4LbFirewallReconciliation=True
+      )
+    if options.enable_l4_lb_firewall_reconciliation:
+      update = self.messages.ClusterUpdate(
+          desiredDisableL4LbFirewallReconciliation=False
+      )
+
+    if options.tier is not None:
+      update = self.messages.ClusterUpdate(
+          desiredEnterpriseConfig=_GetDesiredEnterpriseConfig(
+              options, self.messages
+          )
+      )
+
+    if options.enable_autopilot_compatibility_auditing is not None:
+      workload_policies = self.messages.WorkloadPolicyConfig()
+      workload_policies.autopilotCompatibilityAuditingEnabled = (
+          options.enable_autopilot_compatibility_auditing
+      )
+      update = self.messages.ClusterUpdate(
+          desiredAutopilotWorkloadPolicyConfig=workload_policies
+      )
+
+    if options.service_account_verification_keys is not None:
+      cluster = self.GetCluster(cluster_ref)
+      updated_user_managed_keys_config = self.messages.UserManagedKeysConfig()
+      if cluster.userManagedKeysConfig is not None:
+        updated_user_managed_keys_config = cluster.userManagedKeysConfig
+      updated_user_managed_keys_config.serviceAccountVerificationKeys = (
+          options.service_account_verification_keys
+      )
+      update = self.messages.ClusterUpdate(
+          desiredUserManagedKeysConfig=updated_user_managed_keys_config
+      )
+
+    if options.service_account_signing_keys is not None:
+      cluster = self.GetCluster(cluster_ref)
+      updated_user_managed_keys_config = self.messages.UserManagedKeysConfig()
+      if cluster.userManagedKeysConfig is not None:
+        updated_user_managed_keys_config = cluster.userManagedKeysConfig
+      updated_user_managed_keys_config.serviceAccountSigningKeys = (
+          options.service_account_signing_keys
+      )
+      update = self.messages.ClusterUpdate(
+          desiredUserManagedKeysConfig=updated_user_managed_keys_config
+      )
+    if options.control_plane_disk_encryption_key is not None:
+      cluster = self.GetCluster(cluster_ref)
+      updated_user_managed_keys_config = self.messages.UserManagedKeysConfig()
+      if cluster.userManagedKeysConfig is not None:
+        updated_user_managed_keys_config = cluster.userManagedKeysConfig
+      updated_user_managed_keys_config.controlPlaneDiskEncryptionKey = (
+          options.control_plane_disk_encryption_key
+      )
+      update = self.messages.ClusterUpdate(
+          desiredUserManagedKeysConfig=updated_user_managed_keys_config
+      )
+    if options.disable_auto_ipam:
+      update = self.messages.ClusterUpdate(
+          desiredAutoIpamConfig=self.messages.AutoIpamConfig(enabled=False)
+      )
+    if options.enable_auto_ipam:
+      update = self.messages.ClusterUpdate(
+          desiredAutoIpamConfig=self.messages.AutoIpamConfig(enabled=True)
+      )
+    if options.anonymous_authentication_config is not None:
+      modes = {
+          'LIMITED': (
+              self.messages.DesiredAnonymousAuthenticationConfig.ModeValueValuesEnum.LIMITED
+          ),
+          'ENABLED': (
+              self.messages.DesiredAnonymousAuthenticationConfig.ModeValueValuesEnum.ENABLED
+          ),
+      }
+      config = self.messages.DesiredAnonymousAuthenticationConfig()
+      config.mode = modes[options.anonymous_authentication_config]
+      update = self.messages.ClusterUpdate(
+          desiredAnonymousAuthenticationConfig=config
+      )
+    if options.network_tier is not None:
+      update = self.messages.ClusterUpdate(
+          desiredNetworkTierConfig=_GetNetworkTierConfig(options, self.messages)
+      )
+
+    return update
 
   def UpdateCluster(self, cluster_ref, options):
     update = self.UpdateClusterCommon(cluster_ref, options)
@@ -5669,103 +9129,136 @@ class V1Beta1Adapter(V1Adapter):
     if options.workload_pool:
       update = self.messages.ClusterUpdate(
           desiredWorkloadIdentityConfig=self.messages.WorkloadIdentityConfig(
-              workloadPool=options.workload_pool))
+              workloadPool=options.workload_pool
+          )
+      )
     elif options.identity_provider:
       update = self.messages.ClusterUpdate(
           desiredWorkloadIdentityConfig=self.messages.WorkloadIdentityConfig(
-              identityProvider=options.identity_provider))
+              identityProvider=options.identity_provider
+          )
+      )
     elif options.disable_workload_identity:
       update = self.messages.ClusterUpdate(
           desiredWorkloadIdentityConfig=self.messages.WorkloadIdentityConfig(
-              workloadPool=''))
+              workloadPool=''
+          )
+      )
 
     if options.enable_workload_certificates is not None:
       update = self.messages.ClusterUpdate(
           desiredWorkloadCertificates=self.messages.WorkloadCertificates(
-              enableCertificates=options.enable_workload_certificates))
+              enableCertificates=options.enable_workload_certificates
+          )
+      )
 
     if options.enable_alts is not None:
       update = self.messages.ClusterUpdate(
           desiredWorkloadAltsConfig=self.messages.WorkloadALTSConfig(
-              enableAlts=options.enable_alts))
+              enableAlts=options.enable_alts
+          )
+      )
 
     if options.enable_gke_oidc is not None:
       update = self.messages.ClusterUpdate(
           desiredGkeOidcConfig=self.messages.GkeOidcConfig(
-              enabled=options.enable_gke_oidc))
+              enabled=options.enable_gke_oidc
+          )
+      )
 
     if options.enable_identity_service is not None:
       update = self.messages.ClusterUpdate(
           desiredIdentityServiceConfig=self.messages.IdentityServiceConfig(
-              enabled=options.enable_identity_service))
+              enabled=options.enable_identity_service
+          )
+      )
 
     if options.enable_stackdriver_kubernetes:
       update = self.messages.ClusterUpdate(
           desiredClusterTelemetry=self.messages.ClusterTelemetry(
-              type=self.messages.ClusterTelemetry.TypeValueValuesEnum.ENABLED))
+              type=self.messages.ClusterTelemetry.TypeValueValuesEnum.ENABLED
+          )
+      )
     elif options.enable_logging_monitoring_system_only:
       update = self.messages.ClusterUpdate(
           desiredClusterTelemetry=self.messages.ClusterTelemetry(
-              type=self.messages.ClusterTelemetry.TypeValueValuesEnum
-              .SYSTEM_ONLY))
+              type=self.messages.ClusterTelemetry.TypeValueValuesEnum.SYSTEM_ONLY
+          )
+      )
     elif options.enable_stackdriver_kubernetes is not None:
       update = self.messages.ClusterUpdate(
           desiredClusterTelemetry=self.messages.ClusterTelemetry(
-              type=self.messages.ClusterTelemetry.TypeValueValuesEnum.DISABLED))
+              type=self.messages.ClusterTelemetry.TypeValueValuesEnum.DISABLED
+          )
+      )
 
     if options.enable_workload_monitoring_eap is not None:
       update = self.messages.ClusterUpdate(
-          desiredWorkloadMonitoringEapConfig=self.messages
-          .WorkloadMonitoringEapConfig(
-              enabled=options.enable_workload_monitoring_eap))
+          desiredWorkloadMonitoringEapConfig=self.messages.WorkloadMonitoringEapConfig(
+              enabled=options.enable_workload_monitoring_eap
+          )
+      )
 
     if options.enable_experimental_vertical_pod_autoscaling is not None:
       update = self.messages.ClusterUpdate(
           desiredVerticalPodAutoscaling=self.messages.VerticalPodAutoscaling(
-              enableExperimentalFeatures=options
-              .enable_experimental_vertical_pod_autoscaling))
+              enableExperimentalFeatures=options.enable_experimental_vertical_pod_autoscaling
+          )
+      )
       if options.enable_experimental_vertical_pod_autoscaling:
         update.desiredVerticalPodAutoscaling.enabled = True
 
     if options.security_group is not None:
       update = self.messages.ClusterUpdate(
-          desiredAuthenticatorGroupsConfig=self.messages
-          .AuthenticatorGroupsConfig(
-              enabled=True, securityGroup=options.security_group))
+          desiredAuthenticatorGroupsConfig=self.messages.AuthenticatorGroupsConfig(
+              enabled=True, securityGroup=options.security_group
+          )
+      )
 
     master = _GetMasterForClusterUpdate(options, self.messages)
     if master is not None:
       update = self.messages.ClusterUpdate(desiredMaster=master)
 
-    kubernetes_objects_export_config = _GetKubernetesObjectsExportConfigForClusterUpdate(
-        options, self.messages)
+    kubernetes_objects_export_config = (
+        _GetKubernetesObjectsExportConfigForClusterUpdate(
+            options, self.messages
+        )
+    )
     if kubernetes_objects_export_config is not None:
       update = self.messages.ClusterUpdate(
-          desiredKubernetesObjectsExportConfig=kubernetes_objects_export_config)
+          desiredKubernetesObjectsExportConfig=kubernetes_objects_export_config
+      )
 
     if options.enable_service_externalips is not None:
       update = self.messages.ClusterUpdate(
-          desiredServiceExternalIpsConfig=self.messages
-          .ServiceExternalIPsConfig(enabled=options.enable_service_externalips))
+          desiredServiceExternalIpsConfig=self.messages.ServiceExternalIPsConfig(
+              enabled=options.enable_service_externalips
+          )
+      )
 
     if options.dataplane_v2:
       update = self.messages.ClusterUpdate(
           desiredDatapathProvider=(
-              self.messages.ClusterUpdate.DesiredDatapathProviderValueValuesEnum
-              .ADVANCED_DATAPATH))
+              self.messages.ClusterUpdate.DesiredDatapathProviderValueValuesEnum.ADVANCED_DATAPATH
+          )
+      )
 
     if options.enable_cost_allocation is not None:
       update = self.messages.ClusterUpdate(
           desiredCostManagementConfig=self.messages.CostManagementConfig(
-              enabled=options.enable_cost_allocation))
+              enabled=options.enable_cost_allocation
+          )
+      )
 
     if options.convert_to_autopilot is not None:
       update = self.messages.ClusterUpdate(
-          desiredAutopilot=self.messages.Autopilot(enabled=True))
+          desiredAutopilot=self.messages.Autopilot(enabled=True)
+      )
 
     if options.convert_to_standard is not None:
       update = self.messages.ClusterUpdate(
-          desiredAutopilot=self.messages.Autopilot(enabled=False))
+          desiredAutopilot=self.messages.Autopilot(enabled=False)
+      )
 
     if not update:
       # if reached here, it's possible:
@@ -5787,31 +9280,42 @@ class V1Beta1Adapter(V1Adapter):
             if auth_config == 'MTLS_STRICT':
               istio_auth = mtls
         update.desiredAddonsConfig.istioConfig = self.messages.IstioConfig(
-            disabled=options.disable_addons.get(ISTIO), auth=istio_auth)
+            disabled=options.disable_addons.get(ISTIO), auth=istio_auth
+        )
       if any(
-          (options.disable_addons.get(v) is not None) for v in CLOUDRUN_ADDONS):
+          (options.disable_addons.get(v) is not None) for v in CLOUDRUN_ADDONS
+      ):
         load_balancer_type = _GetCloudRunLoadBalancerType(
-            options, self.messages)
+            options, self.messages
+        )
         update.desiredAddonsConfig.cloudRunConfig = (
             self.messages.CloudRunConfig(
                 disabled=any(
                     options.disable_addons.get(v) or False
-                    for v in CLOUDRUN_ADDONS),
-                loadBalancerType=load_balancer_type))
+                    for v in CLOUDRUN_ADDONS
+                ),
+                loadBalancerType=load_balancer_type,
+            )
+        )
       if options.disable_addons.get(APPLICATIONMANAGER) is not None:
-        update.desiredAddonsConfig.kalmConfig = (
-            self.messages.KalmConfig(
-                enabled=(not options.disable_addons.get(APPLICATIONMANAGER))))
+        update.desiredAddonsConfig.kalmConfig = self.messages.KalmConfig(
+            enabled=(not options.disable_addons.get(APPLICATIONMANAGER))
+        )
       if options.disable_addons.get(CLOUDBUILD) is not None:
         update.desiredAddonsConfig.cloudBuildConfig = (
             self.messages.CloudBuildConfig(
-                enabled=(not options.disable_addons.get(CLOUDBUILD))))
+                enabled=(not options.disable_addons.get(CLOUDBUILD))
+            )
+        )
 
     op = self.client.projects_locations_clusters.Update(
         self.messages.UpdateClusterRequest(
-            name=ProjectLocationCluster(cluster_ref.projectId, cluster_ref.zone,
-                                        cluster_ref.clusterId),
-            update=update))
+            name=ProjectLocationCluster(
+                cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+            ),
+            update=update,
+        )
+    )
     return self.ParseOperation(op.name, cluster_ref.zone)
 
   def CompleteConvertToAutopilot(self, cluster_ref):
@@ -5831,8 +9335,11 @@ class V1Beta1Adapter(V1Adapter):
     try:
       op = self.client.projects_locations_clusters.CompleteConvertToAutopilot(
           self.messages.ContainerProjectsLocationsClustersCompleteConvertToAutopilotRequest(
-              name=ProjectLocationCluster(cluster_ref.projectId, cluster_ref
-                                          .zone, cluster_ref.clusterId)))
+              name=ProjectLocationCluster(
+                  cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+              )
+          )
+      )
       return self.ParseOperation(op.name, cluster_ref.zone)
     except apitools_exceptions.HttpNotFoundError as error:
       api_error = exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
@@ -5857,8 +9364,19 @@ class V1Beta1Adapter(V1Adapter):
     autoscaling = self.messages.ClusterAutoscaling()
     cluster = self.GetCluster(cluster_ref) if cluster_ref else None
     if cluster and cluster.autoscaling:
-      autoscaling.enableNodeAutoprovisioning = \
+      autoscaling.enableNodeAutoprovisioning = (
           cluster.autoscaling.enableNodeAutoprovisioning
+      )
+      autoscaling.defaultComputeClassConfig = (
+          cluster.autoscaling.defaultComputeClassConfig
+      )
+
+    if options.enable_default_compute_class is not None:
+      autoscaling.defaultComputeClassConfig = (
+          self.messages.DefaultComputeClassConfig(
+              enabled=options.enable_default_compute_class
+          )
+      )
 
     resource_limits = []
     if options.autoprovisioning_config_file is not None:
@@ -5879,8 +9397,7 @@ class V1Beta1Adapter(V1Adapter):
       if management_settings:
         enable_autoupgrade = management_settings.get(ENABLE_AUTO_UPGRADE)
         enable_autorepair = management_settings.get(ENABLE_AUTO_REPAIR)
-      autoprovisioning_locations = \
-        config.get(AUTOPROVISIONING_LOCATIONS)
+      autoprovisioning_locations = config.get(AUTOPROVISIONING_LOCATIONS)
       min_cpu_platform = config.get(MIN_CPU_PLATFORM)
       boot_disk_kms_key = config.get(BOOT_DISK_KMS_KEY)
       disk_type = config.get(DISK_TYPE)
@@ -5891,8 +9408,9 @@ class V1Beta1Adapter(V1Adapter):
       enable_integrity_monitoring = None
       if shielded_instance_config:
         enable_secure_boot = shielded_instance_config.get(ENABLE_SECURE_BOOT)
-        enable_integrity_monitoring = \
-            shielded_instance_config.get(ENABLE_INTEGRITY_MONITORING)
+        enable_integrity_monitoring = shielded_instance_config.get(
+            ENABLE_INTEGRITY_MONITORING
+        )
     else:
       resource_limits = self.ResourceLimitsFromFlags(options)
       service_account = options.autoprovisioning_service_account
@@ -5910,69 +9428,74 @@ class V1Beta1Adapter(V1Adapter):
       enable_secure_boot = None
       enable_integrity_monitoring = None
 
-    if options.enable_autoprovisioning is not None:
-      autoscaling.enableNodeAutoprovisioning = options.enable_autoprovisioning
-      autoscaling.resourceLimits = resource_limits or []
-      if scopes is None:
-        scopes = []
-      management = None
-      upgrade_settings = None
-      if (max_surge_upgrade is not None or
-          max_unavailable_upgrade is not None or
-          options.enable_autoprovisioning_blue_green_upgrade or
-          options.enable_autoprovisioning_surge_upgrade or
-          options.autoprovisioning_standard_rollout_policy is not None or
-          options.autoprovisioning_node_pool_soak_duration is not None):
-        upgrade_settings = self.UpdateUpgradeSettingsForNAP(
-            options, max_surge_upgrade, max_unavailable_upgrade)
-      if enable_autorepair is not None or enable_autoupgrade is not None:
-        management = (
-            self.messages.NodeManagement(
-                autoUpgrade=enable_autoupgrade, autoRepair=enable_autorepair))
-      shielded_instance_config = None
-      if enable_secure_boot is not None or \
-          enable_integrity_monitoring is not None:
-        shielded_instance_config = self.messages.ShieldedInstanceConfig()
-        shielded_instance_config.enableSecureBoot = enable_secure_boot
-        shielded_instance_config.enableIntegrityMonitoring = \
-            enable_integrity_monitoring
-      if for_update:
-        autoscaling.autoprovisioningNodePoolDefaults = (
-            self.messages.AutoprovisioningNodePoolDefaults(
-                serviceAccount=service_account,
-                oauthScopes=scopes,
-                upgradeSettings=upgrade_settings,
-                management=management,
-                minCpuPlatform=min_cpu_platform,
-                bootDiskKmsKey=boot_disk_kms_key,
-                diskSizeGb=disk_size_gb,
-                diskType=disk_type,
-                imageType=autoprovisioning_image_type,
-                shieldedInstanceConfig=shielded_instance_config,
-            )
-        )
-      else:
-        autoscaling.autoprovisioningNodePoolDefaults = (
-            self.messages.AutoprovisioningNodePoolDefaults(
-                serviceAccount=service_account,
-                oauthScopes=scopes,
-                upgradeSettings=upgrade_settings,
-                management=management,
-                minCpuPlatform=min_cpu_platform,
-                bootDiskKmsKey=boot_disk_kms_key,
-                diskSizeGb=disk_size_gb,
-                diskType=disk_type,
-                imageType=autoprovisioning_image_type,
-                shieldedInstanceConfig=shielded_instance_config,
-            )
-        )
-      if autoprovisioning_locations:
-        autoscaling.autoprovisioningLocations = \
-          sorted(autoprovisioning_locations)
+    autoscaling.enableNodeAutoprovisioning = options.enable_autoprovisioning
+    autoscaling.resourceLimits = resource_limits or []
+    if scopes is None:
+      scopes = []
+    management = None
+    upgrade_settings = None
+    if (
+        max_surge_upgrade is not None
+        or max_unavailable_upgrade is not None
+        or options.enable_autoprovisioning_blue_green_upgrade
+        or options.enable_autoprovisioning_surge_upgrade
+        or options.autoprovisioning_standard_rollout_policy is not None
+        or options.autoprovisioning_node_pool_soak_duration is not None
+    ):
+      upgrade_settings = self.UpdateUpgradeSettingsForNAP(
+          options, max_surge_upgrade, max_unavailable_upgrade
+      )
+    if enable_autorepair is not None or enable_autoupgrade is not None:
+      management = self.messages.NodeManagement(
+          autoUpgrade=enable_autoupgrade, autoRepair=enable_autorepair
+      )
+    shielded_instance_config = None
+    if (
+        enable_secure_boot is not None
+        or enable_integrity_monitoring is not None
+    ):
+      shielded_instance_config = self.messages.ShieldedInstanceConfig()
+      shielded_instance_config.enableSecureBoot = enable_secure_boot
+      shielded_instance_config.enableIntegrityMonitoring = (
+          enable_integrity_monitoring
+      )
+    if for_update:
+      autoscaling.autoprovisioningNodePoolDefaults = (
+          self.messages.AutoprovisioningNodePoolDefaults(
+              serviceAccount=service_account,
+              oauthScopes=scopes,
+              upgradeSettings=upgrade_settings,
+              management=management,
+              minCpuPlatform=min_cpu_platform,
+              bootDiskKmsKey=boot_disk_kms_key,
+              diskSizeGb=disk_size_gb,
+              diskType=disk_type,
+              imageType=autoprovisioning_image_type,
+              shieldedInstanceConfig=shielded_instance_config,
+          )
+      )
+    else:
+      autoscaling.autoprovisioningNodePoolDefaults = (
+          self.messages.AutoprovisioningNodePoolDefaults(
+              serviceAccount=service_account,
+              oauthScopes=scopes,
+              upgradeSettings=upgrade_settings,
+              management=management,
+              minCpuPlatform=min_cpu_platform,
+              bootDiskKmsKey=boot_disk_kms_key,
+              diskSizeGb=disk_size_gb,
+              diskType=disk_type,
+              imageType=autoprovisioning_image_type,
+              shieldedInstanceConfig=shielded_instance_config,
+          )
+      )
+    if autoprovisioning_locations:
+      autoscaling.autoprovisioningLocations = sorted(autoprovisioning_locations)
 
     if options.autoscaling_profile is not None:
-      autoscaling.autoscalingProfile = \
-          self.CreateAutoscalingProfileCommon(options)
+      autoscaling.autoscalingProfile = self.CreateAutoscalingProfileCommon(
+          options
+      )
 
     self.ValidateClusterAutoscaling(autoscaling, for_update)
     return autoscaling
@@ -5989,64 +9512,76 @@ class V1Beta1Adapter(V1Adapter):
     """
     if autoscaling.enableNodeAutoprovisioning:
       if not for_update or autoscaling.resourceLimits:
-        cpu_found = any(
-            limit.resourceType == 'cpu' for limit in autoscaling.resourceLimits)
-        mem_found = any(limit.resourceType == 'memory'
-                        for limit in autoscaling.resourceLimits)
-        if not cpu_found or not mem_found:
+        cpu_max_set = any(
+            limit.resourceType == 'cpu' and limit.maximum is not None
+            for limit in autoscaling.resourceLimits
+        )
+        mem_max_set = any(
+            limit.resourceType == 'memory' and limit.maximum is not None
+            for limit in autoscaling.resourceLimits
+        )
+        if not cpu_max_set or not mem_max_set:
           raise util.Error(NO_AUTOPROVISIONING_LIMITS_ERROR_MSG)
-        defaults = autoscaling.autoprovisioningNodePoolDefaults
-        if defaults:
-          if defaults.upgradeSettings:
-            max_surge_found = defaults.upgradeSettings.maxSurge is not None
-            max_unavailable_found = defaults.upgradeSettings.maxUnavailable is not None
-            if max_unavailable_found != max_surge_found:
-              raise util.Error(BOTH_AUTOPROVISIONING_UPGRADE_SETTINGS_ERROR_MSG)
-          if defaults.management:
-            auto_upgrade_found = defaults.management.autoUpgrade is not None
-            auto_repair_found = defaults.management.autoRepair is not None
-            if auto_repair_found != auto_upgrade_found:
-              raise util.Error(
-                  BOTH_AUTOPROVISIONING_MANAGEMENT_SETTINGS_ERROR_MSG)
-          if defaults.shieldedInstanceConfig:
-            secure_boot_found = defaults.shieldedInstanceConfig.enableSecureBoot is not None
-            integrity_monitoring_found = defaults.shieldedInstanceConfig.enableIntegrityMonitoring is not None
-            if secure_boot_found != integrity_monitoring_found:
-              raise util.Error(
-                  BOTH_AUTOPROVISIONING_SHIELDED_INSTANCE_SETTINGS_ERROR_MSG)
-    elif autoscaling.resourceLimits:
-      raise util.Error(LIMITS_WITHOUT_AUTOPROVISIONING_MSG)
-    elif autoscaling.autoprovisioningNodePoolDefaults and \
-        (autoscaling.autoprovisioningNodePoolDefaults.serviceAccount or
-         autoscaling.autoprovisioningNodePoolDefaults.oauthScopes or
-         autoscaling.autoprovisioningNodePoolDefaults.management or
-         autoscaling.autoprovisioningNodePoolDefaults.upgradeSettings):
-      raise util.Error(DEFAULTS_WITHOUT_AUTOPROVISIONING_MSG)
+
+    defaults = autoscaling.autoprovisioningNodePoolDefaults
+    if defaults:
+      if defaults.upgradeSettings:
+        max_surge_found = defaults.upgradeSettings.maxSurge is not None
+        max_unavailable_found = (
+            defaults.upgradeSettings.maxUnavailable is not None
+        )
+        if max_unavailable_found != max_surge_found:
+          raise util.Error(BOTH_AUTOPROVISIONING_UPGRADE_SETTINGS_ERROR_MSG)
+      if defaults.management:
+        auto_upgrade_found = defaults.management.autoUpgrade is not None
+        auto_repair_found = defaults.management.autoRepair is not None
+        if auto_repair_found != auto_upgrade_found:
+          raise util.Error(BOTH_AUTOPROVISIONING_MANAGEMENT_SETTINGS_ERROR_MSG)
+      if defaults.shieldedInstanceConfig:
+        secure_boot_found = (
+            defaults.shieldedInstanceConfig.enableSecureBoot is not None
+        )
+        integrity_monitoring_found = (
+            defaults.shieldedInstanceConfig.enableIntegrityMonitoring
+            is not None
+        )
+        if secure_boot_found != integrity_monitoring_found:
+          raise util.Error(
+              BOTH_AUTOPROVISIONING_SHIELDED_INSTANCE_SETTINGS_ERROR_MSG
+          )
 
   def UpdateNodePool(self, node_pool_ref, options):
     if options.IsAutoscalingUpdate():
       autoscaling = self.UpdateNodePoolAutoscaling(node_pool_ref, options)
       update = self.messages.ClusterUpdate(
           desiredNodePoolId=node_pool_ref.nodePoolId,
-          desiredNodePoolAutoscaling=autoscaling)
+          desiredNodePoolAutoscaling=autoscaling,
+      )
       operation = self.client.projects_locations_clusters.Update(
           self.messages.UpdateClusterRequest(
-              name=ProjectLocationCluster(node_pool_ref.projectId,
-                                          node_pool_ref.zone,
-                                          node_pool_ref.clusterId),
-              update=update))
+              name=ProjectLocationCluster(
+                  node_pool_ref.projectId,
+                  node_pool_ref.zone,
+                  node_pool_ref.clusterId,
+              ),
+              update=update,
+          )
+      )
       return self.ParseOperation(operation.name, node_pool_ref.zone)
     elif options.IsNodePoolManagementUpdate():
       management = self.UpdateNodePoolNodeManagement(node_pool_ref, options)
-      req = (
-          self.messages.SetNodePoolManagementRequest(
-              name=ProjectLocationClusterNodePool(node_pool_ref.projectId,
-                                                  node_pool_ref.zone,
-                                                  node_pool_ref.clusterId,
-                                                  node_pool_ref.nodePoolId),
-              management=management))
+      req = self.messages.SetNodePoolManagementRequest(
+          name=ProjectLocationClusterNodePool(
+              node_pool_ref.projectId,
+              node_pool_ref.zone,
+              node_pool_ref.clusterId,
+              node_pool_ref.nodePoolId,
+          ),
+          management=management,
+      )
       operation = (
-          self.client.projects_locations_clusters_nodePools.SetManagement(req))
+          self.client.projects_locations_clusters_nodePools.SetManagement(req)
+      )
     elif options.IsUpdateNodePoolRequest():
       req = self.UpdateNodePoolRequest(node_pool_ref, options)
       operation = self.client.projects_locations_clusters_nodePools.Update(req)
@@ -6055,47 +9590,127 @@ class V1Beta1Adapter(V1Adapter):
 
     return self.ParseOperation(operation.name, node_pool_ref.zone)
 
+  def _ParseIPv6Options(self, options, cluster):
+    """Converts options for IPv6-only clusters."""
+    if options.enable_ip_alias is not None and not options.enable_ip_alias:
+      raise util.Error(ROUTE_BASED_CLUSTERS_NOT_SUPPORTED_WITH_STACK_TYPE_IPV6)
+
+    if options.subnetwork and options.create_subnetwork is not None:
+      raise util.Error(CREATE_SUBNETWORK_WITH_SUBNETWORK_ERROR_MSG)
+
+    subnetwork_name = None
+    node_ipv4_cidr = None
+
+    if options.create_subnetwork is not None:
+      for key in options.create_subnetwork:
+        if key not in ['name', 'range']:
+          raise util.Error(
+              CREATE_SUBNETWORK_INVALID_KEY_ERROR_MSG.format(key=key)
+          )
+      subnetwork_name = options.create_subnetwork.get('name', None)
+      node_ipv4_cidr = options.create_subnetwork.get('range', None)
+
+    policy = self.messages.IPAllocationPolicy(
+        createSubnetwork=options.create_subnetwork is not None,
+        subnetworkName=subnetwork_name,
+        nodeIpv4CidrBlock=node_ipv4_cidr,
+        stackType=(
+            self.messages.IPAllocationPolicy.StackTypeValueValuesEnum.IPV6
+        ),
+        clusterSecondaryRangeName=options.cluster_secondary_range_name,
+        servicesSecondaryRangeName=options.services_secondary_range_name,
+    )
+    if options.disable_pod_cidr_overprovision is not None:
+      policy.podCidrOverprovisionConfig = (
+          self.messages.PodCIDROverprovisionConfig(
+              disable=options.disable_pod_cidr_overprovision
+          )
+      )
+    if options.ipv6_access_type is not None:
+      policy.ipv6AccessType = util.GetIpv6AccessTypeMapper(
+          self.messages
+      ).GetEnumForChoice(options.ipv6_access_type)
+
+    cluster.ipAllocationPolicy = policy
+    return cluster
+
 
 class V1Alpha1Adapter(V1Beta1Adapter):
   """APIAdapter for v1alpha1."""
 
   def CreateCluster(self, cluster_ref, options):
     cluster = self.CreateClusterCommon(cluster_ref, options)
-    if (options.enable_autoprovisioning is not None or
-        options.autoscaling_profile is not None):
+    if (
+        options.enable_autoprovisioning is not None
+        or options.max_cpu is not None
+        or options.min_cpu is not None
+        or options.max_memory is not None
+        or options.min_memory is not None
+        or options.autoprovisioning_image_type is not None
+        or options.max_accelerator is not None
+        or options.min_accelerator is not None
+        or options.autoprovisioning_service_account is not None
+        or options.autoprovisioning_scopes is not None
+        or options.enable_autoprovisioning_surge_upgrade is not None
+        or options.enable_autoprovisioning_blue_green_upgrade is not None
+        or options.autoprovisioning_max_surge_upgrade is not None
+        or options.autoprovisioning_max_unavailable_upgrade is not None
+        or options.autoprovisioning_standard_rollout_policy is not None
+        or options.autoprovisioning_node_pool_soak_duration is not None
+        or options.enable_autoprovisioning_autoupgrade is not None
+        or options.enable_autoprovisioning_autorepair is not None
+        or options.autoprovisioning_locations is not None
+        or options.autoprovisioning_min_cpu_platform is not None
+        or options.autoscaling_profile is not None
+        or options.enable_default_compute_class is not None
+    ):
       cluster.autoscaling = self.CreateClusterAutoscalingCommon(
-          None, options, False)
+          None, options, False
+      )
     if options.addons:
       # CloudRun is disabled by default.
       if any((v in options.addons) for v in CLOUDRUN_ADDONS):
         if not options.enable_stackdriver_kubernetes and (
-            (options.monitoring is not None and
-             SYSTEM not in options.monitoring) or
-            (options.logging is not None and SYSTEM not in options.logging)):
+            (
+                options.monitoring is not None
+                and SYSTEM not in options.monitoring
+            )
+            or (options.logging is not None and SYSTEM not in options.logging)
+        ):
           raise util.Error(CLOUDRUN_STACKDRIVER_KUBERNETES_DISABLED_ERROR_MSG)
         if INGRESS not in options.addons:
           raise util.Error(CLOUDRUN_INGRESS_KUBERNETES_DISABLED_ERROR_MSG)
-        enable_alpha_features = options.enable_cloud_run_alpha if \
-            options.enable_cloud_run_alpha is not None else False
+        enable_alpha_features = (
+            options.enable_cloud_run_alpha
+            if options.enable_cloud_run_alpha is not None
+            else False
+        )
         load_balancer_type = _GetCloudRunLoadBalancerType(
-            options, self.messages)
+            options, self.messages
+        )
         cluster.addonsConfig.cloudRunConfig = self.messages.CloudRunConfig(
             disabled=False,
             enableAlphaFeatures=enable_alpha_features,
-            loadBalancerType=load_balancer_type)
+            loadBalancerType=load_balancer_type,
+        )
       # Cloud Build is disabled by default.
       if CLOUDBUILD in options.addons:
         if not options.enable_stackdriver_kubernetes and (
-            (options.monitoring is not None and
-             SYSTEM not in options.monitoring) or
-            (options.logging is not None and SYSTEM not in options.logging)):
+            (
+                options.monitoring is not None
+                and SYSTEM not in options.monitoring
+            )
+            or (options.logging is not None and SYSTEM not in options.logging)
+        ):
           raise util.Error(CLOUDBUILD_STACKDRIVER_KUBERNETES_DISABLED_ERROR_MSG)
         cluster.addonsConfig.cloudBuildConfig = self.messages.CloudBuildConfig(
-            enabled=True)
+            enabled=True
+        )
       # BackupRestore is disabled by default.
       if BACKUPRESTORE in options.addons:
-        cluster.addonsConfig.gkeBackupAgentConfig = self.messages.GkeBackupAgentConfig(
-            enabled=True)
+        cluster.addonsConfig.gkeBackupAgentConfig = (
+            self.messages.GkeBackupAgentConfig(enabled=True)
+        )
       # Istio is disabled by default
       if ISTIO in options.addons:
         istio_auth = self.messages.IstioConfig.AuthValueValuesEnum.AUTH_NONE
@@ -6107,69 +9722,83 @@ class V1Alpha1Adapter(V1Beta1Adapter):
             if auth_config == 'MTLS_STRICT':
               istio_auth = mtls
         cluster.addonsConfig.istioConfig = self.messages.IstioConfig(
-            disabled=False, auth=istio_auth)
+            disabled=False, auth=istio_auth
+        )
     if options.enable_workload_certificates:
       if not options.workload_pool:
         raise util.Error(
             PREREQUISITE_OPTION_ERROR_MSG.format(
-                prerequisite='workload-pool',
-                opt='enable-workload-certificates'))
+                prerequisite='workload-pool', opt='enable-workload-certificates'
+            )
+        )
       if cluster.workloadCertificates is None:
         cluster.workloadCertificates = self.messages.WorkloadCertificates()
-      cluster.workloadCertificates.enableCertificates = options.enable_workload_certificates
+      cluster.workloadCertificates.enableCertificates = (
+          options.enable_workload_certificates
+      )
     if options.enable_alts:
       if not options.workload_pool:
         raise util.Error(
             PREREQUISITE_OPTION_ERROR_MSG.format(
-                prerequisite='workload-pool', opt='enable-alts'))
+                prerequisite='workload-pool', opt='enable-alts'
+            )
+        )
       if cluster.workloadAltsConfig is None:
         cluster.workloadAltsConfig = self.messages.WorkloadALTSConfig()
       cluster.workloadAltsConfig.enableAlts = options.enable_alts
     if options.enable_gke_oidc:
       cluster.gkeOidcConfig = self.messages.GkeOidcConfig(
-          enabled=options.enable_gke_oidc)
+          enabled=options.enable_gke_oidc
+      )
     if options.enable_identity_service:
       cluster.identityServiceConfig = self.messages.IdentityServiceConfig(
-          enabled=options.enable_identity_service)
+          enabled=options.enable_identity_service
+      )
     if options.security_profile is not None:
       cluster.securityProfile = self.messages.SecurityProfile(
-          name=options.security_profile)
+          name=options.security_profile
+      )
       if options.security_profile_runtime_rules is not None:
-        cluster.securityProfile.disableRuntimeRules = \
-          not options.security_profile_runtime_rules
+        cluster.securityProfile.disableRuntimeRules = (
+            not options.security_profile_runtime_rules
+        )
     if options.enable_private_ipv6_access is not None:
       if cluster.networkConfig is None:
         cluster.networkConfig = self.messages.NetworkConfig(
-            enablePrivateIpv6Access=options.enable_private_ipv6_access)
+            enablePrivateIpv6Access=options.enable_private_ipv6_access
+        )
       else:
-        cluster.networkConfig.enablePrivateIpv6Access = \
+        cluster.networkConfig.enablePrivateIpv6Access = (
             options.enable_private_ipv6_access
+        )
     if options.enable_service_externalips is not None:
       if cluster.networkConfig is None:
         cluster.networkConfig = self.messages.NetworkConfig()
-      cluster.networkConfig.serviceExternalIpsConfig = self.messages.ServiceExternalIPsConfig(
-          enabled=options.enable_service_externalips)
-    if options.enable_master_global_access is not None:
-      if cluster.privateClusterConfig is None:
-        cluster.privateClusterConfig = self.messages.PrivateClusterConfig()
-      cluster.privateClusterConfig.masterGlobalAccessConfig = \
-          self.messages.PrivateClusterMasterGlobalAccessConfig(
-              enabled=options.enable_master_global_access)
+      cluster.networkConfig.serviceExternalIpsConfig = (
+          self.messages.ServiceExternalIPsConfig(
+              enabled=options.enable_service_externalips
+          )
+      )
     if options.security_group is not None:
       # The presence of the --security_group="foo" flag implies enabled=True.
       cluster.authenticatorGroupsConfig = (
           self.messages.AuthenticatorGroupsConfig(
-              enabled=True, securityGroup=options.security_group))
+              enabled=True, securityGroup=options.security_group
+          )
+      )
     _AddPSCPrivateClustersOptionsToClusterForCreateCluster(
-        cluster, options, self.messages)
+        cluster, options, self.messages
+    )
 
     cluster.releaseChannel = _GetReleaseChannel(options, self.messages)
     if options.enable_cost_allocation:
       cluster.costManagementConfig = self.messages.CostManagementConfig(
-          enabled=True)
+          enabled=True
+      )
 
     cluster_telemetry_type = self._GetClusterTelemetryType(
-        options, cluster.loggingService, cluster.monitoringService)
+        options, cluster.loggingService, cluster.monitoringService
+    )
     if cluster_telemetry_type is not None:
       cluster.clusterTelemetry = self.messages.ClusterTelemetry()
       cluster.clusterTelemetry.type = cluster_telemetry_type
@@ -6185,57 +9814,71 @@ class V1Alpha1Adapter(V1Beta1Adapter):
       if cluster.networkConfig is None:
         cluster.networkConfig = self.messages.NetworkConfig()
       if options.datapath_provider.lower() == 'legacy':
-        cluster.networkConfig.datapathProvider = \
+        cluster.networkConfig.datapathProvider = (
             self.messages.NetworkConfig.DatapathProviderValueValuesEnum.LEGACY_DATAPATH
+        )
       elif options.datapath_provider.lower() == 'advanced':
-        cluster.networkConfig.datapathProvider = \
+        cluster.networkConfig.datapathProvider = (
             self.messages.NetworkConfig.DatapathProviderValueValuesEnum.ADVANCED_DATAPATH
+        )
       else:
         raise util.Error(
             DATAPATH_PROVIDER_ILL_SPECIFIED_ERROR_MSG.format(
-                provider=options.datapath_provider))
+                provider=options.datapath_provider
+            )
+        )
 
     if options.enable_experimental_vertical_pod_autoscaling is not None:
       cluster.verticalPodAutoscaling = self.messages.VerticalPodAutoscaling(
-          enableExperimentalFeatures=options
-          .enable_experimental_vertical_pod_autoscaling)
+          enableExperimentalFeatures=options.enable_experimental_vertical_pod_autoscaling
+      )
       if options.enable_experimental_vertical_pod_autoscaling:
         cluster.verticalPodAutoscaling.enabled = True
 
     if options.identity_provider:
       if options.workload_pool:
-        cluster.workloadIdentityConfig.identityProvider = options.identity_provider
+        cluster.workloadIdentityConfig.identityProvider = (
+            options.identity_provider
+        )
       else:
         raise util.Error(
             PREREQUISITE_OPTION_ERROR_MSG.format(
-                prerequisite='workload-pool', opt='identity-provider'))
+                prerequisite='workload-pool', opt='identity-provider'
+            )
+        )
 
     if options.stack_type is not None:
-      cluster.ipAllocationPolicy.stackType = util.GetCreateStackTypeMapper(
-          self.messages).GetEnumForChoice(options.stack_type)
+      if options.stack_type.lower() == 'ipv6':
+        self._ParseIPv6Options(options, cluster)
+      else:
+        cluster.ipAllocationPolicy.stackType = util.GetCreateStackTypeMapper(
+            self.messages
+        ).GetEnumForChoice(options.stack_type)
 
     if options.ipv6_access_type is not None:
       cluster.ipAllocationPolicy.ipv6AccessType = util.GetIpv6AccessTypeMapper(
-          self.messages).GetEnumForChoice(options.ipv6_access_type)
+          self.messages
+      ).GetEnumForChoice(options.ipv6_access_type)
     cluster.master = _GetMasterForClusterCreate(options, self.messages)
 
-    if options.enable_dns_endpoint is not None:
-      if cluster.controlPlaneEndpointsConfig is None:
-        cluster.controlPlaneEndpointsConfig = (
-            self.messages.ControlPlaneEndpointsConfig()
+    cluster.kubernetesObjectsExportConfig = (
+        _GetKubernetesObjectsExportConfigForClusterCreate(
+            options, self.messages
         )
-      dns_endpoint_config = self.messages.DNSEndpointConfig(
-          enabled=options.enable_dns_endpoint)
-      cluster.controlPlaneEndpointsConfig.dnsEndpointConfig = (
-          dns_endpoint_config
-      )
+    )
 
-    cluster.kubernetesObjectsExportConfig = _GetKubernetesObjectsExportConfigForClusterCreate(
-        options, self.messages)
+    if options.tier is not None:
+      cluster.enterpriseConfig = _GetEnterpriseConfig(options, self.messages)
+
+    if options.anonymous_authentication_config is not None:
+      cluster.anonymousAuthenticationConfig = _GetAnonymousAuthenticationConfig(
+          options, self.messages
+      )
 
     req = self.messages.CreateClusterRequest(
         parent=ProjectLocation(cluster_ref.projectId, cluster_ref.zone),
-        cluster=cluster)
+        cluster=cluster,
+    )
     operation = self.client.projects_locations_clusters.Create(req)
     return self.ParseOperation(operation.name, cluster_ref.zone)
 
@@ -6245,107 +9888,169 @@ class V1Alpha1Adapter(V1Beta1Adapter):
     if options.workload_pool:
       update = self.messages.ClusterUpdate(
           desiredWorkloadIdentityConfig=self.messages.WorkloadIdentityConfig(
-              workloadPool=options.workload_pool))
+              workloadPool=options.workload_pool
+          )
+      )
     elif options.identity_provider:
       update = self.messages.ClusterUpdate(
           desiredWorkloadIdentityConfig=self.messages.WorkloadIdentityConfig(
-              identityProvider=options.identity_provider))
+              identityProvider=options.identity_provider
+          )
+      )
     elif options.disable_workload_identity:
       update = self.messages.ClusterUpdate(
           desiredWorkloadIdentityConfig=self.messages.WorkloadIdentityConfig(
-              workloadPool=''))
+              workloadPool=''
+          )
+      )
 
     if options.enable_workload_certificates is not None:
       update = self.messages.ClusterUpdate(
           desiredWorkloadCertificates=self.messages.WorkloadCertificates(
-              enableCertificates=options.enable_workload_certificates))
+              enableCertificates=options.enable_workload_certificates
+          )
+      )
 
     if options.enable_alts is not None:
       update = self.messages.ClusterUpdate(
           desiredWorkloadAltsConfig=self.messages.WorkloadALTSConfig(
-              enableAlts=options.enable_alts))
+              enableAlts=options.enable_alts
+          )
+      )
 
     if options.enable_gke_oidc is not None:
       update = self.messages.ClusterUpdate(
           desiredGkeOidcConfig=self.messages.GkeOidcConfig(
-              enabled=options.enable_gke_oidc))
+              enabled=options.enable_gke_oidc
+          )
+      )
 
     if options.enable_identity_service is not None:
       update = self.messages.ClusterUpdate(
           desiredIdentityServiceConfig=self.messages.IdentityServiceConfig(
-              enabled=options.enable_identity_service))
+              enabled=options.enable_identity_service
+          )
+      )
 
     if options.enable_cost_allocation is not None:
       update = self.messages.ClusterUpdate(
           desiredCostManagementConfig=self.messages.CostManagementConfig(
-              enabled=options.enable_cost_allocation))
+              enabled=options.enable_cost_allocation
+          )
+      )
 
     if options.release_channel is not None:
       update = self.messages.ClusterUpdate(
-          desiredReleaseChannel=_GetReleaseChannel(options, self.messages))
+          desiredReleaseChannel=_GetReleaseChannel(options, self.messages)
+      )
 
     if options.enable_stackdriver_kubernetes:
       update = self.messages.ClusterUpdate(
           desiredClusterTelemetry=self.messages.ClusterTelemetry(
-              type=self.messages.ClusterTelemetry.TypeValueValuesEnum.ENABLED))
+              type=self.messages.ClusterTelemetry.TypeValueValuesEnum.ENABLED
+          )
+      )
     elif options.enable_logging_monitoring_system_only:
       update = self.messages.ClusterUpdate(
           desiredClusterTelemetry=self.messages.ClusterTelemetry(
-              type=self.messages.ClusterTelemetry.TypeValueValuesEnum
-              .SYSTEM_ONLY))
+              type=self.messages.ClusterTelemetry.TypeValueValuesEnum.SYSTEM_ONLY
+          )
+      )
     elif options.enable_stackdriver_kubernetes is not None:
       update = self.messages.ClusterUpdate(
           desiredClusterTelemetry=self.messages.ClusterTelemetry(
-              type=self.messages.ClusterTelemetry.TypeValueValuesEnum.DISABLED))
+              type=self.messages.ClusterTelemetry.TypeValueValuesEnum.DISABLED
+          )
+      )
 
     if options.enable_workload_monitoring_eap is not None:
       update = self.messages.ClusterUpdate(
-          desiredWorkloadMonitoringEapConfig=self.messages
-          .WorkloadMonitoringEapConfig(
-              enabled=options.enable_workload_monitoring_eap))
+          desiredWorkloadMonitoringEapConfig=self.messages.WorkloadMonitoringEapConfig(
+              enabled=options.enable_workload_monitoring_eap
+          )
+      )
 
     if options.enable_experimental_vertical_pod_autoscaling is not None:
       update = self.messages.ClusterUpdate(
           desiredVerticalPodAutoscaling=self.messages.VerticalPodAutoscaling(
-              enableExperimentalFeatures=options
-              .enable_experimental_vertical_pod_autoscaling))
+              enableExperimentalFeatures=options.enable_experimental_vertical_pod_autoscaling
+          )
+      )
       if options.enable_experimental_vertical_pod_autoscaling:
         update.desiredVerticalPodAutoscaling.enabled = True
 
     if options.security_group is not None:
       update = self.messages.ClusterUpdate(
-          desiredAuthenticatorGroupsConfig=self.messages
-          .AuthenticatorGroupsConfig(
-              enabled=True, securityGroup=options.security_group))
+          desiredAuthenticatorGroupsConfig=self.messages.AuthenticatorGroupsConfig(
+              enabled=True, securityGroup=options.security_group
+          )
+      )
 
     master = _GetMasterForClusterUpdate(options, self.messages)
     if master is not None:
       update = self.messages.ClusterUpdate(desiredMaster=master)
 
-    kubernetes_objects_export_config = _GetKubernetesObjectsExportConfigForClusterUpdate(
-        options, self.messages)
+    kubernetes_objects_export_config = (
+        _GetKubernetesObjectsExportConfigForClusterUpdate(
+            options, self.messages
+        )
+    )
     if kubernetes_objects_export_config is not None:
       update = self.messages.ClusterUpdate(
-          desiredKubernetesObjectsExportConfig=kubernetes_objects_export_config)
+          desiredKubernetesObjectsExportConfig=kubernetes_objects_export_config
+      )
 
     if options.enable_service_externalips is not None:
       update = self.messages.ClusterUpdate(
-          desiredServiceExternalIpsConfig=self.messages
-          .ServiceExternalIPsConfig(enabled=options.enable_service_externalips))
+          desiredServiceExternalIpsConfig=self.messages.ServiceExternalIPsConfig(
+              enabled=options.enable_service_externalips
+          )
+      )
 
     if options.dataplane_v2:
       update = self.messages.ClusterUpdate(
           desiredDatapathProvider=(
-              self.messages.ClusterUpdate.DesiredDatapathProviderValueValuesEnum
-              .ADVANCED_DATAPATH))
+              self.messages.ClusterUpdate.DesiredDatapathProviderValueValuesEnum.ADVANCED_DATAPATH
+          )
+      )
 
     if options.convert_to_autopilot is not None:
       update = self.messages.ClusterUpdate(
-          desiredAutopilot=self.messages.Autopilot(enabled=True))
+          desiredAutopilot=self.messages.Autopilot(enabled=True)
+      )
 
     if options.convert_to_standard is not None:
       update = self.messages.ClusterUpdate(
-          desiredAutopilot=self.messages.Autopilot(enabled=False))
+          desiredAutopilot=self.messages.Autopilot(enabled=False)
+      )
+
+    if options.tier is not None:
+      update = self.messages.ClusterUpdate(
+          desiredEnterpriseConfig=_GetDesiredEnterpriseConfig(
+              options, self.messages
+          )
+      )
+
+    if options.anonymous_authentication_config is not None:
+      modes = {
+          'LIMITED': (
+              self.messages.AnonymousAuthenticationConfig.ModeValueValuesEnum.LIMITED
+          ),
+          'ENABLED': (
+              self.messages.AnonymousAuthenticationConfig.ModeValueValuesEnum.ENABLED
+          ),
+      }
+      if options.anonymous_authentication_config not in modes:
+        raise util.Error(
+            ANONYMOUS_AUTHENTICATION_MODE_NOT_SUPPORTED.format(
+                mode=options.anonymous_authentication_config
+            )
+        )
+      anon_auth_config = self.messages.AnonymousAuthenticationConfig()
+      anon_auth_config.mode = modes[options.anonymous_authentication_config]
+      update = self.messages.ClusterUpdate(
+          desiredAnonymousAuthenticationConfig=anon_auth_config
+      )
 
     if not update:
       # if reached here, it's possible:
@@ -6367,40 +10072,52 @@ class V1Alpha1Adapter(V1Beta1Adapter):
             if auth_config == 'MTLS_STRICT':
               istio_auth = mtls
         update.desiredAddonsConfig.istioConfig = self.messages.IstioConfig(
-            disabled=options.disable_addons.get(ISTIO), auth=istio_auth)
+            disabled=options.disable_addons.get(ISTIO), auth=istio_auth
+        )
       if any(
-          (options.disable_addons.get(v) is not None) for v in CLOUDRUN_ADDONS):
+          (options.disable_addons.get(v) is not None) for v in CLOUDRUN_ADDONS
+      ):
         load_balancer_type = _GetCloudRunLoadBalancerType(
-            options, self.messages)
+            options, self.messages
+        )
         update.desiredAddonsConfig.cloudRunConfig = (
             self.messages.CloudRunConfig(
                 disabled=any(
                     options.disable_addons.get(v) or False
-                    for v in CLOUDRUN_ADDONS),
-                loadBalancerType=load_balancer_type))
+                    for v in CLOUDRUN_ADDONS
+                ),
+                loadBalancerType=load_balancer_type,
+            )
+        )
       if options.disable_addons.get(APPLICATIONMANAGER) is not None:
-        update.desiredAddonsConfig.kalmConfig = (
-            self.messages.KalmConfig(
-                enabled=(not options.disable_addons.get(APPLICATIONMANAGER))))
+        update.desiredAddonsConfig.kalmConfig = self.messages.KalmConfig(
+            enabled=(not options.disable_addons.get(APPLICATIONMANAGER))
+        )
       if options.disable_addons.get(CLOUDBUILD) is not None:
         update.desiredAddonsConfig.cloudBuildConfig = (
             self.messages.CloudBuildConfig(
-                enabled=(not options.disable_addons.get(CLOUDBUILD))))
+                enabled=(not options.disable_addons.get(CLOUDBUILD))
+            )
+        )
 
     op = self.client.projects_locations_clusters.Update(
         self.messages.UpdateClusterRequest(
-            name=ProjectLocationCluster(cluster_ref.projectId, cluster_ref.zone,
-                                        cluster_ref.clusterId),
-            update=update))
+            name=ProjectLocationCluster(
+                cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+            ),
+            update=update,
+        )
+    )
     return self.ParseOperation(op.name, cluster_ref.zone)
 
   def CreateNodePool(self, node_pool_ref, options):
     pool = self.CreateNodePoolCommon(node_pool_ref, options)
     req = self.messages.CreateNodePoolRequest(
         nodePool=pool,
-        parent=ProjectLocationCluster(node_pool_ref.projectId,
-                                      node_pool_ref.zone,
-                                      node_pool_ref.clusterId))
+        parent=ProjectLocationCluster(
+            node_pool_ref.projectId, node_pool_ref.zone, node_pool_ref.clusterId
+        ),
+    )
     operation = self.client.projects_locations_clusters_nodePools.Create(req)
     return self.ParseOperation(operation.name, node_pool_ref.zone)
 
@@ -6421,8 +10138,9 @@ class V1Alpha1Adapter(V1Beta1Adapter):
     if cluster_ref:
       cluster = self.GetCluster(cluster_ref)
     if cluster and cluster.autoscaling:
-      autoscaling.enableNodeAutoprovisioning = \
+      autoscaling.enableNodeAutoprovisioning = (
           cluster.autoscaling.enableNodeAutoprovisioning
+      )
 
     resource_limits = []
     if options.autoprovisioning_config_file is not None:
@@ -6443,8 +10161,7 @@ class V1Alpha1Adapter(V1Beta1Adapter):
       if management_settings is not None:
         enable_autoupgrade = management_settings.get(ENABLE_AUTO_UPGRADE)
         enable_autorepair = management_settings.get(ENABLE_AUTO_REPAIR)
-      autoprovisioning_locations = \
-          config.get(AUTOPROVISIONING_LOCATIONS)
+      autoprovisioning_locations = config.get(AUTOPROVISIONING_LOCATIONS)
       min_cpu_platform = config.get(MIN_CPU_PLATFORM)
       boot_disk_kms_key = config.get(BOOT_DISK_KMS_KEY)
       disk_type = config.get(DISK_TYPE)
@@ -6455,8 +10172,9 @@ class V1Alpha1Adapter(V1Beta1Adapter):
       enable_integrity_monitoring = None
       if shielded_instance_config:
         enable_secure_boot = shielded_instance_config.get(ENABLE_SECURE_BOOT)
-        enable_integrity_monitoring = \
-            shielded_instance_config.get(ENABLE_INTEGRITY_MONITORING)
+        enable_integrity_monitoring = shielded_instance_config.get(
+            ENABLE_INTEGRITY_MONITORING
+        )
     else:
       resource_limits = self.ResourceLimitsFromFlags(options)
       service_account = options.autoprovisioning_service_account
@@ -6474,73 +10192,85 @@ class V1Alpha1Adapter(V1Beta1Adapter):
       enable_secure_boot = None
       enable_integrity_monitoring = None
 
-    if options.enable_autoprovisioning is not None:
-      autoscaling.enableNodeAutoprovisioning = options.enable_autoprovisioning
-      if resource_limits is None:
-        resource_limits = []
-      autoscaling.resourceLimits = resource_limits
-      if scopes is None:
-        scopes = []
-      management = None
-      upgrade_settings = None
-      if (max_surge_upgrade is not None or
-          max_unavailable_upgrade is not None or
-          options.enable_autoprovisioning_blue_green_upgrade or
-          options.enable_autoprovisioning_surge_upgrade or
-          options.autoprovisioning_standard_rollout_policy is not None or
-          options.autoprovisioning_node_pool_soak_duration is not None):
-        upgrade_settings = self.UpdateUpgradeSettingsForNAP(
-            options, max_surge_upgrade, max_unavailable_upgrade)
-      if enable_autorepair is not None or enable_autorepair is not None:
-        management = self.messages \
-          .NodeManagement(autoUpgrade=enable_autoupgrade,
-                          autoRepair=enable_autorepair)
-      shielded_instance_config = None
-      if enable_secure_boot is not None or \
-          enable_integrity_monitoring is not None:
-        shielded_instance_config = self.messages.ShieldedInstanceConfig()
-        shielded_instance_config.enableSecureBoot = enable_secure_boot
-        shielded_instance_config.enableIntegrityMonitoring = \
-            enable_integrity_monitoring
+    autoscaling.enableNodeAutoprovisioning = options.enable_autoprovisioning
+    if resource_limits is None:
+      resource_limits = []
+    autoscaling.resourceLimits = resource_limits
+    if scopes is None:
+      scopes = []
+    management = None
+    upgrade_settings = None
+    if (
+        max_surge_upgrade is not None
+        or max_unavailable_upgrade is not None
+        or options.enable_autoprovisioning_blue_green_upgrade
+        or options.enable_autoprovisioning_surge_upgrade
+        or options.autoprovisioning_standard_rollout_policy is not None
+        or options.autoprovisioning_node_pool_soak_duration is not None
+    ):
+      upgrade_settings = self.UpdateUpgradeSettingsForNAP(
+          options, max_surge_upgrade, max_unavailable_upgrade
+      )
+    if enable_autorepair is not None or enable_autorepair is not None:
+      management = self.messages.NodeManagement(
+          autoUpgrade=enable_autoupgrade, autoRepair=enable_autorepair
+      )
+    shielded_instance_config = None
+    if (
+        enable_secure_boot is not None
+        or enable_integrity_monitoring is not None
+    ):
+      shielded_instance_config = self.messages.ShieldedInstanceConfig()
+      shielded_instance_config.enableSecureBoot = enable_secure_boot
+      shielded_instance_config.enableIntegrityMonitoring = (
+          enable_integrity_monitoring
+      )
 
-      if for_update:
-        autoscaling.autoprovisioningNodePoolDefaults = (
-            self.messages.AutoprovisioningNodePoolDefaults(
-                serviceAccount=service_account,
-                oauthScopes=scopes,
-                upgradeSettings=upgrade_settings,
-                management=management,
-                minCpuPlatform=min_cpu_platform,
-                bootDiskKmsKey=boot_disk_kms_key,
-                diskSizeGb=disk_size_gb,
-                diskType=disk_type,
-                imageType=autoprovisioning_image_type,
-                shieldedInstanceConfig=shielded_instance_config,
-            )
-        )
-      else:
-        autoscaling.autoprovisioningNodePoolDefaults = (
-            self.messages.AutoprovisioningNodePoolDefaults(
-                serviceAccount=service_account,
-                oauthScopes=scopes,
-                upgradeSettings=upgrade_settings,
-                management=management,
-                minCpuPlatform=min_cpu_platform,
-                bootDiskKmsKey=boot_disk_kms_key,
-                diskSizeGb=disk_size_gb,
-                diskType=disk_type,
-                imageType=autoprovisioning_image_type,
-                shieldedInstanceConfig=shielded_instance_config,
-            )
-        )
+    if for_update:
+      autoscaling.autoprovisioningNodePoolDefaults = (
+          self.messages.AutoprovisioningNodePoolDefaults(
+              serviceAccount=service_account,
+              oauthScopes=scopes,
+              upgradeSettings=upgrade_settings,
+              management=management,
+              minCpuPlatform=min_cpu_platform,
+              bootDiskKmsKey=boot_disk_kms_key,
+              diskSizeGb=disk_size_gb,
+              diskType=disk_type,
+              imageType=autoprovisioning_image_type,
+              shieldedInstanceConfig=shielded_instance_config,
+          )
+      )
+    else:
+      autoscaling.autoprovisioningNodePoolDefaults = (
+          self.messages.AutoprovisioningNodePoolDefaults(
+              serviceAccount=service_account,
+              oauthScopes=scopes,
+              upgradeSettings=upgrade_settings,
+              management=management,
+              minCpuPlatform=min_cpu_platform,
+              bootDiskKmsKey=boot_disk_kms_key,
+              diskSizeGb=disk_size_gb,
+              diskType=disk_type,
+              imageType=autoprovisioning_image_type,
+              shieldedInstanceConfig=shielded_instance_config,
+          )
+      )
 
-      if autoprovisioning_locations:
-        autoscaling.autoprovisioningLocations = \
-            sorted(autoprovisioning_locations)
+    if autoprovisioning_locations:
+      autoscaling.autoprovisioningLocations = sorted(autoprovisioning_locations)
 
     if options.autoscaling_profile is not None:
-      autoscaling.autoscalingProfile = \
-          self.CreateAutoscalingProfileCommon(options)
+      autoscaling.autoscalingProfile = self.CreateAutoscalingProfileCommon(
+          options
+      )
+
+    if options.enable_default_compute_class is not None:
+      autoscaling.defaultComputeClassConfig = (
+          self.messages.DefaultComputeClassConfig(
+              enabled=options.enable_default_compute_class
+          )
+      )
 
     self.ValidateClusterAutoscaling(autoscaling, for_update)
     return autoscaling
@@ -6555,9 +10285,12 @@ class V1Alpha1Adapter(V1Beta1Adapter):
     Returns:
       List of node pools.
     """
-    max_nodes_per_pool = options.max_nodes_per_pool or MAX_NODES_PER_POOL
-    num_pools = (options.num_nodes + max_nodes_per_pool -
-                 1) // max_nodes_per_pool
+    max_nodes_per_pool = (
+        options.max_nodes_per_pool or DEFAULT_MAX_NODES_PER_POOL
+    )
+    num_pools = (
+        options.num_nodes + max_nodes_per_pool - 1
+    ) // max_nodes_per_pool
     # pool consistency with server default
     node_pool_name = options.node_pool_name or 'default-pool'
 
@@ -6580,24 +10313,30 @@ class V1Alpha1Adapter(V1Beta1Adapter):
           initialNodeCount=nodes,
           config=node_config,
           version=options.node_version,
-          management=self._GetNodeManagement(options))
+          management=self._GetNodeManagement(options),
+      )
       if options.enable_autoscaling:
         pool.autoscaling = self.messages.NodePoolAutoscaling(
             enabled=options.enable_autoscaling,
             minNodeCount=options.min_nodes,
             maxNodeCount=options.max_nodes,
             totalMinNodeCount=options.total_min_nodes,
-            totalMaxNodeCount=options.total_max_nodes)
+            totalMaxNodeCount=options.total_max_nodes,
+        )
         if options.location_policy is not None:
           pool.autoscaling.locationPolicy = LocationPolicyEnumFromString(
-              self.messages, options.location_policy)
+              self.messages, options.location_policy
+          )
       if options.max_pods_per_node:
         if not options.enable_ip_alias:
           raise util.Error(MAX_PODS_PER_NODE_WITHOUT_IP_ALIAS_ERROR_MSG)
         pool.maxPodsConstraint = self.messages.MaxPodsConstraint(
-            maxPodsPerNode=options.max_pods_per_node)
-      if (options.max_surge_upgrade is not None or
-          options.max_unavailable_upgrade is not None):
+            maxPodsPerNode=options.max_pods_per_node
+        )
+      if (
+          options.max_surge_upgrade is not None
+          or options.max_unavailable_upgrade is not None
+      ):
         pool.upgradeSettings = self.messages.UpgradeSettings()
         pool.upgradeSettings.maxSurge = options.max_surge_upgrade
         pool.upgradeSettings.maxUnavailable = options.max_unavailable_upgrade
@@ -6607,7 +10346,9 @@ class V1Alpha1Adapter(V1Beta1Adapter):
       ):
         pool.placementPolicy = self.messages.PlacementPolicy()
       if options.placement_type == 'COMPACT':
-        pool.placementPolicy.type = self.messages.PlacementPolicy.TypeValueValuesEnum.COMPACT
+        pool.placementPolicy.type = (
+            self.messages.PlacementPolicy.TypeValueValuesEnum.COMPACT
+        )
       if options.placement_policy is not None:
         pool.placementPolicy.policyName = options.placement_policy
       if options.enable_queued_provisioning is not None:
@@ -6620,27 +10361,39 @@ class V1Alpha1Adapter(V1Beta1Adapter):
   def GetIamPolicy(self, cluster_ref):
     return self.client.projects.GetIamPolicy(
         self.messages.ContainerProjectsGetIamPolicyRequest(
-            resource=ProjectLocationCluster(cluster_ref.projectId, cluster_ref
-                                            .zone, cluster_ref.clusterId)))
+            resource=ProjectLocationCluster(
+                cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+            )
+        )
+    )
 
   def SetIamPolicy(self, cluster_ref, policy):
     return self.client.projects.SetIamPolicy(
         self.messages.ContainerProjectsSetIamPolicyRequest(
-            googleIamV1SetIamPolicyRequest=self.messages
-            .GoogleIamV1SetIamPolicyRequest(policy=policy),
-            resource=ProjectLocationCluster(cluster_ref.projectId,
-                                            cluster_ref.zone,
-                                            cluster_ref.clusterId)))
+            googleIamV1SetIamPolicyRequest=self.messages.GoogleIamV1SetIamPolicyRequest(
+                policy=policy
+            ),
+            resource=ProjectLocationCluster(
+                cluster_ref.projectId, cluster_ref.zone, cluster_ref.clusterId
+            ),
+        )
+    )
 
 
 def _GetCloudRunLoadBalancerType(options, messages):
+  """Gets the Cloud Run load balancer type."""
   if options.cloud_run_config is not None:
     input_load_balancer_type = options.cloud_run_config.get(
-        'load-balancer-type')
+        'load-balancer-type'
+    )
     if input_load_balancer_type is not None:
       if input_load_balancer_type == 'INTERNAL':
-        return messages.CloudRunConfig.LoadBalancerTypeValueValuesEnum.LOAD_BALANCER_TYPE_INTERNAL
-      return messages.CloudRunConfig.LoadBalancerTypeValueValuesEnum.LOAD_BALANCER_TYPE_EXTERNAL
+        return (
+            messages.CloudRunConfig.LoadBalancerTypeValueValuesEnum.LOAD_BALANCER_TYPE_INTERNAL
+        )
+      return (
+          messages.CloudRunConfig.LoadBalancerTypeValueValuesEnum.LOAD_BALANCER_TYPE_EXTERNAL
+      )
   return None
 
 
@@ -6657,7 +10410,8 @@ def _AddMetadataToNodeConfig(node_config, options):
 
 def _AddLabelsToNodeConfig(node_config, options):
   node_config.resourceLabels = labels_util.ParseCreateArgs(
-      options, node_config.ResourceLabelsValue)
+      options, node_config.ResourceLabelsValue
+  )
 
 
 def _AddNodeLabelsToNodeConfig(node_config, options):
@@ -6688,21 +10442,27 @@ def _AddLinuxNodeConfigToNodeConfig(node_config, options, messages):
 
 
 def _AddWindowsNodeConfigToNodeConfig(node_config, options, messages):
-  """ "Adds WindowsNodeConfig to NodeConfig."""
+  """Adds WindowsNodeConfig to NodeConfig."""
 
   if options.windows_os_version is not None:
     if node_config.windowsNodeConfig is None:
       node_config.windowsNodeConfig = messages.WindowsNodeConfig()
     if options.windows_os_version == 'ltsc2022':
-      node_config.windowsNodeConfig.osVersion = messages.WindowsNodeConfig.OsVersionValueValuesEnum.OS_VERSION_LTSC2022
+      node_config.windowsNodeConfig.osVersion = (
+          messages.WindowsNodeConfig.OsVersionValueValuesEnum.OS_VERSION_LTSC2022
+      )
     else:
-      node_config.windowsNodeConfig.osVersion = messages.WindowsNodeConfig.OsVersionValueValuesEnum.OS_VERSION_LTSC2019
+      node_config.windowsNodeConfig.osVersion = (
+          messages.WindowsNodeConfig.OsVersionValueValuesEnum.OS_VERSION_LTSC2019
+      )
 
 
 def _AddShieldedInstanceConfigToNodeConfig(node_config, options, messages):
   """Adds ShieldedInstanceConfig to NodeConfig."""
-  if (options.shielded_secure_boot is not None or
-      options.shielded_integrity_monitoring is not None):
+  if (
+      options.shielded_secure_boot is not None
+      or options.shielded_integrity_monitoring is not None
+  ):
 
     # Setting any of the ShieldedInstanceConfig options here
     # overrides the defaulting on the server.
@@ -6717,10 +10477,12 @@ def _AddShieldedInstanceConfigToNodeConfig(node_config, options, messages):
     node_config.shieldedInstanceConfig = messages.ShieldedInstanceConfig()
     if options.shielded_secure_boot is not None:
       node_config.shieldedInstanceConfig.enableSecureBoot = (
-          options.shielded_secure_boot)
+          options.shielded_secure_boot
+      )
     if options.shielded_integrity_monitoring is not None:
       node_config.shieldedInstanceConfig.enableIntegrityMonitoring = (
-          options.shielded_integrity_monitoring)
+          options.shielded_integrity_monitoring
+      )
 
 
 def _AddReservationAffinityToNodeConfig(node_config, options, messages):
@@ -6728,27 +10490,30 @@ def _AddReservationAffinityToNodeConfig(node_config, options, messages):
   affinity = options.reservation_affinity
   if options.reservation and affinity != 'specific':
     raise util.Error(
-        RESERVATION_AFFINITY_NON_SPECIFIC_WITH_RESERVATION_NAME_ERROR_MSG
-        .format(affinity=affinity))
+        RESERVATION_AFFINITY_NON_SPECIFIC_WITH_RESERVATION_NAME_ERROR_MSG.format(
+            affinity=affinity
+        )
+    )
 
   if not options.reservation and affinity == 'specific':
     raise util.Error(
-        RESERVATION_AFFINITY_SPECIFIC_WITHOUT_RESERVATION_NAME_ERROR_MSG)
+        RESERVATION_AFFINITY_SPECIFIC_WITHOUT_RESERVATION_NAME_ERROR_MSG
+    )
 
   if affinity == 'none':
     node_config.reservationAffinity = messages.ReservationAffinity(
-        consumeReservationType=messages.ReservationAffinity
-        .ConsumeReservationTypeValueValuesEnum.NO_RESERVATION)
+        consumeReservationType=messages.ReservationAffinity.ConsumeReservationTypeValueValuesEnum.NO_RESERVATION
+    )
   elif affinity == 'any':
     node_config.reservationAffinity = messages.ReservationAffinity(
-        consumeReservationType=messages.ReservationAffinity
-        .ConsumeReservationTypeValueValuesEnum.ANY_RESERVATION)
+        consumeReservationType=messages.ReservationAffinity.ConsumeReservationTypeValueValuesEnum.ANY_RESERVATION
+    )
   elif affinity == 'specific':
     node_config.reservationAffinity = messages.ReservationAffinity(
-        consumeReservationType=messages.ReservationAffinity
-        .ConsumeReservationTypeValueValuesEnum.SPECIFIC_RESERVATION,
+        consumeReservationType=messages.ReservationAffinity.ConsumeReservationTypeValueValuesEnum.SPECIFIC_RESERVATION,
         key='compute.googleapis.com/reservation-name',
-        values=[options.reservation])
+        values=[options.reservation],
+    )
 
 
 def _AddSandboxConfigToNodeConfig(node_config, options, messages):
@@ -6762,32 +10527,38 @@ def _AddSandboxConfigToNodeConfig(node_config, options, messages):
     }
     if options.sandbox['type'] not in sandbox_types:
       raise util.Error(
-          SANDBOX_TYPE_NOT_SUPPORTED.format(type=options.sandbox['type']))
+          SANDBOX_TYPE_NOT_SUPPORTED.format(type=options.sandbox['type'])
+      )
     node_config.sandboxConfig = messages.SandboxConfig(
-        type=sandbox_types[options.sandbox['type']])
+        type=sandbox_types[options.sandbox['type']]
+    )
 
 
 def _GetStableFleetConfig(options, messages):
   """Get StableFleetConfig from options."""
   if options.maintenance_interval is not None:
     maintenance_interval_types = {
-        'UNSPECIFIED':
-            messages.StableFleetConfig.MaintenanceIntervalValueValuesEnum
-            .MAINTENANCE_INTERVAL_UNSPECIFIED,
-        'PERIODIC':
-            messages.StableFleetConfig.MaintenanceIntervalValueValuesEnum
-            .PERIODIC,
-        'AS_NEEDED':
-            messages.StableFleetConfig.MaintenanceIntervalValueValuesEnum
-            .AS_NEEDED,
+        'UNSPECIFIED': (
+            messages.StableFleetConfig.MaintenanceIntervalValueValuesEnum.MAINTENANCE_INTERVAL_UNSPECIFIED
+        ),
+        'PERIODIC': (
+            messages.StableFleetConfig.MaintenanceIntervalValueValuesEnum.PERIODIC
+        ),
+        'AS_NEEDED': (
+            messages.StableFleetConfig.MaintenanceIntervalValueValuesEnum.AS_NEEDED
+        ),
     }
     if options.maintenance_interval not in maintenance_interval_types:
       raise util.Error(
-          MAINTENANCE_INTERVAL_TYPE_NOT_SUPPORTED.FORMAT(
-              type=options.maintenance_interval))
+          MAINTENANCE_INTERVAL_TYPE_NOT_SUPPORTED.format(
+              type=options.maintenance_interval
+          )
+      )
     return messages.StableFleetConfig(
         maintenanceInterval=maintenance_interval_types[
-            options.maintenance_interval])
+            options.maintenance_interval
+        ]
+    )
 
 
 def _AddNotificationConfigToCluster(cluster, options, messages):
@@ -6810,14 +10581,18 @@ def _GetFilterFromArg(filter_arg, messages):
   if not filter_arg:
     return None
   flag_event_types_to_enum = {
-      'upgradeevent':
-          messages.Filter.EventTypeValueListEntryValuesEnum.UPGRADE_EVENT,
-      'upgradeavailableevent':
-          messages.Filter.EventTypeValueListEntryValuesEnum
-          .UPGRADE_AVAILABLE_EVENT,
-      'securitybulletinevent':
-          messages.Filter.EventTypeValueListEntryValuesEnum
-          .SECURITY_BULLETIN_EVENT
+      'upgradeevent': (
+          messages.Filter.EventTypeValueListEntryValuesEnum.UPGRADE_EVENT
+      ),
+      'upgradeinfoevent': (
+          messages.Filter.EventTypeValueListEntryValuesEnum.UPGRADE_INFO_EVENT
+      ),
+      'upgradeavailableevent': (
+          messages.Filter.EventTypeValueListEntryValuesEnum.UPGRADE_AVAILABLE_EVENT
+      ),
+      'securitybulletinevent': (
+          messages.Filter.EventTypeValueListEntryValuesEnum.SECURITY_BULLETIN_EVENT
+      ),
   }
   to_return = messages.Filter()
   for event_type in filter_arg.split('|'):
@@ -6834,9 +10609,26 @@ def _GetReleaseChannel(options, messages):
         'rapid': messages.ReleaseChannel.ChannelValueValuesEnum.RAPID,
         'regular': messages.ReleaseChannel.ChannelValueValuesEnum.REGULAR,
         'stable': messages.ReleaseChannel.ChannelValueValuesEnum.STABLE,
+        'extended': messages.ReleaseChannel.ChannelValueValuesEnum.EXTENDED,
         'None': messages.ReleaseChannel.ChannelValueValuesEnum.UNSPECIFIED,
     }
     return messages.ReleaseChannel(channel=channels[options.release_channel])
+
+
+def _GetGkeAutoUpgradeConfig(options, messages):
+  """Gets the PatchMode from options."""
+  if options.patch_update is not None:
+    patch_modes = {
+        'accelerated': (
+            messages.GkeAutoUpgradeConfig.PatchModeValueValuesEnum.ACCELERATED
+        ),
+        'default': (
+            messages.GkeAutoUpgradeConfig.PatchModeValueValuesEnum.PATCH_MODE_UNSPECIFIED
+        ),
+    }
+    return messages.GkeAutoUpgradeConfig(
+        patchMode=patch_modes[options.patch_update[0]]
+    )
 
 
 def _GetNotificationConfigForClusterUpdate(options, messages):
@@ -6867,26 +10659,29 @@ def _GetTpuConfigForClusterUpdate(options, messages):
 
 def _GetMasterForClusterCreate(options, messages):
   """Gets the Master from create options."""
-  if options.master_logs is not None or options.enable_master_metrics is not None:
+  if (
+      options.master_logs is not None
+      or options.enable_master_metrics is not None
+  ):
     config = messages.MasterSignalsConfig()
 
     if options.master_logs is not None:
       if APISERVER in options.master_logs:
         config.logEnabledComponents.append(
-            messages.MasterSignalsConfig
-            .LogEnabledComponentsValueListEntryValuesEnum.APISERVER)
+            messages.MasterSignalsConfig.LogEnabledComponentsValueListEntryValuesEnum.APISERVER
+        )
       if SCHEDULER in options.master_logs:
         config.logEnabledComponents.append(
-            messages.MasterSignalsConfig
-            .LogEnabledComponentsValueListEntryValuesEnum.SCHEDULER)
+            messages.MasterSignalsConfig.LogEnabledComponentsValueListEntryValuesEnum.SCHEDULER
+        )
       if CONTROLLER_MANAGER in options.master_logs:
         config.logEnabledComponents.append(
-            messages.MasterSignalsConfig
-            .LogEnabledComponentsValueListEntryValuesEnum.CONTROLLER_MANAGER)
+            messages.MasterSignalsConfig.LogEnabledComponentsValueListEntryValuesEnum.CONTROLLER_MANAGER
+        )
       if ADDON_MANAGER in options.master_logs:
         config.logEnabledComponents.append(
-            messages.MasterSignalsConfig
-            .LogEnabledComponentsValueListEntryValuesEnum.ADDON_MANAGER)
+            messages.MasterSignalsConfig.LogEnabledComponentsValueListEntryValuesEnum.ADDON_MANAGER
+        )
     if options.enable_master_metrics is not None:
       config.enableMetrics = options.enable_master_metrics
     return messages.Master(signalsConfig=config)
@@ -6900,29 +10695,29 @@ def _GetMasterForClusterUpdate(options, messages):
     config = messages.MasterSignalsConfig()
     if APISERVER in options.master_logs:
       config.logEnabledComponents.append(
-          messages.MasterSignalsConfig
-          .LogEnabledComponentsValueListEntryValuesEnum.APISERVER)
+          messages.MasterSignalsConfig.LogEnabledComponentsValueListEntryValuesEnum.APISERVER
+      )
     if SCHEDULER in options.master_logs:
       config.logEnabledComponents.append(
-          messages.MasterSignalsConfig
-          .LogEnabledComponentsValueListEntryValuesEnum.SCHEDULER)
+          messages.MasterSignalsConfig.LogEnabledComponentsValueListEntryValuesEnum.SCHEDULER
+      )
     if CONTROLLER_MANAGER in options.master_logs:
       config.logEnabledComponents.append(
-          messages.MasterSignalsConfig
-          .LogEnabledComponentsValueListEntryValuesEnum.CONTROLLER_MANAGER)
+          messages.MasterSignalsConfig.LogEnabledComponentsValueListEntryValuesEnum.CONTROLLER_MANAGER
+      )
     if ADDON_MANAGER in options.master_logs:
       config.logEnabledComponents.append(
-          messages.MasterSignalsConfig
-          .LogEnabledComponentsValueListEntryValuesEnum.ADDON_MANAGER)
+          messages.MasterSignalsConfig.LogEnabledComponentsValueListEntryValuesEnum.ADDON_MANAGER
+      )
     return messages.Master(signalsConfig=config)
 
   if options.enable_master_metrics is not None:
     config = messages.MasterSignalsConfig(
         enableMetrics=options.enable_master_metrics,
         logEnabledComponents=[
-            messages.MasterSignalsConfig
-            .LogEnabledComponentsValueListEntryValuesEnum.COMPONENT_UNSPECIFIED
-        ])
+            messages.MasterSignalsConfig.LogEnabledComponentsValueListEntryValuesEnum.COMPONENT_UNSPECIFIED
+        ],
+    )
     return messages.Master(signalsConfig=config)
 
 
@@ -6934,8 +10729,11 @@ def _GetLoggingConfig(options, messages):
   # TODO(b/195524749): Validate the input in flags.py after Control Plane
   # Signals is GA.
   if any(c not in LOGGING_OPTIONS for c in options.logging):
-    raise util.Error('[' + ', '.join(options.logging) +
-                     '] contains option(s) that are not supported for logging.')
+    raise util.Error(
+        '['
+        + ', '.join(options.logging)
+        + '] contains option(s) that are not supported for logging.'
+    )
 
   config = messages.LoggingComponentConfig()
   if NONE in options.logging:
@@ -6945,60 +10743,120 @@ def _GetLoggingConfig(options, messages):
   if SYSTEM not in options.logging:
     raise util.Error('Must include system logging if any logging is enabled.')
   config.enableComponents.append(
-      messages.LoggingComponentConfig.EnableComponentsValueListEntryValuesEnum
-      .SYSTEM_COMPONENTS)
+      messages.LoggingComponentConfig.EnableComponentsValueListEntryValuesEnum.SYSTEM_COMPONENTS
+  )
   if WORKLOAD in options.logging:
     config.enableComponents.append(
-        messages.LoggingComponentConfig.EnableComponentsValueListEntryValuesEnum
-        .WORKLOADS)
+        messages.LoggingComponentConfig.EnableComponentsValueListEntryValuesEnum.WORKLOADS
+    )
   if API_SERVER in options.logging:
     config.enableComponents.append(
-        messages.LoggingComponentConfig.EnableComponentsValueListEntryValuesEnum
-        .APISERVER)
+        messages.LoggingComponentConfig.EnableComponentsValueListEntryValuesEnum.APISERVER
+    )
   if SCHEDULER in options.logging:
     config.enableComponents.append(
-        messages.LoggingComponentConfig.EnableComponentsValueListEntryValuesEnum
-        .SCHEDULER)
+        messages.LoggingComponentConfig.EnableComponentsValueListEntryValuesEnum.SCHEDULER
+    )
   if CONTROLLER_MANAGER in options.logging:
     config.enableComponents.append(
-        messages.LoggingComponentConfig.EnableComponentsValueListEntryValuesEnum
-        .CONTROLLER_MANAGER)
+        messages.LoggingComponentConfig.EnableComponentsValueListEntryValuesEnum.CONTROLLER_MANAGER
+    )
   if ADDON_MANAGER in options.logging:
     config.enableComponents.append(
-        messages.LoggingComponentConfig.EnableComponentsValueListEntryValuesEnum
-        .ADDON_MANAGER)
+        messages.LoggingComponentConfig.EnableComponentsValueListEntryValuesEnum.ADDON_MANAGER
+    )
+  if KCP_SSHD in options.logging:
+    config.enableComponents.append(
+        messages.LoggingComponentConfig.EnableComponentsValueListEntryValuesEnum.KCP_SSHD
+    )
+  if KCP_CONNECTION in options.logging:
+    config.enableComponents.append(
+        messages.LoggingComponentConfig.EnableComponentsValueListEntryValuesEnum.KCP_CONNECTION
+    )
+  if KCP_HPA in options.logging:
+    config.enableComponents.append(
+        messages.LoggingComponentConfig.EnableComponentsValueListEntryValuesEnum.KCP_HPA
+    )
 
   return messages.LoggingConfig(componentConfig=config)
 
 
-def _GetHostMaintenancePolicy(options, messages):
+def _GetHostMaintenancePolicy(options, messages, op_type):
   """Get HostMaintenancePolicy from options."""
+  parsed_maintenance_interval = None
+  parsed_opportunistic_maintenance = None
+
   if options.host_maintenance_interval is not None:
     maintenance_interval_types = {
-        'UNSPECIFIED':
-            messages.HostMaintenancePolicy.MaintenanceIntervalValueValuesEnum
-            .MAINTENANCE_INTERVAL_UNSPECIFIED,
-        'PERIODIC':
-            messages.HostMaintenancePolicy.MaintenanceIntervalValueValuesEnum
-            .PERIODIC,
-        'AS_NEEDED':
-            messages.HostMaintenancePolicy.MaintenanceIntervalValueValuesEnum
-            .AS_NEEDED,
+        'UNSPECIFIED': (
+            messages.HostMaintenancePolicy.MaintenanceIntervalValueValuesEnum.MAINTENANCE_INTERVAL_UNSPECIFIED
+        ),
+        'PERIODIC': (
+            messages.HostMaintenancePolicy.MaintenanceIntervalValueValuesEnum.PERIODIC
+        ),
+        'AS_NEEDED': (
+            messages.HostMaintenancePolicy.MaintenanceIntervalValueValuesEnum.AS_NEEDED
+        ),
     }
     if options.host_maintenance_interval not in maintenance_interval_types:
       raise util.Error(
-          HOST_MAINTENANCE_INTERVAL_TYPE_NOT_SUPPORTED.FORMAT(
+          HOST_MAINTENANCE_INTERVAL_TYPE_NOT_SUPPORTED.format(
               type=options.host_maintenance_interval
           )
       )
-    return messages.HostMaintenancePolicy(
-        maintenanceInterval=maintenance_interval_types[
-            options.host_maintenance_interval
-        ]
+    parsed_maintenance_interval = maintenance_interval_types[
+        options.host_maintenance_interval
+    ]
+  # opportunistic maintenance is only supported for node pools
+  if op_type == NODEPOOL and options.opportunistic_maintenance is not None:
+    if not re.search(
+        r's$', options.opportunistic_maintenance['node-idle-time']
+    ):
+      raise util.Error(
+          OPPORTUNISTIC_MAINTENANCE_FIELD_NOT_SUPPORTED.format(
+              field='node-idle-time',
+              value=options.opportunistic_maintenance['node-idle-time']
+          )
+      )
+    if not re.search(r's$', options.opportunistic_maintenance['window']):
+      raise util.Error(
+          OPPORTUNISTIC_MAINTENANCE_FIELD_NOT_SUPPORTED.format(
+              field='window',
+              value=options.opportunistic_maintenance['window']
+          )
+      )
+    parsed_opportunistic_maintenance = (
+        messages.OpportunisticMaintenanceStrategy(
+            nodeIdleTimeWindow=options.opportunistic_maintenance[
+                'node-idle-time'
+            ],
+            maintenanceAvailabilityWindow=options.opportunistic_maintenance[
+                'window'
+            ],
+            minNodesPerPool=options.opportunistic_maintenance['min-nodes'],
+        )
     )
+  return messages.HostMaintenancePolicy(
+      maintenanceInterval=parsed_maintenance_interval,
+      opportunisticMaintenanceStrategy=parsed_opportunistic_maintenance,
+  )
 
 
-def _GetMonitoringConfig(options, messages):
+def _GetManagedOpenTelemetryConfig(options, messages):
+  """Gets the ManagedOpenTelemetryConfig from create and update options."""
+  scope = None
+  otel_scope = options.managed_otel_scope
+  scope_value_enum = (
+      messages.ManagedOpenTelemetryConfig.ScopeValueValuesEnum
+  )
+  if otel_scope == 'NONE':
+    scope = scope_value_enum.NONE
+  elif otel_scope == 'COLLECTION_AND_INSTRUMENTATION_COMPONENTS':
+    scope = scope_value_enum.COLLECTION_AND_INSTRUMENTATION_COMPONENTS
+  return messages.ManagedOpenTelemetryConfig(scope=scope)
+
+
+def _GetMonitoringConfig(options, messages, is_update, is_prometheus_enabled):
   """Gets the MonitoringConfig from create and update options."""
 
   comp = None
@@ -7008,23 +10866,72 @@ def _GetMonitoringConfig(options, messages):
 
   if options.enable_managed_prometheus is not None:
     prom = messages.ManagedPrometheusConfig(
-        enabled=options.enable_managed_prometheus)
+        enabled=options.enable_managed_prometheus
+    )
+    if options.auto_monitoring_scope is not None:
+      scope = None
+      if options.auto_monitoring_scope == 'ALL':
+        scope = messages.AutoMonitoringConfig.ScopeValueValuesEnum.ALL
+      elif options.auto_monitoring_scope == 'NONE':
+        scope = messages.AutoMonitoringConfig.ScopeValueValuesEnum.NONE
+      prom.autoMonitoringConfig = messages.AutoMonitoringConfig(scope=scope)
+    config.managedPrometheusConfig = prom
+  # for update or when auto_monitoring_scope is set without
+  # managed_prometheus enabled
+  if (
+      options.enable_managed_prometheus is None
+      and options.auto_monitoring_scope is not None
+  ):
+    if (
+        not is_update
+        and options.enable_managed_prometheus is None
+        and options.auto_monitoring_scope != 'NONE'
+        and not options.autopilot
+    ):
+      raise util.Error(AUTO_MONITORING_NOT_SUPPORTED_WITHOUT_MANAGED_PROMETHEUS)
+    elif is_update:
+      scope = None
+      if options.auto_monitoring_scope == 'ALL':
+        scope = messages.AutoMonitoringConfig.ScopeValueValuesEnum.ALL
+      elif options.auto_monitoring_scope == 'NONE':
+        scope = messages.AutoMonitoringConfig.ScopeValueValuesEnum.NONE
+
+      prom = messages.ManagedPrometheusConfig(enabled=is_prometheus_enabled)
+      prom.autoMonitoringConfig = messages.AutoMonitoringConfig(scope=scope)
+    elif options.autopilot:
+      prom = messages.ManagedPrometheusConfig(enabled=True)
+      scope = None
+      if options.auto_monitoring_scope == 'ALL':
+        scope = messages.AutoMonitoringConfig.ScopeValueValuesEnum.ALL
+      elif options.auto_monitoring_scope == 'NONE':
+        scope = messages.AutoMonitoringConfig.ScopeValueValuesEnum.NONE
+      prom.autoMonitoringConfig = messages.AutoMonitoringConfig(scope=scope)
+    else:  # when prometheus is not enabled and user it trying to set scope to
+      # NONE in a create cluster command.
+      prom = messages.ManagedPrometheusConfig(enabled=False)
+      prom.autoMonitoringConfig = messages.AutoMonitoringConfig(
+          scope=messages.AutoMonitoringConfig.ScopeValueValuesEnum.NONE
+      )
+
     config.managedPrometheusConfig = prom
 
   # Disable flag only on cluster updates, check first.
   if hasattr(options, 'disable_managed_prometheus'):
     if options.disable_managed_prometheus is not None:
       prom = messages.ManagedPrometheusConfig(
-          enabled=(not options.disable_managed_prometheus))
+          enabled=(not options.disable_managed_prometheus)
+      )
+      prom.autoMonitoringConfig = None
       config.managedPrometheusConfig = prom
-
   if options.monitoring is not None:
     # TODO(b/195524749): Validate the input in flags.py after Control Plane
     # Signals is GA.
     if any(c not in MONITORING_OPTIONS for c in options.monitoring):
       raise util.Error(
-          '[' + ', '.join(options.monitoring) +
-          '] contains option(s) that are not supported for monitoring.')
+          '['
+          + ', '.join(options.monitoring)
+          + '] contains option(s) that are not supported for monitoring.'
+      )
 
     comp = messages.MonitoringComponentConfig()
     if NONE in options.monitoring:
@@ -7035,106 +10942,124 @@ def _GetMonitoringConfig(options, messages):
         return config
     if SYSTEM not in options.monitoring:
       raise util.Error(
-          'Must include system monitoring if any monitoring is enabled.')
+          'Must include system monitoring if any monitoring is enabled.'
+      )
     comp.enableComponents.append(
-        messages.MonitoringComponentConfig
-        .EnableComponentsValueListEntryValuesEnum.SYSTEM_COMPONENTS)
+        messages.MonitoringComponentConfig.EnableComponentsValueListEntryValuesEnum.SYSTEM_COMPONENTS
+    )
 
     if WORKLOAD in options.monitoring:
       comp.enableComponents.append(
-          messages.MonitoringComponentConfig
-          .EnableComponentsValueListEntryValuesEnum.WORKLOADS)
+          messages.MonitoringComponentConfig.EnableComponentsValueListEntryValuesEnum.WORKLOADS
+      )
     if API_SERVER in options.monitoring:
       comp.enableComponents.append(
-          messages.MonitoringComponentConfig
-          .EnableComponentsValueListEntryValuesEnum.APISERVER)
+          messages.MonitoringComponentConfig.EnableComponentsValueListEntryValuesEnum.APISERVER
+      )
     if SCHEDULER in options.monitoring:
       comp.enableComponents.append(
-          messages.MonitoringComponentConfig
-          .EnableComponentsValueListEntryValuesEnum.SCHEDULER)
+          messages.MonitoringComponentConfig.EnableComponentsValueListEntryValuesEnum.SCHEDULER
+      )
     if CONTROLLER_MANAGER in options.monitoring:
       comp.enableComponents.append(
-          messages.MonitoringComponentConfig
-          .EnableComponentsValueListEntryValuesEnum.CONTROLLER_MANAGER)
+          messages.MonitoringComponentConfig.EnableComponentsValueListEntryValuesEnum.CONTROLLER_MANAGER
+      )
     if STORAGE in options.monitoring:
       comp.enableComponents.append(
-          messages.MonitoringComponentConfig
-          .EnableComponentsValueListEntryValuesEnum.STORAGE)
+          messages.MonitoringComponentConfig.EnableComponentsValueListEntryValuesEnum.STORAGE
+      )
     if HPA_COMPONENT in options.monitoring:
       comp.enableComponents.append(
-          messages.MonitoringComponentConfig
-          .EnableComponentsValueListEntryValuesEnum.HPA)
+          messages.MonitoringComponentConfig.EnableComponentsValueListEntryValuesEnum.HPA
+      )
     if POD in options.monitoring:
       comp.enableComponents.append(
-          messages.MonitoringComponentConfig
-          .EnableComponentsValueListEntryValuesEnum.POD)
+          messages.MonitoringComponentConfig.EnableComponentsValueListEntryValuesEnum.POD
+      )
     if DAEMONSET in options.monitoring:
       comp.enableComponents.append(
-          messages.MonitoringComponentConfig
-          .EnableComponentsValueListEntryValuesEnum.DAEMONSET)
+          messages.MonitoringComponentConfig.EnableComponentsValueListEntryValuesEnum.DAEMONSET
+      )
     if DEPLOYMENT in options.monitoring:
       comp.enableComponents.append(
-          messages.MonitoringComponentConfig
-          .EnableComponentsValueListEntryValuesEnum.DEPLOYMENT)
+          messages.MonitoringComponentConfig.EnableComponentsValueListEntryValuesEnum.DEPLOYMENT
+      )
     if STATEFULSET in options.monitoring:
       comp.enableComponents.append(
-          messages.MonitoringComponentConfig
-          .EnableComponentsValueListEntryValuesEnum.STATEFULSET)
+          messages.MonitoringComponentConfig.EnableComponentsValueListEntryValuesEnum.STATEFULSET
+      )
     if CADVISOR in options.monitoring:
       comp.enableComponents.append(
-          messages.MonitoringComponentConfig
-          .EnableComponentsValueListEntryValuesEnum.CADVISOR)
+          messages.MonitoringComponentConfig.EnableComponentsValueListEntryValuesEnum.CADVISOR
+      )
     if KUBELET in options.monitoring:
       comp.enableComponents.append(
-          messages.MonitoringComponentConfig
-          .EnableComponentsValueListEntryValuesEnum.KUBELET)
+          messages.MonitoringComponentConfig.EnableComponentsValueListEntryValuesEnum.KUBELET
+      )
+    if DCGM in options.monitoring:
+      comp.enableComponents.append(
+          messages.MonitoringComponentConfig.EnableComponentsValueListEntryValuesEnum.DCGM
+      )
+    if JOBSET in options.monitoring:
+      comp.enableComponents.append(
+          messages.MonitoringComponentConfig.EnableComponentsValueListEntryValuesEnum.JOBSET
+      )
 
     config.componentConfig = comp
 
   if options.enable_dataplane_v2_metrics:
-    adv_obs = messages.AdvancedDatapathObservabilityConfig(
-        enableMetrics=True)
+    adv_obs = messages.AdvancedDatapathObservabilityConfig(enableMetrics=True)
 
   if options.disable_dataplane_v2_metrics:
-    adv_obs = messages.AdvancedDatapathObservabilityConfig(
-        enableMetrics=False)
+    adv_obs = messages.AdvancedDatapathObservabilityConfig(enableMetrics=False)
 
   if options.dataplane_v2_observability_mode:
     relay_mode = None
     opts_name = options.dataplane_v2_observability_mode.upper()
     if opts_name == 'DISABLED':
-      relay_mode = (messages.AdvancedDatapathObservabilityConfig
-                    .RelayModeValueValuesEnum.DISABLED)
+      relay_mode = (
+          messages.AdvancedDatapathObservabilityConfig.RelayModeValueValuesEnum.DISABLED
+      )
     elif opts_name == 'INTERNAL_CLUSTER_SERVICE':
-      relay_mode = (messages.AdvancedDatapathObservabilityConfig
-                    .RelayModeValueValuesEnum.INTERNAL_CLUSTER_SERVICE)
+      relay_mode = (
+          messages.AdvancedDatapathObservabilityConfig.RelayModeValueValuesEnum.INTERNAL_CLUSTER_SERVICE
+      )
     elif opts_name == 'INTERNAL_VPC_LB':
-      relay_mode = (messages.AdvancedDatapathObservabilityConfig
-                    .RelayModeValueValuesEnum.INTERNAL_VPC_LB)
+      relay_mode = (
+          messages.AdvancedDatapathObservabilityConfig.RelayModeValueValuesEnum.INTERNAL_VPC_LB
+      )
     elif opts_name == 'EXTERNAL_LB':
-      relay_mode = (messages.AdvancedDatapathObservabilityConfig
-                    .RelayModeValueValuesEnum.EXTERNAL_LB)
+      relay_mode = (
+          messages.AdvancedDatapathObservabilityConfig.RelayModeValueValuesEnum.EXTERNAL_LB
+      )
     else:
-      raise util.Error(DPV2_OBS_ERROR_MSG.format(
-          mode=options.dataplane_v2_observability_mode))
+      raise util.Error(
+          DPV2_OBS_ERROR_MSG.format(
+              mode=options.dataplane_v2_observability_mode
+          )
+      )
     if adv_obs:
       adv_obs = messages.AdvancedDatapathObservabilityConfig(
-          enableMetrics=adv_obs.enableMetrics, relayMode=relay_mode)
+          enableMetrics=adv_obs.enableMetrics, relayMode=relay_mode
+      )
     else:
       adv_obs = messages.AdvancedDatapathObservabilityConfig(
-          relayMode=relay_mode)
+          relayMode=relay_mode
+      )
 
   if options.enable_dataplane_v2_flow_observability:
     if adv_obs:
       adv_obs = messages.AdvancedDatapathObservabilityConfig(
-          enableMetrics=adv_obs.enableMetrics, enableRelay=True)
+          enableMetrics=adv_obs.enableMetrics, enableRelay=True
+      )
     else:
       adv_obs = messages.AdvancedDatapathObservabilityConfig(enableRelay=True)
 
   if options.disable_dataplane_v2_flow_observability:
     if adv_obs:
       adv_obs = messages.AdvancedDatapathObservabilityConfig(
-          enableMetrics=adv_obs.enableMetrics, enableRelay=False)
+          enableMetrics=adv_obs.enableMetrics, enableRelay=False
+      )
     else:
       adv_obs = messages.AdvancedDatapathObservabilityConfig(enableRelay=False)
 
@@ -7149,18 +11074,28 @@ def _GetMonitoringConfig(options, messages):
 
 def _GetKubernetesObjectsExportConfigForClusterCreate(options, messages):
   """Gets the KubernetesObjectsExportConfig from create options."""
-  if options.kubernetes_objects_changes_target is not None or options.kubernetes_objects_snapshots_target is not None:
+  if (
+      options.kubernetes_objects_changes_target is not None
+      or options.kubernetes_objects_snapshots_target is not None
+  ):
     config = messages.KubernetesObjectsExportConfig()
     if options.kubernetes_objects_changes_target is not None:
-      config.kubernetesObjectsChangesTarget = options.kubernetes_objects_changes_target
+      config.kubernetesObjectsChangesTarget = (
+          options.kubernetes_objects_changes_target
+      )
     if options.kubernetes_objects_snapshots_target is not None:
-      config.kubernetesObjectsSnapshotsTarget = options.kubernetes_objects_snapshots_target
+      config.kubernetesObjectsSnapshotsTarget = (
+          options.kubernetes_objects_snapshots_target
+      )
     return config
 
 
 def _GetKubernetesObjectsExportConfigForClusterUpdate(options, messages):
   """Gets the KubernetesObjectsExportConfig from update options."""
-  if options.kubernetes_objects_changes_target is not None or options.kubernetes_objects_snapshots_target is not None:
+  if (
+      options.kubernetes_objects_changes_target is not None
+      or options.kubernetes_objects_snapshots_target is not None
+  ):
     changes_target = None
     snapshots_target = None
     if options.kubernetes_objects_changes_target is not None:
@@ -7173,26 +11108,39 @@ def _GetKubernetesObjectsExportConfigForClusterUpdate(options, messages):
         snapshots_target = ''
     return messages.KubernetesObjectsExportConfig(
         kubernetesObjectsSnapshotsTarget=snapshots_target,
-        kubernetesObjectsChangesTarget=changes_target)
+        kubernetesObjectsChangesTarget=changes_target,
+    )
 
 
 def _AddPSCPrivateClustersOptionsToClusterForCreateCluster(
-    cluster, options, messages):
+    cluster, options, messages
+):
   """Adds all PSC private cluster options to cluster during create cluster."""
   if options.cross_connect_subnetworks is not None:
     items = []
+    cluster.privateClusterConfig = messages.PrivateClusterConfig(
+        enablePrivateNodes=options.enable_private_nodes
+    )
     for subnetwork in sorted(options.cross_connect_subnetworks):
       items.append(messages.CrossConnectItem(subnetwork=subnetwork))
-    cluster.privateClusterConfig.crossConnectConfig = messages.CrossConnectConfig(
-        items=items)
+    cluster.privateClusterConfig.crossConnectConfig = (
+        messages.CrossConnectConfig(items=items)
+    )
 
 
 def LocationPolicyEnumFromString(messages, location_policy):
-  location_policy_enum = messages.NodePoolAutoscaling.LocationPolicyValueValuesEnum.LOCATION_POLICY_UNSPECIFIED
+  """Converts a location policy string to an enum value."""
+  location_policy_enum = (
+      messages.NodePoolAutoscaling.LocationPolicyValueValuesEnum.LOCATION_POLICY_UNSPECIFIED
+  )
   if location_policy == 'BALANCED':
-    location_policy_enum = messages.NodePoolAutoscaling.LocationPolicyValueValuesEnum.BALANCED
+    location_policy_enum = (
+        messages.NodePoolAutoscaling.LocationPolicyValueValuesEnum.BALANCED
+    )
   elif location_policy == 'ANY':
-    location_policy_enum = messages.NodePoolAutoscaling.LocationPolicyValueValuesEnum.ANY
+    location_policy_enum = (
+        messages.NodePoolAutoscaling.LocationPolicyValueValuesEnum.ANY
+    )
   return location_policy_enum
 
 
@@ -7205,27 +11153,81 @@ def ProjectLocationCluster(project, location, cluster):
 
 
 def ProjectLocationClusterNodePool(project, location, cluster, nodepool):
-  return (ProjectLocationCluster(project, location, cluster) + '/nodePools/' +
-          nodepool)
+  return (
+      ProjectLocationCluster(project, location, cluster)
+      + '/nodePools/'
+      + nodepool
+  )
 
 
 def ProjectLocationOperation(project, location, operation):
   return ProjectLocation(project, location) + '/operations/' + operation
 
 
-def NormalizeBinauthzEvaluationMode(evaluation_mode):
-  """Converts an evaluation mode to lowercase format.
+def ProjectLocationSubnetwork(project, region, subnetwork):
+  return (
+      'projects/'
+      + project
+      + '/regions/'
+      + region
+      + '/subnetworks/'
+      + subnetwork
+  )
+
+
+def SubnetworkNameToPath(subnetwork, project, location):
+  """Converts a subnetwork name to a subnetwork path."""
+  match = re.match(SUBNETWORK_URL_PATTERN + '$', subnetwork)
+  if match:
+    subnetwork = match[1]
+  parts = subnetwork.split('/')
+  if (
+      len(parts) == 6
+      and parts[0] == 'projects'
+      and parts[2] == 'regions'
+      and parts[4] == 'subnetworks'
+  ):
+    return subnetwork
+  if re.match(ZONE_PATTERN, location):
+    location = location[: location.rfind('-')]
+  return ProjectLocationSubnetwork(project, location, subnetwork)
+
+
+def TpuTopologyToNumNodes(tpu_topology, machine_type):
+  """Calculates the number of nodes needed for a given TPU topology and machine type."""
+  match = re.fullmatch(TPU_TOPOLOGY_PATTERN, tpu_topology)
+  if not match:
+    raise util.Error(
+        TPU_TOPOLOGY_INCORRECT_FORMAT_ERROR_MSG.format(topology=tpu_topology)
+    )
+
+  result = functools.reduce(operator.mul, map(int, tpu_topology.split('x')))
+
+  chips_match = re.search(r'(\d+)t$', machine_type)
+  if not chips_match:
+    raise util.Error(
+        MACHINE_TYPE_INCORRECT_FORMAT_ERROR_MSG.format(
+            machine_type=machine_type
+        )
+    )
+  num_chips_per_vm = int(chips_match.group(1))
+
+  return result // num_chips_per_vm
+
+
+def NormalizeBinauthzMode(mode):
+  """Converts an evaluation or enforcement mode to lowercase format.
 
   e.g. Converts 'PROJECT_SINGLETON_POLICY_ENFORCE' to
   'project-singleton-policy-enforce'
 
   Args:
-    evaluation_mode: An evaluation mode.
+    mode: An evaluation or enforcement mode.
 
   Returns:
-    The evaluation mode in lowercase form.
+    The mode in lowercase form.
   """
-  return evaluation_mode.replace('_', '-').lower()
+  return mode.replace('_', '-').lower()
 
 
 def GetBinauthzEvaluationModeOptions(messages, release_track):
@@ -7254,10 +11256,189 @@ def BinauthzEvaluationModeRequiresPolicy(messages, evaluation_mode):
   return True
 
 
+def GetBinauthzEnforcementModeOptions(messages):
+  """Returns all valid options for the enforcement-mode dict key."""
+  options = list(
+      messages.PolicyBinding.EnforcementModeValueValuesEnum.to_dict()
+  )
+  options.remove('ENFORCEMENT_MODE_UNSPECIFIED')
+  return sorted(options)
+
+
 def VariantConfigEnumFromString(messages, variant):
-  variant_config_enum = messages.LoggingVariantConfig.VariantValueValuesEnum.VARIANT_UNSPECIFIED
+  """Converts a logging variant string to an enum value.
+
+  Args:
+    messages: The API messages module.
+    variant: The logging variant string.
+
+  Returns:
+    The logging variant enum value.
+  """
+  variant_config_enum = (
+      messages.LoggingVariantConfig.VariantValueValuesEnum.VARIANT_UNSPECIFIED
+  )
   if variant == 'DEFAULT':
-    variant_config_enum = messages.LoggingVariantConfig.VariantValueValuesEnum.DEFAULT
+    variant_config_enum = (
+        messages.LoggingVariantConfig.VariantValueValuesEnum.DEFAULT
+    )
   elif variant == 'MAX_THROUGHPUT':
-    variant_config_enum = messages.LoggingVariantConfig.VariantValueValuesEnum.MAX_THROUGHPUT
+    variant_config_enum = (
+        messages.LoggingVariantConfig.VariantValueValuesEnum.MAX_THROUGHPUT
+    )
   return variant_config_enum
+
+
+def _GetAnonymousAuthenticationConfig(options, messages):
+  """Configures the AnonymousAuthenticationConfig from options."""
+  config = messages.AnonymousAuthenticationConfig()
+  if options.anonymous_authentication_config is not None:
+    modes = {
+        'LIMITED': (
+            messages.AnonymousAuthenticationConfig.ModeValueValuesEnum.LIMITED
+        ),
+        'ENABLED': (
+            messages.AnonymousAuthenticationConfig.ModeValueValuesEnum.ENABLED
+        ),
+    }
+    if options.anonymous_authentication_config not in modes:
+      raise util.Error(
+          ANONYMOUS_AUTHENTICATION_MODE_NOT_SUPPORTED.format(
+              mode=options.anonymous_authentication_config
+          )
+      )
+    config.mode = modes[options.anonymous_authentication_config]
+  return config
+
+
+def _GetFleetMembershipType(options, messages, fleet):
+  """Configures the Fleet MembershipType from options and fleet."""
+  if options.membership_type is not None:
+    types = {
+        'LIGHTWEIGHT': (
+            messages.Fleet.MembershipTypeValueValuesEnum.LIGHTWEIGHT
+        ),
+        'MEMBERSHIP_TYPE_UNSPECIFIED': (
+            messages.Fleet.MembershipTypeValueValuesEnum.MEMBERSHIP_TYPE_UNSPECIFIED
+        ),
+    }
+    if options.membership_type not in types:
+      raise util.Error(
+          MEMBERSHIP_TYPE_NOT_SUPPORTED.format(
+              type=options.membership_type
+          )
+      )
+    fleet.membershipType = types[options.membership_type]
+  return fleet
+
+
+def _GetEnterpriseConfig(options, messages):
+  """Gets the EnterpriseConfig from options."""
+  enterprise_config = messages.EnterpriseConfig()
+  if options.tier is not None:
+    tiers = {
+        'standard': (
+            messages.EnterpriseConfig.DesiredTierValueValuesEnum.STANDARD
+        ),
+        'enterprise': (
+            messages.EnterpriseConfig.DesiredTierValueValuesEnum.ENTERPRISE
+        ),
+    }
+    if options.tier not in tiers:
+      raise util.Error(CLUSTER_TIER_NOT_SUPPORTED.format(tier=options.tier))
+    enterprise_config.desiredTier = tiers[options.tier]
+  return enterprise_config
+
+
+def _GetDesiredEnterpriseConfig(options, messages):
+  """Gets the DesiredEnterpriseConfig from options."""
+  desired_enterprise_config = messages.DesiredEnterpriseConfig()
+  if options.tier is not None:
+    tiers = {
+        'standard': (
+            messages.DesiredEnterpriseConfig.DesiredTierValueValuesEnum.STANDARD
+        ),
+        'enterprise': (
+            messages.DesiredEnterpriseConfig.DesiredTierValueValuesEnum.ENTERPRISE
+        ),
+    }
+    if options.tier not in tiers:
+      raise util.Error(CLUSTER_TIER_NOT_SUPPORTED.format(tier=options.tier))
+    desired_enterprise_config.desiredTier = tiers[options.tier]
+  return desired_enterprise_config
+
+
+def _ConfidentialNodeTypeEnumFromString(options, messages, for_node_pool=False):
+  """Converts a confidential node type string to an enum value."""
+  if options.confidential_node_type.lower() == 'sev':
+    return (
+        messages.ConfidentialNodes.ConfidentialInstanceTypeValueValuesEnum.SEV
+    )
+  elif options.confidential_node_type.lower() == 'sev_snp':
+    return (
+        messages.ConfidentialNodes.ConfidentialInstanceTypeValueValuesEnum.SEV_SNP
+    )
+  elif options.confidential_node_type.lower() == 'tdx':
+    return (
+        messages.ConfidentialNodes.ConfidentialInstanceTypeValueValuesEnum.TDX
+    )
+  elif options.confidential_node_type.lower() == 'disabled':
+    return (
+        messages.ConfidentialNodes.ConfidentialInstanceTypeValueValuesEnum.CONFIDENTIAL_INSTANCE_TYPE_UNSPECIFIED
+    )
+  else:
+    choices = ['sev', 'sev_snp', 'tdx']
+    if for_node_pool:
+      choices.append('disabled')
+    raise util.Error(
+        CONFIDENTIAL_NODE_TYPE_NOT_SUPPORTED.format(
+            type=options.confidential_node_type.lower(), choices=choices
+        )
+    )
+
+
+def _GetNetworkTierConfig(options, messages):
+  """Gets the NetworkTierConfig from options."""
+  network_tier_config = messages.NetworkTierConfig()
+  if options.network_tier is not None:
+    network_tiers = {
+        'standard': (
+            messages.NetworkTierConfig.NetworkTierValueValuesEnum.NETWORK_TIER_STANDARD
+        ),
+        'premium': (
+            messages.NetworkTierConfig.NetworkTierValueValuesEnum.NETWORK_TIER_PREMIUM
+        ),
+        'network-default': (
+            messages.NetworkTierConfig.NetworkTierValueValuesEnum.NETWORK_TIER_DEFAULT
+        ),
+    }
+    if options.network_tier not in network_tiers:
+      raise util.Error(
+          NETWORK_TIER_NOT_SUPPORTED.format(network_tier=options.network_tier)
+      )
+    network_tier_config.networkTier = network_tiers[options.network_tier]
+  return network_tier_config
+
+
+def _GetControlPlaneEgress(options, messages):
+  """Gets the ControlPlaneEgress from options."""
+  control_plane_egress = messages.ControlPlaneEgress()
+  if options.control_plane_egress_mode is not None:
+    control_plane_egress_modes = {
+        'NONE': (
+            messages.ControlPlaneEgress.ModeValueValuesEnum.NONE
+        ),
+        'VIA_CONTROL_PLANE': (
+            messages.ControlPlaneEgress.ModeValueValuesEnum.VIA_CONTROL_PLANE
+        ),
+    }
+    if options.control_plane_egress_mode not in control_plane_egress_modes:
+      raise util.Error(
+          CONTROL_PLANE_EGRESS_NOT_SUPPORTED.format(
+              control_plane_egress_mode=options.control_plane_egress_mode
+          )
+      )
+    control_plane_egress.mode = control_plane_egress_modes[
+        options.control_plane_egress_mode
+    ]
+  return control_plane_egress

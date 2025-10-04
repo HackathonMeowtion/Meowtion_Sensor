@@ -77,6 +77,9 @@ class Cluster(_messages.Message):
       managed by GEC.
     clusterCaCertificate: Output only. The PEM-encoded public certificate of
       the cluster's CA.
+    connectionState: Output only. The current connection state of the cluster.
+    containerRuntimeConfig: Optional. The container runtime config of the
+      cluster.
     controlPlane: Optional. The configuration of the cluster control plane.
     controlPlaneEncryption: Optional. Remote control plane disk encryption
       options. This field is only used when enabling CMEK support.
@@ -86,12 +89,18 @@ class Cluster(_messages.Message):
       node used if a maximum value is not specified explicitly for a node pool
       in this cluster. If unspecified, the Kubernetes default value will be
       used.
+    enableClusterIsolation: Optional. This denotes if the cluster is required
+      to be isolated. go/cluster-isolation-in-gdcc-cluster
     endpoint: Output only. The IP address of the Kubernetes API server.
+    externalLoadBalancerAddressPools: Optional. External load balancer pools
+      for cluster.
     externalLoadBalancerIpv4AddressPools: Optional. IPv4 address pools for
       cluster data plane external load balancing.
     externalLoadBalancerIpv6AddressPools: Optional. IPv6 address pools for
       cluster data plane external load balancing.
     fleet: Required. Fleet configuration.
+    googleGroupAuthentication: Optional. The Google Group authentication
+      config of the cluster.
     labels: Labels associated with this resource.
     maintenanceEvents: Output only. All the maintenance events scheduled for
       the cluster, including the ones ongoing, planned for the future and done
@@ -112,6 +121,7 @@ class Cluster(_messages.Message):
     systemAddonsConfig: Optional. The configuration of the system add-ons.
     targetVersion: Optional. The target cluster version. For example: "1.5.0".
     updateTime: Output only. The time when the cluster was last updated.
+    zoneStorageEncryption: Optional. The zone storage encryption configuration
   """
 
   class ReleaseChannelValueValuesEnum(_messages.Enum):
@@ -173,28 +183,34 @@ class Cluster(_messages.Message):
 
   authorization = _messages.MessageField('Authorization', 1)
   clusterCaCertificate = _messages.StringField(2)
-  controlPlane = _messages.MessageField('ControlPlane', 3)
-  controlPlaneEncryption = _messages.MessageField('ControlPlaneEncryption', 4)
-  controlPlaneVersion = _messages.StringField(5)
-  createTime = _messages.StringField(6)
-  defaultMaxPodsPerNode = _messages.IntegerField(7, variant=_messages.Variant.INT32)
-  endpoint = _messages.StringField(8)
-  externalLoadBalancerIpv4AddressPools = _messages.StringField(9, repeated=True)
-  externalLoadBalancerIpv6AddressPools = _messages.StringField(10, repeated=True)
-  fleet = _messages.MessageField('Fleet', 11)
-  labels = _messages.MessageField('LabelsValue', 12)
-  maintenanceEvents = _messages.MessageField('MaintenanceEvent', 13, repeated=True)
-  maintenancePolicy = _messages.MessageField('MaintenancePolicy', 14)
-  name = _messages.StringField(15)
-  networking = _messages.MessageField('ClusterNetworking', 16)
-  nodeVersion = _messages.StringField(17)
-  port = _messages.IntegerField(18, variant=_messages.Variant.INT32)
-  releaseChannel = _messages.EnumField('ReleaseChannelValueValuesEnum', 19)
-  status = _messages.EnumField('StatusValueValuesEnum', 20)
-  survivabilityConfig = _messages.MessageField('SurvivabilityConfig', 21)
-  systemAddonsConfig = _messages.MessageField('SystemAddonsConfig', 22)
-  targetVersion = _messages.StringField(23)
-  updateTime = _messages.StringField(24)
+  connectionState = _messages.MessageField('ConnectionState', 3)
+  containerRuntimeConfig = _messages.MessageField('ContainerRuntimeConfig', 4)
+  controlPlane = _messages.MessageField('ControlPlane', 5)
+  controlPlaneEncryption = _messages.MessageField('ControlPlaneEncryption', 6)
+  controlPlaneVersion = _messages.StringField(7)
+  createTime = _messages.StringField(8)
+  defaultMaxPodsPerNode = _messages.IntegerField(9, variant=_messages.Variant.INT32)
+  enableClusterIsolation = _messages.BooleanField(10)
+  endpoint = _messages.StringField(11)
+  externalLoadBalancerAddressPools = _messages.MessageField('ExternalLoadBalancerPool', 12, repeated=True)
+  externalLoadBalancerIpv4AddressPools = _messages.StringField(13, repeated=True)
+  externalLoadBalancerIpv6AddressPools = _messages.StringField(14, repeated=True)
+  fleet = _messages.MessageField('Fleet', 15)
+  googleGroupAuthentication = _messages.MessageField('GoogleGroupAuthenticationConfig', 16)
+  labels = _messages.MessageField('LabelsValue', 17)
+  maintenanceEvents = _messages.MessageField('MaintenanceEvent', 18, repeated=True)
+  maintenancePolicy = _messages.MessageField('MaintenancePolicy', 19)
+  name = _messages.StringField(20)
+  networking = _messages.MessageField('ClusterNetworking', 21)
+  nodeVersion = _messages.StringField(22)
+  port = _messages.IntegerField(23, variant=_messages.Variant.INT32)
+  releaseChannel = _messages.EnumField('ReleaseChannelValueValuesEnum', 24)
+  status = _messages.EnumField('StatusValueValuesEnum', 25)
+  survivabilityConfig = _messages.MessageField('SurvivabilityConfig', 26)
+  systemAddonsConfig = _messages.MessageField('SystemAddonsConfig', 27)
+  targetVersion = _messages.StringField(28)
+  updateTime = _messages.StringField(29)
+  zoneStorageEncryption = _messages.MessageField('ZoneStorageEncryption', 30)
 
 
 class ClusterNetworking(_messages.Message):
@@ -223,6 +239,81 @@ class ClusterUser(_messages.Message):
   username = _messages.StringField(1)
 
 
+class ConfigData(_messages.Message):
+  r"""Config data holds all the config related data for the zone.
+
+  Fields:
+    availableExternalLbPoolsIpv4: list of available v4 ip pools for external
+      loadbalancer
+    availableExternalLbPoolsIpv6: list of available v6 ip pools for external
+      loadbalancer
+  """
+
+  availableExternalLbPoolsIpv4 = _messages.StringField(1, repeated=True)
+  availableExternalLbPoolsIpv6 = _messages.StringField(2, repeated=True)
+
+
+class ConnectionState(_messages.Message):
+  r"""ConnectionState holds the current connection state from the cluster to
+  Google.
+
+  Enums:
+    StateValueValuesEnum: Output only. The current connection state.
+
+  Fields:
+    state: Output only. The current connection state.
+    updateTime: Output only. The time when the connection state was last
+      changed.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. The current connection state.
+
+    Values:
+      STATE_UNSPECIFIED: Unknown connection state.
+      DISCONNECTED: This cluster is currently disconnected from Google.
+      CONNECTED: This cluster is currently connected to Google.
+      CONNECTED_AND_SYNCING: This cluster is currently connected to Google,
+        but may have recently reconnected after a disconnection. It is still
+        syncing back.
+    """
+    STATE_UNSPECIFIED = 0
+    DISCONNECTED = 1
+    CONNECTED = 2
+    CONNECTED_AND_SYNCING = 3
+
+  state = _messages.EnumField('StateValueValuesEnum', 1)
+  updateTime = _messages.StringField(2)
+
+
+class ContainerRuntimeConfig(_messages.Message):
+  r"""Container runtime config of the cluster.
+
+  Enums:
+    DefaultContainerRuntimeValueValuesEnum: Optional. The default container
+      runtime to be configured in the cluster.
+
+  Fields:
+    defaultContainerRuntime: Optional. The default container runtime to be
+      configured in the cluster.
+  """
+
+  class DefaultContainerRuntimeValueValuesEnum(_messages.Enum):
+    r"""Optional. The default container runtime to be configured in the
+    cluster.
+
+    Values:
+      DEFAULT_CONTAINER_RUNTIME_UNSPECIFIED: Container runtime not specified.
+      RUNC: Use runc as the default container runtime in the cluster.
+      GVISOR: Use gVisor as the default container runtime in the cluster.
+    """
+    DEFAULT_CONTAINER_RUNTIME_UNSPECIFIED = 0
+    RUNC = 1
+    GVISOR = 2
+
+  defaultContainerRuntime = _messages.EnumField('DefaultContainerRuntimeValueValuesEnum', 1)
+
+
 class ControlPlane(_messages.Message):
   r"""Configuration of the cluster control plane.
 
@@ -241,18 +332,20 @@ class ControlPlane(_messages.Message):
 
 
 class ControlPlaneEncryption(_messages.Message):
-  r"""Configuration for Customer-managed KMS key support for remote control
-  plane cluster disk encryption.
+  r"""Configuration for Customer-managed KMS key support for control plane
+  nodes.
 
   Enums:
     KmsKeyStateValueValuesEnum: Output only. Availability of the Cloud KMS
       CryptoKey. If not `KEY_AVAILABLE`, then nodes may go offline as they
       cannot access their local data. This can be caused by a lack of
       permissions to use the key, or if the key is disabled or deleted.
+    ResourceStateValueValuesEnum: Output only. The current resource state
+      associated with the cmek.
 
   Fields:
-    kmsKey: Immutable. The Cloud KMS CryptoKey e.g. projects/{project}/locatio
-      ns/{location}/keyRings/{keyRing}/cryptoKeys/{cryptoKey} to use for
+    kmsKey: Optional. The Cloud KMS CryptoKey e.g. projects/{project}/location
+      s/{location}/keyRings/{keyRing}/cryptoKeys/{cryptoKey} to use for
       protecting control plane disks. If not specified, a Google-managed key
       will be used instead.
     kmsKeyActiveVersion: Output only. The Cloud KMS CryptoKeyVersion currently
@@ -266,6 +359,8 @@ class ControlPlaneEncryption(_messages.Message):
       key. This field may be populated only if `kms_key_state` is not
       `KMS_KEY_STATE_KEY_AVAILABLE`. If populated, this field contains the
       error status reported by Cloud KMS.
+    resourceState: Output only. The current resource state associated with the
+      cmek.
   """
 
   class KmsKeyStateValueValuesEnum(_messages.Enum):
@@ -285,10 +380,23 @@ class ControlPlaneEncryption(_messages.Message):
     KMS_KEY_STATE_KEY_AVAILABLE = 1
     KMS_KEY_STATE_KEY_UNAVAILABLE = 2
 
+  class ResourceStateValueValuesEnum(_messages.Enum):
+    r"""Output only. The current resource state associated with the cmek.
+
+    Values:
+      RESOURCE_STATE_UNSPECIFIED: Default value.
+      RESOURCE_STATE_LOCK_DOWN: The resource is in LOCK DOWN state.
+      RESOURCE_STATE_LOCK_DOWN_PENDING: The resource is pending lock down.
+    """
+    RESOURCE_STATE_UNSPECIFIED = 0
+    RESOURCE_STATE_LOCK_DOWN = 1
+    RESOURCE_STATE_LOCK_DOWN_PENDING = 2
+
   kmsKey = _messages.StringField(1)
   kmsKeyActiveVersion = _messages.StringField(2)
   kmsKeyState = _messages.EnumField('KmsKeyStateValueValuesEnum', 3)
   kmsStatus = _messages.MessageField('Status', 4)
+  resourceState = _messages.EnumField('ResourceStateValueValuesEnum', 5)
 
 
 class Details(_messages.Message):
@@ -552,6 +660,9 @@ class EdgecontainerProjectsLocationsListRequest(_messages.Message):
   r"""A EdgecontainerProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -562,10 +673,11 @@ class EdgecontainerProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class EdgecontainerProjectsLocationsMachinesGetRequest(_messages.Message):
@@ -716,6 +828,32 @@ class Empty(_messages.Message):
 
 
 
+class ExternalLoadBalancerPool(_messages.Message):
+  r"""External load balancer pool with custom config such as name, manual/auto
+  assign, non-overlapping ipv4 and optional ipv6 address range.
+
+  Fields:
+    addressPool: Optional. Name of the external load balancer pool.
+    avoidBuggyIps: Optional. If true, the pool omits IP addresses ending in .0
+      and .255. Some network hardware drops traffic to these special
+      addresses. Its default value is false.
+    ipv4Range: Required. Non-overlapping IPv4 address range of the external
+      load balancer pool.
+    ipv6Range: Optional. Non-overlapping IPv6 address range of the external
+      load balancer pool.
+    manualAssign: Optional. If true, addresses in this pool are not
+      automatically assigned to Kubernetes Services. If true, an IP address in
+      this pool is used only when it is specified explicitly by a service. Its
+      default value is false.
+  """
+
+  addressPool = _messages.StringField(1)
+  avoidBuggyIps = _messages.BooleanField(2)
+  ipv4Range = _messages.StringField(3, repeated=True)
+  ipv6Range = _messages.StringField(4, repeated=True)
+  manualAssign = _messages.BooleanField(5)
+
+
 class Fleet(_messages.Message):
   r"""Fleet related configuration. Fleets are a Google Cloud concept for
   logically organizing clusters, letting you use and manage multi-cluster
@@ -761,6 +899,18 @@ class GenerateOfflineCredentialResponse(_messages.Message):
   clientKey = _messages.StringField(2)
   expireTime = _messages.StringField(3)
   userId = _messages.StringField(4)
+
+
+class GoogleGroupAuthenticationConfig(_messages.Message):
+  r"""Google Group authentication config of the cluster. go/gdc-google-group-
+  authentication
+
+  Fields:
+    enable: Optional. If true, the cluster will be configured to use Google
+      Group authentication.
+  """
+
+  enable = _messages.BooleanField(1)
 
 
 class Ingress(_messages.Message):
@@ -872,6 +1022,8 @@ class Local(_messages.Message):
       applications are deployed.
 
   Fields:
+    controlPlaneNodeStorageSchema: Optional. Name for the storage schema of
+      control plane nodes.
     machineFilter: Only machines matching this filter will be allowed to host
       control plane nodes. The filtering language accepts strings like
       "name=", and is documented here: [AIP-160](https://google.aip.dev/160).
@@ -896,10 +1048,11 @@ class Local(_messages.Message):
     ALLOWED = 1
     DISALLOWED = 2
 
-  machineFilter = _messages.StringField(1)
-  nodeCount = _messages.IntegerField(2, variant=_messages.Variant.INT32)
-  nodeLocation = _messages.StringField(3)
-  sharedDeploymentPolicy = _messages.EnumField('SharedDeploymentPolicyValueValuesEnum', 4)
+  controlPlaneNodeStorageSchema = _messages.StringField(1)
+  machineFilter = _messages.StringField(2)
+  nodeCount = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  nodeLocation = _messages.StringField(4)
+  sharedDeploymentPolicy = _messages.EnumField('SharedDeploymentPolicyValueValuesEnum', 5)
 
 
 class LocalDiskEncryption(_messages.Message):
@@ -910,10 +1063,12 @@ class LocalDiskEncryption(_messages.Message):
       CryptoKey. If not `KEY_AVAILABLE`, then nodes may go offline as they
       cannot access their local data. This can be caused by a lack of
       permissions to use the key, or if the key is disabled or deleted.
+    ResourceStateValueValuesEnum: Output only. The current resource state
+      associated with the cmek.
 
   Fields:
-    kmsKey: Immutable. The Cloud KMS CryptoKey e.g. projects/{project}/locatio
-      ns/{location}/keyRings/{keyRing}/cryptoKeys/{cryptoKey} to use for
+    kmsKey: Optional. The Cloud KMS CryptoKey e.g. projects/{project}/location
+      s/{location}/keyRings/{keyRing}/cryptoKeys/{cryptoKey} to use for
       protecting node local disks. If not specified, a Google-managed key will
       be used instead.
     kmsKeyActiveVersion: Output only. The Cloud KMS CryptoKeyVersion currently
@@ -927,6 +1082,8 @@ class LocalDiskEncryption(_messages.Message):
       key. This field may be populated only if `kms_key_state` is not
       `KMS_KEY_STATE_KEY_AVAILABLE`. If populated, this field contains the
       error status reported by Cloud KMS.
+    resourceState: Output only. The current resource state associated with the
+      cmek.
   """
 
   class KmsKeyStateValueValuesEnum(_messages.Enum):
@@ -946,10 +1103,23 @@ class LocalDiskEncryption(_messages.Message):
     KMS_KEY_STATE_KEY_AVAILABLE = 1
     KMS_KEY_STATE_KEY_UNAVAILABLE = 2
 
+  class ResourceStateValueValuesEnum(_messages.Enum):
+    r"""Output only. The current resource state associated with the cmek.
+
+    Values:
+      RESOURCE_STATE_UNSPECIFIED: Default value.
+      RESOURCE_STATE_LOCK_DOWN: The resource is in LOCK DOWN state.
+      RESOURCE_STATE_LOCK_DOWN_PENDING: The resource is pending lock down.
+    """
+    RESOURCE_STATE_UNSPECIFIED = 0
+    RESOURCE_STATE_LOCK_DOWN = 1
+    RESOURCE_STATE_LOCK_DOWN_PENDING = 2
+
   kmsKey = _messages.StringField(1)
   kmsKeyActiveVersion = _messages.StringField(2)
   kmsKeyState = _messages.EnumField('KmsKeyStateValueValuesEnum', 3)
   kmsStatus = _messages.MessageField('Status', 4)
+  resourceState = _messages.EnumField('ResourceStateValueValuesEnum', 5)
 
 
 class Location(_messages.Message):
@@ -1078,6 +1248,10 @@ class Machine(_messages.Message):
   r"""A Google Distributed Cloud Edge machine capable of acting as a
   Kubernetes node.
 
+  Enums:
+    PurposeValueValuesEnum: The type of cluster the machine is used for.
+    StatusValueValuesEnum: Output only. The current status of the machine.
+
   Messages:
     LabelsValue: Labels associated with this resource.
 
@@ -1094,10 +1268,37 @@ class Machine(_messages.Message):
       /{node}".
     labels: Labels associated with this resource.
     name: Required. The resource name of the machine.
+    purpose: The type of cluster the machine is used for.
+    status: Output only. The current status of the machine.
     updateTime: Output only. The time when the node pool was last updated.
     version: Output only. The software version of the machine.
     zone: The Google Distributed Cloud Edge zone of this machine.
   """
+
+  class PurposeValueValuesEnum(_messages.Enum):
+    r"""The type of cluster the machine is used for.
+
+    Values:
+      PURPOSE_UNSPECIFIED: Unspecified purpose.
+      VIRTUALIZED_WORKLOAD: Machine is used for virtual workload.
+      BAREMETAL_CLUSTER: Machine is used for a baremetal user cluster.
+    """
+    PURPOSE_UNSPECIFIED = 0
+    VIRTUALIZED_WORKLOAD = 1
+    BAREMETAL_CLUSTER = 2
+
+  class StatusValueValuesEnum(_messages.Enum):
+    r"""Output only. The current status of the machine.
+
+    Values:
+      STATUS_UNSPECIFIED: Status unknown.
+      READY: The machine is ready to host a node. This is the default.
+      DISABLED_FOR_REPAIR: The machine has been disabled for repair by adding
+        1 or more disable claims.
+    """
+    STATUS_UNSPECIFIED = 0
+    READY = 1
+    DISABLED_FOR_REPAIR = 2
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
@@ -1128,9 +1329,11 @@ class Machine(_messages.Message):
   hostedNode = _messages.StringField(3)
   labels = _messages.MessageField('LabelsValue', 4)
   name = _messages.StringField(5)
-  updateTime = _messages.StringField(6)
-  version = _messages.StringField(7)
-  zone = _messages.StringField(8)
+  purpose = _messages.EnumField('PurposeValueValuesEnum', 6)
+  status = _messages.EnumField('StatusValueValuesEnum', 7)
+  updateTime = _messages.StringField(8)
+  version = _messages.StringField(9)
+  zone = _messages.StringField(10)
 
 
 class MaintenanceEvent(_messages.Message):
@@ -1214,15 +1417,32 @@ class MaintenanceEvent(_messages.Message):
   uuid = _messages.StringField(10)
 
 
+class MaintenanceExclusionWindow(_messages.Message):
+  r"""Represents a maintenance exclusion window.
+
+  Fields:
+    id: Optional. A unique (per cluster) id for the window.
+    window: Optional. The time window.
+  """
+
+  id = _messages.StringField(1)
+  window = _messages.MessageField('TimeWindow', 2)
+
+
 class MaintenancePolicy(_messages.Message):
   r"""Maintenance policy configuration.
 
   Fields:
+    maintenanceExclusions: Optional. Exclusions to automatic maintenance. Non-
+      emergency maintenance should not occur in these windows. Each exclusion
+      has a unique name and may be active or expired. The max number of
+      maintenance exclusions allowed at a given time is 3.
     window: Specifies the maintenance window in which maintenance may be
       performed.
   """
 
-  window = _messages.MessageField('MaintenanceWindow', 1)
+  maintenanceExclusions = _messages.MessageField('MaintenanceExclusionWindow', 1, repeated=True)
+  window = _messages.MessageField('MaintenanceWindow', 2)
 
 
 class MaintenanceWindow(_messages.Message):
@@ -1243,6 +1463,7 @@ class NodeConfig(_messages.Message):
 
   Fields:
     labels: Optional. The Kubernetes node labels
+    nodeStorageSchema: Optional. Name for the storage schema of worker nodes.
   """
 
   @encoding.MapUnrecognizedFields('additionalProperties')
@@ -1270,6 +1491,7 @@ class NodeConfig(_messages.Message):
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
   labels = _messages.MessageField('LabelsValue', 1)
+  nodeStorageSchema = _messages.StringField(2)
 
 
 class NodePool(_messages.Message):
@@ -1470,9 +1692,11 @@ class OperationMetadata(_messages.Message):
     Values:
       STATUS_REASON_UNSPECIFIED: Reason unknown.
       UPGRADE_PAUSED: The cluster upgrade is currently paused.
+      RETRYABLE_ERROR: The request has errored, but the error is retryable.
     """
     STATUS_REASON_UNSPECIFIED = 0
     UPGRADE_PAUSED = 1
+    RETRYABLE_ERROR = 2
 
   apiVersion = _messages.StringField(1)
   createTime = _messages.StringField(2)
@@ -1693,9 +1917,11 @@ class SystemAddonsConfig(_messages.Message):
 
   Fields:
     ingress: Optional. Config for Ingress.
+    vmServiceConfig: Optional. Config for VM Service.
   """
 
   ingress = _messages.MessageField('Ingress', 1)
+  vmServiceConfig = _messages.MessageField('VMServiceConfig', 2)
 
 
 class TimeWindow(_messages.Message):
@@ -1743,6 +1969,16 @@ class UpgradeClusterRequest(_messages.Message):
   targetVersion = _messages.StringField(3)
 
 
+class VMServiceConfig(_messages.Message):
+  r"""VMServiceConfig defines the configuration for GDCE VM Service.
+
+  Fields:
+    vmmEnabled: Optional. Whether VMM is enabled.
+  """
+
+  vmmEnabled = _messages.BooleanField(1)
+
+
 class Version(_messages.Message):
   r"""Version of a cluster.
 
@@ -1759,9 +1995,11 @@ class VpcProject(_messages.Message):
   Fields:
     projectId: The project of the VPC to connect to. If not specified, it is
       the same as the cluster project.
+    serviceAccount: Optional. Deprecated: do not use.
   """
 
   projectId = _messages.StringField(1)
+  serviceAccount = _messages.StringField(2)
 
 
 class VpnConnection(_messages.Message):
@@ -1855,6 +2093,7 @@ class ZoneMetadata(_messages.Message):
     RackTypesValue: The map keyed by rack name and has value of RackType.
 
   Fields:
+    configData: Config data for the zone.
     quota: Quota for resources in this zone.
     rackTypes: The map keyed by rack name and has value of RackType.
   """
@@ -1901,8 +2140,40 @@ class ZoneMetadata(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
-  quota = _messages.MessageField('Quota', 1, repeated=True)
-  rackTypes = _messages.MessageField('RackTypesValue', 2)
+  configData = _messages.MessageField('ConfigData', 1)
+  quota = _messages.MessageField('Quota', 2, repeated=True)
+  rackTypes = _messages.MessageField('RackTypesValue', 3)
+
+
+class ZoneStorageEncryption(_messages.Message):
+  r"""Configuration for Zone Storage CMEK Support
+
+  Enums:
+    ResourceStateValueValuesEnum: Output only. The current resource state of
+      the CMEK
+
+  Fields:
+    kmsKey: Optional. The Cloud KMS Key
+    kmsKeyActiveVersion: Output only. The Cloud KMS CryptoKeyVersion currently
+      used for encryption/decryption
+    resourceState: Output only. The current resource state of the CMEK
+  """
+
+  class ResourceStateValueValuesEnum(_messages.Enum):
+    r"""Output only. The current resource state of the CMEK
+
+    Values:
+      RESOURCE_STATE_UNSPECIFIED: Default value.
+      RESOURCE_STATE_LOCK_DOWN: The resource is in LOCK DOWN state.
+      RESOURCE_STATE_LOCK_DOWN_PENDING: The resource is pending lock down.
+    """
+    RESOURCE_STATE_UNSPECIFIED = 0
+    RESOURCE_STATE_LOCK_DOWN = 1
+    RESOURCE_STATE_LOCK_DOWN_PENDING = 2
+
+  kmsKey = _messages.StringField(1)
+  kmsKeyActiveVersion = _messages.StringField(2)
+  resourceState = _messages.EnumField('ResourceStateValueValuesEnum', 3)
 
 
 encoding.AddCustomJsonFieldMapping(

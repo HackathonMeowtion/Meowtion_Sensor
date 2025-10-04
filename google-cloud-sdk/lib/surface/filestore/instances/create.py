@@ -33,6 +33,7 @@ def _CommonArgs(parser, api_version=filestore_client.V1_API_VERSION):
   instances_flags.AddInstanceCreateArgs(parser, api_version)
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Create(base.CreateCommand):
   """Create a Filestore instance."""
@@ -40,13 +41,11 @@ class Create(base.CreateCommand):
   _API_VERSION = filestore_client.V1_API_VERSION
 
   detailed_help = {
-      'DESCRIPTION':
-          'Create a Filestore instance.',
-      'EXAMPLES':
-          """\
+      'DESCRIPTION': 'Create a Filestore instance.',
+      'EXAMPLES': """\
     The following command creates a Filestore instance named NAME with a single volume.
 
-      $ {command} NAME --description=DESCRIPTION --tier=TIER --file-share=name=VOLUME_NAME,capacity=CAPACITY --network=name=NETWORK_NAME,reserved-ip-range=RESERVED_IP_RANGE,connect-mode=CONNECT_MODE --zone=ZONE --kms-key=KMS-KEY --kms-keyring=KMS_KEYRING --kms-location=KMS_LOCATION --kms-project=KMS_PROJECT --flags-file=FLAGS_FILE
+      $ {command} NAME --description=DESCRIPTION --tier=TIER --protocol=PROTOCOL --file-share=name=VOLUME_NAME,capacity=CAPACITY --network=name=NETWORK_NAME,reserved-ip-range=RESERVED_IP_RANGE,connect-mode=CONNECT_MODE,psc-endpoint-project=PSC_ENDPOINT_PROJECT --zone=ZONE --performance=max-iops-per-tb=MAX-IOPS-PER-TB --kms-key=KMS-KEY --kms-keyring=KMS_KEYRING --kms-location=KMS_LOCATION --kms-project=KMS_PROJECT --flags-file=FLAGS_FILE --source-instance=SOURCE_INSTANCE
 
     Example json configuration file:
   {
@@ -67,15 +66,15 @@ class Create(base.CreateCommand):
         "ip-ranges": [
           "192.168.0.0/24"
         ],
-        "squash-mode": "ROOT_SQUASH"
+        "squash-mode": "ROOT_SQUASH",
         "anon_uid": 1003,
         "anon_gid": 1003
       }
-    ],
+    ]
   }
   }
 
-    """
+    """,
   }
 
   @staticmethod
@@ -89,8 +88,16 @@ class Create(base.CreateCommand):
     tier = instances_flags.GetTierArg(client.messages).GetEnumForChoice(
         args.tier
     )
+    protocol = None
+    if args.protocol is not None:
+      protocol = instances_flags.GetProtocolArg(
+          client.messages
+      ).GetEnumForChoice(args.protocol)
+    ldap = args.ldap or None
     labels = labels_util.ParseCreateArgs(args,
                                          client.messages.Instance.LabelsValue)
+    tags = instances_flags.GetTagsFromArgs(args,
+                                           client.messages.Instance.TagsValue)
     try:
       nfs_export_options = client.MakeNFSExportOptionsMsg(
           messages=client.messages,
@@ -98,15 +105,23 @@ class Create(base.CreateCommand):
     except KeyError as err:
       raise exceptions.InvalidArgumentException('--file-share',
                                                 six.text_type(err))
+
     instance = client.ParseFilestoreConfig(
         tier=tier,
+        protocol=protocol,
         description=args.description,
         file_share=args.file_share,
         network=args.network,
+        performance=args.performance,
         labels=labels,
+        tags=tags,
         zone=instance_ref.locationsId,
         nfs_export_options=nfs_export_options,
-        kms_key_name=instances_flags.GetAndValidateKmsKeyName(args))
+        kms_key_name=instances_flags.GetAndValidateKmsKeyName(args),
+        ldap=ldap,
+        source_instance=args.source_instance,
+        deletion_protection_enabled=args.deletion_protection,
+        deletion_protection_reason=args.deletion_protection_reason)
     result = client.CreateInstance(instance_ref, args.async_, instance)
     if args.async_:
       command = properties.VALUES.metrics.command_name.Get().split('.')
@@ -118,6 +133,7 @@ class Create(base.CreateCommand):
     return result
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.BETA)
 class CreateBeta(Create):
   """Create a Filestore instance."""
@@ -125,13 +141,11 @@ class CreateBeta(Create):
   _API_VERSION = filestore_client.BETA_API_VERSION
 
   detailed_help = {
-      'DESCRIPTION':
-          'Create a Filestore instance.',
-      'EXAMPLES':
-          """\
+      'DESCRIPTION': 'Create a Filestore instance.',
+      'EXAMPLES': """\
     The following command creates a Filestore instance named NAME with a single volume.
 
-      $ {command} NAME --description=DESCRIPTION --tier=TIER --protocol=PROTOCOL --file-share=name=VOLUME_NAME,capacity=CAPACITY --network=name=NETWORK_NAME,reserved-ip-range=RESERVED_IP_RANGE,connect-mode=CONNECT_MODE --zone=ZONE --kms-key=KMS-KEY --kms-keyring=KMS_KEYRING --kms-location=KMS_LOCATION --kms-project=KMS_PROJECT --managed-ad=domain=DOMAIN,computer=COMPUTER --flags-file=FLAGS_FILE
+      $ {command} NAME --description=DESCRIPTION --tier=TIER --protocol=PROTOCOL --file-share=name=VOLUME_NAME,capacity=CAPACITY --network=name=NETWORK_NAME,reserved-ip-range=RESERVED_IP_RANGE,connect-mode=CONNECT_MODE,psc-endpoint-project=PSC_ENDPOINT_PROJECT --zone=ZONE --performance=max-iops-per-tb=MAX-IOPS-PER-TB --kms-key=KMS-KEY --kms-keyring=KMS_KEYRING --kms-location=KMS_LOCATION --kms-project=KMS_PROJECT --managed-ad=domain=DOMAIN,computer=COMPUTER --flags-file=FLAGS_FILE --source-instance=SOURCE_INSTANCE
 
     Example json configuration file:
   {
@@ -164,7 +178,7 @@ class CreateBeta(Create):
   }
   }
 
-    """
+    """,
   }
 
   @staticmethod
@@ -174,7 +188,11 @@ class CreateBeta(Create):
   def Run(self, args):
     """Creates a Filestore instance in the current project.
 
-    This is a copied code from Run() of base.ReleaseTrack.GA.
+    Note: This is a copied code from Run() of base.ReleaseTrack.GA.
+    Args:
+      args: A list of fields.
+    Returns:
+      A filestore instance.
     """
     instance_ref = args.CONCEPTS.instance.Parse()
     client = filestore_client.FilestoreClient(self._API_VERSION)
@@ -186,9 +204,18 @@ class CreateBeta(Create):
       protocol = instances_flags.GetProtocolArg(
           client.messages
       ).GetEnumForChoice(args.protocol)
+    backend_type = None
+    if args.backend_type is not None:
+      backend_type = instances_flags.GetBackendTypeArg(
+          client.messages
+      ).GetEnumForChoice(args.backend_type)
     managed_ad = args.managed_ad or None
+    ldap = args.ldap or None
+    source_instance = args.source_instance or None
     labels = labels_util.ParseCreateArgs(
         args, client.messages.Instance.LabelsValue)
+    tags = instances_flags.GetTagsFromArgs(args,
+                                           client.messages.Instance.TagsValue)
     try:
       nfs_export_options = client.MakeNFSExportOptionsMsgBeta(
           messages=client.messages,
@@ -196,17 +223,26 @@ class CreateBeta(Create):
     except KeyError as err:
       raise exceptions.InvalidArgumentException('--file-share',
                                                 six.text_type(err))
+
     instance = client.ParseFilestoreConfig(
         tier=tier,
         protocol=protocol,
         description=args.description,
         file_share=args.file_share,
         network=args.network,
+        performance=args.performance,
         labels=labels,
+        tags=tags,
         zone=instance_ref.locationsId,
         nfs_export_options=nfs_export_options,
         kms_key_name=instances_flags.GetAndValidateKmsKeyName(args),
-        managed_ad=managed_ad)
+        managed_ad=managed_ad,
+        ldap=ldap,
+        source_instance=source_instance,
+        deletion_protection_enabled=args.deletion_protection,
+        deletion_protection_reason=args.deletion_protection_reason,
+        backend_type=backend_type,
+    )
 
     result = client.CreateInstance(instance_ref, args.async_, instance)
     if args.async_:
@@ -217,6 +253,7 @@ class CreateBeta(Create):
           'Check the status of the new instance by listing all instances:\n  '
           '$ {} '.format(' '.join(command)))
     return result
+
 
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
 class CreateAlpha(Create):

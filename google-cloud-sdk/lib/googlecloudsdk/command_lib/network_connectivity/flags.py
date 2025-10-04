@@ -18,13 +18,17 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import enum
+
 from googlecloudsdk.calliope import arg_parsers
 from googlecloudsdk.calliope import base
 from googlecloudsdk.calliope.concepts import concepts
 from googlecloudsdk.calliope.concepts import deps
 from googlecloudsdk.command_lib.network_connectivity import util
+from googlecloudsdk.command_lib.util.apis import arg_utils
 from googlecloudsdk.command_lib.util.concepts import concept_parsers
 from googlecloudsdk.command_lib.util.concepts import presentation_specs
+
 
 GLOBAL_ARGUMENT = '--global'
 REGION_ARGUMENT = '--region'
@@ -39,8 +43,8 @@ def AddExcludeExportRangesFlag(parser, hide_exclude_export_ranges_flag):
       default=[],
       metavar='CIDR_RANGE',
       hidden=hide_exclude_export_ranges_flag,
-      help="""IP address range(s) to hide from subnets in VPC networks that are peered
-        through Network Connectivity Center peering.""")
+      help="""Subnet IP address range(s) to hide from other VPC networks that are
+        connected through Network Connectivity Center.""")
 
 
 def AddIncludeExportRangesFlag(parser, hide_include_export_ranges_flag):
@@ -53,8 +57,83 @@ def AddIncludeExportRangesFlag(parser, hide_include_export_ranges_flag):
       default=[],
       metavar='CIDR_RANGE',
       hidden=hide_include_export_ranges_flag,
-      help="""IP address range(s) to be allowed for subnets in VPC networks that are peered
-        through Network Connectivity Center peering.""",
+      help="""Subnet IP address range(s) to export to other VPC networks that are
+        connected through Network Connectivity Center.""",
+  )
+
+
+def AddUpdateIncludeExportRangesFlag(
+    parser, hide_include_export_ranges_flag
+):
+  """Adds the --include-export-ranges argument to the update operation parser."""
+
+  parser.add_argument(
+      '--include-export-ranges',
+      required=False,
+      type=arg_parsers.ArgList(),
+      default=None,
+      metavar='CIDR_RANGE',
+      hidden=hide_include_export_ranges_flag,
+      help="""New include export ranges of the spoke.""",
+  )
+
+
+def AddUpdateExcludeExportRangesFlag(
+    parser, hide_exclude_export_ranges_flag
+):
+  """Adds the --exclude-export-ranges argument to the update operation parser."""
+
+  parser.add_argument(
+      '--exclude-export-ranges',
+      required=False,
+      type=arg_parsers.ArgList(),
+      default=None,
+      metavar='CIDR_RANGE',
+      hidden=hide_exclude_export_ranges_flag,
+      help="""New exclude export ranges of the spoke.""",
+  )
+
+
+def GetCapacityArg(gateway_message):
+  return arg_utils.ChoiceEnumMapper(
+      arg_name='--capacity',
+      message_enum=gateway_message.CapacityValueValuesEnum,
+      custom_mappings={
+          'CAPACITY_1_GBPS': ('1g', 'Gateway will have capacity of 1 Gbps'),
+          'CAPACITY_10_GBPS': ('10g', 'Gateway will have capacity of 10 Gbps'),
+          'CAPACITY_100_GBPS': (
+              '100g',
+              'Gateway will have capacity of 100 Gbps',
+          ),
+      },
+      help_str='Set the capacity of the gateway in Gbps.',
+      required=True,
+  )
+
+
+def AddCapacityFlag(gateway_message, parser):
+  GetCapacityArg(gateway_message).choice_arg.AddToParser(parser)
+
+
+def AddIpRangeReservationsFlag(parser):
+  """Adds the --ip-range-reservation argument to the given parser."""
+  parser.add_argument(
+      '--ip-range-reservations',
+      required=True,
+      type=arg_parsers.ArgList(),
+      default=[],
+      metavar='CIDR_RANGE',
+      help="""The IP range reservation for the spoke.""",
+  )
+
+
+def AddLandingNetworkFlag(parser):
+  """Adds the --landing-network argument to the given parser."""
+  # TODO: b/233653552 - Parse this with a resource argument.
+  parser.add_argument(
+      '--landing-network',
+      help="""The landing network for the spoke. The network must already
+      exist.""",
   )
 
 
@@ -65,7 +144,7 @@ def AddAsyncFlag(parser):
 
 def AddHubFlag(parser):
   """Adds the --hub argument to the given parser."""
-  # TODO(b/233653552) Parse this with a resouce argument.
+  # TODO(b/233653552) Parse this with a resource argument.
   parser.add_argument(
       '--hub',
       required=True,
@@ -80,17 +159,57 @@ def AddSpokeFlag(parser, help_text):
       help=help_text)
 
 
-def AddGroupFlag(parser):
-  """Adds the --group argument to the given parser."""
-  # TODO(b/233653552) Parse this with a resouce argument.
+def AddSpokeEtagFlag(parser, help_text):
+  """Adds the --spoke-etag flag to the given parser."""
   parser.add_argument(
-      '--group',
-      required=False,
-      hidden=True,
-      help=(
-          'Group that the spoke will be part of. The group must already exist.'
-      ),
-  )
+      '--spoke-etag',
+      required=True,
+      help=help_text)
+
+
+def AddGroupFlag(parser, required=False):
+  """Adds the --group argument to the given parser."""
+  # TODO(b/233653552) Parse this with a resource argument.
+  if required:
+    parser.add_argument(
+        '--group',
+        required=True,
+        hidden=False,
+        help=(
+            'Group that the spoke will be part of. The group must already'
+            ' exist.'
+        ),
+    )
+  else:
+    parser.add_argument(
+        '--group',
+        required=False,
+        hidden=True,
+        help=(
+            'Group that the spoke will be part of. The group must already'
+            ' exist.'
+        ),
+    )
+
+
+def AddNetworkFlag(parser):
+  """Adds the --network argument to the given parser."""
+  parser.add_argument(
+      '--network',
+      required=True,
+      help="""Your VPC network that contains the peering to the Producer VPC,
+      which this spoke connects to the Hub. The peering must already exist and
+      be in the ACTIVE state.""")
+
+
+def AddPeeringFlag(parser):
+  """Adds the --peering argument to the given parser."""
+  parser.add_argument(
+      '--peering',
+      required=True,
+      help="""Peering between your network and the Producer VPC, which this
+      spoke connects to the Hub. The peering must already exist and be in the
+      ACTIVATE state.""")
 
 
 def AddVPCNetworkFlag(parser):
@@ -128,16 +247,15 @@ def AddGlobalFlag(parser, hidden):
       action=util.StoreGlobalAction)
 
 
-def AddRegionFlag(parser, supports_region_wildcard, hidden):
+def AddRegionFlag(parser, supports_region_wildcard, hidden, required):
   """Add the --region argument to the given parser."""
   region_help_text = """ \
         A Google Cloud region. To see the names of regions, see [Viewing a list of available regions](https://cloud.google.com/compute/docs/regions-zones/viewing-regions-zones#viewing_a_list_of_available_regions)."""  # pylint: disable=line-too-long
   if supports_region_wildcard:
     region_help_text += ' Use ``-`` to specify all regions.'
   parser.add_argument(
-      REGION_ARGUMENT,
-      hidden=hidden,
-      help=region_help_text)
+      REGION_ARGUMENT, hidden=hidden, required=required, help=region_help_text
+  )
 
 
 def AddRegionGroup(parser,
@@ -147,7 +265,9 @@ def AddRegionGroup(parser,
   """Add a group which contains the global and region arguments to the given parser."""
   region_group = parser.add_group(required=False, mutex=True)
   AddGlobalFlag(region_group, hide_global_arg)
-  AddRegionFlag(region_group, supports_region_wildcard, hide_region_arg)
+  AddRegionFlag(
+      region_group, supports_region_wildcard, hide_region_arg, required=False
+  )
 
 
 def AddSpokeLocationsFlag(parser):
@@ -273,19 +393,36 @@ def GetRegionResourceSpec(location_arguments):
       'networkconnectivity.projects.locations',
       resource_name='region',
       locationsId=LocationAttributeConfig(
-          location_arguments, region_resource_command=True),
+          location_arguments, region_resource_command=True
+      ),
       projectsId=concepts.DEFAULT_PROJECT_ATTRIBUTE_CONFIG,
-      disable_auto_completers=False)
+      disable_auto_completers=False,
+  )
 
 
-def GetResourceLocationArguments(global_spoke_command):
-  if not global_spoke_command:
-    return [GLOBAL_ARGUMENT, REGION_ARGUMENT]
-  else:
-    return [GLOBAL_ARGUMENT]
+def GetResourceLocationArguments(resource_location_type):
+  mapping = {
+      ResourceLocationType.GLOBAL_ONLY: [GLOBAL_ARGUMENT],
+      ResourceLocationType.REGION_ONLY: [REGION_ARGUMENT],
+      ResourceLocationType.REGION_AND_GLOBAL: [
+          GLOBAL_ARGUMENT,
+          REGION_ARGUMENT,
+      ],
+  }
+  return mapping[resource_location_type]
 
 
-def AddSpokeResourceArg(parser, verb, global_spoke_command=False):
+@enum.unique
+class ResourceLocationType(enum.Enum):
+  """Type of locations supported by a resource."""
+  GLOBAL_ONLY = enum.auto()
+  REGION_ONLY = enum.auto()
+  REGION_AND_GLOBAL = enum.auto()
+
+
+def AddSpokeResourceArg(
+    parser, verb, resource_location_type=ResourceLocationType.REGION_AND_GLOBAL
+):
   """Add a resource argument for a spoke.
 
   NOTE: Must be used only if it's the only resource arg in the command.
@@ -293,10 +430,10 @@ def AddSpokeResourceArg(parser, verb, global_spoke_command=False):
   Args:
     parser: the parser for the command.
     verb: str, the verb to describe the resource, such as 'to update'.
-    global_spoke_command: bool, if the spoke resource arg is for a VPC
-      spoke-specific command.
+    resource_location_type: ResourceLocationType, the type of locations
+      supported by the resource.
   """
-  location_arguments = GetResourceLocationArguments(global_spoke_command)
+  location_arguments = GetResourceLocationArguments(resource_location_type)
   presentation_spec = presentation_specs.ResourcePresentationSpec(
       name='spoke',
       concept_spec=GetSpokeResourceSpec(location_arguments),
@@ -307,7 +444,9 @@ def AddSpokeResourceArg(parser, verb, global_spoke_command=False):
   concept_parsers.ConceptParser([presentation_spec]).AddToParser(parser)
 
 
-def AddRegionResourceArg(parser, verb, global_spoke_command=False):
+def AddRegionResourceArg(
+    parser, verb, resource_location_type=ResourceLocationType.REGION_AND_GLOBAL
+):
   """Add a resource argument for a region.
 
   NOTE: Must be used only if it's the only resource arg in the command.
@@ -315,11 +454,11 @@ def AddRegionResourceArg(parser, verb, global_spoke_command=False):
   Args:
     parser: the parser for the command.
     verb: str, the verb to describe the resource, such as 'to update'.
-    global_spoke_command: bool, if the spoke resource arg is for a VPC
-      spoke-specific command.
+    resource_location_type: ResourceLocationType, the type of locations
+      supported by the resource.
   """
 
-  location_arguments = GetResourceLocationArguments(global_spoke_command)
+  location_arguments = GetResourceLocationArguments(resource_location_type)
   presentation_spec = presentation_specs.ResourcePresentationSpec(
       name='region',
       concept_spec=GetRegionResourceSpec(location_arguments),
@@ -328,3 +467,44 @@ def AddRegionResourceArg(parser, verb, global_spoke_command=False):
       group_help='The region of the spokes {}.'.format(verb),
   )
   concept_parsers.ConceptParser([presentation_spec]).AddToParser(parser)
+
+
+def AddPscGroup(parser):
+  """Add a group which contains the PSC-related arguments to the given parser."""
+  psc_group = parser.add_group(required=False, mutex=True)
+  AddExportPscFlag(psc_group)
+  psc_gapi_group = psc_group.add_group(required=False, mutex=False, hidden=True)
+  AddExportPscPublishedServicesAndRegionalGoogleApisFlag(psc_gapi_group)
+  AddExportPscGlobalGoogleApisFlag(psc_gapi_group)
+
+
+def AddExportPscFlag(parser):
+  """Add the --export-psc flag to the given parser."""
+  parser.add_argument(
+      '--export-psc',
+      action=arg_parsers.StoreTrueFalseAction,
+      required=False,
+      help="""Whether Private Service Connect propagation is enabled for the hub.""",
+  )
+
+
+def AddExportPscPublishedServicesAndRegionalGoogleApisFlag(parser):
+  """Add the --export-psc-published-services-and-regional-google-apis flag to the given parser."""
+  parser.add_argument(
+      '--export-psc-published-services-and-regional-google-apis',
+      action=arg_parsers.StoreTrueFalseAction,
+      required=False,
+      hidden=True,
+      help="""Whether propagation for Private Service Connect for published services and regional Google APIs is enabled for the hub.""",
+  )
+
+
+def AddExportPscGlobalGoogleApisFlag(parser):
+  """Add the --export-psc-global-google-apis flag to the given parser."""
+  parser.add_argument(
+      '--export-psc-global-google-apis',
+      action=arg_parsers.StoreTrueFalseAction,
+      required=False,
+      hidden=True,
+      help="""Whether propagation for Private Service Connect for global Google APIs is enabled for the hub.""",
+  )

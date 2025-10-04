@@ -28,12 +28,18 @@
           --display-name="My Workforce Pool Provider" \
           --description="My workforce pool provider description." \
           --disabled \
+          --detailed-audit-logging \
           --attribute-mapping="google.subject=assertion.sub" \
           --attribute-condition="true" \
           --idp-metadata-path="path/to/metdata/file.xml"
 
   request:
     collection: iam.locations.workforcePools.providers
+    modify_request_hooks:
+    - googlecloudsdk.command_lib.iam.hooks:AddClearableExtraAttributesConfigToRequest
+    - googlecloudsdk.command_lib.iam.hooks:AddExtraAttributesConfigFieldMask
+    - googlecloudsdk.command_lib.iam.hooks:AddClearableExtendedAttributesConfigToRequest
+    - googlecloudsdk.command_lib.iam.hooks:AddExtendedAttributesConfigFieldMask
 
   arguments:
     resource:
@@ -45,9 +51,13 @@
     - _REF_: googlecloudsdk.command_lib.iam.flags:workforce_pool_provider.display_name
     - _REF_: googlecloudsdk.command_lib.iam.flags:workforce_pool_provider.description
     - _REF_: googlecloudsdk.command_lib.iam.flags:workforce_pool_provider.disabled
+    - _REF_: googlecloudsdk.command_lib.iam.flags:workforce_pool_provider.detailed_audit_logging
     - _REF_: googlecloudsdk.command_lib.iam.flags:workforce_pool_provider.attribute_mapping
     - _REF_: googlecloudsdk.command_lib.iam.flags:workforce_pool_provider.attribute_condition
     - _REF_: googlecloudsdk.command_lib.iam.flags:workforce_pool_provider.saml_idp_metadata_path
+    - _REF_: googlecloudsdk.command_lib.iam.flags:workforce_pool_provider.scim_usage
+      hidden: true
+    additional_arguments_hook: googlecloudsdk.command_lib.iam.workforce_pools.flags:AddClearableExtraAndExtendedAttributesOAuth2Client
 
   async:
     collection: iam.locations.workforcePools.providers.operations

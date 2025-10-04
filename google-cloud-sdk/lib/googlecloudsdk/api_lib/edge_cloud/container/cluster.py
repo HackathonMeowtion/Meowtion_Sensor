@@ -25,6 +25,7 @@ from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.edge_cloud.container import admin_users
 from googlecloudsdk.command_lib.edge_cloud.container import fleet
 from googlecloudsdk.command_lib.edge_cloud.container import resource_args
+from googlecloudsdk.command_lib.edge_cloud.container import robin
 from googlecloudsdk.command_lib.run import flags
 from googlecloudsdk.core import resources
 
@@ -48,7 +49,7 @@ def GetClusterCreateRequest(args, release_track):
   )
   PopulateClusterMessage(req, messages, args)
   if release_track == base.ReleaseTrack.ALPHA:
-    PopulateClusterAlphaMessage(req, messages, args)
+    PopulateClusterAlphaMessage(req, args)
   return req
 
 
@@ -129,6 +130,9 @@ def PopulateClusterMessage(req, messages, args):
   if flags.FlagIsExplicitlySet(args, 'control_plane_kms_key'):
     req.cluster.controlPlaneEncryption = messages.ControlPlaneEncryption()
     req.cluster.controlPlaneEncryption.kmsKey = args.control_plane_kms_key
+  if flags.FlagIsExplicitlySet(args, 'zone_storage_kms_key'):
+    req.cluster.zoneStorageEncryption = messages.ZoneStorageEncryption()
+    req.cluster.zoneStorageEncryption.kmsKey = args.zone_storage_kms_key
   admin_users.SetAdminUsers(messages, args, req)
   fleet.SetFleetProjectPath(GetClusterReference(args), args, req)
 
@@ -170,14 +174,25 @@ def PopulateClusterMessage(req, messages, args):
               args.control_plane_shared_deployment_policy.upper()
           )
       )
+  if flags.FlagIsExplicitlySet(args, 'offline_reboot_ttl'):
+    if not req.cluster.survivabilityConfig:
+      req.cluster.survivabilityConfig = messages.SurvivabilityConfig()
+    req.cluster.survivabilityConfig.offlineRebootTtl = (
+        json.dumps(args.offline_reboot_ttl) + 's'
+    )
+  if flags.FlagIsExplicitlySet(args, 'control_plane_node_storage_schema'):
+    req.cluster.controlPlane.local.controlPlaneNodeStorageSchema = (
+        args.control_plane_node_storage_schema
+    )
+  SetContainerRuntimeConfig(req, args, messages)
+  EnableGoogleGroupAuthentication(req, args, messages)
 
 
-def PopulateClusterAlphaMessage(req, messages, args):
+def PopulateClusterAlphaMessage(req, args):
   """Filled the Alpha cluster message from command arguments.
 
   Args:
     req: create cluster request message.
-    messages: message module of edgecontainer cluster.
     args: command line arguments.
   """
   if flags.FlagIsExplicitlySet(args, 'cluster_ipv6_cidr'):
@@ -189,12 +204,17 @@ def PopulateClusterAlphaMessage(req, messages, args):
         args.external_lb_ipv6_address_pools
     )
   resource_args.SetSystemAddonsConfig(args, req)
-  if flags.FlagIsExplicitlySet(args, 'offline_reboot_ttl'):
-    req.cluster.survivabilityConfig = messages.SurvivabilityConfig()
-    req.cluster.survivabilityConfig.offlineRebootTtl = (
-        json.dumps(args.offline_reboot_ttl) + 's'
-    )
   resource_args.SetExternalLoadBalancerAddressPoolsConfig(args, req)
+  EnableClusterIsolationConfig(req, args)
+  EnableRemoteBackupConfig(req, args)
+  if flags.FlagIsExplicitlySet(args, 'enable_robin_cns'):
+    robin.EnableRobinCNSInRequest(req, args)
+
+  messages = util.GetMessagesModule(base.ReleaseTrack.ALPHA)
+  if flags.FlagIsExplicitlySet(
+      args, 'control_plane_node_system_partition_size_gib'
+  ):
+    SetControlPlaneNodeSystemPartitionSize(req, args, messages)
 
 
 def IsLCPCluster(args):
@@ -209,8 +229,10 @@ def IsLCPCluster(args):
   if (
       flags.FlagIsExplicitlySet(args, 'control_plane_node_location')
       and flags.FlagIsExplicitlySet(args, 'control_plane_node_count')
-      and (flags.FlagIsExplicitlySet(args, 'external_lb_ipv4_address_pools')
-           or flags.FlagIsExplicitlySet(args, 'external_lb_address_pools'))
+      and (
+          flags.FlagIsExplicitlySet(args, 'external_lb_ipv4_address_pools')
+          or flags.FlagIsExplicitlySet(args, 'external_lb_address_pools')
+      )
   ):
     return True
   return False
@@ -266,3 +288,101 @@ def ValidateClusterCreateRequest(req, release_track):
         ' specification of version'
     )
   return None
+
+
+def SetContainerRuntimeConfig(req, args, messages):
+  """Set container runtime config in the cluster request message.
+
+  Args:
+    req: Create cluster request message.
+    args: Command line arguments.
+    messages: Message module of edgecontainer cluster.
+  """
+  if flags.FlagIsExplicitlySet(args, 'container_default_runtime_class'):
+    req.cluster.containerRuntimeConfig = messages.ContainerRuntimeConfig()
+    if args.container_default_runtime_class.upper() == 'GVISOR':
+      req.cluster.containerRuntimeConfig.defaultContainerRuntime = (
+          messages.ContainerRuntimeConfig.DefaultContainerRuntimeValueValuesEnum.GVISOR
+      )
+    elif args.container_default_runtime_class.upper() == 'RUNC':
+      req.cluster.containerRuntimeConfig.defaultContainerRuntime = (
+          messages.ContainerRuntimeConfig.DefaultContainerRuntimeValueValuesEnum.RUNC
+      )
+    else:
+      raise ValueError(
+          'Unsupported --container_default_runtime_class value: '
+          + args.container_default_runtime_class
+      )
+
+
+def EnableClusterIsolationConfig(req, args):
+  """Set secure cluster isolation config in the cluster request message.
+
+  Args:
+   req: Create cluster request message.
+   args: Command line arguments.
+  """
+
+  if flags.FlagIsExplicitlySet(args, 'enable_cluster_isolation'):
+    if args.enable_cluster_isolation.upper() == 'TRUE':
+      req.cluster.enableClusterIsolation = True
+    elif args.enable_cluster_isolation.upper() == 'FALSE':
+      req.cluster.enableClusterIsolation = False
+    else:
+      raise ValueError(
+          'Unsupported --enable_cluster_isolation value: '
+          + args.enable_cluster_isolation
+      )
+
+
+def EnableGoogleGroupAuthentication(req, args, messages):
+  """Set Google Group authentication config in the cluster request message.
+
+  Args:
+   req: Create cluster request message.
+   args: Command line arguments.
+   messages: Message module of edgecontainer cluster.
+  """
+
+  if flags.FlagIsExplicitlySet(args, 'enable_google_group_authentication'):
+    req.cluster.googleGroupAuthentication = (
+        messages.GoogleGroupAuthenticationConfig()
+    )
+    req.cluster.googleGroupAuthentication.enable = (
+        args.enable_google_group_authentication)
+
+
+def EnableRemoteBackupConfig(req, args):
+  """Set remote backup config in the cluster request message.
+
+  Args:
+   req: Create cluster request message.
+   args: Command line arguments.
+  """
+
+  if flags.FlagIsExplicitlySet(args, 'enable_remote_backup'):
+    req.cluster.enableRemoteBackup = args.enable_remote_backup
+
+
+def SetControlPlaneNodeSystemPartitionSize(req, args, messages):
+  """Set control plane node system partition size in the cluster request message.
+
+  Args:
+   req: Create cluster request message.
+   args: Command line arguments.
+   messages: Message module of edgecontainer cluster.
+  """
+  if args.control_plane_node_system_partition_size_gib == 100:
+    req.cluster.controlPlane.local.controlPlaneNodeSystemPartitionSize = (
+        messages.Local.ControlPlaneNodeSystemPartitionSizeValueValuesEnum.SYSTEM_PARTITION_GIB_SIZE100
+    )
+  elif args.control_plane_node_system_partition_size_gib == 300:
+    req.cluster.controlPlane.local.controlPlaneNodeSystemPartitionSize = (
+        messages.Local.ControlPlaneNodeSystemPartitionSizeValueValuesEnum.SYSTEM_PARTITION_GIB_SIZE300
+    )
+  else:
+    raise ValueError(
+        'Unsupported --control_plane_node_system_partition_size_gib value: '
+        + args.control_plane_node_system_partition_size_gib
+        + '; valid values are 100 and 300.'
+    )

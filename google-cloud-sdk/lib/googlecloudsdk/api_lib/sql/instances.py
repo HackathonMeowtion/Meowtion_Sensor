@@ -89,22 +89,30 @@ def _IsCloudSqlProxyPresentInSdkBin(cloud_sql_proxy_path):
           os.access(cloud_sql_proxy_path, os.X_OK))
 
 
-def _GetCloudSqlProxyPath():
-  """Determines the path to the cloud_sql_proxy binary."""
+def _GetCloudSqlProxyPath(binary_name='cloud_sql_proxy'):
+  """Determines the path to the Cloud SQL Proxy binary.
+
+  Args:
+    binary_name: Name of Cloud SQL Proxy binary to look for in path. (v1:
+      'cloud_sql_proxy', v2: 'cloud-sql-proxy')
+
+  Returns:
+    str: The path to the Cloud SQL Proxy binary.
+  """
   sdk_bin_path = config.Paths().sdk_bin_path
 
   if sdk_bin_path:
-    # Validate if the cloud_sql_proxy binary present in Cloud SDK bin repository
-    # and it has access for invoking user,
+    # Validate if the Cloud SQL Proxy binary is present in Cloud SDK bin
+    # repository and it has access for invoking user,
     # otherwise look for it in PATH
-    cloud_sql_proxy_path = os.path.join(sdk_bin_path, 'cloud_sql_proxy')
+    cloud_sql_proxy_path = os.path.join(sdk_bin_path, binary_name)
     if _IsCloudSqlProxyPresentInSdkBin(cloud_sql_proxy_path):
       return cloud_sql_proxy_path
 
-  # Check if cloud_sql_proxy is located on the PATH.
-  proxy_path = file_utils.FindExecutableOnPath('cloud_sql_proxy')
+  # Check if Cloud SQL Proxy is located on the PATH.
+  proxy_path = file_utils.FindExecutableOnPath(binary_name)
   if proxy_path:
-    log.debug('Using cloud_sql_proxy found at [{path}]'.format(path=proxy_path))
+    log.debug(f'Using {binary_name} found at [{proxy_path}]')
     return proxy_path
   else:
     raise sql_exceptions.SqlProxyNotFound(
@@ -122,6 +130,84 @@ def _RaiseProxyError(error_msg=None):
 def _ReadLineFromStderr(proxy_process):
   """Reads and returns the next line from the proxy stderr stream."""
   return encoding.Decode(proxy_process.stderr.readline())
+
+
+def _ReadLineFromStdout(proxy_process):
+  """Reads and returns the next line from the proxy stdout stream."""
+  return encoding.Decode(proxy_process.stdout.readline())
+
+
+def _WaitForProxyV2ToStart(
+    proxy_process, port, seconds_to_timeout, run_connection_test=False
+):
+  """Wait for the proxy to be ready for connections, then return proxy_process.
+
+  Args:
+    proxy_process: The Process corresponding to the Cloud SQL Proxy (v2).
+    port: int, the port that the proxy was started on.
+    seconds_to_timeout: Seconds to wait before timing out.
+    run_connection_test: if true, waits for connection test success message.
+
+  Returns:
+    The Process object corresponding to the Cloud SQL Proxy (v2).
+  """
+
+  total_wait_seconds = 0
+  seconds_to_sleep = 0.2
+  while proxy_process.poll() is None:
+    line = _ReadLineFromStdout(proxy_process)
+    while line:
+      log.status.write(line)
+      if constants.PROXY_ADDRESS_IN_USE_ERROR in line:
+        _RaiseProxyError(
+            'Port already in use. Exit the process running on port {} or try '
+            'connecting again on a different port.'.format(port)
+        )
+      elif run_connection_test and 'Connection test passed' in line:
+        return proxy_process
+      elif (
+          not run_connection_test
+          and constants.PROXY_V2_READY_FOR_CONNECTIONS_MSG in line
+      ):
+        # The proxy is ready to go, so stop polling!
+        return proxy_process
+      line = _ReadLineFromStdout(proxy_process)
+
+    # If we've been waiting past the timeout, throw an error.
+    if total_wait_seconds >= seconds_to_timeout:
+      _RaiseProxyError('Timed out.')
+
+    # Keep polling on the proxy output until relevant lines are found.
+    total_wait_seconds += seconds_to_sleep
+    time.sleep(seconds_to_sleep)
+
+  # If we've reached this point, the proxy process exited.
+  # If running connection test, we check stdout for success message.
+  if run_connection_test:
+    while True:
+      line = _ReadLineFromStdout(proxy_process)
+      if not line:
+        break
+      log.status.write(line)
+      if 'Connection test passed' in line:
+        return proxy_process
+  err = proxy_process.stderr.read()
+  if err:
+    decoded_err = encoding.Decode(err)
+    err_lines = decoded_err.splitlines()
+    error_only_lines = []
+    for line in err_lines:
+      if line.startswith('Usage:'):
+        break
+      error_only_lines.append(line)
+
+    error_msg = '\n'.join(error_only_lines).strip()
+    if error_msg:
+      _RaiseProxyError(error_msg)
+    else:
+      _RaiseProxyError(decoded_err)
+  else:
+    _RaiseProxyError()
 
 
 def _WaitForProxyToStart(proxy_process, port, seconds_to_timeout):
@@ -163,8 +249,99 @@ def _WaitForProxyToStart(proxy_process, port, seconds_to_timeout):
   _RaiseProxyError()
 
 
+def StartCloudSqlProxyV2(instance,
+                         port,
+                         seconds_to_timeout=10,
+                         impersonate_service_account=None,
+                         auto_iam_authn=False,
+                         private_ip=False,
+                         psc=False,
+                         auto_ip=False,
+                         debug_logs=False,
+                         sqladmin_api_endpoint=None,
+                         run_connection_test=False):
+  """Starts the Cloud SQL Proxy (v2) for instance on the given port.
+
+  Args:
+    instance: The instance to start the proxy for.
+    port: The port to bind the proxy to.
+    seconds_to_timeout: Seconds to wait before timing out.
+    impersonate_service_account: Service account to impersonate.
+    auto_iam_authn: Whether to use IAM DB Authentication.
+    private_ip: Whether to use private IP.
+    psc: Whether to use PSC.
+    auto_ip: Whether to use auto IP detection.
+    debug_logs: Whether to enable verbose logs in proxy.
+    sqladmin_api_endpoint: Cloud SQL Admin API endpoint for Cloud SQL Proxy.
+    run_connection_test: Whether to run connection test.
+
+  Returns:
+    The Process object corresponding to the Cloud SQL Proxy.
+
+  Raises:
+    CloudSqlProxyError: An error starting the Cloud SQL Proxy.
+    SqlProxyNotFound: An error finding a Cloud SQL Proxy installation.
+  """
+  command_path = _GetCloudSqlProxyPath(binary_name='cloud-sql-proxy')
+
+  # Specify the instance and port to connect with.
+  args = [instance.connectionName, '--port', str(port)]
+  if private_ip:
+    args.append('--private-ip')
+  if psc:
+    args.append('--psc')
+  if auto_ip:
+    args.append('--auto-ip')
+  if debug_logs:
+    args.append('--debug-logs')
+  if auto_iam_authn:
+    args.append('--auto-iam-authn')
+  if sqladmin_api_endpoint:
+    args += ['--sqladmin-api-endpoint', sqladmin_api_endpoint]
+  if run_connection_test:
+    args.append('--run-connection-test')
+  if impersonate_service_account:
+    args += ['--impersonate-service-account', impersonate_service_account]
+  else:
+    # Specify the credentials.
+    account = properties.VALUES.core.account.Get(required=True)
+    args += [
+        '--credentials-file',
+        config.Paths().LegacyCredentialsAdcPath(account),
+    ]
+  proxy_args = execution_utils.ArgsForExecutableTool(command_path, *args)
+  log.status.write(
+      'Starting Cloud SQL Proxy: [{args}]\n'.format(args=' '.join(proxy_args))
+  )
+
+  try:
+    proxy_process = subprocess.Popen(
+        proxy_args,
+        stdout=subprocess.PIPE,
+        stdin=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+  except EnvironmentError as e:
+    if e.errno == errno.ENOENT:
+      # We are trying to catch here the 'file not found error', so that a proper
+      # message can be sent to the user with installation help.
+      raise sql_exceptions.CloudSqlProxyError(
+          'Failed to start Cloud SQL Proxy. Please make sure it is available in'
+          ' the PATH [{}]. Learn more about installing the Cloud SQL Proxy here'
+          ': https://cloud.google.com/sql/docs/mysql/connect-auth-proxy#install'
+          '. If you would like to report this issue, please run the following '
+          'command: gcloud feedback'.format(command_path)
+      )
+    # Else raise the EnvironmentError.
+    raise
+
+  return _WaitForProxyV2ToStart(
+      proxy_process, port, seconds_to_timeout, run_connection_test
+  )
+
+
 def StartCloudSqlProxy(instance, port, seconds_to_timeout=10):
-  """Starts the Cloud SQL Proxy for instance on the given port.
+  """Starts the Cloud SQL Proxy (v1) for instance on the given port.
 
   Args:
     instance: The instance to start the proxy for.
@@ -187,24 +364,28 @@ def StartCloudSqlProxy(instance, port, seconds_to_timeout=10):
   args += ['-credential_file', config.Paths().LegacyCredentialsAdcPath(account)]
   proxy_args = execution_utils.ArgsForExecutableTool(command_path, *args)
   log.status.write(
-      'Starting Cloud SQL Proxy: [{args}]]\n'.format(args=' '.join(proxy_args)))
+      'Starting Cloud SQL Proxy: [{args}]]\n'.format(args=' '.join(proxy_args))
+  )
 
   try:
     proxy_process = subprocess.Popen(
         proxy_args,
         stdout=subprocess.PIPE,
         stdin=subprocess.PIPE,
-        stderr=subprocess.PIPE)
+        stderr=subprocess.PIPE,
+    )
   except EnvironmentError as e:
     if e.errno == errno.ENOENT:
       # We are trying to catch here the 'file not found error', so that a proper
       # message can be sent to the user with installation help.
       raise sql_exceptions.CloudSqlProxyError(
-          'Failed to start Cloud SQL Proxy. Please make sure it is available in the PATH [{}]. '
-          'Learn more about installing the Cloud SQL Proxy here: '
-          'https://cloud.google.com/sql/docs/mysql/connect-admin-proxy#install. '
-          'If you would like to report this issue, please run the following command: '
-          'gcloud feedback'.format(command_path))
+          'Failed to start Cloud SQL Proxy. Please make sure it is available in'
+          ' the PATH [{}]. Learn more about installing the Cloud SQL Proxy'
+          ' here:'
+          ' https://cloud.google.com/sql/docs/mysql/connect-auth-proxy#install.'
+          ' If you would like to report this issue, please run the following'
+          ' command: gcloud feedback'.format(command_path)
+      )
     # Else raise the EnvironmentError.
     raise
 

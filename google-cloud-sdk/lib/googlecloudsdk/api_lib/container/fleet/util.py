@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*- #
-# Copyright 2022 Google LLC. All Rights Reserved.
+# Copyright 2025 Google LLC. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,17 +19,14 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import re
-from typing import Union
 
+from googlecloudsdk.api_lib.container.fleet import types
 from googlecloudsdk.api_lib.util import apis
 from googlecloudsdk.calliope import base
 from googlecloudsdk.calliope import parser_extensions
 from googlecloudsdk.core import exceptions
 from googlecloudsdk.core import resources
-from googlecloudsdk.generated_clients.apis.gkehub.v1 import gkehub_v1_client as ga_client
-from googlecloudsdk.generated_clients.apis.gkehub.v1alpha import gkehub_v1alpha_client as alpha_client
 from googlecloudsdk.generated_clients.apis.gkehub.v1alpha import gkehub_v1alpha_messages as alpha_messages
-from googlecloudsdk.generated_clients.apis.gkehub.v1beta import gkehub_v1beta_client as beta_client
 
 
 VERSION_MAP = {
@@ -38,9 +35,19 @@ VERSION_MAP = {
     base.ReleaseTrack.GA: 'v1',
 }
 
+V2_VERSION_MAP = {
+    base.ReleaseTrack.ALPHA: 'v2alpha',
+    base.ReleaseTrack.BETA: 'v2beta',
+    base.ReleaseTrack.GA: 'v2',
+}
+
 
 def GetMessagesModule(release_track=base.ReleaseTrack.GA):
   return apis.GetMessagesModule('gkehub', VERSION_MAP[release_track])
+
+
+def GetV2MessagesModule(release_track=base.ReleaseTrack.ALPHA):
+  return apis.GetMessagesModule('gkehub', V2_VERSION_MAP[release_track])
 
 
 def FleetMessageModule(release_track: base.ReleaseTrack):
@@ -67,10 +74,14 @@ def FleetMessageModule(release_track: base.ReleaseTrack):
 
 def GetClientInstance(
     release_track=base.ReleaseTrack.GA,
-) -> Union[
-    alpha_client.GkehubV1alpha, beta_client.GkehubV1beta, ga_client.GkehubV1
-]:
+) -> types.TrackClient:
   return apis.GetClientInstance('gkehub', VERSION_MAP[release_track])
+
+
+def GetV2ClientInstance(
+    release_track=base.ReleaseTrack.ALPHA,
+) -> types.V2TrackClient:
+  return apis.GetClientInstance('gkehub', V2_VERSION_MAP[release_track])
 
 
 def GetClientClass(release_track=base.ReleaseTrack.GA):
@@ -102,6 +113,28 @@ def MembershipResourceName(project, membership, location='global'):
       projectsId=project,
       locationsId=location,
       membershipsId=membership,
+  ).RelativeName()
+
+
+def MembershipFeatureResourceName(
+    project,
+    membership,
+    feature,
+    location='global',
+    release_track=base.ReleaseTrack.ALPHA,
+):
+  # See command_lib/container/fleet/resources.yaml
+  return resources.REGISTRY.Parse(
+      line=None,
+      params={
+          'projectsId': project,
+          'locationsId': location,
+          'membershipsId': membership,
+          'featuresId': feature,
+      },
+      collection='gkehub.projects.locations.memberships.features',
+      # Defaults to v1 without specifying api version.
+      api_version=V2_VERSION_MAP[release_track],
   ).RelativeName()
 
 
@@ -432,4 +465,33 @@ def RolloutId(args: parser_extensions.Namespace) -> str:
   rollout_ref = RolloutRef(args)
   if rollout_ref:
     return rollout_ref.Name()
+  return None
+
+
+def RolloutSequenceRef(
+    args: parser_extensions.Namespace,
+) -> resources.Resource:
+  if getattr(args.CONCEPTS, 'rolloutsequence', None):
+    return args.CONCEPTS.rolloutsequence.Parse()
+  return None
+
+
+def RolloutSequenceName(args: parser_extensions.Namespace) -> str:
+  rollout_sequence_ref = RolloutSequenceRef(args)
+  if rollout_sequence_ref:
+    return rollout_sequence_ref.RelativeName()
+  return None
+
+
+def RolloutSequenceParentName(args: parser_extensions.Namespace):
+  rollout_sequence_ref = RolloutSequenceRef(args)
+  if rollout_sequence_ref:
+    return rollout_sequence_ref.Parent().RelativeName()
+  return None
+
+
+def RolloutSequenceId(args: parser_extensions.Namespace) -> str:
+  rollout_sequence_ref = RolloutSequenceRef(args)
+  if rollout_sequence_ref:
+    return rollout_sequence_ref.Name()
   return None

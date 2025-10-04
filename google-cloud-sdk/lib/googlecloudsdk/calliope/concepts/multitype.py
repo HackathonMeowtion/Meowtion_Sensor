@@ -24,6 +24,7 @@ from googlecloudsdk.calliope.concepts import concepts
 from googlecloudsdk.calliope.concepts import deps as deps_lib
 from googlecloudsdk.calliope.concepts import deps_map_util
 from googlecloudsdk.core import exceptions
+from googlecloudsdk.core import log
 from googlecloudsdk.core.console import console_io
 
 
@@ -122,7 +123,6 @@ class MultitypeResourceSpec(concepts.ConceptSpec):
 
     attr_list = sorted(list(attr_map.values()), key=lambda x: x[0])
     self._attributes = [attr[1] for attr in attr_list]
-    self._anchor = self._GetAnchor()
 
   @property
   def name(self):
@@ -131,20 +131,6 @@ class MultitypeResourceSpec(concepts.ConceptSpec):
   @property
   def attributes(self):
     return self._attributes
-
-  @property
-  def anchor(self):
-    return self._anchor
-
-  def _GetAnchor(self):
-    leaf_anchors = set(
-        attr for attr in self.attributes if self.IsLeafAnchor(attr))
-    if len(leaf_anchors) != 1:
-      anchor_names = ', '.join([attr.name for attr in leaf_anchors])
-      raise ConfigurationError(
-          'Could not find single achor value for multitype resource. '
-          f'Resource {self.name} has multiple leaf anchors: [{anchor_names}].')
-    return leaf_anchors.pop()
 
   def IsAnchor(self, attribute):
     """Returns True if attribute is an anchor in at least one concept."""
@@ -202,22 +188,37 @@ class MultitypeResourceSpec(concepts.ConceptSpec):
         cannot be initialized from data.
       ConflictingTypesError: if more than one possible type exists.
     """
+    # (1) Try to determine if one resource can be parsed from a fully
+    # specified uri. Extra attributes are ignored.
+    fully_specified_resources = []
+    for concept_type in self.type_enum:
+      anchor_name = self._name_to_concepts[concept_type.name].anchor.name
+      # Parse resources only using actively specified anchor value.
+      anchor_fallthroughs = full_fallthroughs_map.get(anchor_name, [])
+      anchor_fallthrough_map = {
+          anchor_name: [f for f in anchor_fallthroughs if f.active]
+      }
+      if (parsed_resource := self._GetParsedResource(
+          concept_type, anchor_fallthrough_map, parsed_args)):
+        fully_specified_resources.append(parsed_resource)
+    if len(fully_specified_resources) == 1:
+      return fully_specified_resources[0]
+
+    # (2) Try to determine if one resource can be parsed from actively
+    # specified attributes. No extra attributes can be actively specifed.
     active_fallthroughs_map = {
         attr: [f for f in fallthroughs if f.active]
         for attr, fallthroughs in full_fallthroughs_map.items()
     }
     actively_specified = self._GetSpecifiedAttributes(
         active_fallthroughs_map, parsed_args=parsed_args)
-
-    # (1) Try to determine if one resource can be parsed from actively
-    # specified attributes. No extra attributes can be actively specifed.
     actively_specified_resources = self._FilterTypesByAttribute(
         actively_specified,
         self._GetParsedResources(active_fallthroughs_map, parsed_args))
     if len(actively_specified_resources) == 1:
       return actively_specified_resources[0]
 
-    # (2) Determine if any resource can be parsed from active and inactive
+    # (3) Determine if any resource can be parsed from active and inactive
     # fallthroughs. No extra attributes can be actively specified.
     all_specified = self._GetSpecifiedAttributes(
         full_fallthroughs_map, parsed_args=parsed_args)
@@ -268,13 +269,16 @@ class MultitypeResourceSpec(concepts.ConceptSpec):
         raise ValueError(msg)
 
     if not plural:
-      return self._ParseFromValue(
+      value = self._ParseFromValue(
           attribute_to_args_map, base_fallthroughs_map,
           parsed_args, allow_empty)
     else:
-      return self._ParseFromPluralValue(
+      value = self._ParseFromPluralValue(
           attribute_to_args_map, base_fallthroughs_map, parsed_args,
           allow_empty)
+
+    self._PrintParseStatus(value)
+    return value
 
   def BuildFullFallthroughsMap(
       self, attribute_to_args_map, base_fallthroughs_map, parsed_args=None):
@@ -351,8 +355,12 @@ class MultitypeResourceSpec(concepts.ConceptSpec):
       list[FallthroughsMap], fallthrough map for each anchor value
     """
     fallthroughs_map = {**base_fallthroughs_map}
+    # Do not include other leaf anchors not related to this anchor
+    attributes = [
+        attr for attr in self.attributes
+        if not self.IsLeafAnchor(attr) or attr.name == anchor.name]
     deps_map_util.AddFlagFallthroughs(
-        fallthroughs_map, self.attributes, attribute_to_args_map)
+        fallthroughs_map, attributes, attribute_to_args_map)
     deps_map_util.PluralizeFallthroughs(fallthroughs_map, anchor.name)
 
     map_list = deps_map_util.CreateValueFallthroughMapList(
@@ -418,18 +426,24 @@ class MultitypeResourceSpec(concepts.ConceptSpec):
 
     return parsed_resources
 
+  def _GetParsedResource(self, concept_type, fallthroughs_map, parsed_args):
+    """Helper method to get the parsed resource using actively specified args."""
+    try:
+      concept_spec = self._name_to_concepts[concept_type.name]
+      parsed_resource = concept_spec.Initialize(
+          fallthroughs_map, parsed_args=parsed_args)
+      return TypedConceptResult(parsed_resource, concept_type)
+    except concepts.InitializationError:
+      return None
+
   def _GetParsedResources(self, fallthroughs_map, parsed_args):
     """Helper method to get the parsed resources using actively specified args.
     """
     types = []
     for concept_type in self.type_enum:
-      try:
-        concept_spec = self._name_to_concepts[concept_type.name]
-        parsed_resource = concept_spec.Initialize(
-            fallthroughs_map, parsed_args=parsed_args)
-        types.append(TypedConceptResult(parsed_resource, concept_type))
-      except concepts.InitializationError:
-        continue
+      if (parsed_resource := self._GetParsedResource(
+          concept_type, fallthroughs_map, parsed_args)):
+        types.append(parsed_resource)
     return types
 
   def _ConceptToName(self, concept_spec):
@@ -525,6 +539,26 @@ class MultitypeResourceSpec(concepts.ConceptSpec):
           full_fallthroughs_map)
 
     return parsed_resources[selected_index]
+
+  def _PrintParseStatus(self, parsed_resource):
+    """Helper to print the status of the parsed resource.
+
+    Args:
+      parsed_resource: TypedConceptResult | list[TypedConceptResult],
+        parsed resource or list of parsed resources
+    """
+    if parsed_resource is None:
+      return
+
+    if isinstance(parsed_resource, list):
+      resources = ', '.join((
+          resource.result and resource.result.RelativeName()
+          for resource in parsed_resource))
+      log.status.Print(f'Parsed [{self.name}] resources: [{resources}]')
+    else:
+      resource = (
+          parsed_resource.result and parsed_resource.result.RelativeName())
+      log.status.Print(f'Parsed [{self.name}] resource: {resource}')
 
 
 class TypedConceptResult(object):

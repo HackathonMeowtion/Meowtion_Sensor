@@ -24,6 +24,42 @@ DOCS_URL = 'https://cloud.google.com/dataplex/docs'
 class Collections(enum.Enum):
   """Collections for all supported apis."""
 
+  ORGANIZATIONS = (
+      'organizations',
+      'organizations/{organizationsId}',
+      {},
+      ['organizationsId'],
+      True
+  )
+  ORGANIZATIONS_LOCATIONS = (
+      'organizations.locations',
+      'organizations/{organizationsId}/locations/{locationsId}',
+      {},
+      ['organizationsId', 'locationsId'],
+      True
+  )
+  ORGANIZATIONS_LOCATIONS_ENCRYPTIONCONFIGS = (
+      'organizations.locations.encryptionConfigs',
+      '{+name}',
+      {
+          '':
+              'organizations/{organizationsId}/locations/{locationsId}/'
+              'encryptionConfigs/{encryptionConfigsId}',
+      },
+      ['name'],
+      True
+  )
+  ORGANIZATIONS_LOCATIONS_OPERATIONS = (
+      'organizations.locations.operations',
+      '{+name}',
+      {
+          '':
+              'organizations/{organizationsId}/locations/{locationsId}/'
+              'operations/{operationsId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS = (
       'projects',
       'projects/{projectsId}',
@@ -129,6 +165,17 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_LOCATIONS_ENTRYGROUPS_ENTRYLINKS = (
+      'projects.locations.entryGroups.entryLinks',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/entryGroups/'
+              '{entryGroupsId}/entryLinks/{entryLinksId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS_LOCATIONS_ENTRYTYPES = (
       'projects.locations.entryTypes',
       '{+name}',
@@ -136,6 +183,50 @@ class Collections(enum.Enum):
           '':
               'projects/{projectsId}/locations/{locationsId}/entryTypes/'
               '{entryTypesId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_GLOSSARIES = (
+      'projects.locations.glossaries',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/glossaries/'
+              '{glossariesId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_GLOSSARIES_CATEGORIES = (
+      'projects.locations.glossaries.categories',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/glossaries/'
+              '{glossariesId}/categories/{categoriesId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_GLOSSARIES_TERMS = (
+      'projects.locations.glossaries.terms',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/glossaries/'
+              '{glossariesId}/terms/{termsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_GOVERNANCERULES = (
+      'projects.locations.governanceRules',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/governanceRules/'
+              '{governanceRulesId}',
       },
       ['name'],
       True
@@ -278,6 +369,17 @@ class Collections(enum.Enum):
               'projects/{projectsId}/locations/{locationsId}/lakes/{lakesId}/'
               'zones/{zonesId}/entities/{entitiesId}/partitions/'
               '{partitionsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_METADATAJOBS = (
+      'projects.locations.metadataJobs',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/metadataJobs/'
+              '{metadataJobsId}',
       },
       ['name'],
       True

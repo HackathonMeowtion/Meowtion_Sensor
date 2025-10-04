@@ -13,18 +13,24 @@
 # limitations under the License.
 
 import datetime
+import http.client as http_client
 import json
+import urllib
 
 import mock
 import pytest  # type: ignore
-from six.moves import http_client
-from six.moves import urllib
 
 from google.auth import _helpers
 from google.auth import exceptions
 from google.auth import external_account
 from google.auth import transport
+from google.auth.credentials import DEFAULT_UNIVERSE_DOMAIN
+from google.auth.credentials import TokenState
 
+IMPERSONATE_ACCESS_TOKEN_REQUEST_METRICS_HEADER_VALUE = (
+    "gl-python/3.7 auth/1.1 auth-request-type/at cred-type/imp"
+)
+LANG_LIBRARY_METRICS_HEADER_VALUE = "gl-python/3.7 auth/1.1"
 
 CLIENT_ID = "username"
 CLIENT_SECRET = "password"
@@ -144,6 +150,7 @@ class TestCredentials(object):
         default_scopes=None,
         service_account_impersonation_url=None,
         service_account_impersonation_options={},
+        universe_domain=DEFAULT_UNIVERSE_DOMAIN,
     ):
         return CredentialsImpl(
             audience=cls.AUDIENCE,
@@ -158,6 +165,7 @@ class TestCredentials(object):
             quota_project_id=quota_project_id,
             scopes=scopes,
             default_scopes=default_scopes,
+            universe_domain=universe_domain,
         )
 
     @classmethod
@@ -227,10 +235,16 @@ class TestCredentials(object):
         return request
 
     @classmethod
-    def assert_token_request_kwargs(cls, request_kwargs, headers, request_data):
+    def assert_token_request_kwargs(
+        cls, request_kwargs, headers, request_data, cert=None
+    ):
         assert request_kwargs["url"] == cls.TOKEN_URL
         assert request_kwargs["method"] == "POST"
         assert request_kwargs["headers"] == headers
+        if cert is not None:
+            assert request_kwargs["cert"] == cert
+        else:
+            assert "cert" not in request_kwargs
         assert request_kwargs["body"] is not None
         body_tuples = urllib.parse.parse_qsl(request_kwargs["body"])
         for (k, v) in body_tuples:
@@ -238,10 +252,16 @@ class TestCredentials(object):
         assert len(body_tuples) == len(request_data.keys())
 
     @classmethod
-    def assert_impersonation_request_kwargs(cls, request_kwargs, headers, request_data):
+    def assert_impersonation_request_kwargs(
+        cls, request_kwargs, headers, request_data, cert=None
+    ):
         assert request_kwargs["url"] == cls.SERVICE_ACCOUNT_IMPERSONATION_URL
         assert request_kwargs["method"] == "POST"
         assert request_kwargs["headers"] == headers
+        if cert is not None:
+            assert request_kwargs["cert"] == cert
+        else:
+            assert "cert" not in request_kwargs
         assert request_kwargs["body"] is not None
         body_json = json.loads(request_kwargs["body"].decode("utf-8"))
         assert body_json == request_data
@@ -254,6 +274,31 @@ class TestCredentials(object):
         assert request_kwargs["method"] == "GET"
         assert request_kwargs["headers"] == headers
         assert "body" not in request_kwargs
+
+    def test_get_cred_info(self):
+        credentials = self.make_credentials()
+        assert not credentials.get_cred_info()
+
+        credentials._cred_file_path = "/path/to/file"
+        assert credentials.get_cred_info() == {
+            "credential_source": "/path/to/file",
+            "credential_type": "external account credentials",
+        }
+
+        credentials._service_account_impersonation_url = (
+            self.SERVICE_ACCOUNT_IMPERSONATION_URL
+        )
+        assert credentials.get_cred_info() == {
+            "credential_source": "/path/to/file",
+            "credential_type": "external account credentials",
+            "principal": SERVICE_ACCOUNT_EMAIL,
+        }
+
+    def test__make_copy_get_cred_info(self):
+        credentials = self.make_credentials()
+        credentials._cred_file_path = "/path/to/file"
+        cred_copy = credentials._make_copy()
+        assert cred_copy._cred_file_path == "/path/to/file"
 
     def test_default_state(self):
         credentials = self.make_credentials(
@@ -378,6 +423,7 @@ class TestCredentials(object):
             quota_project_id=self.QUOTA_PROJECT_ID,
             scopes=["email"],
             default_scopes=["default2"],
+            universe_domain=DEFAULT_UNIVERSE_DOMAIN,
         )
 
     def test_with_token_uri(self):
@@ -448,37 +494,32 @@ class TestCredentials(object):
         with mock.patch.object(
             external_account.Credentials, "__init__", return_value=None
         ) as mock_init:
-            credentials.with_quota_project("project-foo")
+            new_cred = credentials.with_quota_project("project-foo")
 
-        # Confirm with_quota_project initialized the credential with the
-        # expected parameters and quota project ID.
-        mock_init.assert_called_once_with(
-            audience=self.AUDIENCE,
-            subject_token_type=self.SUBJECT_TOKEN_TYPE,
-            token_url=self.TOKEN_URL,
-            token_info_url=self.TOKEN_INFO_URL,
-            credential_source=self.CREDENTIAL_SOURCE,
-            service_account_impersonation_url=self.SERVICE_ACCOUNT_IMPERSONATION_URL,
-            service_account_impersonation_options={"token_lifetime_seconds": 2800},
-            client_id=CLIENT_ID,
-            client_secret=CLIENT_SECRET,
-            quota_project_id="project-foo",
-            scopes=self.SCOPES,
-            default_scopes=["default1"],
-        )
+            # Confirm with_quota_project initialized the credential with the
+            # expected parameters.
+            mock_init.assert_called_once_with(
+                audience=self.AUDIENCE,
+                subject_token_type=self.SUBJECT_TOKEN_TYPE,
+                token_url=self.TOKEN_URL,
+                token_info_url=self.TOKEN_INFO_URL,
+                credential_source=self.CREDENTIAL_SOURCE,
+                service_account_impersonation_url=self.SERVICE_ACCOUNT_IMPERSONATION_URL,
+                service_account_impersonation_options={"token_lifetime_seconds": 2800},
+                client_id=CLIENT_ID,
+                client_secret=CLIENT_SECRET,
+                quota_project_id=self.QUOTA_PROJECT_ID,
+                scopes=self.SCOPES,
+                default_scopes=["default1"],
+                universe_domain=DEFAULT_UNIVERSE_DOMAIN,
+            )
 
-    def test_with_invalid_impersonation_target_principal(self):
-        invalid_url = "https://iamcredentials.googleapis.com/v1/invalid"
-
-        with pytest.raises(exceptions.RefreshError) as excinfo:
-            self.make_credentials(service_account_impersonation_url=invalid_url)
-
-        assert excinfo.match(
-            r"Unable to determine target principal from service account impersonation URL."
-        )
+            # Confirm with_quota_project sets the correct quota project after
+            # initialization.
+            assert new_cred.quota_project_id == "project-foo"
 
     def test_info(self):
-        credentials = self.make_credentials()
+        credentials = self.make_credentials(universe_domain="dummy_universe.com")
 
         assert credentials.info == {
             "type": "external_account",
@@ -486,7 +527,20 @@ class TestCredentials(object):
             "subject_token_type": self.SUBJECT_TOKEN_TYPE,
             "token_url": self.TOKEN_URL,
             "credential_source": self.CREDENTIAL_SOURCE.copy(),
+            "universe_domain": "dummy_universe.com",
         }
+
+    def test_universe_domain(self):
+        credentials = self.make_credentials(universe_domain="dummy_universe.com")
+        assert credentials.universe_domain == "dummy_universe.com"
+
+        credentials = self.make_credentials()
+        assert credentials.universe_domain == DEFAULT_UNIVERSE_DOMAIN
+
+    def test_with_universe_domain(self):
+        credentials = self.make_credentials()
+        new_credentials = credentials.with_universe_domain("dummy_universe.com")
+        assert new_credentials.universe_domain == "dummy_universe.com"
 
     def test_info_workforce_pool(self):
         credentials = self.make_workforce_pool_credentials(
@@ -500,6 +554,7 @@ class TestCredentials(object):
             "token_url": self.TOKEN_URL,
             "credential_source": self.CREDENTIAL_SOURCE.copy(),
             "workforce_pool_user_project": self.WORKFORCE_POOL_USER_PROJECT,
+            "universe_domain": DEFAULT_UNIVERSE_DOMAIN,
         }
 
     def test_info_with_full_options(self):
@@ -524,6 +579,7 @@ class TestCredentials(object):
             "quota_project_id": self.QUOTA_PROJECT_ID,
             "client_id": CLIENT_ID,
             "client_secret": CLIENT_SECRET,
+            "universe_domain": DEFAULT_UNIVERSE_DOMAIN,
         }
 
     def test_service_account_email_without_impersonation(self):
@@ -613,15 +669,25 @@ class TestCredentials(object):
         # Even though impersonation is used, is_workforce_pool should still return True.
         assert credentials.is_workforce_pool is True
 
+    @pytest.mark.parametrize("mock_expires_in", [2800, "2800"])
+    @mock.patch(
+        "google.auth.metrics.python_and_auth_lib_version",
+        return_value=LANG_LIBRARY_METRICS_HEADER_VALUE,
+    )
     @mock.patch("google.auth._helpers.utcnow", return_value=datetime.datetime.min)
-    def test_refresh_without_client_auth_success(self, unused_utcnow):
+    def test_refresh_without_client_auth_success(
+        self, unused_utcnow, mock_auth_lib_value, mock_expires_in
+    ):
         response = self.SUCCESS_RESPONSE.copy()
         # Test custom expiration to confirm expiry is set correctly.
-        response["expires_in"] = 2800
+        response["expires_in"] = mock_expires_in
         expected_expiry = datetime.datetime.min + datetime.timedelta(
-            seconds=response["expires_in"]
+            seconds=int(mock_expires_in)
         )
-        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "x-goog-api-client": "gl-python/3.7 auth/1.1 google-byoid-sdk sa-impersonation/false config-lifetime/false",
+        }
         request_data = {
             "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
             "audience": self.AUDIENCE,
@@ -640,15 +706,74 @@ class TestCredentials(object):
         assert not credentials.expired
         assert credentials.token == response["access_token"]
 
+    @mock.patch(
+        "google.auth.metrics.python_and_auth_lib_version",
+        return_value=LANG_LIBRARY_METRICS_HEADER_VALUE,
+    )
     @mock.patch("google.auth._helpers.utcnow", return_value=datetime.datetime.min)
-    def test_refresh_workforce_without_client_auth_success(self, unused_utcnow):
+    @mock.patch(
+        "google.auth.external_account.Credentials._mtls_required", return_value=True
+    )
+    @mock.patch(
+        "google.auth.external_account.Credentials._get_mtls_cert_and_key_paths",
+        return_value=("path/to/cert.pem", "path/to/key.pem"),
+    )
+    def test_refresh_with_mtls(
+        self,
+        mock_get_mtls_cert_and_key_paths,
+        mock_mtls_required,
+        unused_utcnow,
+        mock_auth_lib_value,
+    ):
         response = self.SUCCESS_RESPONSE.copy()
         # Test custom expiration to confirm expiry is set correctly.
         response["expires_in"] = 2800
         expected_expiry = datetime.datetime.min + datetime.timedelta(
             seconds=response["expires_in"]
         )
-        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "x-goog-api-client": "gl-python/3.7 auth/1.1 google-byoid-sdk sa-impersonation/false config-lifetime/false",
+        }
+        request_data = {
+            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+            "audience": self.AUDIENCE,
+            "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "subject_token": "subject_token_0",
+            "subject_token_type": self.SUBJECT_TOKEN_TYPE,
+        }
+        request = self.make_mock_request(status=http_client.OK, data=response)
+        credentials = self.make_credentials()
+
+        credentials.refresh(request)
+
+        expected_cert_path = ("path/to/cert.pem", "path/to/key.pem")
+        self.assert_token_request_kwargs(
+            request.call_args[1], headers, request_data, expected_cert_path
+        )
+        assert credentials.valid
+        assert credentials.expiry == expected_expiry
+        assert not credentials.expired
+        assert credentials.token == response["access_token"]
+
+    @mock.patch(
+        "google.auth.metrics.python_and_auth_lib_version",
+        return_value=LANG_LIBRARY_METRICS_HEADER_VALUE,
+    )
+    @mock.patch("google.auth._helpers.utcnow", return_value=datetime.datetime.min)
+    def test_refresh_workforce_without_client_auth_success(
+        self, unused_utcnow, test_auth_lib_value
+    ):
+        response = self.SUCCESS_RESPONSE.copy()
+        # Test custom expiration to confirm expiry is set correctly.
+        response["expires_in"] = 2800
+        expected_expiry = datetime.datetime.min + datetime.timedelta(
+            seconds=response["expires_in"]
+        )
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "x-goog-api-client": "gl-python/3.7 auth/1.1 google-byoid-sdk sa-impersonation/false config-lifetime/false",
+        }
         request_data = {
             "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
             "audience": self.WORKFORCE_AUDIENCE,
@@ -672,8 +797,14 @@ class TestCredentials(object):
         assert not credentials.expired
         assert credentials.token == response["access_token"]
 
+    @mock.patch(
+        "google.auth.metrics.python_and_auth_lib_version",
+        return_value=LANG_LIBRARY_METRICS_HEADER_VALUE,
+    )
     @mock.patch("google.auth._helpers.utcnow", return_value=datetime.datetime.min)
-    def test_refresh_workforce_with_client_auth_success(self, unused_utcnow):
+    def test_refresh_workforce_with_client_auth_success(
+        self, unused_utcnow, mock_auth_lib_value
+    ):
         response = self.SUCCESS_RESPONSE.copy()
         # Test custom expiration to confirm expiry is set correctly.
         response["expires_in"] = 2800
@@ -683,6 +814,7 @@ class TestCredentials(object):
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
             "Authorization": "Basic {}".format(BASIC_AUTH_ENCODING),
+            "x-goog-api-client": "gl-python/3.7 auth/1.1 google-byoid-sdk sa-impersonation/false config-lifetime/false",
         }
         request_data = {
             "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
@@ -707,9 +839,13 @@ class TestCredentials(object):
         assert not credentials.expired
         assert credentials.token == response["access_token"]
 
+    @mock.patch(
+        "google.auth.metrics.python_and_auth_lib_version",
+        return_value=LANG_LIBRARY_METRICS_HEADER_VALUE,
+    )
     @mock.patch("google.auth._helpers.utcnow", return_value=datetime.datetime.min)
     def test_refresh_workforce_with_client_auth_and_no_workforce_project_success(
-        self, unused_utcnow
+        self, unused_utcnow, mock_lib_version_value
     ):
         response = self.SUCCESS_RESPONSE.copy()
         # Test custom expiration to confirm expiry is set correctly.
@@ -720,6 +856,7 @@ class TestCredentials(object):
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
             "Authorization": "Basic {}".format(BASIC_AUTH_ENCODING),
+            "x-goog-api-client": "gl-python/3.7 auth/1.1 google-byoid-sdk sa-impersonation/false config-lifetime/false",
         }
         request_data = {
             "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
@@ -744,7 +881,17 @@ class TestCredentials(object):
         assert not credentials.expired
         assert credentials.token == response["access_token"]
 
-    def test_refresh_impersonation_without_client_auth_success(self):
+    @mock.patch(
+        "google.auth.metrics.token_request_access_token_impersonate",
+        return_value=IMPERSONATE_ACCESS_TOKEN_REQUEST_METRICS_HEADER_VALUE,
+    )
+    @mock.patch(
+        "google.auth.metrics.python_and_auth_lib_version",
+        return_value=LANG_LIBRARY_METRICS_HEADER_VALUE,
+    )
+    def test_refresh_impersonation_without_client_auth_success(
+        self, mock_metrics_header_value, mock_auth_lib_value
+    ):
         # Simulate service account access token expires in 2800 seconds.
         expire_time = (
             _helpers.utcnow().replace(microsecond=0) + datetime.timedelta(seconds=2800)
@@ -752,7 +899,10 @@ class TestCredentials(object):
         expected_expiry = datetime.datetime.strptime(expire_time, "%Y-%m-%dT%H:%M:%SZ")
         # STS token exchange request/response.
         token_response = self.SUCCESS_RESPONSE.copy()
-        token_headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        token_headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "x-goog-api-client": "gl-python/3.7 auth/1.1 google-byoid-sdk sa-impersonation/true config-lifetime/false",
+        }
         token_request_data = {
             "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
             "audience": self.AUDIENCE,
@@ -769,6 +919,8 @@ class TestCredentials(object):
         impersonation_headers = {
             "Content-Type": "application/json",
             "authorization": "Bearer {}".format(token_response["access_token"]),
+            "x-goog-api-client": IMPERSONATE_ACCESS_TOKEN_REQUEST_METRICS_HEADER_VALUE,
+            "x-allowed-locations": "0x0",
         }
         impersonation_request_data = {
             "delegates": None,
@@ -808,7 +960,28 @@ class TestCredentials(object):
         assert not credentials.expired
         assert credentials.token == impersonation_response["accessToken"]
 
-    def test_refresh_workforce_impersonation_without_client_auth_success(self):
+    @mock.patch(
+        "google.auth.metrics.token_request_access_token_impersonate",
+        return_value=IMPERSONATE_ACCESS_TOKEN_REQUEST_METRICS_HEADER_VALUE,
+    )
+    @mock.patch(
+        "google.auth.metrics.python_and_auth_lib_version",
+        return_value=LANG_LIBRARY_METRICS_HEADER_VALUE,
+    )
+    @mock.patch(
+        "google.auth.external_account.Credentials._mtls_required", return_value=True
+    )
+    @mock.patch(
+        "google.auth.external_account.Credentials._get_mtls_cert_and_key_paths",
+        return_value=("path/to/cert.pem", "path/to/key.pem"),
+    )
+    def test_refresh_impersonation_with_mtls_success(
+        self,
+        mock_get_mtls_cert_and_key_paths,
+        mock_mtls_required,
+        mock_metrics_header_value,
+        mock_auth_lib_value,
+    ):
         # Simulate service account access token expires in 2800 seconds.
         expire_time = (
             _helpers.utcnow().replace(microsecond=0) + datetime.timedelta(seconds=2800)
@@ -816,7 +989,94 @@ class TestCredentials(object):
         expected_expiry = datetime.datetime.strptime(expire_time, "%Y-%m-%dT%H:%M:%SZ")
         # STS token exchange request/response.
         token_response = self.SUCCESS_RESPONSE.copy()
-        token_headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        token_headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "x-goog-api-client": "gl-python/3.7 auth/1.1 google-byoid-sdk sa-impersonation/true config-lifetime/false",
+        }
+        token_request_data = {
+            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+            "audience": self.AUDIENCE,
+            "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "subject_token": "subject_token_0",
+            "subject_token_type": self.SUBJECT_TOKEN_TYPE,
+            "scope": "https://www.googleapis.com/auth/iam",
+        }
+        # Service account impersonation request/response.
+        impersonation_response = {
+            "accessToken": "SA_ACCESS_TOKEN",
+            "expireTime": expire_time,
+        }
+        impersonation_headers = {
+            "Content-Type": "application/json",
+            "authorization": "Bearer {}".format(token_response["access_token"]),
+            "x-goog-api-client": IMPERSONATE_ACCESS_TOKEN_REQUEST_METRICS_HEADER_VALUE,
+            "x-allowed-locations": "0x0",
+        }
+        impersonation_request_data = {
+            "delegates": None,
+            "scope": self.SCOPES,
+            "lifetime": "3600s",
+        }
+        # Initialize mock request to handle token exchange and service account
+        # impersonation request.
+        request = self.make_mock_request(
+            status=http_client.OK,
+            data=token_response,
+            impersonation_status=http_client.OK,
+            impersonation_data=impersonation_response,
+        )
+        # Initialize credentials with service account impersonation.
+        credentials = self.make_credentials(
+            service_account_impersonation_url=self.SERVICE_ACCOUNT_IMPERSONATION_URL,
+            scopes=self.SCOPES,
+        )
+
+        credentials.refresh(request)
+
+        # Only 2 requests should be processed.
+        assert len(request.call_args_list) == 2
+        # Verify token exchange request parameters.
+        expected_cert_paths = ("path/to/cert.pem", "path/to/key.pem")
+        self.assert_token_request_kwargs(
+            request.call_args_list[0][1],
+            token_headers,
+            token_request_data,
+            expected_cert_paths,
+        )
+        # Verify service account impersonation request parameters.
+        self.assert_impersonation_request_kwargs(
+            request.call_args_list[1][1],
+            impersonation_headers,
+            impersonation_request_data,
+            expected_cert_paths,
+        )
+        assert credentials.valid
+        assert credentials.expiry == expected_expiry
+        assert not credentials.expired
+        assert credentials.token == impersonation_response["accessToken"]
+
+    @mock.patch(
+        "google.auth.metrics.token_request_access_token_impersonate",
+        return_value=IMPERSONATE_ACCESS_TOKEN_REQUEST_METRICS_HEADER_VALUE,
+    )
+    @mock.patch(
+        "google.auth.metrics.python_and_auth_lib_version",
+        return_value=LANG_LIBRARY_METRICS_HEADER_VALUE,
+    )
+    def test_refresh_workforce_impersonation_without_client_auth_success(
+        self, mock_metrics_header_value, mock_auth_lib_value
+    ):
+        # Simulate service account access token expires in 2800 seconds.
+        expire_time = (
+            _helpers.utcnow().replace(microsecond=0) + datetime.timedelta(seconds=2800)
+        ).isoformat("T") + "Z"
+        expected_expiry = datetime.datetime.strptime(expire_time, "%Y-%m-%dT%H:%M:%SZ")
+        # STS token exchange request/response.
+        token_response = self.SUCCESS_RESPONSE.copy()
+        token_headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "x-goog-api-client": "gl-python/3.7 auth/1.1 google-byoid-sdk sa-impersonation/true config-lifetime/false",
+        }
         token_request_data = {
             "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
             "audience": self.WORKFORCE_AUDIENCE,
@@ -836,6 +1096,8 @@ class TestCredentials(object):
         impersonation_headers = {
             "Content-Type": "application/json",
             "authorization": "Bearer {}".format(token_response["access_token"]),
+            "x-goog-api-client": IMPERSONATE_ACCESS_TOKEN_REQUEST_METRICS_HEADER_VALUE,
+            "x-allowed-locations": "0x0",
         }
         impersonation_request_data = {
             "delegates": None,
@@ -876,10 +1138,17 @@ class TestCredentials(object):
         assert not credentials.expired
         assert credentials.token == impersonation_response["accessToken"]
 
+    @mock.patch(
+        "google.auth.metrics.python_and_auth_lib_version",
+        return_value=LANG_LIBRARY_METRICS_HEADER_VALUE,
+    )
     def test_refresh_without_client_auth_success_explicit_user_scopes_ignore_default_scopes(
-        self,
+        self, mock_auth_lib_value
     ):
-        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "x-goog-api-client": "gl-python/3.7 auth/1.1 google-byoid-sdk sa-impersonation/false config-lifetime/false",
+        }
         request_data = {
             "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
             "audience": self.AUDIENCE,
@@ -906,8 +1175,17 @@ class TestCredentials(object):
         assert credentials.has_scopes(["scope1", "scope2"])
         assert not credentials.has_scopes(["ignored"])
 
-    def test_refresh_without_client_auth_success_explicit_default_scopes_only(self):
-        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    @mock.patch(
+        "google.auth.metrics.python_and_auth_lib_version",
+        return_value=LANG_LIBRARY_METRICS_HEADER_VALUE,
+    )
+    def test_refresh_without_client_auth_success_explicit_default_scopes_only(
+        self, mock_auth_lib_value
+    ):
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "x-goog-api-client": "gl-python/3.7 auth/1.1 google-byoid-sdk sa-impersonation/false config-lifetime/false",
+        }
         request_data = {
             "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
             "audience": self.AUDIENCE,
@@ -967,10 +1245,30 @@ class TestCredentials(object):
         assert not credentials.expired
         assert credentials.token is None
 
-    def test_refresh_with_client_auth_success(self):
+    def test_refresh_impersonation_invalid_impersonated_url_error(self):
+        credentials = self.make_credentials(
+            service_account_impersonation_url="https://iamcredentials.googleapis.com/v1/invalid",
+            scopes=self.SCOPES,
+        )
+
+        with pytest.raises(exceptions.RefreshError) as excinfo:
+            credentials.refresh(None)
+
+        assert excinfo.match(
+            r"Unable to determine target principal from service account impersonation URL."
+        )
+        assert not credentials.expired
+        assert credentials.token is None
+
+    @mock.patch(
+        "google.auth.metrics.python_and_auth_lib_version",
+        return_value=LANG_LIBRARY_METRICS_HEADER_VALUE,
+    )
+    def test_refresh_with_client_auth_success(self, mock_auth_lib_value):
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
             "Authorization": "Basic {}".format(BASIC_AUTH_ENCODING),
+            "x-goog-api-client": "gl-python/3.7 auth/1.1 google-byoid-sdk sa-impersonation/false config-lifetime/false",
         }
         request_data = {
             "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
@@ -993,7 +1291,17 @@ class TestCredentials(object):
         assert not credentials.expired
         assert credentials.token == self.SUCCESS_RESPONSE["access_token"]
 
-    def test_refresh_impersonation_with_client_auth_success_ignore_default_scopes(self):
+    @mock.patch(
+        "google.auth.metrics.token_request_access_token_impersonate",
+        return_value=IMPERSONATE_ACCESS_TOKEN_REQUEST_METRICS_HEADER_VALUE,
+    )
+    @mock.patch(
+        "google.auth.metrics.python_and_auth_lib_version",
+        return_value=LANG_LIBRARY_METRICS_HEADER_VALUE,
+    )
+    def test_refresh_impersonation_with_client_auth_success_ignore_default_scopes(
+        self, mock_metrics_header_value, mock_auth_lib_value
+    ):
         # Simulate service account access token expires in 2800 seconds.
         expire_time = (
             _helpers.utcnow().replace(microsecond=0) + datetime.timedelta(seconds=2800)
@@ -1004,6 +1312,7 @@ class TestCredentials(object):
         token_headers = {
             "Content-Type": "application/x-www-form-urlencoded",
             "Authorization": "Basic {}".format(BASIC_AUTH_ENCODING),
+            "x-goog-api-client": "gl-python/3.7 auth/1.1 google-byoid-sdk sa-impersonation/true config-lifetime/false",
         }
         token_request_data = {
             "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
@@ -1021,6 +1330,8 @@ class TestCredentials(object):
         impersonation_headers = {
             "Content-Type": "application/json",
             "authorization": "Bearer {}".format(token_response["access_token"]),
+            "x-goog-api-client": IMPERSONATE_ACCESS_TOKEN_REQUEST_METRICS_HEADER_VALUE,
+            "x-allowed-locations": "0x0",
         }
         impersonation_request_data = {
             "delegates": None,
@@ -1064,7 +1375,17 @@ class TestCredentials(object):
         assert not credentials.expired
         assert credentials.token == impersonation_response["accessToken"]
 
-    def test_refresh_impersonation_with_client_auth_success_use_default_scopes(self):
+    @mock.patch(
+        "google.auth.metrics.token_request_access_token_impersonate",
+        return_value=IMPERSONATE_ACCESS_TOKEN_REQUEST_METRICS_HEADER_VALUE,
+    )
+    @mock.patch(
+        "google.auth.metrics.python_and_auth_lib_version",
+        return_value=LANG_LIBRARY_METRICS_HEADER_VALUE,
+    )
+    def test_refresh_impersonation_with_client_auth_success_use_default_scopes(
+        self, mock_metrics_header_value, mock_auth_lib_value
+    ):
         # Simulate service account access token expires in 2800 seconds.
         expire_time = (
             _helpers.utcnow().replace(microsecond=0) + datetime.timedelta(seconds=2800)
@@ -1075,6 +1396,7 @@ class TestCredentials(object):
         token_headers = {
             "Content-Type": "application/x-www-form-urlencoded",
             "Authorization": "Basic {}".format(BASIC_AUTH_ENCODING),
+            "x-goog-api-client": "gl-python/3.7 auth/1.1 google-byoid-sdk sa-impersonation/true config-lifetime/false",
         }
         token_request_data = {
             "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
@@ -1092,6 +1414,8 @@ class TestCredentials(object):
         impersonation_headers = {
             "Content-Type": "application/json",
             "authorization": "Bearer {}".format(token_response["access_token"]),
+            "x-goog-api-client": IMPERSONATE_ACCESS_TOKEN_REQUEST_METRICS_HEADER_VALUE,
+            "x-allowed-locations": "0x0",
         }
         impersonation_request_data = {
             "delegates": None,
@@ -1146,7 +1470,8 @@ class TestCredentials(object):
         credentials.apply(headers)
 
         assert headers == {
-            "authorization": "Bearer {}".format(self.SUCCESS_RESPONSE["access_token"])
+            "authorization": "Bearer {}".format(self.SUCCESS_RESPONSE["access_token"]),
+            "x-allowed-locations": "0x0",
         }
 
     def test_apply_workforce_without_quota_project_id(self):
@@ -1162,7 +1487,8 @@ class TestCredentials(object):
         credentials.apply(headers)
 
         assert headers == {
-            "authorization": "Bearer {}".format(self.SUCCESS_RESPONSE["access_token"])
+            "authorization": "Bearer {}".format(self.SUCCESS_RESPONSE["access_token"]),
+            "x-allowed-locations": "0x0",
         }
 
     def test_apply_impersonation_without_quota_project_id(self):
@@ -1193,7 +1519,8 @@ class TestCredentials(object):
         credentials.apply(headers)
 
         assert headers == {
-            "authorization": "Bearer {}".format(impersonation_response["accessToken"])
+            "authorization": "Bearer {}".format(impersonation_response["accessToken"]),
+            "x-allowed-locations": "0x0",
         }
 
     def test_apply_with_quota_project_id(self):
@@ -1210,6 +1537,7 @@ class TestCredentials(object):
             "other": "header-value",
             "authorization": "Bearer {}".format(self.SUCCESS_RESPONSE["access_token"]),
             "x-goog-user-project": self.QUOTA_PROJECT_ID,
+            "x-allowed-locations": "0x0",
         }
 
     def test_apply_impersonation_with_quota_project_id(self):
@@ -1244,6 +1572,7 @@ class TestCredentials(object):
             "other": "header-value",
             "authorization": "Bearer {}".format(impersonation_response["accessToken"]),
             "x-goog-user-project": self.QUOTA_PROJECT_ID,
+            "x-allowed-locations": "0x0",
         }
 
     def test_before_request(self):
@@ -1259,6 +1588,7 @@ class TestCredentials(object):
         assert headers == {
             "other": "header-value",
             "authorization": "Bearer {}".format(self.SUCCESS_RESPONSE["access_token"]),
+            "x-allowed-locations": "0x0",
         }
 
         # Second call shouldn't call refresh.
@@ -1267,6 +1597,7 @@ class TestCredentials(object):
         assert headers == {
             "other": "header-value",
             "authorization": "Bearer {}".format(self.SUCCESS_RESPONSE["access_token"]),
+            "x-allowed-locations": "0x0",
         }
 
     def test_before_request_workforce(self):
@@ -1284,6 +1615,7 @@ class TestCredentials(object):
         assert headers == {
             "other": "header-value",
             "authorization": "Bearer {}".format(self.SUCCESS_RESPONSE["access_token"]),
+            "x-allowed-locations": "0x0",
         }
 
         # Second call shouldn't call refresh.
@@ -1292,6 +1624,7 @@ class TestCredentials(object):
         assert headers == {
             "other": "header-value",
             "authorization": "Bearer {}".format(self.SUCCESS_RESPONSE["access_token"]),
+            "x-allowed-locations": "0x0",
         }
 
     def test_before_request_impersonation(self):
@@ -1322,6 +1655,7 @@ class TestCredentials(object):
         assert headers == {
             "other": "header-value",
             "authorization": "Bearer {}".format(impersonation_response["accessToken"]),
+            "x-allowed-locations": "0x0",
         }
 
         # Second call shouldn't call refresh.
@@ -1330,6 +1664,7 @@ class TestCredentials(object):
         assert headers == {
             "other": "header-value",
             "authorization": "Bearer {}".format(impersonation_response["accessToken"]),
+            "x-allowed-locations": "0x0",
         }
 
     @mock.patch("google.auth._helpers.utcnow")
@@ -1351,23 +1686,30 @@ class TestCredentials(object):
 
         assert credentials.valid
         assert not credentials.expired
+        assert credentials.token_state == TokenState.FRESH
 
         credentials.before_request(request, "POST", "https://example.com/api", headers)
 
         # Cached token should be used.
-        assert headers == {"authorization": "Bearer token"}
+        assert headers == {
+            "authorization": "Bearer token",
+            "x-allowed-locations": "0x0",
+        }
 
         # Next call should simulate 1 second passed.
         utcnow.return_value = datetime.datetime.min + datetime.timedelta(seconds=1)
 
         assert not credentials.valid
         assert credentials.expired
+        assert credentials.token_state == TokenState.STALE
 
         credentials.before_request(request, "POST", "https://example.com/api", headers)
+        assert credentials.token_state == TokenState.FRESH
 
         # New token should be retrieved.
         assert headers == {
-            "authorization": "Bearer {}".format(self.SUCCESS_RESPONSE["access_token"])
+            "authorization": "Bearer {}".format(self.SUCCESS_RESPONSE["access_token"]),
+            "x-allowed-locations": "0x0",
         }
 
     @mock.patch("google.auth._helpers.utcnow")
@@ -1404,11 +1746,16 @@ class TestCredentials(object):
 
         assert credentials.valid
         assert not credentials.expired
+        assert credentials.token_state == TokenState.FRESH
 
         credentials.before_request(request, "POST", "https://example.com/api", headers)
+        assert credentials.token_state == TokenState.FRESH
 
         # Cached token should be used.
-        assert headers == {"authorization": "Bearer token"}
+        assert headers == {
+            "authorization": "Bearer token",
+            "x-allowed-locations": "0x0",
+        }
 
         # Next call should simulate 1 second passed. This will trigger the expiration
         # threshold.
@@ -1416,12 +1763,17 @@ class TestCredentials(object):
 
         assert not credentials.valid
         assert credentials.expired
+        assert credentials.token_state == TokenState.STALE
+
+        credentials.before_request(request, "POST", "https://example.com/api", headers)
+        assert credentials.token_state == TokenState.FRESH
 
         credentials.before_request(request, "POST", "https://example.com/api", headers)
 
         # New token should be retrieved.
         assert headers == {
-            "authorization": "Bearer {}".format(impersonation_response["accessToken"])
+            "authorization": "Bearer {}".format(impersonation_response["accessToken"]),
+            "x-allowed-locations": "0x0",
         }
 
     @pytest.mark.parametrize(
@@ -1481,10 +1833,23 @@ class TestCredentials(object):
 
         assert credentials.get_project_id(None) is None
 
-    def test_get_project_id_cloud_resource_manager_success(self):
+    @mock.patch(
+        "google.auth.metrics.token_request_access_token_impersonate",
+        return_value=IMPERSONATE_ACCESS_TOKEN_REQUEST_METRICS_HEADER_VALUE,
+    )
+    @mock.patch(
+        "google.auth.metrics.python_and_auth_lib_version",
+        return_value=LANG_LIBRARY_METRICS_HEADER_VALUE,
+    )
+    def test_get_project_id_cloud_resource_manager_success(
+        self, mock_metrics_header_value, mock_auth_lib_value
+    ):
         # STS token exchange request/response.
         token_response = self.SUCCESS_RESPONSE.copy()
-        token_headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        token_headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "x-goog-api-client": "gl-python/3.7 auth/1.1 google-byoid-sdk sa-impersonation/true config-lifetime/false",
+        }
         token_request_data = {
             "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
             "audience": self.AUDIENCE,
@@ -1506,6 +1871,8 @@ class TestCredentials(object):
             "Content-Type": "application/json",
             "x-goog-user-project": self.QUOTA_PROJECT_ID,
             "authorization": "Bearer {}".format(token_response["access_token"]),
+            "x-goog-api-client": IMPERSONATE_ACCESS_TOKEN_REQUEST_METRICS_HEADER_VALUE,
+            "x-allowed-locations": "0x0",
         }
         impersonation_request_data = {
             "delegates": None,
@@ -1559,6 +1926,7 @@ class TestCredentials(object):
                 "authorization": "Bearer {}".format(
                     impersonation_response["accessToken"]
                 ),
+                "x-allowed-locations": "0x0",
             },
         )
 
@@ -1569,9 +1937,18 @@ class TestCredentials(object):
         # No additional requests.
         assert len(request.call_args_list) == 3
 
-    def test_workforce_pool_get_project_id_cloud_resource_manager_success(self):
+    @mock.patch(
+        "google.auth.metrics.python_and_auth_lib_version",
+        return_value=LANG_LIBRARY_METRICS_HEADER_VALUE,
+    )
+    def test_workforce_pool_get_project_id_cloud_resource_manager_success(
+        self, mock_auth_lib_value
+    ):
         # STS token exchange request/response.
-        token_headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        token_headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "x-goog-api-client": "gl-python/3.7 auth/1.1 google-byoid-sdk sa-impersonation/false config-lifetime/false",
+        }
         token_request_data = {
             "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
             "audience": self.WORKFORCE_AUDIENCE,
@@ -1621,6 +1998,7 @@ class TestCredentials(object):
                 "authorization": "Bearer {}".format(
                     self.SUCCESS_RESPONSE["access_token"]
                 ),
+                "x-allowed-locations": "0x0",
             },
         )
 
@@ -1631,7 +2009,17 @@ class TestCredentials(object):
         # No additional requests.
         assert len(request.call_args_list) == 2
 
-    def test_refresh_impersonation_with_lifetime(self):
+    @mock.patch(
+        "google.auth.metrics.token_request_access_token_impersonate",
+        return_value=IMPERSONATE_ACCESS_TOKEN_REQUEST_METRICS_HEADER_VALUE,
+    )
+    @mock.patch(
+        "google.auth.metrics.python_and_auth_lib_version",
+        return_value=LANG_LIBRARY_METRICS_HEADER_VALUE,
+    )
+    def test_refresh_impersonation_with_lifetime(
+        self, mock_metrics_header_value, mock_auth_lib_value
+    ):
         # Simulate service account access token expires in 2800 seconds.
         expire_time = (
             _helpers.utcnow().replace(microsecond=0) + datetime.timedelta(seconds=2800)
@@ -1639,7 +2027,10 @@ class TestCredentials(object):
         expected_expiry = datetime.datetime.strptime(expire_time, "%Y-%m-%dT%H:%M:%SZ")
         # STS token exchange request/response.
         token_response = self.SUCCESS_RESPONSE.copy()
-        token_headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        token_headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "x-goog-api-client": "gl-python/3.7 auth/1.1 google-byoid-sdk sa-impersonation/true config-lifetime/true",
+        }
         token_request_data = {
             "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
             "audience": self.AUDIENCE,
@@ -1656,6 +2047,8 @@ class TestCredentials(object):
         impersonation_headers = {
             "Content-Type": "application/json",
             "authorization": "Bearer {}".format(token_response["access_token"]),
+            "x-goog-api-client": IMPERSONATE_ACCESS_TOKEN_REQUEST_METRICS_HEADER_VALUE,
+            "x-allowed-locations": "0x0",
         }
         impersonation_request_data = {
             "delegates": None,
@@ -1711,3 +2104,10 @@ class TestCredentials(object):
         assert project_id is None
         # Only 2 requests to STS and cloud resource manager should be sent.
         assert len(request.call_args_list) == 2
+
+
+def test_supplier_context():
+    context = external_account.SupplierContext("TestTokenType", "TestAudience")
+
+    assert context.subject_token_type == "TestTokenType"
+    assert context.audience == "TestAudience"

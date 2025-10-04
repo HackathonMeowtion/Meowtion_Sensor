@@ -30,7 +30,9 @@ from googlecloudsdk.core.resource import resource_projector
 
 
 LONGEST_METADATA_KEY_LENGTH = 26
+GSUTIL_LIMIT_BREAKING_LINE_LENGTH = 28
 METADATA_LINE_INDENT_LENGTH = 2
+GSUTIL_METADATA_LINE_INDENT = ' ' * 4
 METADATA_LINE_INDENT_STRING = ' ' * METADATA_LINE_INDENT_LENGTH
 
 # For transporting symlink info through an object's custom metadata.
@@ -39,6 +41,33 @@ SYMLINK_METADATA_KEY = 'goog-reserved-file-is-symlink'
 UNSUPPORTED_OBJECT_WARNING_FORMAT = (
     'Skipping item {} with unsupported object type: {}'
 )
+
+_LEFT_TAB_FOR_GSUTIL_BUCKET_METADATA_KEYS = {
+    'RPO': '\t\t\t\t',
+    'Labels': '\t\t\t\t',
+    'ACL': '\t\t\t\t',
+    'Autoclass': '\t\t\t',
+    'Location type': '\t\t\t',
+    'Metageneration': '\t\t\t',
+    'Time created': '\t\t\t',
+    'Time updated': '\t\t\t',
+    'Satisfies PZS': '\t\t\t',
+    'Storage class': '\t\t\t',
+    'Default ACL': '\t\t\t',
+    'Placement locations': '\t\t',
+    'Retention Policy': '\t\t',
+    'Location constraint': '\t\t',
+    'Versioning enabled': '\t\t',
+    'Logging configuration': '\t\t',
+    'Website configuration': '\t\t',
+    'Requester Pays enabled': '\t\t',
+    'Default KMS key': '\t\t',
+    'CORS configuration': ' \t\t',
+    'Lifecycle configuration': '\t',
+    'Default Event-Based Hold': '\t',
+    'Bucket Policy Only enabled': '\t',
+    'Public access prevention': '\t',
+}
 
 
 class UnsupportedObjectType(enum.Enum):
@@ -72,12 +101,23 @@ def configured_json_dumps(item):
   return json.dumps(item, indent=METADATA_LINE_INDENT_LENGTH)
 
 
+def get_formatted_string_from_datetime_object(datetime_object):
+  """Returns a formatted string from a datetime object."""
+  if datetime_object is None:
+    return None
+  if not isinstance(datetime_object, datetime.datetime):
+    raise ValueError(
+        'Expected a datetime object, but got a %s' % type(datetime_object)
+    )
+  return datetime_object.strftime('%Y-%m-%dT%H:%M:%S%z')
+
+
 def convert_to_json_parsable_type(value):
   """Converts values encountered in metadata to be JSON-parsable."""
   if isinstance(value, Exception):
     return str(value)
   if isinstance(value, datetime.datetime):
-    return value.strftime('%Y-%m-%dT%H:%M:%S%z')
+    return get_formatted_string_from_datetime_object(value)
   # datetime.datetime is an instance of datetime.date, but not the opposite.
   if isinstance(value, datetime.date):
     return value.strftime('%Y-%m-%d')
@@ -186,6 +226,52 @@ def get_padded_metadata_time_line(key_string, value_time):
   """Returns _get_padded_metadata_value_line with formatted time value."""
   formatted_time = get_formatted_timestamp_in_utc(value_time)
   return get_padded_metadata_key_value_line(key_string, formatted_time)
+
+
+def get_gsutil_object_metadata_json_section_string(
+    key_string,
+    value_to_convert_to_json,
+):
+  """Returns object metadata JSON(multiple lines) section in gsutil style."""
+  padded_key_string = (f'{GSUTIL_METADATA_LINE_INDENT}{key_string}:').ljust(
+      GSUTIL_LIMIT_BREAKING_LINE_LENGTH
+  )
+  json_string = textwrap.indent(
+      configured_json_dumps(value_to_convert_to_json),
+      prefix='',
+  )
+
+  return f'{padded_key_string}{json_string}'
+
+
+def get_gsutil_bucket_metadata_json_section_string(
+    key_string, value_to_convert_to_json
+):
+  """Returns bucket metadata JSON(multiple lines) section in gsutil style."""
+  spaces_left_of_value = _LEFT_TAB_FOR_GSUTIL_BUCKET_METADATA_KEYS[key_string]
+  json_string = textwrap.indent(
+      configured_json_dumps(value_to_convert_to_json),
+      prefix='\t  ',
+  )
+
+  return f'\t{key_string}:{spaces_left_of_value}\n{json_string}'
+
+
+def get_gsutil_padded_object_metadata_key_value_line(
+    key_string, value_string, indent=1
+):
+  """Returns object metadata line with correct padding in gsutil style."""
+  padded_key_string = (
+      f'{(GSUTIL_METADATA_LINE_INDENT * indent)}{key_string}:'
+  ).ljust(GSUTIL_LIMIT_BREAKING_LINE_LENGTH)
+
+  return f'{padded_key_string}{value_string}'
+
+
+def get_gsutil_padded_bucket_metadata_key_value_line(key_string, value_string):
+  """Returns bucket metadata line with correct padding in gsutil style."""
+  spaces_left_of_value = _LEFT_TAB_FOR_GSUTIL_BUCKET_METADATA_KEYS[key_string]
+  return f'\t{key_string}:{spaces_left_of_value}{value_string}'
 
 
 def should_preserve_falsy_metadata_value(value):

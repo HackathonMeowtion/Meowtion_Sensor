@@ -85,6 +85,17 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_LOCATIONS_HOSTGROUPS = (
+      'projects.locations.hostGroups',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/hostGroups/'
+              '{hostGroupsId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS_LOCATIONS_KMSCONFIGS = (
       'projects.locations.kmsConfigs',
       '{+name}',
@@ -125,6 +136,17 @@ class Collections(enum.Enum):
           '':
               'projects/{projectsId}/locations/{locationsId}/volumes/'
               '{volumesId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_VOLUMES_QUOTARULES = (
+      'projects.locations.volumes.quotaRules',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/volumes/'
+              '{volumesId}/quotaRules/{quotaRulesId}',
       },
       ['name'],
       True

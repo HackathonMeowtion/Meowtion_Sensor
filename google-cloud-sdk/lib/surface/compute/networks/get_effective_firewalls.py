@@ -27,6 +27,10 @@ from googlecloudsdk.command_lib.compute.networks import flags
 from googlecloudsdk.core import log
 
 
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(
+    base.ReleaseTrack.GA, base.ReleaseTrack.BETA, base.ReleaseTrack.ALPHA
+)
 class GetEffectiveFirewalls(base.DescribeCommand, base.ListCommand):
   """Get the effective firewalls of a Compute Engine network.
 
@@ -44,9 +48,11 @@ class GetEffectiveFirewalls(base.DescribeCommand, base.ListCommand):
   @staticmethod
   def Args(parser):
     flags.NetworkArgument().AddArgument(
-        parser, operation_type='get effective firewalls')
+        parser, operation_type='get effective firewalls'
+    )
     parser.display_info.AddFormat(
-        firewalls_utils.EFFECTIVE_FIREWALL_LIST_FORMAT)
+        firewalls_utils.EFFECTIVE_FIREWALL_LIST_FORMAT
+    )
     lister.AddBaseListerArgs(parser)
 
   def Run(self, args):
@@ -56,12 +62,15 @@ class GetEffectiveFirewalls(base.DescribeCommand, base.ListCommand):
     network_ref = flags.NetworkArgument().ResolveAsResource(
         args,
         holder.resources,
-        scope_lister=compute_flags.GetDefaultScopeLister(client))
+        scope_lister=compute_flags.GetDefaultScopeLister(client),
+    )
 
     request = client.messages.ComputeNetworksGetEffectiveFirewallsRequest(
-        **network_ref.AsDict())
-    responses = client.MakeRequests([(client.apitools_client.networks,
-                                      'GetEffectiveFirewalls', request)])
+        **network_ref.AsDict()
+    )
+    responses = client.MakeRequests(
+        [(client.apitools_client.networks, 'GetEffectiveFirewalls', request)]
+    )
     res = responses[0]
     org_firewall = []
     network_firewall = []
@@ -69,47 +78,69 @@ class GetEffectiveFirewalls(base.DescribeCommand, base.ListCommand):
 
     if hasattr(res, 'firewalls'):
       network_firewall = firewalls_utils.SortNetworkFirewallRules(
-          client, res.firewalls)
+          client, res.firewalls
+      )
 
     if hasattr(res, 'firewallPolicys') and res.firewallPolicys:
+      all_unsorted_firewall_policy = []
       for fp in res.firewallPolicys:
         firewall_policy_rule = firewalls_utils.SortFirewallPolicyRules(
-            client, fp.rules)
-        fp_response = (
-            client.messages
-            .NetworksGetEffectiveFirewallsResponseEffectiveFirewallPolicy(
-                name=fp.name, rules=firewall_policy_rule, type=fp.type))
-        all_firewall_policy.append(fp_response)
+            client, fp.rules
+        )
+        packet_mirroring_rule = firewalls_utils.SortFirewallPolicyRules(
+            client, fp.packetMirroringRules
+        )
+        fp_response = client.messages.NetworksGetEffectiveFirewallsResponseEffectiveFirewallPolicy(
+            name=fp.name,
+            rules=firewall_policy_rule,
+            packetMirroringRules=packet_mirroring_rule,
+            type=fp.type,
+            priority=fp.priority,
+        )
+
+        all_unsorted_firewall_policy.append(fp_response)
+      all_firewall_policy = firewalls_utils.SortFirewallPolicies(
+          client, all_unsorted_firewall_policy
+      )
     elif hasattr(res, 'organizationFirewalls'):
       for sp in res.organizationFirewalls:
         org_firewall_rule = firewalls_utils.SortOrgFirewallRules(
-            client, sp.rules)
+            client, sp.rules
+        )
         org_firewall.append(
-            client.messages
-            .NetworksGetEffectiveFirewallsResponseOrganizationFirewallPolicy(
-                id=sp.id, rules=org_firewall_rule))
+            client.messages.NetworksGetEffectiveFirewallsResponseOrganizationFirewallPolicy(
+                id=sp.id, rules=org_firewall_rule
+            )
+        )
 
     if args.IsSpecified('format') and args.format == 'json':
       if org_firewall:
         return client.messages.NetworksGetEffectiveFirewallsResponse(
             organizationFirewalls=org_firewall,
             firewalls=network_firewall,
-            firewallPolicys=all_firewall_policy)
+            firewallPolicys=all_firewall_policy,
+        )
       else:
         return client.messages.NetworksGetEffectiveFirewallsResponse(
-            firewalls=network_firewall, firewallPolicys=all_firewall_policy)
+            firewalls=network_firewall, firewallPolicys=all_firewall_policy
+        )
 
     result = []
     for fp in all_firewall_policy:
       result.extend(
           firewalls_utils.ConvertFirewallPolicyRulesToEffectiveFwRules(
-              client, fp, True))
+              client, fp
+          )
+      )
     for sp in org_firewall:
       result.extend(
-          firewalls_utils.ConvertOrgSecurityPolicyRulesToEffectiveFwRules(sp))
+          firewalls_utils.ConvertOrgSecurityPolicyRulesToEffectiveFwRules(sp)
+      )
     result.extend(
         firewalls_utils.ConvertNetworkFirewallRulesToEffectiveFwRules(
-            network_firewall))
+            network_firewall
+        )
+    )
     return result
 
   def Epilog(self, resources_were_displayed):
@@ -118,8 +149,7 @@ class GetEffectiveFirewalls(base.DescribeCommand, base.ListCommand):
 
 
 GetEffectiveFirewalls.detailed_help = {
-    'EXAMPLES':
-        """\
+    'EXAMPLES': """\
     To get the effective firewalls of network with name example-network, run:
 
       $ {command} example-network
@@ -133,6 +163,7 @@ GetEffectiveFirewalls.detailed_help = {
       $ {command} example-network --format="table(
         type,
         firewall_policy_name,
+        rule_type,
         priority,
         action,
         direction,

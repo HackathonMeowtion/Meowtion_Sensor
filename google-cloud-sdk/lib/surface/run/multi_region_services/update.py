@@ -14,6 +14,7 @@
 # limitations under the License.
 """Command for updating multi-region Services."""
 
+from googlecloudsdk.api_lib.run import k8s_object
 from googlecloudsdk.calliope import base
 from googlecloudsdk.calliope import exceptions as c_exceptions
 from googlecloudsdk.command_lib.run import config_changes
@@ -23,13 +24,13 @@ from googlecloudsdk.command_lib.run import platforms
 from surface.run.services import update
 
 
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.ReleaseTracks(base.ReleaseTrack.GA)
 class MultiRegionUpdate(update.Update):
-  """Update environment variables and other configuration settings in Multi-Region Services."""
+  """Update environment variables, add/remove regions, and other configuration settings in Multi-Region Services."""
 
   @classmethod
   def Args(cls, parser):
-    update.AlphaUpdate.Args(parser)
+    update.Update.Args(parser)
     flags.AddAddRegionsArg(parser)
     flags.AddRemoveRegionsArg(parser)
 
@@ -59,8 +60,18 @@ class MultiRegionUpdate(update.Update):
           super().input_flags + ', `--add-regions`, `remove-regions`',
           ignore_empty=False,
       )
-      ch2 = super()._GetBaseChanges(args, existing_service, ignore_empty=True)
-      return ch2 + changes
+    ch2 = super()._GetBaseChanges(args, existing_service, ignore_empty=True)
+    return ch2 + changes
+
+  def _GetMultiRegionRegions(self, changes, service):
+    if not service:
+      return None
+    modified = config_changes.WithChanges(service, changes)
+    annotation = (
+        modified.annotations.get(k8s_object.MULTI_REGION_REGIONS_ANNOTATION)
+        or None
+    )
+    return annotation.split(',') if annotation else None
 
   def Run(self, args):
     if platforms.GetPlatform() != platforms.PLATFORM_MANAGED:
@@ -68,4 +79,32 @@ class MultiRegionUpdate(update.Update):
           '--platform',
           'Multi-region Services are only supported on managed platform.',
       )
+    if flags.FlagIsExplicitlySet(args, 'region'):
+      raise c_exceptions.InvalidArgumentException(
+          '--region',
+          'Multi-region Services do not support the --region flag. Use'
+          ' --add-regions or --remove-regions instead.',
+      )
     return super().Run(args)
+
+
+@base.ReleaseTracks(base.ReleaseTrack.BETA)
+class MultiRegionBetaUpdate(MultiRegionUpdate):
+  """Update environment variables, add/remove regions, and other configuration settings in Multi-Region Services."""
+
+  @classmethod
+  def Args(cls, parser):
+    update.BetaUpdate.Args(parser)
+    flags.AddAddRegionsArg(parser)
+    flags.AddRemoveRegionsArg(parser)
+
+
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class MultiRegionAlphaUpdate(MultiRegionBetaUpdate):
+  """Update environment variables, add/remove regions, and other configuration settings in Multi-Region Services."""
+
+  @classmethod
+  def Args(cls, parser):
+    update.AlphaUpdate.Args(parser)
+    flags.AddAddRegionsArg(parser)
+    flags.AddRemoveRegionsArg(parser)

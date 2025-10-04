@@ -18,7 +18,7 @@ import enum
 
 
 BASE_URL = 'https://dataprocgdc.googleapis.com/v1alpha1/'
-DOCS_URL = ''
+DOCS_URL = 'https://cloud.google.com/dataproc/docs'
 
 
 class Collections(enum.Enum):
@@ -39,6 +39,13 @@ class Collections(enum.Enum):
               'projects/{projectsId}/locations/{locationsId}',
       },
       ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_CLUSTERS = (
+      'projects.locations.clusters',
+      'projects/{projectsId}/locations/{locationsId}/clusters/{clustersId}',
+      {},
+      ['projectsId', 'locationsId', 'clustersId'],
       True
   )
   PROJECTS_LOCATIONS_OPERATIONS = (

@@ -18,39 +18,37 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.container.fleet import resources
-from googlecloudsdk.command_lib.container.fleet.features import base
+from googlecloudsdk.command_lib.container.fleet.config_management import utils
+from googlecloudsdk.command_lib.container.fleet.features import base as features_base
+from googlecloudsdk.command_lib.container.fleet.membershipfeatures import base as mf_base
 
 
-class Unmanage(base.UpdateCommand):
-  """Remove the Config Management Feature Spec for the given membership.
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
+class Unmanage(mf_base.DeleteCommand):
+  """Remove the Config Management feature spec for the given membership.
 
-  Remove the Config Management Feature Spec for the given membership. The
+  Remove the Config Management feature spec for the given membership. The
   existing ConfigManagement resources in the clusters will become unmanaged.
 
   ## EXAMPLES
 
-  To remove the Config Management Feature spec for a membership, run:
+  To remove the Config Management feature spec for a membership, run:
 
     $ {command} --membership=MEMBERSHIP_NAME
   """
 
-  feature_name = 'configmanagement'
+  mf_name = utils.CONFIG_MANAGEMENT_FEATURE_NAME
 
   @classmethod
   def Args(cls, parser):
     resources.AddMembershipResourceArg(parser)
 
   def Run(self, args):
-    membership = base.ParseMembership(
+    membership = features_base.ParseMembership(
         args, prompt=True, autoselect=True, search=True
     )
 
-    # Setup a patch to set the MembershipSpec to the empty proto ("delete").
-    membership_key = membership
-    specs = {membership_key: self.messages.MembershipFeatureSpec()}
-    patch = self.messages.Feature(
-        membershipSpecs=self.hubclient.ToMembershipSpecs(specs)
-    )
-
-    self.Update(['membership_specs'], patch)
+    # Directly delete the MembershipFeature resource.
+    self.DeleteV2(membership)

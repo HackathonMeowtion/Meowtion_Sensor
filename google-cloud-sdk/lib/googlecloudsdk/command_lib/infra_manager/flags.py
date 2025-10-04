@@ -34,6 +34,16 @@ def AddLabelsFlag(parser, help_text):
   )
 
 
+def AddAnnotationsFlag(parser, help_text):
+  """Add --annotations flag."""
+  parser.add_argument(
+      '--annotations',
+      metavar='KEY=VALUE',
+      type=arg_parsers.ArgDict(),
+      help=help_text,
+  )
+
+
 def AddAsyncFlag(parser):
   """Add --async flag."""
   base.ASYNC_FLAG.AddToParser(parser)
@@ -117,7 +127,7 @@ Create a deployment from the "https://github.com/examples/repository.git" repo, 
 """
 
   local_source_help = """\
-Local storage path where config files are stored. When using this option, terraform config file referecnes outside this storage path is not supported.
+Local storage path where config files are stored. When using this option, Terraform config file references outside this storage path is not supported.
       e.g. `./path/to/blueprint`
 
 Examples:
@@ -371,3 +381,49 @@ def QuotaValidationEnum(quota_validation):
         .format(quota_validation, list(quota_validation_enum_dict))
     )
   return quota_validation_enum_dict[quota_validation]
+
+
+# TODO: b/433318303 - Remove `hidden` annotation to make dark site
+# commands public.
+def AddProviderSourceFlag(parser, hidden=True):
+  """Add --provider-source flag."""
+  parser.add_argument(
+      '--provider-source',
+      hidden=hidden,
+      help=(
+          'Input to control from where to fetch providers. Supported values are'
+          'PROVIDER_SOURCE_UNSPECIFIED, SERVICE_MAINTAINED'
+      ),
+      type=ProviderSourceEnum,
+  )
+
+
+def ProviderSourceEnum(provider_source):
+  """Checks if a provider config provided by user is valid and returns corresponding enum type.
+
+  Args:
+    provider_source: value for provider source.
+
+  Returns:
+    provider source enum
+
+  Raises:
+    ArgumentTypeError: If the value provided by user is not valid.
+  """
+  messages = configmanager_util.GetMessagesModule()
+  provider_source_enum_dict = {
+      'PROVIDER_SOURCE_UNSPECIFIED': (
+          messages.ProviderConfig.SourceTypeValueValuesEnum.PROVIDER_SOURCE_UNSPECIFIED
+      ),
+      'SERVICE_MAINTAINED': (
+          messages.ProviderConfig.SourceTypeValueValuesEnum.SERVICE_MAINTAINED
+      ),
+  }
+  if provider_source is None:
+    return
+  if provider_source not in provider_source_enum_dict:
+    raise arg_parsers.ArgumentTypeError(
+        "provider config does not support: '{0}', supported values are: {1}"
+        .format(provider_source, list(provider_source_enum_dict))
+    )
+  return provider_source_enum_dict[provider_source]

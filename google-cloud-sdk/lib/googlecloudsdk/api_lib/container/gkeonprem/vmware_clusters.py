@@ -20,7 +20,7 @@ from __future__ import unicode_literals
 
 from typing import Generator, Optional
 
-from apitools.base.py import encoding
+from apitools.base.py import exceptions as apitools_exceptions
 from apitools.base.py import list_pager
 from googlecloudsdk.api_lib.container.gkeonprem import client
 from googlecloudsdk.api_lib.container.gkeonprem import update_mask
@@ -54,7 +54,15 @@ class ClustersClient(client.ClientBase):
     dummy_request = messages.GkeonpremProjectsLocationsVmwareClustersQueryVersionConfigRequest(
         parent=parent,
     )
-    _ = self._service.QueryVersionConfig(dummy_request)
+    try:
+      _ = self._service.QueryVersionConfig(dummy_request)
+    except (
+        apitools_exceptions.HttpUnauthorizedError,
+        apitools_exceptions.HttpForbiddenError,
+    ):
+      # Ignore unauthorized or forbidden errors. This may happen during the
+      # support case when googler inspect customer's project via Google Admin.
+      pass
 
     # If location is not specified, and container_vmware/location is not set,
     # list clusters of all locations within a project.
@@ -207,18 +215,6 @@ class ClustersClient(client.ClientBase):
         'upgradeConfig_clusterName': self._user_cluster_name(args),
         'parent': self._location_ref(args).RelativeName(),
     }
-
-    # This is a workaround for the limitation in apitools with nested messages.
-    encoding.AddCustomJsonFieldMapping(
-        messages.GkeonpremProjectsLocationsVmwareClustersQueryVersionConfigRequest,
-        'createConfig_adminClusterMembership',
-        'createConfig.adminClusterMembership',
-    )
-    encoding.AddCustomJsonFieldMapping(
-        messages.GkeonpremProjectsLocationsVmwareClustersQueryVersionConfigRequest,
-        'upgradeConfig_clusterName',
-        'upgradeConfig.clusterName',
-    )
 
     req = messages.GkeonpremProjectsLocationsVmwareClustersQueryVersionConfigRequest(
         **kwargs

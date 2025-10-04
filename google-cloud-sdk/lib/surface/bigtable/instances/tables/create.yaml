@@ -30,19 +30,26 @@
 
       $ {command} my-table --instance=my-instance --column-families="my-family" --no-deletion-protection
 
-      To create a table `my-table` with automated backup policy (retention_period=72h, frequency=24h) enabled in instance `my-instance` with a column family `my-family`, run:
+      To create a table `my-table` with the default automated backup policy (retention_period=7d, frequency=1d) enabled in instance `my-instance` with a column family `my-family`, run:
 
       $ {command} my-table --instance=my-instance --column-families="my-family" --enable-automated-backup
+
+      To create a table `my-table` with a custom automated backup policy configured to retain backups for 30 days in instance `my-instance` with a column family `my-family`, run:
+
+      $ {command} my-table --instance=my-instance --column-families="my-family" --automated-backup-retention_period=30d
 
   request:
     collection: bigtableadmin.projects.instances.tables
     modify_request_hooks:
     - googlecloudsdk.api_lib.bigtable.tables:UpdateRequestWithInput
+    - googlecloudsdk.api_lib.bigtable.tables:HandleAutomatedBackupPolicyCreateTableArgs
+    - googlecloudsdk.api_lib.bigtable.tables:HandleRowKeySchemaCreateTableArgs
 
   arguments:
     resource:
       help_text: Cloud Bigtable table to create.
       spec: !REF googlecloudsdk.command_lib.bigtable.resources:table
+    additional_arguments_hook: googlecloudsdk.api_lib.bigtable.tables:AddAutomatedBackupPolicyCreateTableArgs
 
     params:
     - api_field: createTableRequest.table.columnFamilies
@@ -51,7 +58,7 @@
       type: "arg_list"
       help_text: |
         A double-quote (`"`) wrapped list of family name and corresponding garbage collection rules
-        concatenated by `:`, where the rules are optional. For example: \
+        concatenated by `:`, where the rules are optional. For example:
         `"family_1,family_2:maxage=5d&&maxversions=2,family_3:maxage=10d||maxversions=5"`
       processor: googlecloudsdk.api_lib.bigtable.tables:ParseColumnFamilies
     - api_field: createTableRequest.initialSplits
@@ -67,16 +74,52 @@
         [1 day, 7 days]. Acceptable units are days (d), hours (h), minutes (m), and seconds (s).
         Passing in a value for this option enables a change stream for the table. Examples: `5d` or
         `48h`.
-      processor: googlecloudsdk.api_lib.bigtable.tables:ConvertDurationToSeconds
+      processor: googlecloudsdk.api_lib.bigtable.tables:ParseChangeStreamRetentionPeriod
+    - api_field: createTableRequest.table.tieredStorageConfig.infrequentAccess.includeIfOlderThan
+      arg_name: tiered-storage-infrequent-access-older-than
+      release_tracks: [ALPHA, BETA]
+      help_text: |
+        The age at which data should be moved to infrequent access storage.
+
+        See `$ gcloud topic datetimes` for information on absolute duration formats.
+      processor: googlecloudsdk.api_lib.bigtable.tables:ParseTieredStorageConfigDuration
     - api_field: createTableRequest.table.deletionProtection
       arg_name: deletion-protection
       type: bool
       help_text: |
         Once specified, the table is deletion protected.
-    - api_field: createTableRequest.table.automatedBackupPolicy
-      arg_name: enable-automated-backup
-      action: store_true
+    - arg_name: row-key-schema-definition-file
+      required: false
       help_text: |
-        Once set, enables the default automated backup policy (retention_period=72h, frequency=24h)
-        for the table.
-      processor: googlecloudsdk.api_lib.bigtable.tables:EnableDefaultAutomatedBackupPolicy
+        The row key schema for the table. The schema is defined in a YAML or JSON file, equivalent
+        to the StructType protobuf message.
+
+        Example YAML:
+
+        ```yaml
+        encoding:
+          delimitedBytes:
+            delimiter: '#'
+        fields:
+        - fieldName: field1
+          type:
+            bytesType:
+              encoding:
+                raw: {}
+        - fieldName: field2
+          type:
+            bytesType:
+              encoding:
+                raw: {}
+        ```
+
+    - arg_name: row-key-schema-pre-encoded-bytes
+      type: bool
+      default: false
+      required: false
+      help_text: |
+        By default, Base64 encoding is applied to all binary fields in the YAML/JSON file (for
+        example, `encoding.delimitedBytes.delimiter`).
+
+        Use this to indicate that all binary fields are already encoded in the YAML/JSON file and
+        should not be encoded again.

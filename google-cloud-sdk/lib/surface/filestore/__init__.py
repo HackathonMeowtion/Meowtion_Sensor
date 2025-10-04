@@ -37,12 +37,16 @@ DETAILED_HELP = {
 }
 
 
+@base.UniverseCompatible
+@base.ReleaseTracks(
+    base.ReleaseTrack.ALPHA,
+    base.ReleaseTrack.BETA,
+    base.ReleaseTrack.GA,
+)
 class Filestore(base.Group):
   """Create and manipulate Filestore resources."""
   detailed_help = DETAILED_HELP
   category = base.STORAGE_CATEGORY
 
   def Filter(self, context, args):
-    # TODO(b/190533738):  Determine if command group works with project number
-    base.RequireProjectID(args)
     del context, args

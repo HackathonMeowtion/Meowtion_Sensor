@@ -27,6 +27,7 @@ from googlecloudsdk.command_lib.util import java
 
 
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
+@base.DefaultUniverseOnly
 class Start(base.Command):
   """Start a local datastore emulator.
 
@@ -84,7 +85,7 @@ To start a local datastore emulator, run:
     args.host_port.host = args.host_port.host or 'localhost'
     args.host_port.port = args.host_port.port or '8081'
 
-    java.RequireJavaInstalled(datastore_util.DATASTORE_TITLE, min_version=11)
+    java.RequireJavaInstalled(datastore_util.DATASTORE_TITLE, min_version=21)
     datastore_util.PrepareGCDDataDir(args)
     with datastore_util.StartGCDEmulator(args) as proc:
       datastore_util.WriteGCDEnvYaml(args)

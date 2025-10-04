@@ -57,7 +57,7 @@ class WorkstationsV1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (WorkstationsProjectsLocationsOperationsCancelRequest) input message
@@ -229,7 +229,7 @@ class WorkstationsV1(base_api.BaseApiClient):
     )
 
     def GenerateAccessToken(self, request, global_params=None):
-      r"""Returns a short-lived credential that can be used to send authenticated and authorized traffic to a workstation.
+      r"""Returns a short-lived credential that can be used to send authenticated and authorized traffic to a workstation. Once generated this token cannot be revoked and is good for the lifetime of the token.
 
       Args:
         request: (WorkstationsProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsGenerateAccessTokenRequest) input message
@@ -328,7 +328,7 @@ class WorkstationsV1(base_api.BaseApiClient):
         method_id='workstations.projects.locations.workstationClusters.workstationConfigs.workstations.list',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['pageSize', 'pageToken'],
+        query_params=['filter', 'pageSize', 'pageToken'],
         relative_path='v1/{+parent}/workstations',
         request_field='',
         request_type_name='WorkstationsProjectsLocationsWorkstationClustersWorkstationConfigsWorkstationsListRequest',
@@ -635,7 +635,7 @@ class WorkstationsV1(base_api.BaseApiClient):
         method_id='workstations.projects.locations.workstationClusters.workstationConfigs.list',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['pageSize', 'pageToken'],
+        query_params=['filter', 'pageSize', 'pageToken'],
         relative_path='v1/{+parent}/workstationConfigs',
         request_field='',
         request_type_name='WorkstationsProjectsLocationsWorkstationClustersWorkstationConfigsListRequest',
@@ -861,7 +861,7 @@ class WorkstationsV1(base_api.BaseApiClient):
         method_id='workstations.projects.locations.workstationClusters.list',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['pageSize', 'pageToken'],
+        query_params=['filter', 'pageSize', 'pageToken'],
         relative_path='v1/{+parent}/workstationClusters',
         request_field='',
         request_type_name='WorkstationsProjectsLocationsWorkstationClustersListRequest',
@@ -952,7 +952,7 @@ class WorkstationsV1(base_api.BaseApiClient):
         method_id='workstations.projects.locations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['extraLocationTypes', 'filter', 'pageSize', 'pageToken'],
         relative_path='v1/{+name}/locations',
         request_field='',
         request_type_name='WorkstationsProjectsLocationsListRequest',

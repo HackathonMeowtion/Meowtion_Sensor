@@ -153,6 +153,9 @@ class EdgenetworkProjectsLocationsListRequest(_messages.Message):
   r"""A EdgenetworkProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -163,10 +166,11 @@ class EdgenetworkProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class EdgenetworkProjectsLocationsOperationsCancelRequest(_messages.Message):
@@ -802,6 +806,9 @@ class Interconnect(_messages.Message):
   Enums:
     InterconnectTypeValueValuesEnum: Optional. Type of interconnect, which
       takes only the value 'DEDICATED' for now.
+    RemotePeeringNetworkTypeValueValuesEnum: Optional. The remote peering
+      network type of the interconnect. It is required when peering separation
+      is enabled.
 
   Messages:
     LabelsValue: Labels associated with this resource.
@@ -818,6 +825,8 @@ class Interconnect(_messages.Message):
     name: Required. The canonical resource name of the interconnect.
     physicalPorts: Output only. Physical ports (e.g., TenGigE0/0/0/1) that
       form the interconnect.
+    remotePeeringNetworkType: Optional. The remote peering network type of the
+      interconnect. It is required when peering separation is enabled.
     updateTime: Output only. The time when the subnet was last updated.
     uuid: Output only. Unique identifier for the link.
   """
@@ -832,6 +841,21 @@ class Interconnect(_messages.Message):
     """
     INTERCONNECT_TYPE_UNSPECIFIED = 0
     DEDICATED = 1
+
+  class RemotePeeringNetworkTypeValueValuesEnum(_messages.Enum):
+    r"""Optional. The remote peering network type of the interconnect. It is
+    required when peering separation is enabled.
+
+    Values:
+      REMOTE_PEERING_NETWORK_TYPE_UNSPECIFIED: Unspecified.
+      REMOTE_PEERING_NETWORK_TYPE_CUSTOMER_INTERNAL: Customer's trusted
+        internal network.
+      REMOTE_PEERING_NETWORK_TYPE_CUSTOMER_INTERNET: Customer's untrust
+        network that has internet access.
+    """
+    REMOTE_PEERING_NETWORK_TYPE_UNSPECIFIED = 0
+    REMOTE_PEERING_NETWORK_TYPE_CUSTOMER_INTERNAL = 1
+    REMOTE_PEERING_NETWORK_TYPE_CUSTOMER_INTERNET = 2
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
@@ -864,14 +888,18 @@ class Interconnect(_messages.Message):
   labels = _messages.MessageField('LabelsValue', 5)
   name = _messages.StringField(6)
   physicalPorts = _messages.StringField(7, repeated=True)
-  updateTime = _messages.StringField(8)
-  uuid = _messages.StringField(9)
+  remotePeeringNetworkType = _messages.EnumField('RemotePeeringNetworkTypeValueValuesEnum', 8)
+  updateTime = _messages.StringField(9)
+  uuid = _messages.StringField(10)
 
 
 class InterconnectAttachment(_messages.Message):
   r"""Message describing InterconnectAttachment object
 
   Enums:
+    PeeringTypeValueValuesEnum: Optional. The remote peering network type of
+      the underlying interconnect. It is required when peering separation is
+      enabled.
     StateValueValuesEnum: Output only. Current stage of the resource to the
       device by config push.
 
@@ -895,12 +923,29 @@ class InterconnectAttachment(_messages.Message):
     network: Optional. The canonical Network name in the form of
       `projects/{project}/locations/{location}/zones/{zone}/networks/{network}
       `.
+    peeringType: Optional. The remote peering network type of the underlying
+      interconnect. It is required when peering separation is enabled.
     state: Output only. Current stage of the resource to the device by config
       push.
     updateTime: Output only. The time when the interconnect attachment was
       last updated.
     vlanId: Required. VLAN id provided by user. Must be site-wise unique.
   """
+
+  class PeeringTypeValueValuesEnum(_messages.Enum):
+    r"""Optional. The remote peering network type of the underlying
+    interconnect. It is required when peering separation is enabled.
+
+    Values:
+      REMOTE_PEERING_NETWORK_TYPE_UNSPECIFIED: Unspecified.
+      REMOTE_PEERING_NETWORK_TYPE_CUSTOMER_INTERNAL: Customer's trusted
+        internal network.
+      REMOTE_PEERING_NETWORK_TYPE_CUSTOMER_INTERNET: Customer's untrust
+        network that has internet access.
+    """
+    REMOTE_PEERING_NETWORK_TYPE_UNSPECIFIED = 0
+    REMOTE_PEERING_NETWORK_TYPE_CUSTOMER_INTERNAL = 1
+    REMOTE_PEERING_NETWORK_TYPE_CUSTOMER_INTERNET = 2
 
   class StateValueValuesEnum(_messages.Enum):
     r"""Output only. Current stage of the resource to the device by config
@@ -952,9 +997,10 @@ class InterconnectAttachment(_messages.Message):
   mtu = _messages.IntegerField(5, variant=_messages.Variant.INT32)
   name = _messages.StringField(6)
   network = _messages.StringField(7)
-  state = _messages.EnumField('StateValueValuesEnum', 8)
-  updateTime = _messages.StringField(9)
-  vlanId = _messages.IntegerField(10, variant=_messages.Variant.INT32)
+  peeringType = _messages.EnumField('PeeringTypeValueValuesEnum', 8)
+  state = _messages.EnumField('StateValueValuesEnum', 9)
+  updateTime = _messages.StringField(10)
+  vlanId = _messages.IntegerField(11, variant=_messages.Variant.INT32)
 
 
 class InterconnectDiagnostics(_messages.Message):
@@ -1918,6 +1964,11 @@ class Subnet(_messages.Message):
   r"""Message describing Subnet object
 
   Enums:
+    BondingTypeValueValuesEnum: Optional. A bonding type in the subnet
+      creation specifies whether a VLAN being created will be present on
+      Bonded or Non-Bonded or Both port types. In addition, this flag is to be
+      used to set the specific network configuration which clusters can then
+      use for their workloads based on the bonding choice.
     StateValueValuesEnum: Output only. Current stage of the resource to the
       device by config push.
 
@@ -1925,6 +1976,11 @@ class Subnet(_messages.Message):
     LabelsValue: Labels associated with this resource.
 
   Fields:
+    bondingType: Optional. A bonding type in the subnet creation specifies
+      whether a VLAN being created will be present on Bonded or Non-Bonded or
+      Both port types. In addition, this flag is to be used to set the
+      specific network configuration which clusters can then use for their
+      workloads based on the bonding choice.
     createTime: Output only. The time when the subnet was created.
     description: Optional. A free-text description of the resource. Max length
       1024 characters.
@@ -1939,6 +1995,26 @@ class Subnet(_messages.Message):
     vlanId: Optional. VLAN id provided by user. If not specified we assign one
       automatically.
   """
+
+  class BondingTypeValueValuesEnum(_messages.Enum):
+    r"""Optional. A bonding type in the subnet creation specifies whether a
+    VLAN being created will be present on Bonded or Non-Bonded or Both port
+    types. In addition, this flag is to be used to set the specific network
+    configuration which clusters can then use for their workloads based on the
+    bonding choice.
+
+    Values:
+      BONDING_TYPE_UNSPECIFIED: Unspecified Bonding type will be unspecified
+        by default and if the user chooses to not specify a bonding type at
+        time of creating the VLAN. This will be treated as mixed bonding where
+        the VLAN will have both bonded and non-bonded connectivity to
+        machines.
+      BONDED: Multi homed.
+      NON_BONDED: Single homed.
+    """
+    BONDING_TYPE_UNSPECIFIED = 0
+    BONDED = 1
+    NON_BONDED = 2
 
   class StateValueValuesEnum(_messages.Enum):
     r"""Output only. Current stage of the resource to the device by config
@@ -1983,16 +2059,17 @@ class Subnet(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
-  createTime = _messages.StringField(1)
-  description = _messages.StringField(2)
-  ipv4Cidr = _messages.StringField(3, repeated=True)
-  ipv6Cidr = _messages.StringField(4, repeated=True)
-  labels = _messages.MessageField('LabelsValue', 5)
-  name = _messages.StringField(6)
-  network = _messages.StringField(7)
-  state = _messages.EnumField('StateValueValuesEnum', 8)
-  updateTime = _messages.StringField(9)
-  vlanId = _messages.IntegerField(10, variant=_messages.Variant.INT32)
+  bondingType = _messages.EnumField('BondingTypeValueValuesEnum', 1)
+  createTime = _messages.StringField(2)
+  description = _messages.StringField(3)
+  ipv4Cidr = _messages.StringField(4, repeated=True)
+  ipv6Cidr = _messages.StringField(5, repeated=True)
+  labels = _messages.MessageField('LabelsValue', 6)
+  name = _messages.StringField(7)
+  network = _messages.StringField(8)
+  state = _messages.EnumField('StateValueValuesEnum', 9)
+  updateTime = _messages.StringField(10)
+  vlanId = _messages.IntegerField(11, variant=_messages.Variant.INT32)
 
 
 class SubnetStatus(_messages.Message):

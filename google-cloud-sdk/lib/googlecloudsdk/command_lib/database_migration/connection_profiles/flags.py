@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from googlecloudsdk.api_lib.database_migration import api_util
+from googlecloudsdk.calliope import arg_parsers
 
 
 def AddNoAsyncFlag(parser):
@@ -37,21 +38,33 @@ def AddDisplayNameFlag(parser):
   parser.add_argument('--display-name', help=help_text)
 
 
-def AddDatabaseParamsFlags(parser, require_password=True):
+def AddDatabaseParamsFlags(parser, require_password=True,
+                           with_database_name=False):
   """Adds the database connectivity flags to the given parser."""
-
   database_params_group = parser.add_group(required=False, mutex=False)
   AddUsernameFlag(database_params_group, required=True)
   AddPasswordFlagGroup(database_params_group, required=require_password)
   AddHostFlag(database_params_group, required=True)
   AddPortFlag(database_params_group, required=True)
+  if with_database_name:
+    AddDatabaseFlag(database_params_group, required=False)
 
 
-def AddUsernameFlag(parser, required=False):
-  """Adds a --username flag to the given parser."""
+def AddDatabaseFlag(parser, required=False):
+  """Adds a --database flag to the given parser."""
   help_text = """\
-    Username that Database Migration Service uses to connect to the
-    database. Database Migration Service encrypts the value when storing it.
+    The name of the specific database within the host.
+  """
+  parser.add_argument('--database', help=help_text, required=required)
+
+
+def AddUsernameFlag(parser, required=False, help_text=None):
+  """Adds a --username flag to the given parser."""
+  if not help_text:
+    help_text = """\
+        Username that Database Migration Service uses to connect to
+        the database. Database Migration Service encrypts the value when storing
+        it.
     """
   parser.add_argument('--username', help=help_text, required=required)
 
@@ -92,9 +105,21 @@ def AddPortFlag(parser, required=False):
   parser.add_argument('--port', help=help_text, required=required, type=int)
 
 
+def AddDbmPortFlag(parser):
+  """Adds --dbm-port flag to the given parser."""
+  help_text = """\
+    The Database Mirroring (DBM) port.
+  """
+  parser.add_argument(
+      '--dbm-port', help=help_text, required=False, type=int, hidden=True
+  )
+
+
 def AddSslConfigGroup(parser, release_track):
   """Adds ssl server only & server client config group to the given parser."""
   ssl_config = parser.add_group()
+  if release_track == release_track.GA:
+    AddSslTypeFlag(ssl_config, hidden=False, choices=None)
   AddCaCertificateFlag(ssl_config, True)
   client_cert = ssl_config.add_group()
   AddPrivateKeyFlag(client_cert, required=True)
@@ -110,11 +135,53 @@ def AddSslServerOnlyConfigGroup(parser):
   AddCaCertificateFlag(ssl_config, True)
 
 
+def AddSslServerOnlyOrRequiredConfigGroup(parser):
+  """Adds ssl server only & required config group to the given parser."""
+  ssl_config = parser.add_group()
+  AddSslTypeFlag(
+      ssl_config, hidden=False, choices=['SERVER_ONLY', 'REQUIRED', 'NONE']
+  )
+  AddCaCertificateFlag(ssl_config)
+
+
+def AddSslFlags(parser):
+  """Adds a --ssl-flags flag to the given parser."""
+  help_text = """\
+    Comma-separated list of SSL flags used for establishing SSL connection to
+    the database. Use an equals sign to separate the flag name and value.
+    Example: `--ssl-flags ssl_mode=enable,server_certificate_hostname=server.com`.
+  """
+  parser.add_argument(
+      '--ssl-flags',
+      type=arg_parsers.ArgDict(),
+      metavar='FLAG=VALUE',
+      help=help_text)
+
+
+def AddSslTypeFlag(parser, hidden=False, choices=None):
+  """Adds --ssl-type flag to the given parser."""
+  help_text = """\
+    The type of SSL configuration.
+  """
+  if not choices:
+    choices = ['SERVER_ONLY', 'SERVER_CLIENT', 'REQUIRED', 'NONE']
+  parser.add_argument(
+      '--ssl-type',
+      help=help_text,
+      choices=choices,
+      hidden=hidden,
+  )
+
+
 def AddCaCertificateFlag(parser, required=False):
   """Adds --ca-certificate flag to the given parser."""
   help_text = """\
     x509 PEM-encoded certificate of the CA that signed the database
-    server's certificate. Database Migration Service will use this certificate to verify
+    server's certificate. The value for this flag needs to
+    be the content of the certificate file, not the path to the file.
+    For example, on a Linux machine you can use command substitution:
+    <code>--ca-certificate=$(</path/to/certificate_file.pem)</code>.
+    Database Migration Service will use this certificate to verify
     it's connecting to the correct host. Database Migration Service encrypts the
     value when storing it.
   """
@@ -125,7 +192,10 @@ def AddCertificateFlag(parser, required=False):
   """Adds --certificate flag to the given parser."""
   help_text = """\
     x509 PEM-encoded certificate that will be used by the replica to
-    authenticate against the database server.
+    authenticate against the database server. The value for this flag needs to
+    be the content of the certificate file, not the path to the file.
+    For example, on a Linux machine you can use command substitution:
+    <code>--ca-certificate=$(</path/to/certificate_file.pem)</code>.
   """
   parser.add_argument('--certificate', help=help_text, required=required)
 
@@ -134,8 +204,11 @@ def AddClientCertificateFlag(parser, required=False):
   """Adds --client-certificate flag to the given parser."""
   help_text = """\
     x509 PEM-encoded certificate that will be used by the replica to
-    authenticate against the database server. Database Migration Service
-    encrypts the value when storing it.
+    authenticate against the database server.  The value for this flag needs to
+    be the content of the certificate file, not the path to the file.
+    For example, on a Linux machine you can use command substitution:
+    <code>--ca-certificate=$(</path/to/certificate_file.pem)</code>.
+    Database Migration Service encrypts the value when storing it.
   """
   parser.add_argument('--client-certificate', help=help_text, required=required)
 
@@ -144,8 +217,11 @@ def AddPrivateKeyFlag(parser, required=False):
   """Adds --private-key flag to the given parser."""
   help_text = """\
     Unencrypted PKCS#1 or PKCS#8 PEM-encoded private key associated with
-    the Client Certificate. Database Migration Service encrypts the value when
-    storing it.
+    the Client Certificate.  The value for this flag needs to
+    be the content of the certificate file, not the path to the file.
+    For example, on a Linux machine you can use command substitution:
+    <code>--ca-certificate=$(</path/to/certificate_file.pem)</code>.
+    Database Migration Service encrypts the value when storing it.
   """
   parser.add_argument('--private-key', help=help_text, required=required)
 
@@ -184,3 +260,10 @@ def AddProviderFlag(parser):
   """
   choices = ['RDS', 'CLOUDSQL']
   parser.add_argument('--provider', help=help_text, choices=choices)
+
+
+def AddRoleFlag(parser):
+  """Adds --role flag to the given parser."""
+  help_text = 'The role of the connection profile.'
+  choices = ['SOURCE', 'DESTINATION']
+  parser.add_argument('--role', help=help_text, choices=choices)

@@ -116,3 +116,27 @@ RUN_JOB = _SERVERLESS_PREFIX + 'run_job'
 
 # Time to wait for an operation
 WAIT_OPERATION = _SERVERLESS_PREFIX + 'wait_operation'
+
+# Time to create a worker pool
+CREATE_WORKER_POOL = _SERVERLESS_PREFIX + 'create_worker_pool'
+
+# Time to update a worker pool
+UPDATE_WORKER_POOL = _SERVERLESS_PREFIX + 'update_worker_pool'
+
+# Time to delete a worker pool
+DELETE_WORKER_POOL = _SERVERLESS_PREFIX + 'delete_worker_pool'
+
+# Time to list worker pools
+LIST_WORKER_POOLS = _SERVERLESS_PREFIX + 'list_worker_pools'
+
+# Time to get a worker pool
+GET_WORKER_POOL = _SERVERLESS_PREFIX + 'get_worker_pool'
+
+# Time to delete a worker pool revision
+DELETE_WORKER_POOL_REVISION = _SERVERLESS_PREFIX + 'delete_worker_pool_revision'
+
+# Time to list worker pool revisions
+LIST_WORKER_POOL_REVISIONS = _SERVERLESS_PREFIX + 'list_worker_pool_revisions'
+
+# Time to get a worker pool revision
+GET_WORKER_POOL_REVISION = _SERVERLESS_PREFIX + 'get_worker_pool_revision'

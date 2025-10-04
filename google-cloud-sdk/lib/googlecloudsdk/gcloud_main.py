@@ -136,17 +136,13 @@ def CreateCLI(surfaces, translator=None):
       base.ReleaseTrack.BETA,
       os.path.join(pkg_root, 'surface', 'beta'),
       component='beta')
+  loader.AddReleaseTrack(
+      base.ReleaseTrack.PREVIEW,
+      os.path.join(pkg_root, 'surface', 'preview'),
+      component='preview')
 
   for dot_path, dir_path in surfaces:
     loader.AddModule(dot_path, dir_path, component=None)
-
-  # TODO(b/128465608): Remove cloned ml-engine commands and PreRunHook after a
-  # suitable deprecation period.
-  # Clone 'ai-platform' surface into 'ml-engine' for backward compatibility.
-  loader.AddModule('ml_engine', os.path.join(pkg_root, 'surface',
-                                             'ai_platform'))
-  loader.RegisterPreRunHook(
-      _IssueAIPlatformAliasWarning, include_commands=r'gcloud\..*ml-engine\..*')
 
   # Clone 'container/hub' surface into 'container/fleet'
   # for backward compatibility.
@@ -161,6 +157,13 @@ def CreateCLI(surfaces, translator=None):
       os.path.join(pkg_root, 'surface', 'bigtable', 'instances', 'tables'),
   )
 
+  # TODO(b/399010656): Clone 'migration' surface into 'compute/migration'.
+  # TODO(b/433619731): Remove cloned migration commands after a suitable
+  # deprecation period.
+  loader.AddModule(
+      'compute.migration', os.path.join(pkg_root, 'surface', 'migration', 'vms')
+  )
+
   # Check for updates on shutdown but not for any of the updater commands.
   # Skip update checks for 'gcloud version' command as it does that manually.
   exclude_commands = r'gcloud\.components\..*|gcloud\.version'
@@ -168,13 +171,6 @@ def CreateCLI(surfaces, translator=None):
   loader.RegisterPostRunHook(SurveyPromptCheck)
   generated_cli = loader.Generate()
   return generated_cli
-
-
-def _IssueAIPlatformAliasWarning(command_path=None):
-  del command_path  # Unused in _IssueTestWarning
-  log.warning(
-      'The `gcloud ml-engine` commands have been renamed and will soon be '
-      'removed. Please use `gcloud ai-platform` instead.')
 
 
 @crash_handling.CrashManager

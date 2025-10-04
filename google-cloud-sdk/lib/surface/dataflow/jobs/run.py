@@ -76,12 +76,38 @@ def _CommonArgs(parser):
       help=('Additional experiments to pass to the job. These experiments are '
             'appended to any experiments already set by the template.'))
 
+  parser.add_argument(
+      '--additional-user-labels',
+      metavar='ADDITIONAL_USER_LABELS',
+      type=arg_parsers.ArgDict(),
+      action=arg_parsers.UpdateAction,
+      help=(
+          'Additional user labels to pass to the job. Example: '
+          '--additional-user-labels=\'key1=value1,key2=value2\''
+      ),
+  )
+
   # TODO(b/139889563): Mark as required when default region is removed
   parser.add_argument(
       '--region',
       metavar='REGION_ID',
       help=('Region ID of the job\'s regional endpoint. ' +
             dataflow_util.DEFAULT_REGION_MESSAGE))
+
+  streaming_update_args = parser.add_argument_group()
+  streaming_update_args.add_argument(
+      '--update',
+      help='Set this to true for streaming update jobs.',
+      action=arg_parsers.StoreTrueFalseAction,
+      required=True,
+  )
+  streaming_update_args.add_argument(
+      '--transform-name-mappings',
+      metavar='TRANSFORM_NAME_MAPPINGS',
+      type=arg_parsers.ArgDict(),
+      action=arg_parsers.UpdateAction,
+      help='Transform name mappings for the streaming update job.',
+  )
 
 
 def _CommonRun(args):
@@ -106,18 +132,24 @@ def _CommonRun(args):
       worker_machine_type=args.worker_machine_type,
       staging_location=args.staging_location,
       kms_key_name=args.dataflow_kms_key,
-      disable_public_ips=properties.VALUES.dataflow.disable_public_ips.GetBool(
-      ),
+      disable_public_ips=properties.VALUES.dataflow.disable_public_ips.GetBool(),
       parameters=args.parameters,
       service_account_email=args.service_account_email,
       worker_region=args.worker_region,
       worker_zone=args.worker_zone,
-      enable_streaming_engine=properties.VALUES.dataflow.enable_streaming_engine
-      .GetBool(),
-      additional_experiments=args.additional_experiments)
-  return apis.Templates.Create(arguments)
+      enable_streaming_engine=properties.VALUES.dataflow.enable_streaming_engine.GetBool(),
+      streaming_update=args.update,
+      transform_name_mappings=args.transform_name_mappings,
+      additional_experiments=args.additional_experiments,
+      additional_user_labels=args.additional_user_labels,
+  )
+  if args.update:
+    return apis.Templates.LaunchDynamicTemplate(arguments)
+  else:
+    return apis.Templates.Create(arguments)
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Run(base.Command):
   """Runs a job from the specified path."""
@@ -130,6 +162,7 @@ class Run(base.Command):
     return _CommonRun(args)
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.BETA)
 class RunBeta(Run):
   """Runs a job from the specified path."""

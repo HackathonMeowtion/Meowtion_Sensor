@@ -36,6 +36,7 @@ $ {command} my-cluster --location=us-west1 --description=testcluster
 
 
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.GA)
+@base.DefaultUniverseOnly
 class Update(base.UpdateCommand):
   """Update an Attached cluster."""
 
@@ -49,9 +50,10 @@ class Update(base.UpdateCommand):
     flags.AddAnnotations(parser)
     flags.AddValidateOnly(parser, 'update of the cluster')
     flags.AddLogging(parser, True)
-    flags.AddMonitoringConfig(parser)
+    flags.AddMonitoringConfig(parser, False, True)
     flags.AddBinauthzEvaluationMode(parser)
     flags.AddAdminGroupsForUpdate(parser)
+    flags.AddWorkloadVulnerabilityScanning(parser)
 
     attached_flags.AddAdminUsersForUpdate(parser)
     attached_flags.AddPlatformVersion(parser, required=False)

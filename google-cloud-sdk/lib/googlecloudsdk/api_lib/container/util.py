@@ -33,6 +33,7 @@ from googlecloudsdk.core import exceptions as core_exceptions
 from googlecloudsdk.core import log
 from googlecloudsdk.core import properties
 from googlecloudsdk.core import yaml
+from googlecloudsdk.core.credentials import store as c_store
 from googlecloudsdk.core.resource import resource_printer
 from googlecloudsdk.core.updater import update_manager
 from googlecloudsdk.core.util import files as file_utils
@@ -48,7 +49,8 @@ CLUSTERS_FORMAT = """
         nodePools[0].config.machineType,
         currentNodeVersion:label=NODE_VERSION,
         firstof(currentNodeCount,initialNodeCount):label=NUM_NODES,
-        status
+        status,
+        ipAllocationPolicy.stackType.yesno(no='IPV4'):label=STACK_TYPE
     )
 """
 
@@ -87,7 +89,7 @@ WARN_NODE_VERSION_WITH_AUTOUPGRADE_ENABLED = (
 WARN_BETA_APIS_ENABLED = (
     ' Kubernetes Beta APIs are not stable, it is advised to use them with'
     ' caution. Please read carefully about limitations and associated risks at'
-    'https://cloud.google.com//kubernetes-engine/docs/how-to/use-beta-apis '
+    ' https://cloud.google.com//kubernetes-engine/docs/how-to/use-beta-apis '
 )
 
 INVALIID_SURGE_UPGRADE_SETTINGS = (
@@ -112,19 +114,51 @@ NC_CPU_CFS_QUOTA = 'cpuCFSQuota'
 NC_CPU_CFS_QUOTA_PERIOD = 'cpuCFSQuotaPeriod'
 NC_POD_PIDS_LIMIT = 'podPidsLimit'
 NC_KUBELET_READONLY_PORT = 'insecureKubeletReadonlyPortEnabled'
+NC_ALLOWED_UNSAFE_SYSCTLS = 'allowedUnsafeSysctls'
+NC_CONTAINER_LOG_MAX_SIZE = 'containerLogMaxSize'
+NC_CONTAINER_LOG_MAX_FILES = 'containerLogMaxFiles'
+NC_IMAGE_GC_HIGH_THRESHOLD_PERCENT = 'imageGcHighThresholdPercent'
+NC_IMAGE_GC_LOW_THRESHOLD_PERCENT = 'imageGcLowThresholdPercent'
+NC_IMAGE_MINIMUM_GC_AGE = 'imageMinimumGcAge'
+NC_IMAGE_MAXIMUM_GC_AGE = 'imageMaximumGcAge'
+NC_NODE_SWAP_SIZE_GIB = 'nodeSwapSizeGib'
+NC_MAX_PARALLEL_IMAGE_PULLS = 'maxParallelImagePulls'
 NC_LINUX_CONFIG = 'linuxConfig'
 NC_SYSCTL = 'sysctl'
 NC_CGROUP_MODE = 'cgroupMode'
+NC_TRANSPARENT_HUGEPAGE_ENABLED = 'transparentHugepageEnabled'
+NC_TRANSPARENT_HUGEPAGE_DEFRAG = 'transparentHugepageDefrag'
 NC_HUGEPAGE = 'hugepageConfig'
 NC_HUGEPAGE_2M = 'hugepage_size2m'
 NC_HUGEPAGE_1G = 'hugepage_size1g'
+NC_MEMORY_MANAGER = 'memoryManager'
+NC_MEMORY_MANAGER_POLICY = 'policy'
+NC_TOPOLOGY_MANAGER = 'topologyManager'
+NC_TOPOLOGY_MANAGER_POLICY = 'policy'
+NC_TOPOLOGY_MANAGER_SCOPE = 'scope'
+NC_SINGLE_PROCESS_OOMKILL = 'singleProcessOomKill'
 
+NC_SWAP_CONFIG = 'swapConfig'
+NC_SWAP_CONFIG_ENABLED = 'enabled'
+NC_SWAP_CONFIG_ENCRYPTION_CONFIG = 'encryptionConfig'
+NC_SWAP_CONFIG_ENCRYPTION_CONFIG_DISABLED = 'disabled'
+NC_SWAP_CONFIG_BOOT_DISK_PROFILE = 'bootDiskProfile'
+NC_SWAP_CONFIG_EPHEMERAL_LOCAL_SSD_PROFILE = 'ephemeralLocalSsdProfile'
+NC_SWAP_CONFIG_DEDICATED_LOCAL_SSD_PROFILE = 'dedicatedLocalSsdProfile'
+NC_SWAP_CONFIG_SWAP_SIZE_GIB = 'swapSizeGib'
+NC_SWAP_CONFIG_SWAP_SIZE_PERCENT = 'swapSizePercent'
+NC_SWAP_CONFIG_DISK_COUNT = 'diskCount'
 NC_CC_PRIVATE_CR_CONFIG = 'privateRegistryAccessConfig'
 NC_CC_PRIVATE_CR_CONFIG_ENABLED = 'enabled'
 NC_CC_CA_CONFIG = 'certificateAuthorityDomainConfig'
 NC_CC_GCP_SECRET_CONFIG = 'gcpSecretManagerCertificateConfig'
 NC_CC_GCP_SECRET_CONFIG_SECRET_URI = 'secretURI'
 NC_CC_PRIVATE_CR_FQDNS_CONFIG = 'fqdns'
+
+NC_EVICTION_SOFT = 'evictionSoft'
+NC_EVICTION_SOFT_GRACE_PERIOD = 'evictionSoftGracePeriod'
+NC_EVICTION_MINIMUM_RECLAIM = 'evictionMinimumReclaim'
+NC_EVICTION_MAX_POD_GRACE_PERIOD_SECONDS = 'evictionMaxPodGracePeriodSeconds'
 
 
 class Error(core_exceptions.Error):
@@ -144,6 +178,23 @@ client [kubectl]. To install, run
 """
 
 _KUBECTL_COMPONENT_NAME = 'kubectl'
+
+CGROUPV1_DEPRECATED_MSG = (
+    'CGROUP_MODE_V1 is deprecated. Please use CGROUP_MODE_V2 instead. '
+    'For additional details, please refer to'
+    ' https://cloud.google.com/kubernetes-engine/docs/how-to/migrate-cgroupv2'
+)
+
+CGROUPV1_NODEPOOLS_MSG = (
+    'Node pool {0} is running cgroupv1 which is deprecated. Please use'
+    ' cgroupv2 instead. For additional details, please refer to'
+    ' https://cloud.google.com/kubernetes-engine/docs/how-to/migrate-cgroupv2'
+)
+
+CGROUPV1_CHECKING_FAILURE_MSG = (
+    'Problem checking cgroup mode of node pools:\n\n{}\n\n'
+    'Please make sure the node pools are running cgroupv2`.\n'
+)
 
 
 def _KubectlInstalledAsComponent():
@@ -228,7 +279,37 @@ def _GetClusterEndpoint(
     use_dns_endpoint,
 ):
   """Get the cluster endpoint suitable for writing to kubeconfig."""
-  if use_dns_endpoint:
+  if (
+      # TODO(b/365115169)
+      cluster.controlPlaneEndpointsConfig is not None
+      and cluster.controlPlaneEndpointsConfig.ipEndpointsConfig is not None
+      and not cluster.controlPlaneEndpointsConfig.ipEndpointsConfig.enabled
+  ) and (use_internal_ip or cross_connect_subnetwork or use_private_fqdn):
+    raise IPEndpointsIsDisabledError(cluster)
+
+  if (
+      use_dns_endpoint
+      and cluster.controlPlaneEndpointsConfig is not None
+      and cluster.controlPlaneEndpointsConfig.dnsEndpointConfig is not None
+      and not (
+          cluster.controlPlaneEndpointsConfig.dnsEndpointConfig.allowExternalTraffic
+      )
+  ):
+    if not _IsGoogleInternalUser():
+      raise AllowExternalTrafficIsDisabledError(cluster)
+    else:
+      log.warning(
+          'Retrieving DNS endpoint for internal user even though'
+          ' allowExternalTraffic is disabled. Remove the --dns-endpoint flag if'
+          ' this is not intended.'
+      )
+
+  if use_dns_endpoint or (
+      # TODO(b/365115169)
+      cluster.controlPlaneEndpointsConfig is not None
+      and cluster.controlPlaneEndpointsConfig.ipEndpointsConfig is not None
+      and not cluster.controlPlaneEndpointsConfig.ipEndpointsConfig.enabled
+  ):
     return _GetDNSEndpoint(cluster)
 
   if use_internal_ip or cross_connect_subnetwork or use_private_fqdn:
@@ -253,10 +334,11 @@ def _GetDNSEndpoint(cluster):
   """Extract dns endpoint for the kubeconfig from the ControlPlaneEndpointConfig."""
   if (
       not cluster.controlPlaneEndpointsConfig
-      or not cluster.controlPlaneEndpointsConfig.enhancedIngress
+      or not cluster.controlPlaneEndpointsConfig.dnsEndpointConfig
+      or not cluster.controlPlaneEndpointsConfig.dnsEndpointConfig.endpoint
   ):
     raise MissingDnsEndpointConfigError(cluster)
-  dns_endpoint = cluster.controlPlaneEndpointsConfig.enhancedIngress.endpoint
+  dns_endpoint = cluster.controlPlaneEndpointsConfig.dnsEndpointConfig.endpoint
   if dns_endpoint is None:
     raise MissingDNSEndpointError(cluster)
   return dns_endpoint
@@ -350,6 +432,25 @@ class AutoprovisioningConfigError(Error):
     )
 
 
+class IPEndpointsIsDisabledError(Error):
+  """Error for attempting to persist internal IP for cluster with ipEndpoint access disabled."""
+
+  def __init__(self, cluster):
+    super(IPEndpointsIsDisabledError, self).__init__(
+        'IP access is disabled for cluster {0}.'.format(cluster.name)
+    )
+
+
+class AllowExternalTrafficIsDisabledError(Error):
+  """Error for attempting to persist DNS endpoint for cluster with allowExternalTraffic disabled."""
+
+  def __init__(self, cluster):
+    super(AllowExternalTrafficIsDisabledError, self).__init__(
+        'controlPlaneEndpointsConfig.dnsEndpointConfig.allowExternalTraffic is'
+        ' disabled for cluster {0}.'.format(cluster.name)
+    )
+
+
 class ClusterConfig(object):
   """Encapsulates persistent cluster config data.
 
@@ -373,6 +474,9 @@ class ClusterConfig(object):
     self.client_cert_data = kwargs.get('client_cert_data')
     self.client_key_data = kwargs.get('client_key_data')
     self.dns_endpoint = kwargs.get('dns_endpoint')
+    self.impersonate_service_account = kwargs.get('impersonate_service_account')
+    self.kubecontext_override = kwargs.get('kubecontext_override')
+    self.use_iam_token = kwargs.get('use_iam_token')
 
   def __str__(self):
     return 'ClusterConfig{project:%s, cluster:%s, zone:%s}' % (
@@ -393,7 +497,10 @@ class ClusterConfig(object):
   @property
   def kube_context(self):
     return ClusterConfig.KubeContext(
-        self.cluster_name, self.zone_id, self.project_id
+        self.cluster_name,
+        self.zone_id,
+        self.project_id,
+        self.kubecontext_override,
     )
 
   @property
@@ -412,6 +519,10 @@ class ClusterConfig(object):
   def has_dns_endpoint(self):
     return self.dns_endpoint
 
+  @property
+  def has_impersonate_service_account(self):
+    return self.impersonate_service_account
+
   @staticmethod
   def UseGCPAuthProvider():
     return not properties.VALUES.container.use_client_certificate.GetBool()
@@ -426,7 +537,9 @@ class ClusterConfig(object):
     )
 
   @staticmethod
-  def KubeContext(cluster_name, zone_id, project_id):
+  def KubeContext(cluster_name, zone_id, project_id, override=None):
+    if override:
+      return override
     return ClusterConfig.KUBECONTEXT_FORMAT.format(
         project=project_id, cluster=cluster_name, zone=zone_id
     )
@@ -447,6 +560,13 @@ class ClusterConfig(object):
     if self.has_dns_endpoint:
       user_kwargs['dns_endpoint'] = self.dns_endpoint
       cluster_kwargs['has_dns_endpoint'] = True
+    if self.has_impersonate_service_account:
+      user_kwargs['impersonate_service_account'] = (
+          self.impersonate_service_account
+      )
+    if self.use_iam_token:
+      user_kwargs['iam_token'] = _GenerateIamToken()
+
     # Use same key for context, cluster, and user
     kubeconfig.contexts[context] = kconfig.Context(context, context, context)
     kubeconfig.users[context] = kconfig.User(context, **user_kwargs)
@@ -471,6 +591,9 @@ class ClusterConfig(object):
       cross_connect_subnetwork=None,
       use_private_fqdn=None,
       use_dns_endpoint=None,
+      impersonate_service_account=None,
+      kubecontext_override=None,
+      use_iam_token=False,
   ):
     """Saves config data for the given cluster.
 
@@ -486,9 +609,15 @@ class ClusterConfig(object):
         endpoint to persist (optional)
       use_private_fqdn: whether to persist the private fqdn.
       use_dns_endpoint: whether to generate dns endpoint address.
+      impersonate_service_account: the service account to impersonate when
+        connecting to the cluster.
+      kubecontext_override: the path to the kubeconfig file to write to.
+      use_iam_token: whether to generate and persist an IAM token in the
+        kubeconfig file.
 
     Returns:
       ClusterConfig of the persisted data.
+
     Raises:
       Error: if cluster has no endpoint (will be the case for first few
         seconds while cluster is PROVISIONING).
@@ -505,8 +634,15 @@ class ClusterConfig(object):
         'zone_id': cluster.zone,
         'project_id': project_id,
         'server': 'https://' + endpoint,
+        'kubecontext_override': kubecontext_override,
+        'use_iam_token': use_iam_token,
     }
-    if use_dns_endpoint:
+    if use_dns_endpoint or (
+        # TODO(b/365115169)
+        cluster.controlPlaneEndpointsConfig is not None
+        and cluster.controlPlaneEndpointsConfig.ipEndpointsConfig is not None
+        and not cluster.controlPlaneEndpointsConfig.ipEndpointsConfig.enabled
+    ):
       kwargs['dns_endpoint'] = endpoint
     auth = cluster.masterAuth
     if auth and auth.clusterCaCertificate:
@@ -522,19 +658,22 @@ class ClusterConfig(object):
       if auth.clientCertificate and auth.clientKey:
         kwargs['client_key_data'] = auth.clientKey
         kwargs['client_cert_data'] = auth.clientCertificate
+    if impersonate_service_account:
+      kwargs['impersonate_service_account'] = impersonate_service_account
 
     c_config = cls(**kwargs)
     c_config.GenKubeconfig()
     return c_config
 
   @classmethod
-  def Load(cls, cluster_name, zone_id, project_id):
+  def Load(cls, cluster_name, zone_id, project_id, kubecontext_override):
     """Load and verify config for given cluster.
 
     Args:
       cluster_name: name of cluster to load config for.
       zone_id: compute zone the cluster is running in.
       project_id: project in which the cluster is running.
+      kubecontext_override: the path to the kubeconfig file to read from.
 
     Returns:
       ClusterConfig for the cluster, or None if config data is missing or
@@ -548,7 +687,9 @@ class ClusterConfig(object):
         project_id,
     )
     k = kconfig.Kubeconfig.Default()
-    key = cls.KubeContext(cluster_name, zone_id, project_id)
+    key = cls.KubeContext(
+        cluster_name, zone_id, project_id, kubecontext_override
+    )
     cluster = k.clusters.get(key) and k.clusters[key].get('cluster')
     user = k.users.get(key) and k.users[key].get('user')
     context = k.contexts.get(key) and k.contexts[key].get('context')
@@ -606,13 +747,15 @@ class ClusterConfig(object):
     return cls(**kwargs)
 
   @classmethod
-  def Purge(cls, cluster_name, zone_id, project_id):
+  def Purge(cls, cluster_name, zone_id, project_id, kubecontext_override):
     config_dir = cls.GetConfigDir(cluster_name, zone_id, project_id)
     if os.path.exists(config_dir):
       file_utils.RmTree(config_dir)
     # purge from kubeconfig
     kubeconfig = kconfig.Kubeconfig.Default()
-    kubeconfig.Clear(cls.KubeContext(cluster_name, zone_id, project_id))
+    kubeconfig.Clear(
+        cls.KubeContext(cluster_name, zone_id, project_id, kubecontext_override)
+    )
     kubeconfig.SaveToFile()
     log.debug('Purged cluster config from %s', config_dir)
 
@@ -645,6 +788,30 @@ def CalculateMaxNodeNumberByPodRange(cluster_ipv4_cidr):
   if pod_range_ips < pod_range_ips_per_node:
     return -1
   return int(pod_range_ips / pod_range_ips_per_node)
+
+
+def LoadEvictionMapConfig(parent_name, opts, msg_type, field_spec):
+  """Loads eviction map configuration.
+
+  Args:
+    parent_name: The parent name of the eviction map configuration.
+    opts: The eviction map configuration contents.
+    msg_type: The message type of the eviction map configuration.
+    field_spec: The field spec of the eviction map configuration.
+
+  Returns:
+    The eviction map configuration message.
+  """
+
+  map_opts = opts.get(parent_name)
+  if map_opts:
+    _CheckNodeConfigFields(parent_name, map_opts, field_spec)
+    msg_instance = msg_type()
+    for key in field_spec:
+      if key in map_opts:
+        setattr(msg_instance, key, map_opts[key])
+    return msg_instance
+  return None
 
 
 def LoadSystemConfigFromYAML(
@@ -685,6 +852,22 @@ def LoadSystemConfigFromYAML(
         NC_CPU_CFS_QUOTA_PERIOD: str,
         NC_POD_PIDS_LIMIT: int,
         NC_KUBELET_READONLY_PORT: bool,
+        NC_ALLOWED_UNSAFE_SYSCTLS: list,
+        NC_CONTAINER_LOG_MAX_SIZE: str,
+        NC_CONTAINER_LOG_MAX_FILES: int,
+        NC_IMAGE_GC_HIGH_THRESHOLD_PERCENT: int,
+        NC_IMAGE_GC_LOW_THRESHOLD_PERCENT: int,
+        NC_IMAGE_MINIMUM_GC_AGE: str,
+        NC_IMAGE_MAXIMUM_GC_AGE: str,
+        NC_TOPOLOGY_MANAGER: dict,
+        NC_MEMORY_MANAGER: dict,
+        NC_SINGLE_PROCESS_OOMKILL: bool,
+        NC_NODE_SWAP_SIZE_GIB: int,
+        NC_MAX_PARALLEL_IMAGE_PULLS: int,
+        NC_EVICTION_SOFT: dict,
+        NC_EVICTION_SOFT_GRACE_PERIOD: dict,
+        NC_EVICTION_MINIMUM_RECLAIM: dict,
+        NC_EVICTION_MAX_POD_GRACE_PERIOD_SECONDS: int,
     }
     _CheckNodeConfigFields(
         NC_KUBELET_CONFIG, kubelet_config_opts, config_fields
@@ -705,6 +888,93 @@ def LoadSystemConfigFromYAML(
     node_config.kubeletConfig.insecureKubeletReadonlyPortEnabled = (
         kubelet_config_opts.get(NC_KUBELET_READONLY_PORT)
     )
+    node_config.kubeletConfig.containerLogMaxSize = kubelet_config_opts.get(
+        NC_CONTAINER_LOG_MAX_SIZE
+    )
+    node_config.kubeletConfig.containerLogMaxFiles = kubelet_config_opts.get(
+        NC_CONTAINER_LOG_MAX_FILES
+    )
+    node_config.kubeletConfig.imageGcLowThresholdPercent = (
+        kubelet_config_opts.get(NC_IMAGE_GC_LOW_THRESHOLD_PERCENT)
+    )
+    node_config.kubeletConfig.imageGcHighThresholdPercent = (
+        kubelet_config_opts.get(NC_IMAGE_GC_HIGH_THRESHOLD_PERCENT)
+    )
+    node_config.kubeletConfig.imageMinimumGcAge = kubelet_config_opts.get(
+        NC_IMAGE_MINIMUM_GC_AGE
+    )
+    node_config.kubeletConfig.imageMaximumGcAge = kubelet_config_opts.get(
+        NC_IMAGE_MAXIMUM_GC_AGE
+    )
+    node_config.kubeletConfig.singleProcessOomKill = kubelet_config_opts.get(
+        NC_SINGLE_PROCESS_OOMKILL
+    )
+    node_config.kubeletConfig.nodeSwapSizeGib = kubelet_config_opts.get(
+        NC_NODE_SWAP_SIZE_GIB
+    )
+    node_config.kubeletConfig.maxParallelImagePulls = kubelet_config_opts.get(
+        NC_MAX_PARALLEL_IMAGE_PULLS
+    )
+
+    # Populate eviction fields
+    eviction_map_string_fields = {
+        'memoryAvailable': str,
+        'nodefsAvailable': str,
+        'nodefsInodesFree': str,
+        'imagefsAvailable': str,
+        'imagefsInodesFree': str,
+        'pidAvailable': str,
+    }
+
+    node_config.kubeletConfig.evictionSoft = LoadEvictionMapConfig(
+        NC_EVICTION_SOFT,
+        kubelet_config_opts,
+        messages.EvictionSignals,
+        eviction_map_string_fields,
+    )
+    node_config.kubeletConfig.evictionSoftGracePeriod = LoadEvictionMapConfig(
+        NC_EVICTION_SOFT_GRACE_PERIOD,
+        kubelet_config_opts,
+        messages.EvictionGracePeriod,
+        eviction_map_string_fields,
+    )
+    node_config.kubeletConfig.evictionMinimumReclaim = LoadEvictionMapConfig(
+        NC_EVICTION_MINIMUM_RECLAIM,
+        kubelet_config_opts,
+        messages.EvictionMinimumReclaim,
+        eviction_map_string_fields,
+    )
+    node_config.kubeletConfig.evictionMaxPodGracePeriodSeconds = (
+        kubelet_config_opts.get(NC_EVICTION_MAX_POD_GRACE_PERIOD_SECONDS)
+    )
+
+    # Parse memory manager.
+    memory_manager_opts = kubelet_config_opts.get(NC_MEMORY_MANAGER)
+    if memory_manager_opts:
+      node_config.kubeletConfig.memoryManager = messages.MemoryManager()
+      memory_manager_policy = memory_manager_opts.get(NC_MEMORY_MANAGER_POLICY)
+      if memory_manager_policy:
+        node_config.kubeletConfig.memoryManager.policy = memory_manager_policy
+    # Parse topology manager.
+    topology_manager_opts = kubelet_config_opts.get(NC_TOPOLOGY_MANAGER)
+    if topology_manager_opts:
+      node_config.kubeletConfig.topologyManager = messages.TopologyManager()
+      topology_manager_policy = topology_manager_opts.get(
+          NC_TOPOLOGY_MANAGER_POLICY
+      )
+      if topology_manager_policy:
+        node_config.kubeletConfig.topologyManager.policy = (
+            topology_manager_policy
+        )
+      topology_manager_scope = topology_manager_opts.get(
+          NC_TOPOLOGY_MANAGER_SCOPE
+      )
+      if topology_manager_scope:
+        node_config.kubeletConfig.topologyManager.scope = topology_manager_scope
+
+    sysctls = kubelet_config_opts.get(NC_ALLOWED_UNSAFE_SYSCTLS)
+    if sysctls:
+      node_config.kubeletConfig.allowedUnsafeSysctls = sysctls
 
   ro_in_cfg = (
       node_config is not None
@@ -726,6 +996,9 @@ def LoadSystemConfigFromYAML(
             NC_SYSCTL: dict,
             NC_CGROUP_MODE: str,
             NC_HUGEPAGE: dict,
+            NC_TRANSPARENT_HUGEPAGE_ENABLED: str,
+            NC_TRANSPARENT_HUGEPAGE_DEFRAG: str,
+            NC_SWAP_CONFIG: dict,
         },
     )
     node_config.linuxNodeConfig = messages.LinuxNodeConfig()
@@ -767,9 +1040,92 @@ def LoadSystemConfigFromYAML(
                 cgroup_mode_opts
             )
         )
+      # Warning if setting cgroup mode to V1.
+      elif cgroup_mode_opts == 'CGROUP_MODE_V1':
+        log.warning(CGROUPV1_DEPRECATED_MSG)
+
       node_config.linuxNodeConfig.cgroupMode = cgroup_mode_mapping[
           cgroup_mode_opts
       ]
+
+    transparent_hugepage_enabled_opts = linux_config_opts.get(
+        NC_TRANSPARENT_HUGEPAGE_ENABLED
+    )
+    if transparent_hugepage_enabled_opts:
+      transparent_hugepage_enabled_mapping = {
+          'TRANSPARENT_HUGEPAGE_ENABLED_UNSPECIFIED': (
+              messages.LinuxNodeConfig.TransparentHugepageEnabledValueValuesEnum.TRANSPARENT_HUGEPAGE_ENABLED_UNSPECIFIED
+          ),
+          'TRANSPARENT_HUGEPAGE_ENABLED_ALWAYS': (
+              messages.LinuxNodeConfig.TransparentHugepageEnabledValueValuesEnum.TRANSPARENT_HUGEPAGE_ENABLED_ALWAYS
+          ),
+          'TRANSPARENT_HUGEPAGE_ENABLED_MADVISE': (
+              messages.LinuxNodeConfig.TransparentHugepageEnabledValueValuesEnum.TRANSPARENT_HUGEPAGE_ENABLED_MADVISE
+          ),
+          'TRANSPARENT_HUGEPAGE_ENABLED_NEVER': (
+              messages.LinuxNodeConfig.TransparentHugepageEnabledValueValuesEnum.TRANSPARENT_HUGEPAGE_ENABLED_NEVER
+          ),
+      }
+      if (
+          transparent_hugepage_enabled_opts
+          not in transparent_hugepage_enabled_mapping
+      ):
+        raise NodeConfigError(
+            'transparent hugepage enabled "{0}" is not supported, the supported'
+            ' options are TRANSPARENT_HUGEPAGE_ENABLED_ALWAYS,'
+            ' TRANSPARENT_HUGEPAGE_ENABLED_MADVISE,'
+            ' TRANSPARENT_HUGEPAGE_ENABLED_NEVER,'
+            ' TRANSPARENT_HUGEPAGE_ENABLED_UNSPECIFIED'.format(
+                transparent_hugepage_enabled_opts
+            )
+        )
+      node_config.linuxNodeConfig.transparentHugepageEnabled = (
+          transparent_hugepage_enabled_mapping[
+              transparent_hugepage_enabled_opts
+          ]
+      )
+    transparent_hugepage_defrag_opts = linux_config_opts.get(
+        NC_TRANSPARENT_HUGEPAGE_DEFRAG
+    )
+    if transparent_hugepage_defrag_opts:
+      transparent_hugepage_defrag_mapping = {
+          'TRANSPARENT_HUGEPAGE_DEFRAG_UNSPECIFIED': (
+              messages.LinuxNodeConfig.TransparentHugepageDefragValueValuesEnum.TRANSPARENT_HUGEPAGE_DEFRAG_UNSPECIFIED
+          ),
+          'TRANSPARENT_HUGEPAGE_DEFRAG_ALWAYS': (
+              messages.LinuxNodeConfig.TransparentHugepageDefragValueValuesEnum.TRANSPARENT_HUGEPAGE_DEFRAG_ALWAYS
+          ),
+          'TRANSPARENT_HUGEPAGE_DEFRAG_DEFER': (
+              messages.LinuxNodeConfig.TransparentHugepageDefragValueValuesEnum.TRANSPARENT_HUGEPAGE_DEFRAG_DEFER
+          ),
+          'TRANSPARENT_HUGEPAGE_DEFRAG_DEFER_WITH_MADVISE': (
+              messages.LinuxNodeConfig.TransparentHugepageDefragValueValuesEnum.TRANSPARENT_HUGEPAGE_DEFRAG_DEFER_WITH_MADVISE
+          ),
+          'TRANSPARENT_HUGEPAGE_DEFRAG_MADVISE': (
+              messages.LinuxNodeConfig.TransparentHugepageDefragValueValuesEnum.TRANSPARENT_HUGEPAGE_DEFRAG_MADVISE
+          ),
+          'TRANSPARENT_HUGEPAGE_DEFRAG_NEVER': (
+              messages.LinuxNodeConfig.TransparentHugepageDefragValueValuesEnum.TRANSPARENT_HUGEPAGE_DEFRAG_NEVER
+          ),
+      }
+      if (
+          transparent_hugepage_defrag_opts
+          not in transparent_hugepage_defrag_mapping
+      ):
+        raise NodeConfigError(
+            'transparent hugepage defrag "{0}" is not supported, the supported'
+            ' options are TRANSPARENT_HUGEPAGE_DEFRAG_ALWAYS,'
+            ' TRANSPARENT_HUGEPAGE_DEFRAG_DEFER,'
+            ' TRANSPARENT_HUGEPAGE_DEFRAG_DEFER_WITH_MADVISE,'
+            ' TRANSPARENT_HUGEPAGE_DEFRAG_MADVISE,'
+            ' TRANSPARENT_HUGEPAGE_DEFRAG_NEVER,'
+            ' TRANSPARENT_HUGEPAGE_DEFRAG_UNSPECIFIED'.format(
+                transparent_hugepage_defrag_opts
+            )
+        )
+      node_config.linuxNodeConfig.transparentHugepageDefrag = (
+          transparent_hugepage_defrag_mapping[transparent_hugepage_defrag_opts]
+      )
     # Parse hugepages.
     hugepage_opts = linux_config_opts.get(NC_HUGEPAGE)
     if hugepage_opts:
@@ -780,6 +1136,124 @@ def LoadSystemConfigFromYAML(
       hugepage_size1g = hugepage_opts.get(NC_HUGEPAGE_1G)
       if hugepage_size1g:
         node_config.linuxNodeConfig.hugepages.hugepageSize1g = hugepage_size1g
+    # Parse swap config.
+    if swap_config_opts := linux_config_opts.get(NC_SWAP_CONFIG):
+      node_config.linuxNodeConfig.swapConfig = messages.SwapConfig()
+      _CheckNodeConfigFields(
+          NC_SWAP_CONFIG,
+          swap_config_opts,
+          {
+              NC_SWAP_CONFIG_ENABLED: bool,
+              NC_SWAP_CONFIG_ENCRYPTION_CONFIG: dict,
+              NC_SWAP_CONFIG_BOOT_DISK_PROFILE: dict,
+              NC_SWAP_CONFIG_EPHEMERAL_LOCAL_SSD_PROFILE: dict,
+              NC_SWAP_CONFIG_DEDICATED_LOCAL_SSD_PROFILE: dict,
+          },
+      )
+      enabled = swap_config_opts.get(NC_SWAP_CONFIG_ENABLED)
+      if enabled is not None:
+        node_config.linuxNodeConfig.swapConfig.enabled = enabled
+      encryption_config_opts = swap_config_opts.get(
+          NC_SWAP_CONFIG_ENCRYPTION_CONFIG
+      )
+      if encryption_config_opts:
+        node_config.linuxNodeConfig.swapConfig.encryptionConfig = (
+            messages.EncryptionConfig()
+        )
+        _CheckNodeConfigFields(
+            NC_SWAP_CONFIG_ENCRYPTION_CONFIG,
+            encryption_config_opts,
+            {NC_SWAP_CONFIG_ENCRYPTION_CONFIG_DISABLED: bool},
+        )
+        disabled = encryption_config_opts.get(
+            NC_SWAP_CONFIG_ENCRYPTION_CONFIG_DISABLED
+        )
+        if disabled is not None:
+          node_config.linuxNodeConfig.swapConfig.encryptionConfig.disabled = (
+              disabled
+          )
+      boot_disk_profile_opts = swap_config_opts.get(
+          NC_SWAP_CONFIG_BOOT_DISK_PROFILE
+      )
+      if boot_disk_profile_opts:
+        boot_disk_profile_msg = messages.BootDiskProfile()
+        _CheckNodeConfigFields(
+            NC_SWAP_CONFIG_BOOT_DISK_PROFILE,
+            boot_disk_profile_opts,
+            {
+                NC_SWAP_CONFIG_SWAP_SIZE_GIB: int,
+                NC_SWAP_CONFIG_SWAP_SIZE_PERCENT: int,
+            },
+        )
+        swap_size_gib = boot_disk_profile_opts.get(NC_SWAP_CONFIG_SWAP_SIZE_GIB)
+        if swap_size_gib is not None:
+          boot_disk_profile_msg.swapSizeGib = swap_size_gib
+        swap_size_percent = boot_disk_profile_opts.get(
+            NC_SWAP_CONFIG_SWAP_SIZE_PERCENT
+        )
+        if swap_size_percent is not None:
+          boot_disk_profile_msg.swapSizePercent = swap_size_percent
+        node_config.linuxNodeConfig.swapConfig.bootDiskProfile = (
+            boot_disk_profile_msg
+        )
+      ephemeral_local_ssd_profile_opts = swap_config_opts.get(
+          NC_SWAP_CONFIG_EPHEMERAL_LOCAL_SSD_PROFILE
+      )
+      if ephemeral_local_ssd_profile_opts:
+        ephemeral_local_ssd_profile_msg = (
+            messages.EphemeralLocalSsdProfile()
+        )
+        _CheckNodeConfigFields(
+            NC_SWAP_CONFIG_EPHEMERAL_LOCAL_SSD_PROFILE,
+            ephemeral_local_ssd_profile_opts,
+            {
+                NC_SWAP_CONFIG_SWAP_SIZE_GIB: int,
+                NC_SWAP_CONFIG_SWAP_SIZE_PERCENT: int,
+            },
+        )
+        swap_size_gib = ephemeral_local_ssd_profile_opts.get(
+            NC_SWAP_CONFIG_SWAP_SIZE_GIB
+        )
+        if swap_size_gib is not None:
+          ephemeral_local_ssd_profile_msg.swapSizeGib = swap_size_gib
+        swap_size_percent = ephemeral_local_ssd_profile_opts.get(
+            NC_SWAP_CONFIG_SWAP_SIZE_PERCENT
+        )
+        if swap_size_percent is not None:
+          ephemeral_local_ssd_profile_msg.swapSizePercent = swap_size_percent
+        node_config.linuxNodeConfig.swapConfig.ephemeralLocalSsdProfile = (
+            ephemeral_local_ssd_profile_msg
+        )
+      dedicated_local_ssd_profile_opts = swap_config_opts.get(
+          NC_SWAP_CONFIG_DEDICATED_LOCAL_SSD_PROFILE
+      )
+      if dedicated_local_ssd_profile_opts:
+        dedicated_local_ssd_profile_msg = (
+            messages.DedicatedLocalSsdProfile()
+        )
+        _CheckNodeConfigFields(
+            NC_SWAP_CONFIG_DEDICATED_LOCAL_SSD_PROFILE,
+            dedicated_local_ssd_profile_opts,
+            {NC_SWAP_CONFIG_DISK_COUNT: int},
+        )
+        disk_count = dedicated_local_ssd_profile_opts.get(
+            NC_SWAP_CONFIG_DISK_COUNT
+        )
+        if disk_count is not None:
+          dedicated_local_ssd_profile_msg.diskCount = disk_count
+        node_config.linuxNodeConfig.swapConfig.dedicatedLocalSsdProfile = (
+            dedicated_local_ssd_profile_msg
+        )
+
+
+def CheckForCgroupModeV1(pool):
+  """Check cgroup mode of the node pool and print a warning if it is V1."""
+  if hasattr(pool, 'config') and hasattr(pool.config, 'effectiveCgroupMode'):
+    if (
+        pool.config.effectiveCgroupMode
+        and pool.config.effectiveCgroupMode.name == 'EFFECTIVE_CGROUP_MODE_V1'
+    ):
+      log.warning(CGROUPV1_NODEPOOLS_MSG.format(pool.name))
 
 
 def LoadContainerdConfigFromYAML(containerd_config, content, messages):
@@ -1313,3 +1787,39 @@ def LoadSoleTenantConfigFromNodeAffinityYaml(affinities_yaml, messages):
     node_affinities.append(node_affinity)
 
   return messages.SoleTenantConfig(nodeAffinities=node_affinities)
+
+
+def _IsGoogleInternalUser():
+  """Returns a bool noting if User is a Googler."""
+  email = properties.VALUES.core.account.Get()
+  return email is not None and email.lower().endswith('@google.com')
+
+
+def _GenerateIamToken() -> str:
+  """Generates an IAM token for the current user, if the user is a Googler.
+
+  The IAM token consists of three concatenated strings:
+  1. The `iam-` prefix.
+  2. The token associated with the credentials from the active account.
+  3. The authorization token stored in the auth.authorization_token_file
+     property.
+
+  Returns:
+    The IAM token for the current user.
+
+  Raises:
+    Error: if the user is not a Googler.
+  """
+  if not _IsGoogleInternalUser():
+    raise Error(
+        'IAM tokens are only supported for internal users. Please use a '
+        'Google account.'
+    )
+
+  cred = c_store.Load(use_google_auth=True, allow_account_impersonation=False)
+  auth_token_file = properties.VALUES.auth.authorization_token_file.Get(
+      required=True
+  )
+  auth_token = file_utils.ReadFileContents(auth_token_file)
+
+  return f'iam-{cred.token}^{auth_token}'

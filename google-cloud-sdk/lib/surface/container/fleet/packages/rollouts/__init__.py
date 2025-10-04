@@ -17,9 +17,27 @@
 from googlecloudsdk.calliope import base
 
 
-@base.Hidden
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.GA)
 class Rollouts(base.Group):
+  """Commands for managing Rollouts.
+
+  See `gcloud container fleet packages rollouts --help` for help.
+  """
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.BETA)
+class RolloutsBeta(Rollouts):
+  """Commands for managing Rollouts.
+
+  See `gcloud beta container fleet packages rollouts --help` for help.
+  """
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class RolloutsAlpha(Rollouts):
   """Commands for managing Rollouts.
 
   See `gcloud alpha container fleet packages rollouts --help` for help.

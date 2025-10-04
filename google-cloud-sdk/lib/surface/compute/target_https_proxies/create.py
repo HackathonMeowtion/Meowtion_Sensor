@@ -63,9 +63,6 @@ def _DetailedHelp():
 def _Args(
     parser,
     traffic_director_security=False,
-    certificate_map=False,
-    server_tls_policy_enabled=False,
-    tls_early_data_enabled=False,
     list_format=None,
 ):
   """Add the target https proxies command line flags to the parser."""
@@ -78,28 +75,25 @@ def _Args(
 
   parser.display_info.AddCacheUpdater(flags.TargetHttpsProxiesCompleter)
   target_proxies_utils.AddQuicOverrideCreateArgs(parser)
-  if tls_early_data_enabled:
-    target_proxies_utils.AddTlsEarlyDataCreateArgs(parser)
+  target_proxies_utils.AddTlsEarlyDataCreateArgs(parser)
 
   if traffic_director_security:
     flags.AddProxyBind(parser, False)
 
   target_proxies_utils.AddHttpKeepAliveTimeoutSec(parser)
 
-  if server_tls_policy_enabled:
-    ns_resource_args.GetServerTlsPolicyResourceArg(
-        'to attach', name='server-tls-policy', region_fallthrough=True
-    ).AddToParser(parser)
+  ns_resource_args.GetServerTlsPolicyResourceArg(
+      'to attach', name='server-tls-policy', region_fallthrough=True
+  ).AddToParser(parser)
 
-  if certificate_map:
-    cm_resource_args.AddCertificateMapResourceArg(
-        parser,
-        'to attach',
-        name='certificate-map',
-        positional=False,
-        required=False,
-        with_location=False,
-    )
+  cm_resource_args.AddCertificateMapResourceArg(
+      parser,
+      'to attach',
+      name='certificate-map',
+      positional=False,
+      required=False,
+      with_location=False,
+  )
 
 
 def _Run(
@@ -109,7 +103,6 @@ def _Run(
     url_map_ref,
     ssl_certificates,
     ssl_policy_ref,
-    tls_early_data_enabled,
     traffic_director_security,
     certificate_map_ref,
     server_tls_policy_ref,
@@ -142,7 +135,7 @@ def _Run(
     quic_enum = client.messages.TargetHttpsProxy.QuicOverrideValueValuesEnum
     target_https_proxy.quicOverride = quic_enum(args.quic_override)
 
-  if tls_early_data_enabled and args.tls_early_data:
+  if args.tls_early_data:
     tls_early_data_enum = (
         client.messages.TargetHttpsProxy.TlsEarlyDataValueValuesEnum
     )
@@ -174,13 +167,11 @@ def _Run(
 
 
 @base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.UniverseCompatible
 class Create(base.CreateCommand):
   """Create a target HTTPS proxy."""
 
   _traffic_director_security = False
-  _certificate_map = True
-  _server_tls_policy_enabled = False
-  _tls_early_data_enabled = False
   _list_format = flags.DEFAULT_LIST_FORMAT
 
   SSL_CERTIFICATES_ARG = None
@@ -230,9 +221,6 @@ class Create(base.CreateCommand):
     _Args(
         parser,
         traffic_director_security=cls._traffic_director_security,
-        certificate_map=cls._certificate_map,
-        server_tls_policy_enabled=cls._server_tls_policy_enabled,
-        tls_early_data_enabled=cls._tls_early_data_enabled,
         list_format=cls._list_format,
     )
 
@@ -263,13 +251,10 @@ class Create(base.CreateCommand):
       )
     else:
       ssl_policy_ref = None
-    certificate_map_ref = (
-        args.CONCEPTS.certificate_map.Parse() if self._certificate_map else None
-    )
+    certificate_map_ref = args.CONCEPTS.certificate_map.Parse()
+
     server_tls_policy_ref = None
-    if self._server_tls_policy_enabled and args.IsKnownAndSpecified(
-        'server_tls_policy'
-    ):
+    if args.IsKnownAndSpecified('server_tls_policy'):
       server_tls_policy_ref = args.CONCEPTS.server_tls_policy.Parse()
     return _Run(
         args,
@@ -278,7 +263,6 @@ class Create(base.CreateCommand):
         url_map_ref,
         ssl_certificates,
         ssl_policy_ref,
-        self._tls_early_data_enabled,
         self._traffic_director_security,
         certificate_map_ref,
         server_tls_policy_ref,
@@ -287,8 +271,7 @@ class Create(base.CreateCommand):
 
 @base.ReleaseTracks(base.ReleaseTrack.BETA)
 class CreateBeta(Create):
-  _server_tls_policy_enabled = True
-  _tls_early_data_enabled = True
+  pass
 
 
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)

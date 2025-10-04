@@ -36,18 +36,24 @@ def _ParseBackupType(alloydb_messages, backup_type):
   return None
 
 
+# TODO: b/312466999 - Change @base.DefaultUniverseOnly to
+# @base.UniverseCompatible once b/312466999 is fixed.
+# See go/gcloud-cli-running-tpc-tests.
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Create(base.CreateCommand):
   """Creates a new AlloyDB backup within a given project."""
 
   detailed_help = {
-      'DESCRIPTION':
-          '{description}',
-      'EXAMPLES':
-          """\
+      'DESCRIPTION': '{description}',
+      'EXAMPLES': """\
         To create a new backup, run:
 
           $ {command} my-backup --cluster=my-cluster --region=us-central1
+
+        To create a new cross-region backup, run:
+
+          $ {command} projects/my-project/locations/us-west1/backups/my-backup --cluster=my-cluster --region=us-central1
         """,
   }
 
@@ -63,13 +69,22 @@ class Create(base.CreateCommand):
         '--region',
         required=True,
         type=str,
+        help='The region of the cluster to backup.',
+    )
+    parser.add_argument(
+        'backup',
+        type=str,
         help=(
-            'The region of the cluster to backup. Note: both the cluster '
-            'and the backup have to be in the same region.'
+            'The AlloyDB backup to create. This must either be the backup ID'
+            ' (myBackup) or the full backup path'
+            ' (projects/myProject/locations/us-central1/backups/myBackup). In'
+            ' the first case, the project and location are assumed to be the'
+            ' same as the cluster being backed up. The second form can be'
+            ' used to create cross-region and cross-project backups.'
         ),
     )
-    flags.AddBackup(parser)
     flags.AddCluster(parser, False)
+    flags.AddTags(parser)
     kms_resource_args.AddKmsKeyResourceArg(
         parser,
         'backup',
@@ -86,6 +101,8 @@ class Create(base.CreateCommand):
     backup_resource.name = backup_ref.RelativeName()
     backup_resource.type = _ParseBackupType(alloydb_messages, 'ON_DEMAND')
     backup_resource.clusterName = cluster_ref.RelativeName()
+    backup_resource.tags = flags.GetTagsFromArgs(
+        args, alloydb_messages.Backup.TagsValue)
     kms_key = flags.GetAndValidateKmsKeyName(args)
     if kms_key:
       encryption_config = alloydb_messages.EncryptionConfig()
@@ -106,20 +123,19 @@ class Create(base.CreateCommand):
     client = api_util.AlloyDBClient(self.ReleaseTrack())
     alloydb_client = client.alloydb_client
     alloydb_messages = client.alloydb_messages
-    location_ref = client.resource_parser.Create(
-        'alloydb.projects.locations',
-        projectsId=properties.VALUES.core.project.GetOrFail,
-        locationsId=args.region)
     cluster_ref = client.resource_parser.Create(
         'alloydb.projects.locations.clusters',
         projectsId=properties.VALUES.core.project.GetOrFail,
         locationsId=args.region,
         clustersId=args.cluster)
-    backup_ref = client.resource_parser.Create(
-        'alloydb.projects.locations.backups',
-        projectsId=properties.VALUES.core.project.GetOrFail,
-        locationsId=args.region,
-        backupsId=args.backup)
+    backup_ref = client.resource_parser.Parse(
+        collection='alloydb.projects.locations.backups',
+        line=args.backup,
+        params={
+            'projectsId': properties.VALUES.core.project.GetOrFail,
+            'locationsId': args.region,
+        },
+    )
 
     backup_resource = self.ConstructResourceFromArgs(
         alloydb_messages, cluster_ref, backup_ref, args
@@ -127,8 +143,9 @@ class Create(base.CreateCommand):
 
     req = alloydb_messages.AlloydbProjectsLocationsBackupsCreateRequest(
         backup=backup_resource,
-        backupId=args.backup,
-        parent=location_ref.RelativeName())
+        backupId=backup_ref.Name(),
+        parent=backup_ref.Parent().RelativeName(),
+    )
     op = alloydb_client.projects_locations_backups.Create(req)
     op_ref = resources.REGISTRY.ParseRelativeName(
         op.name, collection='alloydb.projects.locations.operations')

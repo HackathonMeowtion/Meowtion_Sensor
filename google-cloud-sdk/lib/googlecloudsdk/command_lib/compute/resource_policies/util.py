@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*- #
-# Copyright 2018 Google LLC. All Rights Reserved.
+# Copyright 2024 Google LLC. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -105,7 +105,8 @@ def MakeVmMaintenanceConcurrentPolicy(policy_ref, args, messages):
       vmMaintenancePolicy=vm_policy)
 
 
-def MakeDiskSnapshotSchedulePolicy(policy_ref, args, messages):
+def MakeDiskSnapshotSchedulePolicy(policy_ref, args, messages,
+                                   support_snapshot_region=False):
   """Creates a Disk Snapshot Schedule Resource Policy message from args."""
   hourly_cycle, daily_cycle, weekly_cycle = _ParseCycleFrequencyArgs(
       args, messages, supports_hourly=True, supports_weekly=True)
@@ -117,12 +118,23 @@ def MakeDiskSnapshotSchedulePolicy(policy_ref, args, messages):
       .LabelsValue,
       labels_dest='snapshot_labels')
   storage_location = [args.storage_location] if args.storage_location else []
-  if args.IsSpecified('guest_flush') or snapshot_labels or storage_location:
-    snapshot_properties = (
-        messages.ResourcePolicySnapshotSchedulePolicySnapshotProperties(
-            guestFlush=args.guest_flush,
-            labels=snapshot_labels,
-            storageLocations=storage_location))
+  if not support_snapshot_region:
+    if (args.IsSpecified('guest_flush') or snapshot_labels or storage_location):
+      snapshot_properties = (
+          messages.ResourcePolicySnapshotSchedulePolicySnapshotProperties(
+              guestFlush=args.guest_flush,
+              labels=snapshot_labels,
+              storageLocations=storage_location))
+  else:
+    snapshot_region = args.snapshot_region if args.snapshot_region else None
+    if (args.IsSpecified('guest_flush') or snapshot_labels or storage_location
+        or snapshot_region):
+      snapshot_properties = (
+          messages.ResourcePolicySnapshotSchedulePolicySnapshotProperties(
+              guestFlush=args.guest_flush,
+              labels=snapshot_labels,
+              storageLocations=storage_location,
+              region=snapshot_region))
   snapshot_policy = messages.ResourcePolicySnapshotSchedulePolicy(
       retentionPolicy=messages
       .ResourcePolicySnapshotSchedulePolicyRetentionPolicy(
@@ -220,6 +232,44 @@ def MakeInstanceSchedulePolicy(policy_ref, args, messages):
       instanceSchedulePolicy=instance_schedule_policy)
 
 
+def MakeInstanceSchedulePolicyForUpdate(policy_ref, args, messages):
+  """Creates an Instance Schedule Policy message from args for update."""
+
+  vm_start_schedule = None
+  if args.vm_start_schedule:
+    vm_start_schedule = messages.ResourcePolicyInstanceSchedulePolicySchedule(
+        schedule=args.vm_start_schedule
+    )
+
+  vm_stop_schedule = None
+  if args.vm_stop_schedule:
+    vm_stop_schedule = messages.ResourcePolicyInstanceSchedulePolicySchedule(
+        schedule=args.vm_stop_schedule
+    )
+
+  instance_schedule_policy = messages.ResourcePolicyInstanceSchedulePolicy(
+      timeZone=args.timezone,
+      vmStartSchedule=vm_start_schedule,
+      vmStopSchedule=vm_stop_schedule,
+  )
+
+  if args.initiation_date:
+    instance_schedule_policy.startTime = times.FormatDateTime(
+        args.initiation_date
+    )
+
+  if args.end_date:
+    instance_schedule_policy.expirationTime = times.FormatDateTime(
+        args.end_date
+    )
+
+  return messages.ResourcePolicy(
+      name=policy_ref.Name(),
+      description=args.description,
+      instanceSchedulePolicy=instance_schedule_policy,
+  )
+
+
 def MakeGroupPlacementPolicy(policy_ref, args, messages, track):
   """Creates a Group Placement Resource Policy message from args."""
   availability_domain_count = None
@@ -229,6 +279,7 @@ def MakeGroupPlacementPolicy(policy_ref, args, messages, track):
   if args.IsSpecified('collocation'):
     collocation = flags.GetCollocationFlagMapper(
         messages, track).GetEnumForChoice(args.collocation)
+  gpu_topology = args.gpu_topology if args.IsSpecified('gpu_topology') else None
   placement_policy = None
   if track == base.ReleaseTrack.ALPHA and args.IsSpecified('scope'):
     scope = flags.GetAvailabilityDomainScopeFlagMapper(
@@ -260,12 +311,37 @@ def MakeGroupPlacementPolicy(policy_ref, args, messages, track):
         availabilityDomainCount=availability_domain_count,
         collocation=collocation,
     )
+  if gpu_topology:
+    placement_policy.gpuTopology = gpu_topology
 
   return messages.ResourcePolicy(
       name=policy_ref.Name(),
       description=args.description,
       region=policy_ref.region,
       groupPlacementPolicy=placement_policy)
+
+
+def MakeWorkloadPolicy(policy_ref, args, messages):
+  """Creates a Workload Policy message from args."""
+  workload_policy = messages.ResourcePolicyWorkloadPolicy()
+
+  if args.type:
+    workload_policy.type = (
+        messages.ResourcePolicyWorkloadPolicy.TypeValueValuesEnum(args.type)
+    )
+  if args.max_topology_distance:
+    workload_policy.maxTopologyDistance = messages.ResourcePolicyWorkloadPolicy.MaxTopologyDistanceValueValuesEnum(
+        args.max_topology_distance
+    )
+  if args.accelerator_topology:
+    workload_policy.acceleratorTopology = args.accelerator_topology
+
+  return messages.ResourcePolicy(
+      name=policy_ref.Name(),
+      description=args.description,
+      region=policy_ref.region,
+      workloadPolicy=workload_policy,
+  )
 
 
 def MakeDiskConsistencyGroupPolicy(policy_ref, args, messages):

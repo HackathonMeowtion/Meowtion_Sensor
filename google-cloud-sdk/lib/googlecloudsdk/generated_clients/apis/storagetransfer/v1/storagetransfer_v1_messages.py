@@ -121,6 +121,8 @@ class AwsS3Data(_messages.Message):
       `credentials_secret` is specified, do not specify role_arn or
       aws_access_key. Format:
       `projects/{project_number}/secrets/{secret_name}`
+    managedPrivateNetwork: Egress bytes over a Google-managed private network.
+      This network is shared between other users of Storage Transfer Service.
     path: Root path to transfer objects. Must be an empty string or full path
       name that ends with a '/'. This field is treated as an object prefix. As
       such, it should generally not begin with a '/'.
@@ -137,8 +139,9 @@ class AwsS3Data(_messages.Message):
   bucketName = _messages.StringField(2)
   cloudfrontDomain = _messages.StringField(3)
   credentialsSecret = _messages.StringField(4)
-  path = _messages.StringField(5)
-  roleArn = _messages.StringField(6)
+  managedPrivateNetwork = _messages.BooleanField(5)
+  path = _messages.StringField(6)
+  roleArn = _messages.StringField(7)
 
 
 class AzureBlobStorageData(_messages.Message):
@@ -168,6 +171,9 @@ class AzureBlobStorageData(_messages.Message):
       azure#secret_manager) for more information. If `credentials_secret` is
       specified, do not specify azure_credentials. Format:
       `projects/{project_number}/secrets/{secret_name}`
+    federatedIdentityConfig: Optional. Federated identity config of a user
+      registered Azure application. If `federated_identity_config` is
+      specified, do not specify azure_credentials or credentials_secret.
     path: Root path to transfer objects. Must be an empty string or full path
       name that ends with a '/'. This field is treated as an object prefix. As
       such, it should generally not begin with a '/'.
@@ -177,8 +183,9 @@ class AzureBlobStorageData(_messages.Message):
   azureCredentials = _messages.MessageField('AzureCredentials', 1)
   container = _messages.StringField(2)
   credentialsSecret = _messages.StringField(3)
-  path = _messages.StringField(4)
-  storageAccount = _messages.StringField(5)
+  federatedIdentityConfig = _messages.MessageField('FederatedIdentityConfig', 4)
+  path = _messages.StringField(5)
+  storageAccount = _messages.StringField(6)
 
 
 class AzureCredentials(_messages.Message):
@@ -248,11 +255,11 @@ class Empty(_messages.Message):
 
 
 class ErrorLogEntry(_messages.Message):
-  r"""An entry describing an error that has occurred.
+  r"""LINT.IfChange An entry describing an error that has occurred.
 
   Fields:
-    errorDetails: A list of messages that carry the error details.
-    url: Required. A URL that refers to the target (a data source, a data
+    errorDetails: Optional. A list of messages that carry the error details.
+    url: Output only. A URL that refers to the target (a data source, a data
       sink, or an object) with which the error is associated.
   """
 
@@ -409,6 +416,27 @@ class EventStream(_messages.Message):
   name = _messages.StringField(3)
 
 
+class FederatedIdentityConfig(_messages.Message):
+  r"""The identity of an Azure application through which Storage Transfer
+  Service can authenticate requests using Azure workload identity federation.
+  Storage Transfer Service can issue requests to Azure Storage through
+  registered Azure applications, eliminating the need to pass credentials to
+  Storage Transfer Service directly. To configure federated identity, see
+  [Configure access to Microsoft Azure
+  Storage](https://cloud.google.com/storage-transfer/docs/source-microsoft-
+  azure#option_3_authenticate_using_federated_identity).
+
+  Fields:
+    clientId: Required. The client (application) ID of the application with
+      federated credentials.
+    tenantId: Required. The tenant (directory) ID of the application with
+      federated credentials.
+  """
+
+  clientId = _messages.StringField(1)
+  tenantId = _messages.StringField(2)
+
+
 class GcsData(_messages.Message):
   r"""In a GcsData resource, an object's name is the Cloud Storage object's
   name and its "last modification time" refers to the object's `updated`
@@ -487,8 +515,9 @@ class HttpData(_messages.Message):
 
   Fields:
     listUrl: Required. The URL that points to the file that stores the object
-      list entries. This file must allow public access. Currently, only URLs
-      with HTTP and HTTPS schemes are supported.
+      list entries. This file must allow public access. The URL is either an
+      HTTP/HTTPS address (e.g. `https://example.com/urllist.tsv`) or a Cloud
+      Storage path (e.g. `gs://my-bucket/urllist.tsv`).
   """
 
   listUrl = _messages.StringField(1)
@@ -532,27 +561,25 @@ class ListTransferJobsResponse(_messages.Message):
 
 
 class LoggingConfig(_messages.Message):
-  r"""Specifies the logging behavior for transfer operations. For cloud-to-
-  cloud transfers, logs are sent to Cloud Logging. See [Read transfer
+  r"""Specifies the logging behavior for transfer operations. Logs can be sent
+  to Cloud Logging for all transfer types. See [Read transfer
   logs](https://cloud.google.com/storage-transfer/docs/read-transfer-logs) for
-  details. For transfers to or from a POSIX file system, logs are stored in
-  the Cloud Storage bucket that is the source or sink of the transfer. See
-  [Managing Transfer for on-premises jobs] (https://cloud.google.com/storage-
-  transfer/docs/managing-on-prem-jobs#viewing-logs) for details.
+  details.
 
   Enums:
     LogActionStatesValueListEntryValuesEnum:
     LogActionsValueListEntryValuesEnum:
 
   Fields:
-    enableOnpremGcsTransferLogs: For transfers with a PosixFilesystem source,
-      this option enables the Cloud Storage transfer logs for this transfer.
+    enableOnpremGcsTransferLogs: For PosixFilesystem transfers, enables [file
+      system transfer logs](https://cloud.google.com/storage-transfer/docs/on-
+      prem-transfer-log-format) instead of, or in addition to, Cloud Logging.
+      This option ignores [LoggableAction] and [LoggableActionState]. If these
+      are set, Cloud Logging will also be enabled for this transfer.
     logActionStates: States in which `log_actions` are logged. If empty, no
-      logs are generated. Not supported for transfers with PosixFilesystem
-      data sources; use enable_onprem_gcs_transfer_logs instead.
+      logs are generated.
     logActions: Specifies the actions to be logged. If empty, no logs are
-      generated. Not supported for transfers with PosixFilesystem data
-      sources; use enable_onprem_gcs_transfer_logs instead.
+      generated.
   """
 
   class LogActionStatesValueListEntryValuesEnum(_messages.Enum):
@@ -564,10 +591,13 @@ class LoggingConfig(_messages.Message):
         are logged as INFO.
       FAILED: `LoggableAction` terminated in an error state. `FAILED` actions
         are logged as ERROR.
+      SKIPPED: The `COPY` action was skipped for this file. Only supported for
+        agent-based transfers. `SKIPPED` actions are logged as INFO.
     """
     LOGGABLE_ACTION_STATE_UNSPECIFIED = 0
     SUCCEEDED = 1
     FAILED = 2
+    SKIPPED = 3
 
   class LogActionsValueListEntryValuesEnum(_messages.Enum):
     r"""LogActionsValueListEntryValuesEnum enum type.
@@ -576,7 +606,7 @@ class LoggingConfig(_messages.Message):
       LOGGABLE_ACTION_UNSPECIFIED: Default value. This value is unused.
       FIND: Listing objects in a bucket.
       DELETE: Deleting objects at the source or the destination.
-      COPY: Copying objects to Google Cloud Storage.
+      COPY: Copying objects to the destination.
     """
     LOGGABLE_ACTION_UNSPECIFIED = 0
     FIND = 1
@@ -621,8 +651,8 @@ class MetadataOptions(_messages.Message):
     TimeCreatedValueValuesEnum: Specifies how each object's `timeCreated`
       metadata is preserved for transfers. If unspecified, the default
       behavior is the same as TIME_CREATED_SKIP. This behavior is supported
-      for transfers to GCS buckets from GCS, S3, Azure, S3 Compatible, and
-      Azure sources.
+      for transfers to Cloud Storage buckets from Cloud Storage, Amazon S3,
+      S3-compatible storage, and Azure sources.
     UidValueValuesEnum: Specifies how each file's POSIX user ID (UID)
       attribute should be handled by the transfer. By default, UID is not
       preserved. Only applicable to transfers involving POSIX file systems,
@@ -656,7 +686,8 @@ class MetadataOptions(_messages.Message):
     timeCreated: Specifies how each object's `timeCreated` metadata is
       preserved for transfers. If unspecified, the default behavior is the
       same as TIME_CREATED_SKIP. This behavior is supported for transfers to
-      GCS buckets from GCS, S3, Azure, S3 Compatible, and Azure sources.
+      Cloud Storage buckets from Cloud Storage, Amazon S3, S3-compatible
+      storage, and Azure sources.
     uid: Specifies how each file's POSIX user ID (UID) attribute should be
       handled by the transfer. By default, UID is not preserved. Only
       applicable to transfers involving POSIX file systems, and ignored for
@@ -790,8 +821,9 @@ class MetadataOptions(_messages.Message):
   class TimeCreatedValueValuesEnum(_messages.Enum):
     r"""Specifies how each object's `timeCreated` metadata is preserved for
     transfers. If unspecified, the default behavior is the same as
-    TIME_CREATED_SKIP. This behavior is supported for transfers to GCS buckets
-    from GCS, S3, Azure, S3 Compatible, and Azure sources.
+    TIME_CREATED_SKIP. This behavior is supported for transfers to Cloud
+    Storage buckets from Cloud Storage, Amazon S3, S3-compatible storage, and
+    Azure sources.
 
     Values:
       TIME_CREATED_UNSPECIFIED: TimeCreated behavior is unspecified.
@@ -902,8 +934,14 @@ class ObjectConditions(_messages.Message):
   modification time" refers to the time of the last change to the object's
   content or metadata - specifically, this is the `updated` property of Cloud
   Storage objects, the `LastModified` field of S3 objects, and the `Last-
-  Modified` header of Azure blobs. Transfers with a PosixFilesystem source or
-  destination don't support `ObjectConditions`.
+  Modified` header of Azure blobs. For S3 objects, the `LastModified` value is
+  the time the object begins uploading. If the object meets your "last
+  modification time" criteria, but has not finished uploading, the object is
+  not transferred. See [Transfer from Amazon S3 to Cloud
+  Storage](https://cloud.google.com/storage-transfer/docs/create-
+  transfers/agentless/s3#transfer_options) for more information. Transfers
+  with a PosixFilesystem source or destination don't support
+  `ObjectConditions`.
 
   Fields:
     excludePrefixes: If you specify `exclude_prefixes`, Storage Transfer
@@ -1094,18 +1132,20 @@ class PosixFilesystem(_messages.Message):
 
 
 class ReplicationSpec(_messages.Message):
-  r"""Specifies the configuration for running a replication job.
+  r"""Specifies the configuration for a cross-bucket replication job. Cross-
+  bucket replication copies new or updated objects from a source Cloud Storage
+  bucket to a destination Cloud Storage bucket. Existing objects in the source
+  bucket are not copied by a new cross-bucket replication job.
 
   Fields:
-    gcsDataSink: Specifies cloud Storage data sink.
-    gcsDataSource: Specifies cloud Storage data source.
-    objectConditions: Specifies the object conditions to only include objects
-      that satisfy these conditions in the set of data source objects. Object
-      conditions based on objects' "last modification time" do not exclude
-      objects in a data sink.
-    transferOptions: Specifies the actions to be performed on the object
-      during replication. Delete options are not supported for replication and
-      when specified, the request fails with an INVALID_ARGUMENT error.
+    gcsDataSink: The Cloud Storage bucket to which to replicate objects.
+    gcsDataSource: The Cloud Storage bucket from which to replicate objects.
+    objectConditions: Object conditions that determine which objects are
+      transferred. For replication jobs, only `include_prefixes` and
+      `exclude_prefixes` are supported.
+    transferOptions: Specifies the metadata options to be applied during
+      replication. Delete options are not supported. If a delete option is
+      specified, the request fails with an INVALID_ARGUMENT error.
   """
 
   gcsDataSink = _messages.MessageField('GcsData', 1)
@@ -1234,8 +1274,8 @@ class Schedule(_messages.Message):
       scheduled. Combined with schedule_end_date, `end_time_of_day` specifies
       the end date and time for starting new transfer operations. This field
       must be greater than or equal to the timestamp corresponding to the
-      combintation of schedule_start_date and start_time_of_day, and is
-      subject to the following: * If `end_time_of_day` is not set and
+      combination of schedule_start_date and start_time_of_day, and is subject
+      to the following: * If `end_time_of_day` is not set and
       `schedule_end_date` is set, then a default value of `23:59:59` is used
       for `end_time_of_day`. * If `end_time_of_day` is set and
       `schedule_end_date` is not set, then INVALID_ARGUMENT is returned.
@@ -1511,13 +1551,20 @@ class StoragetransferTransferJobsListRequest(_messages.Message):
 
   Fields:
     filter: Required. A list of query parameters specified as JSON text in the
-      form of: `{"projectId":"my_project_id",
+      form of: ``` { "projectId":"my_project_id",
       "jobNames":["jobid1","jobid2",...],
-      "jobStatuses":["status1","status2",...]}` Since `jobNames` and
+      "jobStatuses":["status1","status2",...],
+      "dataBackend":"QUERY_REPLICATION_CONFIGS", "sourceBucket":"source-
+      bucket-name", "sinkBucket":"sink-bucket-name", } ``` The JSON formatting
+      in the example is for display only; provide the query parameters without
+      spaces or line breaks. * `projectId` is required. * Since `jobNames` and
       `jobStatuses` support multiple values, their values must be specified
-      with array notation. `projectId` is required. `jobNames` and
-      `jobStatuses` are optional. The valid values for `jobStatuses` are case-
-      insensitive: ENABLED, DISABLED, and DELETED.
+      with array notation. `jobNames` and `jobStatuses` are optional. Valid
+      values are case-insensitive: * ENABLED * DISABLED * DELETED * Specify
+      `"dataBackend":"QUERY_REPLICATION_CONFIGS"` to return a list of cross-
+      bucket replication jobs. * Limit the results to jobs from a particular
+      bucket with `sourceBucket` and/or to a particular bucket with
+      `sinkBucket`.
     pageSize: The list page size. The max allowed value is 256.
     pageToken: The list page token.
   """
@@ -1640,13 +1687,16 @@ class TimeOfDay(_messages.Message):
   seconds. Related types are google.type.Date and `google.protobuf.Timestamp`.
 
   Fields:
-    hours: Hours of day in 24 hour format. Should be from 0 to 23. An API may
-      choose to allow the value "24:00:00" for scenarios like business closing
-      time.
-    minutes: Minutes of hour of day. Must be from 0 to 59.
-    nanos: Fractions of seconds in nanoseconds. Must be from 0 to 999,999,999.
-    seconds: Seconds of minutes of the time. Must normally be from 0 to 59. An
-      API may allow the value 60 if it allows leap-seconds.
+    hours: Hours of a day in 24 hour format. Must be greater than or equal to
+      0 and typically must be less than or equal to 23. An API may choose to
+      allow the value "24:00:00" for scenarios like business closing time.
+    minutes: Minutes of an hour. Must be greater than or equal to 0 and less
+      than or equal to 59.
+    nanos: Fractions of seconds, in nanoseconds. Must be greater than or equal
+      to 0 and less than or equal to 999,999,999.
+    seconds: Seconds of a minute. Must be greater than or equal to 0 and
+      typically must be less than or equal to 59. An API may allow the value
+      60 if it allows leap-seconds.
   """
 
   hours = _messages.IntegerField(1, variant=_messages.Variant.INT32)
@@ -1777,6 +1827,17 @@ class TransferJob(_messages.Message):
       field. When the field is not set, the job never executes a transfer,
       unless you invoke RunTransferJob or update the job to have a non-empty
       schedule.
+    serviceAccount: Optional. The user-managed service account to which to
+      delegate service agent permissions. You can grant Cloud Storage bucket
+      permissions to this service account instead of to the Transfer Service
+      service agent. Format is
+      `projects/-/serviceAccounts/ACCOUNT_EMAIL_OR_UNIQUEID` Either the
+      service account email
+      (`SERVICE_ACCOUNT_NAME@PROJECT_ID.iam.gserviceaccount.com`) or the
+      unique ID (`123456789012345678901`) are accepted in the string. The `-`
+      wildcard character is required; replacing it with a project ID is
+      invalid. See https://cloud.google.com//storage-transfer/docs/delegate-
+      service-agent-permissions for required permissions.
     status: Status of the job. This value MUST be specified for
       `CreateTransferJobRequests`. **Note:** The effect of the new job status
       takes place during a subsequent job run. For example, if you change the
@@ -1820,8 +1881,9 @@ class TransferJob(_messages.Message):
   projectId = _messages.StringField(10)
   replicationSpec = _messages.MessageField('ReplicationSpec', 11)
   schedule = _messages.MessageField('Schedule', 12)
-  status = _messages.EnumField('StatusValueValuesEnum', 13)
-  transferSpec = _messages.MessageField('TransferSpec', 14)
+  serviceAccount = _messages.StringField(13)
+  status = _messages.EnumField('StatusValueValuesEnum', 14)
+  transferSpec = _messages.MessageField('TransferSpec', 15)
 
 
 class TransferManifest(_messages.Message):
@@ -1915,7 +1977,7 @@ class TransferOptions(_messages.Message):
       job.
     overwriteObjectsAlreadyExistingInSink: When to overwrite objects that
       already exist in the sink. The default is that only objects that are
-      different from the source are ovewritten. If true, all objects in the
+      different from the source are overwritten. If true, all objects in the
       sink whose name matches an object in the source are overwritten with the
       source object.
     overwriteWhen: When to overwrite objects that already exist in the sink.
@@ -1954,24 +2016,24 @@ class TransferSpec(_messages.Message):
   r"""Configuration for running a transfer.
 
   Fields:
-    awsS3CompatibleDataSource: An AWS S3 compatible data source.
-    awsS3DataSource: An AWS S3 data source.
-    azureBlobStorageDataSource: An Azure Blob Storage data source.
-    gcsDataSink: A Cloud Storage data sink.
-    gcsDataSource: A Cloud Storage data source.
+    awsS3CompatibleDataSource: Optional. An AWS S3 compatible data source.
+    awsS3DataSource: Optional. An AWS S3 data source.
+    azureBlobStorageDataSource: Optional. An Azure Blob Storage data source.
+    gcsDataSink: Optional. A Cloud Storage data sink.
+    gcsDataSource: Optional. A Cloud Storage data source.
     gcsIntermediateDataLocation: For transfers between file systems, specifies
       a Cloud Storage bucket to be used as an intermediate location through
       which to transfer data. See [Transfer data between file
       systems](https://cloud.google.com/storage-transfer/docs/file-to-file)
       for more information.
-    hdfsDataSource: An HDFS cluster data source.
-    httpDataSource: An HTTP URL data source.
+    hdfsDataSource: Optional. An HDFS cluster data source.
+    httpDataSource: Optional. An HTTP URL data source.
     objectConditions: Only objects that satisfy these object conditions are
       included in the set of data source and data sink objects. Object
       conditions based on objects' "last modification time" do not exclude
       objects in a data sink.
-    posixDataSink: A POSIX Filesystem data sink.
-    posixDataSource: A POSIX Filesystem data source.
+    posixDataSink: Optional. A POSIX Filesystem data sink.
+    posixDataSource: Optional. A POSIX Filesystem data source.
     sinkAgentPoolName: Specifies the agent pool name associated with the posix
       data sink. When unspecified, the default name is used.
     sourceAgentPoolName: Specifies the agent pool name associated with the

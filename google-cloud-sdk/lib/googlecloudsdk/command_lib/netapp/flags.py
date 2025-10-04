@@ -142,6 +142,18 @@ def GetCryptoKeyAttributeConfig():
   )
 
 
+def GetQuotaRuleAttributeConfig():
+  return concepts.ResourceParameterAttributeConfig(
+      'quota_rule', 'The instance of the {resource}.'
+  )
+
+
+def GetHostGroupAttributeConfig():
+  return concepts.ResourceParameterAttributeConfig(
+      'host_group', 'The instance of the {resource}.'
+  )
+
+
 ## Resource Specs ##
 
 
@@ -308,6 +320,29 @@ def GetCryptoKeyResourceSpec():
       cryptoKeysId=GetCryptoKeyAttributeConfig()
   )
 
+
+def GetQuotaRuleResourceSpec():
+  return concepts.ResourceSpec(
+      constants.QUOTA_RULES_COLLECTION,
+      resource_name='quota_rule',
+      api_version=constants.BETA_API_VERSION,
+      projectsId=concepts.DEFAULT_PROJECT_ATTRIBUTE_CONFIG,
+      locationsId=GetLocationAttributeConfig(),
+      volumesId=GetVolumeAttributeConfig(positional=False),
+      quotaRulesId=GetQuotaRuleAttributeConfig(),
+  )
+
+
+def GetHostGroupResourceSpec():
+  return concepts.ResourceSpec(
+      constants.HOST_GROUPS_COLLECTION,
+      resource_name='host_group',
+      api_version=constants.BETA_API_VERSION,
+      projectsId=concepts.DEFAULT_PROJECT_ATTRIBUTE_CONFIG,
+      locationsId=GetLocationAttributeConfig(),
+      hostGroupsId=GetHostGroupAttributeConfig(),
+  )
+
 ## Presentation Specs ##
 
 
@@ -389,6 +424,24 @@ def GetBackupPresentationSpec(group_help):
       flag_name_overrides={'backup_vault': ''})
 
 
+def GetQuotaRulePresentationSpec(group_help):
+  return presentation_specs.ResourcePresentationSpec(
+      'quota_rule',
+      GetQuotaRuleResourceSpec(),
+      group_help,
+      required=True,
+      flag_name_overrides={'volume': ''})
+
+
+def GetHostGroupPresentationSpec(group_help):
+  return presentation_specs.ResourcePresentationSpec(
+      'host_group',
+      GetHostGroupResourceSpec(),
+      group_help,
+      required=True,
+  )
+
+
 # TODO(b/290375665): Add more unit tests to test Backup Poicy
 # Presentation, resource specs and flags
 def GetBackupPolicyPresentationSpec(group_help):
@@ -426,3 +479,70 @@ def AddResourceAsyncFlag(parser):
   in progress to complete."""
   concepts.ResourceParameterAttributeConfig(name='async', help_text=help_text)
   base.ASYNC_FLAG.AddToParser(parser)
+
+
+def AddResourcePeerClusterNameArg(parser, required=True):
+  """Adds the Peer Cluster Name (--peer-cluster-name) arg to the given parser.
+
+  Args:
+    parser: Argparse parser.
+    required: Required to establish both cluster and svm peering.
+  """
+  parser.add_argument(
+      '--peer-cluster-name',
+      type=str,
+      required=required,
+      help="""Name of the destination cluster to be peered
+        with the source cluster.""",
+  )
+
+
+def AddResourcePeerSvmNameArg(parser, required=True):
+  """Adds the Peer SVM Name (--peer-svm-name) arg to the given parser.
+
+  Args:
+    parser: Argparse parser.
+    required: Required to establish both cluster and svm peering.
+  """
+  parser.add_argument(
+      '--peer-svm-name',
+      type=str,
+      required=required,
+      help="""Name of the local source vserver svm to be peered
+        with the destination cluster.""",
+  )
+
+
+def AddResourcePeerVolumeNameArg(parser, required=True):
+  """Adds the Peer Volume Name (--peer-volume-name) arg to the given parser.
+
+  Args:
+    parser: Argparse parser.
+    required: Required to establish both cluster and svm peering.
+  """
+  parser.add_argument(
+      '--peer-volume-name',
+      type=str,
+      required=required,
+      help="""Name of the source volume to be peered
+       with the destination volume.""",
+  )
+
+
+def AddResourcePeerIpAddressesArg(parser):
+  """Adds the Peer IP Addresses (--peer-ip-addresses) arg to the given parser.
+
+  Args:
+    parser: Argparse parser.
+
+  Not required for svm peering.
+  """
+  parser.add_argument(
+      '--peer-ip-addresses',
+      type=arg_parsers.ArgList(min_length=1, element_type=str),
+      metavar='PEER_IP_ADDRESS',
+      help=(
+          'List of ip addresses to be used for peering. This is required for'
+          ' cluster peering, not required for svm peering.'
+      ),
+  )

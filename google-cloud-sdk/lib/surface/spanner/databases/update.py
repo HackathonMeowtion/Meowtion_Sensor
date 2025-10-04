@@ -27,6 +27,7 @@ from googlecloudsdk.command_lib.spanner import flags
 from googlecloudsdk.command_lib.spanner import resource_args
 
 
+@base.UniverseCompatible
 class Update(base.UpdateCommand):
   """Update a Cloud Spanner database."""
 
@@ -41,6 +42,11 @@ class Update(base.UpdateCommand):
         'my-database', run:
 
           $ {command} my-database --no-enable-drop-protection
+
+        To update KMS key references for a Cloud Spanner database
+        'my-database', run:
+
+          $ {command} my-database --kms-keys="KEY1,KEY2"
         """),
   }
 
@@ -55,6 +61,7 @@ class Update(base.UpdateCommand):
     resource_args.AddDatabaseResourceArg(parser, 'to update')
     group_parser = parser.add_argument_group(mutex=True)
     flags.EnableDropProtection().AddToParser(group_parser)
+    flags.EnableUpdateKmsKeys().AddToParser(group_parser)
     base.ASYNC_FLAG.AddToParser(parser)
 
   def Run(self, args):
@@ -68,7 +75,9 @@ class Update(base.UpdateCommand):
       Database update response.
     """
     op = databases.Update(
-        args.CONCEPTS.database.Parse(), args.enable_drop_protection
+        args.CONCEPTS.database.Parse(),
+        args.enable_drop_protection,
+        args.kms_keys,
     )
     if args.async_:
       return op

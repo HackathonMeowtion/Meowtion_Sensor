@@ -210,6 +210,8 @@ class InstallationState(object):
 
     self.__sdk_staging_root = (os.path.normpath(self.__sdk_root) +
                                InstallationState.STAGING_ROOT_SUFFIX)
+    self._component_installer = installers.ComponentInstaller(
+        self.__sdk_root, self._state_directory)
 
   @_RaisesPermissionsError
   def _CreateStateDir(self):
@@ -281,66 +283,6 @@ class InstallationState(object):
                                       platform_filter=platform_filter)
 
   @_RaisesPermissionsError
-  def CloneToStaging(self, progress_callback=None):
-    """Clones this state to the temporary staging area.
-
-    This is used for making temporary copies of the entire Cloud SDK
-    installation when doing updates.  The entire installation is cloned, but
-    doing so removes any backups and trash from this state before doing the
-    copy.
-
-    Args:
-      progress_callback: f(float), A function to call with the fraction of
-        completeness.
-
-    Returns:
-      An InstallationState object for the cloned install.
-    """
-    self._CreateStateDir()
-    (rm_staging_cb, rm_backup_cb, rm_trash_cb, copy_cb) = (
-        console_io.SplitProgressBar(progress_callback, [1, 1, 1, 7]))
-
-    self._ClearStaging(progress_callback=rm_staging_cb)
-    self.ClearBackup(progress_callback=rm_backup_cb)
-    self.ClearTrash(progress_callback=rm_trash_cb)
-
-    class Counter(object):
-
-      def __init__(self, progress_callback, total):
-        self.count = 0
-        self.progress_callback = progress_callback
-        self.total = total
-
-      # This function must match the signature that shutil expects for the
-      # ignore function.
-      def Tick(self, *unused_args):
-        self.count += 1
-        self.progress_callback(self.count / self.total)
-        return []
-
-    if progress_callback:
-      # This takes a little time, so only do it if we are going to report
-      # progress.
-      dirs = set()
-      for _, manifest in six.iteritems(self.InstalledComponents()):
-        dirs.update(manifest.InstalledDirectories())
-      # There is always the root directory itself and the .install directory.
-      # In general, there could be in the SDK (if people just put stuff in there
-      # but this is fine for an estimate.  The progress bar will at worst stay
-      # at 100% for slightly longer.
-      total_dirs = len(dirs) + 2
-      ticker = Counter(copy_cb, total_dirs).Tick if total_dirs else None
-    else:
-      ticker = None
-
-    shutil.copytree(self.__sdk_root, self.__sdk_staging_root, symlinks=True,
-                    ignore=ticker)
-    staging_state = InstallationState(self.__sdk_staging_root)
-    # pylint: disable=protected-access, This is an instance of InstallationState
-    staging_state._CreateStateDir()
-    return staging_state
-
-  @_RaisesPermissionsError
   def CreateStagingFromDownload(self, url, progress_callback=None):
     """Creates a new staging area from a fresh download of the Cloud SDK.
 
@@ -361,9 +303,13 @@ class InstallationState(object):
     with file_utils.TemporaryDirectory() as t:
       download_dir = os.path.join(t, '.download')
       extract_dir = os.path.join(t, '.extract')
-      installers.DownloadAndExtractTar(
-          url, download_dir, extract_dir, progress_callback=progress_callback,
+      (download_callback, extract_callback) = (
+          console_io.SplitProgressBar(progress_callback, [1, 1]))
+      downloaded_tar = installers.DownloadTar(
+          url, download_dir, progress_callback=download_callback,
           command_path='components.reinstall')
+      installers.ExtractTar(
+          downloaded_tar, extract_dir, progress_callback=extract_callback)
       files = os.listdir(extract_dir)
       if len(files) != 1:
         raise InvalidDownloadError()
@@ -492,24 +438,10 @@ class InstallationState(object):
     if progress_callback:
       progress_callback(1)
 
-  def _GetInstaller(self, snapshot):
-    """Gets a component installer based on the given snapshot.
-
-    Args:
-      snapshot: snapshots.ComponentSnapshot, The snapshot that describes the
-        component to install.
-
-    Returns:
-      The installers.ComponentInstaller.
-    """
-    return installers.ComponentInstaller(self.__sdk_root,
-                                         self._state_directory,
-                                         snapshot)
-
   @_RaisesPermissionsError
-  def Install(self, snapshot, component_id, progress_callback=None,
-              command_path='unknown'):
-    """Installs the given component based on the given snapshot.
+  def Download(self, snapshot, component_id, progress_callback=None,
+               command_path='unknown'):
+    """Downloads the given component based on the given snapshot.
 
     Args:
       snapshot: snapshots.ComponentSnapshot, The snapshot that describes the
@@ -520,15 +452,37 @@ class InstallationState(object):
       command_path: the command path to include in the User-Agent header if the
         URL is HTTP
 
+    Returns:
+      Optional[str], The path of the downloaded archive, or None if the
+        component has no actual sources.
+
     Raises:
       installers.URLFetchError: If the component associated with the provided
         component ID has a URL that is not fetched correctly.
     """
     self._CreateStateDir()
-
-    files = self._GetInstaller(snapshot).Install(
-        component_id, progress_callback=progress_callback,
+    component = snapshot.ComponentFromId(component_id)
+    downloaded_archive = self._component_installer.Download(
+        component, progress_callback=progress_callback,
         command_path=command_path)
+    return downloaded_archive
+
+  @_RaisesPermissionsError
+  def Install(self, snapshot, component_id, downloaded_archive,
+              progress_callback=None):
+    """Installs the archive previously downloaded from self.Download().
+
+    Args:
+      snapshot: snapshots.ComponentSnapshot, The snapshot that describes the
+        component to install.
+      component_id: str, The component to install from the given snapshot.
+      downloaded_archive: Optional[str], The path to the archive downloaded
+        previously.
+      progress_callback: f(float), A function to call with the fraction of
+        completeness.
+    """
+    files = self._component_installer.Extract(
+        downloaded_archive, progress_callback=progress_callback)
     manifest = InstallationManifest(self._state_directory, component_id)
     manifest.MarkInstalled(snapshot, files)
 
@@ -658,11 +612,15 @@ class InstallationState(object):
             '|third_party/.*/python2/'
             '|third_party/yaml/[a-z]*.py'
             '|third_party/yaml/lib2/'
-            '|third_party/appengine/'
+            '|third_party/antlr3/'
+            '|appengine/'
+            '|google/cloud/appengine_'
+            '|google/cloud/bigquery_logging_v1'
             '|third_party/fancy_urllib/'
             '|platform/bq/third_party/gflags'
             '|platform/ext-runtime/nodejs/test/'
             '|platform/gsutil/third_party/apitools/ez_setup'
+            '|platform/gsutil/third_party/pyparsing'
             '|platform/gsutil/third_party/crcmod_osx/crcmod/test)')
       else:
         regex_exclusion = None
@@ -769,24 +727,6 @@ class InstallationManifest(object):
     with file_utils.FileReader(self.manifest_file) as f:
       files = [line.rstrip() for line in f]
     return files
-
-  def InstalledDirectories(self):
-    """Gets the set of directories created by installing this component.
-
-    Returns:
-      set(str), The directories installed by this component.
-    """
-    with file_utils.FileReader(self.manifest_file) as f:
-      dirs = set()
-      for line in f:
-        norm_file_path = os.path.dirname(line.rstrip())
-        prev_file = norm_file_path + '/'
-        while len(prev_file) > len(norm_file_path) and norm_file_path:
-          dirs.add(norm_file_path)
-          prev_file = norm_file_path
-          norm_file_path = os.path.dirname(norm_file_path)
-
-    return dirs
 
 
 def _NormalizeFileList(file_list):

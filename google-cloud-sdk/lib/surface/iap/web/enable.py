@@ -23,6 +23,10 @@ from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.iap import util as iap_util
 
 
+@base.ReleaseTracks(
+        base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA, base.ReleaseTrack.GA
+    )
+@base.DefaultUniverseOnly
 class Enable(base.Command):
   """Enable Cloud Identity-Aware Proxy (Cloud IAP) on an IAP resource.
 
@@ -37,16 +41,22 @@ class Enable(base.Command):
             $ {command} --resource-type=app-engine
                 --oauth2-client-id=CLIENT_ID --oauth2-client-secret=SECRET
 
-          To enable IAP on a backend service, run:
+          To enable IAP on a global backend service, run:
 
             $ {command} --resource-type=backend-services
                 --oauth2-client-id=CLIENT_ID --oauth2-client-secret=SECRET
                 --service=SERVICE_ID
+
+          To enable IAP on a region backend service, run:
+
+            $ {command} --resource-type=backend-services
+                --oauth2-client-id=CLIENT_ID --oauth2-client-secret=SECRET
+                --service=SERVICE_ID --region=REGION
   """,
   }
 
-  @staticmethod
-  def Args(parser):
+  @classmethod
+  def Args(cls, parser):
     """Register flags for this command.
 
     Args:
@@ -69,3 +79,4 @@ class Enable(base.Command):
     """
     iap_ref = iap_util.ParseIapResource(self.ReleaseTrack(), args)
     return iap_ref.Enable(args.oauth2_client_id, args.oauth2_client_secret)
+

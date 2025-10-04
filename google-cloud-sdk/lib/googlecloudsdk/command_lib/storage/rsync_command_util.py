@@ -45,6 +45,7 @@ from googlecloudsdk.core.util import files
 import six
 
 
+CSV_FIELD_SEPARATOR = ','
 _CSV_COLUMNS_COUNT = 10
 _NO_MATCHES_MESSAGE = 'Did not find existing container at: {}'
 
@@ -222,7 +223,15 @@ def get_csv_line_from_resource(resource):
       crc32c,
       md5,
   ]
-  return ','.join(['' if x is None else six.text_type(x) for x in line_values])
+  return CSV_FIELD_SEPARATOR.join(
+      ['' if x is None else six.text_type(x) for x in line_values]
+  )
+
+
+def get_fields_from_csv_line(line):
+  """Splits and returns the fields from a CSV line."""
+  # Capping splits prevents commas in URL from being caught.
+  return line.rstrip().rsplit(CSV_FIELD_SEPARATOR, _CSV_COLUMNS_COUNT)
 
 
 def parse_csv_line_to_resource(line, is_managed_folder=False):
@@ -240,7 +249,7 @@ def parse_csv_line_to_resource(line, is_managed_folder=False):
   if not line:
     return None
   # Capping splits prevents commas in URL from being caught.
-  line_information = line.rstrip().rsplit(',', _CSV_COLUMNS_COUNT)
+  line_information = get_fields_from_csv_line(line)
   url_string = line_information[0]
   url_object = storage_url.storage_url_from_string(url_string)
 
@@ -262,7 +271,7 @@ def parse_csv_line_to_resource(line, is_managed_folder=False):
       mode_base_eight_string,
       crc32c_string,
       md5_string,
-  ) = line.rstrip().rsplit(',', _CSV_COLUMNS_COUNT)
+  ) = line.rstrip().rsplit(CSV_FIELD_SEPARATOR, _CSV_COLUMNS_COUNT)
 
   cloud_object = resource_reference.ObjectResource(
       url_object,
@@ -381,7 +390,7 @@ def _compute_hashes_and_return_match(source_resource, destination_resource):
 
   local_hash = hash_util.get_base64_hash_digest_string(
       hash_util.get_hash_from_file(
-          local_resource.storage_url.object_name, hash_algorithm
+          local_resource.storage_url.resource_name, hash_algorithm
       )
   )
   return cloud_hash == local_hash
@@ -425,6 +434,31 @@ class _IterateResource(enum.Enum):
   BOTH = 'both'
 
 
+def _should_skip_unsupported_object_type(
+    resource, skip_unsupported: bool
+) -> bool:
+  """Checks if object type is unsupported and logs warning if so.
+
+  Args:
+    resource: The resource to check.
+    skip_unsupported: Whether to skip unsupported object types.
+
+  Returns:
+    True if the object type is unsupported and needs to be skipped
+    False otherwise.
+  """
+  if skip_unsupported:
+    unsupported_type = resource_util.get_unsupported_object_type(resource)
+    if unsupported_type:
+      log.status.Print(
+          resource_util.UNSUPPORTED_OBJECT_WARNING_FORMAT.format(
+              resource, unsupported_type.value
+          )
+      )
+      return True
+  return False
+
+
 def _get_copy_task(
     user_request_args,
     source_resource,
@@ -436,17 +470,8 @@ def _get_copy_task(
     skip_unsupported=False,
 ):
   """Generates copy tasks with generic settings and logic."""
-  if skip_unsupported:
-    unsupported_type = resource_util.get_unsupported_object_type(
-        source_resource
-    )
-    if unsupported_type:
-      log.status.Print(
-          resource_util.UNSUPPORTED_OBJECT_WARNING_FORMAT.format(
-              source_resource, unsupported_type.value
-          )
-      )
-      return
+  if _should_skip_unsupported_object_type(source_resource, skip_unsupported):
+    return
 
   if destination_resource:
     copy_destination = destination_resource
@@ -458,11 +483,13 @@ def _get_copy_task(
   if dry_run:
     if isinstance(source_resource, resource_reference.FileObjectResource):
       try:
-        with files.BinaryFileReader(source_resource.storage_url.object_name):
+        with files.BinaryFileReader(source_resource.storage_url.resource_name):
           pass
       except:  # pylint: disable=broad-except
         log.error(
-            'Could not open {}'.format(source_resource.storage_url.object_name)
+            'Could not open {}'.format(
+                source_resource.storage_url.resource_name
+            )
         )
         raise
     log.status.Print(
@@ -470,9 +497,10 @@ def _get_copy_task(
     )
     return
 
-  if isinstance(source_resource, resource_reference.CloudResource) and (
-      isinstance(destination_container, resource_reference.CloudResource)
-      or isinstance(destination_resource, resource_reference.CloudResource)
+  if (
+      isinstance(source_resource, resource_reference.CloudResource) and (
+          isinstance(copy_destination.storage_url, storage_url.CloudUrl)
+      )
   ):
     if (
         user_request_args.resource_args
@@ -480,7 +508,7 @@ def _get_copy_task(
     ):
       fields_scope = cloud_api.FieldsScope.FULL
     else:
-      fields_scope = cloud_api.FieldsScope.RSYNC
+      fields_scope = cloud_api.FieldsScope.NO_ACL
   else:
     fields_scope = None
 
@@ -495,6 +523,26 @@ def _get_copy_task(
   )
 
 
+def _get_iterator_instruction_for_no_clobber_and_new_mtimes(
+    delete_unmatched_destination_objects,
+    use_gsutil_delete_unmatched_behaviour,
+):
+  """Returns the iterator instruction for no clobber and new mtimes flags."""
+
+  # If forcing deletion, we only advance the source, allowing the destination
+  # to be considered 'unmatched' and deleted in a subsequent step if it lacks
+  # a source counterpart.
+  # Otherwise, for the standard (gsutil) behavior, we advance both to mark the
+  # destination as 'handled' and prevent its deletion.
+  iteration_instruction = _IterateResource.SOURCE
+  if (
+      delete_unmatched_destination_objects
+      and use_gsutil_delete_unmatched_behaviour
+  ):
+    iteration_instruction = _IterateResource.BOTH
+  return iteration_instruction
+
+
 def _compare_equal_object_urls_to_get_task_and_iteration_instruction(
     user_request_args,
     source_object,
@@ -504,6 +552,8 @@ def _compare_equal_object_urls_to_get_task_and_iteration_instruction(
     dry_run=False,
     skip_if_destination_has_later_modification_time=False,
     skip_unsupported=False,
+    delete_unmatched_destination_objects=False,
+    use_gsutil_delete_unmatched_behaviour=False,
 ):
   """Similar to get_task_and_iteration_instruction except for equal URLs."""
 
@@ -518,7 +568,13 @@ def _compare_equal_object_urls_to_get_task_and_iteration_instruction(
   ):
     # This is technically a metadata comparison, but it would complicate
     # `_compare_metadata_and_return_copy_needed`.
-    return (None, _IterateResource.SOURCE)
+    iteration_instruction = (
+        _get_iterator_instruction_for_no_clobber_and_new_mtimes(
+            delete_unmatched_destination_objects,
+            use_gsutil_delete_unmatched_behaviour,
+        )
+    )
+    return (None, iteration_instruction)
 
   is_cloud_source_and_destination = isinstance(
       source_object, resource_reference.ObjectResource
@@ -665,6 +721,81 @@ def _get_delete_task(resource, user_request_args):
     )
 
 
+def _should_delete_unmatched_destination_object(
+    destination_resource,
+    delete_unmatched_destination_objects,
+    use_gsutil_delete_unmatched_behaviour,
+    skip_unsupported,
+):
+  """Returns True if the unmatched destination object should be deleted."""
+
+  # If the flag is not set, we never delete unmatched destination objects.
+  if not delete_unmatched_destination_objects:
+    return False
+
+  # If the flag is set and the gsutil behavior is used, we skip deletion if the
+  # object type is unsupported.
+  if use_gsutil_delete_unmatched_behaviour:
+    return not _should_skip_unsupported_object_type(
+        destination_resource, skip_unsupported
+    )
+
+  return True
+
+
+def _get_task_and_iteration_for_unmatched_destination(
+    user_request_args,
+    destination_resource,
+    delete_unmatched_destination_objects: bool = False,
+    use_gsutil_delete_unmatched_behaviour: bool = False,
+    dry_run: bool = False,
+    skip_unsupported: bool = False,
+):
+  """Gets task and iteration instruction for deleting/preserving an unmatched destination while used with delete_unmatched_destination_objects.
+
+  Args:
+    user_request_args: User flags.
+    destination_resource: Destination resource to check for deletion.
+    delete_unmatched_destination_objects: Clear objects at the destination that
+      are not present at the source.
+    use_gsutil_delete_unmatched_behaviour: Preserves objects at the destination
+      that are not present at the source if delete_unmatched_destination_objects
+      is set, if they would normally be preserved by other flags just as gsutil.
+    dry_run: Print what operations rsync would perform without actually
+      executing them.
+    skip_unsupported: Skip copying unsupported object types.
+
+  Returns:
+    A pair of task and iteration instruction.
+      - A delete task if applicable, or None.
+      - An iteration instruction for the next step.
+  """
+  # Managed folders are never deleted, regardless of flags.
+  if isinstance(destination_resource, resource_reference.ManagedFolderResource):
+    return (None, _IterateResource.DESTINATION)
+
+  should_delete_unmatched_destination_object = (
+      _should_delete_unmatched_destination_object(
+          destination_resource,
+          delete_unmatched_destination_objects,
+          use_gsutil_delete_unmatched_behaviour,
+          skip_unsupported,
+      )
+  )
+
+  if not should_delete_unmatched_destination_object:
+    return (None, _IterateResource.DESTINATION)
+
+  if dry_run:
+    _print_would_remove(destination_resource)
+    return (None, _IterateResource.DESTINATION)
+
+  return (
+      _get_delete_task(destination_resource, user_request_args),
+      _IterateResource.DESTINATION,
+  )
+
+
 def _get_task_and_iteration_instruction(
     user_request_args,
     source_resource,
@@ -728,18 +859,19 @@ def _get_task_and_iteration_instruction(
         'Comparison requires at least a source or a destination.'
     )
 
+  use_gsutil_delete_unmatched_behaviour = (
+      properties.VALUES.storage.use_gsutil_rsync_delete_unmatched_destination_objects_behavior.GetBool()
+  )
+
   if not source_resource:
-    if delete_unmatched_destination_objects and not isinstance(
-        destination_resource, resource_reference.ManagedFolderResource
-    ):
-      if dry_run:
-        _print_would_remove(destination_resource)
-      else:
-        return (
-            _get_delete_task(destination_resource, user_request_args),
-            _IterateResource.DESTINATION,
-        )
-    return (None, _IterateResource.DESTINATION)
+    return _get_task_and_iteration_for_unmatched_destination(
+        user_request_args,
+        destination_resource,
+        delete_unmatched_destination_objects,
+        use_gsutil_delete_unmatched_behaviour,
+        dry_run,
+        skip_unsupported,
+    )
 
   if ignore_symlinks and source_resource.is_symlink:
     _log_skipping_symlink(source_resource)
@@ -795,20 +927,24 @@ def _get_task_and_iteration_instruction(
     )
 
   if source_url > destination_url:
-    if delete_unmatched_destination_objects and not isinstance(
-        destination_resource, resource_reference.ManagedFolderResource
-    ):
-      if dry_run:
-        _print_would_remove(destination_resource)
-      else:
-        return (
-            _get_delete_task(destination_resource, user_request_args),
-            _IterateResource.DESTINATION,
-        )
-    return (None, _IterateResource.DESTINATION)
+    return _get_task_and_iteration_for_unmatched_destination(
+        user_request_args,
+        destination_resource,
+        delete_unmatched_destination_objects,
+        use_gsutil_delete_unmatched_behaviour,
+        dry_run,
+        skip_unsupported,
+    )
 
   if user_request_args.no_clobber:
-    return (None, _IterateResource.SOURCE)
+    iteration_instruction = (
+        _get_iterator_instruction_for_no_clobber_and_new_mtimes(
+            delete_unmatched_destination_objects,
+            use_gsutil_delete_unmatched_behaviour,
+        )
+    )
+
+    return (None, iteration_instruction)
 
   if isinstance(source_resource, resource_reference.ManagedFolderResource):
     # No metadata diffing is performed for managed folders.
@@ -837,6 +973,10 @@ def _get_task_and_iteration_instruction(
           skip_if_destination_has_later_modification_time
       ),
       skip_unsupported=skip_unsupported,
+      delete_unmatched_destination_objects=delete_unmatched_destination_objects,
+      use_gsutil_delete_unmatched_behaviour=(
+          use_gsutil_delete_unmatched_behaviour
+      ),
   )
 
 

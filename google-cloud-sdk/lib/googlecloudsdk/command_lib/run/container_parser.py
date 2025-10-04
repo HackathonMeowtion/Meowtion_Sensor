@@ -48,6 +48,7 @@ class ContainerParser(object):
   """ContainerParser adds custom container parsing behavior to ArgumentParser."""
 
   _CONTAINER_FLAG_NAME = '--container'
+  _PRESET_FLAG_NAME = '--preset'
 
   def __init__(
       self,
@@ -149,6 +150,33 @@ class ContainerParser(object):
           self._CONTAINER_FLAG_NAME + '='
       ):
         current = containers[value.split(sep='=', maxsplit=1)[1]]
+      # Add container for preset to container dict to capture container specific
+      # flags for the placeholder container.
+      # TODO(b/436350694): Change this to use preset metadata and rework this
+      # branch to use regex similar to how the base parsers work.
+      # For case "--preset=ollama"
+      elif (
+          isinstance(value, str)
+          and value.startswith(self._PRESET_FLAG_NAME + '=')
+      ):
+        preset_arg = value.split(sep='=', maxsplit=1)[1]
+        preset_name = preset_arg.split(':')[0]
+        if preset_name in flags.INGRESS_CONTAINER_PRESETS:
+          current = containers[preset_name]
+        remaining.append(value)
+      # For case "--preset ollama"
+      elif (
+          isinstance(value, str)
+          and value.startswith(self._PRESET_FLAG_NAME)
+          and i < len(args)
+      ):
+        preset_arg = args[i]
+        preset_name = preset_arg.split(':')[0]
+        if preset_name in flags.INGRESS_CONTAINER_PRESETS:
+          current = containers[args[i]]
+          remaining.append(value)
+          remaining.append(args[i])
+        i += 1
       elif value == '--':
         remaining.append(value)
         remaining.extend(args[i:])

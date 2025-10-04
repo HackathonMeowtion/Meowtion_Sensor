@@ -17,18 +17,214 @@ class Attribute(_messages.Message):
   r"""Message describing Attribute object
 
   Fields:
-    description: Optional. The description of the registry node attribute.
-    key: Optional. The key of the registry attribute.
-    value: Optional. The value of the registry node attribute.
+    key: Required. Key of attribute
+    value: Required. Value of attribute
   """
 
-  description = _messages.StringField(1)
-  key = _messages.StringField(2)
-  value = _messages.StringField(3)
+  key = _messages.StringField(1)
+  value = _messages.StringField(2)
 
 
 class CancelOperationRequest(_messages.Message):
   r"""The request message for Operations.CancelOperation."""
+
+
+class CloudnumberregistryProjectsLocationsCustomRangesCreateRequest(_messages.Message):
+  r"""A CloudnumberregistryProjectsLocationsCustomRangesCreateRequest object.
+
+  Fields:
+    customRange: A CustomRange resource to be passed as the request body.
+    customRangeId: Required. Id of the requesting object.
+    parent: Required. Value for parent.
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      will know to ignore the request if it has already been completed. The
+      server will guarantee that for at least 60 minutes since the first
+      request. For example, consider a situation where you make an initial
+      request and the request times out. If you make the request again with
+      the same request ID, the server can check if original operation with the
+      same request ID was received, and if so, will ignore the second request.
+      This prevents clients from accidentally creating duplicate commitments.
+      The request ID must be a valid UUID with the exception that zero UUID is
+      not supported (00000000-0000-0000-0000-000000000000).
+  """
+
+  customRange = _messages.MessageField('CustomRange', 1)
+  customRangeId = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+  requestId = _messages.StringField(4)
+
+
+class CloudnumberregistryProjectsLocationsCustomRangesDeleteRequest(_messages.Message):
+  r"""A CloudnumberregistryProjectsLocationsCustomRangesDeleteRequest object.
+
+  Fields:
+    force: Optional. If set to true, all associated resources will be deleted.
+    name: Required. Name of the resource
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      will know to ignore the request if it has already been completed. The
+      server will guarantee that for at least 60 minutes after the first
+      request. For example, consider a situation where you make an initial
+      request and the request times out. If you make the request again with
+      the same request ID, the server can check if original operation with the
+      same request ID was received, and if so, will ignore the second request.
+      This prevents clients from accidentally creating duplicate commitments.
+      The request ID must be a valid UUID with the exception that zero UUID is
+      not supported (00000000-0000-0000-0000-000000000000).
+  """
+
+  force = _messages.BooleanField(1)
+  name = _messages.StringField(2, required=True)
+  requestId = _messages.StringField(3)
+
+
+class CloudnumberregistryProjectsLocationsCustomRangesFindFreeIpRangeRequest(_messages.Message):
+  r"""A CloudnumberregistryProjectsLocationsCustomRangesFindFreeIpRangeRequest
+  object.
+
+  Fields:
+    freeRangeCount: Optional. The number of free IP ranges to find.
+    freeRangePrefixLength: Required. The prefix length of the free IP ranges
+      to find.
+    name: Required. Name of the CustomRange.
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      will know to ignore the request if it has already been completed. The
+      server will guarantee that for at least 60 minutes since the first
+      request. For example, consider a situation where you make an initial
+      request and the request times out. If you make the request again with
+      the same request ID, the server can check if original operation with the
+      same request ID was received, and if so, will ignore the second request.
+      This prevents clients from accidentally creating duplicate commitments.
+      The request ID must be a valid UUID with the exception that zero UUID is
+      not supported (00000000-0000-0000-0000-000000000000).
+  """
+
+  freeRangeCount = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  freeRangePrefixLength = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  name = _messages.StringField(3, required=True)
+  requestId = _messages.StringField(4)
+
+
+class CloudnumberregistryProjectsLocationsCustomRangesGetRequest(_messages.Message):
+  r"""A CloudnumberregistryProjectsLocationsCustomRangesGetRequest object.
+
+  Fields:
+    name: Required. Name of the resource
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class CloudnumberregistryProjectsLocationsCustomRangesListRequest(_messages.Message):
+  r"""A CloudnumberregistryProjectsLocationsCustomRangesListRequest object.
+
+  Fields:
+    filter: Optional. Filtering results.
+    orderBy: Optional. Hint for how to order the results.
+    pageSize: Optional. Requested page size. Server may return fewer items
+      than requested. If unspecified, server will pick an appropriate default.
+    pageToken: Optional. A token identifying a page of results the server
+      should return.
+    parent: Required. Parent value for ListCustomRangesRequest
+  """
+
+  filter = _messages.StringField(1)
+  orderBy = _messages.StringField(2)
+  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(4)
+  parent = _messages.StringField(5, required=True)
+
+
+class CloudnumberregistryProjectsLocationsCustomRangesPatchRequest(_messages.Message):
+  r"""A CloudnumberregistryProjectsLocationsCustomRangesPatchRequest object.
+
+  Fields:
+    customRange: A CustomRange resource to be passed as the request body.
+    name: Required. Identifier. name of resource
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      will know to ignore the request if it has already been completed. The
+      server will guarantee that for at least 60 minutes since the first
+      request. For example, consider a situation where you make an initial
+      request and the request times out. If you make the request again with
+      the same request ID, the server can check if original operation with the
+      same request ID was received, and if so, will ignore the second request.
+      This prevents clients from accidentally creating duplicate commitments.
+      The request ID must be a valid UUID with the exception that zero UUID is
+      not supported (00000000-0000-0000-0000-000000000000).
+    updateMask: Optional. Field mask is used to specify the fields to be
+      overwritten in the CustomRange resource by the update. The fields
+      specified in the update_mask are relative to the resource, not the full
+      request. A field will be overwritten if it is in the mask. If the user
+      does not provide a mask then all fields will be overwritten.
+  """
+
+  customRange = _messages.MessageField('CustomRange', 1)
+  name = _messages.StringField(2, required=True)
+  requestId = _messages.StringField(3)
+  updateMask = _messages.StringField(4)
+
+
+class CloudnumberregistryProjectsLocationsDiscoveredRangesFindFreeIpRangeRequest(_messages.Message):
+  r"""A
+  CloudnumberregistryProjectsLocationsDiscoveredRangesFindFreeIpRangeRequest
+  object.
+
+  Fields:
+    freeRangeCount: Optional. The number of free IP ranges to find.
+    freeRangePrefixLength: Required. The prefix length of the free IP ranges
+      to find.
+    name: Required. Name of the DiscoveredRange.
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      will know to ignore the request if it has already been completed. The
+      server will guarantee that for at least 60 minutes since the first
+      request. For example, consider a situation where you make an initial
+      request and the request times out. If you make the request again with
+      the same request ID, the server can check if original operation with the
+      same request ID was received, and if so, will ignore the second request.
+      This prevents clients from accidentally creating duplicate commitments.
+      The request ID must be a valid UUID with the exception that zero UUID is
+      not supported (00000000-0000-0000-0000-000000000000).
+  """
+
+  freeRangeCount = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  freeRangePrefixLength = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  name = _messages.StringField(3, required=True)
+  requestId = _messages.StringField(4)
+
+
+class CloudnumberregistryProjectsLocationsDiscoveredRangesGetRequest(_messages.Message):
+  r"""A CloudnumberregistryProjectsLocationsDiscoveredRangesGetRequest object.
+
+  Fields:
+    name: Required. Name of the resource
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class CloudnumberregistryProjectsLocationsDiscoveredRangesListRequest(_messages.Message):
+  r"""A CloudnumberregistryProjectsLocationsDiscoveredRangesListRequest
+  object.
+
+  Fields:
+    filter: Optional. Filtering results.
+    orderBy: Optional. Hint for how to order the results.
+    pageSize: Optional. Requested page size. Server may return fewer items
+      than requested. If unspecified, server will pick an appropriate default.
+    pageToken: Optional. A token identifying a page of results the server
+      should return.
+    parent: Required. Parent value for ListDiscoveredRangesRequest
+  """
+
+  filter = _messages.StringField(1)
+  orderBy = _messages.StringField(2)
+  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(4)
+  parent = _messages.StringField(5, required=True)
 
 
 class CloudnumberregistryProjectsLocationsGetRequest(_messages.Message):
@@ -41,10 +237,128 @@ class CloudnumberregistryProjectsLocationsGetRequest(_messages.Message):
   name = _messages.StringField(1, required=True)
 
 
+class CloudnumberregistryProjectsLocationsIpamAdminScopesCreateRequest(_messages.Message):
+  r"""A CloudnumberregistryProjectsLocationsIpamAdminScopesCreateRequest
+  object.
+
+  Fields:
+    ipamAdminScope: A IpamAdminScope resource to be passed as the request
+      body.
+    ipamAdminScopeId: Required. Id of the requesting object.
+    parent: Required. Value for parent.
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      will know to ignore the request if it has already been completed. The
+      server will guarantee that for at least 60 minutes since the first
+      request. For example, consider a situation where you make an initial
+      request and the request times out. If you make the request again with
+      the same request ID, the server can check if original operation with the
+      same request ID was received, and if so, will ignore the second request.
+      This prevents clients from accidentally creating duplicate commitments.
+      The request ID must be a valid UUID with the exception that zero UUID is
+      not supported (00000000-0000-0000-0000-000000000000).
+  """
+
+  ipamAdminScope = _messages.MessageField('IpamAdminScope', 1)
+  ipamAdminScopeId = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+  requestId = _messages.StringField(4)
+
+
+class CloudnumberregistryProjectsLocationsIpamAdminScopesDeleteRequest(_messages.Message):
+  r"""A CloudnumberregistryProjectsLocationsIpamAdminScopesDeleteRequest
+  object.
+
+  Fields:
+    force: Optional. If set to true, all associated resources will be deleted.
+    name: Required. Name of the resource
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      will know to ignore the request if it has already been completed. The
+      server will guarantee that for at least 60 minutes after the first
+      request. For example, consider a situation where you make an initial
+      request and the request times out. If you make the request again with
+      the same request ID, the server can check if original operation with the
+      same request ID was received, and if so, will ignore the second request.
+      This prevents clients from accidentally creating duplicate commitments.
+      The request ID must be a valid UUID with the exception that zero UUID is
+      not supported (00000000-0000-0000-0000-000000000000).
+  """
+
+  force = _messages.BooleanField(1)
+  name = _messages.StringField(2, required=True)
+  requestId = _messages.StringField(3)
+
+
+class CloudnumberregistryProjectsLocationsIpamAdminScopesGetRequest(_messages.Message):
+  r"""A CloudnumberregistryProjectsLocationsIpamAdminScopesGetRequest object.
+
+  Fields:
+    name: Required. Name of the resource
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class CloudnumberregistryProjectsLocationsIpamAdminScopesListRequest(_messages.Message):
+  r"""A CloudnumberregistryProjectsLocationsIpamAdminScopesListRequest object.
+
+  Fields:
+    filter: Optional. Filtering results
+    orderBy: Optional. Hint for how to order the results
+    pageSize: Optional. Requested page size. Server may return fewer items
+      than requested. If unspecified, server will pick an appropriate default.
+    pageToken: Optional. A token identifying a page of results the server
+      should return.
+    parent: Required. Parent value for ListIpamAdminScopesRequest
+  """
+
+  filter = _messages.StringField(1)
+  orderBy = _messages.StringField(2)
+  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(4)
+  parent = _messages.StringField(5, required=True)
+
+
+class CloudnumberregistryProjectsLocationsIpamAdminScopesPatchRequest(_messages.Message):
+  r"""A CloudnumberregistryProjectsLocationsIpamAdminScopesPatchRequest
+  object.
+
+  Fields:
+    ipamAdminScope: A IpamAdminScope resource to be passed as the request
+      body.
+    name: Required. Identifier. name of resource
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      will know to ignore the request if it has already been completed. The
+      server will guarantee that for at least 60 minutes since the first
+      request. For example, consider a situation where you make an initial
+      request and the request times out. If you make the request again with
+      the same request ID, the server can check if original operation with the
+      same request ID was received, and if so, will ignore the second request.
+      This prevents clients from accidentally creating duplicate commitments.
+      The request ID must be a valid UUID with the exception that zero UUID is
+      not supported (00000000-0000-0000-0000-000000000000).
+    updateMask: Optional. Field mask is used to specify the fields to be
+      overwritten in the IpamAdminScope resource by the update. The fields
+      specified in the update_mask are relative to the resource, not the full
+      request. A field will be overwritten if it is in the mask. If the user
+      does not provide a mask then all fields will be overwritten.
+  """
+
+  ipamAdminScope = _messages.MessageField('IpamAdminScope', 1)
+  name = _messages.StringField(2, required=True)
+  requestId = _messages.StringField(3)
+  updateMask = _messages.StringField(4)
+
+
 class CloudnumberregistryProjectsLocationsListRequest(_messages.Message):
   r"""A CloudnumberregistryProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -55,10 +369,11 @@ class CloudnumberregistryProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class CloudnumberregistryProjectsLocationsOperationsCancelRequest(_messages.Message):
@@ -110,6 +425,95 @@ class CloudnumberregistryProjectsLocationsOperationsListRequest(_messages.Messag
   pageToken = _messages.StringField(4)
 
 
+class CloudnumberregistryProjectsLocationsRealmsCreateRequest(_messages.Message):
+  r"""A CloudnumberregistryProjectsLocationsRealmsCreateRequest object.
+
+  Fields:
+    parent: Required. Value for parent.
+    realm: A Realm resource to be passed as the request body.
+    realmId: Required. Id of the requesting object.
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      will know to ignore the request if it has already been completed. The
+      server will guarantee that for at least 60 minutes since the first
+      request.
+  """
+
+  parent = _messages.StringField(1, required=True)
+  realm = _messages.MessageField('Realm', 2)
+  realmId = _messages.StringField(3)
+  requestId = _messages.StringField(4)
+
+
+class CloudnumberregistryProjectsLocationsRealmsDeleteRequest(_messages.Message):
+  r"""A CloudnumberregistryProjectsLocationsRealmsDeleteRequest object.
+
+  Fields:
+    force: Optional. If set to true, all associated resources will be deleted.
+    name: Required. Name of the resource
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      will know to ignore the request if it has already been completed. The
+      server will guarantee that for at least 60 minutes after the first
+      request.
+  """
+
+  force = _messages.BooleanField(1)
+  name = _messages.StringField(2, required=True)
+  requestId = _messages.StringField(3)
+
+
+class CloudnumberregistryProjectsLocationsRealmsGetRequest(_messages.Message):
+  r"""A CloudnumberregistryProjectsLocationsRealmsGetRequest object.
+
+  Fields:
+    name: Required. Name of the resource
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class CloudnumberregistryProjectsLocationsRealmsListRequest(_messages.Message):
+  r"""A CloudnumberregistryProjectsLocationsRealmsListRequest object.
+
+  Fields:
+    filter: Optional. Filtering results
+    orderBy: Optional. Hint for how to order the results
+    pageSize: Optional. Requested page size. Server may return fewer items
+      than requested. If unspecified, server will pick an appropriate default.
+    pageToken: Optional. A token identifying a page of results the server
+      should return.
+    parent: Required. Parent value for ListRealmsRequest
+  """
+
+  filter = _messages.StringField(1)
+  orderBy = _messages.StringField(2)
+  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(4)
+  parent = _messages.StringField(5, required=True)
+
+
+class CloudnumberregistryProjectsLocationsRealmsPatchRequest(_messages.Message):
+  r"""A CloudnumberregistryProjectsLocationsRealmsPatchRequest object.
+
+  Fields:
+    name: Required. Identifier. Unique name/ID of the realm
+    realm: A Realm resource to be passed as the request body.
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      will know to ignore the request if it has already been completed. The
+      server will guarantee that for at least 60 minutes since the first
+      request.
+    updateMask: Optional. Field mask is used to specify the fields to be
+      overwritten in the Realm resource by the update.
+  """
+
+  name = _messages.StringField(1, required=True)
+  realm = _messages.MessageField('Realm', 2)
+  requestId = _messages.StringField(3)
+  updateMask = _messages.StringField(4)
+
+
 class CloudnumberregistryProjectsLocationsRegistryBooksCreateRequest(_messages.Message):
   r"""A CloudnumberregistryProjectsLocationsRegistryBooksCreateRequest object.
 
@@ -140,8 +544,7 @@ class CloudnumberregistryProjectsLocationsRegistryBooksDeleteRequest(_messages.M
   r"""A CloudnumberregistryProjectsLocationsRegistryBooksDeleteRequest object.
 
   Fields:
-    force: Optional. If set to true, any node events and historical events
-      associated with this registry book will also be deleted.
+    force: Optional. If set to true, all associated resources will be deleted.
     name: Required. Name of the resource
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
@@ -171,28 +574,6 @@ class CloudnumberregistryProjectsLocationsRegistryBooksGetRequest(_messages.Mess
   name = _messages.StringField(1, required=True)
 
 
-class CloudnumberregistryProjectsLocationsRegistryBooksHistoricalEventsShowRequest(_messages.Message):
-  r"""A
-  CloudnumberregistryProjectsLocationsRegistryBooksHistoricalEventsShowRequest
-  object.
-
-  Fields:
-    filter: Optional. Filtering results
-    orderBy: Optional. Hint for how to order the results
-    pageSize: Optional. Requested page size. Server may return fewer items
-      than requested. If unspecified, server will pick an appropriate default.
-    pageToken: Optional. A token identifying a page of results the server
-      should return.
-    parent: Required. Parent value for ShowHistoricalEventsRequest
-  """
-
-  filter = _messages.StringField(1)
-  orderBy = _messages.StringField(2)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
-  parent = _messages.StringField(5, required=True)
-
-
 class CloudnumberregistryProjectsLocationsRegistryBooksListRequest(_messages.Message):
   r"""A CloudnumberregistryProjectsLocationsRegistryBooksListRequest object.
 
@@ -211,29 +592,6 @@ class CloudnumberregistryProjectsLocationsRegistryBooksListRequest(_messages.Mes
   pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
   pageToken = _messages.StringField(4)
   parent = _messages.StringField(5, required=True)
-
-
-class CloudnumberregistryProjectsLocationsRegistryBooksNodeEventsShowRequest(_messages.Message):
-  r"""A CloudnumberregistryProjectsLocationsRegistryBooksNodeEventsShowRequest
-  object.
-
-  Fields:
-    filter: Optional. Filtering results
-    ipRange: Required. The IP range of node events to list.
-    orderBy: Optional. Hint for how to order the results
-    pageSize: Optional. Requested page size. Server may return fewer items
-      than requested. If unspecified, server will pick an appropriate default.
-    pageToken: Optional. A token identifying a page of results the server
-      should return.
-    parent: Required. Parent value for ShowNodeEventsRequest
-  """
-
-  filter = _messages.StringField(1)
-  ipRange = _messages.StringField(2)
-  orderBy = _messages.StringField(3)
-  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(5)
-  parent = _messages.StringField(6, required=True)
 
 
 class CloudnumberregistryProjectsLocationsRegistryBooksPatchRequest(_messages.Message):
@@ -266,175 +624,83 @@ class CloudnumberregistryProjectsLocationsRegistryBooksPatchRequest(_messages.Me
   updateMask = _messages.StringField(4)
 
 
-class CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesCreateRequest(_messages.Message):
-  r"""A
-  CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesCreateRequest
-  object.
-
-  Fields:
-    parent: Required. Value for parent.
-    registryNode: A RegistryNode resource to be passed as the request body.
-    registryNodeId: Required. Id of the requesting object
-    requestId: Optional. An optional request ID to identify requests. Specify
-      a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes since the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
-  """
-
-  parent = _messages.StringField(1, required=True)
-  registryNode = _messages.MessageField('RegistryNode', 2)
-  registryNodeId = _messages.StringField(3)
-  requestId = _messages.StringField(4)
-
-
-class CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesDeleteRequest(_messages.Message):
-  r"""A
-  CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesDeleteRequest
-  object.
-
-  Fields:
-    name: Required. Name of the resource
-    requestId: Optional. An optional request ID to identify requests. Specify
-      a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes after the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
-  """
-
-  name = _messages.StringField(1, required=True)
-  requestId = _messages.StringField(2)
-
-
-class CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesGetRequest(_messages.Message):
-  r"""A
-  CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesGetRequest
-  object.
-
-  Fields:
-    name: Required. Name of the resource
-  """
-
-  name = _messages.StringField(1, required=True)
-
-
-class CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesListRequest(_messages.Message):
-  r"""A
-  CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesListRequest
-  object.
-
-  Fields:
-    filter: Optional. Filtering results
-    orderBy: Optional. Hint for how to order the results
-    pageSize: Optional. Requested page size. Server may return fewer items
-      than requested. If unspecified, server will pick an appropriate default.
-    pageToken: Optional. A token identifying a page of results the server
-      should return.
-    parent: Required. Parent value for ListRegistryNodesRequest
-  """
-
-  filter = _messages.StringField(1)
-  orderBy = _messages.StringField(2)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
-  parent = _messages.StringField(5, required=True)
-
-
-class CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesPatchRequest(_messages.Message):
-  r"""A
-  CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesPatchRequest
-  object.
-
-  Fields:
-    name: Required. Identifier. name of resource
-    registryNode: A RegistryNode resource to be passed as the request body.
-    requestId: Optional. An optional request ID to identify requests. Specify
-      a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes since the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
-    updateMask: Optional. Field mask is used to specify the fields to be
-      overwritten in the RegistryNode resource by the update. The fields
-      specified in the update_mask are relative to the resource, not the full
-      request. A field will be overwritten if it is in the mask. If the user
-      does not provide a mask then all fields will be overwritten.
-  """
-
-  name = _messages.StringField(1, required=True)
-  registryNode = _messages.MessageField('RegistryNode', 2)
-  requestId = _messages.StringField(3)
-  updateMask = _messages.StringField(4)
-
-
-class CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesSearchRequest(_messages.Message):
-  r"""A
-  CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesSearchRequest
-  object.
-
-  Fields:
-    attributeKeys: Optional. A list of attribute keys owned by the registry
-      nodes.
-    ipRange: Optional. IP range to filter for registry node.
-    keywords: Optional. A list of keywords that are contained by the attribute
-      values within registry nodes.
-    orderBy: Optional. Hint for how to order the results
-    pageSize: Optional. Requested page size. Server may return fewer items
-      than requested. If unspecified, server will pick an appropriate default.
-    pageToken: Optional. A token identifying a page of results the server
-      should return.
-    parent: Required. Name of the parent resource
-    source: Optional. Source filter of the registry nodes.
-  """
-
-  attributeKeys = _messages.StringField(1, repeated=True)
-  ipRange = _messages.StringField(2)
-  keywords = _messages.StringField(3, repeated=True)
-  orderBy = _messages.StringField(4)
-  pageSize = _messages.IntegerField(5, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(6)
-  parent = _messages.StringField(7, required=True)
-  source = _messages.StringField(8)
-
-
-class Empty(_messages.Message):
-  r"""A generic empty message that you can re-use to avoid defining duplicated
-  empty messages in your APIs. A typical example is to use it as the request
-  or the response type of an API method. For instance: service Foo { rpc
-  Bar(google.protobuf.Empty) returns (google.protobuf.Empty); }
-  """
-
-
-
-class HistoricalEvent(_messages.Message):
-  r"""Message describing HistoricalEvent object
+class CustomRange(_messages.Message):
+  r"""Message describing CustomRange object
 
   Messages:
     LabelsValue: Optional. Labels as key value pairs
 
   Fields:
-    createTime: Output only. [Output only] Create time stamp
-    ipRange: Required. IP range of registry node to view history.
+    attributes: Optional. The attributes of the CustomRange.
+    description: Optional. Description of the CustomRange.
+    ipv4CidrRange: Optional. The IPv4 CIDR range of the CustomRange.
+    ipv6CidrRange: Optional. The IPv6 CIDR range of the CustomRange.
     labels: Optional. Labels as key value pairs
     name: Required. Identifier. name of resource
-    nodeEvents: Output only. List of node events of IP range.
+    parentRange: Optional. The parent range of the CustomRange.
+    realm: Required. The realm of the CustomRange.
+    registryBook: Required. The registry book of the CustomRange.
+  """
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class LabelsValue(_messages.Message):
+    r"""Optional. Labels as key value pairs
+
+    Messages:
+      AdditionalProperty: An additional property for a LabelsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type LabelsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a LabelsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  attributes = _messages.MessageField('Attribute', 1, repeated=True)
+  description = _messages.StringField(2)
+  ipv4CidrRange = _messages.StringField(3)
+  ipv6CidrRange = _messages.StringField(4)
+  labels = _messages.MessageField('LabelsValue', 5)
+  name = _messages.StringField(6)
+  parentRange = _messages.StringField(7)
+  realm = _messages.StringField(8)
+  registryBook = _messages.StringField(9)
+
+
+class DiscoveredRange(_messages.Message):
+  r"""Message describing DiscoveredRange object
+
+  Messages:
+    LabelsValue: Optional. Labels as key value pairs
+
+  Fields:
+    attributes: Optional. The attributes of the DiscoveredRange.
+    createTime: Output only. [Output only] Create time stamp
+    description: Optional. Description of the DiscoveredRange.
+    discoveryMetadata: Output only. Owner metadata for this DiscoveredRange. A
+      unique set of metadata is associated with each DiscoveredRange. If an IP
+      range is shared by multiple resources (e.g., an Address resource and an
+      Instance resource, or multiple ForwardingRules),separate
+      DiscoveredRanges are created, each with a distinct owner. This ensures
+      each DiscoveredRange has its own unique set of attributes, labels,
+      create time and update time.
+    ipv4CidrRange: Optional. The IPv4 CIDR range of the DiscoveredRange.
+    ipv6CidrRange: Optional. The IPv6 CIDR range of the DiscoveredRange.
+    labels: Optional. Labels as key value pairs
+    name: Required. Identifier. Name of the DiscoveredRange.
+    parentRange: Optional. The parent range of the DiscoveredRange.
+    realm: Required. The realm of the DiscoveredRange.
+    registryBook: Required. The registry book of the DiscoveredRange.
     updateTime: Output only. [Output only] Update time stamp
   """
 
@@ -462,26 +728,227 @@ class HistoricalEvent(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
+  attributes = _messages.MessageField('Attribute', 1, repeated=True)
+  createTime = _messages.StringField(2)
+  description = _messages.StringField(3)
+  discoveryMetadata = _messages.MessageField('DiscoveryMetadata', 4)
+  ipv4CidrRange = _messages.StringField(5)
+  ipv6CidrRange = _messages.StringField(6)
+  labels = _messages.MessageField('LabelsValue', 7)
+  name = _messages.StringField(8)
+  parentRange = _messages.StringField(9)
+  realm = _messages.StringField(10)
+  registryBook = _messages.StringField(11)
+  updateTime = _messages.StringField(12)
+
+
+class DiscoveryMetadata(_messages.Message):
+  r"""Discovery metadata of the discovered resource.
+
+  Enums:
+    StateValueValuesEnum: Output only. The state of the resource.
+
+  Fields:
+    createTime: Output only. The time when the resource was created.
+    eventTime: Output only. The time when the event happened.
+    resource: Output only. The resource name of the discovered resource,
+      should be API-agnostic. Example:
+      "projects/{project_number}/networks/{network_id}".
+    resourceUri: Output only. The resource uri of the discovered resource.
+    state: Output only. The state of the resource.
+    updateTime: Output only. The time when the resource was last modified.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. The state of the resource.
+
+    Values:
+      RESOURCE_STATE_UNSPECIFIED: Unspecified state.
+      INVALID: The resource is in an invalid state.
+      EXISTS: The resource exists in the backing store (is not tombstoned or
+        completely missing) and there were no failures reading out the
+        resource level metadata.
+      DOES_NOT_EXIST: Resource does not exist or has been deleted or soft-
+        deleted.
+      ERROR: There was an error reading out the resource level metadata.
+    """
+    RESOURCE_STATE_UNSPECIFIED = 0
+    INVALID = 1
+    EXISTS = 2
+    DOES_NOT_EXIST = 3
+    ERROR = 4
+
   createTime = _messages.StringField(1)
-  ipRange = _messages.StringField(2)
-  labels = _messages.MessageField('LabelsValue', 3)
-  name = _messages.StringField(4)
-  nodeEvents = _messages.MessageField('NodeEvent', 5, repeated=True)
+  eventTime = _messages.StringField(2)
+  resource = _messages.StringField(3)
+  resourceUri = _messages.StringField(4)
+  state = _messages.EnumField('StateValueValuesEnum', 5)
   updateTime = _messages.StringField(6)
 
 
-class ImportInfo(_messages.Message):
-  r"""Message describing import metadata.
-
-  Fields:
-    importTime: Output only. [Output only] Import time stamp.
-    source: Optional. Resource name of imported source.
-    writer: Optional. Writer of imported information.
+class Empty(_messages.Message):
+  r"""A generic empty message that you can re-use to avoid defining duplicated
+  empty messages in your APIs. A typical example is to use it as the request
+  or the response type of an API method. For instance: service Foo { rpc
+  Bar(google.protobuf.Empty) returns (google.protobuf.Empty); }
   """
 
-  importTime = _messages.StringField(1)
-  source = _messages.StringField(2)
-  writer = _messages.StringField(3)
+
+
+class FindCustomRangeFreeIpRangeResponse(_messages.Message):
+  r"""Message for the response to finding free IP ranges.
+
+  Fields:
+    freeIpCidrRanges: Output only. Free IP CIDR ranges found in the
+      CustomRange.
+  """
+
+  freeIpCidrRanges = _messages.StringField(1, repeated=True)
+
+
+class FindDiscoveredRangeFreeIpRangeResponse(_messages.Message):
+  r"""Message for the response to finding free IP ranges.
+
+  Fields:
+    freeIpCidrRanges: Output only. Free IP CIDR ranges found in the
+      DiscoveredRange.
+  """
+
+  freeIpCidrRanges = _messages.StringField(1, repeated=True)
+
+
+class IpamAdminScope(_messages.Message):
+  r"""Message describing IpamAdminScope object
+
+  Enums:
+    EnabledAddonPlatformsValueListEntryValuesEnum:
+    StateValueValuesEnum: Output only. State of resource discovery pipeline.
+
+  Messages:
+    LabelsValue: Optional. Labels as key value pairs
+
+  Fields:
+    createTime: Output only. [Output only] Create time stamp
+    enabledAddonPlatforms: Required. Addon platforms that are enabled for this
+      IPAM admin scope. Cloud Number Registry only discovers the IP addresses
+      from the enabled platforms.
+    labels: Optional. Labels as key value pairs
+    name: Required. Identifier. name of resource
+    scopes: Required. Administrative scopes enabled for IP address discovery
+      and management. For example, "organizations/1234567890". Minimum of 1
+      scope is required. In preview, only one organization scope is allowed.
+    state: Output only. State of resource discovery pipeline.
+    updateTime: Output only. [Output only] Update time stamp
+  """
+
+  class EnabledAddonPlatformsValueListEntryValuesEnum(_messages.Enum):
+    r"""EnabledAddonPlatformsValueListEntryValuesEnum enum type.
+
+    Values:
+      ADD_ON_PLATFORM_UNSPECIFIED: Unspecified add-on platform.
+      GCE: Google Compute Engine.
+    """
+    ADD_ON_PLATFORM_UNSPECIFIED = 0
+    GCE = 1
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. State of resource discovery pipeline.
+
+    Values:
+      DISCOVERY_PIPELINE_STATE_UNSPECIFIED: Unspecified state.
+      INTERNAL_FAILURE: Internal failure.
+      FAILED: Failure.
+      SETUP_IN_PROGRESS: Setup in progress.
+      READY_FOR_USE: Ready for use.
+      DELETING_IN_PROGRESS: Deleting in progress.
+      UPDATING: Updating.
+      RECOVERING: Recovering.
+    """
+    DISCOVERY_PIPELINE_STATE_UNSPECIFIED = 0
+    INTERNAL_FAILURE = 1
+    FAILED = 2
+    SETUP_IN_PROGRESS = 3
+    READY_FOR_USE = 4
+    DELETING_IN_PROGRESS = 5
+    UPDATING = 6
+    RECOVERING = 7
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class LabelsValue(_messages.Message):
+    r"""Optional. Labels as key value pairs
+
+    Messages:
+      AdditionalProperty: An additional property for a LabelsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type LabelsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a LabelsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  createTime = _messages.StringField(1)
+  enabledAddonPlatforms = _messages.EnumField('EnabledAddonPlatformsValueListEntryValuesEnum', 2, repeated=True)
+  labels = _messages.MessageField('LabelsValue', 3)
+  name = _messages.StringField(4)
+  scopes = _messages.StringField(5, repeated=True)
+  state = _messages.EnumField('StateValueValuesEnum', 6)
+  updateTime = _messages.StringField(7)
+
+
+class ListCustomRangesResponse(_messages.Message):
+  r"""Message for response to listing CustomRanges
+
+  Fields:
+    customRanges: The list of CustomRange
+    nextPageToken: A token identifying a page of results the server should
+      return.
+    unreachable: Locations that could not be reached.
+  """
+
+  customRanges = _messages.MessageField('CustomRange', 1, repeated=True)
+  nextPageToken = _messages.StringField(2)
+  unreachable = _messages.StringField(3, repeated=True)
+
+
+class ListDiscoveredRangesResponse(_messages.Message):
+  r"""Message for response to listing DiscoveredRanges
+
+  Fields:
+    discoveredRanges: The list of DiscoveredRange
+    nextPageToken: A token identifying a page of results the server should
+      return.
+    unreachable: Locations that could not be reached.
+  """
+
+  discoveredRanges = _messages.MessageField('DiscoveredRange', 1, repeated=True)
+  nextPageToken = _messages.StringField(2)
+  unreachable = _messages.StringField(3, repeated=True)
+
+
+class ListIpamAdminScopesResponse(_messages.Message):
+  r"""Message for response to listing ipamAdminScopes
+
+  Fields:
+    ipamAdminScopes: The list of IpamAdminScope
+    nextPageToken: A token identifying a page of results the server should
+      return.
+    unreachable: Locations that could not be reached.
+  """
+
+  ipamAdminScopes = _messages.MessageField('IpamAdminScope', 1, repeated=True)
+  nextPageToken = _messages.StringField(2)
+  unreachable = _messages.StringField(3, repeated=True)
 
 
 class ListLocationsResponse(_messages.Message):
@@ -510,6 +977,21 @@ class ListOperationsResponse(_messages.Message):
   operations = _messages.MessageField('Operation', 2, repeated=True)
 
 
+class ListRealmsResponse(_messages.Message):
+  r"""Message for response to listing Realms
+
+  Fields:
+    nextPageToken: A token identifying a page of results the server should
+      return.
+    realms: The list of Realm
+    unreachable: Locations that could not be reached.
+  """
+
+  nextPageToken = _messages.StringField(1)
+  realms = _messages.MessageField('Realm', 2, repeated=True)
+  unreachable = _messages.StringField(3, repeated=True)
+
+
 class ListRegistryBooksResponse(_messages.Message):
   r"""Message for response to listing RegistryBooks
 
@@ -522,21 +1004,6 @@ class ListRegistryBooksResponse(_messages.Message):
 
   nextPageToken = _messages.StringField(1)
   registryBooks = _messages.MessageField('RegistryBook', 2, repeated=True)
-  unreachable = _messages.StringField(3, repeated=True)
-
-
-class ListRegistryNodesResponse(_messages.Message):
-  r"""Message for response to listing RegistryNodes
-
-  Fields:
-    nextPageToken: A token identifying a page of results the server should
-      return.
-    registryNodes: The list of RegistryNode
-    unreachable: Locations that could not be reached.
-  """
-
-  nextPageToken = _messages.StringField(1)
-  registryNodes = _messages.MessageField('RegistryNode', 2, repeated=True)
   unreachable = _messages.StringField(3, repeated=True)
 
 
@@ -618,53 +1085,6 @@ class Location(_messages.Message):
   locationId = _messages.StringField(3)
   metadata = _messages.MessageField('MetadataValue', 4)
   name = _messages.StringField(5)
-
-
-class NodeEvent(_messages.Message):
-  r"""Message describing NodeEvent object
-
-  Messages:
-    LabelsValue: Optional. Labels as key value pairs
-
-  Fields:
-    createTime: Output only. [Output only] Create time stamp
-    labels: Optional. Labels as key value pairs
-    name: Required. Identifier. name of resource
-    postEventNode: Output only. The registry node before the node event.
-    preEventNode: Output only. The registry node before the node event.
-    updateTime: Output only. [Output only] Update time stamp
-  """
-
-  @encoding.MapUnrecognizedFields('additionalProperties')
-  class LabelsValue(_messages.Message):
-    r"""Optional. Labels as key value pairs
-
-    Messages:
-      AdditionalProperty: An additional property for a LabelsValue object.
-
-    Fields:
-      additionalProperties: Additional properties of type LabelsValue
-    """
-
-    class AdditionalProperty(_messages.Message):
-      r"""An additional property for a LabelsValue object.
-
-      Fields:
-        key: Name of the additional property.
-        value: A string attribute.
-      """
-
-      key = _messages.StringField(1)
-      value = _messages.StringField(2)
-
-    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
-
-  createTime = _messages.StringField(1)
-  labels = _messages.MessageField('LabelsValue', 2)
-  name = _messages.StringField(3)
-  postEventNode = _messages.MessageField('RegistryNode', 4)
-  preEventNode = _messages.MessageField('RegistryNode', 5)
-  updateTime = _messages.StringField(6)
 
 
 class Operation(_messages.Message):
@@ -802,18 +1222,68 @@ class OperationMetadata(_messages.Message):
   verb = _messages.StringField(7)
 
 
-class RegistryBook(_messages.Message):
-  r"""Message describing RegistryBook object
+class Realm(_messages.Message):
+  r"""Message describing Realm object
+
+  Enums:
+    IpVersionValueValuesEnum: Optional. IP version of the realm.
+    ManagementTypeValueValuesEnum: Required. Management type of realm.
+    TrafficTypeValueValuesEnum: Required. Traffic type of realm.
 
   Messages:
     LabelsValue: Optional. Labels as key value pairs
 
   Fields:
     createTime: Output only. [Output only] Create time stamp
+    discoveryMetadata: Output only. Discovery metadata of the realm.
+    ipVersion: Optional. IP version of the realm.
     labels: Optional. Labels as key value pairs
-    name: Required. Identifier. name of resource
+    managementType: Required. Management type of realm.
+    name: Required. Identifier. Unique name/ID of the realm
+    registryBook: Required. URI of the registry book that claims the realm.
+    trafficType: Required. Traffic type of realm.
     updateTime: Output only. [Output only] Update time stamp
   """
+
+  class IpVersionValueValuesEnum(_messages.Enum):
+    r"""Optional. IP version of the realm.
+
+    Values:
+      IP_VERSION_UNSPECIFIED: Unspecified IP version.
+      IPV4: IPv4.
+      IPV6: IPv6.
+    """
+    IP_VERSION_UNSPECIFIED = 0
+    IPV4 = 1
+    IPV6 = 2
+
+  class ManagementTypeValueValuesEnum(_messages.Enum):
+    r"""Required. Management type of realm.
+
+    Values:
+      MANAGEMENT_TYPE_UNSPECIFIED: Unspecified management type.
+      CNR: Managed by Cloud Number Registry.
+      USER: Managed by User.
+    """
+    MANAGEMENT_TYPE_UNSPECIFIED = 0
+    CNR = 1
+    USER = 2
+
+  class TrafficTypeValueValuesEnum(_messages.Enum):
+    r"""Required. Traffic type of realm.
+
+    Values:
+      TRAFFIC_TYPE_UNSPECIFIED: Unspecified traffic type.
+      UNSET: Unset traffic type.
+      INTERNET: Internet traffic.
+      PRIVATE: Private traffic.
+      LINKLOCAL: Linklocal traffic.
+    """
+    TRAFFIC_TYPE_UNSPECIFIED = 0
+    UNSET = 1
+    INTERNET = 2
+    PRIVATE = 3
+    LINKLOCAL = 4
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
@@ -840,23 +1310,27 @@ class RegistryBook(_messages.Message):
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
   createTime = _messages.StringField(1)
-  labels = _messages.MessageField('LabelsValue', 2)
-  name = _messages.StringField(3)
-  updateTime = _messages.StringField(4)
+  discoveryMetadata = _messages.MessageField('DiscoveryMetadata', 2)
+  ipVersion = _messages.EnumField('IpVersionValueValuesEnum', 3)
+  labels = _messages.MessageField('LabelsValue', 4)
+  managementType = _messages.EnumField('ManagementTypeValueValuesEnum', 5)
+  name = _messages.StringField(6)
+  registryBook = _messages.StringField(7)
+  trafficType = _messages.EnumField('TrafficTypeValueValuesEnum', 8)
+  updateTime = _messages.StringField(9)
 
 
-class RegistryNode(_messages.Message):
-  r"""Message describing RegistryNode object
+class RegistryBook(_messages.Message):
+  r"""Message describing RegistryBook object
 
   Messages:
     LabelsValue: Optional. Labels as key value pairs
 
   Fields:
-    attribute: Optional. Attributes represent the custom metadata for registry
-      node.
+    claimedScopes: Optional. List of scopes claimed by the RegistryBook. In
+      Preview, Only project scope is supported. Each scope is in the format of
+      projects/{project}. Each scope can only be claimed once.
     createTime: Output only. [Output only] Create time stamp
-    importInfo: Optional. Metadata contains resource importing information.
-    ipRange: Required. IP range of registry node.
     labels: Optional. Labels as key value pairs
     name: Required. Identifier. name of resource
     updateTime: Output only. [Output only] Update time stamp
@@ -886,58 +1360,11 @@ class RegistryNode(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
-  attribute = _messages.MessageField('Attribute', 1, repeated=True)
+  claimedScopes = _messages.StringField(1, repeated=True)
   createTime = _messages.StringField(2)
-  importInfo = _messages.MessageField('ImportInfo', 3)
-  ipRange = _messages.StringField(4)
-  labels = _messages.MessageField('LabelsValue', 5)
-  name = _messages.StringField(6)
-  updateTime = _messages.StringField(7)
-
-
-class SearchRegistryNodesResponse(_messages.Message):
-  r"""Message represents the response of registry search API.
-
-  Fields:
-    nextPageToken: A token identifying a page of results the server should
-      return.
-    registryNodes: The list of RegistryNode.
-    unreachable: Locations that could not be reached.
-  """
-
-  nextPageToken = _messages.StringField(1)
-  registryNodes = _messages.MessageField('RegistryNode', 2, repeated=True)
-  unreachable = _messages.StringField(3, repeated=True)
-
-
-class ShowHistoricalEventsResponse(_messages.Message):
-  r"""Message for response to listing NodeEvents
-
-  Fields:
-    historicalEvents: The list of NodeEvent
-    nextPageToken: A token identifying a page of results the server should
-      return.
-    unreachable: Locations that could not be reached.
-  """
-
-  historicalEvents = _messages.MessageField('HistoricalEvent', 1, repeated=True)
-  nextPageToken = _messages.StringField(2)
-  unreachable = _messages.StringField(3, repeated=True)
-
-
-class ShowNodeEventsResponse(_messages.Message):
-  r"""Message for response to listing NodeEvents
-
-  Fields:
-    nextPageToken: A token identifying a page of results the server should
-      return.
-    nodeEvents: The list of NodeEvent
-    unreachable: Locations that could not be reached.
-  """
-
-  nextPageToken = _messages.StringField(1)
-  nodeEvents = _messages.MessageField('NodeEvent', 2, repeated=True)
-  unreachable = _messages.StringField(3, repeated=True)
+  labels = _messages.MessageField('LabelsValue', 3)
+  name = _messages.StringField(4)
+  updateTime = _messages.StringField(5)
 
 
 class StandardQueryParameters(_messages.Message):

@@ -436,11 +436,14 @@ class BinaryauthorizationProjectsPlatformsPoliciesDeleteRequest(_messages.Messag
   r"""A BinaryauthorizationProjectsPlatformsPoliciesDeleteRequest object.
 
   Fields:
+    etag: Optional. Used to prevent deleting the policy when another request
+      has updated it since it was retrieved.
     name: Required. The name of the platform policy to delete, in the format
       `projects/*/platforms/*/policies/*`.
   """
 
-  name = _messages.StringField(1, required=True)
+  etag = _messages.StringField(1)
+  name = _messages.StringField(2, required=True)
 
 
 class BinaryauthorizationProjectsPlatformsPoliciesGetRequest(_messages.Message):
@@ -1263,14 +1266,14 @@ class PkixPublicKey(_messages.Message):
   Fields:
     keyId: Optional. The ID of this public key. Signatures verified by Binary
       Authorization must include the ID of the public key that can be used to
-      verify them, and that ID must match the contents of this field exactly.
-      This may be explicitly provided by the caller, but it MUST be a valid
-      RFC3986 URI. If `key_id` is left blank and this `PkixPublicKey` is not
-      used in the context of a wrapper (see next paragraph), a default key ID
-      will be computed based on the digest of the DER encoding of the public
-      key. If this `PkixPublicKey` is used in the context of a wrapper that
-      has its own notion of key ID (e.g. `AttestorPublicKey`), then this field
-      can either: * Match that value exactly. * Or be left blank, in which
+      verify them. The ID must match exactly contents of the `key_id` field
+      exactly. The ID may be explicitly provided by the caller, but it MUST be
+      a valid RFC3986 URI. If `key_id` is left blank and this `PkixPublicKey`
+      is not used in the context of a wrapper (see next paragraph), a default
+      key ID will be computed based on the digest of the DER encoding of the
+      public key. If this `PkixPublicKey` is used in the context of a wrapper
+      that has its own notion of key ID (e.g. `AttestorPublicKey`), then this
+      field can either match that value exactly, or be left blank, in which
       case it behaves exactly as though it is equal to that wrapper value.
     publicKeyPem: A PEM-encoded public key, as described in
       https://tools.ietf.org/html/rfc7468#section-13
@@ -1368,6 +1371,8 @@ class PlatformPolicy(_messages.Message):
   Fields:
     cloudRunPolicy: Optional. Cloud Run platform-specific policy.
     description: Optional. A description comment about the policy.
+    etag: Optional. Used to prevent updating the policy when another request
+      has updated it since it was retrieved.
     gkePolicy: Optional. GKE platform-specific policy.
     name: Output only. The relative resource name of the Binary Authorization
       platform policy, in the form of `projects/*/platforms/*/policies/*`.
@@ -1376,9 +1381,10 @@ class PlatformPolicy(_messages.Message):
 
   cloudRunPolicy = _messages.MessageField('InlineCloudRunPolicy', 1)
   description = _messages.StringField(2)
-  gkePolicy = _messages.MessageField('GkePolicy', 3)
-  name = _messages.StringField(4)
-  updateTime = _messages.StringField(5)
+  etag = _messages.StringField(3)
+  gkePolicy = _messages.MessageField('GkePolicy', 4)
+  name = _messages.StringField(5)
+  updateTime = _messages.StringField(6)
 
 
 class PodResult(_messages.Message):
@@ -1429,11 +1435,15 @@ class Policy(_messages.Message):
       specified inside a global admission policy.
 
   Messages:
-    ClusterAdmissionRulesValue: Optional. Per-cluster admission rules. Cluster
-      spec format: `location.clusterId`. There can be at most one admission
-      rule per cluster spec. A `location` is either a compute zone (e.g. us-
-      central1-a) or a region (e.g. us-central1). For `clusterId` syntax
-      restrictions see https://cloud.google.com/container-
+    ClusterAdmissionRulesValue: Optional. A valid policy has only one of the
+      following rule maps non-empty, i.e. only one of
+      `cluster_admission_rules`, `kubernetes_namespace_admission_rules`,
+      `kubernetes_service_account_admission_rules`, or
+      `istio_service_identity_admission_rules` can be non-empty. Per-cluster
+      admission rules. Cluster spec format: `location.clusterId`. There can be
+      at most one admission rule per cluster spec. A `location` is either a
+      compute zone (e.g. us-central1-a) or a region (e.g. us-central1). For
+      `clusterId` syntax restrictions see https://cloud.google.com/container-
       engine/reference/rest/v1/projects.zones.clusters.
     IstioServiceIdentityAdmissionRulesValue: Optional. Per-istio-service-
       identity admission rules. Istio service identity spec format:
@@ -1451,11 +1461,15 @@ class Policy(_messages.Message):
       matching admission request will always be permitted. This feature is
       typically used to exclude Google or third-party infrastructure images
       from Binary Authorization policies.
-    clusterAdmissionRules: Optional. Per-cluster admission rules. Cluster spec
-      format: `location.clusterId`. There can be at most one admission rule
-      per cluster spec. A `location` is either a compute zone (e.g. us-
-      central1-a) or a region (e.g. us-central1). For `clusterId` syntax
-      restrictions see https://cloud.google.com/container-
+    clusterAdmissionRules: Optional. A valid policy has only one of the
+      following rule maps non-empty, i.e. only one of
+      `cluster_admission_rules`, `kubernetes_namespace_admission_rules`,
+      `kubernetes_service_account_admission_rules`, or
+      `istio_service_identity_admission_rules` can be non-empty. Per-cluster
+      admission rules. Cluster spec format: `location.clusterId`. There can be
+      at most one admission rule per cluster spec. A `location` is either a
+      compute zone (e.g. us-central1-a) or a region (e.g. us-central1). For
+      `clusterId` syntax restrictions see https://cloud.google.com/container-
       engine/reference/rest/v1/projects.zones.clusters.
     defaultAdmissionRule: Required. Default admission rule for a cluster
       without a per-cluster, per- kubernetes-service-account, or per-istio-
@@ -1501,11 +1515,15 @@ class Policy(_messages.Message):
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class ClusterAdmissionRulesValue(_messages.Message):
-    r"""Optional. Per-cluster admission rules. Cluster spec format:
-    `location.clusterId`. There can be at most one admission rule per cluster
-    spec. A `location` is either a compute zone (e.g. us-central1-a) or a
-    region (e.g. us-central1). For `clusterId` syntax restrictions see
-    https://cloud.google.com/container-
+    r"""Optional. A valid policy has only one of the following rule maps non-
+    empty, i.e. only one of `cluster_admission_rules`,
+    `kubernetes_namespace_admission_rules`,
+    `kubernetes_service_account_admission_rules`, or
+    `istio_service_identity_admission_rules` can be non-empty. Per-cluster
+    admission rules. Cluster spec format: `location.clusterId`. There can be
+    at most one admission rule per cluster spec. A `location` is either a
+    compute zone (e.g. us-central1-a) or a region (e.g. us-central1). For
+    `clusterId` syntax restrictions see https://cloud.google.com/container-
     engine/reference/rest/v1/projects.zones.clusters.
 
     Messages:
@@ -1773,10 +1791,11 @@ class SimpleSigningAttestationCheck(_messages.Message):
       `projects/[PROJECT_ID]`. Only one attestation needs to successfully
       verify an image for this check to pass, so a single verified attestation
       found in any of `container_analysis_attestation_projects` is sufficient
-      for the check to pass. When fetching Occurrences from Container
-      Analysis, only `AttestationOccurrence` kinds are considered. In the
-      future, additional Occurrence kinds may be added to the query. Maximum
-      number of `container_analysis_attestation_projects` allowed in each
+      for the check to pass. A project ID must be used, not a project number.
+      When fetching Occurrences from Container Analysis, only
+      `AttestationOccurrence` kinds are considered. In the future, additional
+      Occurrence kinds may be added to the query. Maximum number of
+      `container_analysis_attestation_projects` allowed in each
       `SimpleSigningAttestationCheck` is 10.
   """
 
@@ -1928,9 +1947,10 @@ class UserOwnedGrafeasNote(_messages.Message):
       use an email based on a different naming pattern.
     noteReference: Required. The Grafeas resource name of a
       Attestation.Authority Note, created by the user, in the format:
-      `projects/*/notes/*`. This field may not be updated. An attestation by
-      this attestor is stored as a Grafeas Attestation.Authority Occurrence
-      that names a container image and that links to this Note. Grafeas is an
+      `projects/[PROJECT_ID]/notes/*`. This field may not be updated. A
+      project ID must be used, not a project number. An attestation by this
+      attestor is stored as a Grafeas Attestation.Authority Occurrence that
+      names a container image and that links to this Note. Grafeas is an
       external dependency.
     publicKeys: Optional. Public keys that verify attestations signed by this
       attestor. This field may be updated. If this field is non-empty, one of
@@ -2168,3 +2188,7 @@ encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    BinaryauthorizationProjectsAttestorsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    BinaryauthorizationProjectsPolicyGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')

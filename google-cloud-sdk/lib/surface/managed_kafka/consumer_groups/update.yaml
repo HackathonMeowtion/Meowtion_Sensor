@@ -1,11 +1,10 @@
-release_tracks: [ALPHA]
-hidden: true
+release_tracks: [GA, ALPHA, BETA]
 
 help_text:
   brief: |
-    Update an Apache Kafka for BigQuery consumer group.
+    Update a Managed Service for Apache Kafka consumer group.
   description: |
-    Update an Apache Kafka for BigQuery consumer group.
+    Update a Managed Service for Apache Kafka consumer group.
 
   examples: |
     To specify a file for updating the topics of a consumer group,

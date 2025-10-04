@@ -53,10 +53,19 @@ VALID_SCHEMES = frozenset([scheme.value for scheme in ProviderPrefix])
 CLOUD_URL_DELIMITER = '/'
 AZURE_DOMAIN = 'blob.core.windows.net'
 
-# Matches versioned object strings of the form 'gs://bucket/obj#1234'
-GS_GENERATION_REGEX = re.compile(r'(?P<object>.+)#(?P<generation>[0-9]+)$')
-# Matches versioned object strings of the form 's3://bucket/obj#NULL'
-S3_VERSION_REGEX = re.compile(r'(?P<object>.+)#(?P<version_id>.+)$')
+# Matches versioned object strings of the form 'gs://bucket/object#1234'
+# Matches versioned bucket strings of the form 'gs://bucket#1234'
+GS_GENERATION_REGEX = re.compile(r'(?P<name>.+)#(?P<generation>[0-9]+)$')
+# Matches versioned object strings of the form 's3://bucket/object#NULL'
+S3_VERSION_REGEX = re.compile(r'(?P<name>.+)#(?P<version_id>.+)$')
+# Matches the accesspoint part of S3 MRAP ARN of the form
+# 'arn:aws:s3::account-id:accesspoint/mrap_alias'
+_S3_MRAP_ARN_REGEX_ACCESS_POINT = re.compile(
+    r'^(?P<access_point>arn:aws:s3::.+:accesspoint\/(?:.+\.mrap))'
+)
+# Matches the key part of S3 MRAP ARN of the form
+# 'arn:aws:s3::account-id:accesspoint/mrap_alias//key'
+_S3_MRAP_ARN_REGEX_KEY = re.compile(r'.*\/\/(?P<key>.+)$')
 
 
 def is_named_pipe(path):
@@ -139,7 +148,7 @@ class FileUrl(StorageUrl):
   Attributes:
     scheme (ProviderPrefix): This will always be "file" for FileUrl.
     bucket_name (str): None for FileUrl.
-    object_name (str): The file/directory path.
+    resource_name (str): The file/directory path.
     generation (str): None for FileUrl.
   """
 
@@ -163,9 +172,9 @@ class FileUrl(StorageUrl):
     # find an occurrence of "/", replace it with "\" so that other logic can
     # rely on being able to split pathname components on `os.sep`.
     if platforms.OperatingSystem.IsWindows():
-      self.object_name = filename.replace('/', os.sep)
+      self.resource_name = filename.replace('/', os.sep)
     else:
-      self.object_name = filename
+      self.resource_name = filename
 
     self._warn_if_unsupported_double_wildcard()
 
@@ -176,9 +185,9 @@ class FileUrl(StorageUrl):
     # - ^**/
     # - /**$
     # - /**/
-    if not self.object_name:
+    if not self.resource_name:
       return
-    delimiter_bounded_url = self.delimiter + self.object_name + self.delimiter
+    delimiter_bounded_url = self.delimiter + self.resource_name + self.delimiter
     split_url = delimiter_bounded_url.split(
         '{delim}**{delim}'.format(delim=self.delimiter))
     removed_correct_double_wildcards_url_string = ''.join(split_url)
@@ -197,26 +206,26 @@ class FileUrl(StorageUrl):
   @property
   def is_stream(self):
     """Returns True if the URL points to a named pipe (FIFO) or other stream."""
-    return self.is_stdio or is_named_pipe(self.object_name)
+    return self.is_stdio or is_named_pipe(self.resource_name)
 
   @property
   def is_stdio(self):
     """Returns True if the URL points to stdin or stdout."""
-    return self.object_name == '-'
+    return self.resource_name == '-'
 
   def exists(self):
     """Returns True if the file/directory exists."""
-    return os.path.exists(self.object_name)
+    return os.path.exists(self.resource_name)
 
   def isdir(self):
     """Returns True if the path represents a directory."""
-    return os.path.isdir(self.object_name)
+    return os.path.isdir(self.resource_name)
 
   @property
   def url_string(self):
     """Returns the string representation of the instance."""
     return '{}{}{}'.format(self.scheme.value, SCHEME_DELIMITER,
-                           self.object_name)
+                           self.resource_name)
 
   @property
   def versionless_url_string(self):
@@ -233,7 +242,7 @@ class BaseHdfsAndPosixUrl(StorageUrl):
   Attributes:
     scheme (ProviderPrefix): The cloud provider, must be either POSIX or HDFS.
     bucket_name (str): None.
-    object_name (str): The file/directory path.
+    resource_name (str): The file/directory path.
     generation (str): None.
   """
 
@@ -243,11 +252,11 @@ class BaseHdfsAndPosixUrl(StorageUrl):
     self.scheme = scheme
     self.bucket_name = None
     self.generation = None
-    self.object_name = url_string[len(scheme.value +
-                                      SCHEME_DELIMITER):]
+    self.resource_name = url_string[len(scheme.value +
+                                        SCHEME_DELIMITER):]
     if self.scheme not in [ProviderPrefix.POSIX, ProviderPrefix.HDFS]:
       raise errors.InvalidUrlError('Unrecognized scheme "%s"' % self.scheme)
-    if not self.object_name.startswith(self.delimiter):
+    if not self.resource_name.startswith(self.delimiter):
       log.warning(
           '{} URLs typically start at the root directory. Did you mean:'
           ' {}{}{}{}'.format(
@@ -255,7 +264,7 @@ class BaseHdfsAndPosixUrl(StorageUrl):
               self.scheme.value,
               SCHEME_DELIMITER,
               self.delimiter,
-              self.object_name,
+              self.resource_name,
           )
       )
 
@@ -268,7 +277,7 @@ class BaseHdfsAndPosixUrl(StorageUrl):
   def url_string(self):
     """Returns the string representation of the instance."""
     return '{}{}{}'.format(self.scheme.value, SCHEME_DELIMITER,
-                           self.object_name)
+                           self.resource_name)
 
   @property
   def versionless_url_string(self):
@@ -285,7 +294,7 @@ class HdfsUrl(BaseHdfsAndPosixUrl):
   Attributes:
     scheme (ProviderPrefix): This will always be "hdfs" for HdfsUrl.
     bucket_name (str): None for HdfsUrl.
-    object_name (str): The file/directory path.
+    resource_name (str): The file/directory path.
     generation (str): None for HdfsUrl.
   """
 
@@ -318,7 +327,7 @@ class PosixFileSystemUrl(BaseHdfsAndPosixUrl):
   Attributes:
     scheme (ProviderPrefix): This will always be "posix" for PosixFileSystemUrl.
     bucket_name (None): N/A
-    object_name (str): The file/directory path.
+    resource_name (str): The file/directory path.
     generation (None): N/A
   """
 
@@ -345,30 +354,32 @@ class CloudUrl(StorageUrl):
       scheme (ProviderPrefix): The cloud provider.
       bucket_name (str|None): The bucket name if url represents an object or
         bucket.
-      object_name (str|None): The object name if url represents an object or
+      resource_name (str|None): The object name if url represents a resource or
         prefix.
       generation (str|None): The generation number if present.
   """
   CLOUD_URL_DELIM = '/'
 
-  def __init__(self, scheme, bucket_name=None, object_name=None,
+  def __init__(self, scheme, bucket_name=None, resource_name=None,
                generation=None):
     super(CloudUrl, self).__init__()
     self.scheme = scheme if scheme else None
     self.bucket_name = bucket_name if bucket_name else None
-    # TODO(b/309803217) Refactor it to have resource_name instead of
-    # object_name.
-    self.object_name = object_name if object_name else None
+    self.scheme = scheme if scheme else None
+    self.bucket_name = bucket_name if bucket_name else None
+    self.resource_name = resource_name if resource_name else None
     self.generation = str(generation) if generation else None
     self._validate_scheme()
-    self._validate_object_name()
+    self._validate_resource_name()
 
   @classmethod
-  def from_url_string(cls, url_string):
+  def from_url_string(cls, url_string, is_bucket_gen_parsing_allowed=False):
     """Parse the url string and return the storage url object.
 
     Args:
-      url_string (str): Cloud storage url of the form gs://bucket/object
+      url_string (str): Cloud storage url of the form gs://bucket/object.
+      is_bucket_gen_parsing_allowed (bool): If true, bucket generation parsing
+        is allowed in the url.
 
     Returns:
       CloudUrl object
@@ -379,32 +390,59 @@ class CloudUrl(StorageUrl):
     scheme = _get_scheme_from_url_string(url_string)
 
     # gs://a/b/c/d#num => a/b/c/d#num
-    schemeless_url_string = url_string[len(scheme.value + SCHEME_DELIMITER):]
+    schemeless_url_string = url_string[len(scheme.value + SCHEME_DELIMITER) :]
 
     if schemeless_url_string.startswith('/'):
       raise errors.InvalidUrlError(
-          ('Cloud URL scheme should be followed by colon and two slashes: "{}".'
-           ' Found: "{}"').format(SCHEME_DELIMITER, url_string))
+          (
+              'Cloud URL scheme should be followed by colon and two slashes:'
+              ' "{}". Found: "{}"'
+          ).format(SCHEME_DELIMITER, url_string)
+      )
 
-    # a/b/c/d#num => a, b/c/d#num
-    bucket_name, _, object_name = schemeless_url_string.partition(
-        CLOUD_URL_DELIMITER)
-
-    # b/c/d#num => b/c/d, num
-    object_name, generation = get_generation_number_from_object_name(
-        scheme, object_name
+    s3_mrap_ap_match = (
+        _S3_MRAP_ARN_REGEX_ACCESS_POINT.match(schemeless_url_string)
+        if scheme == ProviderPrefix.S3
+        else None
     )
+    if s3_mrap_ap_match:
+      # s3://arn:aws:s3::<account-id>:accesspoint/<mrap_alias>.mrap//<key>
+      # Handles multi-region access point type buckets for S3 use-cases.
+      bucket_name = s3_mrap_ap_match.group('access_point')
+      s3_mrap_key_match = _S3_MRAP_ARN_REGEX_KEY.match(schemeless_url_string)
+      resource_name = (
+          s3_mrap_key_match.group('key') if s3_mrap_key_match else None
+      )
+      generation = None
+    else:
+      # a#bnum/b/c/d#onum => a#bnum, b/c/d#onum
+      bucket_name, _, resource_name = schemeless_url_string.partition(
+          CLOUD_URL_DELIMITER
+      )
+      # object generation: b/c/d#num => b/c/d, num
+      resource_name, generation = get_generation_number_from_name(
+          scheme, resource_name
+      )
+      # If the resource_name isn't set, this URL must refer to a bucket.
+      if resource_name is None and is_bucket_gen_parsing_allowed:
+        # Parse generation number from bucket name only if parsing is allowed.
+        # Otherwise, assume generation number is part of the bucket name itself.
+        # Parsed bucket generation: a#num => a, num
+        bucket_name, generation = get_generation_number_from_name(
+            scheme,
+            bucket_name,
+        )
 
-    return cls(scheme, bucket_name, object_name, generation)
+    return cls(scheme, bucket_name, resource_name, generation)
 
   def _validate_scheme(self):
     if self.scheme not in VALID_CLOUD_SCHEMES:
       raise errors.InvalidUrlError('Unrecognized scheme "%s"' % self.scheme)
 
-  def _validate_object_name(self):
-    if self.object_name == '.' or self.object_name == '..':
+  def _validate_resource_name(self):
+    if self.resource_name == '.' or self.resource_name == '..':
       raise errors.InvalidUrlError('%s is an invalid root-level object name.' %
-                                   self.object_name)
+                                   self.resource_name)
 
   @property
   def is_stream(self):
@@ -418,30 +456,59 @@ class CloudUrl(StorageUrl):
 
   @property
   def url_string(self):
-    url_str = self.versionless_url_string
     if self.generation:
-      url_str += '#%s' % self.generation
-    return url_str
+      # If bucket generation is present for the bucket url.
+      if self.is_bucket():
+        return '{}{}{}#{}'.format(
+            self.scheme.value,
+            SCHEME_DELIMITER,
+            self.bucket_name,
+            self.generation,
+        )
+      return '{}#{}'.format(self.versionless_url_string, self.generation)
+    else:
+      return self.versionless_url_string
 
   @property
   def versionless_url_string(self):
     if self.is_provider():
       return '{}{}'.format(self.scheme.value, SCHEME_DELIMITER)
+    # We want to return the following URL pattern when we only have a bucket.
+    # We will follow the same pattern for S3 MRAP buckets as well
+    # when they do not have objects.
     elif self.is_bucket():
-      return '{}{}{}/'.format(self.scheme.value, SCHEME_DELIMITER,
-                              self.bucket_name)
-    return '{}{}{}/{}'.format(self.scheme.value, SCHEME_DELIMITER,
-                              self.bucket_name, self.object_name)
+      return '{}{}{}/'.format(
+          self.scheme.value, SCHEME_DELIMITER, self.bucket_name
+      )
+    elif self.is_s3_mrap_bucket():
+      return '{}{}{}//{}'.format(
+          self.scheme.value,
+          SCHEME_DELIMITER,
+          self.bucket_name,
+          self.resource_name,
+      )
+    return '{}{}{}/{}'.format(
+        self.scheme.value,
+        SCHEME_DELIMITER,
+        self.bucket_name,
+        self.resource_name,
+    )
 
   @property
   def delimiter(self):
+    if self.is_s3_mrap_bucket():
+      return '//'
+
     return self.CLOUD_URL_DELIM
 
   def is_bucket(self):
-    return bool(self.bucket_name and not self.object_name)
+    return bool(self.bucket_name and not self.resource_name)
 
   def is_object(self):
-    return bool(self.bucket_name and self.object_name)
+    return bool(self.bucket_name and self.resource_name)
+
+  def is_s3_mrap_bucket(self):
+    return bool(_S3_MRAP_ARN_REGEX_ACCESS_POINT.match(self.bucket_name))
 
   def is_provider(self):
     return bool(self.scheme and not self.bucket_name)
@@ -450,24 +517,28 @@ class CloudUrl(StorageUrl):
 class AzureUrl(CloudUrl):
   """CloudUrl subclass for Azure's unique blob storage URL structure.
 
-    Attributes:
-      scheme (ProviderPrefix): AZURE (http) or AZURE_TLS (https).
-      bucket_name (str|None): Storage container name in URL.
-      object_name (str|None): Storage object name in URL.
-      generation (str|None): Equivalent to Azure 'versionId'. Datetime string.
-      snapshot (str|None): Similar to 'versionId'. URL parameter used to capture
-        a specific version of a storage object. Datetime string.
-      account (str): Account owning storage resource.
+  Attributes:
+    scheme (ProviderPrefix): AZURE (http) or AZURE_TLS (https).
+    bucket_name (str|None): Storage container name in URL.
+    resource_name (str|None): Storage resource name in URL.
+    generation (str|None): Equivalent to Azure 'versionId'. Datetime string.
+    snapshot (str|None): Similar to 'versionId'. URL parameter used to capture a
+      specific version of a storage object. Datetime string.
+    account (str): Account owning storage resource.
   """
 
-  def __init__(self,
-               scheme,
-               bucket_name=None,
-               object_name=None,
-               generation=None,
-               snapshot=None,
-               account=None):
-    super(AzureUrl, self).__init__(scheme, bucket_name, object_name, generation)
+  def __init__(
+      self,
+      scheme,
+      bucket_name=None,
+      resource_name=None,
+      generation=None,
+      snapshot=None,
+      account=None,
+  ):
+    super(AzureUrl, self).__init__(
+        scheme, bucket_name, resource_name, generation
+    )
     self.snapshot = snapshot if snapshot else None
 
     if not account:
@@ -519,7 +590,7 @@ class AzureUrl(CloudUrl):
     return cls(
         scheme,
         bucket_name=container,
-        object_name=blob,
+        resource_name=blob,
         generation=params_dict['versionId'][0]
         if 'versionId' in params_dict else None,
         snapshot=params_dict['snapshot'][0]
@@ -563,7 +634,7 @@ class AzureUrl(CloudUrl):
                                    self.account, AZURE_DOMAIN, self.bucket_name)
     return '{}{}{}.{}/{}/{}'.format(self.scheme.value, SCHEME_DELIMITER,
                                     self.account, AZURE_DOMAIN,
-                                    self.bucket_name, self.object_name)
+                                    self.bucket_name, self.resource_name)
 
 
 def _get_scheme_from_url_string(url_string):
@@ -580,11 +651,13 @@ def _get_scheme_from_url_string(url_string):
     return ProviderPrefix(prefix_string)
 
 
-def storage_url_from_string(url_string):
+def storage_url_from_string(url_string, is_bucket_gen_parsing_allowed=False):
   """Static factory function for creating a StorageUrl from a string.
 
   Args:
     url_string (str): Cloud url or local filepath.
+    is_bucket_gen_parsing_allowed (bool): If true, bucket generation parsing
+        is allowed in the url.
 
   Returns:
      StorageUrl object.
@@ -603,7 +676,9 @@ def storage_url_from_string(url_string):
     # Azure's scheme breaks from other clouds.
     return AzureUrl.from_url_string(url_string)
   if scheme in VALID_CLOUD_SCHEMES:
-    return CloudUrl.from_url_string(url_string)
+    return CloudUrl.from_url_string(
+        url_string, is_bucket_gen_parsing_allowed=is_bucket_gen_parsing_allowed
+    )
   raise errors.InvalidUrlError('Unrecognized URL scheme.')
 
 
@@ -671,21 +746,25 @@ def add_gcs_scheme_if_missing(url_string):
   return ProviderPrefix.GCS.value + SCHEME_DELIMITER + url_string
 
 
-def get_generation_number_from_object_name(scheme, object_name):
-  """Parses object_name into generation number and object name without trailing # symbol.
-
-  Aplicable for gs:// and s3:// style objects, if the object_name does not
-  contain a
-  generation number, it will return the object_name as is.
+def get_generation_number_from_name(
+    scheme,
+    resource_name,
+):
+  """Parses a cloud storage resource name (bucket or object) into its components.
 
   Args:
-    scheme (str): Scheme of URL such as gs and s3.
-    object_name (str): Name of a Cloud storage object in the form of object_name
-      or object_name#generation_number.
+      scheme (str): Scheme of URL such as gs and s3.
+      resource_name (str): Name of the resource (bucket or object) in the format
+        'name' or 'name#generation'.
 
   Returns:
-    Object name and generation number if available.
+      A tuple containing the parsed resource name and generation number (or None
+      if not present).
   """
+
+  if not resource_name:
+    return None, None
+
   if scheme == ProviderPrefix.GCS:
     pattern_to_match = GS_GENERATION_REGEX
     group_name = 'generation'
@@ -693,10 +772,12 @@ def get_generation_number_from_object_name(scheme, object_name):
     pattern_to_match = S3_VERSION_REGEX
     group_name = 'version_id'
   else:
-    return object_name, None
+    return resource_name, None
 
-  generation_match = pattern_to_match.match(object_name)
+  generation_match = pattern_to_match.match(resource_name)
   if generation_match is not None:
-    return generation_match.group('object'), generation_match.group(group_name)
+    name = generation_match.group('name')
+    generation = generation_match.group(group_name)
+    return name, generation
 
-  return object_name, None
+  return resource_name, None

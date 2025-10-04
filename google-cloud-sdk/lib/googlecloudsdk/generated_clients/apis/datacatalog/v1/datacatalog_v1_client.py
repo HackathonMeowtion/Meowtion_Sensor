@@ -41,6 +41,8 @@ class DatacatalogV1(base_api.BaseApiClient):
         response_encoding=response_encoding)
     self.catalog = self.CatalogService(self)
     self.entries = self.EntriesService(self)
+    self.organizations_locations = self.OrganizationsLocationsService(self)
+    self.organizations = self.OrganizationsService(self)
     self.projects_locations_entryGroups_entries_tags = self.ProjectsLocationsEntryGroupsEntriesTagsService(self)
     self.projects_locations_entryGroups_entries = self.ProjectsLocationsEntryGroupsEntriesService(self)
     self.projects_locations_entryGroups_tags = self.ProjectsLocationsEntryGroupsTagsService(self)
@@ -125,6 +127,107 @@ class DatacatalogV1(base_api.BaseApiClient):
         response_type_name='GoogleCloudDatacatalogV1Entry',
         supports_download=False,
     )
+
+  class OrganizationsLocationsService(base_api.BaseApiService):
+    """Service class for the organizations_locations resource."""
+
+    _NAME = 'organizations_locations'
+
+    def __init__(self, client):
+      super(DatacatalogV1.OrganizationsLocationsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def RetrieveConfig(self, request, global_params=None):
+      r"""Retrieves the configuration related to the migration from Data Catalog to Dataplex Universal Catalog for a specific organization, including all the projects under it which have a separate configuration set.
+
+      Args:
+        request: (DatacatalogOrganizationsLocationsRetrieveConfigRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudDatacatalogV1OrganizationConfig) The response message.
+      """
+      config = self.GetMethodConfig('RetrieveConfig')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    RetrieveConfig.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/organizations/{organizationsId}/locations/{locationsId}:retrieveConfig',
+        http_method='GET',
+        method_id='datacatalog.organizations.locations.retrieveConfig',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}:retrieveConfig',
+        request_field='',
+        request_type_name='DatacatalogOrganizationsLocationsRetrieveConfigRequest',
+        response_type_name='GoogleCloudDatacatalogV1OrganizationConfig',
+        supports_download=False,
+    )
+
+    def RetrieveEffectiveConfig(self, request, global_params=None):
+      r"""Retrieves the effective configuration related to the migration from Data Catalog to Dataplex Universal Catalog for a specific organization or project. If there is no specific configuration set for the resource, the setting is checked hierarchicahlly through the ancestors of the resource, starting from the resource itself.
+
+      Args:
+        request: (DatacatalogOrganizationsLocationsRetrieveEffectiveConfigRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudDatacatalogV1MigrationConfig) The response message.
+      """
+      config = self.GetMethodConfig('RetrieveEffectiveConfig')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    RetrieveEffectiveConfig.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/organizations/{organizationsId}/locations/{locationsId}:retrieveEffectiveConfig',
+        http_method='GET',
+        method_id='datacatalog.organizations.locations.retrieveEffectiveConfig',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}:retrieveEffectiveConfig',
+        request_field='',
+        request_type_name='DatacatalogOrganizationsLocationsRetrieveEffectiveConfigRequest',
+        response_type_name='GoogleCloudDatacatalogV1MigrationConfig',
+        supports_download=False,
+    )
+
+    def SetConfig(self, request, global_params=None):
+      r"""Sets the configuration related to the migration to Dataplex Universal Catalog for an organization or project.
+
+      Args:
+        request: (DatacatalogOrganizationsLocationsSetConfigRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudDatacatalogV1MigrationConfig) The response message.
+      """
+      config = self.GetMethodConfig('SetConfig')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetConfig.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/organizations/{organizationsId}/locations/{locationsId}:setConfig',
+        http_method='POST',
+        method_id='datacatalog.organizations.locations.setConfig',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}:setConfig',
+        request_field='googleCloudDatacatalogV1SetConfigRequest',
+        request_type_name='DatacatalogOrganizationsLocationsSetConfigRequest',
+        response_type_name='GoogleCloudDatacatalogV1MigrationConfig',
+        supports_download=False,
+    )
+
+  class OrganizationsService(base_api.BaseApiService):
+    """Service class for the organizations resource."""
+
+    _NAME = 'organizations'
+
+    def __init__(self, client):
+      super(DatacatalogV1.OrganizationsService, self).__init__(client)
+      self._upload_configs = {
+          }
 
   class ProjectsLocationsEntryGroupsEntriesTagsService(base_api.BaseApiService):
     """Service class for the projects_locations_entryGroups_entries_tags resource."""
@@ -245,7 +348,7 @@ class DatacatalogV1(base_api.BaseApiClient):
     )
 
     def Reconcile(self, request, global_params=None):
-      r"""`ReconcileTags` creates or updates a list of tags on the entry. If the ReconcileTagsRequest.force_delete_missing parameter is set, the operation deletes tags not included in the input tag list. `ReconcileTags` returns a long-running operation resource that can be queried with Operations.GetOperation to return ReconcileTagsMetadata and a ReconcileTagsResponse message.
+      r"""`ReconcileTags` creates or updates a list of tags on the entry. If the ReconcileTagsRequest.force_delete_missing parameter is set, the operation deletes tags not included in the input tag list. `ReconcileTags` returns a long-running operation resource that can be queried with Operations.GetOperation to return ReconcileTagsMetadata and a ReconcileTagsResponse message. Note: SearchCatalog might return stale search results for up to 24 hours after the `ReconcileTags` operation completes.
 
       Args:
         request: (DatacatalogProjectsLocationsEntryGroupsEntriesTagsReconcileRequest) input message
@@ -960,7 +1063,7 @@ class DatacatalogV1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (DatacatalogProjectsLocationsOperationsCancelRequest) input message
@@ -1963,6 +2066,60 @@ class DatacatalogV1(base_api.BaseApiClient):
       super(DatacatalogV1.ProjectsLocationsService, self).__init__(client)
       self._upload_configs = {
           }
+
+    def RetrieveEffectiveConfig(self, request, global_params=None):
+      r"""Retrieves the effective configuration related to the migration from Data Catalog to Dataplex Universal Catalog for a specific organization or project. If there is no specific configuration set for the resource, the setting is checked hierarchicahlly through the ancestors of the resource, starting from the resource itself.
+
+      Args:
+        request: (DatacatalogProjectsLocationsRetrieveEffectiveConfigRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudDatacatalogV1MigrationConfig) The response message.
+      """
+      config = self.GetMethodConfig('RetrieveEffectiveConfig')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    RetrieveEffectiveConfig.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}:retrieveEffectiveConfig',
+        http_method='GET',
+        method_id='datacatalog.projects.locations.retrieveEffectiveConfig',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}:retrieveEffectiveConfig',
+        request_field='',
+        request_type_name='DatacatalogProjectsLocationsRetrieveEffectiveConfigRequest',
+        response_type_name='GoogleCloudDatacatalogV1MigrationConfig',
+        supports_download=False,
+    )
+
+    def SetConfig(self, request, global_params=None):
+      r"""Sets the configuration related to the migration to Dataplex Universal Catalog for an organization or project.
+
+      Args:
+        request: (DatacatalogProjectsLocationsSetConfigRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudDatacatalogV1MigrationConfig) The response message.
+      """
+      config = self.GetMethodConfig('SetConfig')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetConfig.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}:setConfig',
+        http_method='POST',
+        method_id='datacatalog.projects.locations.setConfig',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}:setConfig',
+        request_field='googleCloudDatacatalogV1SetConfigRequest',
+        request_type_name='DatacatalogProjectsLocationsSetConfigRequest',
+        response_type_name='GoogleCloudDatacatalogV1MigrationConfig',
+        supports_download=False,
+    )
 
   class ProjectsService(base_api.BaseApiService):
     """Service class for the projects resource."""

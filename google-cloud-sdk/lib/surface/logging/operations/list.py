@@ -19,13 +19,16 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from googlecloudsdk.api_lib.logging import util
+from googlecloudsdk.calliope import arg_parsers
 from googlecloudsdk.calliope import base
 from googlecloudsdk.core import log
 from googlecloudsdk.core.resource import resource_projector
 
 
-@base.ReleaseTracks(base.ReleaseTrack.GA, base.ReleaseTrack.BETA,
-                    base.ReleaseTrack.ALPHA)
+@base.UniverseCompatible
+@base.ReleaseTracks(
+    base.ReleaseTrack.GA, base.ReleaseTrack.BETA, base.ReleaseTrack.ALPHA
+)
 class List(base.ListCommand):
   """List long running operations."""
 
@@ -37,7 +40,21 @@ class List(base.ListCommand):
     parser.add_argument(
         '--operation-filter',
         required=True,
-        help='Filter expression that specifies the operations to return.')
+        help=arg_parsers.UniverseHelpText(
+            default=(
+                'Filter expression that specifies the operations to return.'
+            ),
+            universe_help='Not all operation types are supported.\n',
+        ),
+    )
+    parser.add_argument(
+        '--page-token',
+        type=str,
+        help=(
+            'The next_page_token value returned from a previous List request,'
+            ' if any.'
+        ),
+    )
     base.URI_FLAG.RemoveFromParser(parser)
     base.FILTER_FLAG.RemoveFromParser(parser)
 
@@ -57,7 +74,11 @@ class List(base.ListCommand):
         util.GetParentFromArgs(args), 'locations', args.location)
 
     request = util.GetMessages().LoggingProjectsLocationsOperationsListRequest(
-        name=operation_name, filter=args.operation_filter)
+        name=operation_name,
+        filter=args.operation_filter,
+        pageSize=args.page_size,
+        pageToken=args.page_token,
+    )
 
     result = util.GetClient().projects_locations_operations.List(request)
     self._cancellation_requested = False
@@ -67,6 +88,8 @@ class List(base.ListCommand):
         serialize_op = resource_projector.MakeSerializable(operation)
         self._cancellation_requested = serialize_op.get('metadata', {}).get(
             'cancellationRequested', '')
+    if result.nextPageToken:
+      yield result.nextPageToken
 
   def Epilog(self, resources_were_displayed):
     if self._cancellation_requested:
@@ -76,20 +99,40 @@ class List(base.ListCommand):
 
 
 List.detailed_help = {
-    'DESCRIPTION':
-        """
-        Return a list of long running operation details in given LOCATION. The
-        operations were scheduled by other gcloud commands. For example: a
-        copy_log_entries operation scheduled by command: gcloud alpha logging
-        operations copy BUCKET_ID DESTINATION --location=LOCATION. Note: while
-        listing the operations, the request_type must be specified in filter.
-        Example: --operation-filter=request_type=CopyLogEntries, Supported
-        operation types are: CopyLogEntries, CreateBucket and UpdateBucket.
-        Other supported filter expression are: operation_start_time,
-        operation_finish_time and operation_state.
+    'DESCRIPTION': """
+        Return a list of long running operations in the given LOCATION. The
+        operations were scheduled by other gcloud commands.
+
+        For example, a CopyLogEntries operation may be scheduled by the command:
+        `gcloud logging copy BUCKET_ID DESTINATION --location=LOCATION`.
+
+        The `--operation-filter` flag is required and must specify the
+        `request_type`. Supported request types include but are not limited to:
+        `CopyLogEntries`, `CreateBucket` and `UpdateBucket`.
+
+        Additional supported filter expressions include: `operation_start_time`,
+        `operation_finish_time` and `operation_state`. These can be combined
+        with the case-sensitive keyword `AND` between them.
+
+        For `operation_start_time` and `operation_end_time`, the operators >=,
+        >, <=, and < are supported.
+
+        Timestamps must be in either RFC3339 or ISO8601 formats. If the
+        timestamp contains a time value, then it must be quoted. For examples:
+        "YYYY-MM-DDTHH:MM:SSZ", "YYYY-MM-DDTHH:MM:SS.mmmZ", "YY-MM-DD",
+        "YYYY-MM-DDTHH:MM:SS-0000", "YYYY-MM-DDTHH:MM+0000", "YYYY-MM-DD",
+        YYYY-MM-DD, YY-MM-DD, etc.
+
+        The `operation_state` filter expression can be used to filter for
+        operations that are in a specific state. The value can be one of the
+        following: `SCHEDULED`, `WAITING_FOR_PRECONDITIONS`, `RUNNING`,
+        `SUCCESS`, `FAILURE`, `CANCELLED`, `PENDING`.
+
+        For `operation_state`, the operators = and != are supported.
+
+        Other filter options are not supported.
         """,
-    'EXAMPLES':
-        """\
+    'EXAMPLES': """\
         To list CopyLogEntries operations, run:
 
             $ {command} --location=LOCATION --operation-filter='request_type=CopyLogEntries'
@@ -102,12 +145,12 @@ List.detailed_help = {
 
             $ {command} --location=LOCATION --operation-filter='request_type=CopyLogEntries AND operation_finish_time<="2023-11-20T00:00:00Z"'
 
-        To list CopyLogEntries operations that have a specified state, run:
+        To list CopyLogEntries operations that completed successfully, run:
 
-            $ {command} --location=LOCATION --operation-filter='request_type=CopyLogEntries AND operation_state=STATE'
+            $ {command} --location=LOCATION --operation-filter='request_type=CopyLogEntries AND operation_state=SUCCESS'
 
-        To list CopyLogEntries operations that don't have a specified state, run:
+        To list CopyLogEntries operations that have not failed, run:
 
-            $ {command} --location=LOCATION --operation-filter='request_type=CopyLogEntries AND operation_state!=STATE'
-        """
+            $ {command} --location=LOCATION --operation-filter='request_type=CopyLogEntries AND operation_state!=FAILURE'
+        """,
 }

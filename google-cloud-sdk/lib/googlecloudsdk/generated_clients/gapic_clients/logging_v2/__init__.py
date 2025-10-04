@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,6 +25,10 @@ from .services.logging_service_v2 import LoggingServiceV2AsyncClient
 from .services.metrics_service_v2 import MetricsServiceV2Client
 from .services.metrics_service_v2 import MetricsServiceV2AsyncClient
 
+from .types.log_entry import AppHub
+from .types.log_entry import AppHubApplication
+from .types.log_entry import AppHubService
+from .types.log_entry import AppHubWorkload
 from .types.log_entry import LogEntry
 from .types.log_entry import LogEntryOperation
 from .types.log_entry import LogEntrySourceLocation
@@ -52,12 +56,14 @@ from .types.logging_config import CopyLogEntriesResponse
 from .types.logging_config import CreateBucketRequest
 from .types.logging_config import CreateExclusionRequest
 from .types.logging_config import CreateLinkRequest
+from .types.logging_config import CreateLogScopeRequest
 from .types.logging_config import CreateSavedQueryRequest
 from .types.logging_config import CreateSinkRequest
 from .types.logging_config import CreateViewRequest
 from .types.logging_config import DeleteBucketRequest
 from .types.logging_config import DeleteExclusionRequest
 from .types.logging_config import DeleteLinkRequest
+from .types.logging_config import DeleteLogScopeRequest
 from .types.logging_config import DeleteSavedQueryRequest
 from .types.logging_config import DeleteSinkRequest
 from .types.logging_config import DeleteViewRequest
@@ -65,6 +71,8 @@ from .types.logging_config import GetBucketRequest
 from .types.logging_config import GetCmekSettingsRequest
 from .types.logging_config import GetExclusionRequest
 from .types.logging_config import GetLinkRequest
+from .types.logging_config import GetLogScopeRequest
+from .types.logging_config import GetSavedQueryRequest
 from .types.logging_config import GetSettingsRequest
 from .types.logging_config import GetSinkRequest
 from .types.logging_config import GetViewRequest
@@ -77,6 +85,8 @@ from .types.logging_config import ListExclusionsRequest
 from .types.logging_config import ListExclusionsResponse
 from .types.logging_config import ListLinksRequest
 from .types.logging_config import ListLinksResponse
+from .types.logging_config import ListLogScopesRequest
+from .types.logging_config import ListLogScopesResponse
 from .types.logging_config import ListRecentQueriesRequest
 from .types.logging_config import ListRecentQueriesResponse
 from .types.logging_config import ListSavedQueriesRequest
@@ -89,6 +99,7 @@ from .types.logging_config import LocationMetadata
 from .types.logging_config import LogBucket
 from .types.logging_config import LogExclusion
 from .types.logging_config import LoggingQuery
+from .types.logging_config import LogScope
 from .types.logging_config import LogSink
 from .types.logging_config import LogView
 from .types.logging_config import OpsAnalyticsQuery
@@ -99,6 +110,8 @@ from .types.logging_config import UndeleteBucketRequest
 from .types.logging_config import UpdateBucketRequest
 from .types.logging_config import UpdateCmekSettingsRequest
 from .types.logging_config import UpdateExclusionRequest
+from .types.logging_config import UpdateLogScopeRequest
+from .types.logging_config import UpdateSavedQueryRequest
 from .types.logging_config import UpdateSettingsRequest
 from .types.logging_config import UpdateSinkRequest
 from .types.logging_config import UpdateViewRequest
@@ -117,6 +130,10 @@ __all__ = (
     'ConfigServiceV2AsyncClient',
     'LoggingServiceV2AsyncClient',
     'MetricsServiceV2AsyncClient',
+'AppHub',
+'AppHubApplication',
+'AppHubService',
+'AppHubWorkload',
 'BigQueryDataset',
 'BigQueryOptions',
 'BucketMetadata',
@@ -129,6 +146,7 @@ __all__ = (
 'CreateExclusionRequest',
 'CreateLinkRequest',
 'CreateLogMetricRequest',
+'CreateLogScopeRequest',
 'CreateSavedQueryRequest',
 'CreateSinkRequest',
 'CreateViewRequest',
@@ -137,6 +155,7 @@ __all__ = (
 'DeleteLinkRequest',
 'DeleteLogMetricRequest',
 'DeleteLogRequest',
+'DeleteLogScopeRequest',
 'DeleteSavedQueryRequest',
 'DeleteSinkRequest',
 'DeleteViewRequest',
@@ -145,6 +164,8 @@ __all__ = (
 'GetExclusionRequest',
 'GetLinkRequest',
 'GetLogMetricRequest',
+'GetLogScopeRequest',
+'GetSavedQueryRequest',
 'GetSettingsRequest',
 'GetSinkRequest',
 'GetViewRequest',
@@ -163,6 +184,8 @@ __all__ = (
 'ListLogEntriesResponse',
 'ListLogMetricsRequest',
 'ListLogMetricsResponse',
+'ListLogScopesRequest',
+'ListLogScopesResponse',
 'ListLogsRequest',
 'ListLogsResponse',
 'ListMonitoredResourceDescriptorsRequest',
@@ -183,6 +206,7 @@ __all__ = (
 'LogErrorGroup',
 'LogExclusion',
 'LogMetric',
+'LogScope',
 'LogSink',
 'LogSplit',
 'LogView',
@@ -201,6 +225,8 @@ __all__ = (
 'UpdateCmekSettingsRequest',
 'UpdateExclusionRequest',
 'UpdateLogMetricRequest',
+'UpdateLogScopeRequest',
+'UpdateSavedQueryRequest',
 'UpdateSettingsRequest',
 'UpdateSinkRequest',
 'UpdateViewRequest',

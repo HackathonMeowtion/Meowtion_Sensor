@@ -193,71 +193,69 @@ class AnalyticsQuery(_messages.Message):
   querySteps = _messages.MessageField('QueryStep', 1, repeated=True)
 
 
+class AppHub(_messages.Message):
+  r"""Metadata associated with App Hub.
+
+  Fields:
+    application: Metadata associated with the application.
+    service: Metadata associated with the service.
+    workload: Metadata associated with the workload.
+  """
+
+  application = _messages.MessageField('AppHubApplication', 1)
+  service = _messages.MessageField('AppHubService', 2)
+  workload = _messages.MessageField('AppHubWorkload', 3)
+
+
+class AppHubApplication(_messages.Message):
+  r"""Resource identifiers associated with an AppHub application AppHub
+  resources are of the form projects//locations//applications/
+  projects//locations//applications//services/
+  projects//locations//applications//workloads/ These resources can be
+  reconstructed from the components below.
+
+  Fields:
+    container: Resource container that owns the application. Example:
+      "projects/management_project"
+    id: Application Id. Example: "my-app"
+    location: Location associated with the Application. Example: "us-east1"
+  """
+
+  container = _messages.StringField(1)
+  id = _messages.StringField(2)
+  location = _messages.StringField(3)
+
+
+class AppHubService(_messages.Message):
+  r"""Metadata associated with an App Hub service.
+
+  Fields:
+    criticalityType: Service criticality type Example: "CRITICAL"
+    environmentType: Service environment type Example: "DEV"
+    id: Service Id. Example: "my-service"
+  """
+
+  criticalityType = _messages.StringField(1)
+  environmentType = _messages.StringField(2)
+  id = _messages.StringField(3)
+
+
+class AppHubWorkload(_messages.Message):
+  r"""Metadata associated with an App Hub workload.
+
+  Fields:
+    criticalityType: Workload criticality type Example: "CRITICAL"
+    environmentType: Workload environment type Example: "DEV"
+    id: Workload Id. Example: "my-workload"
+  """
+
+  criticalityType = _messages.StringField(1)
+  environmentType = _messages.StringField(2)
+  id = _messages.StringField(3)
+
+
 class ApproveRedactionOperationResponse(_messages.Message):
   r"""Response type for ApproveRedaction method."""
-
-
-class AuditConfig(_messages.Message):
-  r"""Specifies the audit configuration for a service. The configuration
-  determines which permission types are logged, and what identities, if any,
-  are exempted from logging. An AuditConfig must have one or more
-  AuditLogConfigs.If there are AuditConfigs for both allServices and a
-  specific service, the union of the two AuditConfigs is used for that
-  service: the log_types specified in each AuditConfig are enabled, and the
-  exempted_members in each AuditLogConfig are exempted.Example Policy with
-  multiple AuditConfigs: { "audit_configs": [ { "service": "allServices",
-  "audit_log_configs": [ { "log_type": "DATA_READ", "exempted_members": [
-  "user:jose@example.com" ] }, { "log_type": "DATA_WRITE" }, { "log_type":
-  "ADMIN_READ" } ] }, { "service": "sampleservice.googleapis.com",
-  "audit_log_configs": [ { "log_type": "DATA_READ" }, { "log_type":
-  "DATA_WRITE", "exempted_members": [ "user:aliya@example.com" ] } ] } ] } For
-  sampleservice, this policy enables DATA_READ, DATA_WRITE and ADMIN_READ
-  logging. It also exempts jose@example.com from DATA_READ logging, and
-  aliya@example.com from DATA_WRITE logging.
-
-  Fields:
-    auditLogConfigs: The configuration for logging of each type of permission.
-    service: Specifies a service that will be enabled for audit logging. For
-      example, storage.googleapis.com, cloudsql.googleapis.com. allServices is
-      a special value that covers all services.
-  """
-
-  auditLogConfigs = _messages.MessageField('AuditLogConfig', 1, repeated=True)
-  service = _messages.StringField(2)
-
-
-class AuditLogConfig(_messages.Message):
-  r"""Provides the configuration for logging a type of permissions. Example: {
-  "audit_log_configs": [ { "log_type": "DATA_READ", "exempted_members": [
-  "user:jose@example.com" ] }, { "log_type": "DATA_WRITE" } ] } This enables
-  'DATA_READ' and 'DATA_WRITE' logging, while exempting jose@example.com from
-  DATA_READ logging.
-
-  Enums:
-    LogTypeValueValuesEnum: The log type that this config enables.
-
-  Fields:
-    exemptedMembers: Specifies the identities that do not cause logging for
-      this type of permission. Follows the same format of Binding.members.
-    logType: The log type that this config enables.
-  """
-
-  class LogTypeValueValuesEnum(_messages.Enum):
-    r"""The log type that this config enables.
-
-    Values:
-      LOG_TYPE_UNSPECIFIED: Default case. Should never be this.
-      ADMIN_READ: Admin reads. Example: CloudIAM getIamPolicy
-      DATA_WRITE: Data writes. Example: CloudSQL Users create
-      DATA_READ: Data reads. Example: CloudSQL Users list
-    """
-    LOG_TYPE_UNSPECIFIED = 0
-    ADMIN_READ = 1
-    DATA_WRITE = 2
-    DATA_READ = 3
-
-  exemptedMembers = _messages.StringField(1, repeated=True)
-  logType = _messages.EnumField('LogTypeValueValuesEnum', 2)
 
 
 class BigQueryDataset(_messages.Message):
@@ -454,6 +452,26 @@ class BucketOptions(_messages.Message):
 
 class CancelOperationRequest(_messages.Message):
   r"""The request message for Operations.CancelOperation."""
+
+
+class CancelQueryRequest(_messages.Message):
+  r"""The request message for CancelQuery.
+
+  Fields:
+    queryStepHandle: Required. A query step handle returned by QueryData. All
+      steps in the query will be cancelled.
+    resourceNames: Required. Names of one or more views that were used in the
+      original query.Example: projects/[PROJECT_ID]/locations/[LOCATION_ID]/bu
+      ckets/[BUCKET_ID]/views/[VIEW_ID]Requires appropriate permissions on
+      each resource such as 'logging.views.access' on log view resources.
+  """
+
+  queryStepHandle = _messages.StringField(1)
+  resourceNames = _messages.StringField(2, repeated=True)
+
+
+class CancelQueryResponse(_messages.Message):
+  r"""The response data from CancelQuery."""
 
 
 class ChartingBreakdown(_messages.Message):
@@ -730,7 +748,8 @@ class CopyLogEntriesRequest(_messages.Message):
   r"""The parameters to CopyLogEntries.
 
   Fields:
-    destination: Required. Destination to which to copy log entries.
+    destination: Required. Destination to which to copy log entries. For
+      example: "storage.googleapis.com/GCS_BUCKET"
     filter: Optional. A filter specifying which log entries to copy. The
       filter must be no more than 20k characters. An empty filter matches all
       log entries.
@@ -784,10 +803,6 @@ class CreateLinkRequest(_messages.Message):
       and underscores within it.
     parent: Required. The full resource name of the bucket to create a link
       for. "projects/[PROJECT_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]"
-      "organizations/[ORGANIZATION_ID]/locations/[LOCATION_ID]/buckets/[BUCKET
-      _ID]" "billingAccounts/[BILLING_ACCOUNT_ID]/locations/[LOCATION_ID]/buck
-      ets/[BUCKET_ID]"
-      "folders/[FOLDER_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]"
   """
 
   link = _messages.MessageField('Link', 1)
@@ -938,6 +953,185 @@ class Expr(_messages.Message):
   title = _messages.StringField(4)
 
 
+class FieldSource(_messages.Message):
+  r"""LINT.IfChange A source that can be used to represent a field in a query
+  construct.
+
+  Fields:
+    aliasRef: The alias name for a field that has already been aliased within
+      a different ProjectedField type elsewhere in the query model. The alias
+      must be defined in the QueryBuilderConfig's field_sources list,
+      otherwise the model is invalid.
+    columnType: The type of the selected field. This comes from the schema.
+      Can be one of the BigQuery data types: - STRING - INT64 - FLOAT64 - BOOL
+      - TIMESTAMP - DATE - RECORD - JSON
+    field: This will be the field that is selected using the . annotation to
+      display the drill down value. For example:
+      "json_payload.labels.message".
+    isJson: Whether the field is a JSON field, or has a parent that is a JSON
+      field. This value is used to determine JSON extractions in generated SQL
+      queries. Note that this is_json flag may be true when the column_type is
+      not JSON if the parent is a JSON field. Ex: - A json_payload.message
+      field might have is_json=true, since the 'json_payload' parent is of
+      type JSON, and columnType='STRING' if the 'message' field is of type
+      STRING.
+    literalValue: A literal like "1,2,3 as testArray" or other singular
+      constants like 'foo'. Note: this is not a viable option for the order_by
+      since sorting based on a constant doesn't return anything useful.
+    projectedField: A projected field option for when a user wants to use a
+      field with some additional transformations such as casting or
+      extractions.
+    variableRef: The variable name for dashboard template variable support.
+  """
+
+  aliasRef = _messages.StringField(1)
+  columnType = _messages.StringField(2)
+  field = _messages.StringField(3)
+  isJson = _messages.BooleanField(4)
+  literalValue = _messages.MessageField('extra_types.JsonValue', 5)
+  projectedField = _messages.MessageField('ProjectedField', 6)
+  variableRef = _messages.StringField(7)
+
+
+class FilterExpression(_messages.Message):
+  r"""This is a leaf of the FilterPredicate. Ex: { field:
+  json_payload.message.error_code, filter_value: {numeric_value: 400},
+  comparator: EQUAL_TO} The field will be schema field that is selected using
+  the . annotation to display the drill down value. The value will be the user
+  inputted text that the filter is comparing against.
+
+  Enums:
+    ComparatorValueValuesEnum: The comparison type to use for the filter.
+
+  Fields:
+    booleanFilterValue: The boolean value to use for the filter. Set if the
+      field is a boolean type.
+    comparator: The comparison type to use for the filter.
+    field: A string attribute.
+    fieldSource: Can be one of the FieldSource types: field name, alias ref,
+      variable ref, or a literal value.
+    fieldSourceValue: The field. This will be the field that is set as the
+      Right Hand Side of the filter.
+    isNegation: Determines if the NOT flag should be added to the comparator.
+    literalValue: The Value will be used to hold user defined constants set as
+      the Right Hand Side of the filter.
+    numericFilterValue: The numeric value to use for the filter. Set if the
+      field is a numeric type.
+    stringFilterValue: The string value to use for the filter. Set if the
+      field is a string type.
+  """
+
+  class ComparatorValueValuesEnum(_messages.Enum):
+    r"""The comparison type to use for the filter.
+
+    Values:
+      COMPARATOR_UNSPECIFIED: Invalid value, do not use.
+      EQUALS: The value is equal to the inputted value.
+      NOT_EQUALS: The value is not equal to the inputted value.
+      MATCHES_REGEXP: The value is equal to the inputted regex value.
+      NOT_MATCHES_REGEXP: The value is not equal to the inputted regex value.
+      GREATER_THAN: The value is greater than the inputted value.
+      LESS_THAN: The value is less than the inputted value.
+      GREATER_THAN_EQUALS: The value is greater than or equal to the inputted
+        value.
+      LESS_THAN_EQUALS: The value is less than or equal to the inputted value.
+      IS_NOT_NULL: IS_NOT_NULL will be slightly different in the fact that it
+        will not require the value field to be inputted. For simplicity, the
+        value field will be set to an empty string when IS_NOT_NULL is used
+      IS_NULL: Requires the filter_value to be a Value type with null_value
+        set to true.
+      IN: The value is in the inputted array value.
+      LIKE: The value is like the inputted value.
+    """
+    COMPARATOR_UNSPECIFIED = 0
+    EQUALS = 1
+    NOT_EQUALS = 2
+    MATCHES_REGEXP = 3
+    NOT_MATCHES_REGEXP = 4
+    GREATER_THAN = 5
+    LESS_THAN = 6
+    GREATER_THAN_EQUALS = 7
+    LESS_THAN_EQUALS = 8
+    IS_NOT_NULL = 9
+    IS_NULL = 10
+    IN = 11
+    LIKE = 12
+
+  booleanFilterValue = _messages.BooleanField(1)
+  comparator = _messages.EnumField('ComparatorValueValuesEnum', 2)
+  field = _messages.StringField(3)
+  fieldSource = _messages.MessageField('FieldSource', 4)
+  fieldSourceValue = _messages.MessageField('FieldSource', 5)
+  isNegation = _messages.BooleanField(6)
+  literalValue = _messages.MessageField('extra_types.JsonValue', 7)
+  numericFilterValue = _messages.FloatField(8, variant=_messages.Variant.FLOAT)
+  stringFilterValue = _messages.StringField(9)
+
+
+class FilterPredicate(_messages.Message):
+  r"""A filter for a query. This equates to the WHERE clause in SQL.
+
+  Enums:
+    OperatorTypeValueValuesEnum: The operator type for the filter. Currently
+      there is no support for multiple levels of nesting, so this will be a
+      single value with no joining of different operator types
+
+  Fields:
+    childPredicates: The children of the filter predicate. This equates to the
+      branches of the filter predicate that could contain further nested
+      leaves.
+    expressions: The expressions to use for the filter.
+    leafPredicate: The leaves of the filter predicate. This equates to the
+      last leaves of the filter predicate associated with an operator.
+    operatorType: The operator type for the filter. Currently there is no
+      support for multiple levels of nesting, so this will be a single value
+      with no joining of different operator types
+  """
+
+  class OperatorTypeValueValuesEnum(_messages.Enum):
+    r"""The operator type for the filter. Currently there is no support for
+    multiple levels of nesting, so this will be a single value with no joining
+    of different operator types
+
+    Values:
+      OPERATOR_TYPE_UNSPECIFIED: Invalid value, do not use.
+      AND: AND will be the default operator type.
+      OR: OR operator type.
+      LEAF: LEAF operator type.
+    """
+    OPERATOR_TYPE_UNSPECIFIED = 0
+    AND = 1
+    OR = 2
+    LEAF = 3
+
+  childPredicates = _messages.MessageField('FilterPredicate', 1, repeated=True)
+  expressions = _messages.MessageField('FilterExpression', 2, repeated=True)
+  leafPredicate = _messages.MessageField('FilterExpression', 3)
+  operatorType = _messages.EnumField('OperatorTypeValueValuesEnum', 4)
+
+
+class FunctionApplication(_messages.Message):
+  r"""Defines the aggregation function to apply to this field. This message is
+  used only when operation is set to AGGREGATE.
+
+  Fields:
+    parameters: Optional. Parameters to be applied to the aggregation.
+      Aggregations that support or require parameters are listed above.
+    type: Required. Specifies the aggregation function. Use one of the
+      following string identifiers: "average": Computes the average (AVG).
+      Applies only to numeric values. "count": Counts the number of values
+      (COUNT). "count-distinct": Counts the number of distinct values (COUNT
+      DISTINCT). "count-distinct-approx": Approximates the count of distinct
+      values (APPROX_COUNT_DISTINCT). "max": Finds the maximum value (MAX).
+      Applies only to numeric values. "min": Finds the minimum value (MIN).
+      Applies only to numeric values. "sum": Computes the sum (SUM). Applies
+      only to numeric values.
+  """
+
+  parameters = _messages.MessageField('extra_types.JsonValue', 1, repeated=True)
+  type = _messages.StringField(2)
+
+
 class GetIamPolicyRequest(_messages.Message):
   r"""Request message for GetIamPolicy method.
 
@@ -996,9 +1190,10 @@ class HttpRequest(_messages.Message):
       with the origin server before being served from cache. This field is
       only meaningful if cache_hit is True.
     latency: The request processing latency on the server, from the time the
-      request was received until the response was sent.
-    protocol: Protocol used for the request. Examples: "HTTP/1.1", "HTTP/2",
-      "websocket"
+      request was received until the response was sent. For WebSocket
+      connections, this field refers to the entire time duration of the
+      connection.
+    protocol: Protocol used for the request. Examples: "HTTP/1.1", "HTTP/2"
     referer: The referer URL of the request, as defined in HTTP/1.1 Header
       Field Definitions
       (https://datatracker.ietf.org/doc/html/rfc2616#section-14.36).
@@ -1052,8 +1247,8 @@ class IndexConfig(_messages.Message):
     fieldPath: Required. The LogEntry field path to index.Note that some paths
       are automatically indexed, and other paths are not eligible for
       indexing. See indexing documentation(
-      https://cloud.google.com/logging/docs/view/advanced-queries#indexed-
-      fields) for details.For example: jsonPayload.request.status
+      https://cloud.google.com/logging/docs/analyze/custom-index) for
+      details.For example: jsonPayload.request.status
     type: Required. The type of data in this index.
   """
 
@@ -1078,7 +1273,7 @@ class IntegerArrayValue(_messages.Message):
   r"""An array of integers within a parameter.
 
   Fields:
-    values: Required. The values of the array.
+    values: Optional. The values of the array.
   """
 
   values = _messages.IntegerField(1, repeated=True)
@@ -1325,13 +1520,21 @@ class ListLogEntriesRequest(_messages.Message):
       all log entries in the resources listed in resource_names. Referencing a
       parent resource that is not listed in resource_names will cause the
       filter to return no results. The maximum length of a filter is 20,000
-      characters.
+      characters.To make queries faster, you can make the filter more
+      selective by using restrictions on indexed fields
+      (https://cloud.google.com/logging/docs/view/logging-query-
+      language#indexed-fields) as well as limit the time range of the query by
+      adding range restrictions on the timestamp field.
     orderBy: Optional. How the results should be sorted. Presently, the only
       permitted values are "timestamp asc" (default) and "timestamp desc". The
       first option returns entries in order of increasing values of
       LogEntry.timestamp (oldest first), and the second option returns entries
       in order of decreasing timestamps (newest first). Entries with equal
-      timestamps are returned in order of their insert_id values.
+      timestamps are returned in order of their insert_id values.We recommend
+      setting the order_by field to "timestamp desc" when listing recently
+      ingested log entries. If not set, the default value of "timestamp asc"
+      may take a long time to fetch matching logs that are only recently
+      ingested.
     pageSize: Optional. The maximum number of results to return from this
       request. Default is 50. If the value is negative, the request is
       rejected.The presence of next_page_token in the response indicates that
@@ -1344,14 +1547,19 @@ class ListLogEntriesRequest(_messages.Message):
       project identifiers or project numbers from which to retrieve log
       entries. Example: "my-project-1A".
     resourceNames: Required. Names of one or more parent resources from which
-      to retrieve log entries: projects/[PROJECT_ID]
-      organizations/[ORGANIZATION_ID] billingAccounts/[BILLING_ACCOUNT_ID]
-      folders/[FOLDER_ID]May alternatively be one or more views: projects/[PRO
-      JECT_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]/views/[VIEW_ID] org
-      anizations/[ORGANIZATION_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]
-      /views/[VIEW_ID] billingAccounts/[BILLING_ACCOUNT_ID]/locations/[LOCATIO
-      N_ID]/buckets/[BUCKET_ID]/views/[VIEW_ID] folders/[FOLDER_ID]/locations/
-      [LOCATION_ID]/buckets/[BUCKET_ID]/views/[VIEW_ID]Projects listed in the
+      to retrieve log entries. Resources may either be resource containers or
+      specific LogViews. For the case of resource containers, all logs
+      ingested into that container will be returned regardless of which
+      LogBuckets they are actually stored in - i.e. these queries may fan out
+      to multiple regions. In the event of region unavailability, specify a
+      specific set of LogViews that do not include the unavailable region.
+      projects/[PROJECT_ID] organizations/[ORGANIZATION_ID]
+      billingAccounts/[BILLING_ACCOUNT_ID] folders/[FOLDER_ID] projects/[PROJE
+      CT_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]/views/[VIEW_ID] organ
+      izations/[ORGANIZATION_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]/v
+      iews/[VIEW_ID] billingAccounts/[BILLING_ACCOUNT_ID]/locations/[LOCATION_
+      ID]/buckets/[BUCKET_ID]/views/[VIEW_ID] folders/[FOLDER_ID]/locations/[L
+      OCATION_ID]/buckets/[BUCKET_ID]/views/[VIEW_ID]Projects listed in the
       project_ids field are added to this list. A maximum of 100 resources may
       be specified in a single request.
   """
@@ -1399,6 +1607,22 @@ class ListLogMetricsResponse(_messages.Message):
   """
 
   metrics = _messages.MessageField('LogMetric', 1, repeated=True)
+  nextPageToken = _messages.StringField(2)
+
+
+class ListLogScopesResponse(_messages.Message):
+  r"""The response from ListLogScopes. Every project has a _Default log scope
+  that cannot be modified or deleted.
+
+  Fields:
+    logScopes: A list of log scopes.
+    nextPageToken: If there might be more results than appear in this
+      response, then nextPageToken is included. To get the next set of
+      results, call the same method again using the value of nextPageToken as
+      pageToken.
+  """
+
+  logScopes = _messages.MessageField('LogScope', 1, repeated=True)
   nextPageToken = _messages.StringField(2)
 
 
@@ -1625,9 +1849,16 @@ class LogBucket(_messages.Message):
     LifecycleStateValueValuesEnum: Output only. The bucket lifecycle state.
     UnmetAnalyticsUpgradeRequirementsValueListEntryValuesEnum:
 
+  Messages:
+    TagsValue: Optional. Input only. Immutable. Tag keys/values directly bound
+      to this bucket. Each item in the map must be expressed as " : ". tag-
+      key-namespaced-name is the project_number/tag-key-short-name For
+      example: "123/environment" : "production", "123/costCenter" :
+      "marketing"
+
   Fields:
-    analyticsEnabled: Whether log analytics is enabled for this bucket.Once
-      enabled, log analytics features cannot be disabled.
+    analyticsEnabled: Optional. Whether log analytics is enabled for this
+      bucket.Once enabled, log analytics features cannot be disabled.
     analyticsUpgradeTime: Output only. The time that the bucket was upgraded
       to enable analytics. This will eventually be deprecated once there is
       not a need to upgrade existing buckets (i.e. when analytics becomes
@@ -1662,6 +1893,10 @@ class LogBucket(_messages.Message):
       of time, after which they will automatically be deleted. The minimum
       retention period is 1 day. If this value is set to zero at bucket
       creation time, the default time of 30 days will be used.
+    tags: Optional. Input only. Immutable. Tag keys/values directly bound to
+      this bucket. Each item in the map must be expressed as " : ". tag-key-
+      namespaced-name is the project_number/tag-key-short-name For example:
+      "123/environment" : "production", "123/costCenter" : "marketing"
     unmetAnalyticsUpgradeRequirements: Output only. The requirements for an
       upgrade to analytics that are not satisfied by the current bucket
       configuration, in an arbitrary order. This will eventually be deprecated
@@ -1750,6 +1985,33 @@ class LogBucket(_messages.Message):
     BILLING_ACCOUNT_BUCKET = 10
     SUPPORTED_BUCKET_REGION = 11
 
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class TagsValue(_messages.Message):
+    r"""Optional. Input only. Immutable. Tag keys/values directly bound to
+    this bucket. Each item in the map must be expressed as " : ". tag-key-
+    namespaced-name is the project_number/tag-key-short-name For example:
+    "123/environment" : "production", "123/costCenter" : "marketing"
+
+    Messages:
+      AdditionalProperty: An additional property for a TagsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type TagsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a TagsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
   analyticsEnabled = _messages.BooleanField(1)
   analyticsUpgradeTime = _messages.StringField(2)
   cmekSettings = _messages.MessageField('CmekSettings', 3)
@@ -1761,8 +2023,9 @@ class LogBucket(_messages.Message):
   name = _messages.StringField(9)
   restrictedFields = _messages.StringField(10, repeated=True)
   retentionDays = _messages.IntegerField(11, variant=_messages.Variant.INT32)
-  unmetAnalyticsUpgradeRequirements = _messages.EnumField('UnmetAnalyticsUpgradeRequirementsValueListEntryValuesEnum', 12, repeated=True)
-  updateTime = _messages.StringField(13)
+  tags = _messages.MessageField('TagsValue', 12)
+  unmetAnalyticsUpgradeRequirements = _messages.EnumField('UnmetAnalyticsUpgradeRequirementsValueListEntryValuesEnum', 13, repeated=True)
+  updateTime = _messages.StringField(14)
 
 
 class LogEntry(_messages.Message):
@@ -1793,6 +2056,13 @@ class LogEntry(_messages.Message):
       "type.googleapis.com/google.appengine.logging.v1.RequestLog"
 
   Fields:
+    apphub: Output only. AppHub application metadata associated with this
+      LogEntry. May be empty if there is no associated AppHub application or
+      multiple associated applications (such as for VPC flow logs)
+    apphubDestination: Output only. AppHub application metadata associated
+      with the destination application. This is only populated if the log
+      represented "edge"-like data (such as for VPC flow logs) with a source
+      and destination.
     errorGroups: Output only. The Error Reporting
       (https://cloud.google.com/error-reporting) error groups associated with
       this LogEntry. Error Reporting sets the values for this field during
@@ -2024,25 +2294,27 @@ class LogEntry(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
-  errorGroups = _messages.MessageField('LogErrorGroup', 1, repeated=True)
-  httpRequest = _messages.MessageField('HttpRequest', 2)
-  insertId = _messages.StringField(3)
-  jsonPayload = _messages.MessageField('JsonPayloadValue', 4)
-  labels = _messages.MessageField('LabelsValue', 5)
-  logName = _messages.StringField(6)
-  metadata = _messages.MessageField('MonitoredResourceMetadata', 7)
-  operation = _messages.MessageField('LogEntryOperation', 8)
-  protoPayload = _messages.MessageField('ProtoPayloadValue', 9)
-  receiveTimestamp = _messages.StringField(10)
-  resource = _messages.MessageField('MonitoredResource', 11)
-  severity = _messages.EnumField('SeverityValueValuesEnum', 12)
-  sourceLocation = _messages.MessageField('LogEntrySourceLocation', 13)
-  spanId = _messages.StringField(14)
-  split = _messages.MessageField('LogSplit', 15)
-  textPayload = _messages.StringField(16)
-  timestamp = _messages.StringField(17)
-  trace = _messages.StringField(18)
-  traceSampled = _messages.BooleanField(19)
+  apphub = _messages.MessageField('AppHub', 1)
+  apphubDestination = _messages.MessageField('AppHub', 2)
+  errorGroups = _messages.MessageField('LogErrorGroup', 3, repeated=True)
+  httpRequest = _messages.MessageField('HttpRequest', 4)
+  insertId = _messages.StringField(5)
+  jsonPayload = _messages.MessageField('JsonPayloadValue', 6)
+  labels = _messages.MessageField('LabelsValue', 7)
+  logName = _messages.StringField(8)
+  metadata = _messages.MessageField('MonitoredResourceMetadata', 9)
+  operation = _messages.MessageField('LogEntryOperation', 10)
+  protoPayload = _messages.MessageField('ProtoPayloadValue', 11)
+  receiveTimestamp = _messages.StringField(12)
+  resource = _messages.MessageField('MonitoredResource', 13)
+  severity = _messages.EnumField('SeverityValueValuesEnum', 14)
+  sourceLocation = _messages.MessageField('LogEntrySourceLocation', 15)
+  spanId = _messages.StringField(16)
+  split = _messages.MessageField('LogSplit', 17)
+  textPayload = _messages.StringField(18)
+  timestamp = _messages.StringField(19)
+  trace = _messages.StringField(20)
+  traceSampled = _messages.BooleanField(21)
 
 
 class LogEntryOperation(_messages.Message):
@@ -2128,7 +2400,7 @@ class LogExclusion(_messages.Message):
       the following query matches 99% of low-severity log entries from Google
       Cloud Storage buckets:resource.type=gcs_bucket severity<ERROR
       sample(insertId, 0.99)
-    name: Output only. A client-assigned identifier, such as "load-balancer-
+    name: Optional. A client-assigned identifier, such as "load-balancer-
       exclusion". Identifiers are limited to 100 characters and can include
       only letters, digits, underscores, hyphens, and periods. First character
       has to be alphanumeric.
@@ -2271,6 +2543,8 @@ class LogMetric(_messages.Message):
       Example: If the resource name of a metric is "projects/my-
       project/metrics/nginx%2Frequests", this field's value is
       "nginx/requests".
+    resourceName: Output only. The resource name of the metric:
+      "projects/[PROJECT_ID]/metrics/[METRIC_ID]"
     updateTime: Output only. The last update timestamp of the metric.This
       field may not be present for older metrics.
     valueExtractor: Optional. A value_extractor is required when using a
@@ -2347,9 +2621,35 @@ class LogMetric(_messages.Message):
   labelExtractors = _messages.MessageField('LabelExtractorsValue', 7)
   metricDescriptor = _messages.MessageField('MetricDescriptor', 8)
   name = _messages.StringField(9)
-  updateTime = _messages.StringField(10)
-  valueExtractor = _messages.StringField(11)
-  version = _messages.EnumField('VersionValueValuesEnum', 12)
+  resourceName = _messages.StringField(10)
+  updateTime = _messages.StringField(11)
+  valueExtractor = _messages.StringField(12)
+  version = _messages.EnumField('VersionValueValuesEnum', 13)
+
+
+class LogScope(_messages.Message):
+  r"""Describes a group of resources to read log entries from.
+
+  Fields:
+    createTime: Output only. The creation timestamp of the log scope.
+    description: Optional. Describes this log scope.The maximum length of the
+      description is 8000 characters.
+    name: Output only. The resource name of the log scope.Log scopes are only
+      available in the global location. For example:projects/my-
+      project/locations/global/logScopes/my-log-scope
+    resourceNames: Required. Names of one or more parent resources:
+      projects/[PROJECT_ID]May alternatively be one or more views: projects/[P
+      ROJECT_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]/views/[VIEW_ID]A
+      log scope can include a maximum of 5 projects and a maximum of 100
+      resources in total.
+    updateTime: Output only. The last update timestamp of the log scope.
+  """
+
+  createTime = _messages.StringField(1)
+  description = _messages.StringField(2)
+  name = _messages.StringField(3)
+  resourceNames = _messages.StringField(4, repeated=True)
+  updateTime = _messages.StringField(5)
 
 
 class LogSink(_messages.Message):
@@ -2383,7 +2683,7 @@ class LogSink(_messages.Message):
       not export any log entries.
     exclusions: Optional. Log entries that match any of these exclusion
       filters will not be exported.If a log entry is matched by both filter
-      and one of exclusion_filters it will not be exported.
+      and one of exclusions it will not be exported.
     filter: Optional. An advanced logs filter
       (https://cloud.google.com/logging/docs/view/advanced-queries). The only
       exported log entries are those that are in the resource owning the sink
@@ -2411,7 +2711,7 @@ class LogSink(_messages.Message):
       The sink appears in the results of a ListSinks call from a child
       resource if the value of the filter field in its request is either
       'in_scope("ALL")' or 'in_scope("ANCESTOR")'.
-    name: Output only. The client-assigned sink identifier, unique within the
+    name: Optional. The client-assigned sink identifier, unique within the
       project.For example: "my-syslog-errors-to-pubsub".Sink identifiers are
       limited to 100 characters and can include only the following characters:
       upper and lower-case alphanumeric characters, underscores, hyphens,
@@ -2726,10 +3026,6 @@ class LoggingBillingAccountsLocationsBucketsLinksCreateRequest(_messages.Message
       and underscores within it.
     parent: Required. The full resource name of the bucket to create a link
       for. "projects/[PROJECT_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]"
-      "organizations/[ORGANIZATION_ID]/locations/[LOCATION_ID]/buckets/[BUCKET
-      _ID]" "billingAccounts/[BILLING_ACCOUNT_ID]/locations/[LOCATION_ID]/buck
-      ets/[BUCKET_ID]"
-      "folders/[FOLDER_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]"
   """
 
   link = _messages.MessageField('Link', 1)
@@ -2895,7 +3191,7 @@ class LoggingBillingAccountsLocationsBucketsViewsCreateRequest(_messages.Message
       For example:"projects/my-project/locations/global/buckets/my-bucket"
     viewId: Required. A client-assigned identifier such as "my-view".
       Identifiers are limited to 100 characters and can include only letters,
-      digits, underscores, hyphens, and periods.
+      digits, underscores, and hyphens.
   """
 
   logView = _messages.MessageField('LogView', 1)
@@ -3018,6 +3314,9 @@ class LoggingBillingAccountsLocationsListRequest(_messages.Message):
   r"""A LoggingBillingAccountsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like "displayName=tokyo", and is
       documented in more detail in AIP-160 (https://google.aip.dev/160).
@@ -3028,10 +3327,11 @@ class LoggingBillingAccountsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class LoggingBillingAccountsLocationsOperationsApproveRedactionRequest(_messages.Message):
@@ -3089,6 +3389,10 @@ class LoggingBillingAccountsLocationsRecentQueriesListRequest(_messages.Message)
   r"""A LoggingBillingAccountsLocationsRecentQueriesListRequest object.
 
   Fields:
+    filter: Optional. Specifies the type ("Logging" or "OpsAnalytics") of the
+      recent queries to list. The only valid value for this field is one of
+      the two allowable type function calls, which are the following:
+      type("Logging") type("OpsAnalytics")
     pageSize: Optional. The maximum number of results to return from this
       request. Non-positive values are ignored. The presence of nextPageToken
       in the response indicates that more results might be available.
@@ -3106,9 +3410,10 @@ class LoggingBillingAccountsLocationsRecentQueriesListRequest(_messages.Message)
       will return all recent queries.
   """
 
-  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(2)
-  parent = _messages.StringField(3, required=True)
+  filter = _messages.StringField(1)
+  pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(3)
+  parent = _messages.StringField(4, required=True)
 
 
 class LoggingBillingAccountsLocationsSavedQueriesCreateRequest(_messages.Message):
@@ -3153,10 +3458,37 @@ class LoggingBillingAccountsLocationsSavedQueriesDeleteRequest(_messages.Message
   name = _messages.StringField(1, required=True)
 
 
+class LoggingBillingAccountsLocationsSavedQueriesGetRequest(_messages.Message):
+  r"""A LoggingBillingAccountsLocationsSavedQueriesGetRequest object.
+
+  Fields:
+    name: Required. The resource name of the saved query.
+      "projects/[PROJECT_ID]/locations/[LOCATION_ID]/savedQueries/[QUERY_ID]"
+      "organizations/[ORGANIZATION_ID]/locations/[LOCATION_ID]/savedQueries/[Q
+      UERY_ID]" "billingAccounts/[BILLING_ACCOUNT_ID]/locations/[LOCATION_ID]/
+      savedQueries/[QUERY_ID]"
+      "folders/[FOLDER_ID]/locations/[LOCATION_ID]/savedQueries/[QUERY_ID]"
+      For example: "projects/my-project/locations/global/savedQueries/my-
+      saved-query"
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
 class LoggingBillingAccountsLocationsSavedQueriesListRequest(_messages.Message):
   r"""A LoggingBillingAccountsLocationsSavedQueriesListRequest object.
 
   Fields:
+    filter: Optional. Specifies the type ("Logging" or "OpsAnalytics") and the
+      visibility (PRIVATE or SHARED) of the saved queries to list. If
+      provided, the filter must contain either the type function or a
+      visibility token, or both. If both are chosen, they can be placed in any
+      order, but they must be joined by the AND operator or the empty
+      character.The two supported type function calls are: type("Logging")
+      type("OpsAnalytics")The two supported visibility tokens are: visibility
+      = PRIVATE visibility = SHAREDFor example:type("Logging") AND visibility
+      = PRIVATE visibility=SHARED type("OpsAnalytics") type("OpsAnalytics)"
+      visibility = PRIVATE visibility = SHARED
     pageSize: Optional. The maximum number of results to return from this
       request.Non-positive values are ignored. The presence of nextPageToken
       in the response indicates that more results might be available.
@@ -3175,9 +3507,37 @@ class LoggingBillingAccountsLocationsSavedQueriesListRequest(_messages.Message):
       "projects/my-project/locations/-"
   """
 
-  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(2)
-  parent = _messages.StringField(3, required=True)
+  filter = _messages.StringField(1)
+  pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(3)
+  parent = _messages.StringField(4, required=True)
+
+
+class LoggingBillingAccountsLocationsSavedQueriesPatchRequest(_messages.Message):
+  r"""A LoggingBillingAccountsLocationsSavedQueriesPatchRequest object.
+
+  Fields:
+    name: Output only. Resource name of the saved query.In the format:
+      "projects/[PROJECT_ID]/locations/[LOCATION_ID]/savedQueries/[QUERY_ID]"
+      For a list of supported locations, see Supported Regions
+      (https://cloud.google.com/logging/docs/region-support#bucket-
+      regions)After the saved query is created, the location cannot be
+      changed.If the user doesn't provide a QUERY_ID, the system will generate
+      an alphanumeric ID.
+    savedQuery: A SavedQuery resource to be passed as the request body.
+    updateMask: Required. A non-empty list of fields to change in the existing
+      saved query. Fields are relative to the saved_query and new values for
+      the fields are taken from the corresponding fields in the SavedQuery
+      included in this request. Fields not mentioned in update_mask are not
+      changed and are ignored in the request.To update all mutable fields,
+      specify an update_mask of *.For example, to change the description and
+      query filter text of a saved query, specify an update_mask of
+      "description, query.filter".
+  """
+
+  name = _messages.StringField(1, required=True)
+  savedQuery = _messages.MessageField('SavedQuery', 2)
+  updateMask = _messages.StringField(3)
 
 
 class LoggingBillingAccountsLogsDeleteRequest(_messages.Message):
@@ -3233,11 +3593,12 @@ class LoggingBillingAccountsSinksCreateRequest(_messages.Message):
   r"""A LoggingBillingAccountsSinksCreateRequest object.
 
   Fields:
-    customWriterIdentity: Optional. A service account provided by the caller
+    customWriterIdentity: Optional. The service account provided by the caller
       that will be used to write the log entries. The format must be
-      serviceAccount:some@email. This field can only be specified if you are
-      routing logs to a destination outside this sink's project. If not
-      specified, a Logging service account will automatically be generated.
+      serviceAccount:some@email. This field can only be specified when you are
+      routing logs to a log bucket that is in a different project than the
+      sink. When not specified, a Logging service account will automatically
+      be generated.
     logSink: A LogSink resource to be passed as the request body.
     parent: Required. The resource in which to create the sink:
       "projects/[PROJECT_ID]" "organizations/[ORGANIZATION_ID]"
@@ -3326,11 +3687,12 @@ class LoggingBillingAccountsSinksPatchRequest(_messages.Message):
   r"""A LoggingBillingAccountsSinksPatchRequest object.
 
   Fields:
-    customWriterIdentity: Optional. A service account provided by the caller
+    customWriterIdentity: Optional. The service account provided by the caller
       that will be used to write the log entries. The format must be
-      serviceAccount:some@email. This field can only be specified if you are
-      routing logs to a destination outside this sink's project. If not
-      specified, a Logging service account will automatically be generated.
+      serviceAccount:some@email. This field can only be specified when you are
+      routing logs to a log bucket that is in a different project than the
+      sink. When not specified, a Logging service account will automatically
+      be generated.
     logSink: A LogSink resource to be passed as the request body.
     sinkName: Required. The full resource name of the sink to update,
       including the parent resource and the sink identifier:
@@ -3372,11 +3734,12 @@ class LoggingBillingAccountsSinksUpdateRequest(_messages.Message):
   r"""A LoggingBillingAccountsSinksUpdateRequest object.
 
   Fields:
-    customWriterIdentity: Optional. A service account provided by the caller
+    customWriterIdentity: Optional. The service account provided by the caller
       that will be used to write the log entries. The format must be
-      serviceAccount:some@email. This field can only be specified if you are
-      routing logs to a destination outside this sink's project. If not
-      specified, a Logging service account will automatically be generated.
+      serviceAccount:some@email. This field can only be specified when you are
+      routing logs to a log bucket that is in a different project than the
+      sink. When not specified, a Logging service account will automatically
+      be generated.
     logSink: A LogSink resource to be passed as the request body.
     sinkName: Required. The full resource name of the sink to update,
       including the parent resource and the sink identifier:
@@ -3708,10 +4071,6 @@ class LoggingFoldersLocationsBucketsLinksCreateRequest(_messages.Message):
       and underscores within it.
     parent: Required. The full resource name of the bucket to create a link
       for. "projects/[PROJECT_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]"
-      "organizations/[ORGANIZATION_ID]/locations/[LOCATION_ID]/buckets/[BUCKET
-      _ID]" "billingAccounts/[BILLING_ACCOUNT_ID]/locations/[LOCATION_ID]/buck
-      ets/[BUCKET_ID]"
-      "folders/[FOLDER_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]"
   """
 
   link = _messages.MessageField('Link', 1)
@@ -3877,7 +4236,7 @@ class LoggingFoldersLocationsBucketsViewsCreateRequest(_messages.Message):
       For example:"projects/my-project/locations/global/buckets/my-bucket"
     viewId: Required. A client-assigned identifier such as "my-view".
       Identifiers are limited to 100 characters and can include only letters,
-      digits, underscores, hyphens, and periods.
+      digits, underscores, and hyphens.
   """
 
   logView = _messages.MessageField('LogView', 1)
@@ -4046,6 +4405,9 @@ class LoggingFoldersLocationsListRequest(_messages.Message):
   r"""A LoggingFoldersLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like "displayName=tokyo", and is
       documented in more detail in AIP-160 (https://google.aip.dev/160).
@@ -4056,10 +4418,98 @@ class LoggingFoldersLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
+
+
+class LoggingFoldersLocationsLogScopesCreateRequest(_messages.Message):
+  r"""A LoggingFoldersLocationsLogScopesCreateRequest object.
+
+  Fields:
+    logScope: A LogScope resource to be passed as the request body.
+    logScopeId: Required. A client-assigned identifier such as "log-scope".
+      Identifiers are limited to 100 characters and can include only letters,
+      digits, underscores, hyphens, and periods. First character has to be
+      alphanumeric.
+    parent: Required. The parent project in which to create the log scope
+      "projects/[PROJECT_ID]/locations/[LOCATION_ID]" For
+      example:"projects/my-project/locations/global"
+  """
+
+  logScope = _messages.MessageField('LogScope', 1)
+  logScopeId = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+
+
+class LoggingFoldersLocationsLogScopesDeleteRequest(_messages.Message):
+  r"""A LoggingFoldersLocationsLogScopesDeleteRequest object.
+
+  Fields:
+    name: Required. The resource name of the log scope to delete:
+      "projects/[PROJECT_ID]/locations/[LOCATION_ID]/logScopes/[LOG_SCOPE_ID]"
+      For example:"projects/my-project/locations/global/logScopes/my-log-
+      scope"
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class LoggingFoldersLocationsLogScopesGetRequest(_messages.Message):
+  r"""A LoggingFoldersLocationsLogScopesGetRequest object.
+
+  Fields:
+    name: Required. The resource name of the log scope:
+      "projects/[PROJECT_ID]/locations/[LOCATION_ID]/logScopes/[LOG_SCOPE_ID]"
+      For example:"projects/my-project/locations/global/logScopes/my-log-
+      scope"
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class LoggingFoldersLocationsLogScopesListRequest(_messages.Message):
+  r"""A LoggingFoldersLocationsLogScopesListRequest object.
+
+  Fields:
+    pageSize: Optional. The maximum number of results to return from this
+      request.Non-positive values are ignored. The presence of nextPageToken
+      in the response indicates that more results might be available.
+    pageToken: Optional. If present, then retrieve the next batch of results
+      from the preceding call to this method. pageToken must be the value of
+      nextPageToken from the previous response. The values of other method
+      parameters should be identical to those in the previous call.
+    parent: Required. The parent resource whose log scopes are to be listed:
+      "projects/[PROJECT_ID]/locations/[LOCATION_ID]"
+  """
+
+  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+
+
+class LoggingFoldersLocationsLogScopesPatchRequest(_messages.Message):
+  r"""A LoggingFoldersLocationsLogScopesPatchRequest object.
+
+  Fields:
+    logScope: A LogScope resource to be passed as the request body.
+    name: Output only. The resource name of the log scope.Log scopes are only
+      available in the global location. For example:projects/my-
+      project/locations/global/logScopes/my-log-scope
+    updateMask: Optional. Field mask that specifies the fields in log_scope
+      that need an update. A field will be overwritten if, and only if, it is
+      in the update mask. name and output only fields cannot be updated.For a
+      detailed FieldMask definition, see
+      https://developers.google.com/protocol-
+      buffers/docs/reference/google.protobuf#google.protobuf.FieldMaskFor
+      example: updateMask=description
+  """
+
+  logScope = _messages.MessageField('LogScope', 1)
   name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  updateMask = _messages.StringField(3)
 
 
 class LoggingFoldersLocationsOperationsApproveRedactionRequest(_messages.Message):
@@ -4116,6 +4566,10 @@ class LoggingFoldersLocationsRecentQueriesListRequest(_messages.Message):
   r"""A LoggingFoldersLocationsRecentQueriesListRequest object.
 
   Fields:
+    filter: Optional. Specifies the type ("Logging" or "OpsAnalytics") of the
+      recent queries to list. The only valid value for this field is one of
+      the two allowable type function calls, which are the following:
+      type("Logging") type("OpsAnalytics")
     pageSize: Optional. The maximum number of results to return from this
       request. Non-positive values are ignored. The presence of nextPageToken
       in the response indicates that more results might be available.
@@ -4133,9 +4587,10 @@ class LoggingFoldersLocationsRecentQueriesListRequest(_messages.Message):
       will return all recent queries.
   """
 
-  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(2)
-  parent = _messages.StringField(3, required=True)
+  filter = _messages.StringField(1)
+  pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(3)
+  parent = _messages.StringField(4, required=True)
 
 
 class LoggingFoldersLocationsSavedQueriesCreateRequest(_messages.Message):
@@ -4180,10 +4635,37 @@ class LoggingFoldersLocationsSavedQueriesDeleteRequest(_messages.Message):
   name = _messages.StringField(1, required=True)
 
 
+class LoggingFoldersLocationsSavedQueriesGetRequest(_messages.Message):
+  r"""A LoggingFoldersLocationsSavedQueriesGetRequest object.
+
+  Fields:
+    name: Required. The resource name of the saved query.
+      "projects/[PROJECT_ID]/locations/[LOCATION_ID]/savedQueries/[QUERY_ID]"
+      "organizations/[ORGANIZATION_ID]/locations/[LOCATION_ID]/savedQueries/[Q
+      UERY_ID]" "billingAccounts/[BILLING_ACCOUNT_ID]/locations/[LOCATION_ID]/
+      savedQueries/[QUERY_ID]"
+      "folders/[FOLDER_ID]/locations/[LOCATION_ID]/savedQueries/[QUERY_ID]"
+      For example: "projects/my-project/locations/global/savedQueries/my-
+      saved-query"
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
 class LoggingFoldersLocationsSavedQueriesListRequest(_messages.Message):
   r"""A LoggingFoldersLocationsSavedQueriesListRequest object.
 
   Fields:
+    filter: Optional. Specifies the type ("Logging" or "OpsAnalytics") and the
+      visibility (PRIVATE or SHARED) of the saved queries to list. If
+      provided, the filter must contain either the type function or a
+      visibility token, or both. If both are chosen, they can be placed in any
+      order, but they must be joined by the AND operator or the empty
+      character.The two supported type function calls are: type("Logging")
+      type("OpsAnalytics")The two supported visibility tokens are: visibility
+      = PRIVATE visibility = SHAREDFor example:type("Logging") AND visibility
+      = PRIVATE visibility=SHARED type("OpsAnalytics") type("OpsAnalytics)"
+      visibility = PRIVATE visibility = SHARED
     pageSize: Optional. The maximum number of results to return from this
       request.Non-positive values are ignored. The presence of nextPageToken
       in the response indicates that more results might be available.
@@ -4202,9 +4684,37 @@ class LoggingFoldersLocationsSavedQueriesListRequest(_messages.Message):
       "projects/my-project/locations/-"
   """
 
-  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(2)
-  parent = _messages.StringField(3, required=True)
+  filter = _messages.StringField(1)
+  pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(3)
+  parent = _messages.StringField(4, required=True)
+
+
+class LoggingFoldersLocationsSavedQueriesPatchRequest(_messages.Message):
+  r"""A LoggingFoldersLocationsSavedQueriesPatchRequest object.
+
+  Fields:
+    name: Output only. Resource name of the saved query.In the format:
+      "projects/[PROJECT_ID]/locations/[LOCATION_ID]/savedQueries/[QUERY_ID]"
+      For a list of supported locations, see Supported Regions
+      (https://cloud.google.com/logging/docs/region-support#bucket-
+      regions)After the saved query is created, the location cannot be
+      changed.If the user doesn't provide a QUERY_ID, the system will generate
+      an alphanumeric ID.
+    savedQuery: A SavedQuery resource to be passed as the request body.
+    updateMask: Required. A non-empty list of fields to change in the existing
+      saved query. Fields are relative to the saved_query and new values for
+      the fields are taken from the corresponding fields in the SavedQuery
+      included in this request. Fields not mentioned in update_mask are not
+      changed and are ignored in the request.To update all mutable fields,
+      specify an update_mask of *.For example, to change the description and
+      query filter text of a saved query, specify an update_mask of
+      "description, query.filter".
+  """
+
+  name = _messages.StringField(1, required=True)
+  savedQuery = _messages.MessageField('SavedQuery', 2)
+  updateMask = _messages.StringField(3)
 
 
 class LoggingFoldersLogsDeleteRequest(_messages.Message):
@@ -4260,11 +4770,12 @@ class LoggingFoldersSinksCreateRequest(_messages.Message):
   r"""A LoggingFoldersSinksCreateRequest object.
 
   Fields:
-    customWriterIdentity: Optional. A service account provided by the caller
+    customWriterIdentity: Optional. The service account provided by the caller
       that will be used to write the log entries. The format must be
-      serviceAccount:some@email. This field can only be specified if you are
-      routing logs to a destination outside this sink's project. If not
-      specified, a Logging service account will automatically be generated.
+      serviceAccount:some@email. This field can only be specified when you are
+      routing logs to a log bucket that is in a different project than the
+      sink. When not specified, a Logging service account will automatically
+      be generated.
     logSink: A LogSink resource to be passed as the request body.
     parent: Required. The resource in which to create the sink:
       "projects/[PROJECT_ID]" "organizations/[ORGANIZATION_ID]"
@@ -4353,11 +4864,12 @@ class LoggingFoldersSinksPatchRequest(_messages.Message):
   r"""A LoggingFoldersSinksPatchRequest object.
 
   Fields:
-    customWriterIdentity: Optional. A service account provided by the caller
+    customWriterIdentity: Optional. The service account provided by the caller
       that will be used to write the log entries. The format must be
-      serviceAccount:some@email. This field can only be specified if you are
-      routing logs to a destination outside this sink's project. If not
-      specified, a Logging service account will automatically be generated.
+      serviceAccount:some@email. This field can only be specified when you are
+      routing logs to a log bucket that is in a different project than the
+      sink. When not specified, a Logging service account will automatically
+      be generated.
     logSink: A LogSink resource to be passed as the request body.
     sinkName: Required. The full resource name of the sink to update,
       including the parent resource and the sink identifier:
@@ -4399,11 +4911,12 @@ class LoggingFoldersSinksUpdateRequest(_messages.Message):
   r"""A LoggingFoldersSinksUpdateRequest object.
 
   Fields:
-    customWriterIdentity: Optional. A service account provided by the caller
+    customWriterIdentity: Optional. The service account provided by the caller
       that will be used to write the log entries. The format must be
-      serviceAccount:some@email. This field can only be specified if you are
-      routing logs to a destination outside this sink's project. If not
-      specified, a Logging service account will automatically be generated.
+      serviceAccount:some@email. This field can only be specified when you are
+      routing logs to a log bucket that is in a different project than the
+      sink. When not specified, a Logging service account will automatically
+      be generated.
     logSink: A LogSink resource to be passed as the request body.
     sinkName: Required. The full resource name of the sink to update,
       including the parent resource and the sink identifier:
@@ -4446,7 +4959,8 @@ class LoggingFoldersUpdateSettingsRequest(_messages.Message):
 
   Fields:
     name: Required. The resource name for the settings to update.
-      "organizations/[ORGANIZATION_ID]/settings" For
+      "organizations/[ORGANIZATION_ID]/settings"
+      "folders/[FOLDER_ID]/settings" For
       example:"organizations/12345/settings"
     settings: A Settings resource to be passed as the request body.
     updateMask: Optional. Field mask identifying which fields from settings
@@ -4574,10 +5088,6 @@ class LoggingLocationsBucketsLinksCreateRequest(_messages.Message):
       and underscores within it.
     parent: Required. The full resource name of the bucket to create a link
       for. "projects/[PROJECT_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]"
-      "organizations/[ORGANIZATION_ID]/locations/[LOCATION_ID]/buckets/[BUCKET
-      _ID]" "billingAccounts/[BILLING_ACCOUNT_ID]/locations/[LOCATION_ID]/buck
-      ets/[BUCKET_ID]"
-      "folders/[FOLDER_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]"
   """
 
   link = _messages.MessageField('Link', 1)
@@ -4743,7 +5253,7 @@ class LoggingLocationsBucketsViewsCreateRequest(_messages.Message):
       For example:"projects/my-project/locations/global/buckets/my-bucket"
     viewId: Required. A client-assigned identifier such as "my-view".
       Identifiers are limited to 100 characters and can include only letters,
-      digits, underscores, hyphens, and periods.
+      digits, underscores, and hyphens.
   """
 
   logView = _messages.MessageField('LogView', 1)
@@ -4880,6 +5390,9 @@ class LoggingLocationsListRequest(_messages.Message):
   r"""A LoggingLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like "displayName=tokyo", and is
       documented in more detail in AIP-160 (https://google.aip.dev/160).
@@ -4890,10 +5403,11 @@ class LoggingLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class LoggingLocationsOperationsApproveRedactionRequest(_messages.Message):
@@ -5216,10 +5730,6 @@ class LoggingOrganizationsLocationsBucketsLinksCreateRequest(_messages.Message):
       and underscores within it.
     parent: Required. The full resource name of the bucket to create a link
       for. "projects/[PROJECT_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]"
-      "organizations/[ORGANIZATION_ID]/locations/[LOCATION_ID]/buckets/[BUCKET
-      _ID]" "billingAccounts/[BILLING_ACCOUNT_ID]/locations/[LOCATION_ID]/buck
-      ets/[BUCKET_ID]"
-      "folders/[FOLDER_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]"
   """
 
   link = _messages.MessageField('Link', 1)
@@ -5385,7 +5895,7 @@ class LoggingOrganizationsLocationsBucketsViewsCreateRequest(_messages.Message):
       For example:"projects/my-project/locations/global/buckets/my-bucket"
     viewId: Required. A client-assigned identifier such as "my-view".
       Identifiers are limited to 100 characters and can include only letters,
-      digits, underscores, hyphens, and periods.
+      digits, underscores, and hyphens.
   """
 
   logView = _messages.MessageField('LogView', 1)
@@ -5555,6 +6065,9 @@ class LoggingOrganizationsLocationsListRequest(_messages.Message):
   r"""A LoggingOrganizationsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like "displayName=tokyo", and is
       documented in more detail in AIP-160 (https://google.aip.dev/160).
@@ -5565,10 +6078,98 @@ class LoggingOrganizationsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
+
+
+class LoggingOrganizationsLocationsLogScopesCreateRequest(_messages.Message):
+  r"""A LoggingOrganizationsLocationsLogScopesCreateRequest object.
+
+  Fields:
+    logScope: A LogScope resource to be passed as the request body.
+    logScopeId: Required. A client-assigned identifier such as "log-scope".
+      Identifiers are limited to 100 characters and can include only letters,
+      digits, underscores, hyphens, and periods. First character has to be
+      alphanumeric.
+    parent: Required. The parent project in which to create the log scope
+      "projects/[PROJECT_ID]/locations/[LOCATION_ID]" For
+      example:"projects/my-project/locations/global"
+  """
+
+  logScope = _messages.MessageField('LogScope', 1)
+  logScopeId = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+
+
+class LoggingOrganizationsLocationsLogScopesDeleteRequest(_messages.Message):
+  r"""A LoggingOrganizationsLocationsLogScopesDeleteRequest object.
+
+  Fields:
+    name: Required. The resource name of the log scope to delete:
+      "projects/[PROJECT_ID]/locations/[LOCATION_ID]/logScopes/[LOG_SCOPE_ID]"
+      For example:"projects/my-project/locations/global/logScopes/my-log-
+      scope"
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class LoggingOrganizationsLocationsLogScopesGetRequest(_messages.Message):
+  r"""A LoggingOrganizationsLocationsLogScopesGetRequest object.
+
+  Fields:
+    name: Required. The resource name of the log scope:
+      "projects/[PROJECT_ID]/locations/[LOCATION_ID]/logScopes/[LOG_SCOPE_ID]"
+      For example:"projects/my-project/locations/global/logScopes/my-log-
+      scope"
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class LoggingOrganizationsLocationsLogScopesListRequest(_messages.Message):
+  r"""A LoggingOrganizationsLocationsLogScopesListRequest object.
+
+  Fields:
+    pageSize: Optional. The maximum number of results to return from this
+      request.Non-positive values are ignored. The presence of nextPageToken
+      in the response indicates that more results might be available.
+    pageToken: Optional. If present, then retrieve the next batch of results
+      from the preceding call to this method. pageToken must be the value of
+      nextPageToken from the previous response. The values of other method
+      parameters should be identical to those in the previous call.
+    parent: Required. The parent resource whose log scopes are to be listed:
+      "projects/[PROJECT_ID]/locations/[LOCATION_ID]"
+  """
+
+  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+
+
+class LoggingOrganizationsLocationsLogScopesPatchRequest(_messages.Message):
+  r"""A LoggingOrganizationsLocationsLogScopesPatchRequest object.
+
+  Fields:
+    logScope: A LogScope resource to be passed as the request body.
+    name: Output only. The resource name of the log scope.Log scopes are only
+      available in the global location. For example:projects/my-
+      project/locations/global/logScopes/my-log-scope
+    updateMask: Optional. Field mask that specifies the fields in log_scope
+      that need an update. A field will be overwritten if, and only if, it is
+      in the update mask. name and output only fields cannot be updated.For a
+      detailed FieldMask definition, see
+      https://developers.google.com/protocol-
+      buffers/docs/reference/google.protobuf#google.protobuf.FieldMaskFor
+      example: updateMask=description
+  """
+
+  logScope = _messages.MessageField('LogScope', 1)
   name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  updateMask = _messages.StringField(3)
 
 
 class LoggingOrganizationsLocationsOperationsApproveRedactionRequest(_messages.Message):
@@ -5625,6 +6226,10 @@ class LoggingOrganizationsLocationsRecentQueriesListRequest(_messages.Message):
   r"""A LoggingOrganizationsLocationsRecentQueriesListRequest object.
 
   Fields:
+    filter: Optional. Specifies the type ("Logging" or "OpsAnalytics") of the
+      recent queries to list. The only valid value for this field is one of
+      the two allowable type function calls, which are the following:
+      type("Logging") type("OpsAnalytics")
     pageSize: Optional. The maximum number of results to return from this
       request. Non-positive values are ignored. The presence of nextPageToken
       in the response indicates that more results might be available.
@@ -5642,9 +6247,10 @@ class LoggingOrganizationsLocationsRecentQueriesListRequest(_messages.Message):
       will return all recent queries.
   """
 
-  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(2)
-  parent = _messages.StringField(3, required=True)
+  filter = _messages.StringField(1)
+  pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(3)
+  parent = _messages.StringField(4, required=True)
 
 
 class LoggingOrganizationsLocationsSavedQueriesCreateRequest(_messages.Message):
@@ -5689,10 +6295,37 @@ class LoggingOrganizationsLocationsSavedQueriesDeleteRequest(_messages.Message):
   name = _messages.StringField(1, required=True)
 
 
+class LoggingOrganizationsLocationsSavedQueriesGetRequest(_messages.Message):
+  r"""A LoggingOrganizationsLocationsSavedQueriesGetRequest object.
+
+  Fields:
+    name: Required. The resource name of the saved query.
+      "projects/[PROJECT_ID]/locations/[LOCATION_ID]/savedQueries/[QUERY_ID]"
+      "organizations/[ORGANIZATION_ID]/locations/[LOCATION_ID]/savedQueries/[Q
+      UERY_ID]" "billingAccounts/[BILLING_ACCOUNT_ID]/locations/[LOCATION_ID]/
+      savedQueries/[QUERY_ID]"
+      "folders/[FOLDER_ID]/locations/[LOCATION_ID]/savedQueries/[QUERY_ID]"
+      For example: "projects/my-project/locations/global/savedQueries/my-
+      saved-query"
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
 class LoggingOrganizationsLocationsSavedQueriesListRequest(_messages.Message):
   r"""A LoggingOrganizationsLocationsSavedQueriesListRequest object.
 
   Fields:
+    filter: Optional. Specifies the type ("Logging" or "OpsAnalytics") and the
+      visibility (PRIVATE or SHARED) of the saved queries to list. If
+      provided, the filter must contain either the type function or a
+      visibility token, or both. If both are chosen, they can be placed in any
+      order, but they must be joined by the AND operator or the empty
+      character.The two supported type function calls are: type("Logging")
+      type("OpsAnalytics")The two supported visibility tokens are: visibility
+      = PRIVATE visibility = SHAREDFor example:type("Logging") AND visibility
+      = PRIVATE visibility=SHARED type("OpsAnalytics") type("OpsAnalytics)"
+      visibility = PRIVATE visibility = SHARED
     pageSize: Optional. The maximum number of results to return from this
       request.Non-positive values are ignored. The presence of nextPageToken
       in the response indicates that more results might be available.
@@ -5711,9 +6344,37 @@ class LoggingOrganizationsLocationsSavedQueriesListRequest(_messages.Message):
       "projects/my-project/locations/-"
   """
 
-  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(2)
-  parent = _messages.StringField(3, required=True)
+  filter = _messages.StringField(1)
+  pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(3)
+  parent = _messages.StringField(4, required=True)
+
+
+class LoggingOrganizationsLocationsSavedQueriesPatchRequest(_messages.Message):
+  r"""A LoggingOrganizationsLocationsSavedQueriesPatchRequest object.
+
+  Fields:
+    name: Output only. Resource name of the saved query.In the format:
+      "projects/[PROJECT_ID]/locations/[LOCATION_ID]/savedQueries/[QUERY_ID]"
+      For a list of supported locations, see Supported Regions
+      (https://cloud.google.com/logging/docs/region-support#bucket-
+      regions)After the saved query is created, the location cannot be
+      changed.If the user doesn't provide a QUERY_ID, the system will generate
+      an alphanumeric ID.
+    savedQuery: A SavedQuery resource to be passed as the request body.
+    updateMask: Required. A non-empty list of fields to change in the existing
+      saved query. Fields are relative to the saved_query and new values for
+      the fields are taken from the corresponding fields in the SavedQuery
+      included in this request. Fields not mentioned in update_mask are not
+      changed and are ignored in the request.To update all mutable fields,
+      specify an update_mask of *.For example, to change the description and
+      query filter text of a saved query, specify an update_mask of
+      "description, query.filter".
+  """
+
+  name = _messages.StringField(1, required=True)
+  savedQuery = _messages.MessageField('SavedQuery', 2)
+  updateMask = _messages.StringField(3)
 
 
 class LoggingOrganizationsLogsDeleteRequest(_messages.Message):
@@ -5769,11 +6430,12 @@ class LoggingOrganizationsSinksCreateRequest(_messages.Message):
   r"""A LoggingOrganizationsSinksCreateRequest object.
 
   Fields:
-    customWriterIdentity: Optional. A service account provided by the caller
+    customWriterIdentity: Optional. The service account provided by the caller
       that will be used to write the log entries. The format must be
-      serviceAccount:some@email. This field can only be specified if you are
-      routing logs to a destination outside this sink's project. If not
-      specified, a Logging service account will automatically be generated.
+      serviceAccount:some@email. This field can only be specified when you are
+      routing logs to a log bucket that is in a different project than the
+      sink. When not specified, a Logging service account will automatically
+      be generated.
     logSink: A LogSink resource to be passed as the request body.
     parent: Required. The resource in which to create the sink:
       "projects/[PROJECT_ID]" "organizations/[ORGANIZATION_ID]"
@@ -5862,11 +6524,12 @@ class LoggingOrganizationsSinksPatchRequest(_messages.Message):
   r"""A LoggingOrganizationsSinksPatchRequest object.
 
   Fields:
-    customWriterIdentity: Optional. A service account provided by the caller
+    customWriterIdentity: Optional. The service account provided by the caller
       that will be used to write the log entries. The format must be
-      serviceAccount:some@email. This field can only be specified if you are
-      routing logs to a destination outside this sink's project. If not
-      specified, a Logging service account will automatically be generated.
+      serviceAccount:some@email. This field can only be specified when you are
+      routing logs to a log bucket that is in a different project than the
+      sink. When not specified, a Logging service account will automatically
+      be generated.
     logSink: A LogSink resource to be passed as the request body.
     sinkName: Required. The full resource name of the sink to update,
       including the parent resource and the sink identifier:
@@ -5908,11 +6571,12 @@ class LoggingOrganizationsSinksUpdateRequest(_messages.Message):
   r"""A LoggingOrganizationsSinksUpdateRequest object.
 
   Fields:
-    customWriterIdentity: Optional. A service account provided by the caller
+    customWriterIdentity: Optional. The service account provided by the caller
       that will be used to write the log entries. The format must be
-      serviceAccount:some@email. This field can only be specified if you are
-      routing logs to a destination outside this sink's project. If not
-      specified, a Logging service account will automatically be generated.
+      serviceAccount:some@email. This field can only be specified when you are
+      routing logs to a log bucket that is in a different project than the
+      sink. When not specified, a Logging service account will automatically
+      be generated.
     logSink: A LogSink resource to be passed as the request body.
     sinkName: Required. The full resource name of the sink to update,
       including the parent resource and the sink identifier:
@@ -5980,7 +6644,8 @@ class LoggingOrganizationsUpdateSettingsRequest(_messages.Message):
 
   Fields:
     name: Required. The resource name for the settings to update.
-      "organizations/[ORGANIZATION_ID]/settings" For
+      "organizations/[ORGANIZATION_ID]/settings"
+      "folders/[FOLDER_ID]/settings" For
       example:"organizations/12345/settings"
     settings: A Settings resource to be passed as the request body.
     updateMask: Optional. Field mask identifying which fields from settings
@@ -6198,10 +6863,6 @@ class LoggingProjectsLocationsBucketsLinksCreateRequest(_messages.Message):
       and underscores within it.
     parent: Required. The full resource name of the bucket to create a link
       for. "projects/[PROJECT_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]"
-      "organizations/[ORGANIZATION_ID]/locations/[LOCATION_ID]/buckets/[BUCKET
-      _ID]" "billingAccounts/[BILLING_ACCOUNT_ID]/locations/[LOCATION_ID]/buck
-      ets/[BUCKET_ID]"
-      "folders/[FOLDER_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]"
   """
 
   link = _messages.MessageField('Link', 1)
@@ -6367,7 +7028,7 @@ class LoggingProjectsLocationsBucketsViewsCreateRequest(_messages.Message):
       For example:"projects/my-project/locations/global/buckets/my-bucket"
     viewId: Required. A client-assigned identifier such as "my-view".
       Identifiers are limited to 100 characters and can include only letters,
-      digits, underscores, hyphens, and periods.
+      digits, underscores, and hyphens.
   """
 
   logView = _messages.MessageField('LogView', 1)
@@ -6536,6 +7197,9 @@ class LoggingProjectsLocationsListRequest(_messages.Message):
   r"""A LoggingProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like "displayName=tokyo", and is
       documented in more detail in AIP-160 (https://google.aip.dev/160).
@@ -6546,10 +7210,98 @@ class LoggingProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
+
+
+class LoggingProjectsLocationsLogScopesCreateRequest(_messages.Message):
+  r"""A LoggingProjectsLocationsLogScopesCreateRequest object.
+
+  Fields:
+    logScope: A LogScope resource to be passed as the request body.
+    logScopeId: Required. A client-assigned identifier such as "log-scope".
+      Identifiers are limited to 100 characters and can include only letters,
+      digits, underscores, hyphens, and periods. First character has to be
+      alphanumeric.
+    parent: Required. The parent project in which to create the log scope
+      "projects/[PROJECT_ID]/locations/[LOCATION_ID]" For
+      example:"projects/my-project/locations/global"
+  """
+
+  logScope = _messages.MessageField('LogScope', 1)
+  logScopeId = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+
+
+class LoggingProjectsLocationsLogScopesDeleteRequest(_messages.Message):
+  r"""A LoggingProjectsLocationsLogScopesDeleteRequest object.
+
+  Fields:
+    name: Required. The resource name of the log scope to delete:
+      "projects/[PROJECT_ID]/locations/[LOCATION_ID]/logScopes/[LOG_SCOPE_ID]"
+      For example:"projects/my-project/locations/global/logScopes/my-log-
+      scope"
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class LoggingProjectsLocationsLogScopesGetRequest(_messages.Message):
+  r"""A LoggingProjectsLocationsLogScopesGetRequest object.
+
+  Fields:
+    name: Required. The resource name of the log scope:
+      "projects/[PROJECT_ID]/locations/[LOCATION_ID]/logScopes/[LOG_SCOPE_ID]"
+      For example:"projects/my-project/locations/global/logScopes/my-log-
+      scope"
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class LoggingProjectsLocationsLogScopesListRequest(_messages.Message):
+  r"""A LoggingProjectsLocationsLogScopesListRequest object.
+
+  Fields:
+    pageSize: Optional. The maximum number of results to return from this
+      request.Non-positive values are ignored. The presence of nextPageToken
+      in the response indicates that more results might be available.
+    pageToken: Optional. If present, then retrieve the next batch of results
+      from the preceding call to this method. pageToken must be the value of
+      nextPageToken from the previous response. The values of other method
+      parameters should be identical to those in the previous call.
+    parent: Required. The parent resource whose log scopes are to be listed:
+      "projects/[PROJECT_ID]/locations/[LOCATION_ID]"
+  """
+
+  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+
+
+class LoggingProjectsLocationsLogScopesPatchRequest(_messages.Message):
+  r"""A LoggingProjectsLocationsLogScopesPatchRequest object.
+
+  Fields:
+    logScope: A LogScope resource to be passed as the request body.
+    name: Output only. The resource name of the log scope.Log scopes are only
+      available in the global location. For example:projects/my-
+      project/locations/global/logScopes/my-log-scope
+    updateMask: Optional. Field mask that specifies the fields in log_scope
+      that need an update. A field will be overwritten if, and only if, it is
+      in the update mask. name and output only fields cannot be updated.For a
+      detailed FieldMask definition, see
+      https://developers.google.com/protocol-
+      buffers/docs/reference/google.protobuf#google.protobuf.FieldMaskFor
+      example: updateMask=description
+  """
+
+  logScope = _messages.MessageField('LogScope', 1)
   name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  updateMask = _messages.StringField(3)
 
 
 class LoggingProjectsLocationsOperationsApproveRedactionRequest(_messages.Message):
@@ -6606,6 +7358,10 @@ class LoggingProjectsLocationsRecentQueriesListRequest(_messages.Message):
   r"""A LoggingProjectsLocationsRecentQueriesListRequest object.
 
   Fields:
+    filter: Optional. Specifies the type ("Logging" or "OpsAnalytics") of the
+      recent queries to list. The only valid value for this field is one of
+      the two allowable type function calls, which are the following:
+      type("Logging") type("OpsAnalytics")
     pageSize: Optional. The maximum number of results to return from this
       request. Non-positive values are ignored. The presence of nextPageToken
       in the response indicates that more results might be available.
@@ -6623,9 +7379,10 @@ class LoggingProjectsLocationsRecentQueriesListRequest(_messages.Message):
       will return all recent queries.
   """
 
-  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(2)
-  parent = _messages.StringField(3, required=True)
+  filter = _messages.StringField(1)
+  pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(3)
+  parent = _messages.StringField(4, required=True)
 
 
 class LoggingProjectsLocationsSavedQueriesCreateRequest(_messages.Message):
@@ -6670,10 +7427,37 @@ class LoggingProjectsLocationsSavedQueriesDeleteRequest(_messages.Message):
   name = _messages.StringField(1, required=True)
 
 
+class LoggingProjectsLocationsSavedQueriesGetRequest(_messages.Message):
+  r"""A LoggingProjectsLocationsSavedQueriesGetRequest object.
+
+  Fields:
+    name: Required. The resource name of the saved query.
+      "projects/[PROJECT_ID]/locations/[LOCATION_ID]/savedQueries/[QUERY_ID]"
+      "organizations/[ORGANIZATION_ID]/locations/[LOCATION_ID]/savedQueries/[Q
+      UERY_ID]" "billingAccounts/[BILLING_ACCOUNT_ID]/locations/[LOCATION_ID]/
+      savedQueries/[QUERY_ID]"
+      "folders/[FOLDER_ID]/locations/[LOCATION_ID]/savedQueries/[QUERY_ID]"
+      For example: "projects/my-project/locations/global/savedQueries/my-
+      saved-query"
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
 class LoggingProjectsLocationsSavedQueriesListRequest(_messages.Message):
   r"""A LoggingProjectsLocationsSavedQueriesListRequest object.
 
   Fields:
+    filter: Optional. Specifies the type ("Logging" or "OpsAnalytics") and the
+      visibility (PRIVATE or SHARED) of the saved queries to list. If
+      provided, the filter must contain either the type function or a
+      visibility token, or both. If both are chosen, they can be placed in any
+      order, but they must be joined by the AND operator or the empty
+      character.The two supported type function calls are: type("Logging")
+      type("OpsAnalytics")The two supported visibility tokens are: visibility
+      = PRIVATE visibility = SHAREDFor example:type("Logging") AND visibility
+      = PRIVATE visibility=SHARED type("OpsAnalytics") type("OpsAnalytics)"
+      visibility = PRIVATE visibility = SHARED
     pageSize: Optional. The maximum number of results to return from this
       request.Non-positive values are ignored. The presence of nextPageToken
       in the response indicates that more results might be available.
@@ -6692,9 +7476,37 @@ class LoggingProjectsLocationsSavedQueriesListRequest(_messages.Message):
       "projects/my-project/locations/-"
   """
 
-  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(2)
-  parent = _messages.StringField(3, required=True)
+  filter = _messages.StringField(1)
+  pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(3)
+  parent = _messages.StringField(4, required=True)
+
+
+class LoggingProjectsLocationsSavedQueriesPatchRequest(_messages.Message):
+  r"""A LoggingProjectsLocationsSavedQueriesPatchRequest object.
+
+  Fields:
+    name: Output only. Resource name of the saved query.In the format:
+      "projects/[PROJECT_ID]/locations/[LOCATION_ID]/savedQueries/[QUERY_ID]"
+      For a list of supported locations, see Supported Regions
+      (https://cloud.google.com/logging/docs/region-support#bucket-
+      regions)After the saved query is created, the location cannot be
+      changed.If the user doesn't provide a QUERY_ID, the system will generate
+      an alphanumeric ID.
+    savedQuery: A SavedQuery resource to be passed as the request body.
+    updateMask: Required. A non-empty list of fields to change in the existing
+      saved query. Fields are relative to the saved_query and new values for
+      the fields are taken from the corresponding fields in the SavedQuery
+      included in this request. Fields not mentioned in update_mask are not
+      changed and are ignored in the request.To update all mutable fields,
+      specify an update_mask of *.For example, to change the description and
+      query filter text of a saved query, specify an update_mask of
+      "description, query.filter".
+  """
+
+  name = _messages.StringField(1, required=True)
+  savedQuery = _messages.MessageField('SavedQuery', 2)
+  updateMask = _messages.StringField(3)
 
 
 class LoggingProjectsLogsDeleteRequest(_messages.Message):
@@ -6822,11 +7634,12 @@ class LoggingProjectsSinksCreateRequest(_messages.Message):
   r"""A LoggingProjectsSinksCreateRequest object.
 
   Fields:
-    customWriterIdentity: Optional. A service account provided by the caller
+    customWriterIdentity: Optional. The service account provided by the caller
       that will be used to write the log entries. The format must be
-      serviceAccount:some@email. This field can only be specified if you are
-      routing logs to a destination outside this sink's project. If not
-      specified, a Logging service account will automatically be generated.
+      serviceAccount:some@email. This field can only be specified when you are
+      routing logs to a log bucket that is in a different project than the
+      sink. When not specified, a Logging service account will automatically
+      be generated.
     logSink: A LogSink resource to be passed as the request body.
     parent: Required. The resource in which to create the sink:
       "projects/[PROJECT_ID]" "organizations/[ORGANIZATION_ID]"
@@ -6915,11 +7728,12 @@ class LoggingProjectsSinksPatchRequest(_messages.Message):
   r"""A LoggingProjectsSinksPatchRequest object.
 
   Fields:
-    customWriterIdentity: Optional. A service account provided by the caller
+    customWriterIdentity: Optional. The service account provided by the caller
       that will be used to write the log entries. The format must be
-      serviceAccount:some@email. This field can only be specified if you are
-      routing logs to a destination outside this sink's project. If not
-      specified, a Logging service account will automatically be generated.
+      serviceAccount:some@email. This field can only be specified when you are
+      routing logs to a log bucket that is in a different project than the
+      sink. When not specified, a Logging service account will automatically
+      be generated.
     logSink: A LogSink resource to be passed as the request body.
     sinkName: Required. The full resource name of the sink to update,
       including the parent resource and the sink identifier:
@@ -6961,11 +7775,12 @@ class LoggingProjectsSinksUpdateRequest(_messages.Message):
   r"""A LoggingProjectsSinksUpdateRequest object.
 
   Fields:
-    customWriterIdentity: Optional. A service account provided by the caller
+    customWriterIdentity: Optional. The service account provided by the caller
       that will be used to write the log entries. The format must be
-      serviceAccount:some@email. This field can only be specified if you are
-      routing logs to a destination outside this sink's project. If not
-      specified, a Logging service account will automatically be generated.
+      serviceAccount:some@email. This field can only be specified when you are
+      routing logs to a log bucket that is in a different project than the
+      sink. When not specified, a Logging service account will automatically
+      be generated.
     logSink: A LogSink resource to be passed as the request body.
     sinkName: Required. The full resource name of the sink to update,
       including the parent resource and the sink identifier:
@@ -7030,11 +7845,12 @@ class LoggingSinksCreateRequest(_messages.Message):
   r"""A LoggingSinksCreateRequest object.
 
   Fields:
-    customWriterIdentity: Optional. A service account provided by the caller
+    customWriterIdentity: Optional. The service account provided by the caller
       that will be used to write the log entries. The format must be
-      serviceAccount:some@email. This field can only be specified if you are
-      routing logs to a destination outside this sink's project. If not
-      specified, a Logging service account will automatically be generated.
+      serviceAccount:some@email. This field can only be specified when you are
+      routing logs to a log bucket that is in a different project than the
+      sink. When not specified, a Logging service account will automatically
+      be generated.
     logSink: A LogSink resource to be passed as the request body.
     parent: Required. The resource in which to create the sink:
       "projects/[PROJECT_ID]" "organizations/[ORGANIZATION_ID]"
@@ -7123,11 +7939,12 @@ class LoggingSinksUpdateRequest(_messages.Message):
   r"""A LoggingSinksUpdateRequest object.
 
   Fields:
-    customWriterIdentity: Optional. A service account provided by the caller
+    customWriterIdentity: Optional. The service account provided by the caller
       that will be used to write the log entries. The format must be
-      serviceAccount:some@email. This field can only be specified if you are
-      routing logs to a destination outside this sink's project. If not
-      specified, a Logging service account will automatically be generated.
+      serviceAccount:some@email. This field can only be specified when you are
+      routing logs to a log bucket that is in a different project than the
+      sink. When not specified, a Logging service account will automatically
+      be generated.
     logSink: A LogSink resource to be passed as the request body.
     sinkName: Required. The full resource name of the sink to update,
       including the parent resource and the sink identifier:
@@ -7195,7 +8012,8 @@ class LoggingUpdateSettingsRequest(_messages.Message):
 
   Fields:
     name: Required. The resource name for the settings to update.
-      "organizations/[ORGANIZATION_ID]/settings" For
+      "organizations/[ORGANIZATION_ID]/settings"
+      "folders/[FOLDER_ID]/settings" For
       example:"organizations/12345/settings"
     settings: A Settings resource to be passed as the request body.
     updateMask: Optional. Field mask identifying which fields from settings
@@ -7412,6 +8230,7 @@ class MetricDescriptorMetadata(_messages.Message):
   Enums:
     LaunchStageValueValuesEnum: Deprecated. Must use the
       MetricDescriptor.launch_stage instead.
+    TimeSeriesResourceHierarchyLevelValueListEntryValuesEnum:
 
   Fields:
     ingestDelay: The delay of data points caused by ingestion. Data points
@@ -7423,6 +8242,8 @@ class MetricDescriptorMetadata(_messages.Message):
       are written periodically, consecutive data points are stored at this
       time interval, excluding data loss due to errors. Metrics with a higher
       granularity have a smaller sampling period.
+    timeSeriesResourceHierarchyLevel: The scope of the timeseries data of the
+      metric.
   """
 
   class LaunchStageValueValuesEnum(_messages.Enum):
@@ -7469,9 +8290,25 @@ class MetricDescriptorMetadata(_messages.Message):
     GA = 6
     DEPRECATED = 7
 
+  class TimeSeriesResourceHierarchyLevelValueListEntryValuesEnum(_messages.Enum):
+    r"""TimeSeriesResourceHierarchyLevelValueListEntryValuesEnum enum type.
+
+    Values:
+      TIME_SERIES_RESOURCE_HIERARCHY_LEVEL_UNSPECIFIED: Do not use this
+        default value.
+      PROJECT: Scopes a metric to a project.
+      ORGANIZATION: Scopes a metric to an organization.
+      FOLDER: Scopes a metric to a folder.
+    """
+    TIME_SERIES_RESOURCE_HIERARCHY_LEVEL_UNSPECIFIED = 0
+    PROJECT = 1
+    ORGANIZATION = 2
+    FOLDER = 3
+
   ingestDelay = _messages.StringField(1)
   launchStage = _messages.EnumField('LaunchStageValueValuesEnum', 2)
   samplePeriod = _messages.StringField(3)
+  timeSeriesResourceHierarchyLevel = _messages.EnumField('TimeSeriesResourceHierarchyLevelValueListEntryValuesEnum', 4, repeated=True)
 
 
 class MonitoredResource(_messages.Message):
@@ -7891,12 +8728,31 @@ class OpsAnalyticsQuery(_messages.Message):
   subject to change before final release.
 
   Fields:
+    queryBuilder: Optional. A logs analytics query builder, which is used to
+      build the SQL query that is then executed.
+    queryExecutionRules: Optional. The query execution rules for the query
+      request.
     sqlQueryText: Required. A logs analytics SQL query, which generally
       follows BigQuery format.This is the SQL query that appears in the Log
       Analytics UI's query editor.
   """
 
-  sqlQueryText = _messages.StringField(1)
+  queryBuilder = _messages.MessageField('QueryBuilderConfig', 1)
+  queryExecutionRules = _messages.MessageField('OpsAnalyticsQueryExecutionRules', 2)
+  sqlQueryText = _messages.StringField(3)
+
+
+class OpsAnalyticsQueryExecutionRules(_messages.Message):
+  r"""Defines the query execution rules for a given Ops Analytics query.
+  LINT.IfChange
+
+  Fields:
+    useReservedSlots: Optional. If use_reserved_slots is set, the user's query
+      will run on their BigQuery reservation rather than slots managed by
+      Cloud Observability.
+  """
+
+  useReservedSlots = _messages.BooleanField(1)
 
 
 class Parameter(_messages.Message):
@@ -7943,7 +8799,6 @@ class Policy(_messages.Message):
   documentation (https://cloud.google.com/iam/docs/).
 
   Fields:
-    auditConfigs: Specifies cloud audit logging configuration for this policy.
     bindings: Associates a list of members, or principals, with a role.
       Optionally, may specify a condition that determines how and when the
       bindings are applied. Each of the bindings must contain at least one
@@ -7981,19 +8836,182 @@ class Policy(_messages.Message):
       (https://cloud.google.com/iam/help/conditions/resource-policies).
   """
 
-  auditConfigs = _messages.MessageField('AuditConfig', 1, repeated=True)
-  bindings = _messages.MessageField('Binding', 2, repeated=True)
-  etag = _messages.BytesField(3)
-  version = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  bindings = _messages.MessageField('Binding', 1, repeated=True)
+  etag = _messages.BytesField(2)
+  version = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+
+
+class ProjectedField(_messages.Message):
+  r"""Represents a field selected in the query, analogous to an item in a SQL
+  SELECT clause. It specifies the source field and optionally applies
+  transformations like aggregation, casting, regex extraction, or assigns an
+  alias. Use ProjectedField when you need more than just the raw source field
+  name (for which you might use FieldSource directly in QueryBuilderConfig's
+  field_sources list if no transformations or specific operation type are
+  needed).
+
+  Enums:
+    OperationValueValuesEnum: Specifies the role of this field (direct
+      selection, grouping, or aggregation).
+
+  Fields:
+    aggregationFunction: The aggregation function for the field.
+    alias: The alias name for the field. Valid alias examples are: - single
+      word alias: TestAlias - numbers in an alias: Alias123 - multi word alias
+      should be enclosed in quotes: "Test Alias" Invalid alias examples are: -
+      alias containing keywords: WHERE, SELECT, FROM, etc. - alias starting
+      with a number: 1stAlias
+    cast: The cast for the field. This can any SQL cast type. Examples: -
+      STRING - CHAR - DATE - TIMESTAMP - DATETIME - INT - FLOAT
+    field: The field name. This will be the field that is selected using the
+      dot notation to display the drill down value.
+    operation: Specifies the role of this field (direct selection, grouping,
+      or aggregation).
+    regexExtraction: The re2 extraction for the field. This will be used to
+      extract the value from the field using REGEXP_EXTRACT. More information
+      on re2 can be found here: https://github.com/google/re2/wiki/Syntax.
+      Meta characters like +?()| will need to be escaped. Examples: -
+      ".(autoscaler.*)$" will be converted to
+      REGEXP_EXTRACT(JSON_VALUE(field),"request(.*(autoscaler.*)$)")in SQL. -
+      "\(test_value\)$" will be converted to
+      REGEXP_EXTRACT(JSON_VALUE(field),"request(\(test_value\)$)") in SQL.
+    sqlAggregationFunction: The function to apply to the field.
+    truncationGranularity: The truncation granularity when grouping by a
+      time/date field. This will be used to truncate the field to the
+      granularity specified. This can be either a date or a time granularity
+      found at https://cloud.google.com/bigquery/docs/reference/standard-
+      sql/timestamp_functions#timestamp_trunc_granularity_date and
+      https://cloud.google.com/bigquery/docs/reference/standard-
+      sql/timestamp_functions#timestamp_trunc_granularity_time respectively.
+  """
+
+  class OperationValueValuesEnum(_messages.Enum):
+    r"""Specifies the role of this field (direct selection, grouping, or
+    aggregation).
+
+    Values:
+      FIELD_OPERATION_UNSPECIFIED: Invalid value. Operation must be specified.
+      NO_SETTING: Select the field directly without grouping or aggregation.
+        Corresponds to including the raw field (potentially with cast, regex,
+        or alias) in the SELECT list.
+      GROUP_BY: Group the query results by the distinct values of this field.
+        Corresponds to including the field (potentially truncated) in the
+        GROUP BY clause.
+      AGGREGATE: Apply an aggregation function to this field across grouped
+        results. Corresponds to applying a function like COUNT, SUM, AVG in
+        the SELECT list. Requires aggregation_function to be set.
+    """
+    FIELD_OPERATION_UNSPECIFIED = 0
+    NO_SETTING = 1
+    GROUP_BY = 2
+    AGGREGATE = 3
+
+  aggregationFunction = _messages.MessageField('QueryStepAggregation', 1)
+  alias = _messages.StringField(2)
+  cast = _messages.StringField(3)
+  field = _messages.StringField(4)
+  operation = _messages.EnumField('OperationValueValuesEnum', 5)
+  regexExtraction = _messages.StringField(6)
+  sqlAggregationFunction = _messages.MessageField('FunctionApplication', 7)
+  truncationGranularity = _messages.StringField(8)
+
+
+class QueryBuilderConfig(_messages.Message):
+  r"""Defines a structured query configuration that can be used instead of
+  writing raw SQL. This configuration represents the components of a SQL query
+  (FROM, SELECT, WHERE, ORDER BY, LIMIT) and is typically converted into an
+  executable query (e.g., BigQuery SQL) by the backend service to retrieve
+  data for analysis or visualization.
+
+  Fields:
+    fieldSources: Defines the items to include in the query result, analogous
+      to a SQL SELECT clause.
+    fields: The fields to select in the query. This equates to the SELECT
+      clause in SQL.
+    filter: The filter to use for the query. This equates to the WHERE clause
+      in SQL.
+    limit: The limit to use for the query. This equates to the LIMIT clause in
+      SQL. A limit of 0 will be treated as not enabled.
+    orderBys: The sort orders to use for the query. This equates to the ORDER
+      BY clause in SQL.
+    resourceNames: Required. The view/resource to query. For now only a single
+      view/resource will be sent, but there are plans to allow multiple views
+      in the future. Marking as repeated for that purpose. Example: -
+      "projects/123/locations/global/buckets/456/views/_Default" -
+      "projects/123/locations/global/metricBuckets/456/views/_Default"
+    searchTerm: The plain text search to use for the query. There is no
+      support for multiple search terms. This uses the SEARCH functionality in
+      BigQuery. For example, a search_term = 'ERROR' would result in the
+      following SQL:SELECT * FROM resource WHERE SEARCH(resource, 'ERROR')
+      LIMIT 100
+  """
+
+  fieldSources = _messages.MessageField('FieldSource', 1, repeated=True)
+  fields = _messages.MessageField('ProjectedField', 2, repeated=True)
+  filter = _messages.MessageField('FilterPredicate', 3)
+  limit = _messages.IntegerField(4)
+  orderBys = _messages.MessageField('SortOrderParameter', 5, repeated=True)
+  resourceNames = _messages.StringField(6, repeated=True)
+  searchTerm = _messages.StringField(7)
+
+
+class QueryBuilderQueryStep(_messages.Message):
+  r"""A query step that builds an Analytics query from a query builder.
+
+  Fields:
+    parameters: Optional. Parameters to be injected into the query at
+      execution time.
+    queryBuilder: Required. The query builder to use. This is a proto
+      containing a query builder definition that will be converted to BigQuery
+      SQL syntax.
+    queryRestriction: Optional. Restrictions being requested, e.g. timerange
+      restrictions.
+  """
+
+  parameters = _messages.MessageField('QueryParameter', 1, repeated=True)
+  queryBuilder = _messages.MessageField('QueryBuilderConfig', 2)
+  queryRestriction = _messages.MessageField('QueryRestriction', 3)
 
 
 class QueryDataLocalRequest(_messages.Message):
   r"""The request message for QueryDataLocal. This is identical to
   QueryDataRequest except for the associated resources.
 
+  Messages:
+    LabelsValue: Optional. A set of labels to be propagated to the BigQuery
+      Job. If a resource generated the query, best practice is to provide
+      sufficient labels to identify the resource. For example, alerting
+      queries apply the label goog-alert-policy-id=12345678.Label keys and
+      values will be visible to customers in BigQuery's
+      INFORMATION_SCHEMA.JOBS table.The key goog-oa-client-id is reserved and
+      should not be set. If set, the label's value will be silently
+      overwritten.FORMATTING: * BigQuery key and label values can be no longer
+      than 63 characters. They can only contain lowercase letters, numeric
+      characters, underscores and dashes. Spaces are not allowed.
+
   Fields:
+    clientId: Optional. An identifier for the client who sent this query. This
+      should be the same (or one of a small number of values) for all queries
+      sent by a given client such as "alerting" or "dashboard". It is
+      propagated to metric labels in Monarch and becomes the value of the
+      label goog-oa-client-id in the BigQuery Job. Best practice is for all
+      clients to set this field. If not set, then "unknown-client" will be
+      used.This value will be visible in BigQuery's INFORMATION_SCHEMA.JOBS
+      table.FORMATTING: * BigQuery label values can be no longer than 63
+      characters. They can only contain lowercase letters, numeric characters,
+      underscores and dashes. Spaces are not allowed.
     disableQueryCaching: Optional. If set to true, turns off all query caching
       on both the Log Analytics and BigQuery sides.
+    labels: Optional. A set of labels to be propagated to the BigQuery Job. If
+      a resource generated the query, best practice is to provide sufficient
+      labels to identify the resource. For example, alerting queries apply the
+      label goog-alert-policy-id=12345678.Label keys and values will be
+      visible to customers in BigQuery's INFORMATION_SCHEMA.JOBS table.The key
+      goog-oa-client-id is reserved and should not be set. If set, the label's
+      value will be silently overwritten.FORMATTING: * BigQuery key and label
+      values can be no longer than 63 characters. They can only contain
+      lowercase letters, numeric characters, underscores and dashes. Spaces
+      are not allowed.
     parent: Required. The project in which the query will be run. The calling
       user must have the bigquery.jobs.create and bigquery.jobs.get
       permissions in this project.For example: "projects/PROJECT_ID"
@@ -8002,32 +9020,142 @@ class QueryDataLocalRequest(_messages.Message):
       job if this duration is exceeded. If not set, the default is 5 minutes.
   """
 
-  disableQueryCaching = _messages.BooleanField(1)
-  parent = _messages.StringField(2)
-  query = _messages.MessageField('AnalyticsQuery', 3)
-  timeout = _messages.StringField(4)
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class LabelsValue(_messages.Message):
+    r"""Optional. A set of labels to be propagated to the BigQuery Job. If a
+    resource generated the query, best practice is to provide sufficient
+    labels to identify the resource. For example, alerting queries apply the
+    label goog-alert-policy-id=12345678.Label keys and values will be visible
+    to customers in BigQuery's INFORMATION_SCHEMA.JOBS table.The key goog-oa-
+    client-id is reserved and should not be set. If set, the label's value
+    will be silently overwritten.FORMATTING: * BigQuery key and label values
+    can be no longer than 63 characters. They can only contain lowercase
+    letters, numeric characters, underscores and dashes. Spaces are not
+    allowed.
+
+    Messages:
+      AdditionalProperty: An additional property for a LabelsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type LabelsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a LabelsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  clientId = _messages.StringField(1)
+  disableQueryCaching = _messages.BooleanField(2)
+  labels = _messages.MessageField('LabelsValue', 3)
+  parent = _messages.StringField(4)
+  query = _messages.MessageField('AnalyticsQuery', 5)
+  timeout = _messages.StringField(6)
 
 
 class QueryDataRequest(_messages.Message):
   r"""The parameters to QueryData.
 
+  Messages:
+    LabelsValue: Optional. A set of labels to be propagated to the BigQuery
+      Job. If a resource generated the query, best practice is to provide
+      sufficient labels to identify the resource. For example, alerting
+      queries apply the label goog-alert-policy-id=12345678.Label keys and
+      values will be visible to customers in BigQuery's
+      INFORMATION_SCHEMA.JOBS table.The key goog-oa-client-id is reserved and
+      should not be set. If set, the label's value will be silently
+      overwritten.FORMATTING: * BigQuery key and label values can be no longer
+      than 63 characters. They can only contain lowercase letters, numeric
+      characters, underscores and dashes. Spaces are not allowed.
+
   Fields:
+    clientId: Optional. An identifier for the client who sent this query. This
+      should be the same (or one of a small number of values) for all queries
+      sent by a given client such as "alerting" or "dashboard". It is
+      propagated to metric labels in Monarch and becomes the value of the
+      label goog-oa-client-id in the BigQuery Job. Best practice is for all
+      clients to set this field. If not set, then "unknown-client" will be
+      used.This value will be visible in BigQuery's INFORMATION_SCHEMA.JOBS
+      table.FORMATTING: * BigQuery label values can be no longer than 63
+      characters. They can only contain lowercase letters, numeric characters,
+      underscores and dashes. Spaces are not allowed.
     disableQueryCaching: Optional. If set to true, turns off all query caching
       on both the Log Analytics and BigQuery sides.
+    labels: Optional. A set of labels to be propagated to the BigQuery Job. If
+      a resource generated the query, best practice is to provide sufficient
+      labels to identify the resource. For example, alerting queries apply the
+      label goog-alert-policy-id=12345678.Label keys and values will be
+      visible to customers in BigQuery's INFORMATION_SCHEMA.JOBS table.The key
+      goog-oa-client-id is reserved and should not be set. If set, the label's
+      value will be silently overwritten.FORMATTING: * BigQuery key and label
+      values can be no longer than 63 characters. They can only contain
+      lowercase letters, numeric characters, underscores and dashes. Spaces
+      are not allowed.
     query: Optional. The contents of the query. If this field is populated,
-      query_steps will be ignored.
-    resourceNames: Required. Names of one or more log views to run a SQL
+      query_steps will be ignored. For QueryDataSync the query must consist of
+      a single SqlQueryStep.
+    resourceNames: Required. Names of one or more views to run a SQL
       query.Example: projects/[PROJECT_ID]/locations/[LOCATION_ID]/buckets/[BU
       CKET_ID]/views/[VIEW_ID]Requires appropriate permissions on each
-      resource such as 'logging.views.access' on log view resources.
-    timeout: Optional. The timeout for the query. BigQuery will terminate the
-      job if this duration is exceeded. If not set, the default is 5 minutes.
+      resource, such as 'logging.views.access' on log view
+      resources.Alternatively, may be the name of a single project from which
+      a slot reservation should be used. In this case, the SQL query is run
+      against customer owned datasets. Any linked dataset referenced by the
+      corresponding log view in the SQL query requires the
+      logging.buckets.listLinks permission on the bucket owning the
+      view.Example: projects/[PROJECT_ID]
+    timeout: Optional. For queries made through QueryData, query will be
+      terminated if it is not completed by the time this duration is exceeded.
+      If not set, the default is 5 minutes.
   """
 
-  disableQueryCaching = _messages.BooleanField(1)
-  query = _messages.MessageField('AnalyticsQuery', 2)
-  resourceNames = _messages.StringField(3, repeated=True)
-  timeout = _messages.StringField(4)
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class LabelsValue(_messages.Message):
+    r"""Optional. A set of labels to be propagated to the BigQuery Job. If a
+    resource generated the query, best practice is to provide sufficient
+    labels to identify the resource. For example, alerting queries apply the
+    label goog-alert-policy-id=12345678.Label keys and values will be visible
+    to customers in BigQuery's INFORMATION_SCHEMA.JOBS table.The key goog-oa-
+    client-id is reserved and should not be set. If set, the label's value
+    will be silently overwritten.FORMATTING: * BigQuery key and label values
+    can be no longer than 63 characters. They can only contain lowercase
+    letters, numeric characters, underscores and dashes. Spaces are not
+    allowed.
+
+    Messages:
+      AdditionalProperty: An additional property for a LabelsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type LabelsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a LabelsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  clientId = _messages.StringField(1)
+  disableQueryCaching = _messages.BooleanField(2)
+  labels = _messages.MessageField('LabelsValue', 3)
+  query = _messages.MessageField('AnalyticsQuery', 4)
+  resourceNames = _messages.StringField(5, repeated=True)
+  timeout = _messages.StringField(6)
 
 
 class QueryDataResponse(_messages.Message):
@@ -8038,57 +9166,19 @@ class QueryDataResponse(_messages.Message):
       request, excluding those for which the output_not_required flag was set.
       These may be passed to ReadQueryResults or used in a HandleQueryStep in
       a subsequent call to QueryData.
+    resourceNames: The Cloud Logging resources that were used while serving
+      the request, e.g. projects/[PROJECT_ID]/locations/[LOCATION_ID]/buckets/
+      [BUCKET_ID]/views/[VIEW_ID] for any Views read or projects/[PROJECT_ID]/
+      locations/[LOCATION_ID]/buckets/[BUCKET_ID]/links/[LINK_ID] for any
+      Links for any linked dataset resolved.
     restrictionConflicts: Conflicts between the query and the restrictions
       that were requested. Any restrictions present here were ignored when
       executing the query.
   """
 
   queryStepHandles = _messages.StringField(1, repeated=True)
-  restrictionConflicts = _messages.MessageField('QueryRestrictionConflict', 2, repeated=True)
-
-
-class QueryLogEntriesRequest(_messages.Message):
-  r"""The parameters to QueryLogEntries.
-
-  Fields:
-    disableQueryCaching: Optional. If set to true, turns off all query caching
-      on both the Log Analytics and BigQuery sides.
-    pageSize: Optional. The maximum number of rows to return in the results.
-      Responses are limited to 10 MB in size.By default, there is no maximum
-      row count, and only the byte limit applies. When the byte limit is
-      reached, the rest of query results will be paginated.
-    pageToken: Optional. Page token returned by a previous call to
-      QueryLogEntries to paginate through the response rows.
-    query: Optional. A query string, following the BigQuery SQL query syntax.
-      The FROM clause should specify a fully qualified log view corresponding
-      to the log view in the resource_names in dot separated format like
-      PROJECT_ID.LOCATION_ID.BUCKET_ID.VIEW_ID.For example: SELECT count(*)
-      FROM my_project.us.my_bucket._AllLogs;If any of the dot separated
-      components have special characters, that component needs to be escaped
-      separately like the following example:SELECT count(*) FROM
-      company.com:abc.us.my-bucket._AllLogs;
-    queryRestriction: Optional. Restrictions being requested.
-    resourceNames: Required. Names of one or more log views to run a SQL
-      query. Currently, only a single view is supported. Multiple view
-      selection may be supported in the future.Example: projects/[PROJECT_ID]/
-      locations/[LOCATION_ID]/buckets/[BUCKET_ID]/views/[VIEW_ID]Requires
-      'logging.views.access' on the specified view resources.
-    resultReference: Optional. Reference to a result from a previous query. If
-      the results have expired the query will return a NOT_FOUND error.
-    validateOnly: Optional. If set to true, the query is not executed.
-      Instead, if the query is valid, statistics is returned about the query
-      such as how many bytes would be processed. If the query is invalid, an
-      error returns. The default value is false.
-  """
-
-  disableQueryCaching = _messages.BooleanField(1)
-  pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(3)
-  query = _messages.StringField(4)
-  queryRestriction = _messages.MessageField('QueryRestriction', 5)
-  resourceNames = _messages.StringField(6, repeated=True)
-  resultReference = _messages.StringField(7)
-  validateOnly = _messages.BooleanField(8)
+  resourceNames = _messages.StringField(2, repeated=True)
+  restrictionConflicts = _messages.MessageField('QueryRestrictionConflict', 3, repeated=True)
 
 
 class QueryParameter(_messages.Message):
@@ -8117,12 +9207,20 @@ class QueryRestriction(_messages.Message):
   filter needs (e.g. timestamps) without having the user to write them in SQL.
 
   Fields:
+    receiveTimerange: Optional. This restriction is a TIME_RANGE restriction
+      type in the QueryRestrictionConflict based on the receive_timestamp log
+      field. Range is [start_time, end_time). Granularity: down to
+      milliseconds (not nanoseconds)Note: This restriction also includes a 15
+      minute buffer on either side of the timerange on the timestamp column.
     timerange: Optional. This restriction is the TIME_RANGE restriction type
-      in the QueryRestrictionConflict. Range is [start_time, end_time).
-      Granularity: down to milliseconds (not nanoseconds)
+      in the QueryRestrictionConflict based on the primary timestamp column
+      (ex. 'timestamp' for log entries, 'start_time' for spans). Range is
+      [start_time, end_time). Granularity: down to milliseconds (not
+      nanoseconds)
   """
 
-  timerange = _messages.MessageField('Interval', 1)
+  receiveTimerange = _messages.MessageField('Interval', 1)
+  timerange = _messages.MessageField('Interval', 2)
 
 
 class QueryRestrictionConflict(_messages.Message):
@@ -8178,11 +9276,34 @@ class QueryRestrictionConflict(_messages.Message):
         restriction, meaning the query is using the LIMIT clause.LIMIT
         detection is going to be used for Ops Analytics Alerting hints towards
         the user to steer them away from including LIMIT in their queries.
+      CUSTOMER_PROJECT_SLOT_RESERVATION: This type means that there is no
+        active slot reservation that can be used to execute the query in the
+        "local" mode in the customer's project.
+      BQ_NATIVE_TABLE: This type means that the query's SELECT statement
+        contains at least one native BigQuery table: a BigQuery table that
+        that is not an Observability View. Presence of a native table in a
+        query conflicts with the timepicker in the UI. Native tables' schemas
+        are controlled by the users, and thus we do not know how to properly
+        apply time restrictions to those tables.
+      NO_VALID_TIMESTAMP_COLUMNS: Indicates that none of the views in the
+        query have a valid timestamp column. This should cause the timepicker
+        to be disabled. There are no row or columns associated with this
+        conflict type. All bucketed views (Log, Trace, and Metrics views) have
+        a valid timestamp. Analytics views must have a column named timestamp
+        of type timestamp, non-repeated to be considered as having a valid
+        timestamp column.
+      RECEIVE_TIME_RANGE: This type means that the query conflicts with the
+        receive_timerange restriction, e.g. query used the receive_timestamp
+        field to filter.
     """
     RESTRICTION_TYPE_UNSPECIFIED = 0
     TIME_RANGE = 1
     JOIN = 2
     LIMIT = 3
+    CUSTOMER_PROJECT_SLOT_RESERVATION = 4
+    BQ_NATIVE_TABLE = 5
+    NO_VALID_TIMESTAMP_COLUMNS = 6
+    RECEIVE_TIME_RANGE = 7
 
   column = _messages.IntegerField(1, variant=_messages.Variant.INT32)
   confidence = _messages.EnumField('ConfidenceValueValuesEnum', 2)
@@ -8191,13 +9312,22 @@ class QueryRestrictionConflict(_messages.Message):
 
 
 class QueryResults(_messages.Message):
-  r"""Results of a SQL query over logs. Next ID: 12
+  r"""Results of a SQL query over logs. Next ID: 18
+
+  Enums:
+    BillingModelValueValuesEnum: Output only. The billing model used for this
+      query.
+    IndexUsageValueValuesEnum: The type of search index usage in the query.
 
   Messages:
     RowsValueListEntry: A RowsValueListEntry object.
 
   Fields:
+    billingModel: Output only. The billing model used for this query.
+    endTime: Output only. The end time of the query execution. Not set on
+      validate queries.
     executionDuration: The total execution duration of the query.
+    indexUsage: The type of search index usage in the query.
     jobLocation: The location where the query was executed.
     nextPageToken: A token that can be sent as page_token to retrieve the next
       page. If this field is omitted, there are no subsequent pages.
@@ -8205,12 +9335,24 @@ class QueryResults(_messages.Message):
       the rows, total_rows, and execution_time fields will not be populated.
       The client needs to poll on ReadQueryResults specifying the
       result_reference and wait for results.
+    reservation: Output only. The resource name of the BigQuery reservation
+      that this query was billed to, (or when validating, would be billed to).
+      Only set when the billing model is USER_PROJECT_RESERVATION.When set,
+      the reservation name follows the standard resource name format: projects
+      /[PROJECT_ID]/locations/[LOCATION_ID]/reservations/[RESERVATION_ID]
+    resourceNames: The resources that were used while serving the request,
+      e.g. projects/[PROJECT_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]/v
+      iews/[VIEW_ID] for any Views read or projects/[PROJECT_ID]/locations/[LO
+      CATION_ID]/buckets/[BUCKET_ID]/links/[LINK_ID] for any Links for any
+      linked dataset resolved.
     restrictionConflicts: Conflicts between the query and the restrictions
       that were requested. Any restrictions present here were ignored when
       executing the query.
     resultReference: An opaque string that can be used as a reference to this
-      query result. This result reference can be used in the QueryData query
-      to fetch this result up to 24 hours in the future.
+      query result. This result reference can be used in the ReadQueryResults
+      query to fetch this result up to 24 hours in the future.For
+      QueryDataSync this is populated only if the query cannot be executed
+      synchronously within the requested deadline.
     rows: Query result rows. The number of rows returned depends upon the page
       size requested. To get any additional rows, you can call
       ReadQueryResults and specify the result_reference and the page_token.The
@@ -8218,6 +9360,8 @@ class QueryResults(_messages.Message):
       objects for indicating fields and values.
     schema: The schema of the results. It shows the columns present in the
       output table. Present only when the query completes successfully.
+    startTime: Output only. The start time of the query execution. Not set on
+      validate queries.
     totalBytesProcessed: The total number of bytes processed for this query.
       If this query was a validate_only query, this is the number of bytes
       that would be processed if the query were run.
@@ -8227,6 +9371,40 @@ class QueryResults(_messages.Message):
     totalSlotMs: The total slot-milliseconds consumed by this query. Populated
       only on a call to ReadQueryResults.
   """
+
+  class BillingModelValueValuesEnum(_messages.Enum):
+    r"""Output only. The billing model used for this query.
+
+    Values:
+      BILLING_MODEL_UNSPECIFIED: The billing model is not specified.
+      SYSTEM_BILLED: The query was billed to the system.
+      USER_PROJECT_RESERVATION: The query was billed to the user's project
+        using a reservation.
+      USER_PROJECT_ON_DEMAND: The query was billed to the user's project using
+        on-demand billing.
+      USER_PROJECT_UNKNOWN_BILLING_MODEL: The query was to be billed to the
+        user's project but the billing model could not be determined. This can
+        happen when the query cannot be executed (or dry run) successfully.
+    """
+    BILLING_MODEL_UNSPECIFIED = 0
+    SYSTEM_BILLED = 1
+    USER_PROJECT_RESERVATION = 2
+    USER_PROJECT_ON_DEMAND = 3
+    USER_PROJECT_UNKNOWN_BILLING_MODEL = 4
+
+  class IndexUsageValueValuesEnum(_messages.Enum):
+    r"""The type of search index usage in the query.
+
+    Values:
+      INDEX_USAGE_UNSPECIFIED: The index usage is unknown.
+      UNUSED: The query did not use any indexes.
+      PARTIALLY_USED: Part of the query used search indexes.
+      FULLY_USED: The entire query used search indexes.
+    """
+    INDEX_USAGE_UNSPECIFIED = 0
+    UNUSED = 1
+    PARTIALLY_USED = 2
+    FULLY_USED = 3
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class RowsValueListEntry(_messages.Message):
@@ -8253,17 +9431,23 @@ class QueryResults(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
-  executionDuration = _messages.StringField(1)
-  jobLocation = _messages.StringField(2)
-  nextPageToken = _messages.StringField(3)
-  queryComplete = _messages.BooleanField(4)
-  restrictionConflicts = _messages.MessageField('QueryRestrictionConflict', 5, repeated=True)
-  resultReference = _messages.StringField(6)
-  rows = _messages.MessageField('RowsValueListEntry', 7, repeated=True)
-  schema = _messages.MessageField('TableSchema', 8)
-  totalBytesProcessed = _messages.IntegerField(9)
-  totalRows = _messages.IntegerField(10)
-  totalSlotMs = _messages.IntegerField(11)
+  billingModel = _messages.EnumField('BillingModelValueValuesEnum', 1)
+  endTime = _messages.StringField(2)
+  executionDuration = _messages.StringField(3)
+  indexUsage = _messages.EnumField('IndexUsageValueValuesEnum', 4)
+  jobLocation = _messages.StringField(5)
+  nextPageToken = _messages.StringField(6)
+  queryComplete = _messages.BooleanField(7)
+  reservation = _messages.StringField(8)
+  resourceNames = _messages.StringField(9, repeated=True)
+  restrictionConflicts = _messages.MessageField('QueryRestrictionConflict', 10, repeated=True)
+  resultReference = _messages.StringField(11)
+  rows = _messages.MessageField('RowsValueListEntry', 12, repeated=True)
+  schema = _messages.MessageField('TableSchema', 13)
+  startTime = _messages.StringField(14)
+  totalBytesProcessed = _messages.IntegerField(15)
+  totalRows = _messages.IntegerField(16)
+  totalSlotMs = _messages.IntegerField(17)
 
 
 class QueryStep(_messages.Message):
@@ -8283,6 +9467,8 @@ class QueryStep(_messages.Message):
     outputNotRequired: Optional. Set this flag to indicate that you don't
       intend to retrieve the results for this query step. No handle will be
       generated for the step in the QueryDataResponse message.
+    queryBuilderQueryStep: A query step that builds a SQL query from a query
+      builder.
     sqlQueryStep: A query step containing a SQL query.
   """
 
@@ -8290,7 +9476,8 @@ class QueryStep(_messages.Message):
   chartingQueryStep = _messages.MessageField('ChartingQueryStep', 2)
   handleQueryStep = _messages.MessageField('HandleQueryStep', 3)
   outputNotRequired = _messages.BooleanField(4)
-  sqlQueryStep = _messages.MessageField('SqlQueryStep', 5)
+  queryBuilderQueryStep = _messages.MessageField('QueryBuilderQueryStep', 5)
+  sqlQueryStep = _messages.MessageField('SqlQueryStep', 6)
 
 
 class QueryStepAggregation(_messages.Message):
@@ -8323,6 +9510,10 @@ class ReadQueryResultsRequest(_messages.Message):
   r"""Parameters to ReadQueryResults.
 
   Fields:
+    clientId: Optional. An identifier for the client who sent this query. This
+      should be the same (or one of a small number of values) for all queries
+      sent by a given client such as Alerting or Dashboards. It is ultimately
+      propagated to metric labels in Monarch.
     pageSize: Optional. The maximum number of rows to return in the results.
       Responses are limited to 10 MB in size.By default, there is no maximum
       row count, and only the byte limit applies. When the byte limit is
@@ -8333,9 +9524,9 @@ class ReadQueryResultsRequest(_messages.Message):
     readMetadataOnly: Optional. If this flag is true, no rows will be returned
       regardless of the value of page_size; the rows and next_page_token
       members of the response will be empty.
-    resourceNames: Required. Names of one or more log views that were used in
-      the original query.Example: projects/[PROJECT_ID]/locations/[LOCATION_ID
-      ]/buckets/[BUCKET_ID]/views/[VIEW_ID]Requires appropriate permissions on
+    resourceNames: Required. Names of one or more views that were used in the
+      original query.Example: projects/[PROJECT_ID]/locations/[LOCATION_ID]/bu
+      ckets/[BUCKET_ID]/views/[VIEW_ID]Requires appropriate permissions on
       each resource such as 'logging.views.access' on log view resources.
     timeout: Optional. The maximum amount of time, in milliseconds, that the
       client is willing to wait for the query to complete. If this is not set,
@@ -8344,12 +9535,13 @@ class ReadQueryResultsRequest(_messages.Message):
       the state at that time.
   """
 
-  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(2)
-  queryStepHandle = _messages.StringField(3)
-  readMetadataOnly = _messages.BooleanField(4)
-  resourceNames = _messages.StringField(5, repeated=True)
-  timeout = _messages.StringField(6)
+  clientId = _messages.StringField(1)
+  pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(3)
+  queryStepHandle = _messages.StringField(4)
+  readMetadataOnly = _messages.BooleanField(5)
+  resourceNames = _messages.StringField(6, repeated=True)
+  timeout = _messages.StringField(7)
 
 
 class RecentQuery(_messages.Message):
@@ -8710,16 +9902,16 @@ class Settings(_messages.Message):
         resource level, it will inherit from the closest ancester which has a
         defined analytics mode. If there is no specified analytics mode across
         the resource hierarchy, analytics will be disabled by default.
-      ANALYTICS_ENABLED: By default, analytics will be enabled for all new
-        project-level buckets unless explicitly specified otherwise at bucket
-        creation time.
-      ANALYTICS_DISABLED: By default, analytics will be disabled for new
+      ANALYTICS_REQUIRED: By default, analytics will be enabled for all new
+        project-level buckets, even if analytics_enabled is set to false
+        during the creation request.
+      ANALYTICS_OPTIONAL: By default, analytics will be disabled for new
         project-level buckets unless explicitly specified otherwise at bucket
         creation time.
     """
     ANALYTICS_MODE_UNSPECIFIED = 0
-    ANALYTICS_ENABLED = 1
-    ANALYTICS_DISABLED = 2
+    ANALYTICS_REQUIRED = 1
+    ANALYTICS_OPTIONAL = 2
 
   analyticsMode = _messages.EnumField('AnalyticsModeValueValuesEnum', 1)
   defaultSinkConfig = _messages.MessageField('DefaultSinkConfig', 2)
@@ -8729,6 +9921,40 @@ class Settings(_messages.Message):
   loggingServiceAccountId = _messages.StringField(6)
   name = _messages.StringField(7)
   storageLocation = _messages.StringField(8)
+
+
+class SortOrderParameter(_messages.Message):
+  r"""A sort order for a query based on a column.
+
+  Enums:
+    SortOrderDirectionValueValuesEnum: The sort order to use for the query.
+
+  Fields:
+    field: A string attribute.
+    fieldSource: The field to sort on. Can be one of the FieldSource types:
+      field name, alias ref, variable ref, or a literal value.
+    sortOrderDirection: The sort order to use for the query.
+  """
+
+  class SortOrderDirectionValueValuesEnum(_messages.Enum):
+    r"""The sort order to use for the query.
+
+    Values:
+      SORT_ORDER_UNSPECIFIED: Invalid value, do not use.
+      SORT_ORDER_NONE: No sorting will be applied. This is used to determine
+        if the query is in pass thru mode. To correctly chart a query in pass
+        thru mode, NONE will need to be sent
+      SORT_ORDER_ASCENDING: The lowest-valued entries will be selected.
+      SORT_ORDER_DESCENDING: The highest-valued entries will be selected.
+    """
+    SORT_ORDER_UNSPECIFIED = 0
+    SORT_ORDER_NONE = 1
+    SORT_ORDER_ASCENDING = 2
+    SORT_ORDER_DESCENDING = 3
+
+  field = _messages.StringField(1)
+  fieldSource = _messages.MessageField('FieldSource', 2)
+  sortOrderDirection = _messages.EnumField('SortOrderDirectionValueValuesEnum', 3)
 
 
 class Sorting(_messages.Message):
@@ -8938,7 +10164,7 @@ class StringArrayValue(_messages.Message):
   r"""An array of strings within a parameter.
 
   Fields:
-    values: Required. The values of the array.
+    values: Optional. The values of the array.
   """
 
   values = _messages.StringField(1, repeated=True)
@@ -9003,10 +10229,11 @@ class TableFieldSchema(_messages.Message):
     mode: Optional. The field mode. Possible values include NULLABLE, REQUIRED
       and REPEATED. The default value is NULLABLE.
     name: Required. The field name corresponding to fields in the LogEntry.
-    type: Required. The field data type. Possible values include: STRING
-      INTEGER (or INT64) FLOAT (or FLOAT64) BOOLEAN (or BOOL) TIMESTAMP RECORD
-      (or STRUCT)Use of RECORD/STRUCT indicates that the field contains a
-      nested schema.
+    type: Required. The field data type. Possible values include: STRING BYTES
+      INTEGER (or INT64) FLOAT (or FLOAT64) BOOLEAN (or BOOL) TIMESTAMP DATE
+      TIME DATETIME GEOGRAPHY NUMERIC BIGNUMERIC JSON RECORD (or STRUCT) RANGE
+      (Preview)Use of RECORD/STRUCT indicates that the field contains a nested
+      schema.
   """
 
   description = _messages.StringField(1)

@@ -19,8 +19,11 @@ from __future__ import unicode_literals
 from googlecloudsdk.calliope import base
 
 
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
-@base.Hidden
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(
+    base.ReleaseTrack.GA, base.ReleaseTrack.BETA, base.ReleaseTrack.ALPHA
+)
 class InstancePartitions(base.Group):
-  """Manage Cloud Spanner instance partitions."""
+  """Manage Spanner instance partitions."""
+
   pass

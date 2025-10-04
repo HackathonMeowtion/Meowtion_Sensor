@@ -39,13 +39,422 @@ class CloudnumberregistryV1alpha(base_api.BaseApiClient):
         default_global_params=default_global_params,
         additional_http_headers=additional_http_headers,
         response_encoding=response_encoding)
+    self.projects_locations_customRanges = self.ProjectsLocationsCustomRangesService(self)
+    self.projects_locations_discoveredRanges = self.ProjectsLocationsDiscoveredRangesService(self)
+    self.projects_locations_ipamAdminScopes = self.ProjectsLocationsIpamAdminScopesService(self)
     self.projects_locations_operations = self.ProjectsLocationsOperationsService(self)
-    self.projects_locations_registryBooks_historicalEvents = self.ProjectsLocationsRegistryBooksHistoricalEventsService(self)
-    self.projects_locations_registryBooks_nodeEvents = self.ProjectsLocationsRegistryBooksNodeEventsService(self)
-    self.projects_locations_registryBooks_registryNodes = self.ProjectsLocationsRegistryBooksRegistryNodesService(self)
+    self.projects_locations_realms = self.ProjectsLocationsRealmsService(self)
     self.projects_locations_registryBooks = self.ProjectsLocationsRegistryBooksService(self)
     self.projects_locations = self.ProjectsLocationsService(self)
     self.projects = self.ProjectsService(self)
+
+  class ProjectsLocationsCustomRangesService(base_api.BaseApiService):
+    """Service class for the projects_locations_customRanges resource."""
+
+    _NAME = 'projects_locations_customRanges'
+
+    def __init__(self, client):
+      super(CloudnumberregistryV1alpha.ProjectsLocationsCustomRangesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new CustomRange in a given project and location.
+
+      Args:
+        request: (CloudnumberregistryProjectsLocationsCustomRangesCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/customRanges',
+        http_method='POST',
+        method_id='cloudnumberregistry.projects.locations.customRanges.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['customRangeId', 'requestId'],
+        relative_path='v1alpha/{+parent}/customRanges',
+        request_field='customRange',
+        request_type_name='CloudnumberregistryProjectsLocationsCustomRangesCreateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a single CustomRange.
+
+      Args:
+        request: (CloudnumberregistryProjectsLocationsCustomRangesDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/customRanges/{customRangesId}',
+        http_method='DELETE',
+        method_id='cloudnumberregistry.projects.locations.customRanges.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['force', 'requestId'],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='CloudnumberregistryProjectsLocationsCustomRangesDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def FindFreeIpRange(self, request, global_params=None):
+      r"""Finds free IP ranges in a single CustomRange.
+
+      Args:
+        request: (CloudnumberregistryProjectsLocationsCustomRangesFindFreeIpRangeRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (FindCustomRangeFreeIpRangeResponse) The response message.
+      """
+      config = self.GetMethodConfig('FindFreeIpRange')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    FindFreeIpRange.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/customRanges/{customRangesId}:findFreeIpRange',
+        http_method='GET',
+        method_id='cloudnumberregistry.projects.locations.customRanges.findFreeIpRange',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['freeRangeCount', 'freeRangePrefixLength', 'requestId'],
+        relative_path='v1alpha/{+name}:findFreeIpRange',
+        request_field='',
+        request_type_name='CloudnumberregistryProjectsLocationsCustomRangesFindFreeIpRangeRequest',
+        response_type_name='FindCustomRangeFreeIpRangeResponse',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets details of a single CustomRange.
+
+      Args:
+        request: (CloudnumberregistryProjectsLocationsCustomRangesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (CustomRange) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/customRanges/{customRangesId}',
+        http_method='GET',
+        method_id='cloudnumberregistry.projects.locations.customRanges.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='CloudnumberregistryProjectsLocationsCustomRangesGetRequest',
+        response_type_name='CustomRange',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists CustomRanges in a given project and location.
+
+      Args:
+        request: (CloudnumberregistryProjectsLocationsCustomRangesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListCustomRangesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/customRanges',
+        http_method='GET',
+        method_id='cloudnumberregistry.projects.locations.customRanges.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha/{+parent}/customRanges',
+        request_field='',
+        request_type_name='CloudnumberregistryProjectsLocationsCustomRangesListRequest',
+        response_type_name='ListCustomRangesResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates the parameters of a single CustomRange.
+
+      Args:
+        request: (CloudnumberregistryProjectsLocationsCustomRangesPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/customRanges/{customRangesId}',
+        http_method='PATCH',
+        method_id='cloudnumberregistry.projects.locations.customRanges.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId', 'updateMask'],
+        relative_path='v1alpha/{+name}',
+        request_field='customRange',
+        request_type_name='CloudnumberregistryProjectsLocationsCustomRangesPatchRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsDiscoveredRangesService(base_api.BaseApiService):
+    """Service class for the projects_locations_discoveredRanges resource."""
+
+    _NAME = 'projects_locations_discoveredRanges'
+
+    def __init__(self, client):
+      super(CloudnumberregistryV1alpha.ProjectsLocationsDiscoveredRangesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def FindFreeIpRange(self, request, global_params=None):
+      r"""Finds free IP ranges in a single DiscoveredRange.
+
+      Args:
+        request: (CloudnumberregistryProjectsLocationsDiscoveredRangesFindFreeIpRangeRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (FindDiscoveredRangeFreeIpRangeResponse) The response message.
+      """
+      config = self.GetMethodConfig('FindFreeIpRange')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    FindFreeIpRange.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/discoveredRanges/{discoveredRangesId}:findFreeIpRange',
+        http_method='GET',
+        method_id='cloudnumberregistry.projects.locations.discoveredRanges.findFreeIpRange',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['freeRangeCount', 'freeRangePrefixLength', 'requestId'],
+        relative_path='v1alpha/{+name}:findFreeIpRange',
+        request_field='',
+        request_type_name='CloudnumberregistryProjectsLocationsDiscoveredRangesFindFreeIpRangeRequest',
+        response_type_name='FindDiscoveredRangeFreeIpRangeResponse',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets details of a single DiscoveredRange.
+
+      Args:
+        request: (CloudnumberregistryProjectsLocationsDiscoveredRangesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (DiscoveredRange) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/discoveredRanges/{discoveredRangesId}',
+        http_method='GET',
+        method_id='cloudnumberregistry.projects.locations.discoveredRanges.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='CloudnumberregistryProjectsLocationsDiscoveredRangesGetRequest',
+        response_type_name='DiscoveredRange',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists DiscoveredRanges in a given project and location.
+
+      Args:
+        request: (CloudnumberregistryProjectsLocationsDiscoveredRangesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListDiscoveredRangesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/discoveredRanges',
+        http_method='GET',
+        method_id='cloudnumberregistry.projects.locations.discoveredRanges.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha/{+parent}/discoveredRanges',
+        request_field='',
+        request_type_name='CloudnumberregistryProjectsLocationsDiscoveredRangesListRequest',
+        response_type_name='ListDiscoveredRangesResponse',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsIpamAdminScopesService(base_api.BaseApiService):
+    """Service class for the projects_locations_ipamAdminScopes resource."""
+
+    _NAME = 'projects_locations_ipamAdminScopes'
+
+    def __init__(self, client):
+      super(CloudnumberregistryV1alpha.ProjectsLocationsIpamAdminScopesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new IpamAdminScope in a given project and location.
+
+      Args:
+        request: (CloudnumberregistryProjectsLocationsIpamAdminScopesCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/ipamAdminScopes',
+        http_method='POST',
+        method_id='cloudnumberregistry.projects.locations.ipamAdminScopes.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['ipamAdminScopeId', 'requestId'],
+        relative_path='v1alpha/{+parent}/ipamAdminScopes',
+        request_field='ipamAdminScope',
+        request_type_name='CloudnumberregistryProjectsLocationsIpamAdminScopesCreateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a single IpamAdminScope.
+
+      Args:
+        request: (CloudnumberregistryProjectsLocationsIpamAdminScopesDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/ipamAdminScopes/{ipamAdminScopesId}',
+        http_method='DELETE',
+        method_id='cloudnumberregistry.projects.locations.ipamAdminScopes.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['force', 'requestId'],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='CloudnumberregistryProjectsLocationsIpamAdminScopesDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets details of a single IpamAdminScope.
+
+      Args:
+        request: (CloudnumberregistryProjectsLocationsIpamAdminScopesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (IpamAdminScope) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/ipamAdminScopes/{ipamAdminScopesId}',
+        http_method='GET',
+        method_id='cloudnumberregistry.projects.locations.ipamAdminScopes.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='CloudnumberregistryProjectsLocationsIpamAdminScopesGetRequest',
+        response_type_name='IpamAdminScope',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""List all IPAM admin scopes in a given project and location.
+
+      Args:
+        request: (CloudnumberregistryProjectsLocationsIpamAdminScopesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListIpamAdminScopesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/ipamAdminScopes',
+        http_method='GET',
+        method_id='cloudnumberregistry.projects.locations.ipamAdminScopes.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha/{+parent}/ipamAdminScopes',
+        request_field='',
+        request_type_name='CloudnumberregistryProjectsLocationsIpamAdminScopesListRequest',
+        response_type_name='ListIpamAdminScopesResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates the parameters of a single IpamAdminScope.
+
+      Args:
+        request: (CloudnumberregistryProjectsLocationsIpamAdminScopesPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/ipamAdminScopes/{ipamAdminScopesId}',
+        http_method='PATCH',
+        method_id='cloudnumberregistry.projects.locations.ipamAdminScopes.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId', 'updateMask'],
+        relative_path='v1alpha/{+name}',
+        request_field='ipamAdminScope',
+        request_type_name='CloudnumberregistryProjectsLocationsIpamAdminScopesPatchRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
 
   class ProjectsLocationsOperationsService(base_api.BaseApiService):
     """Service class for the projects_locations_operations resource."""
@@ -58,7 +467,7 @@ class CloudnumberregistryV1alpha(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (CloudnumberregistryProjectsLocationsOperationsCancelRequest) input message
@@ -165,95 +574,21 @@ class CloudnumberregistryV1alpha(base_api.BaseApiClient):
         supports_download=False,
     )
 
-  class ProjectsLocationsRegistryBooksHistoricalEventsService(base_api.BaseApiService):
-    """Service class for the projects_locations_registryBooks_historicalEvents resource."""
+  class ProjectsLocationsRealmsService(base_api.BaseApiService):
+    """Service class for the projects_locations_realms resource."""
 
-    _NAME = 'projects_locations_registryBooks_historicalEvents'
-
-    def __init__(self, client):
-      super(CloudnumberregistryV1alpha.ProjectsLocationsRegistryBooksHistoricalEventsService, self).__init__(client)
-      self._upload_configs = {
-          }
-
-    def Show(self, request, global_params=None):
-      r"""Shows HistoricalEvents in a given registry book.
-
-      Args:
-        request: (CloudnumberregistryProjectsLocationsRegistryBooksHistoricalEventsShowRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (ShowHistoricalEventsResponse) The response message.
-      """
-      config = self.GetMethodConfig('Show')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Show.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/registryBooks/{registryBooksId}/historicalEvents:show',
-        http_method='GET',
-        method_id='cloudnumberregistry.projects.locations.registryBooks.historicalEvents.show',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
-        relative_path='v1alpha/{+parent}/historicalEvents:show',
-        request_field='',
-        request_type_name='CloudnumberregistryProjectsLocationsRegistryBooksHistoricalEventsShowRequest',
-        response_type_name='ShowHistoricalEventsResponse',
-        supports_download=False,
-    )
-
-  class ProjectsLocationsRegistryBooksNodeEventsService(base_api.BaseApiService):
-    """Service class for the projects_locations_registryBooks_nodeEvents resource."""
-
-    _NAME = 'projects_locations_registryBooks_nodeEvents'
+    _NAME = 'projects_locations_realms'
 
     def __init__(self, client):
-      super(CloudnumberregistryV1alpha.ProjectsLocationsRegistryBooksNodeEventsService, self).__init__(client)
-      self._upload_configs = {
-          }
-
-    def Show(self, request, global_params=None):
-      r"""Shows NodeEvents related to an IP range in a given registry book.
-
-      Args:
-        request: (CloudnumberregistryProjectsLocationsRegistryBooksNodeEventsShowRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (ShowNodeEventsResponse) The response message.
-      """
-      config = self.GetMethodConfig('Show')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Show.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/registryBooks/{registryBooksId}/nodeEvents:show',
-        http_method='GET',
-        method_id='cloudnumberregistry.projects.locations.registryBooks.nodeEvents.show',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['filter', 'ipRange', 'orderBy', 'pageSize', 'pageToken'],
-        relative_path='v1alpha/{+parent}/nodeEvents:show',
-        request_field='',
-        request_type_name='CloudnumberregistryProjectsLocationsRegistryBooksNodeEventsShowRequest',
-        response_type_name='ShowNodeEventsResponse',
-        supports_download=False,
-    )
-
-  class ProjectsLocationsRegistryBooksRegistryNodesService(base_api.BaseApiService):
-    """Service class for the projects_locations_registryBooks_registryNodes resource."""
-
-    _NAME = 'projects_locations_registryBooks_registryNodes'
-
-    def __init__(self, client):
-      super(CloudnumberregistryV1alpha.ProjectsLocationsRegistryBooksRegistryNodesService, self).__init__(client)
+      super(CloudnumberregistryV1alpha.ProjectsLocationsRealmsService, self).__init__(client)
       self._upload_configs = {
           }
 
     def Create(self, request, global_params=None):
-      r"""Creates a new RegistryNode in a given project and location.
+      r"""Creates a new Realm in a given project and location.
 
       Args:
-        request: (CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesCreateRequest) input message
+        request: (CloudnumberregistryProjectsLocationsRealmsCreateRequest) input message
         global_params: (StandardQueryParameters, default: None) global arguments
       Returns:
         (Operation) The response message.
@@ -263,24 +598,24 @@ class CloudnumberregistryV1alpha(base_api.BaseApiClient):
           config, request, global_params=global_params)
 
     Create.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/registryBooks/{registryBooksId}/registryNodes',
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/realms',
         http_method='POST',
-        method_id='cloudnumberregistry.projects.locations.registryBooks.registryNodes.create',
+        method_id='cloudnumberregistry.projects.locations.realms.create',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['registryNodeId', 'requestId'],
-        relative_path='v1alpha/{+parent}/registryNodes',
-        request_field='registryNode',
-        request_type_name='CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesCreateRequest',
+        query_params=['realmId', 'requestId'],
+        relative_path='v1alpha/{+parent}/realms',
+        request_field='realm',
+        request_type_name='CloudnumberregistryProjectsLocationsRealmsCreateRequest',
         response_type_name='Operation',
         supports_download=False,
     )
 
     def Delete(self, request, global_params=None):
-      r"""Deletes a single RegistryNode.
+      r"""Deletes a single Realm.
 
       Args:
-        request: (CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesDeleteRequest) input message
+        request: (CloudnumberregistryProjectsLocationsRealmsDeleteRequest) input message
         global_params: (StandardQueryParameters, default: None) global arguments
       Returns:
         (Operation) The response message.
@@ -290,78 +625,78 @@ class CloudnumberregistryV1alpha(base_api.BaseApiClient):
           config, request, global_params=global_params)
 
     Delete.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/registryBooks/{registryBooksId}/registryNodes/{registryNodesId}',
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/realms/{realmsId}',
         http_method='DELETE',
-        method_id='cloudnumberregistry.projects.locations.registryBooks.registryNodes.delete',
+        method_id='cloudnumberregistry.projects.locations.realms.delete',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['requestId'],
+        query_params=['force', 'requestId'],
         relative_path='v1alpha/{+name}',
         request_field='',
-        request_type_name='CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesDeleteRequest',
+        request_type_name='CloudnumberregistryProjectsLocationsRealmsDeleteRequest',
         response_type_name='Operation',
         supports_download=False,
     )
 
     def Get(self, request, global_params=None):
-      r"""Gets details of a single RegistryNode.
+      r"""Gets details of a single Realm.
 
       Args:
-        request: (CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesGetRequest) input message
+        request: (CloudnumberregistryProjectsLocationsRealmsGetRequest) input message
         global_params: (StandardQueryParameters, default: None) global arguments
       Returns:
-        (RegistryNode) The response message.
+        (Realm) The response message.
       """
       config = self.GetMethodConfig('Get')
       return self._RunMethod(
           config, request, global_params=global_params)
 
     Get.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/registryBooks/{registryBooksId}/registryNodes/{registryNodesId}',
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/realms/{realmsId}',
         http_method='GET',
-        method_id='cloudnumberregistry.projects.locations.registryBooks.registryNodes.get',
+        method_id='cloudnumberregistry.projects.locations.realms.get',
         ordered_params=['name'],
         path_params=['name'],
         query_params=[],
         relative_path='v1alpha/{+name}',
         request_field='',
-        request_type_name='CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesGetRequest',
-        response_type_name='RegistryNode',
+        request_type_name='CloudnumberregistryProjectsLocationsRealmsGetRequest',
+        response_type_name='Realm',
         supports_download=False,
     )
 
     def List(self, request, global_params=None):
-      r"""Lists RegistryNodes in a given project and location.
+      r"""Lists Realms in a given project and location.
 
       Args:
-        request: (CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesListRequest) input message
+        request: (CloudnumberregistryProjectsLocationsRealmsListRequest) input message
         global_params: (StandardQueryParameters, default: None) global arguments
       Returns:
-        (ListRegistryNodesResponse) The response message.
+        (ListRealmsResponse) The response message.
       """
       config = self.GetMethodConfig('List')
       return self._RunMethod(
           config, request, global_params=global_params)
 
     List.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/registryBooks/{registryBooksId}/registryNodes',
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/realms',
         http_method='GET',
-        method_id='cloudnumberregistry.projects.locations.registryBooks.registryNodes.list',
+        method_id='cloudnumberregistry.projects.locations.realms.list',
         ordered_params=['parent'],
         path_params=['parent'],
         query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
-        relative_path='v1alpha/{+parent}/registryNodes',
+        relative_path='v1alpha/{+parent}/realms',
         request_field='',
-        request_type_name='CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesListRequest',
-        response_type_name='ListRegistryNodesResponse',
+        request_type_name='CloudnumberregistryProjectsLocationsRealmsListRequest',
+        response_type_name='ListRealmsResponse',
         supports_download=False,
     )
 
     def Patch(self, request, global_params=None):
-      r"""Updates the parameters of a single RegistryNode.
+      r"""Updates the parameters of a single Realm.
 
       Args:
-        request: (CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesPatchRequest) input message
+        request: (CloudnumberregistryProjectsLocationsRealmsPatchRequest) input message
         global_params: (StandardQueryParameters, default: None) global arguments
       Returns:
         (Operation) The response message.
@@ -371,43 +706,16 @@ class CloudnumberregistryV1alpha(base_api.BaseApiClient):
           config, request, global_params=global_params)
 
     Patch.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/registryBooks/{registryBooksId}/registryNodes/{registryNodesId}',
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/realms/{realmsId}',
         http_method='PATCH',
-        method_id='cloudnumberregistry.projects.locations.registryBooks.registryNodes.patch',
+        method_id='cloudnumberregistry.projects.locations.realms.patch',
         ordered_params=['name'],
         path_params=['name'],
         query_params=['requestId', 'updateMask'],
         relative_path='v1alpha/{+name}',
-        request_field='registryNode',
-        request_type_name='CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesPatchRequest',
+        request_field='realm',
+        request_type_name='CloudnumberregistryProjectsLocationsRealmsPatchRequest',
         response_type_name='Operation',
-        supports_download=False,
-    )
-
-    def Search(self, request, global_params=None):
-      r"""Search registry nodes in a given registry book.
-
-      Args:
-        request: (CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesSearchRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (SearchRegistryNodesResponse) The response message.
-      """
-      config = self.GetMethodConfig('Search')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Search.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/registryBooks/{registryBooksId}/registryNodes:search',
-        http_method='GET',
-        method_id='cloudnumberregistry.projects.locations.registryBooks.registryNodes.search',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['attributeKeys', 'ipRange', 'keywords', 'orderBy', 'pageSize', 'pageToken', 'source'],
-        relative_path='v1alpha/{+parent}/registryNodes:search',
-        request_field='',
-        request_type_name='CloudnumberregistryProjectsLocationsRegistryBooksRegistryNodesSearchRequest',
-        response_type_name='SearchRegistryNodesResponse',
         supports_download=False,
     )
 
@@ -612,7 +920,7 @@ class CloudnumberregistryV1alpha(base_api.BaseApiClient):
         method_id='cloudnumberregistry.projects.locations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['extraLocationTypes', 'filter', 'pageSize', 'pageToken'],
         relative_path='v1alpha/{+name}/locations',
         request_field='',
         request_type_name='CloudnumberregistryProjectsLocationsListRequest',

@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Create an on-demand backup for a resource."""
+"""Create an on-demand backup."""
 
 
 from __future__ import absolute_import
@@ -24,12 +24,13 @@ from googlecloudsdk.api_lib.backupdr import util
 from googlecloudsdk.api_lib.backupdr.backup_plan_associations import BackupPlanAssociationsClient
 from googlecloudsdk.api_lib.util import exceptions
 from googlecloudsdk.calliope import base
+from googlecloudsdk.calliope import exceptions as calliope_exceptions
 from googlecloudsdk.command_lib.backupdr import flags
 from googlecloudsdk.core import log
 
 
-@base.Hidden
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.GA)
 class TriggerBackup(base.Command):
   """Create an on-demand backup for a resource."""
 
@@ -39,9 +40,9 @@ class TriggerBackup(base.Command):
           '{description} Trigger an on demand backup for the given backup rule.'
       ),
       'EXAMPLES': """\
-        To trigger an on demand backup for a backup pla association `sample-bpa` in project `sample-project` and location `us-central1` with backup plan `sample-backup-rule`, run:
+        To trigger an on demand backup for a backup plan association `sample-bpa` in project `sample-project` and location `us-central1` with backup rule `sample-backup-rule`, run:
 
-          $ {command} sample-bpa --project=sample-project --location=us-central1 --backup-rule=sample-backup-rule
+          $ {command} sample-bpa --project=sample-project --location=us-central1 --backup-rule-id=sample-backup-rule
         """,
   }
 
@@ -71,9 +72,18 @@ class TriggerBackup(base.Command):
 
     backup_plan_association = args.CONCEPTS.backup_plan_association.Parse()
     backup_rule = args.backup_rule_id
+    custom_retention_days = args.custom_retention_days
+
+    if backup_rule and custom_retention_days:
+      raise calliope_exceptions.MutualExclusionError(
+          'argument --custom-retention-days: At most one of --backup-rule-id |'
+          ' --custom-retention-days may be specified.'
+      )
 
     try:
-      operation = client.TriggerBackup(backup_plan_association, backup_rule)
+      operation = client.TriggerBackup(
+          backup_plan_association, backup_rule, custom_retention_days
+      )
     except apitools_exceptions.HttpError as e:
       raise exceptions.HttpException(e, util.HTTP_ERROR_FORMAT)
     if is_async:
@@ -81,13 +91,10 @@ class TriggerBackup(base.Command):
       # none of the log.CreatedResource, log.DeletedResource etc. matched
       log._PrintResourceChange(
           'on demand backup',
-          operation.name,
+          backup_plan_association.RelativeName(),
           kind='backup plan association',
           is_async=True,
-          details=(
-              'Run the [gcloud backup-dr operations describe] command '
-              'to check the status of this operation.'
-          ),
+          details=util.ASYNC_OPERATION_MESSAGE.format(operation.name),
           failed=None,
       )
       return

@@ -49,7 +49,7 @@ def AddReplicationForceArg(parser):
       help="""Indicates whether to stop replication forcefully while data transfer is in progress.
       Warning! if force is true, this will abort any current transfers and can lead to data loss due to partial transfer.
       If force is false, stop replication will fail while data transfer is in progress and you will need to retry later.
-      """
+      """,
   )
 
 
@@ -85,17 +85,25 @@ def AddReplicationReplicationScheduleArg(parser, required=True):
   )
 
 
-def AddReplicationDestinationVolumeParametersArg(parser):
+def AddReplicationDestinationVolumeParametersArg(parser, messages):
   """Adds the Destination Volume Parameters (--destination-volume-parameters) arg to the given parser.
 
   Args:
     parser: Argparse parser.
+    messages: The messages module.
   """
   destination_volume_parameters_spec = {
       'storage_pool': str,
       'volume_id': str,
       'share_name': str,
       'description': str,
+      'tiering_policy': arg_parsers.ArgObject(
+          spec={
+              'tier-action': messages.TieringPolicy.TierActionValueValuesEnum,
+              'cooling-threshold-days': int,
+          },
+          enable_shorthand=False,
+      ),
   }
 
   destination_volume_parameters_help = """\
@@ -103,10 +111,26 @@ def AddReplicationDestinationVolumeParametersArg(parser):
 
   parser.add_argument(
       '--destination-volume-parameters',
-      type=arg_parsers.ArgDict(
+      type=arg_parsers.ArgObject(
           spec=destination_volume_parameters_spec,
           required_keys=['storage_pool'],
       ),
       required=True,
       help=destination_volume_parameters_help,
+  )
+
+
+def AddReplicationClusterLocationArg(parser, hidden=False):
+  """Adds the Cluster Location (--cluster-location) arg to the given parser.
+
+  Args:
+    parser: Argparse parser.
+    hidden: If the Cluster Location is hidden.
+  """
+  parser.add_argument(
+      '--cluster-location',
+      type=str,
+      required=False,
+      help='Location of the user cluster.',
+      hidden=hidden,
   )

@@ -20,10 +20,13 @@ from __future__ import unicode_literals
 
 from googlecloudsdk.api_lib.secrets import api as secrets_api
 from googlecloudsdk.calliope import base
+from googlecloudsdk.calliope import parser_arguments
+from googlecloudsdk.calliope import parser_extensions
 from googlecloudsdk.command_lib.secrets import args as secrets_args
 from googlecloudsdk.command_lib.secrets import log as secrets_log
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Create(base.CreateCommand):
   r"""Enable the version of the provided secret.
@@ -33,28 +36,49 @@ class Create(base.CreateCommand):
 
   ## EXAMPLES
 
-  Enable version '123' of the secret named 'my-secret':
+  Enable version `123` of the secret named `my-secret`:
 
     $ {command} 123 --secret=my-secret
 
-  Enable version '123' of the secret named 'my-secret' using etag:
+  Enable version `123` of the secret named `my-secret` using etag:
 
-    $ {command} 123 --secret=my-secret --etag=\"123\"
+    $ {command} 123 --secret=my-secret --etag=123
   """
 
   @staticmethod
-  def Args(parser):
-    secrets_args.AddVersion(
-        parser, purpose='to enable', positional=True, required=True)
-    secrets_args.AddVersionEtag(parser)
+  def Args(parser: parser_arguments.ArgumentInterceptor):
+    """Args is called by calliope to gather arguments for secrets versions enable command.
 
-  def Run(self, args):
+    Args:
+      parser: An argparse parser that you can use to add arguments that will be
+        available to this command.
+    """
+    secrets_args.AddVersion(
+        parser, purpose='to enable', positional=True, required=True
+    )
+    secrets_args.AddLocation(parser, purpose='to enable', hidden=False)
+    secrets_args.AddVersionEtag(parser, action='enabled')
+
+  def Run(self, args: parser_extensions.Namespace) -> secrets_api.Versions:
+    """Run is called by calliope to implement the secret versions enable command.
+
+    Args:
+      args: an argparse namespace, all the arguments that were provided to this
+        command invocation.
+
+    Returns:
+      API call to invoke secret version enable.
+    """
+    api_version = secrets_api.GetApiFromTrack(self.ReleaseTrack())
     version_ref = args.CONCEPTS.version.Parse()
-    result = secrets_api.Versions().Enable(version_ref, etag=args.etag)
+    result = secrets_api.Versions(api_version=api_version).Enable(
+        version_ref, etag=args.etag, secret_location=args.location
+    )
     secrets_log.Versions().Enabled(version_ref)
     return result
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.BETA)
 class CreateBeta(Create):
   r"""Enable the version of the provided secret.
@@ -64,13 +88,13 @@ class CreateBeta(Create):
 
   ## EXAMPLES
 
-  Enable version '123' of the secret named 'my-secret':
+  Enable version `123` of the secret named `my-secret`:
 
     $ {command} 123 --secret=my-secret
 
-  Enable version '123' of the secret named 'my-secret' using an etag:
+  Enable version `123` of the secret named `my-secret` using an etag:
 
-    $ {command} 123 --secret=my-secret --etag=\"123\"
+    $ {command} 123 --secret=my-secret --etag=123
   """
 
   @staticmethod
@@ -78,8 +102,8 @@ class CreateBeta(Create):
     secrets_args.AddVersion(
         parser, purpose='to enable', positional=True, required=True
     )
-    secrets_args.AddLocation(parser, purpose='to enable', hidden=True)
-    secrets_args.AddVersionEtag(parser)
+    secrets_args.AddLocation(parser, purpose='to enable', hidden=False)
+    secrets_args.AddVersionEtag(parser, action='enabled')
 
   def Run(self, args):
     api_version = secrets_api.GetApiFromTrack(self.ReleaseTrack())

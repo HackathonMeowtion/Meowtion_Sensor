@@ -26,8 +26,8 @@ import functools
 import multiprocessing
 import signal as signal_lib
 import sys
+import tempfile
 import threading
-import traceback
 
 from googlecloudsdk.api_lib.storage.gcs_json import patch_apitools_messages
 from googlecloudsdk.command_lib import crash_handling
@@ -36,6 +36,7 @@ from googlecloudsdk.command_lib.storage import errors
 from googlecloudsdk.command_lib.storage.tasks import task
 from googlecloudsdk.command_lib.storage.tasks import task_buffer
 from googlecloudsdk.command_lib.storage.tasks import task_graph as task_graph_module
+from googlecloudsdk.command_lib.storage.tasks import task_graph_debugger
 from googlecloudsdk.command_lib.storage.tasks import task_status
 from googlecloudsdk.core import execution_utils
 from googlecloudsdk.core import log
@@ -151,18 +152,7 @@ class _DebugSignalHandler:
     del signal_number, frame  # currently unused
     log.debug('Initiating crash debug information data collection.')
     stack_traces = []
-    # pylint:disable=protected-access, There does not appear to be another way
-    # to collect the stacktraces for all running threads.
-    for thread_id, stack in sys._current_frames().items():
-      stack_traces.append('\n# Traceback for thread: %s' % thread_id)
-      for frame in traceback.extract_stack(stack):
-        filename, line_number, name, text = frame
-        stack_traces.append(
-            'File: "%s", line %d, in %s' % (filename, line_number, name)
-        )
-        if text:
-          stack_traces.append('  %s' % (text.strip()))
-
+    stack_traces.extend(task_graph_debugger.yield_stack_traces())
     for line in stack_traces:
       log.debug(line)
 
@@ -285,8 +275,15 @@ def _thread_worker(task_queue, task_output_queue, task_status_queue,
 
 
 @crash_handling.CrashManager
-def _process_worker(task_queue, task_output_queue, task_status_queue,
-                    thread_count, idle_thread_count, shared_process_context):
+def _process_worker(
+    task_queue,
+    task_output_queue,
+    task_status_queue,
+    thread_count,
+    idle_thread_count,
+    shared_process_context,
+    stack_trace_file_path
+):
   """Starts a consumer thread pool.
 
   Args:
@@ -299,25 +296,48 @@ def _process_worker(task_queue, task_output_queue, task_status_queue,
     idle_thread_count (multiprocessing.Semaphore): Passed on to worker threads.
     shared_process_context (SharedProcessContext): Holds values from global
       state that need to be replicated in child processes.
+    stack_trace_file_path (str): File path to write stack traces to.
   """
   threads = []
   with shared_process_context:
     for _ in range(thread_count):
       thread = threading.Thread(
           target=_thread_worker,
-          args=(task_queue, task_output_queue, task_status_queue,
-                idle_thread_count))
+          args=(
+              task_queue,
+              task_output_queue,
+              task_status_queue,
+              idle_thread_count,
+          ),
+      )
       thread.start()
       threads.append(thread)
+
+    # TODO: b/354829547 - Update the function to catch the updated stack traces
+    # of the already running worker threads while a new worker process
+    # is not created.
+
+    if task_graph_debugger.is_task_graph_debugging_enabled():
+      stack_trace = task_graph_debugger.yield_stack_traces()
+      task_graph_debugger.write_stack_traces_to_file(
+          stack_trace, stack_trace_file_path
+      )
 
     for thread in threads:
       thread.join()
 
 
 @crash_handling.CrashManager
-def _process_factory(task_queue, task_output_queue, task_status_queue,
-                     thread_count, idle_thread_count, signal_queue,
-                     shared_process_context):
+def _process_factory(
+    task_queue,
+    task_output_queue,
+    task_status_queue,
+    thread_count,
+    idle_thread_count,
+    signal_queue,
+    shared_process_context,
+    stack_trace_file_path
+):
   """Create worker processes.
 
   This factory must run in a separate process to avoid deadlock issue,
@@ -337,6 +357,7 @@ def _process_factory(task_queue, task_output_queue, task_status_queue,
       signal when a new child worker process must be created.
     shared_process_context (SharedProcessContext): Holds values from global
       state that need to be replicated in child processes.
+    stack_trace_file_path (str): File path to write stack traces to.
   """
   processes = []
   while True:
@@ -353,8 +374,16 @@ def _process_factory(task_queue, task_output_queue, task_status_queue,
 
       process = multiprocessing_context.Process(
           target=_process_worker,
-          args=(task_queue, task_output_queue, task_status_queue,
-                thread_count, idle_thread_count, shared_process_context))
+          args=(
+              task_queue,
+              task_output_queue,
+              task_status_queue,
+              thread_count,
+              idle_thread_count,
+              shared_process_context,
+              stack_trace_file_path,
+          ),
+      )
       processes.append(process)
       log.debug('Adding 1 process with {} threads.'
                 ' Total processes: {}. Total threads: {}.'.format(
@@ -467,6 +496,18 @@ class TaskGraphExecutor:
     self._exit_code = 0
     self._debug_handler = _DebugSignalHandler()
 
+    self.stack_trace_file_path = None
+    if task_graph_debugger.is_task_graph_debugging_enabled():
+      try:
+        with tempfile.NamedTemporaryFile(
+            prefix='stack_trace', suffix='.txt', delete=False
+        ) as f:
+          self.stack_trace_file_path = f.name
+      except IOError as e:
+        log.error('Error creating stack trace file: %s', e)
+
+    self._management_threads_name_to_function = {}
+
   def _add_worker_process(self):
     """Signal the worker process spawner to create a new process."""
     self._signal_queue.put(_CREATE_WORKER_PROCESS)
@@ -541,45 +582,20 @@ class TaskGraphExecutor:
         task_wrapper.is_submitted = True
         self._executable_tasks.put(task_wrapper)
 
-  @contextlib.contextmanager
-  def _get_worker_process_spawner(self, shared_process_context):
-    """Creates a worker process spawner.
-
-    Must be used as a context manager since the worker process spawner must be
-    non-daemonic in order to start child processes, but non-daemonic child
-    processes block parent processes from exiting, so if there are any failures
-    after the worker process spawner is started, gcloud storage will fail to
-    exit, unless we put the shutdown logic in a `finally` block.
+  def _clean_worker_process_spawner(self, worker_process_spawner):
+    """Common method which carries out the required steps to clean up worker processes.
 
     Args:
-      shared_process_context (SharedProcessContext): Holds values from global
-        state that need to be replicated in child processes.
-
-    Yields:
-      None, allows body of a `with` statement to execute.
+      worker_process_spawner (Process): The worker parent process that we need
+        to clean up.
     """
-    worker_process_spawner = multiprocessing_context.Process(
-        target=_process_factory,
-        args=(
-            self._task_queue,
-            self._task_output_queue,
-            self._task_status_queue,
-            self._thread_count,
-            self._idle_thread_count,
-            self._signal_queue,
-            shared_process_context,
-        ),
-    )
-    try:
-      worker_process_spawner.start()
-      yield
-    finally:
-      # Shutdown all the workers.
+    # Shutdown all the workers.
+    if worker_process_spawner.is_alive():
       self._signal_queue.put(_SHUTDOWN)
       worker_process_spawner.join()
 
-      # Restore the debug signal handler.
-      self._debug_handler.terminate()
+    # Restore the debug signal handler.
+    self._debug_handler.terminate()
 
   def run(self):
     """Executes tasks from a task iterator in parallel.
@@ -590,42 +606,101 @@ class TaskGraphExecutor:
     """
     shared_process_context = SharedProcessContext()
     self._debug_handler.install()
-    with self._get_worker_process_spawner(shared_process_context):
+    worker_process_spawner = multiprocessing_context.Process(
+        target=_process_factory,
+        args=(
+            self._task_queue,
+            self._task_output_queue,
+            self._task_status_queue,
+            self._thread_count,
+            self._idle_thread_count,
+            self._signal_queue,
+            shared_process_context,
+            self.stack_trace_file_path
+        ),
+    )
+
+    worker_process_cleaned_up = False
+    try:
+      worker_process_spawner.start()
       # It is now safe to start the progress_manager thread, since new processes
       # are started by a child process.
       with task_status.progress_manager(
           self._task_status_queue, self._progress_manager_args
       ):
-        self._add_worker_process()
-
-        get_tasks_from_iterator_thread = threading.Thread(
-            target=self._get_tasks_from_iterator
-        )
-        add_executable_tasks_to_queue_thread = threading.Thread(
-            target=self._add_executable_tasks_to_queue
-        )
-        handle_task_output_thread = threading.Thread(
-            target=self._handle_task_output
-        )
-
-        get_tasks_from_iterator_thread.start()
-        add_executable_tasks_to_queue_thread.start()
-        handle_task_output_thread.start()
-
-        get_tasks_from_iterator_thread.join()
         try:
-          self._task_graph.is_empty.wait()
-        except console_io.OperationCancelledError:
-          # If user hits ctrl-c, there will be no thread to pop tasks from the
-          # graph. Python garbage collection will remove unstarted tasks in the
-          # graph if we skip this endless wait.
-          pass
+          self._add_worker_process()
 
-        self._executable_tasks.put(_SHUTDOWN)
-        self._task_output_queue.put(_SHUTDOWN)
+          get_tasks_from_iterator_thread = threading.Thread(
+              target=self._get_tasks_from_iterator
+          )
+          add_executable_tasks_to_queue_thread = threading.Thread(
+              target=self._add_executable_tasks_to_queue
+          )
+          handle_task_output_thread = threading.Thread(
+              target=self._handle_task_output
+          )
 
-        handle_task_output_thread.join()
-        add_executable_tasks_to_queue_thread.join()
+          get_tasks_from_iterator_thread.start()
+          add_executable_tasks_to_queue_thread.start()
+          handle_task_output_thread.start()
+
+          if task_graph_debugger.is_task_graph_debugging_enabled():
+            self._management_threads_name_to_function[
+                'get_tasks_from_iterator'
+            ] = get_tasks_from_iterator_thread
+
+            self._management_threads_name_to_function[
+                'add_executable_tasks_to_queue'
+            ] = add_executable_tasks_to_queue_thread
+
+            self._management_threads_name_to_function['handle_task_output'] = (
+                handle_task_output_thread
+            )
+
+            task_graph_debugger.start_thread_for_task_graph_debugging(
+                self._management_threads_name_to_function,
+                self.stack_trace_file_path,
+                self._task_graph,
+                self._executable_tasks,
+            )
+
+          get_tasks_from_iterator_thread.join()
+          try:
+            self._task_graph.is_empty.wait()
+          except console_io.OperationCancelledError:
+            # If user hits ctrl-c, there will be no thread to pop tasks from the
+            # graph. Python garbage collection will remove unstarted tasks in
+            # the graph if we skip this endless wait.
+            pass
+
+          self._executable_tasks.put(_SHUTDOWN)
+          self._task_output_queue.put(_SHUTDOWN)
+
+          handle_task_output_thread.join()
+          add_executable_tasks_to_queue_thread.join()
+        finally:
+          # By calling the clean in the finally block, we ensure that the
+          # progress manager exit is called first.
+          # We also handle the scenario where an exception may be thrown by the
+          # progress manager it self.
+          self._clean_worker_process_spawner(worker_process_spawner)
+          worker_process_cleaned_up = True
+    except Exception as e:  # pylint: disable=broad-exception-caught
+      # In case we get an exception occurs while spinning up the worker process
+      # spawner or during start of progress manager context, we need to
+      # do a clean up, hence we use the following method which carries out
+      # the neccesary steps.
+      # Note that the clean up only occurs if an exception occurs. There is
+      # another finally block within the progress manager context which will
+      # execute if there is any exception or in case of compleition of internal
+      # logic. If that is invoked, there is a small chance of this block being
+      # invoked as well, but for that, we have the worker process clean-up flag.
+      if not worker_process_cleaned_up:
+        self._clean_worker_process_spawner(worker_process_spawner)
+
+      # Raise it back as we still want main process to exit
+      raise e
 
     # Queue close calls need to be outside the worker process spawner context
     # manager since the task queue need to be open for the shutdown logic.

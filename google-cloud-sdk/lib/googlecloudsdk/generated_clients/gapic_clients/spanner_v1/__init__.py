@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -56,6 +56,7 @@ from .types.spanner import ReadRequest
 from .types.spanner import RequestOptions
 from .types.spanner import RollbackRequest
 from .types.spanner import Session
+from .types.transaction import MultiplexedSessionPrecommitToken
 from .types.transaction import Transaction
 from .types.transaction import TransactionOptions
 from .types.transaction import TransactionSelector
@@ -84,6 +85,7 @@ __all__ = (
 'KeySet',
 'ListSessionsRequest',
 'ListSessionsResponse',
+'MultiplexedSessionPrecommitToken',
 'Mutation',
 'PartialResultSet',
 'Partition',

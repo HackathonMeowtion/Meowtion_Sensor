@@ -19,7 +19,10 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from googlecloudsdk.api_lib.assured import util
-from googlecloudsdk.calliope.base import ReleaseTrack
+from googlecloudsdk.calliope import base as calliope_base
+from googlecloudsdk.command_lib.util.apis import arg_utils
+
+ReleaseTrack = calliope_base.ReleaseTrack
 
 
 def GetMessages(release_track):
@@ -28,6 +31,14 @@ def GetMessages(release_track):
 
 def GetWorkloadMessage(release_track):
   return WORKLOAD_MAP.get(release_track)
+
+
+def GetComplianceRegimesEnum(release_track):
+  return GetWorkloadMessage(release_track).ComplianceRegimeValueValuesEnum
+
+
+def GetPartnersEnum(release_track):
+  return GetWorkloadMessage(release_track).PartnerValueValuesEnum
 
 
 def GetKmsSettings(release_track):
@@ -50,6 +61,7 @@ def CreateAssuredWorkload(
     display_name=None,
     compliance_regime=None,
     partner=None,
+    partner_services_billing_account=None,
     partner_permissions=None,
     billing_account=None,
     next_rotation_time=None,
@@ -69,6 +81,8 @@ def CreateAssuredWorkload(
     compliance_regime: str, the compliance regime, which is one of:
       FEDRAMP_MODERATE, FEDRAMP_HIGH, IL4 or CJIS.
     partner: str, the partner regime/controls.
+    partner_services_billing_account: str, the billing account of the partner
+      service in the form: billingAccounts/{BILLING_ACCOUNT_ID}
     partner_permissions: dict, dictionary of permission names and values for the
       partner regime.
     billing_account: str, the billing account of the Assured Workloads
@@ -111,11 +125,15 @@ def CreateAssuredWorkload(
   if labels:
     workload.labels = CreateLabels(labels, workload_message)
   if compliance_regime:
-    workload.complianceRegime = (
-        workload_message.ComplianceRegimeValueValuesEnum(compliance_regime)
+    workload.complianceRegime = arg_utils.ChoiceToEnum(
+        compliance_regime, GetComplianceRegimesEnum(release_track)
     )
   if partner:
-    workload.partner = workload_message.PartnerValueValuesEnum(partner)
+    workload.partner = arg_utils.ChoiceToEnum(
+        partner, GetPartnersEnum(release_track)
+    )
+  if partner_services_billing_account:
+    workload.partnerServicesBillingAccount = partner_services_billing_account
   if partner_permissions:
     workload.partnerPermissions = GetPartnerPermissions(release_track)(
         dataLogsViewer=partner_permissions['data-logs-viewer']
@@ -336,7 +354,7 @@ def CreateAcknowledgeRequest(
 
 WORKLOAD_MAP = {
     ReleaseTrack.ALPHA: GetMessages(
-        ReleaseTrack.ALPHA
+        ReleaseTrack.BETA
     ).GoogleCloudAssuredworkloadsV1beta1Workload,
     ReleaseTrack.BETA: GetMessages(
         ReleaseTrack.BETA
@@ -348,7 +366,7 @@ WORKLOAD_MAP = {
 
 KMS_SETTINGS_MAP = {
     ReleaseTrack.ALPHA: GetMessages(
-        ReleaseTrack.ALPHA
+        ReleaseTrack.BETA
     ).GoogleCloudAssuredworkloadsV1beta1WorkloadKMSSettings,
     ReleaseTrack.BETA: GetMessages(
         ReleaseTrack.BETA
@@ -360,7 +378,7 @@ KMS_SETTINGS_MAP = {
 
 RESOURCE_SETTINGS_MAP = {
     ReleaseTrack.ALPHA: GetMessages(
-        ReleaseTrack.ALPHA
+        ReleaseTrack.BETA
     ).GoogleCloudAssuredworkloadsV1beta1WorkloadResourceSettings,
     ReleaseTrack.BETA: GetMessages(
         ReleaseTrack.BETA
@@ -372,7 +390,7 @@ RESOURCE_SETTINGS_MAP = {
 
 PARTNER_PERMISSIONS_MAP = {
     ReleaseTrack.ALPHA: GetMessages(
-        ReleaseTrack.ALPHA
+        ReleaseTrack.BETA
     ).GoogleCloudAssuredworkloadsV1beta1WorkloadPartnerPermissions,
     ReleaseTrack.BETA: GetMessages(
         ReleaseTrack.BETA

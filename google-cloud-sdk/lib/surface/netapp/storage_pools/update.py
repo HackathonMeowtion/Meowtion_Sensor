@@ -27,11 +27,10 @@ from googlecloudsdk.core import log
 
 
 def _CommonArgs(parser, release_track):
-  storagepools_flags.AddStoragePoolUpdateArgs(
-      parser, release_track=release_track
-  )
+  storagepools_flags.AddStoragePoolUpdateArgs(parser, release_track)
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Update(base.UpdateCommand):
   """Update a Cloud NetApp Storage Pool."""
@@ -68,18 +67,39 @@ class Update(base.UpdateCommand):
     else:
       labels = None
 
+    zone = args.zone
+    replica_zone = args.replica_zone
+    if args.total_throughput is not None:
+      total_throughput_mibps = args.total_throughput >> 20
+    else:
+      total_throughput_mibps = None
+    hot_tier_size_gib = None
+    enable_hot_tier_auto_resize = None
+    qos_type = None
+    if args.qos_type is not None:
+      qos_type = storagepools_flags.GetStoragePoolQosTypeArg(
+          client.messages
+      ).GetEnumForChoice(args.qos_type)
     if (self._RELEASE_TRACK == base.ReleaseTrack.ALPHA or
         self._RELEASE_TRACK == base.ReleaseTrack.BETA):
-      allow_auto_tiering = args.allow_auto_tiering
-    else:
-      allow_auto_tiering = None
+      if args.hot_tier_size is not None:
+        hot_tier_size_gib = args.hot_tier_size >> 30
+      enable_hot_tier_auto_resize = args.enable_hot_tier_auto_resize
 
     storage_pool = client.ParseUpdatedStoragePoolConfig(
         orig_storagepool,
         capacity=capacity_in_gib,
+        active_directory=args.active_directory,
         description=args.description,
         labels=labels,
-        allow_auto_tiering=allow_auto_tiering
+        allow_auto_tiering=args.allow_auto_tiering,
+        zone=zone,
+        replica_zone=replica_zone,
+        total_throughput=total_throughput_mibps,
+        total_iops=args.total_iops,
+        hot_tier_size=hot_tier_size_gib,
+        enable_hot_tier_auto_resize=enable_hot_tier_auto_resize,
+        qos_type=qos_type,
     )
 
     updated_fields = []
@@ -95,10 +115,25 @@ class Update(base.UpdateCommand):
         or args.IsSpecified('clear_labels')
     ):
       updated_fields.append('labels')
+    if args.IsSpecified('allow_auto_tiering'):
+      updated_fields.append('allowAutoTiering')
+    if args.IsSpecified('zone'):
+      updated_fields.append('zone')
+    if args.IsSpecified('replica_zone'):
+      updated_fields.append('replicaZone')
+    if args.IsSpecified('total_throughput'):
+      updated_fields.append('totalThroughputMibps')
+    if args.IsSpecified('total_iops'):
+      updated_fields.append('totalIops')
+    if args.IsSpecified('qos_type'):
+      updated_fields.append('qosType')
     if (self._RELEASE_TRACK == base.ReleaseTrack.ALPHA or
         self._RELEASE_TRACK == base.ReleaseTrack.BETA):
-      if args.IsSpecified('allow_auto_tiering'):
-        updated_fields.append('allowAutoTiering')
+      if args.IsSpecified('hot_tier_size'):
+        updated_fields.append('hotTierSizeGib')
+      if args.IsSpecified('enable_hot_tier_auto_resize'):
+        updated_fields.append('enableHotTierAutoResize')
+
     update_mask = ','.join(updated_fields)
 
     result = client.UpdateStoragePool(

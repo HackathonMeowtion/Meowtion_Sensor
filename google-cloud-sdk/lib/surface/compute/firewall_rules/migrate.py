@@ -60,19 +60,20 @@ def _GetFirewallsAssociatedWithNetwork(network, firewalls):
   return filtered_firewalls
 
 
-def _GetLegacyTags(firewalls):
+def _GetLegacyTags(selected_firewalls):
   tags = set()
-  for firewall in firewalls:
+  for firewall in selected_firewalls:
     tags.update(firewall.sourceTags)
     tags.update(firewall.targetTags)
   return tags
 
 
-def _GetServiceAccounts(firewalls):
+def _GetServiceAccounts(selected_firewalls, keep_target_service_accounts):
   service_accounts = set()
-  for firewall in firewalls:
+  for firewall in selected_firewalls:
     service_accounts.update(firewall.sourceServiceAccounts)
-    service_accounts.update(firewall.targetServiceAccounts)
+    if not keep_target_service_accounts:
+      service_accounts.update(firewall.targetServiceAccounts)
   return service_accounts
 
 
@@ -88,7 +89,7 @@ def _UnsupportedTagResult(field, tag):
   return (False, "Mapping for {} '{}' was not found.".format(field, tag))
 
 
-def _IsFirewallSupported(firewall, tag_mapping):
+def _IsFirewallSupported(firewall, tag_mapping, keep_target_service_accounts):
   """Checks if the given VPC Firewall can be converted by the Migration Tool."""
   # Source Service Accounts
   for service_account in firewall.sourceServiceAccounts:
@@ -98,12 +99,13 @@ def _IsFirewallSupported(firewall, tag_mapping):
           'source_service_account', prefixed_service_account
       )
   # Target Service Accounts
-  for service_account in firewall.targetServiceAccounts:
-    prefixed_service_account = 'sa:' + service_account
-    if prefixed_service_account not in tag_mapping:
-      return _UnsupportedTagResult(
-          'target_service_account', prefixed_service_account
-      )
+  if not keep_target_service_accounts:
+    for service_account in firewall.targetServiceAccounts:
+      prefixed_service_account = 'sa:' + service_account
+      if prefixed_service_account not in tag_mapping:
+        return _UnsupportedTagResult(
+            'target_service_account', prefixed_service_account
+        )
   # Source Tags
   for tag in firewall.sourceTags:
     if tag not in tag_mapping:
@@ -115,12 +117,11 @@ def _IsFirewallSupported(firewall, tag_mapping):
   return (True, '')
 
 
-def _IsGkeFirewall(firewall):
-  return re.match(r'gke-(.*)-(.*)', firewall.name)
-
-
-def _IsCustomerDefinedFirewall(firewall):
-  return not _IsGkeFirewall(firewall)
+def _IsExcludedFirewall(firewall, patterns):
+  for pattern in patterns:
+    if re.match(pattern, firewall.name):
+      return True
+  return False
 
 
 def _ConvertRuleDirection(messages, direction):
@@ -156,7 +157,22 @@ def _ConvertServiceAccounts(messages, tag_mapping, service_accounts):
   ]
 
 
-def _ConvertRuleInternal(messages, firewall, action, l4_configs, tag_mapping):
+def _ConvertRuleInternal(
+    messages,
+    firewall,
+    action,
+    l4_configs,
+    tag_mapping,
+    keep_target_service_accounts,
+):
+  """Converts VPC Firewall to FirewallPolicy.Rule."""
+  target_service_accounts = firewall.targetServiceAccounts
+  target_secure_tags = _ConvertTags(messages, tag_mapping, firewall.targetTags)
+  if not keep_target_service_accounts:
+    target_service_accounts = []
+    target_secure_tags = target_secure_tags + _ConvertServiceAccounts(
+        messages, tag_mapping, firewall.targetServiceAccounts
+    )
   return messages.FirewallPolicyRule(
       disabled=firewall.disabled,
       ruleName=firewall.name,  # Allow and deny cannot be in the same rule
@@ -176,22 +192,28 @@ def _ConvertRuleInternal(messages, firewall, action, l4_configs, tag_mapping):
           ),
           layer4Configs=_ConvertLayer4Configs(messages, l4_configs),
       ),
-      targetSecureTags=(
-          _ConvertTags(messages, tag_mapping, firewall.targetTags)
-          + _ConvertServiceAccounts(
-              messages, tag_mapping, firewall.targetServiceAccounts
-          )
-      ),
+      targetServiceAccounts=target_service_accounts,
+      targetSecureTags=target_secure_tags,
   )
 
 
-def _ConvertRule(messages, firewall, tag_mapping):
+def _ConvertRule(messages, firewall, tag_mapping, keep_target_service_accounts):
   if firewall.denied:
     return _ConvertRuleInternal(
-        messages, firewall, 'deny', firewall.denied, tag_mapping
+        messages,
+        firewall,
+        'deny',
+        firewall.denied,
+        tag_mapping,
+        keep_target_service_accounts,
     )
   return _ConvertRuleInternal(
-      messages, firewall, 'allow', firewall.allowed, tag_mapping
+      messages,
+      firewall,
+      'allow',
+      firewall.allowed,
+      tag_mapping,
+      keep_target_service_accounts,
   )
 
 
@@ -260,13 +282,11 @@ def _GetInstancesInNetwork(project, network_name, compute_client):
   """Gets instances in the network."""
 
   def _HasInterfaceMatchingNetwork(instance):
-    return len(
-        [
-            network_interface.network
-            for network_interface in instance.networkInterfaces
-            if network_interface.network.endswith('/%s' % network_name)
-        ]
-    )
+    return len([
+        network_interface.network
+        for network_interface in instance.networkInterfaces
+        if network_interface.network.endswith('/%s' % network_name)
+    ])
 
   messages = compute_client.MESSAGES_MODULE
   instance_aggregations = compute_client.instances.AggregatedList(
@@ -365,11 +385,124 @@ def _WriteTagMapping(file_name, tags, service_accounts):
     log.status.Print(repr(e))
 
 
+def _WriteTerraformScript(file_name, tf_script):
+  """Exports Terraform script."""
+
+  try:
+    with files.FileWriter(path=file_name, create_path=True) as f:
+      f.write(tf_script)
+  except OSError:
+    log.status.Print(
+        "OS error occurred when opening the file '{file}'. Terraform script was"
+        ' not exported.'.format(file=file_name)
+    )
+    return
+  except Exception as e:  # pylint: disable=broad-except
+    log.status.Print(
+        "Unexpected error occurred when writing to the file '{file}'. Terraform"
+        ' script was not exported.'.format(file=file_name)
+    )
+    log.status.Print(repr(e))
+
+
+def _WriteExclusionPatterns(file_name, patterns):
+  """Exports regexes used for excluding firewalls."""
+
+  try:
+    with files.FileWriter(path=file_name, create_path=True) as f:
+      for pattern in patterns:
+        f.write(pattern + '\n')
+  except OSError:
+    log.status.Print(
+        "OS error occurred when opening the file '{file}'. Exclusion patterns"
+        ' were not exported.'.format(file=file_name)
+    )
+    return
+  except Exception as e:  # pylint: disable=broad-except
+    log.status.Print(
+        "Unexpected error occurred when writing to the file '{file}'. Exclusion"
+        ' patterns were not exported.'.format(file=file_name)
+    )
+    log.status.Print(repr(e))
+
+
+def _ReadExclusionPatterns(file_name):
+  """Imports exclusion patterns from a file."""
+  try:
+    with files.FileReader(file_name) as f:
+      lines = f.readlines()
+      patterns = [line.rstrip('\n') for line in lines]
+  except FileNotFoundError:
+    log.status.Print(
+        "File '{file}' was not found. Exclusion patterns were not imported."
+        .format(file=file_name)
+    )
+    return [], True
+  except OSError:
+    log.status.Print(
+        "OS error occurred when opening the file '{file}'. Exclusion patterns"
+        ' were not imported.'.format(file=file_name)
+    )
+    return [], True
+  except Exception as e:  # pylint: disable=broad-except
+    log.status.Print(
+        "Unexpected error occurred when reading the file '{file}'. Exclusion"
+        ' patterns were not imported.'.format(file=file_name)
+    )
+    log.status.Print(repr(e))
+    return [], True
+
+  success = True
+  for pattern in patterns:
+    try:
+      re.compile(pattern)
+    except Exception as e:  # pylint: disable=broad-except
+      success = False
+      log.status.Print("Cannot compile regular expression '{}'".format(pattern))
+      log.status.Print(repr(e))
+
+  if not success:
+    return [], True
+
+  return patterns, False
+
+
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
 class Migrate(base.CreateCommand):
   """Migrate from legacy firewall rules to network firewall policies."""
 
   NETWORK_ARG = None
+  exclusion_patterns = [
+      # https://cloud.google.com/kubernetes-engine/docs/concepts/firewall-rules
+      # gke-[cluster-hash]-ipv6-all
+      'gke-(.+)-ipv6-all',
+      # gke-[cluster-name]-[cluster-hash]-master
+      # gke-[cluster-name]-[cluster-hash]-vms
+      # gke-[cluster-name]-[cluster-hash]-all
+      # gke-[cluster-name]-[cluster-hash]-inkubelet
+      # gke-[cluster-name]-[cluster-hash]-exkubelet
+      # gke-[cluster-name]-[cluster-hash]-mcsd
+      'gke-(.+)-(.+)-((master)|(vms)|(all)|(inkubelet)|(exkubelet)|(mcsd))',
+      # k8s-fw-[loadbalancer-hash]
+      # k8s-fw-l7-[random-hash]
+      'k8s-fw-(l7-)?(.+)',
+      # k8s-[cluster-id]-node-http-hc
+      # k8s-[loadbalancer-hash]-http-hc
+      # k8s-[cluster-id]-node-hc
+      'k8s-(.+)-((node)|(http)|(node-http))-hc',
+      # [loadbalancer-hash]-hc
+      '(.+)-hc',
+      # k8s2-[cluster-id]-[namespace]-[service-name]-[suffixhash]
+      # k8s2-[cluster-id]-[namespace]-[service-name]-[suffixhash]-fw
+      'k8s2-(.+)-(.+)-(.+)-(.+)(-fw)?',
+      # k8s2-[cluster-id]-l4-shared-hc-fw
+      'k8s2-(.+)-l4-shared-hc-fw',
+      # gkegw1-l7-[network]-[region/global]
+      # gkemcg1-l7-[network]-[region/global]
+      'gke((gw)|(mcg))1-l7-(.+)-(.+)',
+      # https://cloud.google.com/vpc/docs/serverless-vpc-access#firewall_rules
+  ]
 
   @classmethod
   def Args(cls, parser):
@@ -389,6 +522,13 @@ class Migrate(base.CreateCommand):
       If set, migration tool will inspect all VPC Firewalls attached to
       SOURCE_NETWORK, collect all source and target tags, and store them in
       TAG_MAPPING_FILE.
+      """,
+    )
+    group.add_argument(
+        '--export-exclusion-patterns',
+        action='store_true',
+        help="""\
+      If set, migration tool will dump list of regexes used to filter VPC Firewall out of migration.
       """,
     )
     group.add_argument(
@@ -432,6 +572,43 @@ class Migrate(base.CreateCommand):
             ' Firewall Policy with migrated rules.'
         ),
     )
+    # optional --terraform-script-output-file=TERRAFORM_SCRIPT_OUTPUT_FILE arg
+    parser.add_argument(
+        '--terraform-script-output-file',
+        required=False,
+        help='Path to a file where to store generated Terraform script.',
+    )
+    # optional --exclusion-patterns-file=EXCLUSION_PATTERNS_FILE argument
+    parser.add_argument(
+        '--exclusion-patterns-file',
+        required=False,
+        help=(
+            'Path to a file with exclusion patterns used for VPC Firewall'
+            ' filtering. Each regular expression describing a single firewall'
+            ' naming pattern must be placed in a single line. No leading or'
+            ' tailing whitespaces.'
+        ),
+    )
+    # optional --force argument
+    parser.add_argument(
+        '--force',
+        action='store_true',
+        required=False,
+        help=(
+            'If set, migration will succeed even if the tool detects that'
+            ' original rule evaluation order cannot be preserved.'
+        ),
+    )
+    # optional --force argument
+    parser.add_argument(
+        '--skip-migrate-target-service-accounts-to-tags',
+        action='store_true',
+        required=False,
+        help=(
+            'If set, migration will keep target service accounts as they are'
+            ' and will not try to replace them with secure tags.'
+        ),
+    )
 
   def Run(self, args):
     """Run the migration logic."""
@@ -450,13 +627,33 @@ class Migrate(base.CreateCommand):
     policy_name = getattr(args, 'target_firewall_policy', None)
     export_tag_mapping = getattr(args, 'export_tag_mapping', False)
     tag_mapping_file_name = getattr(args, 'tag_mapping_file', None)
+    export_exclusion_patterns = getattr(
+        args, 'export_exclusion_patterns', False
+    )
+    exclusion_patterns_file_name = getattr(
+        args, 'exclusion_patterns_file', None
+    )
     bind_tags_to_instances = getattr(args, 'bind_tags_to_instances', False)
     export_terraform_script = getattr(args, 'export_terraform_script', False)
+    terraform_script_output_file_name = getattr(
+        args, 'terraform_script_output_file', None
+    )
+    force = getattr(args, 'force', False)
+    keep_target_service_accounts = getattr(
+        args, 'skip_migrate_target_service_accounts_to_tags', False
+    )
 
     # In the export tag mode, the tag mapping file must be provided
     if export_tag_mapping and not tag_mapping_file_name:
       raise exceptions.ToolException(
           '--tag-mapping-file must be specified if --export-tag-mapping is set.'
+      )
+
+    # In the export patterns mode, the output file must be provided
+    if export_exclusion_patterns and not exclusion_patterns_file_name:
+      raise exceptions.ToolException(
+          '--exclusion-patterns-file must be specified if'
+          ' --export-exclusion-patterns is set.'
       )
 
     if bind_tags_to_instances and not tag_mapping_file_name:
@@ -465,11 +662,35 @@ class Migrate(base.CreateCommand):
           ' set.'
       )
 
+    # Branch 0a: Bind Secure Tags to Instances
     if bind_tags_to_instances:
       _BindSecureTagsToInstances(
           network_name, project, tag_mapping_file_name, client
       )
       return
+
+    # Branch 0b: Dump exclusion patterns used for filtering
+    if export_exclusion_patterns:
+      _WriteExclusionPatterns(
+          exclusion_patterns_file_name, self.exclusion_patterns
+      )
+      log.status.Print(
+          "Exclusion patterns were exported to '{}'".format(
+              exclusion_patterns_file_name
+          )
+      )
+      return
+
+    # Import externally defined exclusion patterns if defined
+    if exclusion_patterns_file_name:
+      patterns, err = _ReadExclusionPatterns(exclusion_patterns_file_name)
+      self.exclusion_patterns = patterns
+      if err:
+        log.status.Print(
+            'Could not import exclusion patterns. Migration cannot be'
+            ' completed.'
+        )
+        return
 
     # Get VPC Network
     network = client.networks.Get(
@@ -484,12 +705,12 @@ class Migrate(base.CreateCommand):
     )
 
     # Get all Firewall Policies
-    response = client.networkFirewallPolicies.List(
+    fp_list_response = client.networkFirewallPolicies.List(
         messages.ComputeNetworkFirewallPoliciesListRequest(project=project)
     )
 
     # Verify there is no Firewall Policy with provided name
-    for firewall_policy in response.items:
+    for firewall_policy in fp_list_response.items:
       if firewall_policy.name == policy_name:
         log.status.Print(
             'Firewall Policy "' + policy_name + '" already exists.'
@@ -498,7 +719,7 @@ class Migrate(base.CreateCommand):
 
     # Filter Network Firewall Policies attached to the given VPC Network
     firewall_policies = _GetFirewallPoliciesAssociatedWithNetwork(
-        network, response.items
+        network, fp_list_response.items
     )
     log.status.Print(
         'Found {} Network Firewall Policies associated with the VPC Network'
@@ -522,20 +743,46 @@ class Migrate(base.CreateCommand):
         method='List',
         field='items',
     )
-    firewalls = _GetFirewallsAssociatedWithNetwork(network, fetched_firewalls)
+    associated_firewalls = _GetFirewallsAssociatedWithNetwork(
+        network, fetched_firewalls
+    )
     log.status.Print(
         "Found {} VPC Firewalls associated with the VPC Network '{}'.\n".format(
-            len(firewalls), network_name
+            len(associated_firewalls), network_name
         )
     )
 
     # Now we fetched all VPC Firewalls and Firewall Policies attached to the
     # given VPC Network.
 
+    # Filter VPC Firewalls first
+    # Add unique ID to each firewall - required for sorting
+    log.status.Print(
+        '{} pattern(s) used to filter VPC Firewalls out:'.format(
+            len(self.exclusion_patterns)
+        )
+    )
+    for pattern in self.exclusion_patterns:
+      log.status.Print(pattern)
+    log.status.Print('\n')
+
+    firewall_id = 0
+    marked_firewalls = []
+    for firewall in associated_firewalls:
+      selected = not _IsExcludedFirewall(firewall, self.exclusion_patterns)
+      marked_firewalls.append((firewall, selected, firewall_id))
+      firewall_id = firewall_id + 1
+
     # Branch 1: Just generate pre-mapping for legacy tags
     if export_tag_mapping:
-      legacy_tags = _GetLegacyTags(firewalls)
-      service_accounts = _GetServiceAccounts(firewalls)
+      selected_firewalls = []
+      for firewall, selected, _ in marked_firewalls:
+        if selected:
+          selected_firewalls.append(firewall)
+      legacy_tags = _GetLegacyTags(selected_firewalls)
+      service_accounts = _GetServiceAccounts(
+          selected_firewalls, keep_target_service_accounts
+      )
       _WriteTagMapping(tag_mapping_file_name, legacy_tags, service_accounts)
       log.status.Print(
           "Legacy tags were exported to '{}'".format(tag_mapping_file_name)
@@ -548,65 +795,85 @@ class Migrate(base.CreateCommand):
     tag_mapping = dict()
     if tag_mapping_file_name:
       tag_mapping = _ReadTagMapping(tag_mapping_file_name)
-      if not tag_mapping:
+      if tag_mapping is None:
+        log.status.Print('Stop processing, missing tag mapping file...')
         return
 
     # Sort VPC Firewalls by priorities. If two Firewalls have the same priority
     # then deny rules should precede allow rules. Third coordinate is unique to
     # avoid comparison between Firewall objects which is undefined.
-
-    # Add unique ID to each firewall
-    firewalls_temp = []
-    firewalls_counter = 0
-    for firewall in firewalls:
-      firewalls_temp.append((firewalls_counter, firewall))
-      firewalls_counter = firewalls_counter + 1
-    # Build tuple
-    firewalls = [
-        (f.priority, 0 if f.denied else 1, id, f) for (id, f) in firewalls_temp
+    sorted_firewalls = [
+        (f.priority, 0 if f.denied else 1, id, f, selected)
+        for (f, selected, id) in marked_firewalls
     ]
-    firewalls = sorted(firewalls)
+    sorted_firewalls = sorted(sorted_firewalls)
 
     # Convert user provided VPC Firewalls if possible
     converted_firewalls = []
-    conversion_failures = 0
-    customer_defined_firewalls = 0
-    for priority, _, _, firewall in firewalls:
+    conversion_failures_count = 0
+    selected_firewalls_count = 0
+    for priority, _, _, firewall, selected in sorted_firewalls:
       (status, error) = (False, 'Not a customer defined VPC Firewall.')
       converted_firewall = None
-      is_custom = _IsCustomerDefinedFirewall(firewall)
-      # Convert only supported customer defined VPC Firewalls
-      if is_custom:
-        customer_defined_firewalls = customer_defined_firewalls + 1
-        (status, error) = _IsFirewallSupported(firewall, tag_mapping)
+      # Convert only supported selected VPC Firewalls
+      if selected:
+        selected_firewalls_count = selected_firewalls_count + 1
+        (status, error) = _IsFirewallSupported(
+            firewall, tag_mapping, keep_target_service_accounts
+        )
         if status:
-          converted_firewall = _ConvertRule(messages, firewall, tag_mapping)
+          converted_firewall = _ConvertRule(
+              messages,
+              firewall,
+              tag_mapping,
+              keep_target_service_accounts,
+          )
         else:
-          conversion_failures = conversion_failures + 1
+          conversion_failures_count = conversion_failures_count + 1
       converted_firewalls.append(
-          (priority, firewall, is_custom, converted_firewall, status, error)
+          (priority, firewall, selected, converted_firewall, status, error)
       )
 
-    # Print info about detected customer defined VPC Firewalls.
-    log.status.Print(
-        'Found {} customer defined VPC Firewalls.'.format(
-            customer_defined_firewalls
-        )
+    # Print info about VPC Firewalls [both selected and unselected].
+    if selected_firewalls_count:
+      log.status.Print(
+          'Found {} selected VPC Firewalls.'.format(selected_firewalls_count)
+      )
+      log.status.Print("priority: name 'description'")
+      for _, firewall, selected, _, _, _ in converted_firewalls:
+        if selected:
+          log.status.Print(
+              "{}: {} '{}'".format(
+                  firewall.priority, firewall.name, firewall.description
+              )
+          )
+      log.status.Print('')
+
+    non_selected_firewall_count = (
+        len(converted_firewalls) - selected_firewalls_count
     )
-    log.status.Print("priority: name 'description'")
-    for _, firewall, is_custom, _, _, _ in converted_firewalls:
-      if is_custom:
-        log.status.Print(
-            "{}: {} '{}'".format(
-                firewall.priority, firewall.name, firewall.description
-            )
-        )
-    log.status.Print('')
+    if non_selected_firewall_count:
+      log.status.Print(
+          '{} VPC Firewalls were not selected.'.format(
+              non_selected_firewall_count
+          )
+      )
+      log.status.Print("priority: name 'description'")
+      for _, firewall, selected, _, _, _ in converted_firewalls:
+        if not selected:
+          log.status.Print(
+              "{}: {} '{}'".format(
+                  firewall.priority, firewall.name, firewall.description
+              )
+          )
+      log.status.Print('')
 
     # Print info about conversion failures
-    if conversion_failures:
+    if conversion_failures_count:
       log.status.Print(
-          'Could not convert {} VPC Firewalls:'.format(conversion_failures)
+          'Could not convert {} selected VPC Firewalls:'.format(
+              conversion_failures_count
+          )
       )
       for _, firewall, _, _, status, error in converted_firewalls:
         if not status:
@@ -631,11 +898,12 @@ class Migrate(base.CreateCommand):
 
     # Adjust the format to match list of converted VPC Firewalls
     firewall_policy_rules = [
+        # (priority, vpc_firewall_rule, selected, converted_rule, status, error)
         (priority, None, True, rule, True, '')
         for (priority, rule) in firewall_policy_rules
     ]
 
-    # Join converted VPC Firewalls with Network Firewall Policy Rules
+    # Join converted selected VPC Firewalls with Network Firewall Policy Rules
     joined_rules = []
     if (
         network.networkFirewallPolicyEnforcementOrder
@@ -647,26 +915,37 @@ class Migrate(base.CreateCommand):
       joined_rules.extend(firewall_policy_rules)
       joined_rules.extend(converted_firewalls)
 
+    # Important: Non-selected vpc firewalls are still present on the list!
+    # However, they are marked as non-selected.
+
     # Check if extraction of selected rules is possible
     # Extracted rules must be a prefix for BEFORE_CLASSIC_FIREWALL mode and
     # suffix for AFTER_CLASSIC_FIREWALL mode.
     statuses = [status for (_, _, _, _, status, _) in joined_rules]
+    safe_migration_impossible = False
+    safe_migration_error_message = (
+        'Safe migration is impossible, because rule evaluation order cannot be '
+        'preserved.'
+    )
     if (
         network.networkFirewallPolicyEnforcementOrder
         == messages.Network.NetworkFirewallPolicyEnforcementOrderValueValuesEnum.AFTER_CLASSIC_FIREWALL
     ):
       if not _IsSuffixTrue(statuses):
-        log.status.Print(
-            'Migration is impossible, because rule evaluation order cannot be'
-            ' preserved.'
-        )
-        return
+        log.status.Print(safe_migration_error_message)
+        safe_migration_impossible = True
     else:
       if not _IsPrefixTrue(statuses):
+        log.status.Print(safe_migration_error_message)
+        safe_migration_impossible = True
+
+    # Stop migration if not possible to do it safely
+    if safe_migration_impossible:
+      if force:
         log.status.Print(
-            'Migration is impossible, because rule evaluation order cannot be'
-            ' preserved.'
+            'WARNING: Forcing migration of chosen firewall rules.\n'
         )
+      else:
         return
 
     # Extract rules to migrate
@@ -721,12 +1000,26 @@ class Migrate(base.CreateCommand):
       )
 
     if export_terraform_script:
-      log.status.Print('Terraform script for migrated Network Firewall Policy:')
-      log.status.Print(
+      tf_script = (
           convert_terraform.ConvertFirewallPolicy(firewall_policy, project)
+          + '\n'
       )
       for rule, _ in migrated_rules:
-        log.status.Print(convert_terraform.ConvertFirewallPolicyRule(rule))
+        tf_script = (
+            tf_script + convert_terraform.ConvertFirewallPolicyRule(rule) + '\n'
+        )
+      if terraform_script_output_file_name:
+        _WriteTerraformScript(terraform_script_output_file_name, tf_script)
+        log.status.Print(
+            "Terraform script exported to the file '{}'".format(
+                terraform_script_output_file_name
+            )
+        )
+      else:
+        log.status.Print(
+            'Terraform script for migrated Network Firewall Policy:'
+        )
+        log.status.Print(tf_script)
       return
 
     response = client.networkFirewallPolicies.Insert(

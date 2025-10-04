@@ -27,6 +27,7 @@ from googlecloudsdk.core import properties
 
 
 @base.ReleaseTracks(base.ReleaseTrack.GA, base.ReleaseTrack.BETA)
+@base.UniverseCompatible
 class Run(base.Command):
   """Runs a job from the specified path."""
 
@@ -106,6 +107,11 @@ class Run(base.Command):
         'server-specified.')
 
     parser.add_argument(
+        '--launcher-machine-type',
+        help='The machine type to use for launching the job. The default is'
+        'n1-standard-1.')
+
+    parser.add_argument(
         '--subnetwork',
         help='Compute Engine subnetwork for launching instances '
         'to run your pipeline.')
@@ -139,16 +145,33 @@ class Run(base.Command):
         metavar='ADDITIONAL_EXPERIMENTS',
         type=arg_parsers.ArgList(),
         action=arg_parsers.UpdateAction,
-        help=
-        ('Additional experiments to pass to the job.'))
+        help=(
+            'Additional experiments to pass to the job. Example: '
+            '--additional-experiments=experiment1,experiment2=value2'
+        ),
+    )
+
+    parser.add_argument(
+        '--additional-pipeline-options',
+        metavar='ADDITIONAL_PIPELINE_OPTIONS',
+        type=arg_parsers.ArgList(),
+        action=arg_parsers.UpdateAction,
+        help=(
+            'Additional pipeline options to pass to the job. Example: '
+            '--additional-pipeline-options=option1=value1,option2=value2'
+        ),
+    )
 
     parser.add_argument(
         '--additional-user-labels',
         metavar='ADDITIONAL_USER_LABELS',
         type=arg_parsers.ArgDict(),
         action=arg_parsers.UpdateAction,
-        help=
-        ('Additional user labels to pass to the job.'))
+        help=(
+            'Additional user labels to pass to the job. Example: '
+            '--additional-user-labels=\'key1=value1,key2=value2\''
+        ),
+    )
 
     parser.add_argument(
         '--parameters',
@@ -196,6 +219,7 @@ class Run(base.Command):
         network=args.network,
         subnetwork=args.subnetwork,
         worker_machine_type=args.worker_machine_type,
+        launcher_machine_type=args.launcher_machine_type,
         kms_key_name=args.dataflow_kms_key,
         staging_location=args.staging_location,
         temp_location=args.temp_location,
@@ -207,6 +231,7 @@ class Run(base.Command):
         enable_streaming_engine=
         properties.VALUES.dataflow.enable_streaming_engine.GetBool(),
         additional_experiments=args.additional_experiments,
+        additional_pipeline_options=args.additional_pipeline_options,
         additional_user_labels=args.additional_user_labels,
         streaming_update=args.update,
         transform_name_mappings=args.transform_name_mappings,

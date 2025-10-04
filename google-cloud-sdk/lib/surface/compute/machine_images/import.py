@@ -36,6 +36,20 @@ _OUTPUT_FILTER = ['[Daisy', '[import-', 'starting build', '  import', 'ERROR']
 
 
 @base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.Deprecate(
+    is_removed=False,
+    warning=(
+        'This command is being deprecated. Instead, use the `gcloud migration'
+        ' vms machine-image-imports` command. For more information, See "gcloud'
+        ' alpha migration vms machine-image-imports --help".'
+    ),
+    error=(
+        'This command has been deprecated. Instead, use the `gcloud migration'
+        ' vms machine-image-imports` command. For more information, See "gcloud'
+        ' alpha migration vms machine-image-imports --help".'
+    ),
+)
+@base.DefaultUniverseOnly
 class Import(base.CreateCommand):
   """Import a machine image into Compute Engine from OVF."""
 
@@ -109,6 +123,18 @@ class Import(base.CreateCommand):
             'to work properly.'),
         operation='Import',
         resource='machine image')
+
+    parser.add_argument(
+        '--cmd-deprecated',
+        action='store_true',
+        required=True,
+        help="""
+        The command you're using is deprecated and will be removed by December 31,
+        2025. We recommend using `gcloud compute migration image-imports` instead.
+        See our official documentation for more information.
+        https://cloud.google.com/migrate/virtual-machines/docs/5.0/migrate/image_import.
+        """,
+    )
 
   @classmethod
   def _GetComputeApiHolder(cls, no_http=False):

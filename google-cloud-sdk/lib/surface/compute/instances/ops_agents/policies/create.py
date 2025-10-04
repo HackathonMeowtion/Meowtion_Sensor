@@ -27,6 +27,7 @@ from googlecloudsdk.api_lib.compute.instances.ops_agents.converters import cloud
 from googlecloudsdk.api_lib.compute.instances.ops_agents.converters import guest_policy_to_ops_agents_policy_converter as to_ops_agents
 from googlecloudsdk.api_lib.compute.instances.ops_agents.converters import ops_agents_policy_to_guest_policy_converter as to_guest_policy
 from googlecloudsdk.api_lib.compute.instances.ops_agents.converters import os_policy_assignment_to_cloud_ops_agents_policy_converter as to_cloud_ops_agents
+from googlecloudsdk.api_lib.compute.instances.ops_agents.validators import cloud_ops_agents_policy_validator
 from googlecloudsdk.api_lib.compute.instances.ops_agents.validators import ops_agents_policy_validator as validator
 from googlecloudsdk.api_lib.compute.os_config import utils as osconfig_api_utils
 from googlecloudsdk.calliope import base
@@ -38,7 +39,7 @@ from googlecloudsdk.generated_clients.apis.osconfig.v1 import osconfig_v1_messag
 
 
 @base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.ALPHA)
-class CreateOsConfig(base.Command):
+class CreateAlphaBeta(base.Command):
   """Create a Google Cloud's operations suite agents (Ops Agents) policy.
 
   *{command}* creates a policy that facilitates agent management across
@@ -123,18 +124,26 @@ class CreateOsConfig(base.Command):
     return ops_agents_policy
 
 
-@base.Hidden
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Create(base.Command):
-  """Create a Google Cloud's operations suite agents (Ops Agents) policy.
+  """Create a Google Cloud Observability agents policy for the Ops Agent.
 
-  TBD
+  *{command}* creates a policy that facilitates agent management across
+  Compute Engine instances based on user specified instance filters. This policy
+  installs, specifies versioning, and removes Ops Agents.
+
+  The command returns the content of the created policy or an error indicating
+  why the creation fails. The created policy takes effect asynchronously. It
+  can take 10-15 minutes for the VMs to enforce the newly created policy.
   """
 
   detailed_help = {
       'DESCRIPTION': '{description}',
-      'EXAMPLES': """\
-          TBD
+      'EXAMPLES':
+          """
+          To create a Google Cloud Observability agents policy, run:
+            $ {command} agent-policy --project=PROJECT --zone=ZONE --file=config.yaml
           """,
   }
 
@@ -156,20 +165,24 @@ class Create(base.Command):
         '--file',
         required=True,
         help="""\
-          The YAML file with the Cloud Ops Policy Assignment to create. For
-          information about the Cloud Ops Policy Assignment format, see [PLACEHOLDER for our public doc].""",
+          YAML file with agents policy to create. For
+          information about the agents policy format, see https://cloud.google.com/stackdriver/docs/solutions/agents/ops-agent/agent-policies#config-files.""",
     )
     parser.add_argument(
         '--zone',
         required=True,
         help="""\
-          this is zone.""",
+          Zone in which to create the agents policy.""",
     )
     parser.add_argument(
-        '--dry-run',
+        '--debug-dry-run',
+        hidden=True,
         action='store_true',
-        help=('If provided, the resulting OSPolicyAssignment will be printed to'
-              ' standard output and no actual changes are made.'))
+        help=(
+            'If provided, the resulting OSPolicyAssignment will be printed to'
+            ' standard output and no actual changes are made.'
+        ),
+    )
 
   def Run(self, args):
     """See base class."""
@@ -178,21 +191,26 @@ class Create(base.Command):
     config = yaml.load_path(args.file)
 
     # Convert to domain object from users input.
-    ops_agents_policy = cloud_ops_agents_policy.CreateOpsAgentsPolicy(config)
+    ops_agents_policy = cloud_ops_agents_policy.CreateOpsAgentsPolicy(
+        args.POLICY_ID, config)
+
+    cloud_ops_agents_policy_validator.ValidateOpsAgentsPolicy(ops_agents_policy)
 
     project = properties.VALUES.core.project.GetOrFail()
     parent_path = osconfig_command_utils.GetProjectLocationUriPath(
         project, args.zone
     )
 
-    name = f'{parent_path}/osPolicyAssignments/{args.POLICY_ID}'
+    assignment_id = osconfig_command_utils.GetOsPolicyAssignmentRelativePath(
+        parent_path, args.POLICY_ID
+    )
 
     ops_policy_assignment = (
         to_os_policy_assignment.ConvertOpsAgentsPolicyToOSPolicyAssignment(
-            name, ops_agents_policy
+            assignment_id, ops_agents_policy
         )
     )
-    if args.dry_run:
+    if args.debug_dry_run:
       return ops_policy_assignment
 
     release_track = self.ReleaseTrack()
@@ -216,9 +234,9 @@ class Create(base.Command):
     complete_os_policy_assignment = encoding.PyValueToMessage(
         osconfig.OSPolicyAssignment, complete_os_policy_assignment_obj
     )
-    # TODO: b/334112329 - Fix yaml marshaling
-    policy = to_cloud_ops_agents.ConvertOsPolicyAssignmentToCloudOpsAgentPolicy(
+    # The returned policy should now include the update_date and the rollout_state.
+    policy = to_cloud_ops_agents.ConvertOsPolicyAssignmentToCloudOpsAgentsPolicy(
         complete_os_policy_assignment
     )
 
-    return policy
+    return policy.ToPyValue()

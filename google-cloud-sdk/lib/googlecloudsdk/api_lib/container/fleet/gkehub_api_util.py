@@ -14,19 +14,19 @@
 # limitations under the License.
 """GKEHUB API client utils."""
 
-# TODO(b/181243034): This file should be replaced with `util.py` once
-# the Membership API is on version selector.
-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from apitools.base.py import encoding
 from googlecloudsdk.api_lib.util import apis as core_apis
+from googlecloudsdk.api_lib.util import waiter
 from googlecloudsdk.calliope import base
+
 
 GKEHUB_API_NAME = 'gkehub'
 GKEHUB_ALPHA_API_VERSION = 'v1alpha'
-GKEHUB_BETA_API_VERSION = 'v1beta1'
+GKEHUB_BETA_API_VERSION = 'v1beta'
 GKEHUB_GA_API_VERSION = 'v1'
 
 
@@ -50,4 +50,43 @@ def GetApiClientForApiVersion(api_version=None):
 
 def GetApiClientForTrack(release_track=base.ReleaseTrack.GA):
   return GetApiClientForApiVersion(
-      GetApiVersionForTrack(release_track=release_track))
+      GetApiVersionForTrack(release_track=release_track)
+  )
+
+
+class HubFeatureOperationPoller(waiter.CloudOperationPoller):
+  """Poller for GKE Hub Feature API.
+
+  This is necessary because the CloudOperationPoller library doesn't support
+  setting the `returnPartialSuccess` field in the Get request.
+  """
+
+  def __init__(self, result_service, operation_service):
+    """Sets up poller for cloud operations.
+
+    Args:
+      result_service: apitools.base.py.base_api.BaseApiService, api service for
+        retrieving created result of initiated operation.
+      operation_service: apitools.base.py.base_api.BaseApiService, api service
+        for retrieving information about ongoing operation.
+
+      Note that result_service and operation_service Get request must have
+      single attribute called 'name'.
+    """
+    self.result_service = result_service
+    self.operation_service = operation_service
+
+  def GetResult(self, operation):
+    """Overrides.
+
+    Args:
+      operation: api_name_messages.Operation.
+
+    Returns:
+      result of result_service.Get request.
+    """
+    request_type = self.result_service.GetRequestType('Get')
+    response_dict = encoding.MessageToPyValue(operation.response)
+    return self.result_service.Get(
+        request_type(name=response_dict['name'], returnPartialSuccess=True),
+    )

@@ -434,6 +434,9 @@ class CloudtasksProjectsLocationsListRequest(_messages.Message):
   r"""A CloudtasksProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -444,10 +447,11 @@ class CloudtasksProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class CloudtasksProjectsLocationsQueuesCreateRequest(_messages.Message):
@@ -873,7 +877,7 @@ class CreateTaskRequest(_messages.Message):
       de-duplication. If a task's ID is identical to that of an existing task
       or a task that was deleted or executed recently then the call will fail
       with ALREADY_EXISTS. The IDs of deleted tasks are not immediately
-      available for reuse. It can take up to 4 hours (or 9 days if the task's
+      available for reuse. It can take up to 24 hours (or 9 days if the task's
       queue was created using a queue.yaml or queue.xml) for the task ID to be
       released and made available again. Because there is an extra lookup cost
       to identify duplicate task names, these CreateTask calls have
@@ -1260,16 +1264,20 @@ class HttpTarget(_messages.Message):
       HttpMethod the HttpRequest of the task will be ignored at execution
       time.
     oauthToken: If specified, an [OAuth
-      token](https://developers.google.com/identity/protocols/OAuth2) will be
+      token](https://developers.google.com/identity/protocols/OAuth2) is
       generated and attached as the `Authorization` header in the HTTP
-      request. This type of authorization should generally only be used when
-      calling Google APIs hosted on *.googleapis.com.
+      request. This type of authorization should generally be used only when
+      calling Google APIs hosted on *.googleapis.com. Note that both the
+      service account email and the scope MUST be specified when using the
+      queue-level authorization override.
     oidcToken: If specified, an
       [OIDC](https://developers.google.com/identity/protocols/OpenIDConnect)
-      token will be generated and attached as an `Authorization` header in the
-      HTTP request. This type of authorization can be used for many scenarios,
+      token is generated and attached as an `Authorization` header in the HTTP
+      request. This type of authorization can be used for many scenarios,
       including calling Cloud Run, or endpoints where you intend to validate
-      the token yourself.
+      the token yourself. Note that both the service account email and the
+      audience MUST be specified when using the queue-level authorization
+      override.
     uriOverride: URI override. When specified, overrides the execution URI for
       all the tasks in the queue.
   """
@@ -1743,7 +1751,13 @@ class RetryConfig(_messages.Message):
       when the queue is created, Cloud Tasks will pick the default. -1
       indicates unlimited attempts. This field has the same meaning as
       [task_retry_limit in queue.yaml/xml](https://cloud.google.com/appengine/
-      docs/standard/python/config/queueref#retry_parameters).
+      docs/standard/python/config/queueref#retry_parameters). Note: Cloud
+      Tasks stops retrying only when `max_attempts` and `max_retry_duration`
+      are both satisfied. When the task has been attempted `max_attempts`
+      times and when the `max_retry_duration` time has passed, no further
+      attempts are made, and the task is deleted. If you want your task to
+      retry infinitely, you must set `max_attempts` to -1 and
+      `max_retry_duration` to 0.
     maxBackoff: A task will be scheduled for retry between min_backoff and
       max_backoff duration after it fails, if the queue's RetryConfig
       specifies that the task should be retried. If unspecified when the queue

@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Upgrade a 1st gen Cloud Function to the 2nd gen environment."""
+"""Upgrade a 1st gen Cloud Function to the Cloud Run function."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
@@ -27,10 +27,17 @@ from googlecloudsdk.calliope import base
 from googlecloudsdk.calliope import exceptions as calliope_exceptions
 from googlecloudsdk.command_lib.eventarc import types as trigger_types
 from googlecloudsdk.command_lib.functions import flags
+from googlecloudsdk.command_lib.functions import run_util
+from googlecloudsdk.command_lib.functions import service_account_util
 from googlecloudsdk.command_lib.functions.v2 import deploy_util
 from googlecloudsdk.core import log
 from googlecloudsdk.core.console import console_io
 import six
+
+SUPPORTED_EVENT_TYPES = (
+    'google.pubsub.topic.publish',
+    'providers/cloud.pubsub/eventTypes/topic.publish',
+)
 
 UpgradeAction = collections.namedtuple(
     'UpgradeAction',
@@ -46,27 +53,26 @@ _ABORT_GUIDANCE_MSG = (
     ' with the --abort flag.'
 )
 
-# TODO(b/272771821): Standardize upgrade related strings.
 _SETUP_CONFIG_ACTION = UpgradeAction(
     target_state='SETUP_FUNCTION_UPGRADE_CONFIG_SUCCESSFUL',
     prompt_msg=(
-        'This creates a 2nd gen function with the same name [{}], code, and'
+        'This creates a Cloud Run function with the same name [{}], code, and'
         ' configuration as the 1st gen function. The 1st gen function will'
-        ' continue to serve traffic until you redirect traffic to the 2nd gen'
+        ' continue to serve traffic until you redirect traffic to the Cloud Run'
         ' function in the next step.\n\nTo learn more about the differences'
-        ' between 1st gen and 2nd gen functions, visit:'
+        ' between 1st gen and Cloud Run functions, visit:'
         ' https://cloud.google.com/functions/docs/concepts/version-comparison'
     ),
     op_description=(
         'Setting up the upgrade for function. Please wait while we'
-        ' duplicate the 1st gen function configuration and code to a 2nd gen'
+        ' duplicate the 1st gen function configuration and code to a Cloud Run'
         ' function.'
     ),
     success_msg=(
-        'The 2nd gen function is now ready for testing. View the function'
-        ' upgrade testing guide for steps on how to test the function before'
-        ' redirecting traffic to it.\n\nOnce you are ready to redirect traffic,'
-        ' rerun this command with the --redirect-traffic flag.'
+        'The Cloud Run function is now ready for testing:\n  {}\nView the'
+        ' function upgrade testing guide for steps on how to test the function'
+        ' before redirecting traffic to it.\n\nOnce you are ready to redirect'
+        ' traffic, rerun this command with the --redirect-traffic flag.'
     )
     + '\n\n'
     + _ABORT_GUIDANCE_MSG,
@@ -76,12 +82,12 @@ _REDIRECT_TRAFFIC_ACTION = UpgradeAction(
     target_state='REDIRECT_FUNCTION_UPGRADE_TRAFFIC_SUCCESSFUL',
     prompt_msg=(
         'This will redirect all traffic from the 1st gen function [{}] to its'
-        ' 2nd gen copy. Please ensure that you have tested the 2nd gen function'
-        ' before proceeding.'
+        ' Cloud Run function copy. Please ensure that you have tested the Cloud'
+        ' Run function before proceeding.'
     ),
-    op_description='Redirecting traffic to the 2nd gen function.',
+    op_description='Redirecting traffic to the Cloud Run function.',
     success_msg=(
-        'The 2nd gen function is now serving all traffic.'
+        'The Cloud Run function is now serving all traffic.'
         ' If you experience issues, rerun this command with the'
         ' --rollback-traffic flag. Otherwise, once you are ready to finalize'
         ' the upgrade, rerun this command with the --commit flag.'
@@ -93,14 +99,14 @@ _REDIRECT_TRAFFIC_ACTION = UpgradeAction(
 _ROLLBACK_TRAFFIC_ACTION = UpgradeAction(
     target_state='SETUP_FUNCTION_UPGRADE_CONFIG_SUCCESSFUL',
     prompt_msg=(
-        'This will rollback all traffic from the 2nd gen copy [{}] to the'
-        ' original 1st gen function. The 2nd gen function is still available'
-        ' for testing.'
+        'This will rollback all traffic from the Cloud Run function copy [{}]'
+        ' to the original 1st gen function. The Cloud Run function is still'
+        ' available for testing.'
     ),
     op_description='Rolling back traffic to the 1st gen function.',
     success_msg=(
-        'The 1st gen function is now serving all traffic. The 2nd'
-        ' gen function is still available for testing.'
+        'The 1st gen function is now serving all traffic. The Cloud Run'
+        ' function is still available for testing.'
     )
     + '\n\n'
     + _ABORT_GUIDANCE_MSG,
@@ -109,12 +115,12 @@ _ROLLBACK_TRAFFIC_ACTION = UpgradeAction(
 _ABORT_ACTION = UpgradeAction(
     target_state='ELIGIBLE_FOR_2ND_GEN_UPGRADE',
     prompt_msg=(
-        'This will abort the upgrade process and delete the 2nd gen copy of'
-        ' the 1st gen function [{}].'
+        'This will abort the upgrade process and delete the Cloud Run function'
+        ' copy of the 1st gen function [{}].'
     ),
     op_description='Aborting the upgrade for function.',
     success_msg=(
-        'Upgrade aborted and the 2nd gen function was successfully deleted.'
+        'Upgrade aborted and the Cloud Run function was successfully deleted.'
     ),
 )
 
@@ -128,7 +134,11 @@ _COMMIT_ACTION = UpgradeAction(
         'Completing the upgrade and deleting the 1st gen copy for function.'
     ),
     success_msg=(
-        'Upgrade completed and the 1st gen copy was successfully deleted.'
+        'Upgrade completed and the 1st gen copy was successfully'
+        ' deleted.\n\nYour function will continue to be available at the'
+        ' following endpoints:\n{}\nReminder, your function can now be managed'
+        ' through the Cloud Run API. Any event triggers are now Eventarc'
+        ' triggers and can be managed through Eventarc API.'
     ),
 )
 
@@ -159,8 +169,8 @@ _VALID_TRANSITION_ACTIONS = {
         _ABORT_ACTION,
     ],
     'COMMIT_FUNCTION_UPGRADE_SUCCESSFUL': [],
-    'COMMIT_FUNCTION_UPGRADE_ERROR': [_COMMIT_ACTION, _ABORT_ACTION],
-}  # type: dict[str, UpgradeAction]
+    'COMMIT_FUNCTION_UPGRADE_ERROR': [_COMMIT_ACTION],
+}  # type: dict[str, list[UpgradeAction]]
 
 
 def _ValidateStateTransition(upgrade_state, action):
@@ -187,18 +197,54 @@ def _ValidateStateTransition(upgrade_state, action):
     )
 
 
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
-class UpgradeAlpha(base.Command):
-  """Upgrade a 1st gen Cloud Function to the 2nd gen environment."""
+# Source: http://cs/f:Gen1UpgradeEligibilityValidator.java
+def _RaiseNotEligibleForUpgradeError(function):
+  """Raises an error when the function is not eligible for upgrade."""
+  if six.text_type(function.environment) == 'GEN_2':
+    raise exceptions.FunctionsError(
+        f'Function [{function.name}] is not eligible for Upgrade. To migrate to'
+        ' Cloud Run function, please detach the function using `gcloud'
+        ' functions detach` instead.'
+    )
+  if ':' in api_util.GetProject():
+    raise exceptions.FunctionsError(
+        f'Function [{function.name}] is not eligible for Cloud Run function'
+        ' upgrade. It is in domain-scoped project that Cloud Run does not'
+        ' support.'
+    )
+  if six.text_type(function.state) != 'ACTIVE':
+    raise exceptions.FunctionsError(
+        f'Function [{function.name}] is not eligible for Cloud Run function'
+        f' upgrade. It is in state [{function.state}].'
+    )
+  if (
+      not function.url
+      and function.eventTrigger.eventType not in SUPPORTED_EVENT_TYPES
+  ):
+    raise exceptions.FunctionsError(
+        f'Function [{function.name}] is not eligible for Cloud Run function'
+        ' upgrade. Only HTTP functions and Pub/Sub triggered functions are'
+        ' supported.'
+    )
+  raise exceptions.FunctionsError(
+      f'Function [{function.name}] is not eligible for Cloud Run function'
+      ' upgrade.'
+  )
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.BETA)
+class UpgradeBeta(base.Command):
+  """Upgrade a 1st gen Cloud Function to the Cloud Run function."""
 
   detailed_help = {
       'DESCRIPTION': '{description}',
       'EXAMPLES': """\
-          To start the upgrade process for a 1st gen function `foo` and create a 2nd gen copy, run:
+          To start the upgrade process for a 1st gen function `foo` and create a Cloud Run function copy, run:
 
             $ {command} foo --setup-config
 
-          Once you are ready to redirect traffic to the 2nd gen copy, run:
+          Once you are ready to redirect traffic to the Cloud Run function copy, run:
 
             $ {command} foo --redirect-traffic
 
@@ -234,15 +280,21 @@ class UpgradeAlpha(base.Command):
       )
 
     if not function.upgradeInfo:
-      # TODO(b/271030987): Provide additional info on why a function is not
-      # eligible for an upgrade.
-      raise exceptions.FunctionsError(
-          'Function [{}] is not eligible for 2nd gen upgrade.'.format(
-              function_name
-          )
-      )
+      _RaiseNotEligibleForUpgradeError(function)
 
     upgrade_state = function.upgradeInfo.upgradeState
+
+    if (
+        six.text_type(upgrade_state)
+        == 'INELIGIBLE_FOR_UPGRADE_UNTIL_REDEPLOYMENT'
+    ):
+      raise exceptions.FunctionsError(
+          f'Function [{function.name}] is not eligible for Cloud Run function'
+          f' upgrade. The runtime [{function.buildConfig.runtime}] is not'
+          ' supported. Please update to a supported runtime instead and try'
+          ' again. Use `gcloud functions runtimes list` to get a list of'
+          ' available runtimes.'
+      )
 
     action = None
     action_fn = None
@@ -281,22 +333,56 @@ class UpgradeAlpha(base.Command):
 
     if action == _SETUP_CONFIG_ACTION:
       # Preliminary checks to ensure APIs and permissions are set up in case
-      # this is the user's first time deploying a 2nd gen function.
+      # this is the user's first time deploying a Cloud Run function.
       api_enablement.PromptToEnableApiIfDisabled('cloudbuild.googleapis.com')
       api_enablement.PromptToEnableApiIfDisabled(
           'artifactregistry.googleapis.com'
       )
       trigger = function.eventTrigger
+      if not trigger and args.trigger_service_account:
+        raise calliope_exceptions.InvalidArgumentException(
+            '--trigger-service-account',
+            'Trigger service account can only be specified for'
+            ' event-triggered functions.',
+        )
       if trigger and trigger_types.IsPubsubType(trigger.eventType):
         deploy_util.ensure_pubsub_sa_has_token_creator_role()
       if trigger and trigger_types.IsAuditLogType(trigger.eventType):
         deploy_util.ensure_data_access_logs_are_enabled(trigger.eventFilters)
+      operation = action_fn(function_name, args.trigger_service_account)
+    else:
+      operation = action_fn(function_name)
 
-    operation = action_fn(function_name)
     description = action.op_description
     api_util.WaitForOperation(
         client.client, client.messages, operation, description
     )
 
     log.status.Print()
-    log.status.Print(action.success_msg)
+
+    if action == _SETUP_CONFIG_ACTION:
+      function = client.GetFunction(function_name)
+      if function.eventTrigger:
+        # Checks trigger service account has route.invoker permission on the
+        # project. If not, prompts to add the run invoker role to the function.
+        service_account_util.ValidateAndBindTriggerServiceAccount(
+            function,
+            api_util.GetProject(),
+            args.trigger_service_account,
+            is_gen2=False,
+        )
+      log.status.Print(
+          action.success_msg.format(function.upgradeInfo.serviceConfig.uri)
+      )
+    elif action == _COMMIT_ACTION:
+      service = run_util.GetService(function)
+      urls_strings = ''.join(f'* {url}\n' for url in service.urls)
+      log.status.Print(action.success_msg.format(urls_strings))
+    else:
+      log.status.Print(action.success_msg)
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class UpgradeAlpha(UpgradeBeta):
+  """Upgrade a 1st gen Cloud Function to the Cloud Run function."""

@@ -351,11 +351,22 @@ class DnsSettings(_messages.Message):
       deprecation](https://cloud.google.com/domains/docs/deprecations/feature-
       deprecations). The free DNS zone provided by [Google
       Domains](https://domains.google/).
+    googleDomainsRedirectsDataAvailable: Output only. Indicates if this
+      `Registration` has configured one of the following deprecated Google
+      Domains DNS features: * Domain forwarding (HTTP `301` and `302` response
+      status codes), * Email forwarding. See
+      https://cloud.google.com/domains/docs/deprecations/feature-deprecations
+      for more details. If any of these features is enabled call the
+      `RetrieveGoogleDomainsForwardingConfig` method to get details about the
+      feature's configuration. A forwarding configuration might not work
+      correctly if required DNS records are not present in the domain's
+      authoritative DNS Zone.
   """
 
   customDns = _messages.MessageField('CustomDns', 1)
   glueRecords = _messages.MessageField('GlueRecord', 2, repeated=True)
   googleDomainsDns = _messages.MessageField('GoogleDomainsDns', 3)
+  googleDomainsRedirectsDataAvailable = _messages.BooleanField(4)
 
 
 class Domain(_messages.Message):
@@ -404,6 +415,48 @@ class Domain(_messages.Message):
   yearlyPrice = _messages.MessageField('Money', 3)
 
 
+class DomainForwarding(_messages.Message):
+  r"""Domain forwarding configuration.
+
+  Enums:
+    RedirectTypeValueValuesEnum: The redirect type.
+
+  Fields:
+    pathForwarding: If true, forwards the path after the domain name to the
+      same path at the new address.
+    pemCertificate: The PEM-encoded certificate chain.
+    redirectType: The redirect type.
+    sslEnabled: If true, the forwarding works also over HTTPS.
+    subdomain: The subdomain of the registered domain that is being forwarded.
+      E.g. `www.example.com`, `example.com` (i.e. the registered domain
+      itself) or `*.example.com` (i.e. all subdomains).
+    targetUri: The target of the domain forwarding, i.e. the path to redirect
+      the `subdomain` to.
+  """
+
+  class RedirectTypeValueValuesEnum(_messages.Enum):
+    r"""The redirect type.
+
+    Values:
+      REDIRECT_TYPE_UNSPECIFIED: Redirect Type is unspecified.
+      TEMPORARY: 301 redirect. Allows to propagate changes to the forwarding
+        address quickly.
+      PERMANENT: 302 redirect. Allows browsers to cache the forwarding
+        address. This may help the address resolve more quickly. Changes may
+        take longer to propagate
+    """
+    REDIRECT_TYPE_UNSPECIFIED = 0
+    TEMPORARY = 1
+    PERMANENT = 2
+
+  pathForwarding = _messages.BooleanField(1)
+  pemCertificate = _messages.StringField(2)
+  redirectType = _messages.EnumField('RedirectTypeValueValuesEnum', 3)
+  sslEnabled = _messages.BooleanField(4)
+  subdomain = _messages.StringField(5)
+  targetUri = _messages.StringField(6)
+
+
 class DomainsProjectsLocationsGetRequest(_messages.Message):
   r"""A DomainsProjectsLocationsGetRequest object.
 
@@ -418,6 +471,9 @@ class DomainsProjectsLocationsListRequest(_messages.Message):
   r"""A DomainsProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -428,10 +484,11 @@ class DomainsProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class DomainsProjectsLocationsOperationsGetRequest(_messages.Message):
@@ -585,6 +642,22 @@ class DomainsProjectsLocationsRegistrationsImportRequest(_messages.Message):
   parent = _messages.StringField(2, required=True)
 
 
+class DomainsProjectsLocationsRegistrationsInitiatePushTransferRequest(_messages.Message):
+  r"""A DomainsProjectsLocationsRegistrationsInitiatePushTransferRequest
+  object.
+
+  Fields:
+    initiatePushTransferRequest: A InitiatePushTransferRequest resource to be
+      passed as the request body.
+    registration: Required. The name of the `Registration` for which the push
+      transfer is initiated, in the format
+      `projects/*/locations/*/registrations/*`.
+  """
+
+  initiatePushTransferRequest = _messages.MessageField('InitiatePushTransferRequest', 1)
+  registration = _messages.StringField(2, required=True)
+
+
 class DomainsProjectsLocationsRegistrationsListRequest(_messages.Message):
   r"""A DomainsProjectsLocationsRegistrationsListRequest object.
 
@@ -645,6 +718,20 @@ class DomainsProjectsLocationsRegistrationsRegisterRequest(_messages.Message):
   registerDomainRequest = _messages.MessageField('RegisterDomainRequest', 2)
 
 
+class DomainsProjectsLocationsRegistrationsRenewDomainRequest(_messages.Message):
+  r"""A DomainsProjectsLocationsRegistrationsRenewDomainRequest object.
+
+  Fields:
+    registration: Required. The name of the `Registration` whish is being
+      renewed, in the format `projects/*/locations/*/registrations/*`.
+    renewDomainRequest: A RenewDomainRequest resource to be passed as the
+      request body.
+  """
+
+  registration = _messages.StringField(1, required=True)
+  renewDomainRequest = _messages.MessageField('RenewDomainRequest', 2)
+
+
 class DomainsProjectsLocationsRegistrationsResetAuthorizationCodeRequest(_messages.Message):
   r"""A DomainsProjectsLocationsRegistrationsResetAuthorizationCodeRequest
   object.
@@ -669,6 +756,38 @@ class DomainsProjectsLocationsRegistrationsRetrieveAuthorizationCodeRequest(_mes
     registration: Required. The name of the `Registration` whose authorization
       code is being retrieved, in the format
       `projects/*/locations/*/registrations/*`.
+  """
+
+  registration = _messages.StringField(1, required=True)
+
+
+class DomainsProjectsLocationsRegistrationsRetrieveGoogleDomainsDnsRecordsRequest(_messages.Message):
+  r"""A
+  DomainsProjectsLocationsRegistrationsRetrieveGoogleDomainsDnsRecordsRequest
+  object.
+
+  Fields:
+    pageSize: Optional. Maximum number of results to return.
+    pageToken: Optional. When set to the `next_page_token` from a prior
+      response, provides the next page of results.
+    registration: Required. The name of the `Registration` whose Google
+      Domains DNS records details you are retrieving, in the format
+      `projects/*/locations/*/registrations/*`.
+  """
+
+  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(2)
+  registration = _messages.StringField(3, required=True)
+
+
+class DomainsProjectsLocationsRegistrationsRetrieveGoogleDomainsForwardingConfigRequest(_messages.Message):
+  r"""A DomainsProjectsLocationsRegistrationsRetrieveGoogleDomainsForwardingCo
+  nfigRequest object.
+
+  Fields:
+    registration: Required. The name of the `Registration` whose Google
+      Domains forwarding configuration details are being retrieved, in the
+      format `projects/*/locations/*/registrations/*`.
   """
 
   registration = _messages.StringField(1, required=True)
@@ -866,6 +985,21 @@ class DsRecord(_messages.Message):
   keyTag = _messages.IntegerField(4, variant=_messages.Variant.INT32)
 
 
+class EmailForwarding(_messages.Message):
+  r"""Email forwarding configuration.
+
+  Fields:
+    alias: An alias recipient email that forwards emails to the
+      `target_email_address`. For example, `admin@example.com` or
+      `*@example.com` (wildcard alias forwards all the emails under the
+      registered domain).
+    targetEmailAddress: Target email that receives emails sent to the `alias`.
+  """
+
+  alias = _messages.StringField(1)
+  targetEmailAddress = _messages.StringField(2)
+
+
 class ExportRegistrationRequest(_messages.Message):
   r"""Deprecated: For more information, see [Cloud Domains feature
   deprecation](https://cloud.google.com/domains/docs/deprecations/feature-
@@ -908,6 +1042,48 @@ class Expr(_messages.Message):
   expression = _messages.StringField(2)
   location = _messages.StringField(3)
   title = _messages.StringField(4)
+
+
+class GeoPolicy(_messages.Message):
+  r"""Configures a `RRSetRoutingPolicy` that routes based on the geo location
+  of the querying user.
+
+  Fields:
+    enableFencing: Without fencing, if health check fails for all configured
+      items in the current geo bucket, we failover to the next nearest geo
+      bucket. With fencing, if health checking is enabled, as long as some
+      targets in the current geo bucket are healthy, we return only the
+      healthy targets. However, if all targets are unhealthy, we don't
+      failover to the next nearest bucket; instead, we return all the items in
+      the current bucket even when all targets are unhealthy.
+    item: The primary geo routing configuration. If there are multiple items
+      with the same location, an error is returned instead.
+  """
+
+  enableFencing = _messages.BooleanField(1)
+  item = _messages.MessageField('GeoPolicyItem', 2, repeated=True)
+
+
+class GeoPolicyItem(_messages.Message):
+  r"""ResourceRecordSet data for one geo location.
+
+  Fields:
+    healthCheckedTargets: For A and AAAA types only. Endpoints to return in
+      the query result only if they are healthy. These can be specified along
+      with `rrdata` within this item.
+    location: The geo-location granularity is a GCP region. This location
+      string should correspond to a GCP region. e.g. "us-east1",
+      "southamerica-east1", "asia-east1", etc.
+    rrdata: A string attribute.
+    signatureRrdata: DNSSEC generated signatures for all the `rrdata` within
+      this item. When using health-checked targets for DNSSEC-enabled zones,
+      you can only use at most one health-checked IP address per item.
+  """
+
+  healthCheckedTargets = _messages.MessageField('HealthCheckTargets', 1)
+  location = _messages.StringField(2)
+  rrdata = _messages.StringField(3, repeated=True)
+  signatureRrdata = _messages.StringField(4, repeated=True)
 
 
 class GlueRecord(_messages.Message):
@@ -979,6 +1155,24 @@ class GoogleDomainsDns(_messages.Message):
   nameServers = _messages.StringField(3, repeated=True)
 
 
+class HealthCheckTargets(_messages.Message):
+  r"""HealthCheckTargets describes endpoints to health-check when responding
+  to Routing Policy queries. Only the healthy endpoints will be included in
+  the response. Set either `internal_load_balancer` or `external_endpoints`.
+  Do not set both.
+
+  Fields:
+    externalEndpoints: The Internet IP addresses to be health checked. The
+      format matches the format of ResourceRecordSet.rrdata as defined in RFC
+      1035 (section 5) and RFC 1034 (section 3.6.1)
+    internalLoadBalancer: Configuration for internal load balancers to be
+      health checked.
+  """
+
+  externalEndpoints = _messages.StringField(1, repeated=True)
+  internalLoadBalancer = _messages.MessageField('LoadBalancerTarget', 2, repeated=True)
+
+
 class ImportDomainRequest(_messages.Message):
   r"""Deprecated: For more information, see [Cloud Domains feature
   deprecation](https://cloud.google.com/domains/docs/deprecations/feature-
@@ -1021,6 +1215,17 @@ class ImportDomainRequest(_messages.Message):
   labels = _messages.MessageField('LabelsValue', 2)
 
 
+class InitiatePushTransferRequest(_messages.Message):
+  r"""Request for the `InitiatePushTransfer` method.
+
+  Fields:
+    tag: Required. The Tag of the new registrar. Can be found at [List of
+      registrars](https://nominet.uk/registrar-list/).
+  """
+
+  tag = _messages.StringField(1)
+
+
 class ListLocationsResponse(_messages.Message):
   r"""The response message for Locations.ListLocations.
 
@@ -1059,6 +1264,82 @@ class ListRegistrationsResponse(_messages.Message):
 
   nextPageToken = _messages.StringField(1)
   registrations = _messages.MessageField('Registration', 2, repeated=True)
+
+
+class LoadBalancerTarget(_messages.Message):
+  r"""The configuration for an individual load balancer to health check.
+
+  Enums:
+    IpProtocolValueValuesEnum: The protocol of the load balancer to health
+      check.
+    LoadBalancerTypeValueValuesEnum: The type of load balancer specified by
+      this target. This value must match the configuration of the load
+      balancer located at the LoadBalancerTarget's IP address, port, and
+      region. Use the following: - *regionalL4ilb*: for a regional internal
+      passthrough Network Load Balancer. - *regionalL7ilb*: for a regional
+      internal Application Load Balancer. - *globalL7ilb*: for a global
+      internal Application Load Balancer.
+
+  Fields:
+    ipAddress: The frontend IP address of the load balancer to health check.
+    ipProtocol: The protocol of the load balancer to health check.
+    loadBalancerType: The type of load balancer specified by this target. This
+      value must match the configuration of the load balancer located at the
+      LoadBalancerTarget's IP address, port, and region. Use the following: -
+      *regionalL4ilb*: for a regional internal passthrough Network Load
+      Balancer. - *regionalL7ilb*: for a regional internal Application Load
+      Balancer. - *globalL7ilb*: for a global internal Application Load
+      Balancer.
+    networkUrl: The fully qualified URL of the network that the load balancer
+      is attached to. This should be formatted like `https://www.googleapis.co
+      m/compute/v1/projects/{project}/global/networks/{network}`.
+    port: The configured port of the load balancer.
+    project: The project ID in which the load balancer is located.
+    region: The region in which the load balancer is located.
+  """
+
+  class IpProtocolValueValuesEnum(_messages.Enum):
+    r"""The protocol of the load balancer to health check.
+
+    Values:
+      UNDEFINED: <no description>
+      TCP: Indicates the load balancer is accessible via TCP.
+      UDP: Indicates the load balancer is accessible via UDP.
+    """
+    UNDEFINED = 0
+    TCP = 1
+    UDP = 2
+
+  class LoadBalancerTypeValueValuesEnum(_messages.Enum):
+    r"""The type of load balancer specified by this target. This value must
+    match the configuration of the load balancer located at the
+    LoadBalancerTarget's IP address, port, and region. Use the following: -
+    *regionalL4ilb*: for a regional internal passthrough Network Load
+    Balancer. - *regionalL7ilb*: for a regional internal Application Load
+    Balancer. - *globalL7ilb*: for a global internal Application Load
+    Balancer.
+
+    Values:
+      NONE: <no description>
+      GLOBAL_L7ILB: Indicates the load balancer is a Cross-Region Application
+        Load Balancer.
+      REGIONAL_L4ILB: Indicates the load balancer is a Regional Network
+        Passthrough Load Balancer.
+      REGIONAL_L7ILB: Indicates the load balancer is a Regional Application
+        Load Balancer.
+    """
+    NONE = 0
+    GLOBAL_L7ILB = 1
+    REGIONAL_L4ILB = 2
+    REGIONAL_L7ILB = 3
+
+  ipAddress = _messages.StringField(1)
+  ipProtocol = _messages.EnumField('IpProtocolValueValuesEnum', 2)
+  loadBalancerType = _messages.EnumField('LoadBalancerTypeValueValuesEnum', 3)
+  networkUrl = _messages.StringField(4)
+  port = _messages.StringField(5)
+  project = _messages.StringField(6)
+  region = _messages.StringField(7)
 
 
 class Location(_messages.Message):
@@ -1145,6 +1426,8 @@ class ManagementSettings(_messages.Message):
   r"""Defines renewal, billing, and transfer settings for a `Registration`.
 
   Enums:
+    EffectiveTransferLockStateValueValuesEnum: Output only. The actual
+      transfer lock state for this `Registration`.
     PreferredRenewalMethodValueValuesEnum: Optional. The desired renewal
       method for this `Registration`. The actual `renewal_method` is
       automatically updated to reflect this choice. If unset or equal to
@@ -1166,10 +1449,19 @@ class ManagementSettings(_messages.Message):
       field on the `Registration`. After the problem is resolved, the
       `renewal_method` is automatically updated to `preferred_renewal_method`
       in a few hours.
-    TransferLockStateValueValuesEnum: Controls whether the domain can be
-      transferred to another registrar.
+    TransferLockStateValueValuesEnum: This is the desired transfer lock state
+      for this `Registration`. A transfer lock controls whether the domain can
+      be transferred to another registrar. The transfer lock state of the
+      domain is returned in the `effective_transfer_lock_state` property. The
+      transfer lock state values might be different for the following reasons:
+      * `transfer_lock_state` was updated only a short time ago. * Domains
+      with the `TRANSFER_LOCK_UNSUPPORTED_BY_REGISTRY` state are in the list
+      of `domain_properties`. These domains are always in the `UNLOCKED`
+      state.
 
   Fields:
+    effectiveTransferLockState: Output only. The actual transfer lock state
+      for this `Registration`.
     preferredRenewalMethod: Optional. The desired renewal method for this
       `Registration`. The actual `renewal_method` is automatically updated to
       reflect this choice. If unset or equal to `RENEWAL_METHOD_UNSPECIFIED`,
@@ -1191,9 +1483,30 @@ class ManagementSettings(_messages.Message):
       field on the `Registration`. After the problem is resolved, the
       `renewal_method` is automatically updated to `preferred_renewal_method`
       in a few hours.
-    transferLockState: Controls whether the domain can be transferred to
-      another registrar.
+    transferLockState: This is the desired transfer lock state for this
+      `Registration`. A transfer lock controls whether the domain can be
+      transferred to another registrar. The transfer lock state of the domain
+      is returned in the `effective_transfer_lock_state` property. The
+      transfer lock state values might be different for the following reasons:
+      * `transfer_lock_state` was updated only a short time ago. * Domains
+      with the `TRANSFER_LOCK_UNSUPPORTED_BY_REGISTRY` state are in the list
+      of `domain_properties`. These domains are always in the `UNLOCKED`
+      state.
   """
+
+  class EffectiveTransferLockStateValueValuesEnum(_messages.Enum):
+    r"""Output only. The actual transfer lock state for this `Registration`.
+
+    Values:
+      TRANSFER_LOCK_STATE_UNSPECIFIED: The state is unspecified.
+      UNLOCKED: The domain is unlocked and can be transferred to another
+        registrar.
+      LOCKED: The domain is locked and cannot be transferred to another
+        registrar.
+    """
+    TRANSFER_LOCK_STATE_UNSPECIFIED = 0
+    UNLOCKED = 1
+    LOCKED = 2
 
   class PreferredRenewalMethodValueValuesEnum(_messages.Enum):
     r"""Optional. The desired renewal method for this `Registration`. The
@@ -1249,7 +1562,14 @@ class ManagementSettings(_messages.Message):
     RENEWAL_DISABLED = 3
 
   class TransferLockStateValueValuesEnum(_messages.Enum):
-    r"""Controls whether the domain can be transferred to another registrar.
+    r"""This is the desired transfer lock state for this `Registration`. A
+    transfer lock controls whether the domain can be transferred to another
+    registrar. The transfer lock state of the domain is returned in the
+    `effective_transfer_lock_state` property. The transfer lock state values
+    might be different for the following reasons: * `transfer_lock_state` was
+    updated only a short time ago. * Domains with the
+    `TRANSFER_LOCK_UNSUPPORTED_BY_REGISTRY` state are in the list of
+    `domain_properties`. These domains are always in the `UNLOCKED` state.
 
     Values:
       TRANSFER_LOCK_STATE_UNSPECIFIED: The state is unspecified.
@@ -1262,9 +1582,10 @@ class ManagementSettings(_messages.Message):
     UNLOCKED = 1
     LOCKED = 2
 
-  preferredRenewalMethod = _messages.EnumField('PreferredRenewalMethodValueValuesEnum', 1)
-  renewalMethod = _messages.EnumField('RenewalMethodValueValuesEnum', 2)
-  transferLockState = _messages.EnumField('TransferLockStateValueValuesEnum', 3)
+  effectiveTransferLockState = _messages.EnumField('EffectiveTransferLockStateValueValuesEnum', 1)
+  preferredRenewalMethod = _messages.EnumField('PreferredRenewalMethodValueValuesEnum', 2)
+  renewalMethod = _messages.EnumField('RenewalMethodValueValuesEnum', 3)
+  transferLockState = _messages.EnumField('TransferLockStateValueValuesEnum', 4)
 
 
 class Money(_messages.Message):
@@ -1494,44 +1815,45 @@ class Policy(_messages.Message):
 
 
 class PostalAddress(_messages.Message):
-  r"""Represents a postal address, e.g. for postal delivery or payments
-  addresses. Given a postal address, a postal service can deliver items to a
-  premise, P.O. Box or similar. It is not intended to model geographical
-  locations (roads, towns, mountains). In typical usage an address would be
-  created via user input or from importing existing data, depending on the
-  type of process. Advice on address input / editing: - Use an
-  internationalization-ready address widget such as
-  https://github.com/google/libaddressinput) - Users should not be presented
+  r"""Represents a postal address, such as for postal delivery or payments
+  addresses. With a postal address, a postal service can deliver items to a
+  premise, P.O. box, or similar. A postal address is not intended to model
+  geographical locations like roads, towns, or mountains. In typical usage, an
+  address would be created by user input or from importing existing data,
+  depending on the type of process. Advice on address input or editing: - Use
+  an internationalization-ready address widget such as
+  https://github.com/google/libaddressinput. - Users should not be presented
   with UI elements for input or editing of fields outside countries where that
-  field is used. For more guidance on how to use this schema, please see:
-  https://support.google.com/business/answer/6397478
+  field is used. For more guidance on how to use this schema, see:
+  https://support.google.com/business/answer/6397478.
 
   Fields:
     addressLines: Unstructured address lines describing the lower levels of an
-      address. Because values in address_lines do not have type information
-      and may sometimes contain multiple values in a single field (e.g.
-      "Austin, TX"), it is important that the line order is clear. The order
-      of address lines should be "envelope order" for the country/region of
-      the address. In places where this can vary (e.g. Japan),
-      address_language is used to make it explicit (e.g. "ja" for large-to-
-      small ordering and "ja-Latn" or "en" for small-to-large). This way, the
-      most specific line of an address can be selected based on the language.
-      The minimum permitted structural representation of an address consists
-      of a region_code with all remaining information placed in the
-      address_lines. It would be possible to format such an address very
-      approximately without geocoding, but no semantic reasoning could be made
-      about any of the address components until it was at least partially
-      resolved. Creating an address only containing a region_code and
-      address_lines, and then geocoding is the recommended way to handle
-      completely unstructured addresses (as opposed to guessing which parts of
-      the address should be localities or administrative areas).
+      address. Because values in `address_lines` do not have type information
+      and may sometimes contain multiple values in a single field (for
+      example, "Austin, TX"), it is important that the line order is clear.
+      The order of address lines should be "envelope order" for the country or
+      region of the address. In places where this can vary (for example,
+      Japan), `address_language` is used to make it explicit (for example,
+      "ja" for large-to-small ordering and "ja-Latn" or "en" for small-to-
+      large). In this way, the most specific line of an address can be
+      selected based on the language. The minimum permitted structural
+      representation of an address consists of a `region_code` with all
+      remaining information placed in the `address_lines`. It would be
+      possible to format such an address very approximately without geocoding,
+      but no semantic reasoning could be made about any of the address
+      components until it was at least partially resolved. Creating an address
+      only containing a `region_code` and `address_lines` and then geocoding
+      is the recommended way to handle completely unstructured addresses (as
+      opposed to guessing which parts of the address should be localities or
+      administrative areas).
     administrativeArea: Optional. Highest administrative subdivision which is
       used for postal addresses of a country or region. For example, this can
-      be a state, a province, an oblast, or a prefecture. Specifically, for
-      Spain this is the province and not the autonomous community (e.g.
-      "Barcelona" and not "Catalonia"). Many countries don't use an
-      administrative area in postal addresses. E.g. in Switzerland this should
-      be left unpopulated.
+      be a state, a province, an oblast, or a prefecture. For Spain, this is
+      the province and not the autonomous community (for example, "Barcelona"
+      and not "Catalonia"). Many countries don't use an administrative area in
+      postal addresses. For example, in Switzerland, this should be left
+      unpopulated.
     languageCode: Optional. BCP-47 language code of the contents of this
       address (if known). This is often the UI language of the input form or
       is expected to match one of the languages used in the address'
@@ -1541,15 +1863,15 @@ class PostalAddress(_messages.Message):
       related operations. If this value is not known, it should be omitted
       (rather than specifying a possibly incorrect default). Examples: "zh-
       Hant", "ja", "ja-Latn", "en".
-    locality: Optional. Generally refers to the city/town portion of the
+    locality: Optional. Generally refers to the city or town portion of the
       address. Examples: US city, IT comune, UK post town. In regions of the
       world where localities are not well defined or do not fit into this
-      structure well, leave locality empty and use address_lines.
+      structure well, leave `locality` empty and use `address_lines`.
     organization: Optional. The name of the organization at the address.
     postalCode: Optional. Postal code of the address. Not all countries use or
       require postal codes to be present, but where they are used, they may
-      trigger additional validation with other parts of the address (e.g.
-      state/zip validation in the U.S.A.).
+      trigger additional validation with other parts of the address (for
+      example, state or zip code validation in the United States).
     recipients: Optional. The recipient at the address. This field may, under
       certain circumstances, contain multiline information. For example, it
       might contain "care of" information.
@@ -1563,11 +1885,12 @@ class PostalAddress(_messages.Message):
       compatible with old revisions.
     sortingCode: Optional. Additional, country-specific, sorting code. This is
       not used in most regions. Where it is used, the value is either a string
-      like "CEDEX", optionally followed by a number (e.g. "CEDEX 7"), or just
-      a number alone, representing the "sector code" (Jamaica), "delivery area
-      indicator" (Malawi) or "post office indicator" (e.g. C\xf4te d'Ivoire).
+      like "CEDEX", optionally followed by a number (for example, "CEDEX 7"),
+      or just a number alone, representing the "sector code" (Jamaica),
+      "delivery area indicator" (Malawi) or "post office indicator" (C\xf4te
+      d'Ivoire).
     sublocality: Optional. Sublocality of the address. For example, this can
-      be neighborhoods, boroughs, districts.
+      be a neighborhood, borough, or district.
   """
 
   addressLines = _messages.StringField(1, repeated=True)
@@ -1581,6 +1904,54 @@ class PostalAddress(_messages.Message):
   revision = _messages.IntegerField(9, variant=_messages.Variant.INT32)
   sortingCode = _messages.StringField(10)
   sublocality = _messages.StringField(11)
+
+
+class PrimaryBackupPolicy(_messages.Message):
+  r"""Configures a RRSetRoutingPolicy such that all queries are responded with
+  the primary_targets if they are healthy. And if all of them are unhealthy,
+  then we fallback to a geo localized policy.
+
+  Fields:
+    backupGeoTargets: Backup targets provide a regional failover policy for
+      the otherwise global primary targets. If serving state is set to
+      `BACKUP`, this policy essentially becomes a geo routing policy.
+    primaryTargets: Endpoints that are health checked before making the
+      routing decision. Unhealthy endpoints are omitted from the results. If
+      all endpoints are unhealthy, we serve a response based on the
+      `backup_geo_targets`.
+    trickleTraffic: When serving state is `PRIMARY`, this field provides the
+      option of sending a small percentage of the traffic to the backup
+      targets.
+  """
+
+  backupGeoTargets = _messages.MessageField('GeoPolicy', 1)
+  primaryTargets = _messages.MessageField('HealthCheckTargets', 2)
+  trickleTraffic = _messages.FloatField(3)
+
+
+class RRSetRoutingPolicy(_messages.Message):
+  r"""A RRSetRoutingPolicy represents ResourceRecordSet data that is returned
+  dynamically with the response varying based on configured properties such as
+  geolocation or by weighted random selection.
+
+  Fields:
+    geo: A GeoPolicy attribute.
+    geoPolicy: A GeoPolicy attribute.
+    healthCheck: The fully qualified URL of the HealthCheck to use for this
+      RRSetRoutingPolicy. Format this URL like `https://www.googleapis.com/com
+      pute/v1/projects/{project}/global/healthChecks/{healthCheck}`.
+      https://cloud.google.com/compute/docs/reference/rest/v1/healthChecks
+    primaryBackup: A PrimaryBackupPolicy attribute.
+    wrr: A WrrPolicy attribute.
+    wrrPolicy: A WrrPolicy attribute.
+  """
+
+  geo = _messages.MessageField('GeoPolicy', 1)
+  geoPolicy = _messages.MessageField('GeoPolicy', 2)
+  healthCheck = _messages.StringField(3)
+  primaryBackup = _messages.MessageField('PrimaryBackupPolicy', 4)
+  wrr = _messages.MessageField('WrrPolicy', 5)
+  wrrPolicy = _messages.MessageField('WrrPolicy', 6)
 
 
 class RegisterDomainRequest(_messages.Message):
@@ -1756,6 +2127,7 @@ class Registration(_messages.Message):
   any domain names you want to use with Cloud Domains.
 
   Enums:
+    DomainPropertiesValueListEntryValuesEnum:
     IssuesValueListEntryValuesEnum:
     RegisterFailureReasonValueValuesEnum: Output only. The reason the domain
       registration failed. Only set for domains in REGISTRATION_FAILED state.
@@ -1782,6 +2154,7 @@ class Registration(_messages.Message):
       method. To update these settings, use the `ConfigureDnsSettings` method.
     domainName: Required. Immutable. The domain name. Unicode domain names
       must be expressed in Punycode format.
+    domainProperties: Output only. Special properties of the domain.
     expireTime: Output only. The expiration timestamp of the `Registration`.
     issues: Output only. The set of issues with the `Registration` that
       require attention.
@@ -1811,6 +2184,29 @@ class Registration(_messages.Message):
       domains in TRANSFER_FAILED state.
   """
 
+  class DomainPropertiesValueListEntryValuesEnum(_messages.Enum):
+    r"""DomainPropertiesValueListEntryValuesEnum enum type.
+
+    Values:
+      DOMAIN_PROPERTY_UNSPECIFIED: The property is undefined.
+      TRANSFER_LOCK_UNSUPPORTED_BY_REGISTRY: The domain does not support
+        transfer locks due to restrictions of the registry. Such domains are
+        effectively always unlocked and any change made to
+        `management_settings.transfer_lock_state` is ignored.
+      REQUIRE_PUSH_TRANSFER: The domain uses an alternative `Push Transfer`
+        process to transfer the domain to another registrar. There are two
+        important consequences: * Cloud Domains does not supply the
+        authorization codes. * To initiate the process to transfer the domain
+        to another registrar, you must provide a tag of the registrar you want
+        to transfer to. You can do this by using the `InitiatePushTransfer`
+        method. For more information, see [Transfer a registered domain to
+        another registrar](https://cloud.google.com/domains/docs/transfer-
+        domain-to-another-registrar).
+    """
+    DOMAIN_PROPERTY_UNSPECIFIED = 0
+    TRANSFER_LOCK_UNSUPPORTED_BY_REGISTRY = 1
+    REQUIRE_PUSH_TRANSFER = 2
+
   class IssuesValueListEntryValuesEnum(_messages.Enum):
     r"""IssuesValueListEntryValuesEnum enum type.
 
@@ -1829,11 +2225,26 @@ class Registration(_messages.Message):
       PROBLEM_WITH_BILLING: The billing account is not in good standing. The
         domain is not automatically renewed at its expiration time unless you
         resolve problems with your billing account.
+      DNS_NOT_ACTIVATED: The registry failed to validate your DNS
+        configuration and activate your domain. The failure might happen for
+        the following reasons: * You recently registered the domain (wait up
+        to 72 hours). * You provided invalid name servers or name servers that
+        correspond to a newly created DNS zone. Verify your DNS configuration.
+        If the configuration is incorrect, you must fix it. If the
+        configuration is correct, either wait or call the ConfigureDnsSettings
+        method to retry the registry validation.
+      AUTO_RENEWAL_UPDATE_NOT_EFFECTIVE: Due to SquareSpace's constraints, the
+        auto-renewal update you made may not be effective during a certain
+        period of time. Generally, the time period is 15 days before
+        expiration for generic TLD domains, and 15 days before expiration + 3
+        days after expiration for country-code TLD domains.
     """
     ISSUE_UNSPECIFIED = 0
     CONTACT_SUPPORT = 1
     UNVERIFIED_EMAIL = 2
     PROBLEM_WITH_BILLING = 3
+    DNS_NOT_ACTIVATED = 4
+    AUTO_RENEWAL_UPDATE_NOT_EFFECTIVE = 5
 
   class RegisterFailureReasonValueValuesEnum(_messages.Enum):
     r"""Output only. The reason the domain registration failed. Only set for
@@ -1986,20 +2397,95 @@ class Registration(_messages.Message):
   createTime = _messages.StringField(2)
   dnsSettings = _messages.MessageField('DnsSettings', 3)
   domainName = _messages.StringField(4)
-  expireTime = _messages.StringField(5)
-  issues = _messages.EnumField('IssuesValueListEntryValuesEnum', 6, repeated=True)
-  labels = _messages.MessageField('LabelsValue', 7)
-  managementSettings = _messages.MessageField('ManagementSettings', 8)
-  name = _messages.StringField(9)
-  pendingContactSettings = _messages.MessageField('ContactSettings', 10)
-  registerFailureReason = _messages.EnumField('RegisterFailureReasonValueValuesEnum', 11)
-  state = _messages.EnumField('StateValueValuesEnum', 12)
-  supportedPrivacy = _messages.EnumField('SupportedPrivacyValueListEntryValuesEnum', 13, repeated=True)
-  transferFailureReason = _messages.EnumField('TransferFailureReasonValueValuesEnum', 14)
+  domainProperties = _messages.EnumField('DomainPropertiesValueListEntryValuesEnum', 5, repeated=True)
+  expireTime = _messages.StringField(6)
+  issues = _messages.EnumField('IssuesValueListEntryValuesEnum', 7, repeated=True)
+  labels = _messages.MessageField('LabelsValue', 8)
+  managementSettings = _messages.MessageField('ManagementSettings', 9)
+  name = _messages.StringField(10)
+  pendingContactSettings = _messages.MessageField('ContactSettings', 11)
+  registerFailureReason = _messages.EnumField('RegisterFailureReasonValueValuesEnum', 12)
+  state = _messages.EnumField('StateValueValuesEnum', 13)
+  supportedPrivacy = _messages.EnumField('SupportedPrivacyValueListEntryValuesEnum', 14, repeated=True)
+  transferFailureReason = _messages.EnumField('TransferFailureReasonValueValuesEnum', 15)
+
+
+class RenewDomainRequest(_messages.Message):
+  r"""Request for the `RenewDomain` method.
+
+  Fields:
+    validateOnly: Optional. When true, only validation is performed, without
+      actually renewing the domain. For more information, see [Request validat
+      ion](https://cloud.google.com/apis/design/design_patterns#request_valida
+      tion)
+    yearlyPrice: Required. Acknowledgement of the price to renew the domain
+      for one year. To get the price, see [Cloud Domains
+      pricing](https://cloud.google.com/domains/pricing). If not provided, the
+      expected price is returned in the error message.
+  """
+
+  validateOnly = _messages.BooleanField(1)
+  yearlyPrice = _messages.MessageField('Money', 2)
 
 
 class ResetAuthorizationCodeRequest(_messages.Message):
   r"""Request for the `ResetAuthorizationCode` method."""
+
+
+class ResourceRecordSet(_messages.Message):
+  r"""A unit of data that is returned by the DNS servers.
+
+  Fields:
+    name: For example, www.example.com.
+    routingPolicy: Configures dynamic query responses based on either the geo
+      location of the querying user or a weighted round robin based routing
+      policy. A valid `ResourceRecordSet` contains only `rrdata` (for static
+      resolution) or a `routing_policy` (for dynamic resolution).
+    rrdata: As defined in RFC 1035 (section 5) and RFC 1034 (section 3.6.1) --
+      see examples.
+    signatureRrdata: As defined in RFC 4034 (section 3.2).
+    ttl: Number of seconds that this `ResourceRecordSet` can be cached by
+      resolvers.
+    type: The identifier of a supported record type. See the list of Supported
+      DNS record types.
+  """
+
+  name = _messages.StringField(1)
+  routingPolicy = _messages.MessageField('RRSetRoutingPolicy', 2)
+  rrdata = _messages.StringField(3, repeated=True)
+  signatureRrdata = _messages.StringField(4, repeated=True)
+  ttl = _messages.IntegerField(5, variant=_messages.Variant.INT32)
+  type = _messages.StringField(6)
+
+
+class RetrieveGoogleDomainsDnsRecordsResponse(_messages.Message):
+  r"""Response for the `RetrieveGoogleDomainsDnsRecords` method.
+
+  Fields:
+    nextPageToken: When present, there are more results to retrieve. Set
+      `page_token` to this value on a subsequent call to get the next page of
+      results.
+    rrset: The resource record set resources (DNS Zone records).
+  """
+
+  nextPageToken = _messages.StringField(1)
+  rrset = _messages.MessageField('ResourceRecordSet', 2, repeated=True)
+
+
+class RetrieveGoogleDomainsForwardingConfigResponse(_messages.Message):
+  r"""Response for the `RetrieveGoogleDomainsForwardingConfig` method.
+
+  Fields:
+    domainForwardings: The list of domain forwarding configurations. A
+      forwarding configuration might not work correctly if the required DNS
+      records are not present in the domain's authoritative DNS zone.
+    emailForwardings: The list of email forwarding configurations. A
+      forwarding configuration might not work correctly if the required DNS
+      records are not present in the domain's authoritative DNS zone.
+  """
+
+  domainForwardings = _messages.MessageField('DomainForwarding', 1, repeated=True)
+  emailForwardings = _messages.MessageField('EmailForwarding', 2, repeated=True)
 
 
 class RetrieveImportableDomainsResponse(_messages.Message):
@@ -2334,9 +2820,49 @@ class TransferParameters(_messages.Message):
   yearlyPrice = _messages.MessageField('Money', 7)
 
 
+class WrrPolicy(_messages.Message):
+  r"""Configures a RRSetRoutingPolicy that routes in a weighted round robin
+  fashion.
+
+  Fields:
+    item: A WrrPolicyItem attribute.
+  """
+
+  item = _messages.MessageField('WrrPolicyItem', 1, repeated=True)
+
+
+class WrrPolicyItem(_messages.Message):
+  r"""A routing block which contains the routing information for one WRR item.
+
+  Fields:
+    healthCheckedTargets: Endpoints that are health checked before making the
+      routing decision. The unhealthy endpoints are omitted from the result.
+      If all endpoints within a bucket are unhealthy, we choose a different
+      bucket (sampled with respect to its weight) for responding. If DNSSEC is
+      enabled for this zone, only one of `rrdata` or `health_checked_targets`
+      can be set.
+    rrdata: A string attribute.
+    signatureRrdata: DNSSEC generated signatures for all the `rrdata` within
+      this item. When using health-checked targets for DNSSEC-enabled zones,
+      you can only use at most one health-checked IP address per item.
+    weight: The weight corresponding to this `WrrPolicyItem` object. When
+      multiple `WrrPolicyItem` objects are configured, the probability of
+      returning an `WrrPolicyItem` object's data is proportional to its weight
+      relative to the sum of weights configured for all items. This weight
+      must be non-negative.
+  """
+
+  healthCheckedTargets = _messages.MessageField('HealthCheckTargets', 1)
+  rrdata = _messages.StringField(2, repeated=True)
+  signatureRrdata = _messages.StringField(3, repeated=True)
+  weight = _messages.FloatField(4)
+
+
 encoding.AddCustomJsonFieldMapping(
     StandardQueryParameters, 'f__xgafv', '$.xgafv')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    DomainsProjectsLocationsRegistrationsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')

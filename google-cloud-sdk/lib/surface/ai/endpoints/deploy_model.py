@@ -34,14 +34,15 @@ from googlecloudsdk.core import log
 
 def _AddArgs(parser, version):
   """Prepares for the arguments of the command."""
-  flags.GetModelIdArg().AddToParser(parser)
   flags.GetDisplayNameArg('deployed model').AddToParser(parser)
   flags.GetTrafficSplitArg().AddToParser(parser)
   flags.AddPredictionResourcesArgs(parser, version)
+  flags.AddScaleToZeroArgs(parser, version)
   flags.GetEnableAccessLoggingArg().AddToParser(parser)
   flags.GetServiceAccountArg().AddToParser(parser)
   flags.GetUserSpecifiedIdArg('deployed-model').AddToParser(parser)
   flags.GetAutoscalingMetricSpecsArg().AddToParser(parser)
+  flags.AddModelIdArg(version, parser)
   flags.AddEndpointResourceArg(
       parser,
       'to deploy a model to',
@@ -56,6 +57,8 @@ def _Run(args, version):
   """Deploy a model to an existing Vertex AI endpoint."""
   validation.ValidateDisplayName(args.display_name)
   validation.ValidateAutoscalingMetricSpecs(args.autoscaling_metric_specs)
+  validation.ValidateRequiredReplicaCount(args.required_replica_count,
+                                          args.min_replica_count)
   endpoint_ref = args.CONCEPTS.endpoint.Parse()
   args.region = endpoint_ref.AsDict()['locationsId']
   with endpoint_util.AiplatformEndpointOverrides(version, region=args.region):
@@ -71,7 +74,10 @@ def _Run(args, version):
           accelerator_dict=args.accelerator,
           min_replica_count=args.min_replica_count,
           max_replica_count=args.max_replica_count,
+          required_replica_count=args.required_replica_count,
+          reservation_affinity=args.reservation_affinity,
           autoscaling_metric_specs=args.autoscaling_metric_specs,
+          spot=args.spot,
           enable_access_logging=args.enable_access_logging,
           disable_container_logging=args.disable_container_logging,
           service_account=args.service_account,
@@ -85,7 +91,13 @@ def _Run(args, version):
           accelerator_dict=args.accelerator,
           min_replica_count=args.min_replica_count,
           max_replica_count=args.max_replica_count,
+          required_replica_count=args.required_replica_count,
           autoscaling_metric_specs=args.autoscaling_metric_specs)
+      validation.ValidateScaleToZeroArgs(
+          args.min_replica_count,
+          args.initial_replica_count, args.max_replica_count,
+          args.min_scaleup_period, args.idle_scaledown_period
+      )
       op = endpoints_client.DeployModelBeta(
           endpoint_ref,
           args.model,
@@ -93,16 +105,24 @@ def _Run(args, version):
           args.display_name,
           machine_type=args.machine_type,
           tpu_topology=args.tpu_topology,
+          multihost_gpu_node_count=args.multihost_gpu_node_count,
           accelerator_dict=args.accelerator,
           min_replica_count=args.min_replica_count,
           max_replica_count=args.max_replica_count,
+          required_replica_count=args.required_replica_count,
+          reservation_affinity=args.reservation_affinity,
           autoscaling_metric_specs=args.autoscaling_metric_specs,
+          spot=args.spot,
           enable_access_logging=args.enable_access_logging,
           enable_container_logging=args.enable_container_logging,
           service_account=args.service_account,
           traffic_split=args.traffic_split,
           deployed_model_id=args.deployed_model_id,
-          shared_resources_ref=shared_resources_ref)
+          shared_resources_ref=shared_resources_ref,
+          min_scaleup_period=args.min_scaleup_period,
+          idle_scaledown_period=args.idle_scaledown_period,
+          initial_replica_count=args.initial_replica_count,
+          gpu_partition_size=args.gpu_partition_size)
     response_msg = operations_util.WaitForOpMaybe(
         operation_client, op, endpoints_util.ParseOperation(op.name))
     if response_msg is not None:
@@ -116,6 +136,7 @@ def _Run(args, version):
 
 
 @base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.UniverseCompatible
 class DeployModelGa(base.Command):
   """Deploy a model to an existing Vertex AI endpoint.
 

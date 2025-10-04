@@ -83,21 +83,56 @@ class GenerateIdTokenRequest(_messages.Message):
       invalid.
     includeEmail: Include the service account email in the token. If set to
       `true`, the token will contain `email` and `email_verified` claims.
+    organizationNumberIncluded: Include the organization number of the service
+      account in the token. If set to `true`, the token will contain a
+      `google.organization_number` claim. The value of the claim will be
+      `null` if the service account isn't associated with an organization.
   """
 
   audience = _messages.StringField(1)
   delegates = _messages.StringField(2, repeated=True)
   includeEmail = _messages.BooleanField(3)
+  organizationNumberIncluded = _messages.BooleanField(4)
 
 
 class GenerateIdTokenResponse(_messages.Message):
   r"""A GenerateIdTokenResponse object.
 
   Fields:
-    token: The OpenId Connect ID token.
+    token: The OpenId Connect ID token. The token is a JSON Web Token (JWT)
+      that contains a payload with claims. See the [JSON Web Token
+      spec](https://tools.ietf.org/html/rfc7519) for more information. Here is
+      an example of a decoded JWT payload: ``` { "iss":
+      "https://accounts.google.com", "iat": 1496953245, "exp": 1496953245,
+      "aud": "https://www.example.com", "sub": "107517467455664443765", "azp":
+      "107517467455664443765", "email": "my-iam-account@my-
+      project.iam.gserviceaccount.com", "email_verified": true, "google": {
+      "organization_number": 123456 } } ```
   """
 
   token = _messages.StringField(1)
+
+
+class IamcredentialsLocationsWorkforcePoolsGetAllowedLocationsRequest(_messages.Message):
+  r"""A IamcredentialsLocationsWorkforcePoolsGetAllowedLocationsRequest
+  object.
+
+  Fields:
+    name: Required. Resource name of workforce pool.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class IamcredentialsProjectsLocationsWorkloadIdentityPoolsGetAllowedLocationsRequest(_messages.Message):
+  r"""A IamcredentialsProjectsLocationsWorkloadIdentityPoolsGetAllowedLocation
+  sRequest object.
+
+  Fields:
+    name: Required. Resource name of workload identity pool.
+  """
+
+  name = _messages.StringField(1, required=True)
 
 
 class IamcredentialsProjectsServiceAccountsGenerateAccessTokenRequest(_messages.Message):
@@ -135,6 +170,17 @@ class IamcredentialsProjectsServiceAccountsGenerateIdTokenRequest(_messages.Mess
   name = _messages.StringField(2, required=True)
 
 
+class IamcredentialsProjectsServiceAccountsGetAllowedLocationsRequest(_messages.Message):
+  r"""A IamcredentialsProjectsServiceAccountsGetAllowedLocationsRequest
+  object.
+
+  Fields:
+    name: Required. Resource name of service account.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
 class IamcredentialsProjectsServiceAccountsSignBlobRequest(_messages.Message):
   r"""A IamcredentialsProjectsServiceAccountsSignBlobRequest object.
 
@@ -167,6 +213,20 @@ class IamcredentialsProjectsServiceAccountsSignJwtRequest(_messages.Message):
 
   name = _messages.StringField(1, required=True)
   signJwtRequest = _messages.MessageField('SignJwtRequest', 2)
+
+
+class ServiceAccountAllowedLocations(_messages.Message):
+  r"""Represents a list of allowed locations for given service account.
+
+  Fields:
+    encodedLocations: Output only. The hex encoded bitmap of the trust
+      boundary locations
+    locations: Output only. The human readable trust boundary locations. For
+      example, ["us-central1", "europe-west1"]
+  """
+
+  encodedLocations = _messages.StringField(1)
+  locations = _messages.StringField(2, repeated=True)
 
 
 class SignBlobRequest(_messages.Message):
@@ -325,6 +385,34 @@ class StandardQueryParameters(_messages.Message):
   trace = _messages.StringField(10)
   uploadType = _messages.StringField(11)
   upload_protocol = _messages.StringField(12)
+
+
+class WorkforcePoolAllowedLocations(_messages.Message):
+  r"""Represents a list of allowed locations for given workforce pool.
+
+  Fields:
+    encodedLocations: Output only. The hex encoded bitmap of the trust
+      boundary locations
+    locations: Output only. The human readable trust boundary locations. For
+      example, ["us-central1", "europe-west1"]
+  """
+
+  encodedLocations = _messages.StringField(1)
+  locations = _messages.StringField(2, repeated=True)
+
+
+class WorkloadIdentityPoolAllowedLocations(_messages.Message):
+  r"""Represents a list of allowed locations for given workload identity pool.
+
+  Fields:
+    encodedLocations: Output only. The hex encoded bitmap of the trust
+      boundary locations
+    locations: Output only. The human readable trust boundary locations. For
+      example, ["us-central1", "europe-west1"]
+  """
+
+  encodedLocations = _messages.StringField(1)
+  locations = _messages.StringField(2, repeated=True)
 
 
 encoding.AddCustomJsonFieldMapping(

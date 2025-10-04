@@ -27,10 +27,10 @@ from googlecloudsdk.core import properties
 from googlecloudsdk.core import resources
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(
-    base.ReleaseTrack.ALPHA
+    base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA, base.ReleaseTrack.GA
 )
-@base.Hidden
 class Switchover(base.UpdateCommand):
   """Switchover an AlloyDB SECONDARY cluster in a given project and region."""
 

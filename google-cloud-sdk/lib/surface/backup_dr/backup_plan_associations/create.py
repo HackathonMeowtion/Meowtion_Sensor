@@ -28,15 +28,16 @@ from googlecloudsdk.command_lib.backupdr import flags
 from googlecloudsdk.core import log
 
 
-@base.Hidden
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.GA)
 class Create(base.CreateCommand):
   """Create a new backup plan association."""
 
   detailed_help = {
       'BRIEF': 'Creates a new backup plan association',
       'DESCRIPTION': (
-          '{description} A backup plan association is used to.'
+          'Create a new backup plan association in the project. It can only be'
+          ' created in locations where Backup and DR is available.'
       ),
       'EXAMPLES': """\
         To create a new backup plan association `sample-bpa` in project `sample-project` and location `us-central1` for resource `sample-resource-uri` with backup plan `sample-backup-plan`, run:
@@ -72,20 +73,20 @@ class Create(base.CreateCommand):
     backup_plan_association = args.CONCEPTS.backup_plan_association.Parse()
     backup_plan = args.CONCEPTS.backup_plan.Parse()
     resource = args.resource
+    resource_type = args.resource_type
 
     try:
-      operation = client.Create(backup_plan_association, backup_plan, resource)
+      operation = client.Create(
+          backup_plan_association, backup_plan, resource, resource_type
+      )
     except apitools_exceptions.HttpError as e:
       raise exceptions.HttpException(e, util.HTTP_ERROR_FORMAT)
     if is_async:
       log.CreatedResource(
-          operation.name,
+          backup_plan_association.RelativeName(),
           kind='backup plan association',
           is_async=True,
-          details=(
-              'Run the [gcloud backup-dr operations describe] command '
-              'to check the status of this operation.'
-          ),
+          details=util.ASYNC_OPERATION_MESSAGE.format(operation.name),
       )
       return operation
 
@@ -93,7 +94,7 @@ class Create(base.CreateCommand):
         operation_ref=client.GetOperationRef(operation),
         message=(
             'Creating backup plan association [{}]. (This operation could'
-            ' take upto 2 minutes.)'.format(
+            ' take up to 2 minutes.)'.format(
                 backup_plan_association.RelativeName()
             )
         ),

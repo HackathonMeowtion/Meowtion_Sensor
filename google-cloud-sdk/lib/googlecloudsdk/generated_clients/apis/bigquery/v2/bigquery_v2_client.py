@@ -104,7 +104,7 @@ class BigqueryV2(base_api.BaseApiClient):
         method_id='bigquery.datasets.get',
         ordered_params=['projectId', 'datasetId'],
         path_params=['datasetId', 'projectId'],
-        query_params=['datasetView'],
+        query_params=['accessPolicyVersion', 'datasetView'],
         relative_path='projects/{+projectId}/datasets/{+datasetId}',
         request_field='',
         request_type_name='BigqueryDatasetsGetRequest',
@@ -131,7 +131,7 @@ class BigqueryV2(base_api.BaseApiClient):
         method_id='bigquery.datasets.insert',
         ordered_params=['projectId'],
         path_params=['projectId'],
-        query_params=[],
+        query_params=['accessPolicyVersion'],
         relative_path='projects/{+projectId}/datasets',
         request_field='dataset',
         request_type_name='BigqueryDatasetsInsertRequest',
@@ -185,7 +185,7 @@ class BigqueryV2(base_api.BaseApiClient):
         method_id='bigquery.datasets.patch',
         ordered_params=['projectId', 'datasetId'],
         path_params=['datasetId', 'projectId'],
-        query_params=[],
+        query_params=['accessPolicyVersion', 'updateMode'],
         relative_path='projects/{+projectId}/datasets/{+datasetId}',
         request_field='dataset',
         request_type_name='BigqueryDatasetsPatchRequest',
@@ -239,7 +239,7 @@ class BigqueryV2(base_api.BaseApiClient):
         method_id='bigquery.datasets.update',
         ordered_params=['projectId', 'datasetId'],
         path_params=['datasetId', 'projectId'],
-        query_params=[],
+        query_params=['accessPolicyVersion', 'updateMode'],
         relative_path='projects/{+projectId}/datasets/{+datasetId}',
         request_field='dataset',
         request_type_name='BigqueryDatasetsUpdateRequest',
@@ -365,7 +365,7 @@ class BigqueryV2(base_api.BaseApiClient):
         method_id='bigquery.jobs.getQueryResults',
         ordered_params=['projectId', 'jobId'],
         path_params=['jobId', 'projectId'],
-        query_params=['formatOptions_useInt64Timestamp', 'location', 'maxResults', 'pageToken', 'startIndex', 'timeoutMs'],
+        query_params=['formatOptions_timestampOutputFormat', 'formatOptions_useInt64Timestamp', 'location', 'maxResults', 'pageToken', 'startIndex', 'timeoutMs'],
         relative_path='projects/{+projectId}/queries/{+jobId}',
         request_field='',
         request_type_name='BigqueryJobsGetQueryResultsRequest',
@@ -811,6 +811,33 @@ class BigqueryV2(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def TestIamPermissions(self, request, global_params=None):
+      r"""Returns permissions that a caller has on the specified resource. If the resource does not exist, this will return an empty set of permissions, not a `NOT_FOUND` error. Note: This operation is designed to be used for building permission-aware UIs and command-line tools, not for authorization checking. This operation may "fail open" without warning.
+
+      Args:
+        request: (BigqueryRoutinesTestIamPermissionsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (TestIamPermissionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('TestIamPermissions')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    TestIamPermissions.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='projects/{projectsId}/datasets/{datasetsId}/routines/{routinesId}:testIamPermissions',
+        http_method='POST',
+        method_id='bigquery.routines.testIamPermissions',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='{+resource}:testIamPermissions',
+        request_field='testIamPermissionsRequest',
+        request_type_name='BigqueryRoutinesTestIamPermissionsRequest',
+        response_type_name='TestIamPermissionsResponse',
+        supports_download=False,
+    )
+
     def Update(self, request, global_params=None):
       r"""Updates information in an existing routine. The update method replaces the entire Routine resource.
 
@@ -848,6 +875,87 @@ class BigqueryV2(base_api.BaseApiClient):
       self._upload_configs = {
           }
 
+    def BatchDelete(self, request, global_params=None):
+      r"""Deletes provided row access policies.
+
+      Args:
+        request: (BigqueryRowAccessPoliciesBatchDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (BigqueryRowAccessPoliciesBatchDeleteResponse) The response message.
+      """
+      config = self.GetMethodConfig('BatchDelete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    BatchDelete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='projects/{projectsId}/datasets/{datasetsId}/tables/{tablesId}/rowAccessPolicies:batchDelete',
+        http_method='POST',
+        method_id='bigquery.rowAccessPolicies.batchDelete',
+        ordered_params=['projectId', 'datasetId', 'tableId'],
+        path_params=['datasetId', 'projectId', 'tableId'],
+        query_params=[],
+        relative_path='projects/{+projectId}/datasets/{+datasetId}/tables/{+tableId}/rowAccessPolicies:batchDelete',
+        request_field='batchDeleteRowAccessPoliciesRequest',
+        request_type_name='BigqueryRowAccessPoliciesBatchDeleteRequest',
+        response_type_name='BigqueryRowAccessPoliciesBatchDeleteResponse',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a row access policy.
+
+      Args:
+        request: (BigqueryRowAccessPoliciesDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (BigqueryRowAccessPoliciesDeleteResponse) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='projects/{projectsId}/datasets/{datasetsId}/tables/{tablesId}/rowAccessPolicies/{rowAccessPoliciesId}',
+        http_method='DELETE',
+        method_id='bigquery.rowAccessPolicies.delete',
+        ordered_params=['projectId', 'datasetId', 'tableId', 'policyId'],
+        path_params=['datasetId', 'policyId', 'projectId', 'tableId'],
+        query_params=['force'],
+        relative_path='projects/{+projectId}/datasets/{+datasetId}/tables/{+tableId}/rowAccessPolicies/{+policyId}',
+        request_field='',
+        request_type_name='BigqueryRowAccessPoliciesDeleteRequest',
+        response_type_name='BigqueryRowAccessPoliciesDeleteResponse',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets the specified row access policy by policy ID.
+
+      Args:
+        request: (BigqueryRowAccessPoliciesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (RowAccessPolicy) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='projects/{projectsId}/datasets/{datasetsId}/tables/{tablesId}/rowAccessPolicies/{rowAccessPoliciesId}',
+        http_method='GET',
+        method_id='bigquery.rowAccessPolicies.get',
+        ordered_params=['projectId', 'datasetId', 'tableId', 'policyId'],
+        path_params=['datasetId', 'policyId', 'projectId', 'tableId'],
+        query_params=[],
+        relative_path='projects/{+projectId}/datasets/{+datasetId}/tables/{+tableId}/rowAccessPolicies/{+policyId}',
+        request_field='',
+        request_type_name='BigqueryRowAccessPoliciesGetRequest',
+        response_type_name='RowAccessPolicy',
+        supports_download=False,
+    )
+
     def GetIamPolicy(self, request, global_params=None):
       r"""Gets the access control policy for a resource. Returns an empty policy if the resource exists and does not have a policy set.
 
@@ -872,6 +980,33 @@ class BigqueryV2(base_api.BaseApiClient):
         request_field='getIamPolicyRequest',
         request_type_name='BigqueryRowAccessPoliciesGetIamPolicyRequest',
         response_type_name='Policy',
+        supports_download=False,
+    )
+
+    def Insert(self, request, global_params=None):
+      r"""Creates a row access policy.
+
+      Args:
+        request: (BigqueryRowAccessPoliciesInsertRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (RowAccessPolicy) The response message.
+      """
+      config = self.GetMethodConfig('Insert')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Insert.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='projects/{projectsId}/datasets/{datasetsId}/tables/{tablesId}/rowAccessPolicies',
+        http_method='POST',
+        method_id='bigquery.rowAccessPolicies.insert',
+        ordered_params=['projectId', 'datasetId', 'tableId'],
+        path_params=['datasetId', 'projectId', 'tableId'],
+        query_params=[],
+        relative_path='projects/{+projectId}/datasets/{+datasetId}/tables/{+tableId}/rowAccessPolicies',
+        request_field='rowAccessPolicy',
+        request_type_name='BigqueryRowAccessPoliciesInsertRequest',
+        response_type_name='RowAccessPolicy',
         supports_download=False,
     )
 
@@ -926,6 +1061,33 @@ class BigqueryV2(base_api.BaseApiClient):
         request_field='testIamPermissionsRequest',
         request_type_name='BigqueryRowAccessPoliciesTestIamPermissionsRequest',
         response_type_name='TestIamPermissionsResponse',
+        supports_download=False,
+    )
+
+    def Update(self, request, global_params=None):
+      r"""Updates a row access policy.
+
+      Args:
+        request: (BigqueryRowAccessPoliciesUpdateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (RowAccessPolicy) The response message.
+      """
+      config = self.GetMethodConfig('Update')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Update.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='projects/{projectsId}/datasets/{datasetsId}/tables/{tablesId}/rowAccessPolicies/{rowAccessPoliciesId}',
+        http_method='PUT',
+        method_id='bigquery.rowAccessPolicies.update',
+        ordered_params=['projectId', 'datasetId', 'tableId', 'policyId'],
+        path_params=['datasetId', 'policyId', 'projectId', 'tableId'],
+        query_params=[],
+        relative_path='projects/{+projectId}/datasets/{+datasetId}/tables/{+tableId}/rowAccessPolicies/{+policyId}',
+        request_field='rowAccessPolicy',
+        request_type_name='BigqueryRowAccessPoliciesUpdateRequest',
+        response_type_name='RowAccessPolicy',
         supports_download=False,
     )
 
@@ -985,7 +1147,7 @@ class BigqueryV2(base_api.BaseApiClient):
         method_id='bigquery.tabledata.list',
         ordered_params=['projectId', 'datasetId', 'tableId'],
         path_params=['datasetId', 'projectId', 'tableId'],
-        query_params=['formatOptions_useInt64Timestamp', 'maxResults', 'pageToken', 'selectedFields', 'startIndex'],
+        query_params=['formatOptions_timestampOutputFormat', 'formatOptions_useInt64Timestamp', 'maxResults', 'pageToken', 'selectedFields', 'startIndex'],
         relative_path='projects/{+projectId}/datasets/{+datasetId}/tables/{+tableId}/data',
         request_field='',
         request_type_name='BigqueryTabledataListRequest',

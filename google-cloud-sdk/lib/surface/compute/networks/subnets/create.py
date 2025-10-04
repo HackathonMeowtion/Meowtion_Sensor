@@ -25,9 +25,11 @@ from googlecloudsdk.api_lib.util import apis
 from googlecloudsdk.calliope import arg_parsers
 from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.compute import flags as compute_flags
+from googlecloudsdk.command_lib.compute import resource_manager_tags_utils
 from googlecloudsdk.command_lib.compute.networks import flags as network_flags
 from googlecloudsdk.command_lib.compute.networks.subnets import flags
 from googlecloudsdk.command_lib.util.apis import arg_utils
+import six
 
 
 def _DetailedHelp():
@@ -53,8 +55,11 @@ def _AddArgs(
     include_alpha_logging,
     include_aggregate_purpose,
     include_l2,
-    include_external_ipv6_prefix,
+    include_internal_ipv6_prefix,
+    include_custom_hardware_link,
     api_version,
+    include_peer_migration_purpose,
+    include_resolve_subnet_mask,
 ):
   """Add subnetwork create arguments to parser."""
   parser.display_info.AddFormat(flags.DEFAULT_LIST_FORMAT_WITH_IPV6_FIELD)
@@ -164,12 +169,23 @@ def _AddArgs(
           'Reserved for Private Service Connect Internal Load Balancing.'
       ),
       'PRIVATE_NAT': 'Reserved for use as source range for Private NAT.',
+      'PEER_MIGRATION': 'Reserved for subnet migration between peered VPCs.',
   }
 
   if include_aggregate_purpose:
     purpose_choices['AGGREGATE'] = (
         'Reserved for Aggregate Ranges used for aggregating '
         'private subnetworks.'
+    )
+
+  if include_custom_hardware_link:
+    purpose_choices['CUSTOM_HARDWARE_LINK'] = (
+        'Reserved for Custom Hardware Link.'
+    )
+
+  if include_peer_migration_purpose:
+    purpose_choices['PEER_MIGRATION'] = (
+        'Reserved for subnet migration between peered VPCs.'
     )
 
   # Subnetwork purpose is introduced with L7ILB feature. Aggregate purpose
@@ -208,12 +224,10 @@ def _AddArgs(
       'IPV4_IPV6': (
           'New VMs in this subnet can have both IPv4 and IPv6 addresses'
       ),
+      'IPV6_ONLY': (
+          'New VMs in this subnet will only be assigned IPv6 addresses'
+      )
   }
-
-  if api_version == compute_api.COMPUTE_ALPHA_API_VERSION:
-    stack_type_choices['IPV6_ONLY'] = (
-        'New VMs in this subnet will only be assigned IPv6 addresses'
-    )
 
   parser.add_argument(
       '--stack-type',
@@ -290,14 +304,62 @@ def _AddArgs(
       """,
   )
 
-  if include_external_ipv6_prefix:
-    parser.add_argument(
-        '--external-ipv6-prefix',
-        help=("""
-        Set external IPv6 prefix to be allocated for this subnetwork.
+  parser.add_argument(
+      '--external-ipv6-prefix',
+      help=("""
+      The /64 external IPv6 CIDR range to assign to this subnet. The range must
+      be associated with an IPv6 BYOIP sub-prefix that is defined by the
+      --ip-collection flag. If you specify --ip-collection but not
+      --external-ipv6-prefix, a random /64 range is allocated from
+      the sub-prefix.
 
-        For example, `--external-ipv6-prefix 2600:1901:0:0:0:0:0:0/64`
-        """))
+      For example, `--external-ipv6-prefix=2600:1901:0:0:0:0:0:0/64`
+      """),
+  )
+
+  if include_internal_ipv6_prefix:
+    parser.add_argument(
+        '--internal-ipv6-prefix',
+        help=("""
+        Set internal IPv6 prefix to be allocated for this subnetwork.
+        When ULA is enabled, the prefix will be ignored.
+
+        For example, `--internal-ipv6-prefix 2600:1901:0:0:0:0:0:0/64`
+        """),
+    )
+
+  parser.add_argument(
+      '--resource-manager-tags',
+      type=arg_parsers.ArgDict(),
+      metavar='KEY=VALUE',
+      help="""\
+          A comma-separated list of Resource Manager tags to apply to the subnetwork.
+      """,
+  )
+
+  if include_resolve_subnet_mask:
+    resolve_subnet_mask_choices = {
+        'ARP_ALL_RANGES': """
+        VMs connected to this subnet receive ARP responses for IPv4
+        addresses from any ranges of the subnet that are assigned to the VM's
+        NIC. The DHCP responses contain the netmask of the subnet, instead of
+        /32.
+        """,
+        'ARP_PRIMARY_RANGE': """
+        VMs connected to this subnet receive ARP responses only for IP
+        addresses in the primary IPv4 range of the subnet. DHCP responses
+        contain the netmask of the subnet, instead of /32.
+        """,
+    }
+
+    parser.add_argument(
+        '--resolve-subnet-mask',
+        choices=resolve_subnet_mask_choices,
+        type=arg_utils.ChoiceToEnumName,
+        help='Resolve subnet mask can only be set when subnet is created.',
+    )
+
+  flags.IpCollectionArgument().AddArgument(parser)
 
 
 def GetPrivateIpv6GoogleAccessTypeFlagMapper(messages):
@@ -324,7 +386,11 @@ def _CreateSubnetwork(
     include_alpha_logging,
     include_aggregate_purpose,
     include_l2,
-    include_external_ipv6_prefix,
+    include_internal_ipv6_prefix,
+    include_custom_hardware_link,
+    ip_collection_ref,
+    include_peer_migration_purpose,
+    include_resolve_subnet_mask,
 ):
   """Create the subnet resource."""
   subnetwork = messages.Subnetwork(
@@ -392,9 +458,19 @@ def _CreateSubnetwork(
       or subnetwork.purpose
       == messages.Subnetwork.PurposeValueValuesEnum.PRIVATE_SERVICE_CONNECT
       or (
+          include_peer_migration_purpose
+          and subnetwork.purpose
+          == messages.Subnetwork.PurposeValueValuesEnum.PEER_MIGRATION
+      )
+      or (
           include_aggregate_purpose
           and subnetwork.purpose
           == messages.Subnetwork.PurposeValueValuesEnum.AGGREGATE
+      )
+      or (
+          include_custom_hardware_link
+          and subnetwork.purpose
+          == messages.Subnetwork.PurposeValueValuesEnum.CUSTOM_HARDWARE_LINK
       )
   ):
     # Clear unsupported fields in the subnet resource
@@ -426,11 +502,45 @@ def _CreateSubnetwork(
   if args.reserved_internal_range:
     subnetwork.reservedInternalRange = args.reserved_internal_range
 
-  if include_external_ipv6_prefix:
-    if args.external_ipv6_prefix:
-      subnetwork.externalIpv6Prefix = args.external_ipv6_prefix
+  if args.external_ipv6_prefix:
+    subnetwork.externalIpv6Prefix = args.external_ipv6_prefix
 
+  if include_internal_ipv6_prefix:
+    if args.internal_ipv6_prefix:
+      subnetwork.internalIpv6Prefix = args.internal_ipv6_prefix
+
+  if ip_collection_ref:
+    subnetwork.ipCollection = ip_collection_ref.SelfLink()
+
+  if args.resource_manager_tags is not None:
+    subnetwork.params = _CreateSubnetworkParams(
+        messages, args.resource_manager_tags
+    )
+
+  if include_resolve_subnet_mask:
+    if args.resolve_subnet_mask:
+      subnetwork.resolveSubnetMask = (
+          messages.Subnetwork.ResolveSubnetMaskValueValuesEnum(
+              args.resolve_subnet_mask
+          )
+      )
   return subnetwork
+
+
+def _CreateSubnetworkParams(messages, resource_manager_tags):
+  resource_manager_tags_map = (
+      resource_manager_tags_utils.GetResourceManagerTags(resource_manager_tags)
+  )
+  params = messages.SubnetworkParams
+  additional_properties = [
+      params.ResourceManagerTagsValue.AdditionalProperty(key=key, value=value)
+      for key, value in sorted(six.iteritems(resource_manager_tags_map))
+  ]
+  return params(
+      resourceManagerTags=params.ResourceManagerTagsValue(
+          additionalProperties=additional_properties
+      )
+  )
 
 
 def _Run(
@@ -439,7 +549,10 @@ def _Run(
     include_alpha_logging,
     include_aggregate_purpose,
     include_l2,
-    include_external_ipv6_prefix,
+    include_internal_ipv6_prefix,
+    include_custom_hardware_link,
+    include_peer_migration_purpose,
+    include_resolve_subnet_mask,
 ):
   """Issues a list of requests necessary for adding a subnetwork."""
   client = holder.client
@@ -451,6 +564,10 @@ def _Run(
       args,
       holder.resources,
       scope_lister=compute_flags.GetDefaultScopeLister(client))
+  ip_collection_ref = None
+  if args.ip_collection:
+    ip_collection_ref = flags.IpCollectionArgument().ResolveAsResource(
+        args, holder.resources)
 
   subnetwork = _CreateSubnetwork(
       client.messages,
@@ -460,7 +577,11 @@ def _Run(
       include_alpha_logging,
       include_aggregate_purpose,
       include_l2,
-      include_external_ipv6_prefix,
+      include_internal_ipv6_prefix,
+      include_custom_hardware_link,
+      ip_collection_ref,
+      include_peer_migration_purpose,
+      include_resolve_subnet_mask,
   )
   request = client.messages.ComputeSubnetworksInsertRequest(
       subnetwork=subnetwork,
@@ -478,6 +599,7 @@ def _Run(
                                request)])
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Create(base.CreateCommand):
   """Create a GA subnet."""
@@ -485,8 +607,11 @@ class Create(base.CreateCommand):
   _include_alpha_logging = False
   _include_aggregate_purpose = False
   _include_l2 = False
-  _include_external_ipv6_prefix = False
+  _include_internal_ipv6_prefix = False
   _api_version = compute_api.COMPUTE_GA_API_VERSION
+  _include_custom_hardware_link = False
+  _include_peer_migration_purpose = True
+  _include_resolve_subnet_mask = False
 
   detailed_help = _DetailedHelp()
 
@@ -497,8 +622,11 @@ class Create(base.CreateCommand):
         cls._include_alpha_logging,
         cls._include_aggregate_purpose,
         cls._include_l2,
-        cls._include_external_ipv6_prefix,
+        cls._include_internal_ipv6_prefix,
+        cls._include_custom_hardware_link,
         cls._api_version,
+        cls._include_peer_migration_purpose,
+        cls._include_resolve_subnet_mask,
     )
 
   def Run(self, args):
@@ -510,7 +638,10 @@ class Create(base.CreateCommand):
         self._include_alpha_logging,
         self._include_aggregate_purpose,
         self._include_l2,
-        self._include_external_ipv6_prefix,
+        self._include_internal_ipv6_prefix,
+        self._include_custom_hardware_link,
+        self._include_peer_migration_purpose,
+        self._include_resolve_subnet_mask,
     )
 
 
@@ -519,6 +650,7 @@ class CreateBeta(Create):
   """Create a subnet in the Beta release track."""
 
   _api_version = compute_api.COMPUTE_BETA_API_VERSION
+  _include_resolve_subnet_mask = True
 
 
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
@@ -528,5 +660,8 @@ class CreateAlpha(CreateBeta):
   _include_alpha_logging = True
   _include_aggregate_purpose = True
   _include_l2 = True
-  _include_external_ipv6_prefix = True
+  _include_internal_ipv6_prefix = True
   _api_version = compute_api.COMPUTE_ALPHA_API_VERSION
+  _include_custom_hardware_link = True
+  _include_peer_migration_purpose = True
+  _include_resolve_subnet_mask = True

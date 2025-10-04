@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,9 +35,9 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 import warnings
 
 try:
-    OptionalRetry = Union[retries.Retry, gapic_v1.method._MethodDefault]
+    OptionalRetry = Union[retries.Retry, gapic_v1.method._MethodDefault, None]
 except AttributeError:  # pragma: NO COVER
-    OptionalRetry = Union[retries.Retry, object]  # type: ignore
+    OptionalRetry = Union[retries.Retry, object, None]  # type: ignore
 
 
 from cloudsdk.google.protobuf import empty_pb2  # type: ignore
@@ -109,6 +109,14 @@ class ConfigServiceV2RestInterceptor:
                 logging.log(f"Received response: {response}")
                 return response
 
+            def pre_create_log_scope(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def post_create_log_scope(self, response):
+                logging.log(f"Received response: {response}")
+                return response
+
             def pre_create_saved_query(self, request, metadata):
                 logging.log(f"Received request: {request}")
                 return request, metadata
@@ -148,6 +156,10 @@ class ConfigServiceV2RestInterceptor:
             def post_delete_link(self, response):
                 logging.log(f"Received response: {response}")
                 return response
+
+            def pre_delete_log_scope(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
 
             def pre_delete_saved_query(self, request, metadata):
                 logging.log(f"Received request: {request}")
@@ -190,6 +202,22 @@ class ConfigServiceV2RestInterceptor:
                 return request, metadata
 
             def post_get_link(self, response):
+                logging.log(f"Received response: {response}")
+                return response
+
+            def pre_get_log_scope(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def post_get_log_scope(self, response):
+                logging.log(f"Received response: {response}")
+                return response
+
+            def pre_get_saved_query(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def post_get_saved_query(self, response):
                 logging.log(f"Received response: {response}")
                 return response
 
@@ -238,6 +266,14 @@ class ConfigServiceV2RestInterceptor:
                 return request, metadata
 
             def post_list_links(self, response):
+                logging.log(f"Received response: {response}")
+                return response
+
+            def pre_list_log_scopes(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def post_list_log_scopes(self, response):
                 logging.log(f"Received response: {response}")
                 return response
 
@@ -306,6 +342,22 @@ class ConfigServiceV2RestInterceptor:
                 return request, metadata
 
             def post_update_exclusion(self, response):
+                logging.log(f"Received response: {response}")
+                return response
+
+            def pre_update_log_scope(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def post_update_log_scope(self, response):
+                logging.log(f"Received response: {response}")
+                return response
+
+            def pre_update_saved_query(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def post_update_saved_query(self, response):
                 logging.log(f"Received response: {response}")
                 return response
 
@@ -418,6 +470,22 @@ class ConfigServiceV2RestInterceptor:
         it is returned to user code.
         """
         return response
+    def pre_create_log_scope(self, request: logging_config.CreateLogScopeRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[logging_config.CreateLogScopeRequest, Sequence[Tuple[str, str]]]:
+        """Pre-rpc interceptor for create_log_scope
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the ConfigServiceV2 server.
+        """
+        return request, metadata
+
+    def post_create_log_scope(self, response: logging_config.LogScope) -> logging_config.LogScope:
+        """Post-rpc interceptor for create_log_scope
+
+        Override in a subclass to manipulate the response
+        after it is returned by the ConfigServiceV2 server but before
+        it is returned to user code.
+        """
+        return response
     def pre_create_saved_query(self, request: logging_config.CreateSavedQueryRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[logging_config.CreateSavedQueryRequest, Sequence[Tuple[str, str]]]:
         """Pre-rpc interceptor for create_saved_query
 
@@ -498,6 +566,14 @@ class ConfigServiceV2RestInterceptor:
         it is returned to user code.
         """
         return response
+    def pre_delete_log_scope(self, request: logging_config.DeleteLogScopeRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[logging_config.DeleteLogScopeRequest, Sequence[Tuple[str, str]]]:
+        """Pre-rpc interceptor for delete_log_scope
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the ConfigServiceV2 server.
+        """
+        return request, metadata
+
     def pre_delete_saved_query(self, request: logging_config.DeleteSavedQueryRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[logging_config.DeleteSavedQueryRequest, Sequence[Tuple[str, str]]]:
         """Pre-rpc interceptor for delete_saved_query
 
@@ -580,6 +656,38 @@ class ConfigServiceV2RestInterceptor:
 
     def post_get_link(self, response: logging_config.Link) -> logging_config.Link:
         """Post-rpc interceptor for get_link
+
+        Override in a subclass to manipulate the response
+        after it is returned by the ConfigServiceV2 server but before
+        it is returned to user code.
+        """
+        return response
+    def pre_get_log_scope(self, request: logging_config.GetLogScopeRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[logging_config.GetLogScopeRequest, Sequence[Tuple[str, str]]]:
+        """Pre-rpc interceptor for get_log_scope
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the ConfigServiceV2 server.
+        """
+        return request, metadata
+
+    def post_get_log_scope(self, response: logging_config.LogScope) -> logging_config.LogScope:
+        """Post-rpc interceptor for get_log_scope
+
+        Override in a subclass to manipulate the response
+        after it is returned by the ConfigServiceV2 server but before
+        it is returned to user code.
+        """
+        return response
+    def pre_get_saved_query(self, request: logging_config.GetSavedQueryRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[logging_config.GetSavedQueryRequest, Sequence[Tuple[str, str]]]:
+        """Pre-rpc interceptor for get_saved_query
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the ConfigServiceV2 server.
+        """
+        return request, metadata
+
+    def post_get_saved_query(self, response: logging_config.SavedQuery) -> logging_config.SavedQuery:
+        """Post-rpc interceptor for get_saved_query
 
         Override in a subclass to manipulate the response
         after it is returned by the ConfigServiceV2 server but before
@@ -676,6 +784,22 @@ class ConfigServiceV2RestInterceptor:
 
     def post_list_links(self, response: logging_config.ListLinksResponse) -> logging_config.ListLinksResponse:
         """Post-rpc interceptor for list_links
+
+        Override in a subclass to manipulate the response
+        after it is returned by the ConfigServiceV2 server but before
+        it is returned to user code.
+        """
+        return response
+    def pre_list_log_scopes(self, request: logging_config.ListLogScopesRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[logging_config.ListLogScopesRequest, Sequence[Tuple[str, str]]]:
+        """Pre-rpc interceptor for list_log_scopes
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the ConfigServiceV2 server.
+        """
+        return request, metadata
+
+    def post_list_log_scopes(self, response: logging_config.ListLogScopesResponse) -> logging_config.ListLogScopesResponse:
+        """Post-rpc interceptor for list_log_scopes
 
         Override in a subclass to manipulate the response
         after it is returned by the ConfigServiceV2 server but before
@@ -818,6 +942,38 @@ class ConfigServiceV2RestInterceptor:
         it is returned to user code.
         """
         return response
+    def pre_update_log_scope(self, request: logging_config.UpdateLogScopeRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[logging_config.UpdateLogScopeRequest, Sequence[Tuple[str, str]]]:
+        """Pre-rpc interceptor for update_log_scope
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the ConfigServiceV2 server.
+        """
+        return request, metadata
+
+    def post_update_log_scope(self, response: logging_config.LogScope) -> logging_config.LogScope:
+        """Post-rpc interceptor for update_log_scope
+
+        Override in a subclass to manipulate the response
+        after it is returned by the ConfigServiceV2 server but before
+        it is returned to user code.
+        """
+        return response
+    def pre_update_saved_query(self, request: logging_config.UpdateSavedQueryRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[logging_config.UpdateSavedQueryRequest, Sequence[Tuple[str, str]]]:
+        """Pre-rpc interceptor for update_saved_query
+
+        Override in a subclass to manipulate the request or metadata
+        before they are sent to the ConfigServiceV2 server.
+        """
+        return request, metadata
+
+    def post_update_saved_query(self, response: logging_config.SavedQuery) -> logging_config.SavedQuery:
+        """Post-rpc interceptor for update_saved_query
+
+        Override in a subclass to manipulate the response
+        after it is returned by the ConfigServiceV2 server but before
+        it is returned to user code.
+        """
+        return response
     def pre_update_settings(self, request: logging_config.UpdateSettingsRequest, metadata: Sequence[Tuple[str, str]]) -> Tuple[logging_config.UpdateSettingsRequest, Sequence[Tuple[str, str]]]:
         """Pre-rpc interceptor for update_settings
 
@@ -913,7 +1069,7 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
 
         Args:
             host (Optional[str]):
-                 The hostname to connect to.
+                 The hostname to connect to (default: 'logging.googleapis.com').
             credentials (Optional[google.auth.credentials.Credentials]): The
                 authorization credentials to attach to requests. These
                 credentials identify the application to the service; if none
@@ -1043,7 +1199,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
 
             body = json_format.MessageToJson(
                 transcoded_request['body'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False
             )
             uri = transcoded_request['uri']
@@ -1052,7 +1207,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -1148,7 +1302,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
 
             body = json_format.MessageToJson(
                 transcoded_request['body'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False
             )
             uri = transcoded_request['uri']
@@ -1157,7 +1310,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -1256,7 +1408,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
 
             body = json_format.MessageToJson(
                 transcoded_request['body'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False
             )
             uri = transcoded_request['uri']
@@ -1265,7 +1416,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -1366,7 +1516,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
 
             body = json_format.MessageToJson(
                 transcoded_request['body'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False
             )
             uri = transcoded_request['uri']
@@ -1375,7 +1524,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -1474,7 +1622,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
 
             body = json_format.MessageToJson(
                 transcoded_request['body'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False
             )
             uri = transcoded_request['uri']
@@ -1483,7 +1630,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -1508,6 +1654,101 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             resp = operations_pb2.Operation()
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
             resp = self._interceptor.post_create_link(resp)
+            return resp
+
+    class _CreateLogScope(ConfigServiceV2RestStub):
+        def __hash__(self):
+            return hash("CreateLogScope")
+
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] =  {
+            "logScopeId" : "",        }
+
+        @classmethod
+        def _get_unset_required_fields(cls, message_dict):
+            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+
+        def __call__(self,
+                request: logging_config.CreateLogScopeRequest, *,
+                retry: OptionalRetry=gapic_v1.method.DEFAULT,
+                timeout: Optional[float]=None,
+                metadata: Sequence[Tuple[str, str]]=(),
+                ) -> logging_config.LogScope:
+            r"""Call the create log scope method over HTTP.
+
+            Args:
+                request (~.logging_config.CreateLogScopeRequest):
+                    The request object. The parameters to ``CreateLogScope``.
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, str]]): Strings which should be
+                    sent along with the request as metadata.
+
+            Returns:
+                ~.logging_config.LogScope:
+                    Describes a group of resources to
+                read log entries from.
+
+            """
+
+            http_options: List[Dict[str, str]] = [{
+                'method': 'post',
+                'uri': '/v2/{parent=projects/*/locations/*}/logScopes',
+                'body': 'log_scope',
+            },
+{
+                'method': 'post',
+                'uri': '/v2/{parent=organizations/*/locations/*}/logScopes',
+                'body': 'log_scope',
+            },
+{
+                'method': 'post',
+                'uri': '/v2/{parent=folders/*/locations/*}/logScopes',
+                'body': 'log_scope',
+            },
+            ]
+            request, metadata = self._interceptor.pre_create_log_scope(request, metadata)
+            pb_request = logging_config.CreateLogScopeRequest.pb(request)
+            transcoded_request = path_template.transcode(http_options, pb_request)
+
+            # Jsonify the request body
+
+            body = json_format.MessageToJson(
+                transcoded_request['body'],
+                use_integers_for_enums=False
+            )
+            uri = transcoded_request['uri']
+            method = transcoded_request['method']
+
+            # Jsonify the query params
+            query_params = json.loads(json_format.MessageToJson(
+                transcoded_request['query_params'],
+                use_integers_for_enums=False,
+            ))
+            query_params.update(self._get_unset_required_fields(query_params))
+
+            # Send the request
+            headers = dict(metadata)
+            headers['Content-Type'] = 'application/json'
+            response = getattr(self._session, method)(
+                "{host}{uri}".format(host=self._host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+                )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+            # Return the response
+            resp = logging_config.LogScope()
+            pb_resp = logging_config.LogScope.pb(resp)
+
+            json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+            resp = self._interceptor.post_create_log_scope(resp)
             return resp
 
     class _CreateSavedQuery(ConfigServiceV2RestStub):
@@ -1574,7 +1815,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
 
             body = json_format.MessageToJson(
                 transcoded_request['body'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False
             )
             uri = transcoded_request['uri']
@@ -1583,7 +1823,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -1696,7 +1935,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
 
             body = json_format.MessageToJson(
                 transcoded_request['body'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False
             )
             uri = transcoded_request['uri']
@@ -1705,7 +1943,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -1803,7 +2040,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
 
             body = json_format.MessageToJson(
                 transcoded_request['body'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False
             )
             uri = transcoded_request['uri']
@@ -1812,7 +2048,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -1901,7 +2136,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -1981,7 +2215,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -2068,7 +2301,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -2093,6 +2325,78 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             json_format.Parse(response.content, resp, ignore_unknown_fields=True)
             resp = self._interceptor.post_delete_link(resp)
             return resp
+
+    class _DeleteLogScope(ConfigServiceV2RestStub):
+        def __hash__(self):
+            return hash("DeleteLogScope")
+
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] =  {
+        }
+
+        @classmethod
+        def _get_unset_required_fields(cls, message_dict):
+            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+
+        def __call__(self,
+                request: logging_config.DeleteLogScopeRequest, *,
+                retry: OptionalRetry=gapic_v1.method.DEFAULT,
+                timeout: Optional[float]=None,
+                metadata: Sequence[Tuple[str, str]]=(),
+                ):
+            r"""Call the delete log scope method over HTTP.
+
+            Args:
+                request (~.logging_config.DeleteLogScopeRequest):
+                    The request object. The parameters to ``DeleteLogScope``. The ``_Default``
+                log scope cannot be deleted.
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, str]]): Strings which should be
+                    sent along with the request as metadata.
+            """
+
+            http_options: List[Dict[str, str]] = [{
+                'method': 'delete',
+                'uri': '/v2/{name=projects/*/locations/*/logScopes/*}',
+            },
+{
+                'method': 'delete',
+                'uri': '/v2/{name=organizations/*/locations/*/logScopes/*}',
+            },
+{
+                'method': 'delete',
+                'uri': '/v2/{name=folders/*/locations/*/logScopes/*}',
+            },
+            ]
+            request, metadata = self._interceptor.pre_delete_log_scope(request, metadata)
+            pb_request = logging_config.DeleteLogScopeRequest.pb(request)
+            transcoded_request = path_template.transcode(http_options, pb_request)
+
+            uri = transcoded_request['uri']
+            method = transcoded_request['method']
+
+            # Jsonify the query params
+            query_params = json.loads(json_format.MessageToJson(
+                transcoded_request['query_params'],
+                use_integers_for_enums=False,
+            ))
+            query_params.update(self._get_unset_required_fields(query_params))
+
+            # Send the request
+            headers = dict(metadata)
+            headers['Content-Type'] = 'application/json'
+            response = getattr(self._session, method)(
+                "{host}{uri}".format(host=self._host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
 
     class _DeleteSavedQuery(ConfigServiceV2RestStub):
         def __hash__(self):
@@ -2150,7 +2454,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -2234,7 +2537,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -2314,7 +2616,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -2400,7 +2701,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -2509,7 +2809,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -2608,7 +2907,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -2702,7 +3000,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -2728,6 +3025,180 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
             resp = self._interceptor.post_get_link(resp)
+            return resp
+
+    class _GetLogScope(ConfigServiceV2RestStub):
+        def __hash__(self):
+            return hash("GetLogScope")
+
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] =  {
+        }
+
+        @classmethod
+        def _get_unset_required_fields(cls, message_dict):
+            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+
+        def __call__(self,
+                request: logging_config.GetLogScopeRequest, *,
+                retry: OptionalRetry=gapic_v1.method.DEFAULT,
+                timeout: Optional[float]=None,
+                metadata: Sequence[Tuple[str, str]]=(),
+                ) -> logging_config.LogScope:
+            r"""Call the get log scope method over HTTP.
+
+            Args:
+                request (~.logging_config.GetLogScopeRequest):
+                    The request object. The parameters to ``GetLogScope``.
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, str]]): Strings which should be
+                    sent along with the request as metadata.
+
+            Returns:
+                ~.logging_config.LogScope:
+                    Describes a group of resources to
+                read log entries from.
+
+            """
+
+            http_options: List[Dict[str, str]] = [{
+                'method': 'get',
+                'uri': '/v2/{name=projects/*/locations/*/logScopes/*}',
+            },
+{
+                'method': 'get',
+                'uri': '/v2/{name=organizations/*/locations/*/logScopes/*}',
+            },
+{
+                'method': 'get',
+                'uri': '/v2/{name=folders/*/locations/*/logScopes/*}',
+            },
+            ]
+            request, metadata = self._interceptor.pre_get_log_scope(request, metadata)
+            pb_request = logging_config.GetLogScopeRequest.pb(request)
+            transcoded_request = path_template.transcode(http_options, pb_request)
+
+            uri = transcoded_request['uri']
+            method = transcoded_request['method']
+
+            # Jsonify the query params
+            query_params = json.loads(json_format.MessageToJson(
+                transcoded_request['query_params'],
+                use_integers_for_enums=False,
+            ))
+            query_params.update(self._get_unset_required_fields(query_params))
+
+            # Send the request
+            headers = dict(metadata)
+            headers['Content-Type'] = 'application/json'
+            response = getattr(self._session, method)(
+                "{host}{uri}".format(host=self._host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+            # Return the response
+            resp = logging_config.LogScope()
+            pb_resp = logging_config.LogScope.pb(resp)
+
+            json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+            resp = self._interceptor.post_get_log_scope(resp)
+            return resp
+
+    class _GetSavedQuery(ConfigServiceV2RestStub):
+        def __hash__(self):
+            return hash("GetSavedQuery")
+
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] =  {
+        }
+
+        @classmethod
+        def _get_unset_required_fields(cls, message_dict):
+            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+
+        def __call__(self,
+                request: logging_config.GetSavedQueryRequest, *,
+                retry: OptionalRetry=gapic_v1.method.DEFAULT,
+                timeout: Optional[float]=None,
+                metadata: Sequence[Tuple[str, str]]=(),
+                ) -> logging_config.SavedQuery:
+            r"""Call the get saved query method over HTTP.
+
+            Args:
+                request (~.logging_config.GetSavedQueryRequest):
+                    The request object. The parameters to 'GetSavedQuery'
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, str]]): Strings which should be
+                    sent along with the request as metadata.
+
+            Returns:
+                ~.logging_config.SavedQuery:
+                    Describes a query that has been saved
+                by a user.
+
+            """
+
+            http_options: List[Dict[str, str]] = [{
+                'method': 'get',
+                'uri': '/v2/{name=projects/*/locations/*/savedQueries/*}',
+            },
+{
+                'method': 'get',
+                'uri': '/v2/{name=folders/*/locations/*/savedQueries/*}',
+            },
+{
+                'method': 'get',
+                'uri': '/v2/{name=organizations/*/locations/*/savedQueries/*}',
+            },
+{
+                'method': 'get',
+                'uri': '/v2/{name=billingAccounts/*/locations/*/savedQueries/*}',
+            },
+            ]
+            request, metadata = self._interceptor.pre_get_saved_query(request, metadata)
+            pb_request = logging_config.GetSavedQueryRequest.pb(request)
+            transcoded_request = path_template.transcode(http_options, pb_request)
+
+            uri = transcoded_request['uri']
+            method = transcoded_request['method']
+
+            # Jsonify the query params
+            query_params = json.loads(json_format.MessageToJson(
+                transcoded_request['query_params'],
+                use_integers_for_enums=False,
+            ))
+            query_params.update(self._get_unset_required_fields(query_params))
+
+            # Send the request
+            headers = dict(metadata)
+            headers['Content-Type'] = 'application/json'
+            response = getattr(self._session, method)(
+                "{host}{uri}".format(host=self._host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+            # Return the response
+            resp = logging_config.SavedQuery()
+            pb_resp = logging_config.SavedQuery.pb(resp)
+
+            json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+            resp = self._interceptor.post_get_saved_query(resp)
             return resp
 
     class _GetSettings(ConfigServiceV2RestStub):
@@ -2802,7 +3273,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -2906,7 +3376,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -3000,7 +3469,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -3092,7 +3560,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -3184,7 +3651,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -3276,7 +3742,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -3302,6 +3767,92 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
             resp = self._interceptor.post_list_links(resp)
+            return resp
+
+    class _ListLogScopes(ConfigServiceV2RestStub):
+        def __hash__(self):
+            return hash("ListLogScopes")
+
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] =  {
+        }
+
+        @classmethod
+        def _get_unset_required_fields(cls, message_dict):
+            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+
+        def __call__(self,
+                request: logging_config.ListLogScopesRequest, *,
+                retry: OptionalRetry=gapic_v1.method.DEFAULT,
+                timeout: Optional[float]=None,
+                metadata: Sequence[Tuple[str, str]]=(),
+                ) -> logging_config.ListLogScopesResponse:
+            r"""Call the list log scopes method over HTTP.
+
+            Args:
+                request (~.logging_config.ListLogScopesRequest):
+                    The request object. The parameters to ``ListLogScopes``.
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, str]]): Strings which should be
+                    sent along with the request as metadata.
+
+            Returns:
+                ~.logging_config.ListLogScopesResponse:
+                    The response from ``ListLogScopes``. Every project has a
+                ``_Default`` log scope that cannot be modified or
+                deleted.
+
+            """
+
+            http_options: List[Dict[str, str]] = [{
+                'method': 'get',
+                'uri': '/v2/{parent=projects/*/locations/*}/logScopes',
+            },
+{
+                'method': 'get',
+                'uri': '/v2/{parent=organizations/*/locations/*}/logScopes',
+            },
+{
+                'method': 'get',
+                'uri': '/v2/{parent=folders/*/locations/*}/logScopes',
+            },
+            ]
+            request, metadata = self._interceptor.pre_list_log_scopes(request, metadata)
+            pb_request = logging_config.ListLogScopesRequest.pb(request)
+            transcoded_request = path_template.transcode(http_options, pb_request)
+
+            uri = transcoded_request['uri']
+            method = transcoded_request['method']
+
+            # Jsonify the query params
+            query_params = json.loads(json_format.MessageToJson(
+                transcoded_request['query_params'],
+                use_integers_for_enums=False,
+            ))
+            query_params.update(self._get_unset_required_fields(query_params))
+
+            # Send the request
+            headers = dict(metadata)
+            headers['Content-Type'] = 'application/json'
+            response = getattr(self._session, method)(
+                "{host}{uri}".format(host=self._host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+            # Return the response
+            resp = logging_config.ListLogScopesResponse()
+            pb_resp = logging_config.ListLogScopesResponse.pb(resp)
+
+            json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+            resp = self._interceptor.post_list_log_scopes(resp)
             return resp
 
     class _ListRecentQueries(ConfigServiceV2RestStub):
@@ -3365,7 +3916,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -3453,7 +4003,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -3549,7 +4098,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -3641,7 +4189,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -3732,7 +4279,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
 
             body = json_format.MessageToJson(
                 transcoded_request['body'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False
             )
             uri = transcoded_request['uri']
@@ -3741,7 +4287,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -3831,7 +4376,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
 
             body = json_format.MessageToJson(
                 transcoded_request['body'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False
             )
             uri = transcoded_request['uri']
@@ -3840,7 +4384,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -3939,7 +4482,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
 
             body = json_format.MessageToJson(
                 transcoded_request['body'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False
             )
             uri = transcoded_request['uri']
@@ -3948,7 +4490,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -4044,7 +4585,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
 
             body = json_format.MessageToJson(
                 transcoded_request['body'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False
             )
             uri = transcoded_request['uri']
@@ -4053,7 +4593,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -4156,7 +4695,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
 
             body = json_format.MessageToJson(
                 transcoded_request['body'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False
             )
             uri = transcoded_request['uri']
@@ -4165,7 +4703,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -4192,6 +4729,202 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
 
             json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
             resp = self._interceptor.post_update_exclusion(resp)
+            return resp
+
+    class _UpdateLogScope(ConfigServiceV2RestStub):
+        def __hash__(self):
+            return hash("UpdateLogScope")
+
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] =  {
+        }
+
+        @classmethod
+        def _get_unset_required_fields(cls, message_dict):
+            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+
+        def __call__(self,
+                request: logging_config.UpdateLogScopeRequest, *,
+                retry: OptionalRetry=gapic_v1.method.DEFAULT,
+                timeout: Optional[float]=None,
+                metadata: Sequence[Tuple[str, str]]=(),
+                ) -> logging_config.LogScope:
+            r"""Call the update log scope method over HTTP.
+
+            Args:
+                request (~.logging_config.UpdateLogScopeRequest):
+                    The request object. The parameters to ``UpdateLogScope``. The ``_Default``
+                log scope cannot be modified.
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, str]]): Strings which should be
+                    sent along with the request as metadata.
+
+            Returns:
+                ~.logging_config.LogScope:
+                    Describes a group of resources to
+                read log entries from.
+
+            """
+
+            http_options: List[Dict[str, str]] = [{
+                'method': 'patch',
+                'uri': '/v2/{log_scope.name=projects/*/locations/*/logScopes/*}',
+                'body': 'log_scope',
+            },
+{
+                'method': 'patch',
+                'uri': '/v2/{log_scope.name=organizations/*/locations/*/logScopes/*}',
+                'body': 'log_scope',
+            },
+{
+                'method': 'patch',
+                'uri': '/v2/{log_scope.name=folders/*/locations/*/logScopes/*}',
+                'body': 'log_scope',
+            },
+            ]
+            request, metadata = self._interceptor.pre_update_log_scope(request, metadata)
+            pb_request = logging_config.UpdateLogScopeRequest.pb(request)
+            transcoded_request = path_template.transcode(http_options, pb_request)
+
+            # Jsonify the request body
+
+            body = json_format.MessageToJson(
+                transcoded_request['body'],
+                use_integers_for_enums=False
+            )
+            uri = transcoded_request['uri']
+            method = transcoded_request['method']
+
+            # Jsonify the query params
+            query_params = json.loads(json_format.MessageToJson(
+                transcoded_request['query_params'],
+                use_integers_for_enums=False,
+            ))
+            query_params.update(self._get_unset_required_fields(query_params))
+
+            # Send the request
+            headers = dict(metadata)
+            headers['Content-Type'] = 'application/json'
+            response = getattr(self._session, method)(
+                "{host}{uri}".format(host=self._host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+                )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+            # Return the response
+            resp = logging_config.LogScope()
+            pb_resp = logging_config.LogScope.pb(resp)
+
+            json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+            resp = self._interceptor.post_update_log_scope(resp)
+            return resp
+
+    class _UpdateSavedQuery(ConfigServiceV2RestStub):
+        def __hash__(self):
+            return hash("UpdateSavedQuery")
+
+        __REQUIRED_FIELDS_DEFAULT_VALUES: Dict[str, Any] =  {
+            "updateMask" : {},        }
+
+        @classmethod
+        def _get_unset_required_fields(cls, message_dict):
+            return {k: v for k, v in cls.__REQUIRED_FIELDS_DEFAULT_VALUES.items() if k not in message_dict}
+
+        def __call__(self,
+                request: logging_config.UpdateSavedQueryRequest, *,
+                retry: OptionalRetry=gapic_v1.method.DEFAULT,
+                timeout: Optional[float]=None,
+                metadata: Sequence[Tuple[str, str]]=(),
+                ) -> logging_config.SavedQuery:
+            r"""Call the update saved query method over HTTP.
+
+            Args:
+                request (~.logging_config.UpdateSavedQueryRequest):
+                    The request object. The parameters to 'UpdateSavedQuery'.
+                retry (google.api_core.retry.Retry): Designation of what errors, if any,
+                    should be retried.
+                timeout (float): The timeout for this request.
+                metadata (Sequence[Tuple[str, str]]): Strings which should be
+                    sent along with the request as metadata.
+
+            Returns:
+                ~.logging_config.SavedQuery:
+                    Describes a query that has been saved
+                by a user.
+
+            """
+
+            http_options: List[Dict[str, str]] = [{
+                'method': 'patch',
+                'uri': '/v2/{saved_query.name=projects/*/locations/*/savedQueries/*}',
+                'body': 'saved_query',
+            },
+{
+                'method': 'patch',
+                'uri': '/v2/{saved_query.name=folders/*/locations/*/savedQueries/*}',
+                'body': 'saved_query',
+            },
+{
+                'method': 'patch',
+                'uri': '/v2/{saved_query.name=organizations/*/locations/*/savedQueries/*}',
+                'body': 'saved_query',
+            },
+{
+                'method': 'patch',
+                'uri': '/v2/{saved_query.name=billingAccounts/*/locations/*/savedQueries/*}',
+                'body': 'saved_query',
+            },
+            ]
+            request, metadata = self._interceptor.pre_update_saved_query(request, metadata)
+            pb_request = logging_config.UpdateSavedQueryRequest.pb(request)
+            transcoded_request = path_template.transcode(http_options, pb_request)
+
+            # Jsonify the request body
+
+            body = json_format.MessageToJson(
+                transcoded_request['body'],
+                use_integers_for_enums=False
+            )
+            uri = transcoded_request['uri']
+            method = transcoded_request['method']
+
+            # Jsonify the query params
+            query_params = json.loads(json_format.MessageToJson(
+                transcoded_request['query_params'],
+                use_integers_for_enums=False,
+            ))
+            query_params.update(self._get_unset_required_fields(query_params))
+
+            # Send the request
+            headers = dict(metadata)
+            headers['Content-Type'] = 'application/json'
+            response = getattr(self._session, method)(
+                "{host}{uri}".format(host=self._host, uri=uri),
+                timeout=timeout,
+                headers=headers,
+                params=rest_helpers.flatten_query_params(query_params, strict=True),
+                data=body,
+                )
+
+            # In case of error, raise the appropriate core_exceptions.GoogleAPICallError exception
+            # subclass.
+            if response.status_code >= 400:
+                raise core_exceptions.from_http_response(response)
+
+            # Return the response
+            resp = logging_config.SavedQuery()
+            pb_resp = logging_config.SavedQuery.pb(resp)
+
+            json_format.Parse(response.content, pb_resp, ignore_unknown_fields=True)
+            resp = self._interceptor.post_update_saved_query(resp)
             return resp
 
     class _UpdateSettings(ConfigServiceV2RestStub):
@@ -4260,7 +4993,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
 
             body = json_format.MessageToJson(
                 transcoded_request['body'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False
             )
             uri = transcoded_request['uri']
@@ -4269,7 +5001,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -4397,7 +5128,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
 
             body = json_format.MessageToJson(
                 transcoded_request['body'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False
             )
             uri = transcoded_request['uri']
@@ -4406,7 +5136,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -4504,7 +5233,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
 
             body = json_format.MessageToJson(
                 transcoded_request['body'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False
             )
             uri = transcoded_request['uri']
@@ -4513,7 +5241,6 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
             # Jsonify the query params
             query_params = json.loads(json_format.MessageToJson(
                 transcoded_request['query_params'],
-                including_default_value_fields=False,
                 use_integers_for_enums=False,
             ))
             query_params.update(self._get_unset_required_fields(query_params))
@@ -4583,6 +5310,14 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
         return self._CreateLink(self._session, self._host, self._interceptor) # type: ignore
 
     @property
+    def create_log_scope(self) -> Callable[
+            [logging_config.CreateLogScopeRequest],
+            logging_config.LogScope]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._CreateLogScope(self._session, self._host, self._interceptor) # type: ignore
+
+    @property
     def create_saved_query(self) -> Callable[
             [logging_config.CreateSavedQueryRequest],
             logging_config.SavedQuery]:
@@ -4629,6 +5364,14 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
         return self._DeleteLink(self._session, self._host, self._interceptor) # type: ignore
+
+    @property
+    def delete_log_scope(self) -> Callable[
+            [logging_config.DeleteLogScopeRequest],
+            empty_pb2.Empty]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._DeleteLogScope(self._session, self._host, self._interceptor) # type: ignore
 
     @property
     def delete_saved_query(self) -> Callable[
@@ -4687,6 +5430,22 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
         return self._GetLink(self._session, self._host, self._interceptor) # type: ignore
 
     @property
+    def get_log_scope(self) -> Callable[
+            [logging_config.GetLogScopeRequest],
+            logging_config.LogScope]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._GetLogScope(self._session, self._host, self._interceptor) # type: ignore
+
+    @property
+    def get_saved_query(self) -> Callable[
+            [logging_config.GetSavedQueryRequest],
+            logging_config.SavedQuery]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._GetSavedQuery(self._session, self._host, self._interceptor) # type: ignore
+
+    @property
     def get_settings(self) -> Callable[
             [logging_config.GetSettingsRequest],
             logging_config.Settings]:
@@ -4733,6 +5492,14 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
         return self._ListLinks(self._session, self._host, self._interceptor) # type: ignore
+
+    @property
+    def list_log_scopes(self) -> Callable[
+            [logging_config.ListLogScopesRequest],
+            logging_config.ListLogScopesResponse]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._ListLogScopes(self._session, self._host, self._interceptor) # type: ignore
 
     @property
     def list_recent_queries(self) -> Callable[
@@ -4805,6 +5572,22 @@ class ConfigServiceV2RestTransport(ConfigServiceV2Transport):
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
         return self._UpdateExclusion(self._session, self._host, self._interceptor) # type: ignore
+
+    @property
+    def update_log_scope(self) -> Callable[
+            [logging_config.UpdateLogScopeRequest],
+            logging_config.LogScope]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._UpdateLogScope(self._session, self._host, self._interceptor) # type: ignore
+
+    @property
+    def update_saved_query(self) -> Callable[
+            [logging_config.UpdateSavedQueryRequest],
+            logging_config.SavedQuery]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._UpdateSavedQuery(self._session, self._host, self._interceptor) # type: ignore
 
     @property
     def update_settings(self) -> Callable[

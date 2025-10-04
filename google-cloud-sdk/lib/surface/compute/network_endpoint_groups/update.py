@@ -36,23 +36,17 @@ To remove two endpoints from a network endpoint group:
 """}
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Update(base.UpdateCommand):
   """Update a Compute Engine network endpoint group."""
 
   detailed_help = DETAILED_HELP
-  support_ipv6 = False
-  support_port_mapping_neg = False
 
   @classmethod
   def Args(cls, parser):
-    flags.MakeNetworkEndpointGroupsArg(
-    ).AddArgument(parser)
-    flags.AddUpdateNegArgsToParser(
-        parser,
-        support_ipv6=cls.support_ipv6,
-        support_port_mapping_neg=cls.support_port_mapping_neg,
-    )
+    flags.MakeNetworkEndpointGroupsArg().AddArgument(parser)
+    flags.AddUpdateNegArgsToParser(parser)
 
   def Run(self, args):
     holder = base_classes.ComputeApiHolder(self.ReleaseTrack())
@@ -88,6 +82,3 @@ class BetaUpdate(Update):
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
 class AlphaUpdate(Update):
   """Update a Compute Engine network endpoint group."""
-
-  support_ipv6 = True
-  support_port_mapping_neg = True

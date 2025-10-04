@@ -40,8 +40,8 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
         additional_http_headers=additional_http_headers,
         response_encoding=response_encoding)
     self.organizations_locations_addressGroups = self.OrganizationsLocationsAddressGroupsService(self)
+    self.organizations_locations_firewallEndpoints_wildfireVerdictChangeRequests = self.OrganizationsLocationsFirewallEndpointsWildfireVerdictChangeRequestsService(self)
     self.organizations_locations_firewallEndpoints = self.OrganizationsLocationsFirewallEndpointsService(self)
-    self.organizations_locations_mirroringEndpointGroups = self.OrganizationsLocationsMirroringEndpointGroupsService(self)
     self.organizations_locations_operations = self.OrganizationsLocationsOperationsService(self)
     self.organizations_locations_securityProfileGroups = self.OrganizationsLocationsSecurityProfileGroupsService(self)
     self.organizations_locations_securityProfiles = self.OrganizationsLocationsSecurityProfilesService(self)
@@ -49,25 +49,38 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
     self.organizations = self.OrganizationsService(self)
     self.projects_locations_addressGroups = self.ProjectsLocationsAddressGroupsService(self)
     self.projects_locations_authorizationPolicies = self.ProjectsLocationsAuthorizationPoliciesService(self)
+    self.projects_locations_authzPolicies = self.ProjectsLocationsAuthzPoliciesService(self)
+    self.projects_locations_backendAuthenticationConfigs = self.ProjectsLocationsBackendAuthenticationConfigsService(self)
     self.projects_locations_clientTlsPolicies = self.ProjectsLocationsClientTlsPoliciesService(self)
+    self.projects_locations_dnsThreatDetectors = self.ProjectsLocationsDnsThreatDetectorsService(self)
     self.projects_locations_firewallAttachments = self.ProjectsLocationsFirewallAttachmentsService(self)
     self.projects_locations_firewallEndpointAssociations = self.ProjectsLocationsFirewallEndpointAssociationsService(self)
     self.projects_locations_gatewaySecurityPolicies_rules = self.ProjectsLocationsGatewaySecurityPoliciesRulesService(self)
     self.projects_locations_gatewaySecurityPolicies = self.ProjectsLocationsGatewaySecurityPoliciesService(self)
+    self.projects_locations_interceptDeploymentGroups = self.ProjectsLocationsInterceptDeploymentGroupsService(self)
+    self.projects_locations_interceptDeployments = self.ProjectsLocationsInterceptDeploymentsService(self)
+    self.projects_locations_interceptEndpointGroupAssociations = self.ProjectsLocationsInterceptEndpointGroupAssociationsService(self)
+    self.projects_locations_interceptEndpointGroups = self.ProjectsLocationsInterceptEndpointGroupsService(self)
     self.projects_locations_mirroringDeploymentGroups = self.ProjectsLocationsMirroringDeploymentGroupsService(self)
     self.projects_locations_mirroringDeployments = self.ProjectsLocationsMirroringDeploymentsService(self)
     self.projects_locations_mirroringEndpointGroupAssociations = self.ProjectsLocationsMirroringEndpointGroupAssociationsService(self)
+    self.projects_locations_mirroringEndpointGroups = self.ProjectsLocationsMirroringEndpointGroupsService(self)
+    self.projects_locations_mirroringEndpoints = self.ProjectsLocationsMirroringEndpointsService(self)
     self.projects_locations_operations = self.ProjectsLocationsOperationsService(self)
     self.projects_locations_partnerSSEEnvironments = self.ProjectsLocationsPartnerSSEEnvironmentsService(self)
     self.projects_locations_partnerSSEGateways = self.ProjectsLocationsPartnerSSEGatewaysService(self)
     self.projects_locations_partnerSSERealms = self.ProjectsLocationsPartnerSSERealmsService(self)
+    self.projects_locations_sacAttachments = self.ProjectsLocationsSacAttachmentsService(self)
+    self.projects_locations_sacRealms = self.ProjectsLocationsSacRealmsService(self)
     self.projects_locations_securityProfileGroups = self.ProjectsLocationsSecurityProfileGroupsService(self)
     self.projects_locations_securityProfiles = self.ProjectsLocationsSecurityProfilesService(self)
     self.projects_locations_serverTlsPolicies = self.ProjectsLocationsServerTlsPoliciesService(self)
     self.projects_locations_sseGatewayReferences = self.ProjectsLocationsSseGatewayReferencesService(self)
-    self.projects_locations_sseGateways = self.ProjectsLocationsSseGatewaysService(self)
-    self.projects_locations_sseRealms = self.ProjectsLocationsSseRealmsService(self)
     self.projects_locations_tlsInspectionPolicies = self.ProjectsLocationsTlsInspectionPoliciesService(self)
+    self.projects_locations_ullMirroringCollectors = self.ProjectsLocationsUllMirroringCollectorsService(self)
+    self.projects_locations_ullMirroringEngines = self.ProjectsLocationsUllMirroringEnginesService(self)
+    self.projects_locations_ullMirroringInfras_ullMirroredNetworks = self.ProjectsLocationsUllMirroringInfrasUllMirroredNetworksService(self)
+    self.projects_locations_ullMirroringInfras = self.ProjectsLocationsUllMirroringInfrasService(self)
     self.projects_locations_urlLists = self.ProjectsLocationsUrlListsService(self)
     self.projects_locations = self.ProjectsLocationsService(self)
     self.projects = self.ProjectsService(self)
@@ -236,7 +249,7 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
         method_id='networksecurity.organizations.locations.addressGroups.list',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['pageSize', 'pageToken'],
+        query_params=['pageSize', 'pageToken', 'returnPartialSuccess'],
         relative_path='v1alpha1/{+parent}/addressGroups',
         request_field='',
         request_type_name='NetworksecurityOrganizationsLocationsAddressGroupsListRequest',
@@ -322,6 +335,43 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
         request_field='removeAddressGroupItemsRequest',
         request_type_name='NetworksecurityOrganizationsLocationsAddressGroupsRemoveItemsRequest',
         response_type_name='Operation',
+        supports_download=False,
+    )
+
+  class OrganizationsLocationsFirewallEndpointsWildfireVerdictChangeRequestsService(base_api.BaseApiService):
+    """Service class for the organizations_locations_firewallEndpoints_wildfireVerdictChangeRequests resource."""
+
+    _NAME = 'organizations_locations_firewallEndpoints_wildfireVerdictChangeRequests'
+
+    def __init__(self, client):
+      super(NetworksecurityV1alpha1.OrganizationsLocationsFirewallEndpointsWildfireVerdictChangeRequestsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def List(self, request, global_params=None):
+      r"""Lists WildfireVerdictChangeRequests in a given Firewall Endpoint in a project and location.
+
+      Args:
+        request: (NetworksecurityOrganizationsLocationsFirewallEndpointsWildfireVerdictChangeRequestsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListWildfireVerdictChangeRequestsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/organizations/{organizationsId}/locations/{locationsId}/firewallEndpoints/{firewallEndpointsId}/wildfireVerdictChangeRequests',
+        http_method='GET',
+        method_id='networksecurity.organizations.locations.firewallEndpoints.wildfireVerdictChangeRequests.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['pageSize', 'pageToken'],
+        relative_path='v1alpha1/{+parent}/wildfireVerdictChangeRequests',
+        request_field='',
+        request_type_name='NetworksecurityOrganizationsLocationsFirewallEndpointsWildfireVerdictChangeRequestsListRequest',
+        response_type_name='ListWildfireVerdictChangeRequestsResponse',
         supports_download=False,
     )
 
@@ -470,151 +520,6 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
         supports_download=False,
     )
 
-  class OrganizationsLocationsMirroringEndpointGroupsService(base_api.BaseApiService):
-    """Service class for the organizations_locations_mirroringEndpointGroups resource."""
-
-    _NAME = 'organizations_locations_mirroringEndpointGroups'
-
-    def __init__(self, client):
-      super(NetworksecurityV1alpha1.OrganizationsLocationsMirroringEndpointGroupsService, self).__init__(client)
-      self._upload_configs = {
-          }
-
-    def Create(self, request, global_params=None):
-      r"""Creates a new MirroringEndpointGroup in a given organization and location.
-
-      Args:
-        request: (NetworksecurityOrganizationsLocationsMirroringEndpointGroupsCreateRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (Operation) The response message.
-      """
-      config = self.GetMethodConfig('Create')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Create.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha1/organizations/{organizationsId}/locations/{locationsId}/mirroringEndpointGroups',
-        http_method='POST',
-        method_id='networksecurity.organizations.locations.mirroringEndpointGroups.create',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['mirroringEndpointGroupId', 'requestId'],
-        relative_path='v1alpha1/{+parent}/mirroringEndpointGroups',
-        request_field='mirroringEndpointGroup',
-        request_type_name='NetworksecurityOrganizationsLocationsMirroringEndpointGroupsCreateRequest',
-        response_type_name='Operation',
-        supports_download=False,
-    )
-
-    def Delete(self, request, global_params=None):
-      r"""Deletes a single MirroringEndpointGroup.
-
-      Args:
-        request: (NetworksecurityOrganizationsLocationsMirroringEndpointGroupsDeleteRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (Operation) The response message.
-      """
-      config = self.GetMethodConfig('Delete')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Delete.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha1/organizations/{organizationsId}/locations/{locationsId}/mirroringEndpointGroups/{mirroringEndpointGroupsId}',
-        http_method='DELETE',
-        method_id='networksecurity.organizations.locations.mirroringEndpointGroups.delete',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=['requestId'],
-        relative_path='v1alpha1/{+name}',
-        request_field='',
-        request_type_name='NetworksecurityOrganizationsLocationsMirroringEndpointGroupsDeleteRequest',
-        response_type_name='Operation',
-        supports_download=False,
-    )
-
-    def Get(self, request, global_params=None):
-      r"""Gets details of a single MirroringEndpointGroup.
-
-      Args:
-        request: (NetworksecurityOrganizationsLocationsMirroringEndpointGroupsGetRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (MirroringEndpointGroup) The response message.
-      """
-      config = self.GetMethodConfig('Get')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Get.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha1/organizations/{organizationsId}/locations/{locationsId}/mirroringEndpointGroups/{mirroringEndpointGroupsId}',
-        http_method='GET',
-        method_id='networksecurity.organizations.locations.mirroringEndpointGroups.get',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=[],
-        relative_path='v1alpha1/{+name}',
-        request_field='',
-        request_type_name='NetworksecurityOrganizationsLocationsMirroringEndpointGroupsGetRequest',
-        response_type_name='MirroringEndpointGroup',
-        supports_download=False,
-    )
-
-    def List(self, request, global_params=None):
-      r"""Lists MirroringEndpointGroups in a given organization and location.
-
-      Args:
-        request: (NetworksecurityOrganizationsLocationsMirroringEndpointGroupsListRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (ListMirroringEndpointGroupsResponse) The response message.
-      """
-      config = self.GetMethodConfig('List')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    List.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha1/organizations/{organizationsId}/locations/{locationsId}/mirroringEndpointGroups',
-        http_method='GET',
-        method_id='networksecurity.organizations.locations.mirroringEndpointGroups.list',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
-        relative_path='v1alpha1/{+parent}/mirroringEndpointGroups',
-        request_field='',
-        request_type_name='NetworksecurityOrganizationsLocationsMirroringEndpointGroupsListRequest',
-        response_type_name='ListMirroringEndpointGroupsResponse',
-        supports_download=False,
-    )
-
-    def Patch(self, request, global_params=None):
-      r"""Updates a single MirroringEndpointGroup.
-
-      Args:
-        request: (NetworksecurityOrganizationsLocationsMirroringEndpointGroupsPatchRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (Operation) The response message.
-      """
-      config = self.GetMethodConfig('Patch')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Patch.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha1/organizations/{organizationsId}/locations/{locationsId}/mirroringEndpointGroups/{mirroringEndpointGroupsId}',
-        http_method='PATCH',
-        method_id='networksecurity.organizations.locations.mirroringEndpointGroups.patch',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=['requestId', 'updateMask'],
-        relative_path='v1alpha1/{+name}',
-        request_field='mirroringEndpointGroup',
-        request_type_name='NetworksecurityOrganizationsLocationsMirroringEndpointGroupsPatchRequest',
-        response_type_name='Operation',
-        supports_download=False,
-    )
-
   class OrganizationsLocationsOperationsService(base_api.BaseApiService):
     """Service class for the organizations_locations_operations resource."""
 
@@ -626,7 +531,7 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (NetworksecurityOrganizationsLocationsOperationsCancelRequest) input message
@@ -1234,7 +1139,7 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
         method_id='networksecurity.projects.locations.addressGroups.list',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['pageSize', 'pageToken'],
+        query_params=['pageSize', 'pageToken', 'returnPartialSuccess'],
         relative_path='v1alpha1/{+parent}/addressGroups',
         request_field='',
         request_type_name='NetworksecurityProjectsLocationsAddressGroupsListRequest',
@@ -1603,6 +1508,377 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+  class ProjectsLocationsAuthzPoliciesService(base_api.BaseApiService):
+    """Service class for the projects_locations_authzPolicies resource."""
+
+    _NAME = 'projects_locations_authzPolicies'
+
+    def __init__(self, client):
+      super(NetworksecurityV1alpha1.ProjectsLocationsAuthzPoliciesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new AuthzPolicy in a given project and location.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsAuthzPoliciesCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/authzPolicies',
+        http_method='POST',
+        method_id='networksecurity.projects.locations.authzPolicies.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['authzPolicyId', 'requestId'],
+        relative_path='v1alpha1/{+parent}/authzPolicies',
+        request_field='authzPolicy',
+        request_type_name='NetworksecurityProjectsLocationsAuthzPoliciesCreateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a single AuthzPolicy.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsAuthzPoliciesDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/authzPolicies/{authzPoliciesId}',
+        http_method='DELETE',
+        method_id='networksecurity.projects.locations.authzPolicies.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId'],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsAuthzPoliciesDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets details of a single AuthzPolicy.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsAuthzPoliciesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (AuthzPolicy) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/authzPolicies/{authzPoliciesId}',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.authzPolicies.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsAuthzPoliciesGetRequest',
+        response_type_name='AuthzPolicy',
+        supports_download=False,
+    )
+
+    def GetIamPolicy(self, request, global_params=None):
+      r"""Gets the access control policy for a resource. Returns an empty policy if the resource exists and does not have a policy set.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsAuthzPoliciesGetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleIamV1Policy) The response message.
+      """
+      config = self.GetMethodConfig('GetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/authzPolicies/{authzPoliciesId}:getIamPolicy',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.authzPolicies.getIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=['options_requestedPolicyVersion'],
+        relative_path='v1alpha1/{+resource}:getIamPolicy',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsAuthzPoliciesGetIamPolicyRequest',
+        response_type_name='GoogleIamV1Policy',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists AuthzPolicies in a given project and location.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsAuthzPoliciesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListAuthzPoliciesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/authzPolicies',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.authzPolicies.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha1/{+parent}/authzPolicies',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsAuthzPoliciesListRequest',
+        response_type_name='ListAuthzPoliciesResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates the parameters of a single AuthzPolicy.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsAuthzPoliciesPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/authzPolicies/{authzPoliciesId}',
+        http_method='PATCH',
+        method_id='networksecurity.projects.locations.authzPolicies.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId', 'updateMask'],
+        relative_path='v1alpha1/{+name}',
+        request_field='authzPolicy',
+        request_type_name='NetworksecurityProjectsLocationsAuthzPoliciesPatchRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def SetIamPolicy(self, request, global_params=None):
+      r"""Sets the access control policy on the specified resource. Replaces any existing policy. Can return `NOT_FOUND`, `INVALID_ARGUMENT`, and `PERMISSION_DENIED` errors.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsAuthzPoliciesSetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleIamV1Policy) The response message.
+      """
+      config = self.GetMethodConfig('SetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/authzPolicies/{authzPoliciesId}:setIamPolicy',
+        http_method='POST',
+        method_id='networksecurity.projects.locations.authzPolicies.setIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1alpha1/{+resource}:setIamPolicy',
+        request_field='googleIamV1SetIamPolicyRequest',
+        request_type_name='NetworksecurityProjectsLocationsAuthzPoliciesSetIamPolicyRequest',
+        response_type_name='GoogleIamV1Policy',
+        supports_download=False,
+    )
+
+    def TestIamPermissions(self, request, global_params=None):
+      r"""Returns permissions that a caller has on the specified resource. If the resource does not exist, this will return an empty set of permissions, not a `NOT_FOUND` error. Note: This operation is designed to be used for building permission-aware UIs and command-line tools, not for authorization checking. This operation may "fail open" without warning.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsAuthzPoliciesTestIamPermissionsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleIamV1TestIamPermissionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('TestIamPermissions')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    TestIamPermissions.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/authzPolicies/{authzPoliciesId}:testIamPermissions',
+        http_method='POST',
+        method_id='networksecurity.projects.locations.authzPolicies.testIamPermissions',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1alpha1/{+resource}:testIamPermissions',
+        request_field='googleIamV1TestIamPermissionsRequest',
+        request_type_name='NetworksecurityProjectsLocationsAuthzPoliciesTestIamPermissionsRequest',
+        response_type_name='GoogleIamV1TestIamPermissionsResponse',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsBackendAuthenticationConfigsService(base_api.BaseApiService):
+    """Service class for the projects_locations_backendAuthenticationConfigs resource."""
+
+    _NAME = 'projects_locations_backendAuthenticationConfigs'
+
+    def __init__(self, client):
+      super(NetworksecurityV1alpha1.ProjectsLocationsBackendAuthenticationConfigsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new BackendAuthenticationConfig in a given project and location.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsBackendAuthenticationConfigsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/backendAuthenticationConfigs',
+        http_method='POST',
+        method_id='networksecurity.projects.locations.backendAuthenticationConfigs.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['backendAuthenticationConfigId'],
+        relative_path='v1alpha1/{+parent}/backendAuthenticationConfigs',
+        request_field='backendAuthenticationConfig',
+        request_type_name='NetworksecurityProjectsLocationsBackendAuthenticationConfigsCreateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a single BackendAuthenticationConfig to BackendAuthenticationConfig.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsBackendAuthenticationConfigsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/backendAuthenticationConfigs/{backendAuthenticationConfigsId}',
+        http_method='DELETE',
+        method_id='networksecurity.projects.locations.backendAuthenticationConfigs.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['etag'],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsBackendAuthenticationConfigsDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets details of a single BackendAuthenticationConfig to BackendAuthenticationConfig.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsBackendAuthenticationConfigsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (BackendAuthenticationConfig) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/backendAuthenticationConfigs/{backendAuthenticationConfigsId}',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.backendAuthenticationConfigs.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsBackendAuthenticationConfigsGetRequest',
+        response_type_name='BackendAuthenticationConfig',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists BackendAuthenticationConfigs in a given project and location.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsBackendAuthenticationConfigsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListBackendAuthenticationConfigsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/backendAuthenticationConfigs',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.backendAuthenticationConfigs.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['pageSize', 'pageToken'],
+        relative_path='v1alpha1/{+parent}/backendAuthenticationConfigs',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsBackendAuthenticationConfigsListRequest',
+        response_type_name='ListBackendAuthenticationConfigsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates the parameters of a single BackendAuthenticationConfig to BackendAuthenticationConfig.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsBackendAuthenticationConfigsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/backendAuthenticationConfigs/{backendAuthenticationConfigsId}',
+        http_method='PATCH',
+        method_id='networksecurity.projects.locations.backendAuthenticationConfigs.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1alpha1/{+name}',
+        request_field='backendAuthenticationConfig',
+        request_type_name='NetworksecurityProjectsLocationsBackendAuthenticationConfigsPatchRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
   class ProjectsLocationsClientTlsPoliciesService(base_api.BaseApiService):
     """Service class for the projects_locations_clientTlsPolicies resource."""
 
@@ -1826,6 +2102,151 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
         request_field='googleIamV1TestIamPermissionsRequest',
         request_type_name='NetworksecurityProjectsLocationsClientTlsPoliciesTestIamPermissionsRequest',
         response_type_name='GoogleIamV1TestIamPermissionsResponse',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsDnsThreatDetectorsService(base_api.BaseApiService):
+    """Service class for the projects_locations_dnsThreatDetectors resource."""
+
+    _NAME = 'projects_locations_dnsThreatDetectors'
+
+    def __init__(self, client):
+      super(NetworksecurityV1alpha1.ProjectsLocationsDnsThreatDetectorsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new DnsThreatDetector in a given project and location.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsDnsThreatDetectorsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (DnsThreatDetector) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/dnsThreatDetectors',
+        http_method='POST',
+        method_id='networksecurity.projects.locations.dnsThreatDetectors.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['dnsThreatDetectorId'],
+        relative_path='v1alpha1/{+parent}/dnsThreatDetectors',
+        request_field='dnsThreatDetector',
+        request_type_name='NetworksecurityProjectsLocationsDnsThreatDetectorsCreateRequest',
+        response_type_name='DnsThreatDetector',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a single DnsThreatDetector.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsDnsThreatDetectorsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Empty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/dnsThreatDetectors/{dnsThreatDetectorsId}',
+        http_method='DELETE',
+        method_id='networksecurity.projects.locations.dnsThreatDetectors.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsDnsThreatDetectorsDeleteRequest',
+        response_type_name='Empty',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets the details of a single DnsThreatDetector.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsDnsThreatDetectorsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (DnsThreatDetector) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/dnsThreatDetectors/{dnsThreatDetectorsId}',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.dnsThreatDetectors.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsDnsThreatDetectorsGetRequest',
+        response_type_name='DnsThreatDetector',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists DnsThreatDetectors in a given project and location.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsDnsThreatDetectorsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListDnsThreatDetectorsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/dnsThreatDetectors',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.dnsThreatDetectors.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['pageSize', 'pageToken'],
+        relative_path='v1alpha1/{+parent}/dnsThreatDetectors',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsDnsThreatDetectorsListRequest',
+        response_type_name='ListDnsThreatDetectorsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates a single DnsThreatDetector.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsDnsThreatDetectorsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (DnsThreatDetector) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/dnsThreatDetectors/{dnsThreatDetectorsId}',
+        http_method='PATCH',
+        method_id='networksecurity.projects.locations.dnsThreatDetectors.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1alpha1/{+name}',
+        request_field='dnsThreatDetector',
+        request_type_name='NetworksecurityProjectsLocationsDnsThreatDetectorsPatchRequest',
+        response_type_name='DnsThreatDetector',
         supports_download=False,
     )
 
@@ -2409,6 +2830,586 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+  class ProjectsLocationsInterceptDeploymentGroupsService(base_api.BaseApiService):
+    """Service class for the projects_locations_interceptDeploymentGroups resource."""
+
+    _NAME = 'projects_locations_interceptDeploymentGroups'
+
+    def __init__(self, client):
+      super(NetworksecurityV1alpha1.ProjectsLocationsInterceptDeploymentGroupsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a deployment group in a given project and location. See https://google.aip.dev/133.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsInterceptDeploymentGroupsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/interceptDeploymentGroups',
+        http_method='POST',
+        method_id='networksecurity.projects.locations.interceptDeploymentGroups.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['interceptDeploymentGroupId', 'requestId'],
+        relative_path='v1alpha1/{+parent}/interceptDeploymentGroups',
+        request_field='interceptDeploymentGroup',
+        request_type_name='NetworksecurityProjectsLocationsInterceptDeploymentGroupsCreateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a deployment group. See https://google.aip.dev/135.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsInterceptDeploymentGroupsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/interceptDeploymentGroups/{interceptDeploymentGroupsId}',
+        http_method='DELETE',
+        method_id='networksecurity.projects.locations.interceptDeploymentGroups.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId'],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsInterceptDeploymentGroupsDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets a specific deployment group. See https://google.aip.dev/131.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsInterceptDeploymentGroupsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (InterceptDeploymentGroup) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/interceptDeploymentGroups/{interceptDeploymentGroupsId}',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.interceptDeploymentGroups.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsInterceptDeploymentGroupsGetRequest',
+        response_type_name='InterceptDeploymentGroup',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists deployment groups in a given project and location. See https://google.aip.dev/132.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsInterceptDeploymentGroupsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListInterceptDeploymentGroupsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/interceptDeploymentGroups',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.interceptDeploymentGroups.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha1/{+parent}/interceptDeploymentGroups',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsInterceptDeploymentGroupsListRequest',
+        response_type_name='ListInterceptDeploymentGroupsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates a deployment group. See https://google.aip.dev/134.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsInterceptDeploymentGroupsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/interceptDeploymentGroups/{interceptDeploymentGroupsId}',
+        http_method='PATCH',
+        method_id='networksecurity.projects.locations.interceptDeploymentGroups.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId', 'updateMask'],
+        relative_path='v1alpha1/{+name}',
+        request_field='interceptDeploymentGroup',
+        request_type_name='NetworksecurityProjectsLocationsInterceptDeploymentGroupsPatchRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsInterceptDeploymentsService(base_api.BaseApiService):
+    """Service class for the projects_locations_interceptDeployments resource."""
+
+    _NAME = 'projects_locations_interceptDeployments'
+
+    def __init__(self, client):
+      super(NetworksecurityV1alpha1.ProjectsLocationsInterceptDeploymentsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a deployment in a given project and location. See https://google.aip.dev/133.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsInterceptDeploymentsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/interceptDeployments',
+        http_method='POST',
+        method_id='networksecurity.projects.locations.interceptDeployments.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['interceptDeploymentId', 'requestId'],
+        relative_path='v1alpha1/{+parent}/interceptDeployments',
+        request_field='interceptDeployment',
+        request_type_name='NetworksecurityProjectsLocationsInterceptDeploymentsCreateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a deployment. See https://google.aip.dev/135.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsInterceptDeploymentsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/interceptDeployments/{interceptDeploymentsId}',
+        http_method='DELETE',
+        method_id='networksecurity.projects.locations.interceptDeployments.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId'],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsInterceptDeploymentsDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets a specific deployment. See https://google.aip.dev/131.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsInterceptDeploymentsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (InterceptDeployment) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/interceptDeployments/{interceptDeploymentsId}',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.interceptDeployments.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsInterceptDeploymentsGetRequest',
+        response_type_name='InterceptDeployment',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists deployments in a given project and location. See https://google.aip.dev/132.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsInterceptDeploymentsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListInterceptDeploymentsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/interceptDeployments',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.interceptDeployments.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha1/{+parent}/interceptDeployments',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsInterceptDeploymentsListRequest',
+        response_type_name='ListInterceptDeploymentsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates a deployment. See https://google.aip.dev/134.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsInterceptDeploymentsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/interceptDeployments/{interceptDeploymentsId}',
+        http_method='PATCH',
+        method_id='networksecurity.projects.locations.interceptDeployments.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId', 'updateMask'],
+        relative_path='v1alpha1/{+name}',
+        request_field='interceptDeployment',
+        request_type_name='NetworksecurityProjectsLocationsInterceptDeploymentsPatchRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsInterceptEndpointGroupAssociationsService(base_api.BaseApiService):
+    """Service class for the projects_locations_interceptEndpointGroupAssociations resource."""
+
+    _NAME = 'projects_locations_interceptEndpointGroupAssociations'
+
+    def __init__(self, client):
+      super(NetworksecurityV1alpha1.ProjectsLocationsInterceptEndpointGroupAssociationsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates an association in a given project and location. See https://google.aip.dev/133.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsInterceptEndpointGroupAssociationsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/interceptEndpointGroupAssociations',
+        http_method='POST',
+        method_id='networksecurity.projects.locations.interceptEndpointGroupAssociations.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['interceptEndpointGroupAssociationId', 'requestId'],
+        relative_path='v1alpha1/{+parent}/interceptEndpointGroupAssociations',
+        request_field='interceptEndpointGroupAssociation',
+        request_type_name='NetworksecurityProjectsLocationsInterceptEndpointGroupAssociationsCreateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes an association. See https://google.aip.dev/135.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsInterceptEndpointGroupAssociationsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/interceptEndpointGroupAssociations/{interceptEndpointGroupAssociationsId}',
+        http_method='DELETE',
+        method_id='networksecurity.projects.locations.interceptEndpointGroupAssociations.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId'],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsInterceptEndpointGroupAssociationsDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets a specific association. See https://google.aip.dev/131.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsInterceptEndpointGroupAssociationsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (InterceptEndpointGroupAssociation) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/interceptEndpointGroupAssociations/{interceptEndpointGroupAssociationsId}',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.interceptEndpointGroupAssociations.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsInterceptEndpointGroupAssociationsGetRequest',
+        response_type_name='InterceptEndpointGroupAssociation',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists associations in a given project and location. See https://google.aip.dev/132.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsInterceptEndpointGroupAssociationsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListInterceptEndpointGroupAssociationsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/interceptEndpointGroupAssociations',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.interceptEndpointGroupAssociations.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha1/{+parent}/interceptEndpointGroupAssociations',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsInterceptEndpointGroupAssociationsListRequest',
+        response_type_name='ListInterceptEndpointGroupAssociationsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates an association. See https://google.aip.dev/134.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsInterceptEndpointGroupAssociationsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/interceptEndpointGroupAssociations/{interceptEndpointGroupAssociationsId}',
+        http_method='PATCH',
+        method_id='networksecurity.projects.locations.interceptEndpointGroupAssociations.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId', 'updateMask'],
+        relative_path='v1alpha1/{+name}',
+        request_field='interceptEndpointGroupAssociation',
+        request_type_name='NetworksecurityProjectsLocationsInterceptEndpointGroupAssociationsPatchRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsInterceptEndpointGroupsService(base_api.BaseApiService):
+    """Service class for the projects_locations_interceptEndpointGroups resource."""
+
+    _NAME = 'projects_locations_interceptEndpointGroups'
+
+    def __init__(self, client):
+      super(NetworksecurityV1alpha1.ProjectsLocationsInterceptEndpointGroupsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates an endpoint group in a given project and location. See https://google.aip.dev/133.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsInterceptEndpointGroupsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/interceptEndpointGroups',
+        http_method='POST',
+        method_id='networksecurity.projects.locations.interceptEndpointGroups.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['interceptEndpointGroupId', 'requestId'],
+        relative_path='v1alpha1/{+parent}/interceptEndpointGroups',
+        request_field='interceptEndpointGroup',
+        request_type_name='NetworksecurityProjectsLocationsInterceptEndpointGroupsCreateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes an endpoint group. See https://google.aip.dev/135.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsInterceptEndpointGroupsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/interceptEndpointGroups/{interceptEndpointGroupsId}',
+        http_method='DELETE',
+        method_id='networksecurity.projects.locations.interceptEndpointGroups.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId'],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsInterceptEndpointGroupsDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets a specific endpoint group. See https://google.aip.dev/131.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsInterceptEndpointGroupsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (InterceptEndpointGroup) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/interceptEndpointGroups/{interceptEndpointGroupsId}',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.interceptEndpointGroups.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsInterceptEndpointGroupsGetRequest',
+        response_type_name='InterceptEndpointGroup',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists endpoint groups in a given project and location. See https://google.aip.dev/132.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsInterceptEndpointGroupsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListInterceptEndpointGroupsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/interceptEndpointGroups',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.interceptEndpointGroups.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha1/{+parent}/interceptEndpointGroups',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsInterceptEndpointGroupsListRequest',
+        response_type_name='ListInterceptEndpointGroupsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates an endpoint group. See https://google.aip.dev/134.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsInterceptEndpointGroupsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/interceptEndpointGroups/{interceptEndpointGroupsId}',
+        http_method='PATCH',
+        method_id='networksecurity.projects.locations.interceptEndpointGroups.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId', 'updateMask'],
+        relative_path='v1alpha1/{+name}',
+        request_field='interceptEndpointGroup',
+        request_type_name='NetworksecurityProjectsLocationsInterceptEndpointGroupsPatchRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
   class ProjectsLocationsMirroringDeploymentGroupsService(base_api.BaseApiService):
     """Service class for the projects_locations_mirroringDeploymentGroups resource."""
 
@@ -2420,7 +3421,7 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
           }
 
     def Create(self, request, global_params=None):
-      r"""Creates a new MirroringDeploymentGroup in a given project and location.
+      r"""Creates a deployment group in a given project and location. See https://google.aip.dev/133.
 
       Args:
         request: (NetworksecurityProjectsLocationsMirroringDeploymentGroupsCreateRequest) input message
@@ -2447,7 +3448,7 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
     )
 
     def Delete(self, request, global_params=None):
-      r"""Deletes a single MirroringDeploymentGroup.
+      r"""Deletes a deployment group. See https://google.aip.dev/135.
 
       Args:
         request: (NetworksecurityProjectsLocationsMirroringDeploymentGroupsDeleteRequest) input message
@@ -2474,7 +3475,7 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
     )
 
     def Get(self, request, global_params=None):
-      r"""Gets details of a single MirroringDeploymentGroup.
+      r"""Gets a specific deployment group. See https://google.aip.dev/131.
 
       Args:
         request: (NetworksecurityProjectsLocationsMirroringDeploymentGroupsGetRequest) input message
@@ -2501,7 +3502,7 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
     )
 
     def List(self, request, global_params=None):
-      r"""Lists MirroringDeploymentGroups in a given project and location.
+      r"""Lists deployment groups in a given project and location. See https://google.aip.dev/132.
 
       Args:
         request: (NetworksecurityProjectsLocationsMirroringDeploymentGroupsListRequest) input message
@@ -2528,7 +3529,7 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
     )
 
     def Patch(self, request, global_params=None):
-      r"""Updates a single MirroringDeploymentGroup.
+      r"""Updates a deployment group. See https://google.aip.dev/134.
 
       Args:
         request: (NetworksecurityProjectsLocationsMirroringDeploymentGroupsPatchRequest) input message
@@ -2565,7 +3566,7 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
           }
 
     def Create(self, request, global_params=None):
-      r"""Creates a new MirroringDeployment in a given project and location.
+      r"""Creates a deployment in a given project and location. See https://google.aip.dev/133.
 
       Args:
         request: (NetworksecurityProjectsLocationsMirroringDeploymentsCreateRequest) input message
@@ -2592,7 +3593,7 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
     )
 
     def Delete(self, request, global_params=None):
-      r"""Deletes a single MirroringDeployment.
+      r"""Deletes a deployment. See https://google.aip.dev/135.
 
       Args:
         request: (NetworksecurityProjectsLocationsMirroringDeploymentsDeleteRequest) input message
@@ -2619,7 +3620,7 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
     )
 
     def Get(self, request, global_params=None):
-      r"""Gets details of a single MirroringDeployment.
+      r"""Gets a specific deployment. See https://google.aip.dev/131.
 
       Args:
         request: (NetworksecurityProjectsLocationsMirroringDeploymentsGetRequest) input message
@@ -2646,7 +3647,7 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
     )
 
     def List(self, request, global_params=None):
-      r"""Lists MirroringDeployments in a given project and location.
+      r"""Lists deployments in a given project and location. See https://google.aip.dev/132.
 
       Args:
         request: (NetworksecurityProjectsLocationsMirroringDeploymentsListRequest) input message
@@ -2673,7 +3674,7 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
     )
 
     def Patch(self, request, global_params=None):
-      r"""Updates a single MirroringDeployment.
+      r"""Updates a deployment. See https://google.aip.dev/134.
 
       Args:
         request: (NetworksecurityProjectsLocationsMirroringDeploymentsPatchRequest) input message
@@ -2710,7 +3711,7 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
           }
 
     def Create(self, request, global_params=None):
-      r"""Creates a new MirroringEndpointGroupAssociation in a given project and location.
+      r"""Creates an association in a given project and location. See https://google.aip.dev/133.
 
       Args:
         request: (NetworksecurityProjectsLocationsMirroringEndpointGroupAssociationsCreateRequest) input message
@@ -2737,7 +3738,7 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
     )
 
     def Delete(self, request, global_params=None):
-      r"""Deletes a single MirroringEndpointGroupAssociation.
+      r"""Deletes an association. See https://google.aip.dev/135.
 
       Args:
         request: (NetworksecurityProjectsLocationsMirroringEndpointGroupAssociationsDeleteRequest) input message
@@ -2764,7 +3765,7 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
     )
 
     def Get(self, request, global_params=None):
-      r"""Gets details of a single MirroringEndpointGroupAssociation.
+      r"""Gets a specific association. See https://google.aip.dev/131.
 
       Args:
         request: (NetworksecurityProjectsLocationsMirroringEndpointGroupAssociationsGetRequest) input message
@@ -2791,7 +3792,7 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
     )
 
     def List(self, request, global_params=None):
-      r"""Lists MirroringEndpointGroupAssociations in a given project and location.
+      r"""Lists associations in a given project and location. See https://google.aip.dev/132.
 
       Args:
         request: (NetworksecurityProjectsLocationsMirroringEndpointGroupAssociationsListRequest) input message
@@ -2818,7 +3819,7 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
     )
 
     def Patch(self, request, global_params=None):
-      r"""Updates a single MirroringEndpointGroupAssociation.
+      r"""Updates an association. See https://google.aip.dev/134.
 
       Args:
         request: (NetworksecurityProjectsLocationsMirroringEndpointGroupAssociationsPatchRequest) input message
@@ -2844,6 +3845,296 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+  class ProjectsLocationsMirroringEndpointGroupsService(base_api.BaseApiService):
+    """Service class for the projects_locations_mirroringEndpointGroups resource."""
+
+    _NAME = 'projects_locations_mirroringEndpointGroups'
+
+    def __init__(self, client):
+      super(NetworksecurityV1alpha1.ProjectsLocationsMirroringEndpointGroupsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates an endpoint group in a given project and location. See https://google.aip.dev/133.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsMirroringEndpointGroupsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/mirroringEndpointGroups',
+        http_method='POST',
+        method_id='networksecurity.projects.locations.mirroringEndpointGroups.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['mirroringEndpointGroupId', 'requestId'],
+        relative_path='v1alpha1/{+parent}/mirroringEndpointGroups',
+        request_field='mirroringEndpointGroup',
+        request_type_name='NetworksecurityProjectsLocationsMirroringEndpointGroupsCreateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes an endpoint group. See https://google.aip.dev/135.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsMirroringEndpointGroupsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/mirroringEndpointGroups/{mirroringEndpointGroupsId}',
+        http_method='DELETE',
+        method_id='networksecurity.projects.locations.mirroringEndpointGroups.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId'],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsMirroringEndpointGroupsDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets a specific endpoint group. See https://google.aip.dev/131.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsMirroringEndpointGroupsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (MirroringEndpointGroup) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/mirroringEndpointGroups/{mirroringEndpointGroupsId}',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.mirroringEndpointGroups.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsMirroringEndpointGroupsGetRequest',
+        response_type_name='MirroringEndpointGroup',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists endpoint groups in a given project and location. See https://google.aip.dev/132.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsMirroringEndpointGroupsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListMirroringEndpointGroupsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/mirroringEndpointGroups',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.mirroringEndpointGroups.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha1/{+parent}/mirroringEndpointGroups',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsMirroringEndpointGroupsListRequest',
+        response_type_name='ListMirroringEndpointGroupsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates an endpoint group. See https://google.aip.dev/134.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsMirroringEndpointGroupsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/mirroringEndpointGroups/{mirroringEndpointGroupsId}',
+        http_method='PATCH',
+        method_id='networksecurity.projects.locations.mirroringEndpointGroups.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId', 'updateMask'],
+        relative_path='v1alpha1/{+name}',
+        request_field='mirroringEndpointGroup',
+        request_type_name='NetworksecurityProjectsLocationsMirroringEndpointGroupsPatchRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsMirroringEndpointsService(base_api.BaseApiService):
+    """Service class for the projects_locations_mirroringEndpoints resource."""
+
+    _NAME = 'projects_locations_mirroringEndpoints'
+
+    def __init__(self, client):
+      super(NetworksecurityV1alpha1.ProjectsLocationsMirroringEndpointsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates an endpoint in a given project and location. See https://google.aip.dev/133.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsMirroringEndpointsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/mirroringEndpoints',
+        http_method='POST',
+        method_id='networksecurity.projects.locations.mirroringEndpoints.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['mirroringEndpointId', 'requestId'],
+        relative_path='v1alpha1/{+parent}/mirroringEndpoints',
+        request_field='mirroringEndpoint',
+        request_type_name='NetworksecurityProjectsLocationsMirroringEndpointsCreateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes an endpoint. See https://google.aip.dev/135.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsMirroringEndpointsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/mirroringEndpoints/{mirroringEndpointsId}',
+        http_method='DELETE',
+        method_id='networksecurity.projects.locations.mirroringEndpoints.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId'],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsMirroringEndpointsDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets a specific endpoint. See https://google.aip.dev/131.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsMirroringEndpointsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (MirroringEndpoint) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/mirroringEndpoints/{mirroringEndpointsId}',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.mirroringEndpoints.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsMirroringEndpointsGetRequest',
+        response_type_name='MirroringEndpoint',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists endpoints in a given project and location. See https://google.aip.dev/132.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsMirroringEndpointsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListMirroringEndpointsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/mirroringEndpoints',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.mirroringEndpoints.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha1/{+parent}/mirroringEndpoints',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsMirroringEndpointsListRequest',
+        response_type_name='ListMirroringEndpointsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates an endpoint group. See https://google.aip.dev/134.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsMirroringEndpointsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/mirroringEndpoints/{mirroringEndpointsId}',
+        http_method='PATCH',
+        method_id='networksecurity.projects.locations.mirroringEndpoints.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId', 'updateMask'],
+        relative_path='v1alpha1/{+name}',
+        request_field='mirroringEndpoint',
+        request_type_name='NetworksecurityProjectsLocationsMirroringEndpointsPatchRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
   class ProjectsLocationsOperationsService(base_api.BaseApiService):
     """Service class for the projects_locations_operations resource."""
 
@@ -2855,7 +4146,7 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (NetworksecurityProjectsLocationsOperationsCancelRequest) input message
@@ -2972,6 +4263,33 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
       self._upload_configs = {
           }
 
+    def AddDNSPeeringZone(self, request, global_params=None):
+      r"""Add DNS Peering Zone.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsPartnerSSEEnvironmentsAddDNSPeeringZoneRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('AddDNSPeeringZone')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    AddDNSPeeringZone.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/partnerSSEEnvironments/{partnerSSEEnvironmentsId}:addDNSPeeringZone',
+        http_method='POST',
+        method_id='networksecurity.projects.locations.partnerSSEEnvironments.addDNSPeeringZone',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha1/{+name}:addDNSPeeringZone',
+        request_field='addDNSPeeringZoneRequest',
+        request_type_name='NetworksecurityProjectsLocationsPartnerSSEEnvironmentsAddDNSPeeringZoneRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
     def Create(self, request, global_params=None):
       r"""Creates a new PartnerSSEEnvironment in a given project and location.
 
@@ -3077,6 +4395,33 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
         request_field='',
         request_type_name='NetworksecurityProjectsLocationsPartnerSSEEnvironmentsListRequest',
         response_type_name='ListPartnerSSEEnvironmentsResponse',
+        supports_download=False,
+    )
+
+    def RemoveDNSPeeringZone(self, request, global_params=None):
+      r"""Remove DNS Peering Zone.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsPartnerSSEEnvironmentsRemoveDNSPeeringZoneRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('RemoveDNSPeeringZone')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    RemoveDNSPeeringZone.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/partnerSSEEnvironments/{partnerSSEEnvironmentsId}:removeDNSPeeringZone',
+        http_method='POST',
+        method_id='networksecurity.projects.locations.partnerSSEEnvironments.removeDNSPeeringZone',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha1/{+name}:removeDNSPeeringZone',
+        request_field='removeDNSPeeringZoneRequest',
+        request_type_name='NetworksecurityProjectsLocationsPartnerSSEEnvironmentsRemoveDNSPeeringZoneRequest',
+        response_type_name='Operation',
         supports_download=False,
     )
 
@@ -3340,6 +4685,242 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
         request_field='',
         request_type_name='NetworksecurityProjectsLocationsPartnerSSERealmsListRequest',
         response_type_name='ListPartnerSSERealmsResponse',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsSacAttachmentsService(base_api.BaseApiService):
+    """Service class for the projects_locations_sacAttachments resource."""
+
+    _NAME = 'projects_locations_sacAttachments'
+
+    def __init__(self, client):
+      super(NetworksecurityV1alpha1.ProjectsLocationsSacAttachmentsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new SACAttachment in a given project and location.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsSacAttachmentsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/sacAttachments',
+        http_method='POST',
+        method_id='networksecurity.projects.locations.sacAttachments.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['requestId', 'sacAttachmentId'],
+        relative_path='v1alpha1/{+parent}/sacAttachments',
+        request_field='sACAttachment',
+        request_type_name='NetworksecurityProjectsLocationsSacAttachmentsCreateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes the specified attachment.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsSacAttachmentsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/sacAttachments/{sacAttachmentsId}',
+        http_method='DELETE',
+        method_id='networksecurity.projects.locations.sacAttachments.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId'],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsSacAttachmentsDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Returns the specified attachment.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsSacAttachmentsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (SACAttachment) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/sacAttachments/{sacAttachmentsId}',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.sacAttachments.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsSacAttachmentsGetRequest',
+        response_type_name='SACAttachment',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists SACAttachments in a given project and location.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsSacAttachmentsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListSACAttachmentsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/sacAttachments',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.sacAttachments.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha1/{+parent}/sacAttachments',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsSacAttachmentsListRequest',
+        response_type_name='ListSACAttachmentsResponse',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsSacRealmsService(base_api.BaseApiService):
+    """Service class for the projects_locations_sacRealms resource."""
+
+    _NAME = 'projects_locations_sacRealms'
+
+    def __init__(self, client):
+      super(NetworksecurityV1alpha1.ProjectsLocationsSacRealmsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new SACRealm in a given project.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsSacRealmsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/sacRealms',
+        http_method='POST',
+        method_id='networksecurity.projects.locations.sacRealms.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['requestId', 'sacRealmId'],
+        relative_path='v1alpha1/{+parent}/sacRealms',
+        request_field='sACRealm',
+        request_type_name='NetworksecurityProjectsLocationsSacRealmsCreateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes the specified realm.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsSacRealmsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/sacRealms/{sacRealmsId}',
+        http_method='DELETE',
+        method_id='networksecurity.projects.locations.sacRealms.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId'],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsSacRealmsDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Returns the specified realm.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsSacRealmsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (SACRealm) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/sacRealms/{sacRealmsId}',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.sacRealms.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsSacRealmsGetRequest',
+        response_type_name='SACRealm',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists SACRealms in a given project.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsSacRealmsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListSACRealmsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/sacRealms',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.sacRealms.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha1/{+parent}/sacRealms',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsSacRealmsListRequest',
+        response_type_name='ListSACRealmsResponse',
         supports_download=False,
     )
 
@@ -3770,7 +5351,7 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
         method_id='networksecurity.projects.locations.serverTlsPolicies.list',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['pageSize', 'pageToken'],
+        query_params=['pageSize', 'pageToken', 'returnPartialSuccess'],
         relative_path='v1alpha1/{+parent}/serverTlsPolicies',
         request_field='',
         request_type_name='NetworksecurityProjectsLocationsServerTlsPoliciesListRequest',
@@ -3923,296 +5504,6 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
         supports_download=False,
     )
 
-  class ProjectsLocationsSseGatewaysService(base_api.BaseApiService):
-    """Service class for the projects_locations_sseGateways resource."""
-
-    _NAME = 'projects_locations_sseGateways'
-
-    def __init__(self, client):
-      super(NetworksecurityV1alpha1.ProjectsLocationsSseGatewaysService, self).__init__(client)
-      self._upload_configs = {
-          }
-
-    def AttachAppNetwork(self, request, global_params=None):
-      r"""Attaches an app network to a SSEGateway.
-
-      Args:
-        request: (NetworksecurityProjectsLocationsSseGatewaysAttachAppNetworkRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (Operation) The response message.
-      """
-      config = self.GetMethodConfig('AttachAppNetwork')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    AttachAppNetwork.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/sseGateways/{sseGatewaysId}:attachAppNetwork',
-        http_method='POST',
-        method_id='networksecurity.projects.locations.sseGateways.attachAppNetwork',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=[],
-        relative_path='v1alpha1/{+name}:attachAppNetwork',
-        request_field='attachAppNetworkRequest',
-        request_type_name='NetworksecurityProjectsLocationsSseGatewaysAttachAppNetworkRequest',
-        response_type_name='Operation',
-        supports_download=False,
-    )
-
-    def Create(self, request, global_params=None):
-      r"""Creates a new SSEGateway in a given project and location.
-
-      Args:
-        request: (NetworksecurityProjectsLocationsSseGatewaysCreateRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (Operation) The response message.
-      """
-      config = self.GetMethodConfig('Create')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Create.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/sseGateways',
-        http_method='POST',
-        method_id='networksecurity.projects.locations.sseGateways.create',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['requestId', 'sseGatewayId'],
-        relative_path='v1alpha1/{+parent}/sseGateways',
-        request_field='sSEGateway',
-        request_type_name='NetworksecurityProjectsLocationsSseGatewaysCreateRequest',
-        response_type_name='Operation',
-        supports_download=False,
-    )
-
-    def Delete(self, request, global_params=None):
-      r"""Deletes a single SSEGateway.
-
-      Args:
-        request: (NetworksecurityProjectsLocationsSseGatewaysDeleteRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (Operation) The response message.
-      """
-      config = self.GetMethodConfig('Delete')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Delete.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/sseGateways/{sseGatewaysId}',
-        http_method='DELETE',
-        method_id='networksecurity.projects.locations.sseGateways.delete',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=['requestId'],
-        relative_path='v1alpha1/{+name}',
-        request_field='',
-        request_type_name='NetworksecurityProjectsLocationsSseGatewaysDeleteRequest',
-        response_type_name='Operation',
-        supports_download=False,
-    )
-
-    def DetachAppNetwork(self, request, global_params=None):
-      r"""Detaches an app network from a SSEGateway.
-
-      Args:
-        request: (NetworksecurityProjectsLocationsSseGatewaysDetachAppNetworkRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (Operation) The response message.
-      """
-      config = self.GetMethodConfig('DetachAppNetwork')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    DetachAppNetwork.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/sseGateways/{sseGatewaysId}:detachAppNetwork',
-        http_method='POST',
-        method_id='networksecurity.projects.locations.sseGateways.detachAppNetwork',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=[],
-        relative_path='v1alpha1/{+name}:detachAppNetwork',
-        request_field='detachAppNetworkRequest',
-        request_type_name='NetworksecurityProjectsLocationsSseGatewaysDetachAppNetworkRequest',
-        response_type_name='Operation',
-        supports_download=False,
-    )
-
-    def Get(self, request, global_params=None):
-      r"""Gets details of a single SSEGateway.
-
-      Args:
-        request: (NetworksecurityProjectsLocationsSseGatewaysGetRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (SSEGateway) The response message.
-      """
-      config = self.GetMethodConfig('Get')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Get.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/sseGateways/{sseGatewaysId}',
-        http_method='GET',
-        method_id='networksecurity.projects.locations.sseGateways.get',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=[],
-        relative_path='v1alpha1/{+name}',
-        request_field='',
-        request_type_name='NetworksecurityProjectsLocationsSseGatewaysGetRequest',
-        response_type_name='SSEGateway',
-        supports_download=False,
-    )
-
-    def List(self, request, global_params=None):
-      r"""Lists SSEGateways in a given project and location.
-
-      Args:
-        request: (NetworksecurityProjectsLocationsSseGatewaysListRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (ListSSEGatewaysResponse) The response message.
-      """
-      config = self.GetMethodConfig('List')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    List.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/sseGateways',
-        http_method='GET',
-        method_id='networksecurity.projects.locations.sseGateways.list',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
-        relative_path='v1alpha1/{+parent}/sseGateways',
-        request_field='',
-        request_type_name='NetworksecurityProjectsLocationsSseGatewaysListRequest',
-        response_type_name='ListSSEGatewaysResponse',
-        supports_download=False,
-    )
-
-  class ProjectsLocationsSseRealmsService(base_api.BaseApiService):
-    """Service class for the projects_locations_sseRealms resource."""
-
-    _NAME = 'projects_locations_sseRealms'
-
-    def __init__(self, client):
-      super(NetworksecurityV1alpha1.ProjectsLocationsSseRealmsService, self).__init__(client)
-      self._upload_configs = {
-          }
-
-    def Create(self, request, global_params=None):
-      r"""Creates a new SSERealm in a given project and location.
-
-      Args:
-        request: (NetworksecurityProjectsLocationsSseRealmsCreateRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (Operation) The response message.
-      """
-      config = self.GetMethodConfig('Create')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Create.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/sseRealms',
-        http_method='POST',
-        method_id='networksecurity.projects.locations.sseRealms.create',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['requestId', 'sseRealmId'],
-        relative_path='v1alpha1/{+parent}/sseRealms',
-        request_field='sSERealm',
-        request_type_name='NetworksecurityProjectsLocationsSseRealmsCreateRequest',
-        response_type_name='Operation',
-        supports_download=False,
-    )
-
-    def Delete(self, request, global_params=None):
-      r"""Deletes a single SSERealm.
-
-      Args:
-        request: (NetworksecurityProjectsLocationsSseRealmsDeleteRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (Operation) The response message.
-      """
-      config = self.GetMethodConfig('Delete')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Delete.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/sseRealms/{sseRealmsId}',
-        http_method='DELETE',
-        method_id='networksecurity.projects.locations.sseRealms.delete',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=['requestId'],
-        relative_path='v1alpha1/{+name}',
-        request_field='',
-        request_type_name='NetworksecurityProjectsLocationsSseRealmsDeleteRequest',
-        response_type_name='Operation',
-        supports_download=False,
-    )
-
-    def Get(self, request, global_params=None):
-      r"""Gets details of a single SSERealm.
-
-      Args:
-        request: (NetworksecurityProjectsLocationsSseRealmsGetRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (SSERealm) The response message.
-      """
-      config = self.GetMethodConfig('Get')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Get.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/sseRealms/{sseRealmsId}',
-        http_method='GET',
-        method_id='networksecurity.projects.locations.sseRealms.get',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=[],
-        relative_path='v1alpha1/{+name}',
-        request_field='',
-        request_type_name='NetworksecurityProjectsLocationsSseRealmsGetRequest',
-        response_type_name='SSERealm',
-        supports_download=False,
-    )
-
-    def List(self, request, global_params=None):
-      r"""Lists SSERealms in a given project and location.
-
-      Args:
-        request: (NetworksecurityProjectsLocationsSseRealmsListRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (ListSSERealmsResponse) The response message.
-      """
-      config = self.GetMethodConfig('List')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    List.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/sseRealms',
-        http_method='GET',
-        method_id='networksecurity.projects.locations.sseRealms.list',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
-        relative_path='v1alpha1/{+parent}/sseRealms',
-        request_field='',
-        request_type_name='NetworksecurityProjectsLocationsSseRealmsListRequest',
-        response_type_name='ListSSERealmsResponse',
-        supports_download=False,
-    )
-
   class ProjectsLocationsTlsInspectionPoliciesService(base_api.BaseApiService):
     """Service class for the projects_locations_tlsInspectionPolicies resource."""
 
@@ -4357,6 +5648,424 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
         response_type_name='Operation',
         supports_download=False,
     )
+
+  class ProjectsLocationsUllMirroringCollectorsService(base_api.BaseApiService):
+    """Service class for the projects_locations_ullMirroringCollectors resource."""
+
+    _NAME = 'projects_locations_ullMirroringCollectors'
+
+    def __init__(self, client):
+      super(NetworksecurityV1alpha1.ProjectsLocationsUllMirroringCollectorsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new UllMirroringCollector in a given project and location.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsUllMirroringCollectorsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/ullMirroringCollectors',
+        http_method='POST',
+        method_id='networksecurity.projects.locations.ullMirroringCollectors.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['requestId', 'ullMirroringCollectorId'],
+        relative_path='v1alpha1/{+parent}/ullMirroringCollectors',
+        request_field='ullMirroringCollector',
+        request_type_name='NetworksecurityProjectsLocationsUllMirroringCollectorsCreateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a single UllMirroringCollector.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsUllMirroringCollectorsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/ullMirroringCollectors/{ullMirroringCollectorsId}',
+        http_method='DELETE',
+        method_id='networksecurity.projects.locations.ullMirroringCollectors.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId'],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsUllMirroringCollectorsDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets details of a single UllMirroringCollector.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsUllMirroringCollectorsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (UllMirroringCollector) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/ullMirroringCollectors/{ullMirroringCollectorsId}',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.ullMirroringCollectors.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsUllMirroringCollectorsGetRequest',
+        response_type_name='UllMirroringCollector',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists UllMirroringCollectors in a given project and location.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsUllMirroringCollectorsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListUllMirroringCollectorsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/ullMirroringCollectors',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.ullMirroringCollectors.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha1/{+parent}/ullMirroringCollectors',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsUllMirroringCollectorsListRequest',
+        response_type_name='ListUllMirroringCollectorsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates a single UllMirroringCollector.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsUllMirroringCollectorsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/ullMirroringCollectors/{ullMirroringCollectorsId}',
+        http_method='PATCH',
+        method_id='networksecurity.projects.locations.ullMirroringCollectors.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId', 'updateMask'],
+        relative_path='v1alpha1/{+name}',
+        request_field='ullMirroringCollector',
+        request_type_name='NetworksecurityProjectsLocationsUllMirroringCollectorsPatchRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsUllMirroringEnginesService(base_api.BaseApiService):
+    """Service class for the projects_locations_ullMirroringEngines resource."""
+
+    _NAME = 'projects_locations_ullMirroringEngines'
+
+    def __init__(self, client):
+      super(NetworksecurityV1alpha1.ProjectsLocationsUllMirroringEnginesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new UllMirroringEngine in a given project and location.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsUllMirroringEnginesCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/ullMirroringEngines',
+        http_method='POST',
+        method_id='networksecurity.projects.locations.ullMirroringEngines.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['requestId', 'ullMirroringEngineId'],
+        relative_path='v1alpha1/{+parent}/ullMirroringEngines',
+        request_field='ullMirroringEngine',
+        request_type_name='NetworksecurityProjectsLocationsUllMirroringEnginesCreateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a single UllMirroringEngine.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsUllMirroringEnginesDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/ullMirroringEngines/{ullMirroringEnginesId}',
+        http_method='DELETE',
+        method_id='networksecurity.projects.locations.ullMirroringEngines.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId'],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsUllMirroringEnginesDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""GetUllMirroringEngine gets a UllMirroringEngine resource.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsUllMirroringEnginesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (UllMirroringEngine) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/ullMirroringEngines/{ullMirroringEnginesId}',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.ullMirroringEngines.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsUllMirroringEnginesGetRequest',
+        response_type_name='UllMirroringEngine',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists UllMirroringEngines in a given project and location.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsUllMirroringEnginesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListUllMirroringEnginesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/ullMirroringEngines',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.ullMirroringEngines.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha1/{+parent}/ullMirroringEngines',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsUllMirroringEnginesListRequest',
+        response_type_name='ListUllMirroringEnginesResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates a UllMirroringEngine resource.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsUllMirroringEnginesPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/ullMirroringEngines/{ullMirroringEnginesId}',
+        http_method='PATCH',
+        method_id='networksecurity.projects.locations.ullMirroringEngines.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1alpha1/{+name}',
+        request_field='ullMirroringEngine',
+        request_type_name='NetworksecurityProjectsLocationsUllMirroringEnginesPatchRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsUllMirroringInfrasUllMirroredNetworksService(base_api.BaseApiService):
+    """Service class for the projects_locations_ullMirroringInfras_ullMirroredNetworks resource."""
+
+    _NAME = 'projects_locations_ullMirroringInfras_ullMirroredNetworks'
+
+    def __init__(self, client):
+      super(NetworksecurityV1alpha1.ProjectsLocationsUllMirroringInfrasUllMirroredNetworksService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new UllMirroredNetwork in a given project and location.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsUllMirroringInfrasUllMirroredNetworksCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/ullMirroringInfras/{ullMirroringInfrasId}/ullMirroredNetworks',
+        http_method='POST',
+        method_id='networksecurity.projects.locations.ullMirroringInfras.ullMirroredNetworks.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['requestId', 'ullMirroredNetworkId'],
+        relative_path='v1alpha1/{+parent}/ullMirroredNetworks',
+        request_field='ullMirroredNetwork',
+        request_type_name='NetworksecurityProjectsLocationsUllMirroringInfrasUllMirroredNetworksCreateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a single UllMirroredNetwork.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsUllMirroringInfrasUllMirroredNetworksDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/ullMirroringInfras/{ullMirroringInfrasId}/ullMirroredNetworks/{ullMirroredNetworksId}',
+        http_method='DELETE',
+        method_id='networksecurity.projects.locations.ullMirroringInfras.ullMirroredNetworks.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId'],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsUllMirroringInfrasUllMirroredNetworksDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets details of a single UllMirroredNetwork.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsUllMirroringInfrasUllMirroredNetworksGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (UllMirroredNetwork) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/ullMirroringInfras/{ullMirroringInfrasId}/ullMirroredNetworks/{ullMirroredNetworksId}',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.ullMirroringInfras.ullMirroredNetworks.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha1/{+name}',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsUllMirroringInfrasUllMirroredNetworksGetRequest',
+        response_type_name='UllMirroredNetwork',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists UllMirroredNetworks in a given project and location.
+
+      Args:
+        request: (NetworksecurityProjectsLocationsUllMirroringInfrasUllMirroredNetworksListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListUllMirroredNetworksResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha1/projects/{projectsId}/locations/{locationsId}/ullMirroringInfras/{ullMirroringInfrasId}/ullMirroredNetworks',
+        http_method='GET',
+        method_id='networksecurity.projects.locations.ullMirroringInfras.ullMirroredNetworks.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha1/{+parent}/ullMirroredNetworks',
+        request_field='',
+        request_type_name='NetworksecurityProjectsLocationsUllMirroringInfrasUllMirroredNetworksListRequest',
+        response_type_name='ListUllMirroredNetworksResponse',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsUllMirroringInfrasService(base_api.BaseApiService):
+    """Service class for the projects_locations_ullMirroringInfras resource."""
+
+    _NAME = 'projects_locations_ullMirroringInfras'
+
+    def __init__(self, client):
+      super(NetworksecurityV1alpha1.ProjectsLocationsUllMirroringInfrasService, self).__init__(client)
+      self._upload_configs = {
+          }
 
   class ProjectsLocationsUrlListsService(base_api.BaseApiService):
     """Service class for the projects_locations_urlLists resource."""
@@ -4559,7 +6268,7 @@ class NetworksecurityV1alpha1(base_api.BaseApiClient):
         method_id='networksecurity.projects.locations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['extraLocationTypes', 'filter', 'pageSize', 'pageToken'],
         relative_path='v1alpha1/{+name}/locations',
         request_field='',
         request_type_name='NetworksecurityProjectsLocationsListRequest',

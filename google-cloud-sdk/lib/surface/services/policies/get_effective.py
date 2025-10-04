@@ -15,13 +15,9 @@
 
 # TODO: b/300099033 - Capitalize and turn into a sentence.
 """services policies get-effective-policy command."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import collections
 
-from googlecloudsdk.api_lib.services import exceptions
 from googlecloudsdk.api_lib.services import serviceusage
 from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.services import common_flags
@@ -34,8 +30,9 @@ _ORGANIZATION_RESOURCE = 'organizations/{}'
 
 
 # TODO: b/321801975 - Make command public after suv2 launch.
+@base.UniverseCompatible
 @base.Hidden
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
 class GetEffectivePolicy(base.Command):
   """Get effective policy for a project, folder or organization.
 
@@ -62,6 +59,7 @@ class GetEffectivePolicy(base.Command):
             ' related to effective policy.'
         ),
         default='BASIC',
+        choices=['BASIC', 'FULL'],
     )
     common_flags.add_resource_args(parser)
 
@@ -82,12 +80,6 @@ class GetEffectivePolicy(base.Command):
     Returns:
       Effective Policy.
     """
-
-    if args.view not in ('BASIC', 'FULL'):
-      raise exceptions.ConfigError(
-          'Invalid view. Please provide a valid view. Excepted view : BASIC,'
-          ' FULL'
-      )
     if args.IsSpecified('folder'):
       resource_name = _FOLDER_RESOURCE.format(args.folder)
     elif args.IsSpecified('organization'):
@@ -98,7 +90,7 @@ class GetEffectivePolicy(base.Command):
       project = properties.VALUES.core.project.Get(required=True)
       resource_name = _PROJECT_RESOURCE.format(project)
 
-    response = serviceusage.GetEffectivePolicyV2Alpha(
+    response = serviceusage.GetEffectivePolicyV2Beta(
         resource_name + '/effectivePolicy', args.view
     )
 

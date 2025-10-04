@@ -33,15 +33,15 @@ class AlloydbProjectsLocationsBackupsCreateRequest(_messages.Message):
     parent: Required. Value for parent.
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes since the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
+      ignores the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if the original operation with the same request
+      ID was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
     validateOnly: Optional. If set, the backend validates the request, but
       doesn't actually execute it.
   """
@@ -64,15 +64,15 @@ class AlloydbProjectsLocationsBackupsDeleteRequest(_messages.Message):
       comment on the Backup.name field.
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes after the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
+      ignores the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if the original operation with the same request
+      ID was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
     validateOnly: Optional. If set, the backend validates the request, but
       doesn't actually execute it.
   """
@@ -130,15 +130,15 @@ class AlloydbProjectsLocationsBackupsPatchRequest(_messages.Message):
       projects/{project}/locations/{region}
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes since the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
+      ignores the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if the original operation with the same request
+      ID was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
     updateMask: Optional. Field mask is used to specify the fields to be
       overwritten in the Backup resource by the update. The fields specified
       in the update_mask are relative to the resource, not the full request. A
@@ -166,18 +166,18 @@ class AlloydbProjectsLocationsClustersCreateRequest(_messages.Message):
       format, see the comment on the Cluster.name field.
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes since the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
-    validateOnly: Optional. If set, performs request validation (e.g.
-      permission checks and any other type of validation), but do not actually
-      execute the create request.
+      ignores the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if the original operation with the same request
+      ID was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
+    validateOnly: Optional. If set, performs request validation, for example,
+      permission checks and any other type of validation, but does not
+      actually execute the create request.
   """
 
   cluster = _messages.MessageField('Cluster', 1)
@@ -197,18 +197,18 @@ class AlloydbProjectsLocationsClustersCreatesecondaryRequest(_messages.Message):
       format, see the comment on the Cluster.name field.
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes since the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
-    validateOnly: Optional. If set, performs request validation (e.g.
-      permission checks and any other type of validation), but do not actually
-      execute the create request.
+      ignores the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if the original operation with the same request
+      ID was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
+    validateOnly: Optional. If set, performs request validation, for example,
+      permission checks and any other type of validation, but does not
+      actually execute the create request.
   """
 
   cluster = _messages.MessageField('Cluster', 1)
@@ -231,18 +231,18 @@ class AlloydbProjectsLocationsClustersDeleteRequest(_messages.Message):
       comment on the Cluster.name field.
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes after the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
-    validateOnly: Optional. If set, performs request validation (e.g.
-      permission checks and any other type of validation), but do not actually
-      execute the delete.
+      ignores the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if the original operation with the same request
+      ID was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
+    validateOnly: Optional. If set, performs request validation, for example,
+      permission checks and any other type of validation, but does not
+      actually execute the create request.
   """
 
   etag = _messages.StringField(1)
@@ -250,6 +250,19 @@ class AlloydbProjectsLocationsClustersDeleteRequest(_messages.Message):
   name = _messages.StringField(3, required=True)
   requestId = _messages.StringField(4)
   validateOnly = _messages.BooleanField(5)
+
+
+class AlloydbProjectsLocationsClustersExportRequest(_messages.Message):
+  r"""A AlloydbProjectsLocationsClustersExportRequest object.
+
+  Fields:
+    exportClusterRequest: A ExportClusterRequest resource to be passed as the
+      request body.
+    name: Required. The resource name of the cluster.
+  """
+
+  exportClusterRequest = _messages.MessageField('ExportClusterRequest', 1)
+  name = _messages.StringField(2, required=True)
 
 
 class AlloydbProjectsLocationsClustersGetRequest(_messages.Message):
@@ -289,6 +302,19 @@ class AlloydbProjectsLocationsClustersGetRequest(_messages.Message):
   view = _messages.EnumField('ViewValueValuesEnum', 2)
 
 
+class AlloydbProjectsLocationsClustersImportRequest(_messages.Message):
+  r"""A AlloydbProjectsLocationsClustersImportRequest object.
+
+  Fields:
+    importClusterRequest: A ImportClusterRequest resource to be passed as the
+      request body.
+    name: Required. The resource name of the cluster.
+  """
+
+  importClusterRequest = _messages.MessageField('ImportClusterRequest', 1)
+  name = _messages.StringField(2, required=True)
+
+
 class AlloydbProjectsLocationsClustersInstancesCreateRequest(_messages.Message):
   r"""A AlloydbProjectsLocationsClustersInstancesCreateRequest object.
 
@@ -299,18 +325,18 @@ class AlloydbProjectsLocationsClustersInstancesCreateRequest(_messages.Message):
       format, see the comment on the Instance.name field.
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes since the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
-    validateOnly: Optional. If set, performs request validation (e.g.
-      permission checks and any other type of validation), but do not actually
-      execute the create request.
+      ignores the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if the original operation with the same request
+      ID was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
+    validateOnly: Optional. If set, performs request validation, for example,
+      permission checks and any other type of validation, but does not
+      actually execute the create request.
   """
 
   instance = _messages.MessageField('Instance', 1)
@@ -331,18 +357,18 @@ class AlloydbProjectsLocationsClustersInstancesCreatesecondaryRequest(_messages.
       format, see the comment on the Instance.name field.
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes since the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
-    validateOnly: Optional. If set, performs request validation (e.g.
-      permission checks and any other type of validation), but do not actually
-      execute the create request.
+      ignores the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if the original operation with the same request
+      ID was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
+    validateOnly: Optional. If set, performs request validation, for example,
+      permission checks and any other type of validation, but does not
+      actually execute the create request.
   """
 
   instance = _messages.MessageField('Instance', 1)
@@ -363,18 +389,18 @@ class AlloydbProjectsLocationsClustersInstancesDeleteRequest(_messages.Message):
       comment on the Instance.name field.
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes after the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
-    validateOnly: Optional. If set, performs request validation (e.g.
-      permission checks and any other type of validation), but do not actually
-      execute the delete.
+      ignores the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if the original operation with the same request
+      ID was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
+    validateOnly: Optional. If set, performs request validation, for example,
+      permission checks and any other type of validation, but does not
+      actually execute the create request.
   """
 
   etag = _messages.StringField(1)
@@ -407,15 +433,15 @@ class AlloydbProjectsLocationsClustersInstancesGetConnectionInfoRequest(_message
       stance}
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes after the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
+      ignores the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if the original operation with the same request
+      ID was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
   """
 
   parent = _messages.StringField(1, required=True)
@@ -511,23 +537,23 @@ class AlloydbProjectsLocationsClustersInstancesPatchRequest(_messages.Message):
       projects/{project}/locations/{region}/clusters/{cluster_id}
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes since the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
+      ignores the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if the original operation with the same request
+      ID was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
     updateMask: Optional. Field mask is used to specify the fields to be
       overwritten in the Instance resource by the update. The fields specified
       in the update_mask are relative to the resource, not the full request. A
       field will be overwritten if it is in the mask. If the user does not
       provide a mask then all fields will be overwritten.
-    validateOnly: Optional. If set, performs request validation (e.g.
-      permission checks and any other type of validation), but do not actually
-      execute the update request.
+    validateOnly: Optional. If set, performs request validation, for example,
+      permission checks and any other type of validation, but does not
+      actually execute the create request.
   """
 
   allowMissing = _messages.BooleanField(1)
@@ -590,23 +616,23 @@ class AlloydbProjectsLocationsClustersPatchRequest(_messages.Message):
       projects/{project}/locations/{region}
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes since the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
+      ignores the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if the original operation with the same request
+      ID was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
     updateMask: Optional. Field mask is used to specify the fields to be
       overwritten in the Cluster resource by the update. The fields specified
       in the update_mask are relative to the resource, not the full request. A
       field will be overwritten if it is in the mask. If the user does not
       provide a mask then all fields will be overwritten.
-    validateOnly: Optional. If set, performs request validation (e.g.
-      permission checks and any other type of validation), but do not actually
-      execute the update request.
+    validateOnly: Optional. If set, performs request validation, for example,
+      permission checks and any other type of validation, but does not
+      actually execute the create request.
   """
 
   allowMissing = _messages.BooleanField(1)
@@ -631,6 +657,20 @@ class AlloydbProjectsLocationsClustersPromoteRequest(_messages.Message):
   promoteClusterRequest = _messages.MessageField('PromoteClusterRequest', 2)
 
 
+class AlloydbProjectsLocationsClustersRestoreFromCloudSQLRequest(_messages.Message):
+  r"""A AlloydbProjectsLocationsClustersRestoreFromCloudSQLRequest object.
+
+  Fields:
+    parent: Required. The location of the new cluster. For the required
+      format, see the comment on Cluster.name field.
+    restoreFromCloudSQLRequest: A RestoreFromCloudSQLRequest resource to be
+      passed as the request body.
+  """
+
+  parent = _messages.StringField(1, required=True)
+  restoreFromCloudSQLRequest = _messages.MessageField('RestoreFromCloudSQLRequest', 2)
+
+
 class AlloydbProjectsLocationsClustersRestoreRequest(_messages.Message):
   r"""A AlloydbProjectsLocationsClustersRestoreRequest object.
 
@@ -645,6 +685,33 @@ class AlloydbProjectsLocationsClustersRestoreRequest(_messages.Message):
   restoreClusterRequest = _messages.MessageField('RestoreClusterRequest', 2)
 
 
+class AlloydbProjectsLocationsClustersSwitchoverRequest(_messages.Message):
+  r"""A AlloydbProjectsLocationsClustersSwitchoverRequest object.
+
+  Fields:
+    name: Required. The name of the resource. For the required format, see the
+      comment on the Cluster.name field
+    switchoverClusterRequest: A SwitchoverClusterRequest resource to be passed
+      as the request body.
+  """
+
+  name = _messages.StringField(1, required=True)
+  switchoverClusterRequest = _messages.MessageField('SwitchoverClusterRequest', 2)
+
+
+class AlloydbProjectsLocationsClustersUpgradeRequest(_messages.Message):
+  r"""A AlloydbProjectsLocationsClustersUpgradeRequest object.
+
+  Fields:
+    name: Required. The resource name of the cluster.
+    upgradeClusterRequest: A UpgradeClusterRequest resource to be passed as
+      the request body.
+  """
+
+  name = _messages.StringField(1, required=True)
+  upgradeClusterRequest = _messages.MessageField('UpgradeClusterRequest', 2)
+
+
 class AlloydbProjectsLocationsClustersUsersCreateRequest(_messages.Message):
   r"""A AlloydbProjectsLocationsClustersUsersCreateRequest object.
 
@@ -652,15 +719,15 @@ class AlloydbProjectsLocationsClustersUsersCreateRequest(_messages.Message):
     parent: Required. Value for parent.
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes since the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
+      ignores the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if the original operation with the same request
+      ID was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
     user: A User resource to be passed as the request body.
     userId: Required. ID of the requesting object.
     validateOnly: Optional. If set, the backend validates the request, but
@@ -682,15 +749,15 @@ class AlloydbProjectsLocationsClustersUsersDeleteRequest(_messages.Message):
       comment on the User.name field.
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes after the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
+      ignores the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if the original operation with the same request
+      ID was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
     validateOnly: Optional. If set, the backend validates the request, but
       doesn't actually execute it.
   """
@@ -740,15 +807,15 @@ class AlloydbProjectsLocationsClustersUsersPatchRequest(_messages.Message):
       projects/{project}/locations/{location}/cluster/{cluster}/users/{user}.
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes since the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
+      ignores the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if the original operation with the same request
+      ID was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
     updateMask: Optional. Field mask is used to specify the fields to be
       overwritten in the User resource by the update. The fields specified in
       the update_mask are relative to the resource, not the full request. A
@@ -781,6 +848,9 @@ class AlloydbProjectsLocationsListRequest(_messages.Message):
   r"""A AlloydbProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Unless explicitly documented otherwise,
+      don't use this unsupported field which is primarily intended for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -791,10 +861,11 @@ class AlloydbProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class AlloydbProjectsLocationsOperationsCancelRequest(_messages.Message):
@@ -849,6 +920,10 @@ class AlloydbProjectsLocationsOperationsListRequest(_messages.Message):
 class AlloydbProjectsLocationsSupportedDatabaseFlagsListRequest(_messages.Message):
   r"""A AlloydbProjectsLocationsSupportedDatabaseFlagsListRequest object.
 
+  Enums:
+    ScopeValueValuesEnum: Optional. The scope for which supported flags are
+      requested. If not specified, default is DATABASE.
+
   Fields:
     pageSize: Requested page size. Server may return fewer items than
       requested. If unspecified, server will pick an appropriate default.
@@ -858,11 +933,28 @@ class AlloydbProjectsLocationsSupportedDatabaseFlagsListRequest(_messages.Messag
       specified here, as long it is contains a valid project and location, the
       service will return a static list of supported flags resources. Note
       that we do not yet support region-specific flags.
+    scope: Optional. The scope for which supported flags are requested. If not
+      specified, default is DATABASE.
   """
+
+  class ScopeValueValuesEnum(_messages.Enum):
+    r"""Optional. The scope for which supported flags are requested. If not
+    specified, default is DATABASE.
+
+    Values:
+      SCOPE_UNSPECIFIED: The scope of the flag is not specified. Default is
+        DATABASE.
+      DATABASE: The flag is a database flag.
+      CONNECTION_POOL: The flag is a connection pool flag.
+    """
+    SCOPE_UNSPECIFIED = 0
+    DATABASE = 1
+    CONNECTION_POOL = 2
 
   pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
   pageToken = _messages.StringField(2)
   parent = _messages.StringField(3, required=True)
+  scope = _messages.EnumField('ScopeValueValuesEnum', 4)
 
 
 class AuthorizedNetwork(_messages.Message):
@@ -893,8 +985,8 @@ class AutomatedBackupPolicy(_messages.Message):
       defaults to true.
     encryptionConfig: Optional. The encryption config can be specified to
       encrypt the backups with a customer-managed encryption key (CMEK). When
-      this field is not specified, the backup will then use default encryption
-      scheme to protect the user data.
+      this field is not specified, the backup will use the cluster's
+      encryption config.
     labels: Labels to apply to backups created using this configuration.
     location: The location where the backup will be stored. Currently, the
       only supported option is to store the backup in the same region as the
@@ -955,6 +1047,9 @@ class Backup(_messages.Message):
       of arbitrary data. This is distinct from labels.
       https://google.aip.dev/128
     LabelsValue: Labels as key value pairs
+    TagsValue: Optional. Input only. Immutable. Tag keys/values directly bound
+      to this resource. For example: ``` "123/environment": "production",
+      "123/costCenter": "marketing" ```
 
   Fields:
     annotations: Annotations to allow client tools to store small amount of
@@ -963,6 +1058,8 @@ class Backup(_messages.Message):
       (e.g., projects/{project}/locations/{region}/clusters/{cluster_id}).
     clusterUid: Output only. The system-generated UID of the cluster which was
       used to create this resource.
+    createCompletionTime: Output only. Timestamp when the resource finished
+      being created.
     createTime: Output only. Create time stamp
     databaseVersion: Output only. The database engine major version of the
       cluster this backup was created from. Any restored cluster created from
@@ -998,11 +1095,16 @@ class Backup(_messages.Message):
     satisfiesPzs: Output only. Reserved for future use.
     sizeBytes: Output only. The size of the backup in bytes.
     state: Output only. The current state of the backup.
+    tags: Optional. Input only. Immutable. Tag keys/values directly bound to
+      this resource. For example: ``` "123/environment": "production",
+      "123/costCenter": "marketing" ```
     type: The backup type, which suggests the trigger for the backup.
     uid: Output only. The system-generated UID of the resource. The UID is
       assigned when the resource is created, and it is retained until it is
       deleted.
-    updateTime: Output only. Update time stamp
+    updateTime: Output only. Update time stamp Users should not infer any
+      meaning from this field. Its value is generally unrelated to the timing
+      of the backup creation operation.
   """
 
   class DatabaseVersionValueValuesEnum(_messages.Enum):
@@ -1015,11 +1117,15 @@ class Backup(_messages.Message):
       POSTGRES_13: DEPRECATED - The database version is Postgres 13.
       POSTGRES_14: The database version is Postgres 14.
       POSTGRES_15: The database version is Postgres 15.
+      POSTGRES_16: The database version is Postgres 16.
+      POSTGRES_17: The database version is Postgres 17.
     """
     DATABASE_VERSION_UNSPECIFIED = 0
     POSTGRES_13 = 1
     POSTGRES_14 = 2
     POSTGRES_15 = 3
+    POSTGRES_16 = 4
+    POSTGRES_17 = 5
 
   class StateValueValuesEnum(_messages.Enum):
     r"""Output only. The current state of the backup.
@@ -1104,28 +1210,56 @@ class Backup(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class TagsValue(_messages.Message):
+    r"""Optional. Input only. Immutable. Tag keys/values directly bound to
+    this resource. For example: ``` "123/environment": "production",
+    "123/costCenter": "marketing" ```
+
+    Messages:
+      AdditionalProperty: An additional property for a TagsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type TagsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a TagsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
   annotations = _messages.MessageField('AnnotationsValue', 1)
   clusterName = _messages.StringField(2)
   clusterUid = _messages.StringField(3)
-  createTime = _messages.StringField(4)
-  databaseVersion = _messages.EnumField('DatabaseVersionValueValuesEnum', 5)
-  deleteTime = _messages.StringField(6)
-  description = _messages.StringField(7)
-  displayName = _messages.StringField(8)
-  encryptionConfig = _messages.MessageField('EncryptionConfig', 9)
-  encryptionInfo = _messages.MessageField('EncryptionInfo', 10)
-  etag = _messages.StringField(11)
-  expiryQuantity = _messages.MessageField('QuantityBasedExpiry', 12)
-  expiryTime = _messages.StringField(13)
-  labels = _messages.MessageField('LabelsValue', 14)
-  name = _messages.StringField(15)
-  reconciling = _messages.BooleanField(16)
-  satisfiesPzs = _messages.BooleanField(17)
-  sizeBytes = _messages.IntegerField(18)
-  state = _messages.EnumField('StateValueValuesEnum', 19)
-  type = _messages.EnumField('TypeValueValuesEnum', 20)
-  uid = _messages.StringField(21)
-  updateTime = _messages.StringField(22)
+  createCompletionTime = _messages.StringField(4)
+  createTime = _messages.StringField(5)
+  databaseVersion = _messages.EnumField('DatabaseVersionValueValuesEnum', 6)
+  deleteTime = _messages.StringField(7)
+  description = _messages.StringField(8)
+  displayName = _messages.StringField(9)
+  encryptionConfig = _messages.MessageField('EncryptionConfig', 10)
+  encryptionInfo = _messages.MessageField('EncryptionInfo', 11)
+  etag = _messages.StringField(12)
+  expiryQuantity = _messages.MessageField('QuantityBasedExpiry', 13)
+  expiryTime = _messages.StringField(14)
+  labels = _messages.MessageField('LabelsValue', 15)
+  name = _messages.StringField(16)
+  reconciling = _messages.BooleanField(17)
+  satisfiesPzs = _messages.BooleanField(18)
+  sizeBytes = _messages.IntegerField(19)
+  state = _messages.EnumField('StateValueValuesEnum', 20)
+  tags = _messages.MessageField('TagsValue', 21)
+  type = _messages.EnumField('TypeValueValuesEnum', 22)
+  uid = _messages.StringField(23)
+  updateTime = _messages.StringField(24)
 
 
 class BackupSource(_messages.Message):
@@ -1153,7 +1287,7 @@ class ClientConnectionConfig(_messages.Message):
   Fields:
     requireConnectors: Optional. Configuration to enforce connectors only (ex:
       AuthProxy) connections to the database.
-    sslConfig: Optional. SSL config option for this instance.
+    sslConfig: Optional. SSL configuration option for this instance.
   """
 
   requireConnectors = _messages.BooleanField(1)
@@ -1193,6 +1327,21 @@ class CloudControl2SharedOperationsReconciliationOperationMetadata(_messages.Mes
   exclusiveAction = _messages.EnumField('ExclusiveActionValueValuesEnum', 2)
 
 
+class CloudSQLBackupRunSource(_messages.Message):
+  r"""The source CloudSQL backup resource.
+
+  Fields:
+    backupRunId: Required. The CloudSQL backup run ID.
+    instanceId: Required. The CloudSQL instance ID.
+    project: The project ID of the source CloudSQL instance. This should be
+      the same as the AlloyDB cluster's project.
+  """
+
+  backupRunId = _messages.IntegerField(1)
+  instanceId = _messages.StringField(2)
+  project = _messages.StringField(3)
+
+
 class Cluster(_messages.Message):
   r"""A cluster is a collection of regional AlloyDB resources. It can include
   a primary instance and one or more read pool instances. All cluster
@@ -1210,12 +1359,17 @@ class Cluster(_messages.Message):
       time, then a default database version will be used.
     StateValueValuesEnum: Output only. The current serving state of the
       cluster.
+    SubscriptionTypeValueValuesEnum: Optional. Subscription type of the
+      cluster.
 
   Messages:
     AnnotationsValue: Annotations to allow client tools to store small amount
       of arbitrary data. This is distinct from labels.
       https://google.aip.dev/128
     LabelsValue: Labels as key value pairs
+    TagsValue: Optional. Input only. Immutable. Tag keys/values directly bound
+      to this resource. For example: ``` "123/environment": "production",
+      "123/costCenter": "marketing" ```
 
   Fields:
     annotations: Annotations to allow client tools to store small amount of
@@ -1227,6 +1381,8 @@ class Cluster(_messages.Message):
       information on the defaults, consult the documentation for the message
       type.
     backupSource: Output only. Cluster created from backup.
+    cloudsqlBackupRunSource: Output only. Cluster created from CloudSQL
+      snapshot.
     clusterType: Output only. The type of the cluster. This is an output-only
       field and it's populated at the Cluster creation time or the Cluster
       promotion time. The cluster type is determined by which RPC was used to
@@ -1287,6 +1443,11 @@ class Cluster(_messages.Message):
       cluster.
     sslConfig: SSL configuration for this AlloyDB cluster.
     state: Output only. The current serving state of the cluster.
+    subscriptionType: Optional. Subscription type of the cluster.
+    tags: Optional. Input only. Immutable. Tag keys/values directly bound to
+      this resource. For example: ``` "123/environment": "production",
+      "123/costCenter": "marketing" ```
+    trialMetadata: Output only. Metadata for free trial clusters
     uid: Output only. The system-generated UID of the resource. The UID is
       assigned when the resource is created, and it is retained until it is
       deleted.
@@ -1320,11 +1481,15 @@ class Cluster(_messages.Message):
       POSTGRES_13: DEPRECATED - The database version is Postgres 13.
       POSTGRES_14: The database version is Postgres 14.
       POSTGRES_15: The database version is Postgres 15.
+      POSTGRES_16: The database version is Postgres 16.
+      POSTGRES_17: The database version is Postgres 17.
     """
     DATABASE_VERSION_UNSPECIFIED = 0
     POSTGRES_13 = 1
     POSTGRES_14 = 2
     POSTGRES_15 = 3
+    POSTGRES_16 = 4
+    POSTGRES_17 = 5
 
   class StateValueValuesEnum(_messages.Enum):
     r"""Output only. The current serving state of the cluster.
@@ -1332,11 +1497,8 @@ class Cluster(_messages.Message):
     Values:
       STATE_UNSPECIFIED: The state of the cluster is unknown.
       READY: The cluster is active and running.
-      STOPPED: The cluster is stopped. All instances in the cluster are
-        stopped. Customers can start a stopped cluster at any point and all
-        their instances will come back to life with same names and IP
-        resources. In this state, customer pays for storage. Associated
-        backups could also be present in a stopped cluster.
+      STOPPED: This is unused. Even when all instances in the cluster are
+        stopped, the cluster remains in READY state.
       EMPTY: The cluster is empty and has no associated resources. All
         instances, associated storage and backups have been deleted.
       CREATING: The cluster is being created.
@@ -1360,6 +1522,19 @@ class Cluster(_messages.Message):
     BOOTSTRAPPING = 7
     MAINTENANCE = 8
     PROMOTING = 9
+
+  class SubscriptionTypeValueValuesEnum(_messages.Enum):
+    r"""Optional. Subscription type of the cluster.
+
+    Values:
+      SUBSCRIPTION_TYPE_UNSPECIFIED: This is an unknown subscription type. By
+        default, the subscription type is STANDARD.
+      STANDARD: Standard subscription.
+      TRIAL: Trial subscription.
+    """
+    SUBSCRIPTION_TYPE_UNSPECIFIED = 0
+    STANDARD = 1
+    TRIAL = 2
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class AnnotationsValue(_messages.Message):
@@ -1411,36 +1586,153 @@ class Cluster(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class TagsValue(_messages.Message):
+    r"""Optional. Input only. Immutable. Tag keys/values directly bound to
+    this resource. For example: ``` "123/environment": "production",
+    "123/costCenter": "marketing" ```
+
+    Messages:
+      AdditionalProperty: An additional property for a TagsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type TagsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a TagsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
   annotations = _messages.MessageField('AnnotationsValue', 1)
   automatedBackupPolicy = _messages.MessageField('AutomatedBackupPolicy', 2)
   backupSource = _messages.MessageField('BackupSource', 3)
-  clusterType = _messages.EnumField('ClusterTypeValueValuesEnum', 4)
-  continuousBackupConfig = _messages.MessageField('ContinuousBackupConfig', 5)
-  continuousBackupInfo = _messages.MessageField('ContinuousBackupInfo', 6)
-  createTime = _messages.StringField(7)
-  databaseVersion = _messages.EnumField('DatabaseVersionValueValuesEnum', 8)
-  deleteTime = _messages.StringField(9)
-  displayName = _messages.StringField(10)
-  encryptionConfig = _messages.MessageField('EncryptionConfig', 11)
-  encryptionInfo = _messages.MessageField('EncryptionInfo', 12)
-  etag = _messages.StringField(13)
-  initialUser = _messages.MessageField('UserPassword', 14)
-  labels = _messages.MessageField('LabelsValue', 15)
-  maintenanceSchedule = _messages.MessageField('MaintenanceSchedule', 16)
-  maintenanceUpdatePolicy = _messages.MessageField('MaintenanceUpdatePolicy', 17)
-  migrationSource = _messages.MessageField('MigrationSource', 18)
-  name = _messages.StringField(19)
-  network = _messages.StringField(20)
-  networkConfig = _messages.MessageField('NetworkConfig', 21)
-  primaryConfig = _messages.MessageField('PrimaryConfig', 22)
-  pscConfig = _messages.MessageField('PscConfig', 23)
-  reconciling = _messages.BooleanField(24)
-  satisfiesPzs = _messages.BooleanField(25)
-  secondaryConfig = _messages.MessageField('SecondaryConfig', 26)
-  sslConfig = _messages.MessageField('SslConfig', 27)
-  state = _messages.EnumField('StateValueValuesEnum', 28)
-  uid = _messages.StringField(29)
-  updateTime = _messages.StringField(30)
+  cloudsqlBackupRunSource = _messages.MessageField('CloudSQLBackupRunSource', 4)
+  clusterType = _messages.EnumField('ClusterTypeValueValuesEnum', 5)
+  continuousBackupConfig = _messages.MessageField('ContinuousBackupConfig', 6)
+  continuousBackupInfo = _messages.MessageField('ContinuousBackupInfo', 7)
+  createTime = _messages.StringField(8)
+  databaseVersion = _messages.EnumField('DatabaseVersionValueValuesEnum', 9)
+  deleteTime = _messages.StringField(10)
+  displayName = _messages.StringField(11)
+  encryptionConfig = _messages.MessageField('EncryptionConfig', 12)
+  encryptionInfo = _messages.MessageField('EncryptionInfo', 13)
+  etag = _messages.StringField(14)
+  initialUser = _messages.MessageField('UserPassword', 15)
+  labels = _messages.MessageField('LabelsValue', 16)
+  maintenanceSchedule = _messages.MessageField('MaintenanceSchedule', 17)
+  maintenanceUpdatePolicy = _messages.MessageField('MaintenanceUpdatePolicy', 18)
+  migrationSource = _messages.MessageField('MigrationSource', 19)
+  name = _messages.StringField(20)
+  network = _messages.StringField(21)
+  networkConfig = _messages.MessageField('NetworkConfig', 22)
+  primaryConfig = _messages.MessageField('PrimaryConfig', 23)
+  pscConfig = _messages.MessageField('PscConfig', 24)
+  reconciling = _messages.BooleanField(25)
+  satisfiesPzs = _messages.BooleanField(26)
+  secondaryConfig = _messages.MessageField('SecondaryConfig', 27)
+  sslConfig = _messages.MessageField('SslConfig', 28)
+  state = _messages.EnumField('StateValueValuesEnum', 29)
+  subscriptionType = _messages.EnumField('SubscriptionTypeValueValuesEnum', 30)
+  tags = _messages.MessageField('TagsValue', 31)
+  trialMetadata = _messages.MessageField('TrialMetadata', 32)
+  uid = _messages.StringField(33)
+  updateTime = _messages.StringField(34)
+
+
+class ClusterUpgradeDetails(_messages.Message):
+  r"""Upgrade details of a cluster. This cluster can be primary or secondary.
+
+  Enums:
+    ClusterTypeValueValuesEnum: Cluster type which can either be primary or
+      secondary.
+    DatabaseVersionValueValuesEnum: Database version of the cluster after the
+      upgrade operation. This will be the target version if the upgrade was
+      successful otherwise it remains the same as that before the upgrade
+      operation.
+    UpgradeStatusValueValuesEnum: Upgrade status of the cluster.
+
+  Fields:
+    clusterType: Cluster type which can either be primary or secondary.
+    databaseVersion: Database version of the cluster after the upgrade
+      operation. This will be the target version if the upgrade was successful
+      otherwise it remains the same as that before the upgrade operation.
+    instanceUpgradeDetails: Upgrade details of the instances directly
+      associated with this cluster.
+    name: Normalized name of the cluster
+    stageInfo: Array containing stage info associated with this cluster.
+    upgradeStatus: Upgrade status of the cluster.
+  """
+
+  class ClusterTypeValueValuesEnum(_messages.Enum):
+    r"""Cluster type which can either be primary or secondary.
+
+    Values:
+      CLUSTER_TYPE_UNSPECIFIED: The type of the cluster is unknown.
+      PRIMARY: Primary cluster that support read and write operations.
+      SECONDARY: Secondary cluster that is replicating from another region.
+        This only supports read.
+    """
+    CLUSTER_TYPE_UNSPECIFIED = 0
+    PRIMARY = 1
+    SECONDARY = 2
+
+  class DatabaseVersionValueValuesEnum(_messages.Enum):
+    r"""Database version of the cluster after the upgrade operation. This will
+    be the target version if the upgrade was successful otherwise it remains
+    the same as that before the upgrade operation.
+
+    Values:
+      DATABASE_VERSION_UNSPECIFIED: This is an unknown database version.
+      POSTGRES_13: DEPRECATED - The database version is Postgres 13.
+      POSTGRES_14: The database version is Postgres 14.
+      POSTGRES_15: The database version is Postgres 15.
+      POSTGRES_16: The database version is Postgres 16.
+      POSTGRES_17: The database version is Postgres 17.
+    """
+    DATABASE_VERSION_UNSPECIFIED = 0
+    POSTGRES_13 = 1
+    POSTGRES_14 = 2
+    POSTGRES_15 = 3
+    POSTGRES_16 = 4
+    POSTGRES_17 = 5
+
+  class UpgradeStatusValueValuesEnum(_messages.Enum):
+    r"""Upgrade status of the cluster.
+
+    Values:
+      STATUS_UNSPECIFIED: Unspecified status.
+      NOT_STARTED: Not started.
+      IN_PROGRESS: In progress.
+      SUCCESS: Operation succeeded.
+      FAILED: Operation failed.
+      PARTIAL_SUCCESS: Operation partially succeeded.
+      CANCEL_IN_PROGRESS: Cancel is in progress.
+      CANCELLED: Cancellation complete.
+    """
+    STATUS_UNSPECIFIED = 0
+    NOT_STARTED = 1
+    IN_PROGRESS = 2
+    SUCCESS = 3
+    FAILED = 4
+    PARTIAL_SUCCESS = 5
+    CANCEL_IN_PROGRESS = 6
+    CANCELLED = 7
+
+  clusterType = _messages.EnumField('ClusterTypeValueValuesEnum', 1)
+  databaseVersion = _messages.EnumField('DatabaseVersionValueValuesEnum', 2)
+  instanceUpgradeDetails = _messages.MessageField('InstanceUpgradeDetails', 3, repeated=True)
+  name = _messages.StringField(4)
+  stageInfo = _messages.MessageField('StageInfo', 5, repeated=True)
+  upgradeStatus = _messages.EnumField('UpgradeStatusValueValuesEnum', 6)
 
 
 class ConnectionInfo(_messages.Message):
@@ -1466,6 +1758,48 @@ class ConnectionInfo(_messages.Message):
   publicIpAddress = _messages.StringField(4)
 
 
+class ConnectionPoolConfig(_messages.Message):
+  r"""Configuration for Managed Connection Pool (MCP).
+
+  Messages:
+    FlagsValue: Optional. Connection Pool flags, as a list of "key": "value"
+      pairs.
+
+  Fields:
+    enabled: Optional. Whether to enable Managed Connection Pool (MCP).
+    flags: Optional. Connection Pool flags, as a list of "key": "value" pairs.
+    poolerCount: Output only. The number of running poolers per instance.
+  """
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class FlagsValue(_messages.Message):
+    r"""Optional. Connection Pool flags, as a list of "key": "value" pairs.
+
+    Messages:
+      AdditionalProperty: An additional property for a FlagsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type FlagsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a FlagsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  enabled = _messages.BooleanField(1)
+  flags = _messages.MessageField('FlagsValue', 2)
+  poolerCount = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+
+
 class ContinuousBackupConfig(_messages.Message):
   r"""ContinuousBackupConfig describes the continuous backups recovery
   configurations of a cluster.
@@ -1474,8 +1808,7 @@ class ContinuousBackupConfig(_messages.Message):
     enabled: Whether ContinuousBackup is enabled.
     encryptionConfig: The encryption config can be specified to encrypt the
       backups with a customer-managed encryption key (CMEK). When this field
-      is not specified, the backup will then use default encryption scheme to
-      protect the user data.
+      is not specified, the backup will use the cluster's encryption config.
     recoveryWindowDays: The number of days that are eligible to restore from
       using PITR. To support the entire recovery window, backups and logs are
       retained for one day more than the recovery window. If not set, defaults
@@ -1496,13 +1829,22 @@ class ContinuousBackupInfo(_messages.Message):
 
   Fields:
     earliestRestorableTime: Output only. The earliest restorable time that can
-      be restored to. Output only field.
+      be restored to. If continuous backups and recovery was recently enabled,
+      the earliest restorable time is the creation time of the earliest
+      eligible backup within this cluster's continuous backup recovery window.
+      After a cluster has had continuous backups enabled for the duration of
+      its recovery window, the earliest restorable time becomes "now minus the
+      recovery window". For example, assuming a point in time recovery is
+      attempted at 04/16/2025 3:23:00PM with a 14d recovery window, the
+      earliest restorable time would be 04/02/2025 3:23:00PM. This field is
+      only visible if the CLUSTER_VIEW_CONTINUOUS_BACKUP cluster view is
+      provided.
     enabledTime: Output only. When ContinuousBackup was most recently enabled.
       Set to null if ContinuousBackup is not enabled.
     encryptionInfo: Output only. The encryption information for the WALs and
       backups required for ContinuousBackup.
     schedule: Output only. Days of the week on which a continuous backup is
-      taken. Output only field. Ignored if passed into the request.
+      taken.
   """
 
   class ScheduleValueListEntryValuesEnum(_messages.Enum):
@@ -1545,6 +1887,76 @@ class ContinuousBackupSource(_messages.Message):
 
   cluster = _messages.StringField(1)
   pointInTime = _messages.StringField(2)
+
+
+class CsvExportOptions(_messages.Message):
+  r"""Options for exporting data in CSV format.
+
+  Fields:
+    escapeCharacter: Optional. Specifies the character that should appear
+      before a data character that needs to be escaped. The default is the
+      same as quote character. The value of this argument has to be a
+      character in Hex ASCII Code.
+    fieldDelimiter: Optional. Specifies the character that separates columns
+      within each row (line) of the file. The default is comma. The value of
+      this argument has to be a character in Hex ASCII Code.
+    quoteCharacter: Optional. Specifies the quoting character to be used when
+      a data value is quoted. The default is double-quote. The value of this
+      argument has to be a character in Hex ASCII Code.
+    selectQuery: Required. The SELECT query used to extract the data.
+  """
+
+  escapeCharacter = _messages.StringField(1)
+  fieldDelimiter = _messages.StringField(2)
+  quoteCharacter = _messages.StringField(3)
+  selectQuery = _messages.StringField(4)
+
+
+class CsvImportOptions(_messages.Message):
+  r"""Options for importing data in CSV format.
+
+  Fields:
+    columns: Optional. The columns to which CSV data is imported. If not
+      specified, all columns of the database table are loaded with CSV data.
+    escapeCharacter: Optional. Specifies the character that should appear
+      before a data character that needs to be escaped. The default is same as
+      quote character. The value of this argument has to be a character in Hex
+      ASCII Code.
+    fieldDelimiter: Optional. Specifies the character that separates columns
+      within each row (line) of the file. The default is comma. The value of
+      this argument has to be a character in Hex ASCII Code.
+    quoteCharacter: Optional. Specifies the quoting character to be used when
+      a data value is quoted. The default is double-quote. The value of this
+      argument has to be a character in Hex ASCII Code.
+    table: Required. The database table to import CSV file into.
+  """
+
+  columns = _messages.StringField(1, repeated=True)
+  escapeCharacter = _messages.StringField(2)
+  fieldDelimiter = _messages.StringField(3)
+  quoteCharacter = _messages.StringField(4)
+  table = _messages.StringField(5)
+
+
+class DenyMaintenancePeriod(_messages.Message):
+  r"""DenyMaintenancePeriod definition. Excepting emergencies, maintenance
+  will not be scheduled to start within this deny period. The start_date must
+  be less than the end_date.
+
+  Fields:
+    endDate: Deny period end date. This can be: * A full date, with non-zero
+      year, month and day values OR * A month and day value, with a zero year
+      for recurring
+    startDate: Deny period start date. This can be: * A full date, with non-
+      zero year, month and day values OR * A month and day value, with a zero
+      year for recurring
+    time: Time in UTC when the deny period starts on start_date and ends on
+      end_date. This can be: * Full time OR * All zeros for 00:00:00 UTC
+  """
+
+  endDate = _messages.MessageField('GoogleTypeDate', 1)
+  startDate = _messages.MessageField('GoogleTypeDate', 2)
+  time = _messages.MessageField('GoogleTypeTimeOfDay', 3)
 
 
 class Empty(_messages.Message):
@@ -1602,28 +2014,70 @@ class EncryptionInfo(_messages.Message):
   kmsKeyVersions = _messages.StringField(2, repeated=True)
 
 
+class ExportClusterRequest(_messages.Message):
+  r"""Export cluster request.
+
+  Fields:
+    csvExportOptions: Options for exporting data in CSV format. Required field
+      to be set for CSV file type.
+    database: Required. Name of the database where the export command will be
+      executed. Note - Value provided should be the same as expected from
+      `SELECT current_database();` and NOT as a resource reference.
+    gcsDestination: Required. Option to export data to cloud storage.
+    sqlExportOptions: Options for exporting data in SQL format. Required field
+      to be set for SQL file type.
+  """
+
+  csvExportOptions = _messages.MessageField('CsvExportOptions', 1)
+  database = _messages.StringField(2)
+  gcsDestination = _messages.MessageField('GcsDestination', 3)
+  sqlExportOptions = _messages.MessageField('SqlExportOptions', 4)
+
+
+class ExportClusterResponse(_messages.Message):
+  r"""Response of export cluster rpc.
+
+  Fields:
+    gcsDestination: Required. Option to export data to cloud storage.
+  """
+
+  gcsDestination = _messages.MessageField('GcsDestination', 1)
+
+
 class FailoverInstanceRequest(_messages.Message):
   r"""Message for triggering failover on an Instance
 
   Fields:
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes after the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
-    validateOnly: Optional. If set, performs request validation (e.g.
-      permission checks and any other type of validation), but do not actually
-      execute the failover.
+      ignores the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if the original operation with the same request
+      ID was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
+    validateOnly: Optional. If set, performs request validation, for example,
+      permission checks and any other type of validation, but does not
+      actually execute the create request.
   """
 
   requestId = _messages.StringField(1)
   validateOnly = _messages.BooleanField(2)
+
+
+class GcsDestination(_messages.Message):
+  r"""Destination for Export. Export will be done to cloud storage.
+
+  Fields:
+    uri: Required. The path to the file in Google Cloud Storage where the
+      export will be stored. The URI is in the form
+      `gs://bucketName/fileName`.
+  """
+
+  uri = _messages.StringField(1)
 
 
 class GoogleCloudLocationListLocationsResponse(_messages.Message):
@@ -1719,25 +2173,90 @@ class GoogleCloudLocationLocation(_messages.Message):
   name = _messages.StringField(5)
 
 
+class GoogleTypeDate(_messages.Message):
+  r"""Represents a whole or partial calendar date, such as a birthday. The
+  time of day and time zone are either specified elsewhere or are
+  insignificant. The date is relative to the Gregorian Calendar. This can
+  represent one of the following: * A full date, with non-zero year, month,
+  and day values. * A month and day, with a zero year (for example, an
+  anniversary). * A year on its own, with a zero month and a zero day. * A
+  year and month, with a zero day (for example, a credit card expiration
+  date). Related types: * google.type.TimeOfDay * google.type.DateTime *
+  google.protobuf.Timestamp
+
+  Fields:
+    day: Day of a month. Must be from 1 to 31 and valid for the year and
+      month, or 0 to specify a year by itself or a year and month where the
+      day isn't significant.
+    month: Month of a year. Must be from 1 to 12, or 0 to specify a year
+      without a month and day.
+    year: Year of the date. Must be from 1 to 9999, or 0 to specify a date
+      without a year.
+  """
+
+  day = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  month = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  year = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+
+
 class GoogleTypeTimeOfDay(_messages.Message):
   r"""Represents a time of day. The date and time zone are either not
   significant or are specified elsewhere. An API may choose to allow leap
   seconds. Related types are google.type.Date and `google.protobuf.Timestamp`.
 
   Fields:
-    hours: Hours of day in 24 hour format. Should be from 0 to 23. An API may
-      choose to allow the value "24:00:00" for scenarios like business closing
-      time.
-    minutes: Minutes of hour of day. Must be from 0 to 59.
-    nanos: Fractions of seconds in nanoseconds. Must be from 0 to 999,999,999.
-    seconds: Seconds of minutes of the time. Must normally be from 0 to 59. An
-      API may allow the value 60 if it allows leap-seconds.
+    hours: Hours of a day in 24 hour format. Must be greater than or equal to
+      0 and typically must be less than or equal to 23. An API may choose to
+      allow the value "24:00:00" for scenarios like business closing time.
+    minutes: Minutes of an hour. Must be greater than or equal to 0 and less
+      than or equal to 59.
+    nanos: Fractions of seconds, in nanoseconds. Must be greater than or equal
+      to 0 and less than or equal to 999,999,999.
+    seconds: Seconds of a minute. Must be greater than or equal to 0 and
+      typically must be less than or equal to 59. An API may allow the value
+      60 if it allows leap-seconds.
   """
 
   hours = _messages.IntegerField(1, variant=_messages.Variant.INT32)
   minutes = _messages.IntegerField(2, variant=_messages.Variant.INT32)
   nanos = _messages.IntegerField(3, variant=_messages.Variant.INT32)
   seconds = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+
+
+class ImportClusterRequest(_messages.Message):
+  r"""Import cluster request.
+
+  Fields:
+    csvImportOptions: Options for importing data in CSV format.
+    database: Optional. Name of the database to which the import will be done.
+      For import from SQL file, this is required only if the file does not
+      specify a database. Note - Value provided should be the same as expected
+      from `SELECT current_database();` and NOT as a resource reference.
+    gcsUri: Required. The path to the file in Google Cloud Storage where the
+      source file for import will be stored. The URI is in the form
+      `gs://bucketName/fileName`.
+    sqlImportOptions: Options for importing data in SQL format.
+    user: Optional. Database user to be used for importing the data. Note -
+      Value provided should be the same as expected from `SELECT
+      current_user;` and NOT as a resource reference.
+  """
+
+  csvImportOptions = _messages.MessageField('CsvImportOptions', 1)
+  database = _messages.StringField(2)
+  gcsUri = _messages.StringField(3)
+  sqlImportOptions = _messages.MessageField('SqlImportOptions', 4)
+  user = _messages.StringField(5)
+
+
+class ImportClusterResponse(_messages.Message):
+  r"""Response of import rpc.
+
+  Fields:
+    bytesDownloaded: Required. Size of the object downloaded from Google Cloud
+      Storage in bytes.
+  """
+
+  bytesDownloaded = _messages.IntegerField(1)
 
 
 class InjectFaultRequest(_messages.Message):
@@ -1751,18 +2270,18 @@ class InjectFaultRequest(_messages.Message):
     faultType: Required. The type of fault to be injected in an instance.
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes after the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
-    validateOnly: Optional. If set, performs request validation (e.g.
-      permission checks and any other type of validation), but do not actually
-      execute the fault injection.
+      ignores the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if the original operation with the same request
+      ID was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
+    validateOnly: Optional. If set, performs request validation, for example,
+      permission checks and any other type of validation, but does not
+      actually execute the create request.
   """
 
   class FaultTypeValueValuesEnum(_messages.Enum):
@@ -1785,6 +2304,13 @@ class Instance(_messages.Message):
   It's the main unit of computing resources in AlloyDB.
 
   Enums:
+    ActivationPolicyValueValuesEnum: Optional. Specifies whether an instance
+      needs to spin up. Once the instance is active, the activation policy can
+      be updated to the `NEVER` to stop the instance. Likewise, the activation
+      policy can be updated to `ALWAYS` to start the instance. There are
+      restrictions around when an instance can/cannot be activated (for
+      example, a read pool instance should be stopped before stopping primary
+      etc.). Please refer to the API documentation for more details.
     AvailabilityTypeValueValuesEnum: Availability type of an Instance. If
       empty, defaults to REGIONAL for primary instances. For read pools,
       availability_type is always UNSPECIFIED. Instances in the read pools are
@@ -1799,11 +2325,13 @@ class Instance(_messages.Message):
     AnnotationsValue: Annotations to allow client tools to store small amount
       of arbitrary data. This is distinct from labels.
       https://google.aip.dev/128
-    DatabaseFlagsValue: Database flags. Set at instance level. * They are
-      copied from primary instance on read instance creation. * Read instances
-      can set new or override existing flags that are relevant for reads, e.g.
-      for enabling columnar cache on a read instance. Flags set on read
-      instance may or may not be present on primary. This is a list of "key":
+    DatabaseFlagsValue: Database flags. Set at the instance level. They are
+      copied from the primary instance on secondary instance creation. Flags
+      that have restrictions default to the value at primary instance on read
+      instances during creation. Read instances can set new flags or override
+      existing flags that are relevant for reads, for example, for enabling
+      columnar cache on a read instance. Flags set on read instance might or
+      might not be present on the primary instance. This is a list of "key":
       "value" pairs. "key": The name of the flag. These flags are passed at
       instance setup time, so include both server options and system variables
       for Postgres. Flags are specified with underscores, not hyphens.
@@ -1813,6 +2341,13 @@ class Instance(_messages.Message):
     LabelsValue: Labels as key value pairs
 
   Fields:
+    activationPolicy: Optional. Specifies whether an instance needs to spin
+      up. Once the instance is active, the activation policy can be updated to
+      the `NEVER` to stop the instance. Likewise, the activation policy can be
+      updated to `ALWAYS` to start the instance. There are restrictions around
+      when an instance can/cannot be activated (for example, a read pool
+      instance should be stopped before stopping primary etc.). Please refer
+      to the API documentation for more details.
     annotations: Annotations to allow client tools to store small amount of
       arbitrary data. This is distinct from labels. https://google.aip.dev/128
     availabilityType: Availability type of an Instance. If empty, defaults to
@@ -1822,17 +2357,22 @@ class Instance(_messages.Message):
       one node will have a node in at least two zones).
     clientConnectionConfig: Optional. Client connection specific
       configurations
+    connectionPoolConfig: Optional. The configuration for Managed Connection
+      Pool (MCP).
     createTime: Output only. Create time stamp
-    databaseFlags: Database flags. Set at instance level. * They are copied
-      from primary instance on read instance creation. * Read instances can
-      set new or override existing flags that are relevant for reads, e.g. for
-      enabling columnar cache on a read instance. Flags set on read instance
-      may or may not be present on primary. This is a list of "key": "value"
-      pairs. "key": The name of the flag. These flags are passed at instance
-      setup time, so include both server options and system variables for
-      Postgres. Flags are specified with underscores, not hyphens. "value":
-      The value of the flag. Booleans are set to **on** for true and **off**
-      for false. This field must be omitted if the flag doesn't take a value.
+    databaseFlags: Database flags. Set at the instance level. They are copied
+      from the primary instance on secondary instance creation. Flags that
+      have restrictions default to the value at primary instance on read
+      instances during creation. Read instances can set new flags or override
+      existing flags that are relevant for reads, for example, for enabling
+      columnar cache on a read instance. Flags set on read instance might or
+      might not be present on the primary instance. This is a list of "key":
+      "value" pairs. "key": The name of the flag. These flags are passed at
+      instance setup time, so include both server options and system variables
+      for Postgres. Flags are specified with underscores, not hyphens.
+      "value": The value of the flag. Booleans are set to **on** for true and
+      **off** for false. This field must be omitted if the flag doesn't take a
+      value.
     deleteTime: Output only. Delete time stamp
     displayName: User-settable and human-readable display name for the
       Instance.
@@ -1858,9 +2398,12 @@ class Instance(_messages.Message):
       https://google.aip.dev/122. The prefix of the instance resource name is
       the name of the parent resource: *
       projects/{project}/locations/{region}/clusters/{cluster_id}
-    networkConfig: Optional. Instance level network configuration.
+    networkConfig: Optional. Instance-level network configuration.
     nodes: Output only. List of available read-only VMs in this instance,
       including the standby for a PRIMARY instance.
+    observabilityConfig: Configuration for observability.
+    outboundPublicIpAddresses: Output only. All outbound public IP addresses
+      configured for the instance.
     pscInstanceConfig: Optional. The configuration for Private Service Connect
       (PSC) for the instance.
     publicIpAddress: Output only. The public IP addresses for the Instance.
@@ -1884,6 +2427,24 @@ class Instance(_messages.Message):
     writableNode: Output only. This is set for the read-write VM of the
       PRIMARY instance only.
   """
+
+  class ActivationPolicyValueValuesEnum(_messages.Enum):
+    r"""Optional. Specifies whether an instance needs to spin up. Once the
+    instance is active, the activation policy can be updated to the `NEVER` to
+    stop the instance. Likewise, the activation policy can be updated to
+    `ALWAYS` to start the instance. There are restrictions around when an
+    instance can/cannot be activated (for example, a read pool instance should
+    be stopped before stopping primary etc.). Please refer to the API
+    documentation for more details.
+
+    Values:
+      ACTIVATION_POLICY_UNSPECIFIED: The policy is not specified.
+      ALWAYS: The instance is running.
+      NEVER: The instance is not running.
+    """
+    ACTIVATION_POLICY_UNSPECIFIED = 0
+    ALWAYS = 1
+    NEVER = 2
 
   class AvailabilityTypeValueValuesEnum(_messages.Enum):
     r"""Availability type of an Instance. If empty, defaults to REGIONAL for
@@ -1979,16 +2540,18 @@ class Instance(_messages.Message):
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class DatabaseFlagsValue(_messages.Message):
-    r"""Database flags. Set at instance level. * They are copied from primary
-    instance on read instance creation. * Read instances can set new or
-    override existing flags that are relevant for reads, e.g. for enabling
-    columnar cache on a read instance. Flags set on read instance may or may
-    not be present on primary. This is a list of "key": "value" pairs. "key":
-    The name of the flag. These flags are passed at instance setup time, so
-    include both server options and system variables for Postgres. Flags are
-    specified with underscores, not hyphens. "value": The value of the flag.
-    Booleans are set to **on** for true and **off** for false. This field must
-    be omitted if the flag doesn't take a value.
+    r"""Database flags. Set at the instance level. They are copied from the
+    primary instance on secondary instance creation. Flags that have
+    restrictions default to the value at primary instance on read instances
+    during creation. Read instances can set new flags or override existing
+    flags that are relevant for reads, for example, for enabling columnar
+    cache on a read instance. Flags set on read instance might or might not be
+    present on the primary instance. This is a list of "key": "value" pairs.
+    "key": The name of the flag. These flags are passed at instance setup
+    time, so include both server options and system variables for Postgres.
+    Flags are specified with underscores, not hyphens. "value": The value of
+    the flag. Booleans are set to **on** for true and **off** for false. This
+    field must be omitted if the flag doesn't take a value.
 
     Messages:
       AdditionalProperty: An additional property for a DatabaseFlagsValue
@@ -2035,45 +2598,126 @@ class Instance(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
-  annotations = _messages.MessageField('AnnotationsValue', 1)
-  availabilityType = _messages.EnumField('AvailabilityTypeValueValuesEnum', 2)
-  clientConnectionConfig = _messages.MessageField('ClientConnectionConfig', 3)
-  createTime = _messages.StringField(4)
-  databaseFlags = _messages.MessageField('DatabaseFlagsValue', 5)
-  deleteTime = _messages.StringField(6)
-  displayName = _messages.StringField(7)
-  etag = _messages.StringField(8)
-  gceZone = _messages.StringField(9)
-  instanceType = _messages.EnumField('InstanceTypeValueValuesEnum', 10)
-  ipAddress = _messages.StringField(11)
-  labels = _messages.MessageField('LabelsValue', 12)
-  machineConfig = _messages.MessageField('MachineConfig', 13)
-  name = _messages.StringField(14)
-  networkConfig = _messages.MessageField('InstanceNetworkConfig', 15)
-  nodes = _messages.MessageField('Node', 16, repeated=True)
-  pscInstanceConfig = _messages.MessageField('PscInstanceConfig', 17)
-  publicIpAddress = _messages.StringField(18)
-  queryInsightsConfig = _messages.MessageField('QueryInsightsInstanceConfig', 19)
-  readPoolConfig = _messages.MessageField('ReadPoolConfig', 20)
-  reconciling = _messages.BooleanField(21)
-  satisfiesPzs = _messages.BooleanField(22)
-  state = _messages.EnumField('StateValueValuesEnum', 23)
-  uid = _messages.StringField(24)
-  updateTime = _messages.StringField(25)
-  writableNode = _messages.MessageField('Node', 26)
+  activationPolicy = _messages.EnumField('ActivationPolicyValueValuesEnum', 1)
+  annotations = _messages.MessageField('AnnotationsValue', 2)
+  availabilityType = _messages.EnumField('AvailabilityTypeValueValuesEnum', 3)
+  clientConnectionConfig = _messages.MessageField('ClientConnectionConfig', 4)
+  connectionPoolConfig = _messages.MessageField('ConnectionPoolConfig', 5)
+  createTime = _messages.StringField(6)
+  databaseFlags = _messages.MessageField('DatabaseFlagsValue', 7)
+  deleteTime = _messages.StringField(8)
+  displayName = _messages.StringField(9)
+  etag = _messages.StringField(10)
+  gceZone = _messages.StringField(11)
+  instanceType = _messages.EnumField('InstanceTypeValueValuesEnum', 12)
+  ipAddress = _messages.StringField(13)
+  labels = _messages.MessageField('LabelsValue', 14)
+  machineConfig = _messages.MessageField('MachineConfig', 15)
+  name = _messages.StringField(16)
+  networkConfig = _messages.MessageField('InstanceNetworkConfig', 17)
+  nodes = _messages.MessageField('Node', 18, repeated=True)
+  observabilityConfig = _messages.MessageField('ObservabilityInstanceConfig', 19)
+  outboundPublicIpAddresses = _messages.StringField(20, repeated=True)
+  pscInstanceConfig = _messages.MessageField('PscInstanceConfig', 21)
+  publicIpAddress = _messages.StringField(22)
+  queryInsightsConfig = _messages.MessageField('QueryInsightsInstanceConfig', 23)
+  readPoolConfig = _messages.MessageField('ReadPoolConfig', 24)
+  reconciling = _messages.BooleanField(25)
+  satisfiesPzs = _messages.BooleanField(26)
+  state = _messages.EnumField('StateValueValuesEnum', 27)
+  uid = _messages.StringField(28)
+  updateTime = _messages.StringField(29)
+  writableNode = _messages.MessageField('Node', 30)
 
 
 class InstanceNetworkConfig(_messages.Message):
-  r"""Metadata related to instance level network configuration.
+  r"""Metadata related to instance-level network configuration.
 
   Fields:
+    allocatedIpRangeOverride: Optional. Name of the allocated IP range for the
+      private IP AlloyDB instance, for example: "google-managed-services-
+      default". If set, the instance IPs will be created from this allocated
+      range and will override the IP range used by the parent cluster. The
+      range name must comply with [RFC
+      1035](http://datatracker.ietf.org/doc/html/rfc1035). Specifically, the
+      name must be 1-63 characters long and match the regular expression
+      [a-z]([-a-z0-9]*[a-z0-9])?.
     authorizedExternalNetworks: Optional. A list of external network
       authorized to access this instance.
+    enableOutboundPublicIp: Optional. Enabling an outbound public IP address
+      to support a database server sending requests out into the internet.
     enablePublicIp: Optional. Enabling public ip for the instance.
+    network: Output only. The resource link for the VPC network in which
+      instance resources are created and from which they are accessible via
+      Private IP. This will be the same value as the parent cluster's network.
+      It is specified in the form: //
+      `projects/{project_number}/global/networks/{network_id}`.
   """
 
-  authorizedExternalNetworks = _messages.MessageField('AuthorizedNetwork', 1, repeated=True)
-  enablePublicIp = _messages.BooleanField(2)
+  allocatedIpRangeOverride = _messages.StringField(1)
+  authorizedExternalNetworks = _messages.MessageField('AuthorizedNetwork', 2, repeated=True)
+  enableOutboundPublicIp = _messages.BooleanField(3)
+  enablePublicIp = _messages.BooleanField(4)
+  network = _messages.StringField(5)
+
+
+class InstanceUpgradeDetails(_messages.Message):
+  r"""Details regarding the upgrade of instances associated with a cluster.
+
+  Enums:
+    InstanceTypeValueValuesEnum: Instance type.
+    UpgradeStatusValueValuesEnum: Upgrade status of the instance.
+
+  Fields:
+    instanceType: Instance type.
+    name: Normalized name of the instance.
+    upgradeStatus: Upgrade status of the instance.
+  """
+
+  class InstanceTypeValueValuesEnum(_messages.Enum):
+    r"""Instance type.
+
+    Values:
+      INSTANCE_TYPE_UNSPECIFIED: The type of the instance is unknown.
+      PRIMARY: PRIMARY instances support read and write operations.
+      READ_POOL: READ POOL instances support read operations only. Each read
+        pool instance consists of one or more homogeneous nodes. * Read pool
+        of size 1 can only have zonal availability. * Read pools with node
+        count of 2 or more can have regional availability (nodes are present
+        in 2 or more zones in a region).
+      SECONDARY: SECONDARY instances support read operations only. SECONDARY
+        instance is a cross-region read replica
+    """
+    INSTANCE_TYPE_UNSPECIFIED = 0
+    PRIMARY = 1
+    READ_POOL = 2
+    SECONDARY = 3
+
+  class UpgradeStatusValueValuesEnum(_messages.Enum):
+    r"""Upgrade status of the instance.
+
+    Values:
+      STATUS_UNSPECIFIED: Unspecified status.
+      NOT_STARTED: Not started.
+      IN_PROGRESS: In progress.
+      SUCCESS: Operation succeeded.
+      FAILED: Operation failed.
+      PARTIAL_SUCCESS: Operation partially succeeded.
+      CANCEL_IN_PROGRESS: Cancel is in progress.
+      CANCELLED: Cancellation complete.
+    """
+    STATUS_UNSPECIFIED = 0
+    NOT_STARTED = 1
+    IN_PROGRESS = 2
+    SUCCESS = 3
+    FAILED = 4
+    PARTIAL_SUCCESS = 5
+    CANCEL_IN_PROGRESS = 6
+    CANCELLED = 7
+
+  instanceType = _messages.EnumField('InstanceTypeValueValuesEnum', 1)
+  name = _messages.StringField(2)
+  upgradeStatus = _messages.EnumField('UpgradeStatusValueValuesEnum', 3)
 
 
 class IntegerRestrictions(_messages.Message):
@@ -2179,9 +2823,13 @@ class MachineConfig(_messages.Message):
 
   Fields:
     cpuCount: The number of CPU's in the VM instance.
+    machineType: Machine type of the VM instance. E.g. "n2-highmem-4",
+      "n2-highmem-8", "c4a-highmem-4-lssd". cpu_count must match the number of
+      vCPUs in the machine type.
   """
 
   cpuCount = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  machineType = _messages.StringField(2)
 
 
 class MaintenanceSchedule(_messages.Message):
@@ -2202,11 +2850,14 @@ class MaintenanceUpdatePolicy(_messages.Message):
   r"""MaintenanceUpdatePolicy defines the policy for system updates.
 
   Fields:
+    denyMaintenancePeriods: Periods to deny maintenance. Currently limited to
+      1.
     maintenanceWindows: Preferred windows to perform maintenance. Currently
       limited to 1.
   """
 
-  maintenanceWindows = _messages.MessageField('MaintenanceWindow', 1, repeated=True)
+  denyMaintenancePeriods = _messages.MessageField('DenyMaintenancePeriod', 1, repeated=True)
+  maintenanceWindows = _messages.MessageField('MaintenanceWindow', 2, repeated=True)
 
 
 class MaintenanceWindow(_messages.Message):
@@ -2303,23 +2954,60 @@ class NetworkConfig(_messages.Message):
 
 class Node(_messages.Message):
   r"""Details of a single node in the instance. Nodes in an AlloyDB instance
-  are ephemereal, they can change during update, failover, autohealing and
+  are ephemeral, they can change during update, failover, autohealing and
   resize operations.
 
   Fields:
-    id: The identifier of the VM e.g. "test-read-0601-407e52be-ms3l".
-    ip: The private IP address of the VM e.g. "10.57.0.34".
-    state: Determined by state of the compute VM and postgres-service health.
-      Compute VM state can have values listed in
+    id: Output only. The identifier of the VM e.g. "test-read-0601-407e52be-
+      ms3l".
+    ip: Output only. The private IP address of the VM e.g. "10.57.0.34".
+    state: Output only. Determined by state of the compute VM and postgres-
+      service health. Compute VM state can have values listed in
       https://cloud.google.com/compute/docs/instances/instance-life-cycle and
       postgres-service health can have values: HEALTHY and UNHEALTHY.
-    zoneId: The Compute Engine zone of the VM e.g. "us-central1-b".
+    zoneId: Output only. The Compute Engine zone of the VM e.g. "us-
+      central1-b".
   """
 
   id = _messages.StringField(1)
   ip = _messages.StringField(2)
   state = _messages.StringField(3)
   zoneId = _messages.StringField(4)
+
+
+class ObservabilityInstanceConfig(_messages.Message):
+  r"""Observability Instance specific configuration.
+
+  Fields:
+    enabled: Observability feature status for an instance. This flag is turned
+      "off" by default.
+    maxQueryStringLength: Query string length. The default value is 10k.
+    preserveComments: Preserve comments in query string for an instance. This
+      flag is turned "off" by default.
+    queryPlansPerMinute: Number of query execution plans captured by Insights
+      per minute for all queries combined. The default value is 200. Any
+      integer between 0 to 200 is considered valid.
+    recordApplicationTags: Record application tags for an instance. This flag
+      is turned "off" by default.
+    trackActiveQueries: Track actively running queries on the instance. If not
+      set, this flag is "off" by default.
+    trackWaitEventTypes: Output only. Track wait event types during query
+      execution for an instance. This flag is turned "on" by default but
+      tracking is enabled only after observability enabled flag is also turned
+      on. This is read-only flag and only modifiable by internal API.
+    trackWaitEvents: Track wait events during query execution for an instance.
+      This flag is turned "on" by default but tracking is enabled only after
+      observability enabled flag is also turned on.
+  """
+
+  enabled = _messages.BooleanField(1)
+  maxQueryStringLength = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  preserveComments = _messages.BooleanField(3)
+  queryPlansPerMinute = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  recordApplicationTags = _messages.BooleanField(5)
+  trackActiveQueries = _messages.BooleanField(6)
+  trackWaitEventTypes = _messages.BooleanField(7)
+  trackWaitEvents = _messages.BooleanField(8)
 
 
 class Operation(_messages.Message):
@@ -2439,12 +3127,14 @@ class OperationMetadata(_messages.Message):
     endTime: Output only. The time the operation finished running.
     requestedCancellation: Output only. Identifies whether the user has
       requested cancellation of the operation. Operations that have
-      successfully been cancelled have Operation.error value with a
-      google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      successfully been cancelled have google.longrunning.Operation.error
+      value with a google.rpc.Status.code of 1, corresponding to
+      `Code.CANCELLED`.
     statusMessage: Output only. Human-readable status of the operation, if
       any.
     target: Output only. Server-defined resource path for the target of the
       operation.
+    upgradeClusterStatus: Output only. UpgradeClusterStatus related metadata.
     verb: Output only. Name of the verb executed by the operation.
   """
 
@@ -2454,7 +3144,8 @@ class OperationMetadata(_messages.Message):
   requestedCancellation = _messages.BooleanField(4)
   statusMessage = _messages.StringField(5)
   target = _messages.StringField(6)
-  verb = _messages.StringField(7)
+  upgradeClusterStatus = _messages.MessageField('UpgradeClusterStatus', 7)
+  verb = _messages.StringField(8)
 
 
 class PrimaryConfig(_messages.Message):
@@ -2479,23 +3170,65 @@ class PromoteClusterRequest(_messages.Message):
       blocked and an ABORTED error will be returned.
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes after the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
-    validateOnly: Optional. If set, performs request validation (e.g.
-      permission checks and any other type of validation), but do not actually
-      execute the delete.
+      ignores the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if original operation with the same request ID
+      was received, and if so, will ignore the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
+    validateOnly: Optional. If set, performs request validation, for example,
+      permission checks and any other type of validation, but does not
+      actually execute the create request.
   """
 
   etag = _messages.StringField(1)
   requestId = _messages.StringField(2)
   validateOnly = _messages.BooleanField(3)
+
+
+class PscAutoConnectionConfig(_messages.Message):
+  r"""Configuration for setting up PSC service automation. Consumer projects
+  in the configs will be allowlisted automatically for the instance.
+
+  Fields:
+    consumerNetwork: The consumer network for the PSC service automation,
+      example: "projects/vpc-host-project/global/networks/default". The
+      consumer network might be hosted a different project than the consumer
+      project.
+    consumerNetworkStatus: Output only. The status of the service connection
+      policy. Possible values: "STATE_UNSPECIFIED" - Default state, when
+      Connection Map is created initially. "VALID" - Set when policy and map
+      configuration is valid, and their matching can lead to allowing creation
+      of PSC Connections subject to other constraints like connections limit.
+      "CONNECTION_POLICY_MISSING" - No Service Connection Policy found for
+      this network and Service Class "POLICY_LIMIT_REACHED" - Service
+      Connection Policy limit reached for this network and Service Class
+      "CONSUMER_INSTANCE_PROJECT_NOT_ALLOWLISTED" - The consumer instance
+      project is not in AllowedGoogleProducersResourceHierarchyLevels of the
+      matching ServiceConnectionPolicy.
+    consumerProject: The consumer project to which the PSC service automation
+      endpoint will be created.
+    ipAddress: Output only. The IP address of the PSC service automation
+      endpoint.
+    status: Output only. The status of the PSC service automation connection.
+      Possible values: "STATE_UNSPECIFIED" - An invalid state as the default
+      case. "ACTIVE" - The connection has been created successfully. "FAILED"
+      - The connection is not functional since some resources on the
+      connection fail to be created. "CREATING" - The connection is being
+      created. "DELETING" - The connection is being deleted.
+      "CREATE_REPAIRING" - The connection is being repaired to complete
+      creation. "DELETE_REPAIRING" - The connection is being repaired to
+      complete deletion.
+  """
+
+  consumerNetwork = _messages.StringField(1)
+  consumerNetworkStatus = _messages.StringField(2)
+  consumerProject = _messages.StringField(3)
+  ipAddress = _messages.StringField(4)
+  status = _messages.StringField(5)
 
 
 class PscConfig(_messages.Message):
@@ -2504,9 +3237,13 @@ class PscConfig(_messages.Message):
   Fields:
     pscEnabled: Optional. Create an instance that allows connections from
       Private Service Connect endpoints to the instance.
+    serviceOwnedProjectNumber: Output only. The project number that needs to
+      be allowlisted on the network attachment to enable outbound
+      connectivity.
   """
 
   pscEnabled = _messages.BooleanField(1)
+  serviceOwnedProjectNumber = _messages.IntegerField(2)
 
 
 class PscInstanceConfig(_messages.Message):
@@ -2516,8 +3253,14 @@ class PscInstanceConfig(_messages.Message):
   Fields:
     allowedConsumerProjects: Optional. List of consumer projects that are
       allowed to create PSC endpoints to service-attachments to this instance.
+    pscAutoConnections: Optional. Configurations for setting up PSC service
+      automation.
     pscDnsName: Output only. The DNS name of the instance for PSC
       connectivity. Name convention: ...alloydb-psc.goog
+    pscInterfaceConfigs: Optional. Configurations for setting up PSC
+      interfaces attached to the instance which are used for outbound
+      connectivity. Only primary instances can have PSC interface attached.
+      Currently we only support 0 or 1 PSC interface.
     serviceAttachmentLink: Output only. The service attachment created when
       Private Service Connect (PSC) is enabled for the instance. The name of
       the resource will be in the format of
@@ -2525,8 +3268,25 @@ class PscInstanceConfig(_messages.Message):
   """
 
   allowedConsumerProjects = _messages.StringField(1, repeated=True)
-  pscDnsName = _messages.StringField(2)
-  serviceAttachmentLink = _messages.StringField(3)
+  pscAutoConnections = _messages.MessageField('PscAutoConnectionConfig', 2, repeated=True)
+  pscDnsName = _messages.StringField(3)
+  pscInterfaceConfigs = _messages.MessageField('PscInterfaceConfig', 4, repeated=True)
+  serviceAttachmentLink = _messages.StringField(5)
+
+
+class PscInterfaceConfig(_messages.Message):
+  r"""Configuration for setting up a PSC interface to enable outbound
+  connectivity.
+
+  Fields:
+    networkAttachmentResource: The network attachment resource created in the
+      consumer network to which the PSC interface will be linked. This is of
+      the format: "projects/${CONSUMER_PROJECT}/regions/${REGION}/networkAttac
+      hments/${NETWORK_ATTACHMENT_NAME}". The network attachment must be in
+      the same region as the instance.
+  """
+
+  networkAttachmentResource = _messages.StringField(1)
 
 
 class QuantityBasedExpiry(_messages.Message):
@@ -2593,33 +3353,46 @@ class ReadPoolConfig(_messages.Message):
   nodeCount = _messages.IntegerField(1, variant=_messages.Variant.INT32)
 
 
+class ReadPoolInstancesUpgradeStageStatus(_messages.Message):
+  r"""Read pool instances upgrade specific status.
+
+  Fields:
+    upgradeStats: Read pool instances upgrade statistics.
+  """
+
+  upgradeStats = _messages.MessageField('Stats', 1)
+
+
 class RestartInstanceRequest(_messages.Message):
   r"""A RestartInstanceRequest object.
 
   Fields:
+    nodeIds: Optional. Full name of the nodes as obtained from
+      INSTANCE_VIEW_FULL to restart upon. Applicable only to read instances.
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes after the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
-    validateOnly: Optional. If set, performs request validation (e.g.
-      permission checks and any other type of validation), but do not actually
-      execute the restart.
+      ignores the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if the original operation with the same request
+      ID was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
+    validateOnly: Optional. If set, performs request validation, for example,
+      permission checks and any other type of validation, but does not
+      actually execute the create request.
   """
 
-  requestId = _messages.StringField(1)
-  validateOnly = _messages.BooleanField(2)
+  nodeIds = _messages.StringField(1, repeated=True)
+  requestId = _messages.StringField(2)
+  validateOnly = _messages.BooleanField(3)
 
 
 class RestoreClusterRequest(_messages.Message):
   r"""Message for restoring a Cluster from a backup or another cluster at a
-  given point in time.
+  given point in time. NEXT_ID: 11
 
   Fields:
     backupSource: Backup source.
@@ -2629,18 +3402,18 @@ class RestoreClusterRequest(_messages.Message):
       to be enabled in the source cluster for this operation to succeed.
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes since the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
-    validateOnly: Optional. If set, performs request validation (e.g.
-      permission checks and any other type of validation), but do not actually
-      execute the import request.
+      ignores the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if the original operation with the same request
+      ID was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
+    validateOnly: Optional. If set, performs request validation, for example,
+      permission checks and any other type of validation, but does not
+      actually execute the create request.
   """
 
   backupSource = _messages.MessageField('BackupSource', 1)
@@ -2649,6 +3422,20 @@ class RestoreClusterRequest(_messages.Message):
   continuousBackupSource = _messages.MessageField('ContinuousBackupSource', 4)
   requestId = _messages.StringField(5)
   validateOnly = _messages.BooleanField(6)
+
+
+class RestoreFromCloudSQLRequest(_messages.Message):
+  r"""Message for registering Restoring from CloudSQL resource.
+
+  Fields:
+    cloudsqlBackupRunSource: Cluster created from CloudSQL backup run.
+    cluster: Required. The resource being created
+    clusterId: Required. ID of the requesting object.
+  """
+
+  cloudsqlBackupRunSource = _messages.MessageField('CloudSQLBackupRunSource', 1)
+  cluster = _messages.MessageField('Cluster', 2)
+  clusterId = _messages.StringField(3)
 
 
 class SecondaryConfig(_messages.Message):
@@ -2661,6 +3448,30 @@ class SecondaryConfig(_messages.Message):
   """
 
   primaryClusterName = _messages.StringField(1)
+
+
+class SqlExportOptions(_messages.Message):
+  r"""Options for exporting data in SQL format.
+
+  Fields:
+    cleanTargetObjects: Optional. If true, output commands to DROP all the
+      dumped database objects prior to outputting the commands for creating
+      them.
+    ifExistTargetObjects: Optional. If true, use DROP ... IF EXISTS commands
+      to check for the object's existence before dropping it in
+      clean_target_objects mode.
+    schemaOnly: Optional. If true, only export the schema.
+    tables: Optional. Tables to export from.
+  """
+
+  cleanTargetObjects = _messages.BooleanField(1)
+  ifExistTargetObjects = _messages.BooleanField(2)
+  schemaOnly = _messages.BooleanField(3)
+  tables = _messages.StringField(4, repeated=True)
+
+
+class SqlImportOptions(_messages.Message):
+  r"""Options for importing data in SQL format."""
 
 
 class SslConfig(_messages.Message):
@@ -2697,7 +3508,7 @@ class SslConfig(_messages.Message):
     behavior.
 
     Values:
-      SSL_MODE_UNSPECIFIED: SSL mode not specified. Defaults to
+      SSL_MODE_UNSPECIFIED: SSL mode is not specified. Defaults to
         ENCRYPTED_ONLY.
       SSL_MODE_ALLOW: SSL connections are optional. CA verification not
         enforced.
@@ -2705,8 +3516,8 @@ class SslConfig(_messages.Message):
         enforced. Clients may use locally self-signed certificates (default
         psql client behavior).
       SSL_MODE_VERIFY_CA: SSL connections are required. CA verification
-        enforced. Clients must have certificates signed by a Cluster CA, e.g.
-        via GenerateClientCertificate.
+        enforced. Clients must have certificates signed by a Cluster CA, for
+        example, using GenerateClientCertificate.
       ALLOW_UNENCRYPTED_AND_ENCRYPTED: SSL connections are optional. CA
         verification not enforced.
       ENCRYPTED_ONLY: SSL connections are required. CA verification not
@@ -2721,6 +3532,154 @@ class SslConfig(_messages.Message):
 
   caSource = _messages.EnumField('CaSourceValueValuesEnum', 1)
   sslMode = _messages.EnumField('SslModeValueValuesEnum', 2)
+
+
+class StageInfo(_messages.Message):
+  r"""Stage information for different stages in the upgrade process.
+
+  Enums:
+    StageValueValuesEnum: The stage.
+    StatusValueValuesEnum: Status of the stage.
+
+  Fields:
+    logsUrl: logs_url is the URL for the logs associated with a stage if that
+      stage has logs. Right now, only three stages have logs:
+      ALLOYDB_PRECHECK, PG_UPGRADE_CHECK, PRIMARY_INSTANCE_UPGRADE.
+    stage: The stage.
+    status: Status of the stage.
+  """
+
+  class StageValueValuesEnum(_messages.Enum):
+    r"""The stage.
+
+    Values:
+      STAGE_UNSPECIFIED: Unspecified stage.
+      ALLOYDB_PRECHECK: Pre-upgrade custom checks, not covered by pg_upgrade.
+      PG_UPGRADE_CHECK: Pre-upgrade pg_upgrade checks.
+      PREPARE_FOR_UPGRADE: Clone the original cluster.
+      PRIMARY_INSTANCE_UPGRADE: Upgrade the primary instance(downtime).
+      READ_POOL_INSTANCES_UPGRADE: This stage is read pool upgrade.
+      ROLLBACK: Rollback in case of critical failures.
+      CLEANUP: Cleanup.
+    """
+    STAGE_UNSPECIFIED = 0
+    ALLOYDB_PRECHECK = 1
+    PG_UPGRADE_CHECK = 2
+    PREPARE_FOR_UPGRADE = 3
+    PRIMARY_INSTANCE_UPGRADE = 4
+    READ_POOL_INSTANCES_UPGRADE = 5
+    ROLLBACK = 6
+    CLEANUP = 7
+
+  class StatusValueValuesEnum(_messages.Enum):
+    r"""Status of the stage.
+
+    Values:
+      STATUS_UNSPECIFIED: Unspecified status.
+      NOT_STARTED: Not started.
+      IN_PROGRESS: In progress.
+      SUCCESS: Operation succeeded.
+      FAILED: Operation failed.
+      PARTIAL_SUCCESS: Operation partially succeeded.
+      CANCEL_IN_PROGRESS: Cancel is in progress.
+      CANCELLED: Cancellation complete.
+    """
+    STATUS_UNSPECIFIED = 0
+    NOT_STARTED = 1
+    IN_PROGRESS = 2
+    SUCCESS = 3
+    FAILED = 4
+    PARTIAL_SUCCESS = 5
+    CANCEL_IN_PROGRESS = 6
+    CANCELLED = 7
+
+  logsUrl = _messages.StringField(1)
+  stage = _messages.EnumField('StageValueValuesEnum', 2)
+  status = _messages.EnumField('StatusValueValuesEnum', 3)
+
+
+class StageSchedule(_messages.Message):
+  r"""Timing information for the stage execution.
+
+  Fields:
+    actualEndTime: Actual end time of the stage. Set only if the stage has
+      completed.
+    actualStartTime: Actual start time of the stage. Set only if the stage has
+      started.
+    estimatedEndTime: When the stage is expected to end. Set only if the stage
+      has not completed yet.
+    estimatedStartTime: When the stage is expected to start. Set only if the
+      stage has not started yet.
+  """
+
+  actualEndTime = _messages.StringField(1)
+  actualStartTime = _messages.StringField(2)
+  estimatedEndTime = _messages.StringField(3)
+  estimatedStartTime = _messages.StringField(4)
+
+
+class StageStatus(_messages.Message):
+  r"""Status of an upgrade stage.
+
+  Enums:
+    StageValueValuesEnum: Upgrade stage.
+    StateValueValuesEnum: State of this stage.
+
+  Fields:
+    readPoolInstancesUpgrade: Read pool instances upgrade metadata.
+    schedule: Output only. Timing information for the stage execution.
+    stage: Upgrade stage.
+    state: State of this stage.
+  """
+
+  class StageValueValuesEnum(_messages.Enum):
+    r"""Upgrade stage.
+
+    Values:
+      STAGE_UNSPECIFIED: Unspecified stage.
+      ALLOYDB_PRECHECK: Pre-upgrade custom checks, not covered by pg_upgrade.
+      PG_UPGRADE_CHECK: Pre-upgrade pg_upgrade checks.
+      PREPARE_FOR_UPGRADE: Clone the original cluster.
+      PRIMARY_INSTANCE_UPGRADE: Upgrade the primary instance(downtime).
+      READ_POOL_INSTANCES_UPGRADE: This stage is read pool upgrade.
+      ROLLBACK: Rollback in case of critical failures.
+      CLEANUP: Cleanup.
+    """
+    STAGE_UNSPECIFIED = 0
+    ALLOYDB_PRECHECK = 1
+    PG_UPGRADE_CHECK = 2
+    PREPARE_FOR_UPGRADE = 3
+    PRIMARY_INSTANCE_UPGRADE = 4
+    READ_POOL_INSTANCES_UPGRADE = 5
+    ROLLBACK = 6
+    CLEANUP = 7
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""State of this stage.
+
+    Values:
+      STATUS_UNSPECIFIED: Unspecified status.
+      NOT_STARTED: Not started.
+      IN_PROGRESS: In progress.
+      SUCCESS: Operation succeeded.
+      FAILED: Operation failed.
+      PARTIAL_SUCCESS: Operation partially succeeded.
+      CANCEL_IN_PROGRESS: Cancel is in progress.
+      CANCELLED: Cancellation complete.
+    """
+    STATUS_UNSPECIFIED = 0
+    NOT_STARTED = 1
+    IN_PROGRESS = 2
+    SUCCESS = 3
+    FAILED = 4
+    PARTIAL_SUCCESS = 5
+    CANCEL_IN_PROGRESS = 6
+    CANCELLED = 7
+
+  readPoolInstancesUpgrade = _messages.MessageField('ReadPoolInstancesUpgradeStageStatus', 1)
+  schedule = _messages.MessageField('StageSchedule', 2)
+  stage = _messages.EnumField('StageValueValuesEnum', 3)
+  state = _messages.EnumField('StateValueValuesEnum', 4)
 
 
 class StandardQueryParameters(_messages.Message):
@@ -2786,6 +3745,23 @@ class StandardQueryParameters(_messages.Message):
   upload_protocol = _messages.StringField(12)
 
 
+class Stats(_messages.Message):
+  r"""Upgrade stats for read pool instances.
+
+  Fields:
+    failed: Number of read pool instances which failed to upgrade.
+    notStarted: Number of read pool instances for which upgrade has not
+      started.
+    ongoing: Number of read pool instances undergoing upgrade.
+    success: Number of read pool instances successfully upgraded.
+  """
+
+  failed = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  notStarted = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  ongoing = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  success = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+
+
 class Status(_messages.Message):
   r"""The `Status` type defines a logical error model that is suitable for
   different programming environments, including REST APIs and RPC APIs. It is
@@ -2847,6 +3823,10 @@ class StorageDatabasecenterPartnerapiV1mainAvailabilityConfiguration(_messages.M
       data from more than one zone in a region (it is highly available).
 
   Fields:
+    automaticFailoverRoutingConfigured: Checks for existence of (multi-
+      cluster) routing configuration that allows automatic failover to a
+      different zone/region in case of an outage. Applicable to Bigtable
+      resources.
     availabilityType: Availability type. Potential values: * `ZONAL`: The
       instance serves data from only one zone. Outages in that zone affect
       data accessibility. * `REGIONAL`: The instance can serve data from more
@@ -2876,10 +3856,11 @@ class StorageDatabasecenterPartnerapiV1mainAvailabilityConfiguration(_messages.M
     MULTI_REGIONAL = 3
     AVAILABILITY_TYPE_OTHER = 4
 
-  availabilityType = _messages.EnumField('AvailabilityTypeValueValuesEnum', 1)
-  crossRegionReplicaConfigured = _messages.BooleanField(2)
-  externalReplicaConfigured = _messages.BooleanField(3)
-  promotableReplicaConfigured = _messages.BooleanField(4)
+  automaticFailoverRoutingConfigured = _messages.BooleanField(1)
+  availabilityType = _messages.EnumField('AvailabilityTypeValueValuesEnum', 2)
+  crossRegionReplicaConfigured = _messages.BooleanField(3)
+  externalReplicaConfigured = _messages.BooleanField(4)
+  promotableReplicaConfigured = _messages.BooleanField(5)
 
 
 class StorageDatabasecenterPartnerapiV1mainBackupConfiguration(_messages.Message):
@@ -2898,6 +3879,38 @@ class StorageDatabasecenterPartnerapiV1mainBackupConfiguration(_messages.Message
   automatedBackupEnabled = _messages.BooleanField(1)
   backupRetentionSettings = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainRetentionSettings', 2)
   pointInTimeRecoveryEnabled = _messages.BooleanField(3)
+
+
+class StorageDatabasecenterPartnerapiV1mainBackupDRConfiguration(_messages.Message):
+  r"""BackupDRConfiguration to capture the backup and disaster recovery
+  details of database resource.
+
+  Fields:
+    backupdrManaged: Indicates if the resource is managed by BackupDR.
+  """
+
+  backupdrManaged = _messages.BooleanField(1)
+
+
+class StorageDatabasecenterPartnerapiV1mainBackupDRMetadata(_messages.Message):
+  r"""BackupDRMetadata contains information about the backup and disaster
+  recovery metadata of a database resource.
+
+  Fields:
+    backupConfiguration: Backup configuration for this instance.
+    backupRun: Latest backup run information for this instance.
+    backupdrConfiguration: BackupDR configuration for this instance.
+    fullResourceName: Required. Full resource name of this instance.
+    lastRefreshTime: Required. Last time backup configuration was refreshed.
+    resourceId: Required. Database resource id.
+  """
+
+  backupConfiguration = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainBackupConfiguration', 1)
+  backupRun = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainBackupRun', 2)
+  backupdrConfiguration = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainBackupDRConfiguration', 3)
+  fullResourceName = _messages.StringField(4)
+  lastRefreshTime = _messages.StringField(5)
+  resourceId = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainDatabaseResourceId', 6)
 
 
 class StorageDatabasecenterPartnerapiV1mainBackupRun(_messages.Message):
@@ -2946,52 +3959,86 @@ class StorageDatabasecenterPartnerapiV1mainCompliance(_messages.Message):
   version = _messages.StringField(2)
 
 
+class StorageDatabasecenterPartnerapiV1mainConfigBasedSignalData(_messages.Message):
+  r"""Config based signal data. This is used to send signals to Condor which
+  are based on the DB level configurations. These will be used to send signals
+  for self managed databases.
+
+  Enums:
+    SignalTypeValueValuesEnum: Required. Signal type of the signal
+
+  Fields:
+    fullResourceName: Required. Full Resource name of the source resource.
+    lastRefreshTime: Required. Last time signal was refreshed
+    resourceId: Database resource id.
+    signalBoolValue: Signal data for boolean signals.
+    signalType: Required. Signal type of the signal
+  """
+
+  class SignalTypeValueValuesEnum(_messages.Enum):
+    r"""Required. Signal type of the signal
+
+    Values:
+      SIGNAL_TYPE_UNSPECIFIED: Unspecified signal type.
+      SIGNAL_TYPE_OUTDATED_MINOR_VERSION: Outdated Minor Version
+      SIGNAL_TYPE_DATABASE_AUDITING_DISABLED: Represents database auditing is
+        disabled.
+      SIGNAL_TYPE_NO_ROOT_PASSWORD: Represents if a database has a password
+        configured for the root account or not.
+      SIGNAL_TYPE_EXPOSED_TO_PUBLIC_ACCESS: Represents if a resource is
+        exposed to public access.
+      SIGNAL_TYPE_UNENCRYPTED_CONNECTIONS: Represents if a resources requires
+        all incoming connections to use SSL or not.
+    """
+    SIGNAL_TYPE_UNSPECIFIED = 0
+    SIGNAL_TYPE_OUTDATED_MINOR_VERSION = 1
+    SIGNAL_TYPE_DATABASE_AUDITING_DISABLED = 2
+    SIGNAL_TYPE_NO_ROOT_PASSWORD = 3
+    SIGNAL_TYPE_EXPOSED_TO_PUBLIC_ACCESS = 4
+    SIGNAL_TYPE_UNENCRYPTED_CONNECTIONS = 5
+
+  fullResourceName = _messages.StringField(1)
+  lastRefreshTime = _messages.StringField(2)
+  resourceId = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainDatabaseResourceId', 3)
+  signalBoolValue = _messages.BooleanField(4)
+  signalType = _messages.EnumField('SignalTypeValueValuesEnum', 5)
+
+
 class StorageDatabasecenterPartnerapiV1mainCustomMetadataData(_messages.Message):
-  r"""Any custom metadata associated with the resource. i.e. A spanner
+  r"""Any custom metadata associated with the resource. e.g. A spanner
   instance can have multiple databases with its own unique metadata.
   Information for these individual databases can be captured in custom
   metadata data
 
   Fields:
-    databaseMetadata: A StorageDatabasecenterPartnerapiV1mainDatabaseMetadata
-      attribute.
+    internalResourceMetadata: Metadata for individual internal resources in an
+      instance. e.g. spanner instance can have multiple databases with unique
+      configuration.
   """
 
-  databaseMetadata = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainDatabaseMetadata', 1, repeated=True)
-
-
-class StorageDatabasecenterPartnerapiV1mainDatabaseMetadata(_messages.Message):
-  r"""Metadata for individual databases created in an instance. i.e. spanner
-  instance can have multiple databases with unique configuration settings.
-
-  Fields:
-    backupConfiguration: Backup configuration for this database
-    backupRun: Information about the last backup attempt for this database
-    product: A StorageDatabasecenterProtoCommonProduct attribute.
-    resourceId: A StorageDatabasecenterPartnerapiV1mainDatabaseResourceId
-      attribute.
-    resourceName: Required. Database name. Resource name to follow CAIS
-      resource_name format as noted here go/condor-common-datamodel
-  """
-
-  backupConfiguration = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainBackupConfiguration', 1)
-  backupRun = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainBackupRun', 2)
-  product = _messages.MessageField('StorageDatabasecenterProtoCommonProduct', 3)
-  resourceId = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainDatabaseResourceId', 4)
-  resourceName = _messages.StringField(5)
+  internalResourceMetadata = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainInternalResourceMetadata', 1, repeated=True)
 
 
 class StorageDatabasecenterPartnerapiV1mainDatabaseResourceFeed(_messages.Message):
   r"""DatabaseResourceFeed is the top level proto to be used to ingest
-  different database resource level events into Condor platform.
+  different database resource level events into Condor platform. Next ID: 13
 
   Enums:
     FeedTypeValueValuesEnum: Required. Type feed to be ingested into condor
 
   Fields:
+    backupdrMetadata: BackupDR metadata is used to ingest metadata from
+      BackupDR.
+    configBasedSignalData: Config based signal data is used to ingest signals
+      that are generated based on the configuration of the database resource.
+    databaseResourceSignalData: Database resource signal data is used to
+      ingest signals from database resource signal feeds.
     feedTimestamp: Required. Timestamp when feed is generated.
     feedType: Required. Type feed to be ingested into condor
-    recommendationSignalData: More feed data would be added in subsequent CLs
+    observabilityMetricData: A
+      StorageDatabasecenterPartnerapiV1mainObservabilityMetricData attribute.
+    recommendationSignalData: A StorageDatabasecenterPartnerapiV1mainDatabaseR
+      esourceRecommendationSignalData attribute.
     resourceHealthSignalData: A
       StorageDatabasecenterPartnerapiV1mainDatabaseResourceHealthSignalData
       attribute.
@@ -2999,6 +4046,11 @@ class StorageDatabasecenterPartnerapiV1mainDatabaseResourceFeed(_messages.Messag
       available in individual feed level as well.
     resourceMetadata: A
       StorageDatabasecenterPartnerapiV1mainDatabaseResourceMetadata attribute.
+    skipIngestion: Optional. If true, the feed won't be ingested by DB Center.
+      This indicates that the feed is intentionally skipped. For example,
+      BackupDR feeds are only needed for resources integrated with DB Center
+      (e.g., CloudSQL, AlloyDB). Feeds for non-integrated resources (e.g.,
+      Compute Engine, Persistent Disk) can be skipped.
   """
 
   class FeedTypeValueValuesEnum(_messages.Enum):
@@ -3010,19 +4062,30 @@ class StorageDatabasecenterPartnerapiV1mainDatabaseResourceFeed(_messages.Messag
       OBSERVABILITY_DATA: Database resource monitoring data
       SECURITY_FINDING_DATA: Database resource security health signal data
       RECOMMENDATION_SIGNAL_DATA: Database resource recommendation signal data
+      CONFIG_BASED_SIGNAL_DATA: Database config based signal data
+      BACKUPDR_METADATA: Database resource metadata from BackupDR
+      DATABASE_RESOURCE_SIGNAL_DATA: Database resource signal data
     """
     FEEDTYPE_UNSPECIFIED = 0
     RESOURCE_METADATA = 1
     OBSERVABILITY_DATA = 2
     SECURITY_FINDING_DATA = 3
     RECOMMENDATION_SIGNAL_DATA = 4
+    CONFIG_BASED_SIGNAL_DATA = 5
+    BACKUPDR_METADATA = 6
+    DATABASE_RESOURCE_SIGNAL_DATA = 7
 
-  feedTimestamp = _messages.StringField(1)
-  feedType = _messages.EnumField('FeedTypeValueValuesEnum', 2)
-  recommendationSignalData = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainDatabaseResourceRecommendationSignalData', 3)
-  resourceHealthSignalData = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainDatabaseResourceHealthSignalData', 4)
-  resourceId = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainDatabaseResourceId', 5)
-  resourceMetadata = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainDatabaseResourceMetadata', 6)
+  backupdrMetadata = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainBackupDRMetadata', 1)
+  configBasedSignalData = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainConfigBasedSignalData', 2)
+  databaseResourceSignalData = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainDatabaseResourceSignalData', 3)
+  feedTimestamp = _messages.StringField(4)
+  feedType = _messages.EnumField('FeedTypeValueValuesEnum', 5)
+  observabilityMetricData = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainObservabilityMetricData', 6)
+  recommendationSignalData = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainDatabaseResourceRecommendationSignalData', 7)
+  resourceHealthSignalData = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainDatabaseResourceHealthSignalData', 8)
+  resourceId = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainDatabaseResourceId', 9)
+  resourceMetadata = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainDatabaseResourceMetadata', 10)
+  skipIngestion = _messages.BooleanField(11)
 
 
 class StorageDatabasecenterPartnerapiV1mainDatabaseResourceHealthSignalData(_messages.Message):
@@ -3033,6 +4096,8 @@ class StorageDatabasecenterPartnerapiV1mainDatabaseResourceHealthSignalData(_mes
       GCP/AWS/Azure/OnPrem/SelfManaged
     SignalClassValueValuesEnum: Required. The class of the signal, such as if
       it's a THREAT or VULNERABILITY.
+    SignalSeverityValueValuesEnum: The severity of the signal, such as if it's
+      a HIGH or LOW severity.
     SignalTypeValueValuesEnum: Required. Type of signal, for example,
       `AVAILABLE_IN_MULTIPLE_ZONES`, `LOGGING_MOST_ERRORS`, etc.
     StateValueValuesEnum:
@@ -3054,6 +4119,8 @@ class StorageDatabasecenterPartnerapiV1mainDatabaseResourceHealthSignalData(_mes
     externalUri: The external-uri of the signal, using which more information
       about this signal can be obtained. In GCP, this will take user to SCC
       page to get more details about signals.
+    location: This is used to identify the location of the resource. Example:
+      "us-central1"
     name: Required. The name of the signal, ex: PUBLIC_SQL_INSTANCE,
       SQL_LOG_ERROR_VERBOSITY etc.
     provider: Cloud provider name. Ex: GCP/AWS/Azure/OnPrem/SelfManaged
@@ -3069,6 +4136,8 @@ class StorageDatabasecenterPartnerapiV1mainDatabaseResourceHealthSignalData(_mes
       or VULNERABILITY.
     signalId: Required. Unique identifier for the signal. This is an unique id
       which would be mainatined by partner to identify a signal.
+    signalSeverity: The severity of the signal, such as if it's a HIGH or LOW
+      severity.
     signalType: Required. Type of signal, for example,
       `AVAILABLE_IN_MULTIPLE_ZONES`, `LOGGING_MOST_ERRORS`, etc.
     state: A StateValueValuesEnum attribute.
@@ -3121,6 +4190,28 @@ class StorageDatabasecenterPartnerapiV1mainDatabaseResourceHealthSignalData(_mes
     OBSERVATION = 4
     ERROR = 5
 
+  class SignalSeverityValueValuesEnum(_messages.Enum):
+    r"""The severity of the signal, such as if it's a HIGH or LOW severity.
+
+    Values:
+      SIGNAL_SEVERITY_UNSPECIFIED: This value is used for findings when a
+        source doesn't write a severity value.
+      CRITICAL: A critical vulnerability is easily discoverable by an external
+        actor, exploitable.
+      HIGH: A high risk vulnerability can be easily discovered and exploited
+        in combination with other vulnerabilities.
+      MEDIUM: A medium risk vulnerability could be used by an actor to gain
+        access to resources or privileges that enable them to eventually gain
+        access and the ability to execute arbitrary code or exfiltrate data.
+      LOW: A low risk vulnerability hampers a security organization's ability
+        to detect vulnerabilities or active threats in their deployment.
+    """
+    SIGNAL_SEVERITY_UNSPECIFIED = 0
+    CRITICAL = 1
+    HIGH = 2
+    MEDIUM = 3
+    LOW = 4
+
   class SignalTypeValueValuesEnum(_messages.Enum):
     r"""Required. Type of signal, for example, `AVAILABLE_IN_MULTIPLE_ZONES`,
     `LOGGING_MOST_ERRORS`, etc.
@@ -3159,12 +4250,27 @@ class StorageDatabasecenterPartnerapiV1mainDatabaseResourceHealthSignalData(_mes
         violates CIS GCP Foundation 1.1.
       SIGNAL_TYPE_VIOLATES_CIS_GCP_FOUNDATION_1_0: Represents if a resource
         violates CIS GCP Foundation 1.0.
+      SIGNAL_TYPE_VIOLATES_CIS_CONTROLS_V8_0: Represents if a resource
+        violates CIS Controls 8.0.
       SIGNAL_TYPE_VIOLATES_NIST_800_53: Represents if a resource violates NIST
         800-53.
+      SIGNAL_TYPE_VIOLATES_NIST_800_53_R5: Represents if a resource violates
+        NIST 800-53 R5.
+      SIGNAL_TYPE_VIOLATES_NIST_CYBERSECURITY_FRAMEWORK_V1_0: Represents if a
+        resource violates NIST Cybersecurity Framework 1.0.
       SIGNAL_TYPE_VIOLATES_ISO_27001: Represents if a resource violates
         ISO-27001.
+      SIGNAL_TYPE_VIOLATES_ISO_27001_V2022: Represents if a resource violates
+        ISO 27001 2022.
       SIGNAL_TYPE_VIOLATES_PCI_DSS_V3_2_1: Represents if a resource violates
         PCI-DSS v3.2.1.
+      SIGNAL_TYPE_VIOLATES_PCI_DSS_V4_0: Represents if a resource violates
+        PCI-DSS v4.0.
+      SIGNAL_TYPE_VIOLATES_CLOUD_CONTROLS_MATRIX_V4: Represents if a resource
+        violates Cloud Controls Matrix v4.0.
+      SIGNAL_TYPE_VIOLATES_HIPAA: Represents if a resource violates HIPAA.
+      SIGNAL_TYPE_VIOLATES_SOC2_V2017: Represents if a resource violates SOC2
+        v2017.
       SIGNAL_TYPE_LOGS_NOT_OPTIMIZED_FOR_TROUBLESHOOTING: Represents if
         log_checkpoints database flag for a Cloud SQL for PostgreSQL instance
         is not set to on.
@@ -3281,6 +4387,58 @@ class StorageDatabasecenterPartnerapiV1mainDatabaseResourceHealthSignalData(_mes
         transaction logs settings
       SIGNAL_TYPE_HIGH_JOINS_WITHOUT_INDEXES: Performance impact of high joins
         without indexes
+      SIGNAL_TYPE_SUPERUSER_WRITING_TO_USER_TABLES: Detects events where a
+        Cloud SQL superuser (postgres for PostgreSQL servers or root for MySQL
+        users) writes to non-system tables.
+      SIGNAL_TYPE_USER_GRANTED_ALL_PERMISSIONS: Detects events where a
+        database user or role has been granted all privileges to a database,
+        or to all tables, procedures, or functions in a schema.
+      SIGNAL_TYPE_DATA_EXPORT_TO_EXTERNAL_CLOUD_STORAGE_BUCKET: Detects if
+        database instance data exported to a Cloud Storage bucket outside of
+        the organization.
+      SIGNAL_TYPE_DATA_EXPORT_TO_PUBLIC_CLOUD_STORAGE_BUCKET: Detects if
+        database instance data exported to a Cloud Storage bucket that is
+        owned by the organization and is publicly accessible.
+      SIGNAL_TYPE_WEAK_PASSWORD_HASH_ALGORITHM: Detects if a database instance
+        is using a weak password hash algorithm.
+      SIGNAL_TYPE_NO_USER_PASSWORD_POLICY: Detects if a database instance has
+        no user password policy set.
+      SIGNAL_TYPE_HOT_NODE: Detects if a database instance/cluster has a hot
+        node.
+      SIGNAL_TYPE_NO_POINT_IN_TIME_RECOVERY: Detects if a database instance
+        has no point in time recovery enabled.
+      SIGNAL_TYPE_RESOURCE_SUSPENDED: Detects if a database instance/cluster
+        is suspended.
+      SIGNAL_TYPE_EXPENSIVE_COMMANDS: Detects that expensive commands are
+        being run on a database instance impacting overall performance.
+      SIGNAL_TYPE_NO_MAINTENANCE_POLICY_CONFIGURED: Indicates that the
+        instance does not have a maintenance policy configured.
+      SIGNAL_TYPE_NO_DELETION_PROTECTION: Deletion Protection Disabled for the
+        resource
+      SIGNAL_TYPE_INEFFICIENT_QUERY: Indicates that the instance has
+        inefficient queries detected.
+      SIGNAL_TYPE_READ_INTENSIVE_WORKLOAD: Indicates that the instance has
+        read intensive workload.
+      SIGNAL_TYPE_MEMORY_LIMIT: Indicates that the instance is nearing memory
+        limit.
+      SIGNAL_TYPE_MAX_SERVER_MEMORY: Indicates that the instance's max server
+        memory is configured higher than the recommended value.
+      SIGNAL_TYPE_LARGE_ROWS: Indicates that the database has large rows
+        beyond the recommended limit.
+      SIGNAL_TYPE_HIGH_WRITE_PRESSURE: Heavy write pressure on the database
+        rows.
+      SIGNAL_TYPE_HIGH_READ_PRESSURE: Heavy read pressure on the database
+        rows.
+      SIGNAL_TYPE_ENCRYPTION_ORG_POLICY_NOT_SATISFIED: Encryption org policy
+        not satisfied.
+      SIGNAL_TYPE_LOCATION_ORG_POLICY_NOT_SATISFIED: Location org policy not
+        satisfied.
+      SIGNAL_TYPE_OUTDATED_MINOR_VERSION: Outdated DB minor version.
+      SIGNAL_TYPE_SCHEMA_NOT_OPTIMIZED: Schema not optimized.
+      SIGNAL_TYPE_MANY_IDLE_CONNECTIONS: High number of idle connections.
+      SIGNAL_TYPE_REPLICATION_LAG: Replication delay.
+      SIGNAL_TYPE_OUTDATED_VERSION: Outdated version.
+      SIGNAL_TYPE_OUTDATED_CLIENT: Outdated client.
     """
     SIGNAL_TYPE_UNSPECIFIED = 0
     SIGNAL_TYPE_NOT_PROTECTED_BY_AUTOMATIC_FAILOVER = 1
@@ -3297,58 +4455,93 @@ class StorageDatabasecenterPartnerapiV1mainDatabaseResourceHealthSignalData(_mes
     SIGNAL_TYPE_VIOLATES_CIS_GCP_FOUNDATION_1_2 = 12
     SIGNAL_TYPE_VIOLATES_CIS_GCP_FOUNDATION_1_1 = 13
     SIGNAL_TYPE_VIOLATES_CIS_GCP_FOUNDATION_1_0 = 14
-    SIGNAL_TYPE_VIOLATES_NIST_800_53 = 15
-    SIGNAL_TYPE_VIOLATES_ISO_27001 = 16
-    SIGNAL_TYPE_VIOLATES_PCI_DSS_V3_2_1 = 17
-    SIGNAL_TYPE_LOGS_NOT_OPTIMIZED_FOR_TROUBLESHOOTING = 18
-    SIGNAL_TYPE_QUERY_DURATIONS_NOT_LOGGED = 19
-    SIGNAL_TYPE_VERBOSE_ERROR_LOGGING = 20
-    SIGNAL_TYPE_QUERY_LOCK_WAITS_NOT_LOGGED = 21
-    SIGNAL_TYPE_LOGGING_MOST_ERRORS = 22
-    SIGNAL_TYPE_LOGGING_ONLY_CRITICAL_ERRORS = 23
-    SIGNAL_TYPE_MINIMAL_ERROR_LOGGING = 24
-    SIGNAL_TYPE_QUERY_STATISTICS_LOGGED = 25
-    SIGNAL_TYPE_EXCESSIVE_LOGGING_OF_CLIENT_HOSTNAME = 26
-    SIGNAL_TYPE_EXCESSIVE_LOGGING_OF_PARSER_STATISTICS = 27
-    SIGNAL_TYPE_EXCESSIVE_LOGGING_OF_PLANNER_STATISTICS = 28
-    SIGNAL_TYPE_NOT_LOGGING_ONLY_DDL_STATEMENTS = 29
-    SIGNAL_TYPE_LOGGING_QUERY_STATISTICS = 30
-    SIGNAL_TYPE_NOT_LOGGING_TEMPORARY_FILES = 31
-    SIGNAL_TYPE_CONNECTION_MAX_NOT_CONFIGURED = 32
-    SIGNAL_TYPE_USER_OPTIONS_CONFIGURED = 33
-    SIGNAL_TYPE_EXPOSED_TO_PUBLIC_ACCESS = 34
-    SIGNAL_TYPE_UNENCRYPTED_CONNECTIONS = 35
-    SIGNAL_TYPE_NO_ROOT_PASSWORD = 36
-    SIGNAL_TYPE_WEAK_ROOT_PASSWORD = 37
-    SIGNAL_TYPE_ENCRYPTION_KEY_NOT_CUSTOMER_MANAGED = 38
-    SIGNAL_TYPE_SERVER_AUTHENTICATION_NOT_REQUIRED = 39
-    SIGNAL_TYPE_EXPOSED_BY_OWNERSHIP_CHAINING = 40
-    SIGNAL_TYPE_EXPOSED_TO_EXTERNAL_SCRIPTS = 41
-    SIGNAL_TYPE_EXPOSED_TO_LOCAL_DATA_LOADS = 42
-    SIGNAL_TYPE_CONNECTION_ATTEMPTS_NOT_LOGGED = 43
-    SIGNAL_TYPE_DISCONNECTIONS_NOT_LOGGED = 44
-    SIGNAL_TYPE_LOGGING_EXCESSIVE_STATEMENT_INFO = 45
-    SIGNAL_TYPE_EXPOSED_TO_REMOTE_ACCESS = 46
-    SIGNAL_TYPE_DATABASE_NAMES_EXPOSED = 47
-    SIGNAL_TYPE_SENSITIVE_TRACE_INFO_NOT_MASKED = 48
-    SIGNAL_TYPE_PUBLIC_IP_ENABLED = 49
-    SIGNAL_TYPE_IDLE = 50
-    SIGNAL_TYPE_OVERPROVISIONED = 51
-    SIGNAL_TYPE_HIGH_NUMBER_OF_OPEN_TABLES = 52
-    SIGNAL_TYPE_HIGH_NUMBER_OF_TABLES = 53
-    SIGNAL_TYPE_HIGH_TRANSACTION_ID_UTILIZATION = 54
-    SIGNAL_TYPE_UNDERPROVISIONED = 55
-    SIGNAL_TYPE_OUT_OF_DISK = 56
-    SIGNAL_TYPE_SERVER_CERTIFICATE_NEAR_EXPIRY = 57
-    SIGNAL_TYPE_DATABASE_AUDITING_DISABLED = 58
-    SIGNAL_TYPE_RESTRICT_AUTHORIZED_NETWORKS = 59
-    SIGNAL_TYPE_VIOLATE_POLICY_RESTRICT_PUBLIC_IP = 60
-    SIGNAL_TYPE_QUOTA_LIMIT = 61
-    SIGNAL_TYPE_NO_PASSWORD_POLICY = 62
-    SIGNAL_TYPE_CONNECTIONS_PERFORMANCE_IMPACT = 63
-    SIGNAL_TYPE_TMP_TABLES_PERFORMANCE_IMPACT = 64
-    SIGNAL_TYPE_TRANS_LOGS_PERFORMANCE_IMPACT = 65
-    SIGNAL_TYPE_HIGH_JOINS_WITHOUT_INDEXES = 66
+    SIGNAL_TYPE_VIOLATES_CIS_CONTROLS_V8_0 = 15
+    SIGNAL_TYPE_VIOLATES_NIST_800_53 = 16
+    SIGNAL_TYPE_VIOLATES_NIST_800_53_R5 = 17
+    SIGNAL_TYPE_VIOLATES_NIST_CYBERSECURITY_FRAMEWORK_V1_0 = 18
+    SIGNAL_TYPE_VIOLATES_ISO_27001 = 19
+    SIGNAL_TYPE_VIOLATES_ISO_27001_V2022 = 20
+    SIGNAL_TYPE_VIOLATES_PCI_DSS_V3_2_1 = 21
+    SIGNAL_TYPE_VIOLATES_PCI_DSS_V4_0 = 22
+    SIGNAL_TYPE_VIOLATES_CLOUD_CONTROLS_MATRIX_V4 = 23
+    SIGNAL_TYPE_VIOLATES_HIPAA = 24
+    SIGNAL_TYPE_VIOLATES_SOC2_V2017 = 25
+    SIGNAL_TYPE_LOGS_NOT_OPTIMIZED_FOR_TROUBLESHOOTING = 26
+    SIGNAL_TYPE_QUERY_DURATIONS_NOT_LOGGED = 27
+    SIGNAL_TYPE_VERBOSE_ERROR_LOGGING = 28
+    SIGNAL_TYPE_QUERY_LOCK_WAITS_NOT_LOGGED = 29
+    SIGNAL_TYPE_LOGGING_MOST_ERRORS = 30
+    SIGNAL_TYPE_LOGGING_ONLY_CRITICAL_ERRORS = 31
+    SIGNAL_TYPE_MINIMAL_ERROR_LOGGING = 32
+    SIGNAL_TYPE_QUERY_STATISTICS_LOGGED = 33
+    SIGNAL_TYPE_EXCESSIVE_LOGGING_OF_CLIENT_HOSTNAME = 34
+    SIGNAL_TYPE_EXCESSIVE_LOGGING_OF_PARSER_STATISTICS = 35
+    SIGNAL_TYPE_EXCESSIVE_LOGGING_OF_PLANNER_STATISTICS = 36
+    SIGNAL_TYPE_NOT_LOGGING_ONLY_DDL_STATEMENTS = 37
+    SIGNAL_TYPE_LOGGING_QUERY_STATISTICS = 38
+    SIGNAL_TYPE_NOT_LOGGING_TEMPORARY_FILES = 39
+    SIGNAL_TYPE_CONNECTION_MAX_NOT_CONFIGURED = 40
+    SIGNAL_TYPE_USER_OPTIONS_CONFIGURED = 41
+    SIGNAL_TYPE_EXPOSED_TO_PUBLIC_ACCESS = 42
+    SIGNAL_TYPE_UNENCRYPTED_CONNECTIONS = 43
+    SIGNAL_TYPE_NO_ROOT_PASSWORD = 44
+    SIGNAL_TYPE_WEAK_ROOT_PASSWORD = 45
+    SIGNAL_TYPE_ENCRYPTION_KEY_NOT_CUSTOMER_MANAGED = 46
+    SIGNAL_TYPE_SERVER_AUTHENTICATION_NOT_REQUIRED = 47
+    SIGNAL_TYPE_EXPOSED_BY_OWNERSHIP_CHAINING = 48
+    SIGNAL_TYPE_EXPOSED_TO_EXTERNAL_SCRIPTS = 49
+    SIGNAL_TYPE_EXPOSED_TO_LOCAL_DATA_LOADS = 50
+    SIGNAL_TYPE_CONNECTION_ATTEMPTS_NOT_LOGGED = 51
+    SIGNAL_TYPE_DISCONNECTIONS_NOT_LOGGED = 52
+    SIGNAL_TYPE_LOGGING_EXCESSIVE_STATEMENT_INFO = 53
+    SIGNAL_TYPE_EXPOSED_TO_REMOTE_ACCESS = 54
+    SIGNAL_TYPE_DATABASE_NAMES_EXPOSED = 55
+    SIGNAL_TYPE_SENSITIVE_TRACE_INFO_NOT_MASKED = 56
+    SIGNAL_TYPE_PUBLIC_IP_ENABLED = 57
+    SIGNAL_TYPE_IDLE = 58
+    SIGNAL_TYPE_OVERPROVISIONED = 59
+    SIGNAL_TYPE_HIGH_NUMBER_OF_OPEN_TABLES = 60
+    SIGNAL_TYPE_HIGH_NUMBER_OF_TABLES = 61
+    SIGNAL_TYPE_HIGH_TRANSACTION_ID_UTILIZATION = 62
+    SIGNAL_TYPE_UNDERPROVISIONED = 63
+    SIGNAL_TYPE_OUT_OF_DISK = 64
+    SIGNAL_TYPE_SERVER_CERTIFICATE_NEAR_EXPIRY = 65
+    SIGNAL_TYPE_DATABASE_AUDITING_DISABLED = 66
+    SIGNAL_TYPE_RESTRICT_AUTHORIZED_NETWORKS = 67
+    SIGNAL_TYPE_VIOLATE_POLICY_RESTRICT_PUBLIC_IP = 68
+    SIGNAL_TYPE_QUOTA_LIMIT = 69
+    SIGNAL_TYPE_NO_PASSWORD_POLICY = 70
+    SIGNAL_TYPE_CONNECTIONS_PERFORMANCE_IMPACT = 71
+    SIGNAL_TYPE_TMP_TABLES_PERFORMANCE_IMPACT = 72
+    SIGNAL_TYPE_TRANS_LOGS_PERFORMANCE_IMPACT = 73
+    SIGNAL_TYPE_HIGH_JOINS_WITHOUT_INDEXES = 74
+    SIGNAL_TYPE_SUPERUSER_WRITING_TO_USER_TABLES = 75
+    SIGNAL_TYPE_USER_GRANTED_ALL_PERMISSIONS = 76
+    SIGNAL_TYPE_DATA_EXPORT_TO_EXTERNAL_CLOUD_STORAGE_BUCKET = 77
+    SIGNAL_TYPE_DATA_EXPORT_TO_PUBLIC_CLOUD_STORAGE_BUCKET = 78
+    SIGNAL_TYPE_WEAK_PASSWORD_HASH_ALGORITHM = 79
+    SIGNAL_TYPE_NO_USER_PASSWORD_POLICY = 80
+    SIGNAL_TYPE_HOT_NODE = 81
+    SIGNAL_TYPE_NO_POINT_IN_TIME_RECOVERY = 82
+    SIGNAL_TYPE_RESOURCE_SUSPENDED = 83
+    SIGNAL_TYPE_EXPENSIVE_COMMANDS = 84
+    SIGNAL_TYPE_NO_MAINTENANCE_POLICY_CONFIGURED = 85
+    SIGNAL_TYPE_NO_DELETION_PROTECTION = 86
+    SIGNAL_TYPE_INEFFICIENT_QUERY = 87
+    SIGNAL_TYPE_READ_INTENSIVE_WORKLOAD = 88
+    SIGNAL_TYPE_MEMORY_LIMIT = 89
+    SIGNAL_TYPE_MAX_SERVER_MEMORY = 90
+    SIGNAL_TYPE_LARGE_ROWS = 91
+    SIGNAL_TYPE_HIGH_WRITE_PRESSURE = 92
+    SIGNAL_TYPE_HIGH_READ_PRESSURE = 93
+    SIGNAL_TYPE_ENCRYPTION_ORG_POLICY_NOT_SATISFIED = 94
+    SIGNAL_TYPE_LOCATION_ORG_POLICY_NOT_SATISFIED = 95
+    SIGNAL_TYPE_OUTDATED_MINOR_VERSION = 96
+    SIGNAL_TYPE_SCHEMA_NOT_OPTIMIZED = 97
+    SIGNAL_TYPE_MANY_IDLE_CONNECTIONS = 98
+    SIGNAL_TYPE_REPLICATION_LAG = 99
+    SIGNAL_TYPE_OUTDATED_VERSION = 100
+    SIGNAL_TYPE_OUTDATED_CLIENT = 101
 
   class StateValueValuesEnum(_messages.Enum):
     r"""StateValueValuesEnum enum type.
@@ -3395,14 +4588,16 @@ class StorageDatabasecenterPartnerapiV1mainDatabaseResourceHealthSignalData(_mes
   description = _messages.StringField(3)
   eventTime = _messages.StringField(4)
   externalUri = _messages.StringField(5)
-  name = _messages.StringField(6)
-  provider = _messages.EnumField('ProviderValueValuesEnum', 7)
-  resourceContainer = _messages.StringField(8)
-  resourceName = _messages.StringField(9)
-  signalClass = _messages.EnumField('SignalClassValueValuesEnum', 10)
-  signalId = _messages.StringField(11)
-  signalType = _messages.EnumField('SignalTypeValueValuesEnum', 12)
-  state = _messages.EnumField('StateValueValuesEnum', 13)
+  location = _messages.StringField(6)
+  name = _messages.StringField(7)
+  provider = _messages.EnumField('ProviderValueValuesEnum', 8)
+  resourceContainer = _messages.StringField(9)
+  resourceName = _messages.StringField(10)
+  signalClass = _messages.EnumField('SignalClassValueValuesEnum', 11)
+  signalId = _messages.StringField(12)
+  signalSeverity = _messages.EnumField('SignalSeverityValueValuesEnum', 13)
+  signalType = _messages.EnumField('SignalTypeValueValuesEnum', 14)
+  state = _messages.EnumField('StateValueValuesEnum', 15)
 
 
 class StorageDatabasecenterPartnerapiV1mainDatabaseResourceId(_messages.Message):
@@ -3419,10 +4614,17 @@ class StorageDatabasecenterPartnerapiV1mainDatabaseResourceId(_messages.Message)
     providerDescription: Optional. Needs to be used only when the provider is
       PROVIDER_OTHER.
     resourceType: Required. The type of resource this ID is identifying. Ex
-      redis.googleapis.com/Instance, redis.googleapis.com/Cluster,
-      alloydb.googleapis.com/Cluster, alloydb.googleapis.com/Instance,
-      spanner.googleapis.com/Instance REQUIRED Please refer go/condor-common-
-      datamodel
+      go/keep-sorted start alloydb.googleapis.com/Cluster,
+      alloydb.googleapis.com/Instance, bigtableadmin.googleapis.com/Cluster,
+      bigtableadmin.googleapis.com/Instance compute.googleapis.com/Instance
+      firestore.googleapis.com/Database, redis.googleapis.com/Instance,
+      redis.googleapis.com/Cluster,
+      oracledatabase.googleapis.com/CloudExadataInfrastructure
+      oracledatabase.googleapis.com/CloudVmCluster
+      oracledatabase.googleapis.com/AutonomousDatabase
+      spanner.googleapis.com/Instance, spanner.googleapis.com/Database,
+      sqladmin.googleapis.com/Instance, go/keep-sorted end REQUIRED Please
+      refer go/condor-common-datamodel
     uniqueId: Required. A service-local token that distinguishes this resource
       from other resources within the same service.
   """
@@ -3459,40 +4661,50 @@ class StorageDatabasecenterPartnerapiV1mainDatabaseResourceId(_messages.Message)
 
 
 class StorageDatabasecenterPartnerapiV1mainDatabaseResourceMetadata(_messages.Message):
-  r"""Common model for database resource instance metadata.
+  r"""Common model for database resource instance metadata. Next ID: 27
 
   Enums:
     CurrentStateValueValuesEnum: Current state of the instance.
+    EditionValueValuesEnum: Optional. Edition represents whether the instance
+      is ENTERPRISE or ENTERPRISE_PLUS. This information is core to Cloud SQL
+      only and is used to identify the edition of the instance.
     ExpectedStateValueValuesEnum: The state that the instance is expected to
       be in. For example, an instance state can transition to UNHEALTHY due to
       wrong patch update, while the expected state will remain at the HEALTHY.
     InstanceTypeValueValuesEnum: The type of the instance. Specified at
       creation time.
-
-  Messages:
-    UserLabelsValue: User-provided labels, represented as a dictionary where
-      each label is a single key value pair.
+    SuspensionReasonValueValuesEnum: Optional. Suspension reason for the
+      resource.
 
   Fields:
     availabilityConfiguration: Availability configuration for this instance
     backupConfiguration: Backup configuration for this instance
     backupRun: Latest backup run information for this instance
+    backupdrConfiguration: Optional. BackupDR Configuration for the resource.
     creationTime: The creation time of the resource, i.e. the time when
       resource is created and recorded in partner service.
     currentState: Current state of the instance.
     customMetadata: Any custom metadata associated with the resource
+    edition: Optional. Edition represents whether the instance is ENTERPRISE
+      or ENTERPRISE_PLUS. This information is core to Cloud SQL only and is
+      used to identify the edition of the instance.
     entitlements: Entitlements associated with the resource
     expectedState: The state that the instance is expected to be in. For
       example, an instance state can transition to UNHEALTHY due to wrong
       patch update, while the expected state will remain at the HEALTHY.
+    gcbdrConfiguration: GCBDR configuration for the resource.
     id: Required. Unique identifier for a Database resource
     instanceType: The type of the instance. Specified at creation time.
     location: The resource location. REQUIRED
+    machineConfiguration: Machine configuration for this resource.
     primaryResourceId: Identifier for this resource's immediate parent/primary
       resource if the current resource is a replica or derived form of another
       Database resource. Else it would be NULL. REQUIRED if the immediate
       parent exists when first time resource is getting ingested, otherwise
       optional.
+    primaryResourceLocation: Primary resource location. REQUIRED if the
+      immediate parent exists when first time resource is getting ingested,
+      otherwise optional.
     product: The product this resource represents.
     resourceContainer: Closest parent Cloud Resource Manager container of this
       resource. It must be resource name of a Cloud Resource Manager project
@@ -3503,11 +4715,13 @@ class StorageDatabasecenterPartnerapiV1mainDatabaseResourceMetadata(_messages.Me
       "ABC" is deleted, the name "ABC" can be used to to create a new resource
       within the same source. Resource name to follow CAIS resource_name
       format as noted here go/condor-common-datamodel
+    suspensionReason: Optional. Suspension reason for the resource.
+    tagsSet: Optional. Tags associated with this resources.
     updationTime: The time at which the resource was updated and recorded at
       partner service.
     userLabelSet: User-provided labels associated with the resource
-    userLabels: User-provided labels, represented as a dictionary where each
-      label is a single key value pair.
+    zone: The resource zone. This is only applicable for zonal resources and
+      will be empty for regional and multi-regional resources.
   """
 
   class CurrentStateValueValuesEnum(_messages.Enum):
@@ -3527,6 +4741,23 @@ class StorageDatabasecenterPartnerapiV1mainDatabaseResourceMetadata(_messages.Me
     SUSPENDED = 3
     DELETED = 4
     STATE_OTHER = 5
+
+  class EditionValueValuesEnum(_messages.Enum):
+    r"""Optional. Edition represents whether the instance is ENTERPRISE or
+    ENTERPRISE_PLUS. This information is core to Cloud SQL only and is used to
+    identify the edition of the instance.
+
+    Values:
+      EDITION_UNSPECIFIED: Default, to make it consistent with instance
+        edition enum.
+      EDITION_ENTERPRISE: Represents the enterprise edition.
+      EDITION_ENTERPRISE_PLUS: Represents the enterprise plus edition.
+      EDITION_STANDARD: Represents the standard edition.
+    """
+    EDITION_UNSPECIFIED = 0
+    EDITION_ENTERPRISE = 1
+    EDITION_ENTERPRISE_PLUS = 2
+    EDITION_STANDARD = 3
 
   class ExpectedStateValueValuesEnum(_messages.Enum):
     r"""The state that the instance is expected to be in. For example, an
@@ -3552,7 +4783,7 @@ class StorageDatabasecenterPartnerapiV1mainDatabaseResourceMetadata(_messages.Me
     r"""The type of the instance. Specified at creation time.
 
     Values:
-      INSTANCE_TYPE_UNSPECIFIED: <no description>
+      INSTANCE_TYPE_UNSPECIFIED: Unspecified.
       SUB_RESOURCE_TYPE_UNSPECIFIED: For rest of the other categories.
       PRIMARY: A regular primary database instance.
       SECONDARY: A cluster or an instance acting as a secondary.
@@ -3562,6 +4793,8 @@ class StorageDatabasecenterPartnerapiV1mainDatabaseResourceMetadata(_messages.Me
       SUB_RESOURCE_TYPE_SECONDARY: A cluster or an instance acting as a
         secondary.
       SUB_RESOURCE_TYPE_READ_REPLICA: An instance acting as a read-replica.
+      SUB_RESOURCE_TYPE_EXTERNAL_PRIMARY: An instance acting as an external
+        primary.
       SUB_RESOURCE_TYPE_OTHER: For rest of the other categories.
     """
     INSTANCE_TYPE_UNSPECIFIED = 0
@@ -3573,51 +4806,55 @@ class StorageDatabasecenterPartnerapiV1mainDatabaseResourceMetadata(_messages.Me
     SUB_RESOURCE_TYPE_PRIMARY = 6
     SUB_RESOURCE_TYPE_SECONDARY = 7
     SUB_RESOURCE_TYPE_READ_REPLICA = 8
-    SUB_RESOURCE_TYPE_OTHER = 9
+    SUB_RESOURCE_TYPE_EXTERNAL_PRIMARY = 9
+    SUB_RESOURCE_TYPE_OTHER = 10
 
-  @encoding.MapUnrecognizedFields('additionalProperties')
-  class UserLabelsValue(_messages.Message):
-    r"""User-provided labels, represented as a dictionary where each label is
-    a single key value pair.
+  class SuspensionReasonValueValuesEnum(_messages.Enum):
+    r"""Optional. Suspension reason for the resource.
 
-    Messages:
-      AdditionalProperty: An additional property for a UserLabelsValue object.
-
-    Fields:
-      additionalProperties: Additional properties of type UserLabelsValue
+    Values:
+      SUSPENSION_REASON_UNSPECIFIED: Suspension reason is unspecified.
+      WIPEOUT_HIDE_EVENT: Wipeout hide event.
+      WIPEOUT_PURGE_EVENT: Wipeout purge event.
+      BILLING_DISABLED: Billing disabled for project
+      ABUSER_DETECTED: Abuse detected for resource
+      ENCRYPTION_KEY_INACCESSIBLE: Encryption key inaccessible.
+      REPLICATED_CLUSTER_ENCRYPTION_KEY_INACCESSIBLE: Replicated cluster
+        encryption key inaccessible.
     """
-
-    class AdditionalProperty(_messages.Message):
-      r"""An additional property for a UserLabelsValue object.
-
-      Fields:
-        key: Name of the additional property.
-        value: A string attribute.
-      """
-
-      key = _messages.StringField(1)
-      value = _messages.StringField(2)
-
-    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+    SUSPENSION_REASON_UNSPECIFIED = 0
+    WIPEOUT_HIDE_EVENT = 1
+    WIPEOUT_PURGE_EVENT = 2
+    BILLING_DISABLED = 3
+    ABUSER_DETECTED = 4
+    ENCRYPTION_KEY_INACCESSIBLE = 5
+    REPLICATED_CLUSTER_ENCRYPTION_KEY_INACCESSIBLE = 6
 
   availabilityConfiguration = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainAvailabilityConfiguration', 1)
   backupConfiguration = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainBackupConfiguration', 2)
   backupRun = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainBackupRun', 3)
-  creationTime = _messages.StringField(4)
-  currentState = _messages.EnumField('CurrentStateValueValuesEnum', 5)
-  customMetadata = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainCustomMetadataData', 6)
-  entitlements = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainEntitlement', 7, repeated=True)
-  expectedState = _messages.EnumField('ExpectedStateValueValuesEnum', 8)
-  id = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainDatabaseResourceId', 9)
-  instanceType = _messages.EnumField('InstanceTypeValueValuesEnum', 10)
-  location = _messages.StringField(11)
-  primaryResourceId = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainDatabaseResourceId', 12)
-  product = _messages.MessageField('StorageDatabasecenterProtoCommonProduct', 13)
-  resourceContainer = _messages.StringField(14)
-  resourceName = _messages.StringField(15)
-  updationTime = _messages.StringField(16)
-  userLabelSet = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainUserLabels', 17)
-  userLabels = _messages.MessageField('UserLabelsValue', 18)
+  backupdrConfiguration = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainBackupDRConfiguration', 4)
+  creationTime = _messages.StringField(5)
+  currentState = _messages.EnumField('CurrentStateValueValuesEnum', 6)
+  customMetadata = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainCustomMetadataData', 7)
+  edition = _messages.EnumField('EditionValueValuesEnum', 8)
+  entitlements = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainEntitlement', 9, repeated=True)
+  expectedState = _messages.EnumField('ExpectedStateValueValuesEnum', 10)
+  gcbdrConfiguration = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainGCBDRConfiguration', 11)
+  id = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainDatabaseResourceId', 12)
+  instanceType = _messages.EnumField('InstanceTypeValueValuesEnum', 13)
+  location = _messages.StringField(14)
+  machineConfiguration = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainMachineConfiguration', 15)
+  primaryResourceId = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainDatabaseResourceId', 16)
+  primaryResourceLocation = _messages.StringField(17)
+  product = _messages.MessageField('StorageDatabasecenterProtoCommonProduct', 18)
+  resourceContainer = _messages.StringField(19)
+  resourceName = _messages.StringField(20)
+  suspensionReason = _messages.EnumField('SuspensionReasonValueValuesEnum', 21)
+  tagsSet = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainTags', 22)
+  updationTime = _messages.StringField(23)
+  userLabelSet = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainUserLabels', 24)
+  zone = _messages.StringField(25)
 
 
 class StorageDatabasecenterPartnerapiV1mainDatabaseResourceRecommendationSignalData(_messages.Message):
@@ -3723,12 +4960,27 @@ class StorageDatabasecenterPartnerapiV1mainDatabaseResourceRecommendationSignalD
         violates CIS GCP Foundation 1.1.
       SIGNAL_TYPE_VIOLATES_CIS_GCP_FOUNDATION_1_0: Represents if a resource
         violates CIS GCP Foundation 1.0.
+      SIGNAL_TYPE_VIOLATES_CIS_CONTROLS_V8_0: Represents if a resource
+        violates CIS Controls 8.0.
       SIGNAL_TYPE_VIOLATES_NIST_800_53: Represents if a resource violates NIST
         800-53.
+      SIGNAL_TYPE_VIOLATES_NIST_800_53_R5: Represents if a resource violates
+        NIST 800-53 R5.
+      SIGNAL_TYPE_VIOLATES_NIST_CYBERSECURITY_FRAMEWORK_V1_0: Represents if a
+        resource violates NIST Cybersecurity Framework 1.0.
       SIGNAL_TYPE_VIOLATES_ISO_27001: Represents if a resource violates
         ISO-27001.
+      SIGNAL_TYPE_VIOLATES_ISO_27001_V2022: Represents if a resource violates
+        ISO 27001 2022.
       SIGNAL_TYPE_VIOLATES_PCI_DSS_V3_2_1: Represents if a resource violates
         PCI-DSS v3.2.1.
+      SIGNAL_TYPE_VIOLATES_PCI_DSS_V4_0: Represents if a resource violates
+        PCI-DSS v4.0.
+      SIGNAL_TYPE_VIOLATES_CLOUD_CONTROLS_MATRIX_V4: Represents if a resource
+        violates Cloud Controls Matrix v4.0.
+      SIGNAL_TYPE_VIOLATES_HIPAA: Represents if a resource violates HIPAA.
+      SIGNAL_TYPE_VIOLATES_SOC2_V2017: Represents if a resource violates SOC2
+        v2017.
       SIGNAL_TYPE_LOGS_NOT_OPTIMIZED_FOR_TROUBLESHOOTING: Represents if
         log_checkpoints database flag for a Cloud SQL for PostgreSQL instance
         is not set to on.
@@ -3845,6 +5097,58 @@ class StorageDatabasecenterPartnerapiV1mainDatabaseResourceRecommendationSignalD
         transaction logs settings
       SIGNAL_TYPE_HIGH_JOINS_WITHOUT_INDEXES: Performance impact of high joins
         without indexes
+      SIGNAL_TYPE_SUPERUSER_WRITING_TO_USER_TABLES: Detects events where a
+        Cloud SQL superuser (postgres for PostgreSQL servers or root for MySQL
+        users) writes to non-system tables.
+      SIGNAL_TYPE_USER_GRANTED_ALL_PERMISSIONS: Detects events where a
+        database user or role has been granted all privileges to a database,
+        or to all tables, procedures, or functions in a schema.
+      SIGNAL_TYPE_DATA_EXPORT_TO_EXTERNAL_CLOUD_STORAGE_BUCKET: Detects if
+        database instance data exported to a Cloud Storage bucket outside of
+        the organization.
+      SIGNAL_TYPE_DATA_EXPORT_TO_PUBLIC_CLOUD_STORAGE_BUCKET: Detects if
+        database instance data exported to a Cloud Storage bucket that is
+        owned by the organization and is publicly accessible.
+      SIGNAL_TYPE_WEAK_PASSWORD_HASH_ALGORITHM: Detects if a database instance
+        is using a weak password hash algorithm.
+      SIGNAL_TYPE_NO_USER_PASSWORD_POLICY: Detects if a database instance has
+        no user password policy set.
+      SIGNAL_TYPE_HOT_NODE: Detects if a database instance/cluster has a hot
+        node.
+      SIGNAL_TYPE_NO_POINT_IN_TIME_RECOVERY: Detects if a database instance
+        has no point in time recovery enabled.
+      SIGNAL_TYPE_RESOURCE_SUSPENDED: Detects if a database instance/cluster
+        is suspended.
+      SIGNAL_TYPE_EXPENSIVE_COMMANDS: Detects that expensive commands are
+        being run on a database instance impacting overall performance.
+      SIGNAL_TYPE_NO_MAINTENANCE_POLICY_CONFIGURED: Indicates that the
+        instance does not have a maintenance policy configured.
+      SIGNAL_TYPE_NO_DELETION_PROTECTION: Deletion Protection Disabled for the
+        resource
+      SIGNAL_TYPE_INEFFICIENT_QUERY: Indicates that the instance has
+        inefficient queries detected.
+      SIGNAL_TYPE_READ_INTENSIVE_WORKLOAD: Indicates that the instance has
+        read intensive workload.
+      SIGNAL_TYPE_MEMORY_LIMIT: Indicates that the instance is nearing memory
+        limit.
+      SIGNAL_TYPE_MAX_SERVER_MEMORY: Indicates that the instance's max server
+        memory is configured higher than the recommended value.
+      SIGNAL_TYPE_LARGE_ROWS: Indicates that the database has large rows
+        beyond the recommended limit.
+      SIGNAL_TYPE_HIGH_WRITE_PRESSURE: Heavy write pressure on the database
+        rows.
+      SIGNAL_TYPE_HIGH_READ_PRESSURE: Heavy read pressure on the database
+        rows.
+      SIGNAL_TYPE_ENCRYPTION_ORG_POLICY_NOT_SATISFIED: Encryption org policy
+        not satisfied.
+      SIGNAL_TYPE_LOCATION_ORG_POLICY_NOT_SATISFIED: Location org policy not
+        satisfied.
+      SIGNAL_TYPE_OUTDATED_MINOR_VERSION: Outdated DB minor version.
+      SIGNAL_TYPE_SCHEMA_NOT_OPTIMIZED: Schema not optimized.
+      SIGNAL_TYPE_MANY_IDLE_CONNECTIONS: High number of idle connections.
+      SIGNAL_TYPE_REPLICATION_LAG: Replication delay.
+      SIGNAL_TYPE_OUTDATED_VERSION: Outdated version.
+      SIGNAL_TYPE_OUTDATED_CLIENT: Outdated client.
     """
     SIGNAL_TYPE_UNSPECIFIED = 0
     SIGNAL_TYPE_NOT_PROTECTED_BY_AUTOMATIC_FAILOVER = 1
@@ -3861,58 +5165,93 @@ class StorageDatabasecenterPartnerapiV1mainDatabaseResourceRecommendationSignalD
     SIGNAL_TYPE_VIOLATES_CIS_GCP_FOUNDATION_1_2 = 12
     SIGNAL_TYPE_VIOLATES_CIS_GCP_FOUNDATION_1_1 = 13
     SIGNAL_TYPE_VIOLATES_CIS_GCP_FOUNDATION_1_0 = 14
-    SIGNAL_TYPE_VIOLATES_NIST_800_53 = 15
-    SIGNAL_TYPE_VIOLATES_ISO_27001 = 16
-    SIGNAL_TYPE_VIOLATES_PCI_DSS_V3_2_1 = 17
-    SIGNAL_TYPE_LOGS_NOT_OPTIMIZED_FOR_TROUBLESHOOTING = 18
-    SIGNAL_TYPE_QUERY_DURATIONS_NOT_LOGGED = 19
-    SIGNAL_TYPE_VERBOSE_ERROR_LOGGING = 20
-    SIGNAL_TYPE_QUERY_LOCK_WAITS_NOT_LOGGED = 21
-    SIGNAL_TYPE_LOGGING_MOST_ERRORS = 22
-    SIGNAL_TYPE_LOGGING_ONLY_CRITICAL_ERRORS = 23
-    SIGNAL_TYPE_MINIMAL_ERROR_LOGGING = 24
-    SIGNAL_TYPE_QUERY_STATISTICS_LOGGED = 25
-    SIGNAL_TYPE_EXCESSIVE_LOGGING_OF_CLIENT_HOSTNAME = 26
-    SIGNAL_TYPE_EXCESSIVE_LOGGING_OF_PARSER_STATISTICS = 27
-    SIGNAL_TYPE_EXCESSIVE_LOGGING_OF_PLANNER_STATISTICS = 28
-    SIGNAL_TYPE_NOT_LOGGING_ONLY_DDL_STATEMENTS = 29
-    SIGNAL_TYPE_LOGGING_QUERY_STATISTICS = 30
-    SIGNAL_TYPE_NOT_LOGGING_TEMPORARY_FILES = 31
-    SIGNAL_TYPE_CONNECTION_MAX_NOT_CONFIGURED = 32
-    SIGNAL_TYPE_USER_OPTIONS_CONFIGURED = 33
-    SIGNAL_TYPE_EXPOSED_TO_PUBLIC_ACCESS = 34
-    SIGNAL_TYPE_UNENCRYPTED_CONNECTIONS = 35
-    SIGNAL_TYPE_NO_ROOT_PASSWORD = 36
-    SIGNAL_TYPE_WEAK_ROOT_PASSWORD = 37
-    SIGNAL_TYPE_ENCRYPTION_KEY_NOT_CUSTOMER_MANAGED = 38
-    SIGNAL_TYPE_SERVER_AUTHENTICATION_NOT_REQUIRED = 39
-    SIGNAL_TYPE_EXPOSED_BY_OWNERSHIP_CHAINING = 40
-    SIGNAL_TYPE_EXPOSED_TO_EXTERNAL_SCRIPTS = 41
-    SIGNAL_TYPE_EXPOSED_TO_LOCAL_DATA_LOADS = 42
-    SIGNAL_TYPE_CONNECTION_ATTEMPTS_NOT_LOGGED = 43
-    SIGNAL_TYPE_DISCONNECTIONS_NOT_LOGGED = 44
-    SIGNAL_TYPE_LOGGING_EXCESSIVE_STATEMENT_INFO = 45
-    SIGNAL_TYPE_EXPOSED_TO_REMOTE_ACCESS = 46
-    SIGNAL_TYPE_DATABASE_NAMES_EXPOSED = 47
-    SIGNAL_TYPE_SENSITIVE_TRACE_INFO_NOT_MASKED = 48
-    SIGNAL_TYPE_PUBLIC_IP_ENABLED = 49
-    SIGNAL_TYPE_IDLE = 50
-    SIGNAL_TYPE_OVERPROVISIONED = 51
-    SIGNAL_TYPE_HIGH_NUMBER_OF_OPEN_TABLES = 52
-    SIGNAL_TYPE_HIGH_NUMBER_OF_TABLES = 53
-    SIGNAL_TYPE_HIGH_TRANSACTION_ID_UTILIZATION = 54
-    SIGNAL_TYPE_UNDERPROVISIONED = 55
-    SIGNAL_TYPE_OUT_OF_DISK = 56
-    SIGNAL_TYPE_SERVER_CERTIFICATE_NEAR_EXPIRY = 57
-    SIGNAL_TYPE_DATABASE_AUDITING_DISABLED = 58
-    SIGNAL_TYPE_RESTRICT_AUTHORIZED_NETWORKS = 59
-    SIGNAL_TYPE_VIOLATE_POLICY_RESTRICT_PUBLIC_IP = 60
-    SIGNAL_TYPE_QUOTA_LIMIT = 61
-    SIGNAL_TYPE_NO_PASSWORD_POLICY = 62
-    SIGNAL_TYPE_CONNECTIONS_PERFORMANCE_IMPACT = 63
-    SIGNAL_TYPE_TMP_TABLES_PERFORMANCE_IMPACT = 64
-    SIGNAL_TYPE_TRANS_LOGS_PERFORMANCE_IMPACT = 65
-    SIGNAL_TYPE_HIGH_JOINS_WITHOUT_INDEXES = 66
+    SIGNAL_TYPE_VIOLATES_CIS_CONTROLS_V8_0 = 15
+    SIGNAL_TYPE_VIOLATES_NIST_800_53 = 16
+    SIGNAL_TYPE_VIOLATES_NIST_800_53_R5 = 17
+    SIGNAL_TYPE_VIOLATES_NIST_CYBERSECURITY_FRAMEWORK_V1_0 = 18
+    SIGNAL_TYPE_VIOLATES_ISO_27001 = 19
+    SIGNAL_TYPE_VIOLATES_ISO_27001_V2022 = 20
+    SIGNAL_TYPE_VIOLATES_PCI_DSS_V3_2_1 = 21
+    SIGNAL_TYPE_VIOLATES_PCI_DSS_V4_0 = 22
+    SIGNAL_TYPE_VIOLATES_CLOUD_CONTROLS_MATRIX_V4 = 23
+    SIGNAL_TYPE_VIOLATES_HIPAA = 24
+    SIGNAL_TYPE_VIOLATES_SOC2_V2017 = 25
+    SIGNAL_TYPE_LOGS_NOT_OPTIMIZED_FOR_TROUBLESHOOTING = 26
+    SIGNAL_TYPE_QUERY_DURATIONS_NOT_LOGGED = 27
+    SIGNAL_TYPE_VERBOSE_ERROR_LOGGING = 28
+    SIGNAL_TYPE_QUERY_LOCK_WAITS_NOT_LOGGED = 29
+    SIGNAL_TYPE_LOGGING_MOST_ERRORS = 30
+    SIGNAL_TYPE_LOGGING_ONLY_CRITICAL_ERRORS = 31
+    SIGNAL_TYPE_MINIMAL_ERROR_LOGGING = 32
+    SIGNAL_TYPE_QUERY_STATISTICS_LOGGED = 33
+    SIGNAL_TYPE_EXCESSIVE_LOGGING_OF_CLIENT_HOSTNAME = 34
+    SIGNAL_TYPE_EXCESSIVE_LOGGING_OF_PARSER_STATISTICS = 35
+    SIGNAL_TYPE_EXCESSIVE_LOGGING_OF_PLANNER_STATISTICS = 36
+    SIGNAL_TYPE_NOT_LOGGING_ONLY_DDL_STATEMENTS = 37
+    SIGNAL_TYPE_LOGGING_QUERY_STATISTICS = 38
+    SIGNAL_TYPE_NOT_LOGGING_TEMPORARY_FILES = 39
+    SIGNAL_TYPE_CONNECTION_MAX_NOT_CONFIGURED = 40
+    SIGNAL_TYPE_USER_OPTIONS_CONFIGURED = 41
+    SIGNAL_TYPE_EXPOSED_TO_PUBLIC_ACCESS = 42
+    SIGNAL_TYPE_UNENCRYPTED_CONNECTIONS = 43
+    SIGNAL_TYPE_NO_ROOT_PASSWORD = 44
+    SIGNAL_TYPE_WEAK_ROOT_PASSWORD = 45
+    SIGNAL_TYPE_ENCRYPTION_KEY_NOT_CUSTOMER_MANAGED = 46
+    SIGNAL_TYPE_SERVER_AUTHENTICATION_NOT_REQUIRED = 47
+    SIGNAL_TYPE_EXPOSED_BY_OWNERSHIP_CHAINING = 48
+    SIGNAL_TYPE_EXPOSED_TO_EXTERNAL_SCRIPTS = 49
+    SIGNAL_TYPE_EXPOSED_TO_LOCAL_DATA_LOADS = 50
+    SIGNAL_TYPE_CONNECTION_ATTEMPTS_NOT_LOGGED = 51
+    SIGNAL_TYPE_DISCONNECTIONS_NOT_LOGGED = 52
+    SIGNAL_TYPE_LOGGING_EXCESSIVE_STATEMENT_INFO = 53
+    SIGNAL_TYPE_EXPOSED_TO_REMOTE_ACCESS = 54
+    SIGNAL_TYPE_DATABASE_NAMES_EXPOSED = 55
+    SIGNAL_TYPE_SENSITIVE_TRACE_INFO_NOT_MASKED = 56
+    SIGNAL_TYPE_PUBLIC_IP_ENABLED = 57
+    SIGNAL_TYPE_IDLE = 58
+    SIGNAL_TYPE_OVERPROVISIONED = 59
+    SIGNAL_TYPE_HIGH_NUMBER_OF_OPEN_TABLES = 60
+    SIGNAL_TYPE_HIGH_NUMBER_OF_TABLES = 61
+    SIGNAL_TYPE_HIGH_TRANSACTION_ID_UTILIZATION = 62
+    SIGNAL_TYPE_UNDERPROVISIONED = 63
+    SIGNAL_TYPE_OUT_OF_DISK = 64
+    SIGNAL_TYPE_SERVER_CERTIFICATE_NEAR_EXPIRY = 65
+    SIGNAL_TYPE_DATABASE_AUDITING_DISABLED = 66
+    SIGNAL_TYPE_RESTRICT_AUTHORIZED_NETWORKS = 67
+    SIGNAL_TYPE_VIOLATE_POLICY_RESTRICT_PUBLIC_IP = 68
+    SIGNAL_TYPE_QUOTA_LIMIT = 69
+    SIGNAL_TYPE_NO_PASSWORD_POLICY = 70
+    SIGNAL_TYPE_CONNECTIONS_PERFORMANCE_IMPACT = 71
+    SIGNAL_TYPE_TMP_TABLES_PERFORMANCE_IMPACT = 72
+    SIGNAL_TYPE_TRANS_LOGS_PERFORMANCE_IMPACT = 73
+    SIGNAL_TYPE_HIGH_JOINS_WITHOUT_INDEXES = 74
+    SIGNAL_TYPE_SUPERUSER_WRITING_TO_USER_TABLES = 75
+    SIGNAL_TYPE_USER_GRANTED_ALL_PERMISSIONS = 76
+    SIGNAL_TYPE_DATA_EXPORT_TO_EXTERNAL_CLOUD_STORAGE_BUCKET = 77
+    SIGNAL_TYPE_DATA_EXPORT_TO_PUBLIC_CLOUD_STORAGE_BUCKET = 78
+    SIGNAL_TYPE_WEAK_PASSWORD_HASH_ALGORITHM = 79
+    SIGNAL_TYPE_NO_USER_PASSWORD_POLICY = 80
+    SIGNAL_TYPE_HOT_NODE = 81
+    SIGNAL_TYPE_NO_POINT_IN_TIME_RECOVERY = 82
+    SIGNAL_TYPE_RESOURCE_SUSPENDED = 83
+    SIGNAL_TYPE_EXPENSIVE_COMMANDS = 84
+    SIGNAL_TYPE_NO_MAINTENANCE_POLICY_CONFIGURED = 85
+    SIGNAL_TYPE_NO_DELETION_PROTECTION = 86
+    SIGNAL_TYPE_INEFFICIENT_QUERY = 87
+    SIGNAL_TYPE_READ_INTENSIVE_WORKLOAD = 88
+    SIGNAL_TYPE_MEMORY_LIMIT = 89
+    SIGNAL_TYPE_MAX_SERVER_MEMORY = 90
+    SIGNAL_TYPE_LARGE_ROWS = 91
+    SIGNAL_TYPE_HIGH_WRITE_PRESSURE = 92
+    SIGNAL_TYPE_HIGH_READ_PRESSURE = 93
+    SIGNAL_TYPE_ENCRYPTION_ORG_POLICY_NOT_SATISFIED = 94
+    SIGNAL_TYPE_LOCATION_ORG_POLICY_NOT_SATISFIED = 95
+    SIGNAL_TYPE_OUTDATED_MINOR_VERSION = 96
+    SIGNAL_TYPE_SCHEMA_NOT_OPTIMIZED = 97
+    SIGNAL_TYPE_MANY_IDLE_CONNECTIONS = 98
+    SIGNAL_TYPE_REPLICATION_LAG = 99
+    SIGNAL_TYPE_OUTDATED_VERSION = 100
+    SIGNAL_TYPE_OUTDATED_CLIENT = 101
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class AdditionalMetadataValue(_messages.Message):
@@ -3949,6 +5288,70 @@ class StorageDatabasecenterPartnerapiV1mainDatabaseResourceRecommendationSignalD
   signalType = _messages.EnumField('SignalTypeValueValuesEnum', 8)
 
 
+class StorageDatabasecenterPartnerapiV1mainDatabaseResourceSignalData(_messages.Message):
+  r"""Database resource signal data. This is used to send signals to Condor
+  which are based on the DB/Instance/Fleet level configurations. These will be
+  used to send signals for all inventory types. Next ID: 7
+
+  Enums:
+    SignalStateValueValuesEnum: Required. Output only. Signal state of the
+      signal
+    SignalTypeValueValuesEnum: Required. Signal type of the signal
+
+  Fields:
+    fullResourceName: Required. Full Resource name of the source resource.
+    lastRefreshTime: Required. Last time signal was refreshed
+    resourceId: Database resource id.
+    signalBoolValue: Signal data for boolean signals.
+    signalState: Required. Output only. Signal state of the signal
+    signalType: Required. Signal type of the signal
+  """
+
+  class SignalStateValueValuesEnum(_messages.Enum):
+    r"""Required. Output only. Signal state of the signal
+
+    Values:
+      SIGNAL_STATE_UNSPECIFIED: Unspecified signal state.
+      ACTIVE: Signal is active and requires attention.
+      INACTIVE: Signal is inactive and does not require attention.
+      DISMISSED: Signal is dismissed by the user and should not be shown to
+        the user again.
+    """
+    SIGNAL_STATE_UNSPECIFIED = 0
+    ACTIVE = 1
+    INACTIVE = 2
+    DISMISSED = 3
+
+  class SignalTypeValueValuesEnum(_messages.Enum):
+    r"""Required. Signal type of the signal
+
+    Values:
+      SIGNAL_TYPE_UNSPECIFIED: Unspecified signal type.
+      SIGNAL_TYPE_OUTDATED_MINOR_VERSION: Outdated Minor Version
+      SIGNAL_TYPE_DATABASE_AUDITING_DISABLED: Represents database auditing is
+        disabled.
+      SIGNAL_TYPE_NO_ROOT_PASSWORD: Represents if a database has a password
+        configured for the root account or not.
+      SIGNAL_TYPE_EXPOSED_TO_PUBLIC_ACCESS: Represents if a resource is
+        exposed to public access.
+      SIGNAL_TYPE_UNENCRYPTED_CONNECTIONS: Represents if a resources requires
+        all incoming connections to use SSL or not.
+    """
+    SIGNAL_TYPE_UNSPECIFIED = 0
+    SIGNAL_TYPE_OUTDATED_MINOR_VERSION = 1
+    SIGNAL_TYPE_DATABASE_AUDITING_DISABLED = 2
+    SIGNAL_TYPE_NO_ROOT_PASSWORD = 3
+    SIGNAL_TYPE_EXPOSED_TO_PUBLIC_ACCESS = 4
+    SIGNAL_TYPE_UNENCRYPTED_CONNECTIONS = 5
+
+  fullResourceName = _messages.StringField(1)
+  lastRefreshTime = _messages.StringField(2)
+  resourceId = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainDatabaseResourceId', 3)
+  signalBoolValue = _messages.BooleanField(4)
+  signalState = _messages.EnumField('SignalStateValueValuesEnum', 5)
+  signalType = _messages.EnumField('SignalTypeValueValuesEnum', 6)
+
+
 class StorageDatabasecenterPartnerapiV1mainEntitlement(_messages.Message):
   r"""Proto representing the access that a user has to a specific
   feature/service. NextId: 3.
@@ -3983,14 +5386,148 @@ class StorageDatabasecenterPartnerapiV1mainEntitlement(_messages.Message):
     r"""An enum that represents the type of this entitlement.
 
     Values:
-      ENTITLEMENT_TYPE_UNSPECIFIED: <no description>
-      GEMINI: The root entitlement representing Gemini package ownership.
+      ENTITLEMENT_TYPE_UNSPECIFIED: The entitlement type is unspecified.
+      GEMINI: The root entitlement representing Gemini package ownership.This
+        will no longer be supported in the future.
+      NATIVE: The entitlement representing Native Tier, This will be the
+        default Entitlement going forward with GCA Enablement.
+      GCA_STANDARD: The entitlement representing GCA-Standard Tier.
     """
     ENTITLEMENT_TYPE_UNSPECIFIED = 0
     GEMINI = 1
+    NATIVE = 2
+    GCA_STANDARD = 3
 
   entitlementState = _messages.EnumField('EntitlementStateValueValuesEnum', 1)
   type = _messages.EnumField('TypeValueValuesEnum', 2)
+
+
+class StorageDatabasecenterPartnerapiV1mainGCBDRConfiguration(_messages.Message):
+  r"""GCBDR Configuration for the resource.
+
+  Fields:
+    gcbdrManaged: Whether the resource is managed by GCBDR.
+  """
+
+  gcbdrManaged = _messages.BooleanField(1)
+
+
+class StorageDatabasecenterPartnerapiV1mainInternalResourceMetadata(_messages.Message):
+  r"""Metadata for individual internal resources in an instance. e.g. spanner
+  instance can have multiple databases with unique configuration settings.
+  Similarly bigtable can have multiple clusters within same bigtable instance.
+
+  Fields:
+    backupConfiguration: Backup configuration for this database
+    backupRun: Information about the last backup attempt for this database
+    isDeletionProtectionEnabled: Whether deletion protection is enabled for
+      this internal resource.
+    product: A StorageDatabasecenterProtoCommonProduct attribute.
+    resourceId: A StorageDatabasecenterPartnerapiV1mainDatabaseResourceId
+      attribute.
+    resourceName: Required. internal resource name for spanner this will be
+      database name e.g."spanner.googleapis.com/projects/123/abc/instances/ins
+      t1/databases/db1"
+  """
+
+  backupConfiguration = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainBackupConfiguration', 1)
+  backupRun = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainBackupRun', 2)
+  isDeletionProtectionEnabled = _messages.BooleanField(3)
+  product = _messages.MessageField('StorageDatabasecenterProtoCommonProduct', 4)
+  resourceId = _messages.MessageField('StorageDatabasecenterPartnerapiV1mainDatabaseResourceId', 5)
+  resourceName = _messages.StringField(6)
+
+
+class StorageDatabasecenterPartnerapiV1mainMachineConfiguration(_messages.Message):
+  r"""MachineConfiguration describes the configuration of a machine specific
+  to Database Resource.
+
+  Fields:
+    cpuCount: The number of CPUs. Deprecated. Use vcpu_count instead.
+      TODO(b/342344482) add proto validations again after bug fix.
+    memorySizeInBytes: Memory size in bytes. TODO(b/342344482) add proto
+      validations again after bug fix.
+    shardCount: Optional. Number of shards (if applicable).
+    vcpuCount: Optional. The number of vCPUs. TODO(b/342344482) add proto
+      validations again after bug fix.
+  """
+
+  cpuCount = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  memorySizeInBytes = _messages.IntegerField(2)
+  shardCount = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  vcpuCount = _messages.FloatField(4)
+
+
+class StorageDatabasecenterPartnerapiV1mainObservabilityMetricData(_messages.Message):
+  r"""A StorageDatabasecenterPartnerapiV1mainObservabilityMetricData object.
+
+  Enums:
+    AggregationTypeValueValuesEnum: Required. Type of aggregation performed on
+      the metric.
+    MetricTypeValueValuesEnum: Required. Type of metric like CPU, Memory, etc.
+
+  Fields:
+    aggregationType: Required. Type of aggregation performed on the metric.
+    metricType: Required. Type of metric like CPU, Memory, etc.
+    observationTime: Required. The time the metric value was observed.
+    resourceName: Required. Database resource name associated with the signal.
+      Resource name to follow CAIS resource_name format as noted here
+      go/condor-common-datamodel
+    value: Required. Value of the metric type.
+  """
+
+  class AggregationTypeValueValuesEnum(_messages.Enum):
+    r"""Required. Type of aggregation performed on the metric.
+
+    Values:
+      AGGREGATION_TYPE_UNSPECIFIED: Unspecified aggregation type.
+      PEAK: PEAK aggregation type.
+      P99: P99 aggregation type.
+      P95: P95 aggregation type.
+      CURRENT: current aggregation type.
+    """
+    AGGREGATION_TYPE_UNSPECIFIED = 0
+    PEAK = 1
+    P99 = 2
+    P95 = 3
+    CURRENT = 4
+
+  class MetricTypeValueValuesEnum(_messages.Enum):
+    r"""Required. Type of metric like CPU, Memory, etc.
+
+    Values:
+      METRIC_TYPE_UNSPECIFIED: Unspecified metric type.
+      CPU_UTILIZATION: CPU utilization for a resource. The value is a fraction
+        between 0.0 and 1.0 (may momentarily exceed 1.0 in some cases).
+      MEMORY_UTILIZATION: Memory utilization for a resource. The value is a
+        fraction between 0.0 and 1.0 (may momentarily exceed 1.0 in some
+        cases).
+      NETWORK_CONNECTIONS: Number of network connections for a resource.
+      STORAGE_UTILIZATION: Storage utilization for a resource. The value is a
+        fraction between 0.0 and 1.0 (may momentarily exceed 1.0 in some
+        cases).
+      STORAGE_USED_BYTES: Sotrage used by a resource.
+      NODE_COUNT: Node count for a resource. It represents the number of node
+        units in a bigtable/spanner instance.
+      MEMORY_USED_BYTES: Memory used by a resource (in bytes).
+      PROCESSING_UNIT_COUNT: Processing units used by a resource. It
+        represents the number of processing units in a spanner instance.
+    """
+    METRIC_TYPE_UNSPECIFIED = 0
+    CPU_UTILIZATION = 1
+    MEMORY_UTILIZATION = 2
+    NETWORK_CONNECTIONS = 3
+    STORAGE_UTILIZATION = 4
+    STORAGE_USED_BYTES = 5
+    NODE_COUNT = 6
+    MEMORY_USED_BYTES = 7
+    PROCESSING_UNIT_COUNT = 8
+
+  aggregationType = _messages.EnumField('AggregationTypeValueValuesEnum', 1)
+  metricType = _messages.EnumField('MetricTypeValueValuesEnum', 2)
+  observationTime = _messages.StringField(3)
+  resourceName = _messages.StringField(4)
+  value = _messages.MessageField('StorageDatabasecenterProtoCommonTypedValue', 5)
 
 
 class StorageDatabasecenterPartnerapiV1mainOperationError(_messages.Message):
@@ -4040,9 +5577,13 @@ class StorageDatabasecenterPartnerapiV1mainRetentionSettings(_messages.Message):
     RetentionUnitValueValuesEnum: The unit that 'retained_backups' represents.
 
   Fields:
+    durationBasedRetention: Duration based retention period i.e. 172800
+      seconds (2 days)
     quantityBasedRetention: A integer attribute.
     retentionUnit: The unit that 'retained_backups' represents.
     timeBasedRetention: A string attribute.
+    timestampBasedRetentionTime: Timestamp based retention period i.e.
+      2024-05-01T00:00:00Z
   """
 
   class RetentionUnitValueValuesEnum(_messages.Enum):
@@ -4053,17 +5594,62 @@ class StorageDatabasecenterPartnerapiV1mainRetentionSettings(_messages.Message):
         be treated as COUNT.
       COUNT: Retention will be by count, eg. "retain the most recent 7
         backups".
-      TIME: Retention will be by Time, eg. "retain the last 7 days backups".
+      TIME: Retention will be by Time, eg. "retain backups till a specific
+        time" i.e. till 2024-05-01T00:00:00Z.
+      DURATION: Retention will be by duration, eg. "retain the backups for
+        172800 seconds (2 days)".
       RETENTION_UNIT_OTHER: For rest of the other category
     """
     RETENTION_UNIT_UNSPECIFIED = 0
     COUNT = 1
     TIME = 2
-    RETENTION_UNIT_OTHER = 3
+    DURATION = 3
+    RETENTION_UNIT_OTHER = 4
 
-  quantityBasedRetention = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  retentionUnit = _messages.EnumField('RetentionUnitValueValuesEnum', 2)
-  timeBasedRetention = _messages.StringField(3)
+  durationBasedRetention = _messages.StringField(1)
+  quantityBasedRetention = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  retentionUnit = _messages.EnumField('RetentionUnitValueValuesEnum', 3)
+  timeBasedRetention = _messages.StringField(4)
+  timestampBasedRetentionTime = _messages.StringField(5)
+
+
+class StorageDatabasecenterPartnerapiV1mainTags(_messages.Message):
+  r"""Message type for storing tags. Tags provide a way to create annotations
+  for resources, and in some cases conditionally allow or deny policies based
+  on whether a resource has a specific tag.
+
+  Messages:
+    TagsValue: The Tag key/value mappings.
+
+  Fields:
+    tags: The Tag key/value mappings.
+  """
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class TagsValue(_messages.Message):
+    r"""The Tag key/value mappings.
+
+    Messages:
+      AdditionalProperty: An additional property for a TagsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type TagsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a TagsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  tags = _messages.MessageField('TagsValue', 1)
 
 
 class StorageDatabasecenterPartnerapiV1mainUserLabels(_messages.Message):
@@ -4116,6 +5702,9 @@ class StorageDatabasecenterProtoCommonProduct(_messages.Message):
 
   Fields:
     engine: The specific engine that the underlying database is running.
+    minorVersion: Minor version of the underlying database engine. Example
+      values: For MySQL, it could be "8.0.32", "5.7.32" etc.. For Postgres, it
+      could be "14.3", "15.3" etc..
     type: Type of specific database product. It could be CloudSQL, AlloyDB
       etc..
     version: Version of the underlying database engine. Example values: For
@@ -4148,6 +5737,12 @@ class StorageDatabasecenterProtoCommonProduct(_messages.Message):
         dialect.
       ENGINE_OTHER: Other refers to rest of other database engine. This is to
         be when engine is known, but it is not present in this enum.
+      ENGINE_FIRESTORE_WITH_NATIVE_MODE: Firestore with native mode.
+      ENGINE_FIRESTORE_WITH_DATASTORE_MODE: Firestore with datastore mode.
+      ENGINE_FIRESTORE_WITH_MONGODB_COMPATIBILITY_MODE: Firestore with MongoDB
+        compatibility mode.
+      ENGINE_EXADATA_ORACLE: Oracle Exadata engine.
+      ENGINE_ADB_SERVERLESS_ORACLE: Oracle Autonomous DB Serverless engine.
     """
     ENGINE_UNSPECIFIED = 0
     ENGINE_MYSQL = 1
@@ -4163,6 +5758,11 @@ class StorageDatabasecenterProtoCommonProduct(_messages.Message):
     ENGINE_MEMORYSTORE_FOR_REDIS = 11
     ENGINE_MEMORYSTORE_FOR_REDIS_CLUSTER = 12
     ENGINE_OTHER = 13
+    ENGINE_FIRESTORE_WITH_NATIVE_MODE = 14
+    ENGINE_FIRESTORE_WITH_DATASTORE_MODE = 15
+    ENGINE_FIRESTORE_WITH_MONGODB_COMPATIBILITY_MODE = 16
+    ENGINE_EXADATA_ORACLE = 17
+    ENGINE_ADB_SERVERLESS_ORACLE = 18
 
   class TypeValueValuesEnum(_messages.Enum):
     r"""Type of specific database product. It could be CloudSQL, AlloyDB etc..
@@ -4179,6 +5779,9 @@ class StorageDatabasecenterProtoCommonProduct(_messages.Message):
       ON_PREM: On premises database product.
       PRODUCT_TYPE_MEMORYSTORE: Memorystore product area in GCP
       PRODUCT_TYPE_BIGTABLE: Bigtable product area in GCP
+      PRODUCT_TYPE_FIRESTORE: Firestore product area in GCP.
+      PRODUCT_TYPE_COMPUTE_ENGINE: Compute Engine self managed databases
+      PRODUCT_TYPE_ORACLE_ON_GCP: Oracle product area in GCP
       PRODUCT_TYPE_OTHER: Other refers to rest of other product type. This is
         to be when product type is known, but it is not present in this enum.
     """
@@ -4192,11 +5795,32 @@ class StorageDatabasecenterProtoCommonProduct(_messages.Message):
     ON_PREM = 7
     PRODUCT_TYPE_MEMORYSTORE = 8
     PRODUCT_TYPE_BIGTABLE = 9
-    PRODUCT_TYPE_OTHER = 10
+    PRODUCT_TYPE_FIRESTORE = 10
+    PRODUCT_TYPE_COMPUTE_ENGINE = 11
+    PRODUCT_TYPE_ORACLE_ON_GCP = 12
+    PRODUCT_TYPE_OTHER = 13
 
   engine = _messages.EnumField('EngineValueValuesEnum', 1)
-  type = _messages.EnumField('TypeValueValuesEnum', 2)
-  version = _messages.StringField(3)
+  minorVersion = _messages.StringField(2)
+  type = _messages.EnumField('TypeValueValuesEnum', 3)
+  version = _messages.StringField(4)
+
+
+class StorageDatabasecenterProtoCommonTypedValue(_messages.Message):
+  r"""TypedValue represents the value of a metric type. It can either be a
+  double, an int64, a string or a bool.
+
+  Fields:
+    boolValue: For boolean value
+    doubleValue: For double value
+    int64Value: For integer value
+    stringValue: For string value
+  """
+
+  boolValue = _messages.BooleanField(1)
+  doubleValue = _messages.FloatField(2)
+  int64Value = _messages.IntegerField(3)
+  stringValue = _messages.StringField(4)
 
 
 class StringRestrictions(_messages.Message):
@@ -4218,6 +5842,7 @@ class SupportedDatabaseFlag(_messages.Message):
   field.
 
   Enums:
+    ScopeValueValuesEnum: The scope of the flag.
     SupportedDbVersionsValueListEntryValuesEnum:
     ValueTypeValueValuesEnum:
 
@@ -4230,15 +5855,31 @@ class SupportedDatabaseFlag(_messages.Message):
     name: The name of the flag resource, following Google Cloud conventions,
       e.g.: * projects/{project}/locations/{location}/flags/{flag} This field
       currently has no semantic meaning.
+    recommendedIntegerValue: The recommended value for an INTEGER flag.
+    recommendedStringValue: The recommended value for a STRING flag.
     requiresDbRestart: Whether setting or updating this flag on an Instance
       requires a database restart. If a flag that requires database restart is
       set, the backend will automatically restart the database (making sure to
       satisfy any availability SLO's).
+    scope: The scope of the flag.
     stringRestrictions: Restriction on STRING type value.
     supportedDbVersions: Major database engine versions for which this flag is
       supported.
     valueType: A ValueTypeValueValuesEnum attribute.
   """
+
+  class ScopeValueValuesEnum(_messages.Enum):
+    r"""The scope of the flag.
+
+    Values:
+      SCOPE_UNSPECIFIED: The scope of the flag is not specified. Default is
+        DATABASE.
+      DATABASE: The flag is a database flag.
+      CONNECTION_POOL: The flag is a connection pool flag.
+    """
+    SCOPE_UNSPECIFIED = 0
+    DATABASE = 1
+    CONNECTION_POOL = 2
 
   class SupportedDbVersionsValueListEntryValuesEnum(_messages.Enum):
     r"""SupportedDbVersionsValueListEntryValuesEnum enum type.
@@ -4248,11 +5889,15 @@ class SupportedDatabaseFlag(_messages.Message):
       POSTGRES_13: DEPRECATED - The database version is Postgres 13.
       POSTGRES_14: The database version is Postgres 14.
       POSTGRES_15: The database version is Postgres 15.
+      POSTGRES_16: The database version is Postgres 16.
+      POSTGRES_17: The database version is Postgres 17.
     """
     DATABASE_VERSION_UNSPECIFIED = 0
     POSTGRES_13 = 1
     POSTGRES_14 = 2
     POSTGRES_15 = 3
+    POSTGRES_16 = 4
+    POSTGRES_17 = 5
 
   class ValueTypeValueValuesEnum(_messages.Enum):
     r"""ValueTypeValueValuesEnum enum type.
@@ -4274,10 +5919,37 @@ class SupportedDatabaseFlag(_messages.Message):
   flagName = _messages.StringField(2)
   integerRestrictions = _messages.MessageField('IntegerRestrictions', 3)
   name = _messages.StringField(4)
-  requiresDbRestart = _messages.BooleanField(5)
-  stringRestrictions = _messages.MessageField('StringRestrictions', 6)
-  supportedDbVersions = _messages.EnumField('SupportedDbVersionsValueListEntryValuesEnum', 7, repeated=True)
-  valueType = _messages.EnumField('ValueTypeValueValuesEnum', 8)
+  recommendedIntegerValue = _messages.IntegerField(5)
+  recommendedStringValue = _messages.StringField(6)
+  requiresDbRestart = _messages.BooleanField(7)
+  scope = _messages.EnumField('ScopeValueValuesEnum', 8)
+  stringRestrictions = _messages.MessageField('StringRestrictions', 9)
+  supportedDbVersions = _messages.EnumField('SupportedDbVersionsValueListEntryValuesEnum', 10, repeated=True)
+  valueType = _messages.EnumField('ValueTypeValueValuesEnum', 11)
+
+
+class SwitchoverClusterRequest(_messages.Message):
+  r"""Message for switching over to a cluster
+
+  Fields:
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      ignores the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if the original operation with the same request
+      ID was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
+    validateOnly: Optional. If set, performs request validation, for example,
+      permission checks and any other type of validation, but does not
+      actually execute the create request.
+  """
+
+  requestId = _messages.StringField(1)
+  validateOnly = _messages.BooleanField(2)
 
 
 class TimeBasedRetention(_messages.Message):
@@ -4291,6 +5963,197 @@ class TimeBasedRetention(_messages.Message):
   retentionPeriod = _messages.StringField(1)
 
 
+class TrialMetadata(_messages.Message):
+  r"""Contains information and all metadata related to TRIAL clusters.
+
+  Fields:
+    endTime: End time of the trial cluster.
+    graceEndTime: grace end time of the cluster.
+    startTime: start time of the trial cluster.
+    upgradeTime: Upgrade time of trial cluster to Standard cluster.
+  """
+
+  endTime = _messages.StringField(1)
+  graceEndTime = _messages.StringField(2)
+  startTime = _messages.StringField(3)
+  upgradeTime = _messages.StringField(4)
+
+
+class UpgradeClusterRequest(_messages.Message):
+  r"""Upgrades a cluster.
+
+  Enums:
+    VersionValueValuesEnum: Required. The version the cluster is going to be
+      upgraded to.
+
+  Fields:
+    etag: Optional. The current etag of the Cluster. If an etag is provided
+      and does not match the current etag of the Cluster, upgrade will be
+      blocked and an ABORTED error will be returned.
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      ignores the request if it has already been completed. The server
+      guarantees that for at least 60 minutes since the first request. For
+      example, consider a situation where you make an initial request and the
+      request times out. If you make the request again with the same request
+      ID, the server can check if the original operation with the same request
+      ID was received, and if so, ignores the second request. This prevents
+      clients from accidentally creating duplicate commitments. The request ID
+      must be a valid UUID with the exception that zero UUID is not supported
+      (00000000-0000-0000-0000-000000000000).
+    validateOnly: Optional. If set, performs request validation, for example,
+      permission checks and any other type of validation, but does not
+      actually execute the create request.
+    version: Required. The version the cluster is going to be upgraded to.
+  """
+
+  class VersionValueValuesEnum(_messages.Enum):
+    r"""Required. The version the cluster is going to be upgraded to.
+
+    Values:
+      DATABASE_VERSION_UNSPECIFIED: This is an unknown database version.
+      POSTGRES_13: DEPRECATED - The database version is Postgres 13.
+      POSTGRES_14: The database version is Postgres 14.
+      POSTGRES_15: The database version is Postgres 15.
+      POSTGRES_16: The database version is Postgres 16.
+      POSTGRES_17: The database version is Postgres 17.
+    """
+    DATABASE_VERSION_UNSPECIFIED = 0
+    POSTGRES_13 = 1
+    POSTGRES_14 = 2
+    POSTGRES_15 = 3
+    POSTGRES_16 = 4
+    POSTGRES_17 = 5
+
+  etag = _messages.StringField(1)
+  requestId = _messages.StringField(2)
+  validateOnly = _messages.BooleanField(3)
+  version = _messages.EnumField('VersionValueValuesEnum', 4)
+
+
+class UpgradeClusterResponse(_messages.Message):
+  r"""UpgradeClusterResponse contains the response for upgrade cluster
+  operation.
+
+  Enums:
+    StatusValueValuesEnum: Status of upgrade operation.
+
+  Fields:
+    clusterUpgradeDetails: Array of upgrade details for the current cluster
+      and all the secondary clusters associated with this cluster.
+    message: A user friendly message summarising the upgrade operation details
+      and the next steps for the user if there is any.
+    status: Status of upgrade operation.
+  """
+
+  class StatusValueValuesEnum(_messages.Enum):
+    r"""Status of upgrade operation.
+
+    Values:
+      STATUS_UNSPECIFIED: Unspecified status.
+      NOT_STARTED: Not started.
+      IN_PROGRESS: In progress.
+      SUCCESS: Operation succeeded.
+      FAILED: Operation failed.
+      PARTIAL_SUCCESS: Operation partially succeeded.
+      CANCEL_IN_PROGRESS: Cancel is in progress.
+      CANCELLED: Cancellation complete.
+    """
+    STATUS_UNSPECIFIED = 0
+    NOT_STARTED = 1
+    IN_PROGRESS = 2
+    SUCCESS = 3
+    FAILED = 4
+    PARTIAL_SUCCESS = 5
+    CANCEL_IN_PROGRESS = 6
+    CANCELLED = 7
+
+  clusterUpgradeDetails = _messages.MessageField('ClusterUpgradeDetails', 1, repeated=True)
+  message = _messages.StringField(2)
+  status = _messages.EnumField('StatusValueValuesEnum', 3)
+
+
+class UpgradeClusterStatus(_messages.Message):
+  r"""Message for current status of the Major Version Upgrade operation.
+
+  Enums:
+    SourceVersionValueValuesEnum: Source database major version.
+    StateValueValuesEnum: Cluster Major Version Upgrade state.
+    TargetVersionValueValuesEnum: Target database major version.
+
+  Fields:
+    cancellable: Whether the operation is cancellable.
+    sourceVersion: Source database major version.
+    stages: Status of all upgrade stages.
+    state: Cluster Major Version Upgrade state.
+    targetVersion: Target database major version.
+  """
+
+  class SourceVersionValueValuesEnum(_messages.Enum):
+    r"""Source database major version.
+
+    Values:
+      DATABASE_VERSION_UNSPECIFIED: This is an unknown database version.
+      POSTGRES_13: DEPRECATED - The database version is Postgres 13.
+      POSTGRES_14: The database version is Postgres 14.
+      POSTGRES_15: The database version is Postgres 15.
+      POSTGRES_16: The database version is Postgres 16.
+      POSTGRES_17: The database version is Postgres 17.
+    """
+    DATABASE_VERSION_UNSPECIFIED = 0
+    POSTGRES_13 = 1
+    POSTGRES_14 = 2
+    POSTGRES_15 = 3
+    POSTGRES_16 = 4
+    POSTGRES_17 = 5
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Cluster Major Version Upgrade state.
+
+    Values:
+      STATUS_UNSPECIFIED: Unspecified status.
+      NOT_STARTED: Not started.
+      IN_PROGRESS: In progress.
+      SUCCESS: Operation succeeded.
+      FAILED: Operation failed.
+      PARTIAL_SUCCESS: Operation partially succeeded.
+      CANCEL_IN_PROGRESS: Cancel is in progress.
+      CANCELLED: Cancellation complete.
+    """
+    STATUS_UNSPECIFIED = 0
+    NOT_STARTED = 1
+    IN_PROGRESS = 2
+    SUCCESS = 3
+    FAILED = 4
+    PARTIAL_SUCCESS = 5
+    CANCEL_IN_PROGRESS = 6
+    CANCELLED = 7
+
+  class TargetVersionValueValuesEnum(_messages.Enum):
+    r"""Target database major version.
+
+    Values:
+      DATABASE_VERSION_UNSPECIFIED: This is an unknown database version.
+      POSTGRES_13: DEPRECATED - The database version is Postgres 13.
+      POSTGRES_14: The database version is Postgres 14.
+      POSTGRES_15: The database version is Postgres 15.
+      POSTGRES_16: The database version is Postgres 16.
+      POSTGRES_17: The database version is Postgres 17.
+    """
+    DATABASE_VERSION_UNSPECIFIED = 0
+    POSTGRES_13 = 1
+    POSTGRES_14 = 2
+    POSTGRES_15 = 3
+    POSTGRES_16 = 4
+    POSTGRES_17 = 5
+
+  cancellable = _messages.BooleanField(1)
+  sourceVersion = _messages.EnumField('SourceVersionValueValuesEnum', 2)
+  stages = _messages.MessageField('StageStatus', 3, repeated=True)
+  state = _messages.EnumField('StateValueValuesEnum', 4)
+  targetVersion = _messages.EnumField('TargetVersionValueValuesEnum', 5)
+
+
 class User(_messages.Message):
   r"""Message describing User object.
 
@@ -4300,6 +6163,8 @@ class User(_messages.Message):
   Fields:
     databaseRoles: Optional. List of database roles this user has. The
       database role strings are subject to the PostgreSQL naming conventions.
+    keepExtraRoles: Input only. If the user already exists and it has
+      additional roles, keep them granted.
     name: Output only. Name of the resource in the form of
       projects/{project}/locations/{location}/cluster/{cluster}/users/{user}.
     password: Input only. Password for the user.
@@ -4321,9 +6186,10 @@ class User(_messages.Message):
     ALLOYDB_IAM_USER = 2
 
   databaseRoles = _messages.StringField(1, repeated=True)
-  name = _messages.StringField(2)
-  password = _messages.StringField(3)
-  userType = _messages.EnumField('UserTypeValueValuesEnum', 4)
+  keepExtraRoles = _messages.BooleanField(2)
+  name = _messages.StringField(3)
+  password = _messages.StringField(4)
+  userType = _messages.EnumField('UserTypeValueValuesEnum', 5)
 
 
 class UserPassword(_messages.Message):

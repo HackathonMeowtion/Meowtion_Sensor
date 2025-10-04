@@ -18,8 +18,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 import abc
+from typing import Union
+
 import six
 
 
@@ -48,8 +49,8 @@ class DefaultArgTypeWrapper(ArgTypeUsage):
   """Base class for processing arg_type output but maintaining usage help text.
 
   Attributes:
-    arg_type: type function used to parse input string into correct type
-      ie ArgObject(value_type=int, repeating=true), int, bool, etc
+    arg_type: type function used to parse input string into correct type ie
+      ArgObject(value_type=int, repeating=true), int, bool, etc
   """
 
   def __init__(self, arg_type):
@@ -138,6 +139,30 @@ def _FormatBasicTypeStr(arg_type):
   return 'string'
 
 
+def _Punctuate(text):
+  """Adds punctuation to text if it doesn't already exist."""
+  clean_text = text.rstrip()
+  if clean_text.endswith('.'):
+    return clean_text
+  else:
+    return clean_text + '.'
+
+
+def _Capitalize(text: str, ignore: bool = False) -> Union[str, None]:
+  """Capitalizes the first letter of text.
+
+  Args:
+    text: The text to capitalize.
+    ignore: Whether to ignore the capitalization request.
+
+  Returns:
+    The capitalized text.
+  """
+  if not text or ignore:
+    return text
+  return text[0].upper() + text[1:]
+
+
 def FormatHelpText(field_name, required, help_text=None):
   """Defaults and formats specific attribute of help text.
 
@@ -150,11 +175,13 @@ def FormatHelpText(field_name, required, help_text=None):
     help text formatted as `{type} {required}, {help}`
   """
   if help_text:
-    defaulted_help_text = help_text
+    defaulted_help_text = _Punctuate(help_text)
   elif field_name:
-    defaulted_help_text = 'Sets `{}` value.'.format(field_name)
+    defaulted_help_text = _Capitalize(
+        'sets `{}` value.'.format(field_name), required
+    )
   else:
-    defaulted_help_text = 'Sets value.'
+    defaulted_help_text = _Capitalize('sets value.', required)
 
   if required:
     return 'Required, {}'.format(defaulted_help_text)
@@ -242,9 +269,9 @@ def GetNestedKeyValueExample(key_type, value_type, shorthand):
   elif not key_str or not value_str:
     return key_str or value_str
   elif shorthand:
-    return '{}={}'.format(key_str, value_str)
+    return f'{key_str}={value_str}' if value_str != '{}' else key_str
   else:
-    return '{}: {}'.format(key_str, value_str)
+    return f'{key_str}: {value_str}'
 
 
 def GetNestedUsageHelpText(field_name, arg_type, required=False):
@@ -265,14 +292,22 @@ def GetNestedUsageHelpText(field_name, arg_type, required=False):
   Returns:
     string help text for specific attribute
   """
-  if isinstance(arg_type, ArgTypeUsage):
-    usage = arg_type.GetUsageHelpText(field_name, required=required)
+  default_usage = FormatHelpText(field_name, required)
+
+  if isinstance(arg_type, ArgTypeUsage) and arg_type.hidden:
+    usage = None
+  elif isinstance(arg_type, ArgTypeUsage) and not arg_type.hidden:
+    usage = (
+        arg_type.GetUsageHelpText(field_name, required=required)
+        or default_usage
+    )
   else:
-    usage = FormatHelpText(field_name=field_name, required=required)
+    usage = default_usage
 
   # Shift (indent) nested content over to the right by one
   if usage:
     return '*{}*{}{}'.format(
-        field_name, ASCII_INDENT, IndentAsciiDoc(usage, depth=1))
+        field_name, ASCII_INDENT, IndentAsciiDoc(usage, depth=1)
+    )
   else:
     return None

@@ -131,8 +131,8 @@ class ApphubProjectsLocationsApplicationsPatchRequest(_messages.Message):
   Fields:
     application: A Application resource to be passed as the request body.
     name: Identifier. The resource name of an Application. Format:
-      "projects/{host-project-
-      id}/locations/{location}/applications/{application-id}"
+      `"projects/{host-project-
+      id}/locations/{location}/applications/{application-id}"`
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
       will know to ignore the request if it has already been completed. The
@@ -252,9 +252,10 @@ class ApphubProjectsLocationsApplicationsServicesPatchRequest(_messages.Message)
   r"""A ApphubProjectsLocationsApplicationsServicesPatchRequest object.
 
   Fields:
-    name: Identifier. The resource name of a Service. Format: "projects/{host-
-      project-id}/locations/{location}/applications/{application-
-      id}/services/{service-id}"
+    name: Identifier. The resource name of a Service. Format:
+      `"projects/{host-project-
+      id}/locations/{location}/applications/{application-
+      id}/services/{service-id}"`
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
       will know to ignore the request if it has already been completed. The
@@ -408,9 +409,9 @@ class ApphubProjectsLocationsApplicationsWorkloadsPatchRequest(_messages.Message
 
   Fields:
     name: Identifier. The resource name of the Workload. Format:
-      "projects/{host-project-
+      `"projects/{host-project-
       id}/locations/{location}/applications/{application-
-      id}/workloads/{workload-id}"
+      id}/workloads/{workload-id}"`
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
       will know to ignore the request if it has already been completed. The
@@ -563,6 +564,9 @@ class ApphubProjectsLocationsListRequest(_messages.Message):
   r"""A ApphubProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -573,10 +577,11 @@ class ApphubProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class ApphubProjectsLocationsLookupServiceProjectAttachmentRequest(_messages.Message):
@@ -730,7 +735,7 @@ class ApphubProjectsLocationsServiceProjectAttachmentsListRequest(_messages.Mess
 
 
 class Application(_messages.Message):
-  r"""Application defines the governance boundary for App Hub Entities that
+  r"""Application defines the governance boundary for App Hub entities that
   perform a logical end-to-end business function. App Hub supports application
   level IAM permission to align with governance requirements.
 
@@ -745,8 +750,8 @@ class Application(_messages.Message):
     displayName: Optional. User-defined name for the Application. Can have a
       maximum length of 63 characters.
     name: Identifier. The resource name of an Application. Format:
-      "projects/{host-project-
-      id}/locations/{location}/applications/{application-id}"
+      `"projects/{host-project-
+      id}/locations/{location}/applications/{application-id}"`
     scope: Required. Immutable. Defines what data can be included into this
       Application. Limits which Services and Workloads can be registered.
     state: Output only. Application state.
@@ -1006,14 +1011,14 @@ class DetachServiceProjectAttachmentResponse(_messages.Message):
 
 
 class DiscoveredService(_messages.Message):
-  r"""DiscoveredService is a network/api interface that exposes some
+  r"""DiscoveredService is a network or API interface that exposes some
   functionality to clients for consumption over the network. A discovered
   service can be registered to a App Hub service.
 
   Fields:
     name: Identifier. The resource name of the discovered service. Format:
-      "projects/{host-project-
-      id}/locations/{location}/discoveredServices/{uuid}""
+      `"projects/{host-project-
+      id}/locations/{location}/discoveredServices/{uuid}"`
     serviceProperties: Output only. Properties of an underlying compute
       resource that can comprise a Service. These are immutable.
     serviceReference: Output only. Reference to an underlying networking
@@ -1033,8 +1038,8 @@ class DiscoveredWorkload(_messages.Message):
 
   Fields:
     name: Identifier. The resource name of the discovered workload. Format:
-      "projects/{host-project-
-      id}/locations/{location}/discoveredWorkloads/{uuid}"
+      `"projects/{host-project-
+      id}/locations/{location}/discoveredWorkloads/{uuid}"`
     workloadProperties: Output only. Properties of an underlying compute
       resource represented by the Workload. These are immutable.
     workloadReference: Output only. Reference of an underlying compute
@@ -1464,8 +1469,8 @@ class OperationMetadata(_messages.Message):
     endTime: Output only. The time the operation finished running.
     requestedCancellation: Output only. Identifies whether the user has
       requested cancellation of the operation. Operations that have been
-      cancelled successfully have Operation.error value with a
-      google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      cancelled successfully have google.longrunning.Operation.error value
+      with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
     statusMessage: Output only. Human-readable status of the operation, if
       any.
     target: Output only. Server-defined resource path for the target of the
@@ -1609,17 +1614,19 @@ class Scope(_messages.Message):
     Values:
       TYPE_UNSPECIFIED: Unspecified type.
       REGIONAL: Regional type.
+      GLOBAL: Global type.
     """
     TYPE_UNSPECIFIED = 0
     REGIONAL = 1
+    GLOBAL = 2
 
   type = _messages.EnumField('TypeValueValuesEnum', 1)
 
 
 class Service(_messages.Message):
   r"""Service is an App Hub data model that contains a discovered service,
-  which represents a network/api interface that exposes some functionality to
-  clients for consumption over the network.
+  which represents a network or API interface that exposes some functionality
+  to clients for consumption over the network.
 
   Enums:
     StateValueValuesEnum: Output only. Service state.
@@ -1633,9 +1640,10 @@ class Service(_messages.Message):
       discovered service.
     displayName: Optional. User-defined name for the Service. Can have a
       maximum length of 63 characters.
-    name: Identifier. The resource name of a Service. Format: "projects/{host-
-      project-id}/locations/{location}/applications/{application-
-      id}/services/{service-id}"
+    name: Identifier. The resource name of a Service. Format:
+      `"projects/{host-project-
+      id}/locations/{location}/applications/{application-
+      id}/services/{service-id}"`
     serviceProperties: Output only. Properties of an underlying compute
       resource that can comprise a Service. These are immutable.
     serviceReference: Output only. Reference to an underlying networking
@@ -1688,10 +1696,10 @@ class ServiceProjectAttachment(_messages.Message):
   Fields:
     createTime: Output only. Create time.
     name: Identifier. The resource name of a ServiceProjectAttachment. Format:
-      "projects/{host-project-
-      id}/locations/global/serviceProjectAttachments/{service-project-id}."
+      `"projects/{host-project-
+      id}/locations/global/serviceProjectAttachments/{service-project-id}."`
     serviceProject: Required. Immutable. Service project name in the format:
-      "projects/abc" or "projects/123". As input, project name with either
+      `"projects/abc"` or `"projects/123"`. As input, project name with either
       project id or number are accepted. As output, this field will contain
       project number.
     state: Output only. ServiceProjectAttachment state.
@@ -1744,8 +1752,8 @@ class ServiceReference(_messages.Message):
   Service.
 
   Fields:
-    uri: Output only. The underlying resource URI (For example, URI of
-      Forwarding Rule, URL Map, and Backend Service).
+    uri: Output only. The underlying resource URI. For example, URI of
+      Forwarding Rule, URL Map, and Backend Service.
   """
 
   uri = _messages.StringField(1)
@@ -1925,9 +1933,9 @@ class Workload(_messages.Message):
     displayName: Optional. User-defined name for the Workload. Can have a
       maximum length of 63 characters.
     name: Identifier. The resource name of the Workload. Format:
-      "projects/{host-project-
+      `"projects/{host-project-
       id}/locations/{location}/applications/{application-
-      id}/workloads/{workload-id}"
+      id}/workloads/{workload-id}"`
     state: Output only. Workload state.
     uid: Output only. A universally unique identifier (UUID) for the
       `Workload` in the UUID4 format.
@@ -1973,11 +1981,11 @@ class WorkloadProperties(_messages.Message):
 
   Fields:
     gcpProject: Output only. The service project identifier that the
-      underlying cloud resource resides in. Empty for non cloud resources.
+      underlying cloud resource resides in. Empty for non-cloud resources.
     location: Output only. The location that the underlying compute resource
-      resides in (e.g us-west1).
+      resides in (for example, us-west1).
     zone: Output only. The location that the underlying compute resource
-      resides in if it is zonal (e.g us-west1-a).
+      resides in if it is zonal (for example, us-west1-a).
   """
 
   gcpProject = _messages.StringField(1)
@@ -2001,3 +2009,5 @@ encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    ApphubProjectsLocationsApplicationsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')

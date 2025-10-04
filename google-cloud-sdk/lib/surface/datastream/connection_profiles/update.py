@@ -14,9 +14,6 @@
 # limitations under the License.
 """Command to update connection profiles for datastream."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from googlecloudsdk.api_lib.datastream import connection_profiles
 from googlecloudsdk.api_lib.datastream import util
@@ -40,13 +37,26 @@ EXAMPLES = """\
 
         $ {command} CONNECTION_PROFILE --location=us-central1 --type=postgresql --postgresql-password=fakepassword --postgresql-username=fakeuser --display-name=my-profile --postgresql-hostname=35.188.150.50 --postgresql-port=5432 --postgresql-database=db --static-ip-connectivity
 
+    To update a connection profile for SQL Server:
+
+        $ {command} CONNECTION_PROFILE --location=us-central1 --type=sqlserver --sqlserver-password=fakepassword --sqlserver-username=fakeuser --display-name=my-profile --sqlserver-hostname=35.188.150.50 --sqlserver-port=1433 --sqlserver-database=db --static-ip-connectivity
+
+    To update a connection profile for Salesforce:
+
+        $ {command} CONNECTION_PROFILE --location=us-central1 --type=salesforce --salesforce-password=fakepassword --salesforce-username=fakeuser --display-name=my-profile --salesforce-domain=fakecompany.my.salesforce.com --static-ip-connectivity
+
     To update a connection profile for Google Cloud Storage:
 
         $ {command} CONNECTION_PROFILE --location=us-central1 --type=google-cloud-storage --bucket=fake-bucket --root-path=/root/path --display-name=my-profile
 
-    To update a connection profile for Google Cloud Storage:
+    To update a connection profile for BigQuery:
 
         $ {command} CONNECTION_PROFILE --location=us-central1 --type=bigquery --display-name=my-profile
+
+    To update a connection profile for MongoDB:
+
+        $ {command} CONNECTION_PROFILE --location=us-central1 --type=mongodb --mongodb-password=fakepassword --mongodb-username=fakeuser --display-name=my-profile --mongodb-host-addresses=35.188.150.50:27017 --static-ip-connectivity
+
    """
 
 EXAMPLES_BETA = """\
@@ -64,6 +74,7 @@ EXAMPLES_BETA = """\
    """
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Update(base.Command):
   """Update a Datastream connection profile."""
@@ -91,7 +102,10 @@ class Update(base.Command):
     cp_flags.AddMysqlProfileGroup(profile_flags, required=False)
     cp_flags.AddOracleProfileGroup(profile_flags, required=False)
     cp_flags.AddPostgresqlProfileGroup(profile_flags, required=False)
+    cp_flags.AddSqlServerProfileGroup(profile_flags, required=False)
+    cp_flags.AddSalesforceProfileGroup(profile_flags, required=False)
     cp_flags.AddGcsProfileGroup(profile_flags, release_track, required=False)
+    cp_flags.AddMongodbProfileGroup(profile_flags, required=False)
     flags.AddLabelsUpdateFlags(parser)
 
   @staticmethod
@@ -122,6 +136,30 @@ class Update(base.Command):
     if args.postgresql_prompt_for_password:
       args.postgresql_password = console_io.PromptPassword(
           'Please Enter Password: ')
+
+    if args.sqlserver_prompt_for_password:
+      args.sqlserver_password = console_io.PromptPassword(
+          'Please Enter Password: '
+      )
+
+    if args.salesforce_prompt_for_password:
+      args.salesforce_password = console_io.PromptPassword(
+          'Please Enter Password: '
+      )
+
+    if args.salesforce_prompt_for_security_token:
+      args.salesforce_password = console_io.PromptPassword(
+          'Please Enter Security Token: '
+      )
+
+    if args.salesforce_prompt_for_oauth2_client_secret:
+      args.salesforce_oauth2_client_secret = console_io.PromptPassword(
+          'Please Enter OAuth 2.0 Client Secret: '
+      )
+    if args.mongodb_prompt_for_password:
+      args.mongodb_password = console_io.PromptPassword(
+          'Please Enter Password: '
+      )
 
     cp_type = (args.type).upper()
     cp_client = connection_profiles.ConnectionProfilesClient()

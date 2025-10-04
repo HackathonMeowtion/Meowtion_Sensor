@@ -485,10 +485,7 @@ class DocumentChange(_messages.Message):
   r"""A Document has changed. May be the result of multiple writes, including
   deletes, that ultimately resulted in a new value for the Document. Multiple
   DocumentChange messages may be returned for the same logical change, if
-  multiple targets are affected. For PipelineQueryTargets, `document` will be
-  in the new pipeline format, For a Listen stream with both QueryTargets and
-  PipelineQueryTargets present, if a document matches both types of queries,
-  then a separate DocumentChange messages will be sent out one for each set.
+  multiple targets are affected.
 
   Fields:
     document: The new state of the Document. If `mask` is set, contains only
@@ -870,7 +867,10 @@ class Filter(_messages.Message):
 
 
 class FindNearest(_messages.Message):
-  r"""Nearest Neighbors search config.
+  r"""Nearest Neighbors search config. The ordering provided by FindNearest
+  supersedes the order_by stage. If multiple documents have the same vector
+  distance, the returned document order is not guaranteed to be stable between
+  queries.
 
   Enums:
     DistanceMeasureValueValuesEnum: Required. The distance measure to use,
@@ -878,6 +878,16 @@ class FindNearest(_messages.Message):
 
   Fields:
     distanceMeasure: Required. The distance measure to use, required.
+    distanceResultField: Optional. Optional name of the field to output the
+      result of the vector distance calculation. Must conform to document
+      field name limitations.
+    distanceThreshold: Optional. Option to specify a threshold for which no
+      less similar documents will be returned. The behavior of the specified
+      `distance_measure` will affect the meaning of the distance threshold.
+      Since DOT_PRODUCT distances increase when the vectors are more similar,
+      the comparison is inverted. * For EUCLIDEAN, COSINE: `WHERE distance <=
+      distance_threshold` * For DOT_PRODUCT: `WHERE distance >=
+      distance_threshold`
     limit: Required. The number of nearest neighbors to return. Must be a
       positive integer of no more than 1000.
     queryVector: Required. The query vector that we are searching on. Must be
@@ -894,17 +904,20 @@ class FindNearest(_messages.Message):
       DISTANCE_MEASURE_UNSPECIFIED: Should not be set.
       EUCLIDEAN: Measures the EUCLIDEAN distance between the vectors. See
         [Euclidean](https://en.wikipedia.org/wiki/Euclidean_distance) to learn
-        more
-      COSINE: Compares vectors based on the angle between them, which allows
-        you to measure similarity that isn't based on the vectors magnitude.
-        We recommend using DOT_PRODUCT with unit normalized vectors instead of
-        COSINE distance, which is mathematically equivalent with better
-        performance. See [Cosine
+        more. The resulting distance decreases the more similar two vectors
+        are.
+      COSINE: COSINE distance compares vectors based on the angle between
+        them, which allows you to measure similarity that isn't based on the
+        vectors magnitude. We recommend using DOT_PRODUCT with unit normalized
+        vectors instead of COSINE distance, which is mathematically equivalent
+        with better performance. See [Cosine
         Similarity](https://en.wikipedia.org/wiki/Cosine_similarity) to learn
-        more.
+        more about COSINE similarity and COSINE distance. The resulting COSINE
+        distance decreases the more similar two vectors are.
       DOT_PRODUCT: Similar to cosine but is affected by the magnitude of the
         vectors. See [Dot Product](https://en.wikipedia.org/wiki/Dot_product)
-        to learn more.
+        to learn more. The resulting distance increases the more similar two
+        vectors are.
     """
     DISTANCE_MEASURE_UNSPECIFIED = 0
     EUCLIDEAN = 1
@@ -912,9 +925,11 @@ class FindNearest(_messages.Message):
     DOT_PRODUCT = 3
 
   distanceMeasure = _messages.EnumField('DistanceMeasureValueValuesEnum', 1)
-  limit = _messages.IntegerField(2, variant=_messages.Variant.INT32)
-  queryVector = _messages.MessageField('Value', 3)
-  vectorField = _messages.MessageField('FieldReference', 4)
+  distanceResultField = _messages.StringField(2)
+  distanceThreshold = _messages.FloatField(3)
+  limit = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  queryVector = _messages.MessageField('Value', 5)
+  vectorField = _messages.MessageField('FieldReference', 6)
 
 
 class FirestoreProjectsDatabasesDocumentsBatchGetRequest(_messages.Message):
@@ -1355,12 +1370,136 @@ class FirestoreProjectsDatabasesIndexesListRequest(_messages.Message):
   parent = _messages.StringField(4, required=True)
 
 
+class GoogleFirestoreAdminV1BulkDeleteDocumentsMetadata(_messages.Message):
+  r"""Metadata for google.longrunning.Operation results from
+  FirestoreAdmin.BulkDeleteDocuments.
+
+  Enums:
+    OperationStateValueValuesEnum: The state of the operation.
+
+  Fields:
+    collectionIds: The IDs of the collection groups that are being deleted.
+    endTime: The time this operation completed. Will be unset if operation
+      still in progress.
+    namespaceIds: Which namespace IDs are being deleted.
+    operationState: The state of the operation.
+    progressBytes: The progress, in bytes, of this operation.
+    progressDocuments: The progress, in documents, of this operation.
+    snapshotTime: The timestamp that corresponds to the version of the
+      database that is being read to get the list of documents to delete. This
+      time can also be used as the timestamp of PITR in case of disaster
+      recovery (subject to PITR window limit).
+    startTime: The time this operation started.
+  """
+
+  class OperationStateValueValuesEnum(_messages.Enum):
+    r"""The state of the operation.
+
+    Values:
+      OPERATION_STATE_UNSPECIFIED: Unspecified.
+      INITIALIZING: Request is being prepared for processing.
+      PROCESSING: Request is actively being processed.
+      CANCELLING: Request is in the process of being cancelled after user
+        called google.longrunning.Operations.CancelOperation on the operation.
+      FINALIZING: Request has been processed and is in its finalization stage.
+      SUCCESSFUL: Request has completed successfully.
+      FAILED: Request has finished being processed, but encountered an error.
+      CANCELLED: Request has finished being cancelled after user called
+        google.longrunning.Operations.CancelOperation.
+    """
+    OPERATION_STATE_UNSPECIFIED = 0
+    INITIALIZING = 1
+    PROCESSING = 2
+    CANCELLING = 3
+    FINALIZING = 4
+    SUCCESSFUL = 5
+    FAILED = 6
+    CANCELLED = 7
+
+  collectionIds = _messages.StringField(1, repeated=True)
+  endTime = _messages.StringField(2)
+  namespaceIds = _messages.StringField(3, repeated=True)
+  operationState = _messages.EnumField('OperationStateValueValuesEnum', 4)
+  progressBytes = _messages.MessageField('GoogleFirestoreAdminV1Progress', 5)
+  progressDocuments = _messages.MessageField('GoogleFirestoreAdminV1Progress', 6)
+  snapshotTime = _messages.StringField(7)
+  startTime = _messages.StringField(8)
+
+
+class GoogleFirestoreAdminV1CloneDatabaseMetadata(_messages.Message):
+  r"""Metadata for the long-running operation from the CloneDatabase request.
+
+  Enums:
+    OperationStateValueValuesEnum: The operation state of the clone.
+
+  Fields:
+    database: The name of the database being cloned to.
+    endTime: The time the clone finished, unset for ongoing clones.
+    operationState: The operation state of the clone.
+    pitrSnapshot: The snapshot from which this database was cloned.
+    progressPercentage: How far along the clone is as an estimated percentage
+      of remaining time.
+    startTime: The time the clone was started.
+  """
+
+  class OperationStateValueValuesEnum(_messages.Enum):
+    r"""The operation state of the clone.
+
+    Values:
+      OPERATION_STATE_UNSPECIFIED: Unspecified.
+      INITIALIZING: Request is being prepared for processing.
+      PROCESSING: Request is actively being processed.
+      CANCELLING: Request is in the process of being cancelled after user
+        called google.longrunning.Operations.CancelOperation on the operation.
+      FINALIZING: Request has been processed and is in its finalization stage.
+      SUCCESSFUL: Request has completed successfully.
+      FAILED: Request has finished being processed, but encountered an error.
+      CANCELLED: Request has finished being cancelled after user called
+        google.longrunning.Operations.CancelOperation.
+    """
+    OPERATION_STATE_UNSPECIFIED = 0
+    INITIALIZING = 1
+    PROCESSING = 2
+    CANCELLING = 3
+    FINALIZING = 4
+    SUCCESSFUL = 5
+    FAILED = 6
+    CANCELLED = 7
+
+  database = _messages.StringField(1)
+  endTime = _messages.StringField(2)
+  operationState = _messages.EnumField('OperationStateValueValuesEnum', 3)
+  pitrSnapshot = _messages.MessageField('GoogleFirestoreAdminV1PitrSnapshot', 4)
+  progressPercentage = _messages.MessageField('GoogleFirestoreAdminV1Progress', 5)
+  startTime = _messages.StringField(6)
+
+
 class GoogleFirestoreAdminV1CreateDatabaseMetadata(_messages.Message):
   r"""Metadata related to the create database operation."""
 
 
 class GoogleFirestoreAdminV1DeleteDatabaseMetadata(_messages.Message):
   r"""Metadata related to the delete database operation."""
+
+
+class GoogleFirestoreAdminV1PitrSnapshot(_messages.Message):
+  r"""A consistent snapshot of a database at a specific point in time. A PITR
+  (Point-in-time recovery) snapshot with previous versions of a database's
+  data is available for every minute up to the associated database's data
+  retention period. If the PITR feature is enabled, the retention period is 7
+  days; otherwise, it is one hour.
+
+  Fields:
+    database: Required. The name of the database that this was a snapshot of.
+      Format: `projects/{project}/databases/{database}`.
+    databaseUid: Output only. Public UUID of the database the snapshot was
+      associated with.
+    snapshotTime: Required. Snapshot time of the database.
+  """
+
+  database = _messages.StringField(1)
+  databaseUid = _messages.BytesField(2)
+  snapshotTime = _messages.StringField(3)
 
 
 class GoogleFirestoreAdminV1Progress(_messages.Message):
@@ -2448,7 +2587,7 @@ class StructuredAggregationQuery(_messages.Message):
 class StructuredQuery(_messages.Message):
   r"""A Firestore query. The query stages are executed in the following order:
   1. from 2. where 3. select 4. order_by + start_at + end_at 5. offset 6.
-  limit
+  limit 7. find_nearest
 
   Fields:
     endAt: A potential prefix of a position in the result set to end the query
@@ -2562,7 +2701,7 @@ class Target(_messages.Message):
       `target_id=0` is added, the server will immediately send a response with
       a `TargetChange::Remove` event. Note that if the client sends multiple
       `AddTarget` requests without an ID, the order of IDs returned in
-      `TargetChage.target_ids` are undefined. Therefore, clients should
+      `TargetChange.target_ids` are undefined. Therefore, clients should
       provide a target ID instead of relying on the server to assign one. If
       `target_id` is non-zero, there must not be an existing active target on
       this stream with the same ID.
@@ -2864,3 +3003,23 @@ encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    FirestoreProjectsDatabasesDocumentsCreateDocumentRequest, 'mask_fieldPaths', 'mask.fieldPaths')
+encoding.AddCustomJsonFieldMapping(
+    FirestoreProjectsDatabasesDocumentsDeleteRequest, 'currentDocument_exists', 'currentDocument.exists')
+encoding.AddCustomJsonFieldMapping(
+    FirestoreProjectsDatabasesDocumentsDeleteRequest, 'currentDocument_updateTime', 'currentDocument.updateTime')
+encoding.AddCustomJsonFieldMapping(
+    FirestoreProjectsDatabasesDocumentsGetRequest, 'mask_fieldPaths', 'mask.fieldPaths')
+encoding.AddCustomJsonFieldMapping(
+    FirestoreProjectsDatabasesDocumentsListRequest, 'mask_fieldPaths', 'mask.fieldPaths')
+encoding.AddCustomJsonFieldMapping(
+    FirestoreProjectsDatabasesDocumentsListDocumentsRequest, 'mask_fieldPaths', 'mask.fieldPaths')
+encoding.AddCustomJsonFieldMapping(
+    FirestoreProjectsDatabasesDocumentsPatchRequest, 'currentDocument_exists', 'currentDocument.exists')
+encoding.AddCustomJsonFieldMapping(
+    FirestoreProjectsDatabasesDocumentsPatchRequest, 'currentDocument_updateTime', 'currentDocument.updateTime')
+encoding.AddCustomJsonFieldMapping(
+    FirestoreProjectsDatabasesDocumentsPatchRequest, 'mask_fieldPaths', 'mask.fieldPaths')
+encoding.AddCustomJsonFieldMapping(
+    FirestoreProjectsDatabasesDocumentsPatchRequest, 'updateMask_fieldPaths', 'updateMask.fieldPaths')

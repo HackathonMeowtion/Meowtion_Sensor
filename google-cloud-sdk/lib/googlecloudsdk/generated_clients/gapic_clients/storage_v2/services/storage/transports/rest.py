@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,9 +34,9 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 import warnings
 
 try:
-    OptionalRetry = Union[retries.Retry, gapic_v1.method._MethodDefault]
+    OptionalRetry = Union[retries.Retry, gapic_v1.method._MethodDefault, None]
 except AttributeError:  # pragma: NO COVER
-    OptionalRetry = Union[retries.Retry, object]  # type: ignore
+    OptionalRetry = Union[retries.Retry, object, None]  # type: ignore
 
 
 from google.iam.v1 import iam_policy_pb2  # type: ignore
@@ -93,31 +93,7 @@ class StorageRestInterceptor:
                 logging.log(f"Received response: {response}")
                 return response
 
-            def pre_create_hmac_key(self, request, metadata):
-                logging.log(f"Received request: {request}")
-                return request, metadata
-
-            def post_create_hmac_key(self, response):
-                logging.log(f"Received response: {response}")
-                return response
-
-            def pre_create_notification_config(self, request, metadata):
-                logging.log(f"Received request: {request}")
-                return request, metadata
-
-            def post_create_notification_config(self, response):
-                logging.log(f"Received response: {response}")
-                return response
-
             def pre_delete_bucket(self, request, metadata):
-                logging.log(f"Received request: {request}")
-                return request, metadata
-
-            def pre_delete_hmac_key(self, request, metadata):
-                logging.log(f"Received request: {request}")
-                return request, metadata
-
-            def pre_delete_notification_config(self, request, metadata):
                 logging.log(f"Received request: {request}")
                 return request, metadata
 
@@ -133,27 +109,11 @@ class StorageRestInterceptor:
                 logging.log(f"Received response: {response}")
                 return response
 
-            def pre_get_hmac_key(self, request, metadata):
-                logging.log(f"Received request: {request}")
-                return request, metadata
-
-            def post_get_hmac_key(self, response):
-                logging.log(f"Received response: {response}")
-                return response
-
             def pre_get_iam_policy(self, request, metadata):
                 logging.log(f"Received request: {request}")
                 return request, metadata
 
             def post_get_iam_policy(self, response):
-                logging.log(f"Received response: {response}")
-                return response
-
-            def pre_get_notification_config(self, request, metadata):
-                logging.log(f"Received request: {request}")
-                return request, metadata
-
-            def post_get_notification_config(self, response):
                 logging.log(f"Received response: {response}")
                 return response
 
@@ -165,35 +125,11 @@ class StorageRestInterceptor:
                 logging.log(f"Received response: {response}")
                 return response
 
-            def pre_get_service_account(self, request, metadata):
-                logging.log(f"Received request: {request}")
-                return request, metadata
-
-            def post_get_service_account(self, response):
-                logging.log(f"Received response: {response}")
-                return response
-
             def pre_list_buckets(self, request, metadata):
                 logging.log(f"Received request: {request}")
                 return request, metadata
 
             def post_list_buckets(self, response):
-                logging.log(f"Received response: {response}")
-                return response
-
-            def pre_list_hmac_keys(self, request, metadata):
-                logging.log(f"Received request: {request}")
-                return request, metadata
-
-            def post_list_hmac_keys(self, response):
-                logging.log(f"Received response: {response}")
-                return response
-
-            def pre_list_notification_configs(self, request, metadata):
-                logging.log(f"Received request: {request}")
-                return request, metadata
-
-            def post_list_notification_configs(self, response):
                 logging.log(f"Received response: {response}")
                 return response
 
@@ -210,6 +146,14 @@ class StorageRestInterceptor:
                 return request, metadata
 
             def post_lock_bucket_retention_policy(self, response):
+                logging.log(f"Received response: {response}")
+                return response
+
+            def pre_move_object(self, request, metadata):
+                logging.log(f"Received request: {request}")
+                return request, metadata
+
+            def post_move_object(self, response):
                 logging.log(f"Received response: {response}")
                 return response
 
@@ -274,14 +218,6 @@ class StorageRestInterceptor:
                 return request, metadata
 
             def post_update_bucket(self, response):
-                logging.log(f"Received response: {response}")
-                return response
-
-            def pre_update_hmac_key(self, request, metadata):
-                logging.log(f"Received request: {request}")
-                return request, metadata
-
-            def post_update_hmac_key(self, response):
                 logging.log(f"Received response: {response}")
                 return response
 
@@ -370,7 +306,7 @@ class StorageRestTransport(StorageTransport):
 
         Args:
             host (Optional[str]):
-                 The hostname to connect to.
+                 The hostname to connect to (default: 'storage.googleapis.com').
             credentials (Optional[google.auth.credentials.Credentials]): The
                 authorization credentials to attach to requests. These
                 credentials identify the application to the service; if none
@@ -424,6 +360,19 @@ class StorageRestTransport(StorageTransport):
         self._interceptor = interceptor or StorageRestInterceptor()
         self._prep_wrapped_messages(client_info)
 
+    class _BidiReadObject(StorageRestStub):
+        def __hash__(self):
+            return hash("BidiReadObject")
+
+        def __call__(self,
+                request: storage.BidiReadObjectRequest, *,
+                retry: OptionalRetry=gapic_v1.method.DEFAULT,
+                timeout: Optional[float]=None,
+                metadata: Sequence[Tuple[str, str]]=(),
+                ) -> rest_streaming.ResponseIterator:
+            raise NotImplementedError(
+                "Method BidiReadObject is not available over REST transport"
+            )
     class _BidiWriteObject(StorageRestStub):
         def __hash__(self):
             return hash("BidiWriteObject")
@@ -476,32 +425,6 @@ class StorageRestTransport(StorageTransport):
             raise NotImplementedError(
                 "Method CreateBucket is not available over REST transport"
             )
-    class _CreateHmacKey(StorageRestStub):
-        def __hash__(self):
-            return hash("CreateHmacKey")
-
-        def __call__(self,
-                request: storage.CreateHmacKeyRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> storage.CreateHmacKeyResponse:
-            raise NotImplementedError(
-                "Method CreateHmacKey is not available over REST transport"
-            )
-    class _CreateNotificationConfig(StorageRestStub):
-        def __hash__(self):
-            return hash("CreateNotificationConfig")
-
-        def __call__(self,
-                request: storage.CreateNotificationConfigRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> storage.NotificationConfig:
-            raise NotImplementedError(
-                "Method CreateNotificationConfig is not available over REST transport"
-            )
     class _DeleteBucket(StorageRestStub):
         def __hash__(self):
             return hash("DeleteBucket")
@@ -514,32 +437,6 @@ class StorageRestTransport(StorageTransport):
                 ):
             raise NotImplementedError(
                 "Method DeleteBucket is not available over REST transport"
-            )
-    class _DeleteHmacKey(StorageRestStub):
-        def __hash__(self):
-            return hash("DeleteHmacKey")
-
-        def __call__(self,
-                request: storage.DeleteHmacKeyRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ):
-            raise NotImplementedError(
-                "Method DeleteHmacKey is not available over REST transport"
-            )
-    class _DeleteNotificationConfig(StorageRestStub):
-        def __hash__(self):
-            return hash("DeleteNotificationConfig")
-
-        def __call__(self,
-                request: storage.DeleteNotificationConfigRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ):
-            raise NotImplementedError(
-                "Method DeleteNotificationConfig is not available over REST transport"
             )
     class _DeleteObject(StorageRestStub):
         def __hash__(self):
@@ -567,19 +464,6 @@ class StorageRestTransport(StorageTransport):
             raise NotImplementedError(
                 "Method GetBucket is not available over REST transport"
             )
-    class _GetHmacKey(StorageRestStub):
-        def __hash__(self):
-            return hash("GetHmacKey")
-
-        def __call__(self,
-                request: storage.GetHmacKeyRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> storage.HmacKeyMetadata:
-            raise NotImplementedError(
-                "Method GetHmacKey is not available over REST transport"
-            )
     class _GetIamPolicy(StorageRestStub):
         def __hash__(self):
             return hash("GetIamPolicy")
@@ -592,19 +476,6 @@ class StorageRestTransport(StorageTransport):
                 ) -> policy_pb2.Policy:
             raise NotImplementedError(
                 "Method GetIamPolicy is not available over REST transport"
-            )
-    class _GetNotificationConfig(StorageRestStub):
-        def __hash__(self):
-            return hash("GetNotificationConfig")
-
-        def __call__(self,
-                request: storage.GetNotificationConfigRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> storage.NotificationConfig:
-            raise NotImplementedError(
-                "Method GetNotificationConfig is not available over REST transport"
             )
     class _GetObject(StorageRestStub):
         def __hash__(self):
@@ -619,19 +490,6 @@ class StorageRestTransport(StorageTransport):
             raise NotImplementedError(
                 "Method GetObject is not available over REST transport"
             )
-    class _GetServiceAccount(StorageRestStub):
-        def __hash__(self):
-            return hash("GetServiceAccount")
-
-        def __call__(self,
-                request: storage.GetServiceAccountRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> storage.ServiceAccount:
-            raise NotImplementedError(
-                "Method GetServiceAccount is not available over REST transport"
-            )
     class _ListBuckets(StorageRestStub):
         def __hash__(self):
             return hash("ListBuckets")
@@ -644,32 +502,6 @@ class StorageRestTransport(StorageTransport):
                 ) -> storage.ListBucketsResponse:
             raise NotImplementedError(
                 "Method ListBuckets is not available over REST transport"
-            )
-    class _ListHmacKeys(StorageRestStub):
-        def __hash__(self):
-            return hash("ListHmacKeys")
-
-        def __call__(self,
-                request: storage.ListHmacKeysRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> storage.ListHmacKeysResponse:
-            raise NotImplementedError(
-                "Method ListHmacKeys is not available over REST transport"
-            )
-    class _ListNotificationConfigs(StorageRestStub):
-        def __hash__(self):
-            return hash("ListNotificationConfigs")
-
-        def __call__(self,
-                request: storage.ListNotificationConfigsRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> storage.ListNotificationConfigsResponse:
-            raise NotImplementedError(
-                "Method ListNotificationConfigs is not available over REST transport"
             )
     class _ListObjects(StorageRestStub):
         def __hash__(self):
@@ -696,6 +528,19 @@ class StorageRestTransport(StorageTransport):
                 ) -> storage.Bucket:
             raise NotImplementedError(
                 "Method LockBucketRetentionPolicy is not available over REST transport"
+            )
+    class _MoveObject(StorageRestStub):
+        def __hash__(self):
+            return hash("MoveObject")
+
+        def __call__(self,
+                request: storage.MoveObjectRequest, *,
+                retry: OptionalRetry=gapic_v1.method.DEFAULT,
+                timeout: Optional[float]=None,
+                metadata: Sequence[Tuple[str, str]]=(),
+                ) -> storage.Object:
+            raise NotImplementedError(
+                "Method MoveObject is not available over REST transport"
             )
     class _QueryWriteStatus(StorageRestStub):
         def __hash__(self):
@@ -801,19 +646,6 @@ class StorageRestTransport(StorageTransport):
             raise NotImplementedError(
                 "Method UpdateBucket is not available over REST transport"
             )
-    class _UpdateHmacKey(StorageRestStub):
-        def __hash__(self):
-            return hash("UpdateHmacKey")
-
-        def __call__(self,
-                request: storage.UpdateHmacKeyRequest, *,
-                retry: OptionalRetry=gapic_v1.method.DEFAULT,
-                timeout: Optional[float]=None,
-                metadata: Sequence[Tuple[str, str]]=(),
-                ) -> storage.HmacKeyMetadata:
-            raise NotImplementedError(
-                "Method UpdateHmacKey is not available over REST transport"
-            )
     class _UpdateObject(StorageRestStub):
         def __hash__(self):
             return hash("UpdateObject")
@@ -840,6 +672,14 @@ class StorageRestTransport(StorageTransport):
             raise NotImplementedError(
                 "Method WriteObject is not available over REST transport"
             )
+
+    @property
+    def bidi_read_object(self) -> Callable[
+            [storage.BidiReadObjectRequest],
+            storage.BidiReadObjectResponse]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._BidiReadObject(self._session, self._host, self._interceptor) # type: ignore
 
     @property
     def bidi_write_object(self) -> Callable[
@@ -874,44 +714,12 @@ class StorageRestTransport(StorageTransport):
         return self._CreateBucket(self._session, self._host, self._interceptor) # type: ignore
 
     @property
-    def create_hmac_key(self) -> Callable[
-            [storage.CreateHmacKeyRequest],
-            storage.CreateHmacKeyResponse]:
-        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
-        # In C++ this would require a dynamic_cast
-        return self._CreateHmacKey(self._session, self._host, self._interceptor) # type: ignore
-
-    @property
-    def create_notification_config(self) -> Callable[
-            [storage.CreateNotificationConfigRequest],
-            storage.NotificationConfig]:
-        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
-        # In C++ this would require a dynamic_cast
-        return self._CreateNotificationConfig(self._session, self._host, self._interceptor) # type: ignore
-
-    @property
     def delete_bucket(self) -> Callable[
             [storage.DeleteBucketRequest],
             empty_pb2.Empty]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
         return self._DeleteBucket(self._session, self._host, self._interceptor) # type: ignore
-
-    @property
-    def delete_hmac_key(self) -> Callable[
-            [storage.DeleteHmacKeyRequest],
-            empty_pb2.Empty]:
-        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
-        # In C++ this would require a dynamic_cast
-        return self._DeleteHmacKey(self._session, self._host, self._interceptor) # type: ignore
-
-    @property
-    def delete_notification_config(self) -> Callable[
-            [storage.DeleteNotificationConfigRequest],
-            empty_pb2.Empty]:
-        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
-        # In C++ this would require a dynamic_cast
-        return self._DeleteNotificationConfig(self._session, self._host, self._interceptor) # type: ignore
 
     @property
     def delete_object(self) -> Callable[
@@ -930,28 +738,12 @@ class StorageRestTransport(StorageTransport):
         return self._GetBucket(self._session, self._host, self._interceptor) # type: ignore
 
     @property
-    def get_hmac_key(self) -> Callable[
-            [storage.GetHmacKeyRequest],
-            storage.HmacKeyMetadata]:
-        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
-        # In C++ this would require a dynamic_cast
-        return self._GetHmacKey(self._session, self._host, self._interceptor) # type: ignore
-
-    @property
     def get_iam_policy(self) -> Callable[
             [iam_policy_pb2.GetIamPolicyRequest],
             policy_pb2.Policy]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
         return self._GetIamPolicy(self._session, self._host, self._interceptor) # type: ignore
-
-    @property
-    def get_notification_config(self) -> Callable[
-            [storage.GetNotificationConfigRequest],
-            storage.NotificationConfig]:
-        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
-        # In C++ this would require a dynamic_cast
-        return self._GetNotificationConfig(self._session, self._host, self._interceptor) # type: ignore
 
     @property
     def get_object(self) -> Callable[
@@ -962,36 +754,12 @@ class StorageRestTransport(StorageTransport):
         return self._GetObject(self._session, self._host, self._interceptor) # type: ignore
 
     @property
-    def get_service_account(self) -> Callable[
-            [storage.GetServiceAccountRequest],
-            storage.ServiceAccount]:
-        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
-        # In C++ this would require a dynamic_cast
-        return self._GetServiceAccount(self._session, self._host, self._interceptor) # type: ignore
-
-    @property
     def list_buckets(self) -> Callable[
             [storage.ListBucketsRequest],
             storage.ListBucketsResponse]:
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
         return self._ListBuckets(self._session, self._host, self._interceptor) # type: ignore
-
-    @property
-    def list_hmac_keys(self) -> Callable[
-            [storage.ListHmacKeysRequest],
-            storage.ListHmacKeysResponse]:
-        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
-        # In C++ this would require a dynamic_cast
-        return self._ListHmacKeys(self._session, self._host, self._interceptor) # type: ignore
-
-    @property
-    def list_notification_configs(self) -> Callable[
-            [storage.ListNotificationConfigsRequest],
-            storage.ListNotificationConfigsResponse]:
-        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
-        # In C++ this would require a dynamic_cast
-        return self._ListNotificationConfigs(self._session, self._host, self._interceptor) # type: ignore
 
     @property
     def list_objects(self) -> Callable[
@@ -1008,6 +776,14 @@ class StorageRestTransport(StorageTransport):
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
         return self._LockBucketRetentionPolicy(self._session, self._host, self._interceptor) # type: ignore
+
+    @property
+    def move_object(self) -> Callable[
+            [storage.MoveObjectRequest],
+            storage.Object]:
+        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
+        # In C++ this would require a dynamic_cast
+        return self._MoveObject(self._session, self._host, self._interceptor) # type: ignore
 
     @property
     def query_write_status(self) -> Callable[
@@ -1072,14 +848,6 @@ class StorageRestTransport(StorageTransport):
         # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
         # In C++ this would require a dynamic_cast
         return self._UpdateBucket(self._session, self._host, self._interceptor) # type: ignore
-
-    @property
-    def update_hmac_key(self) -> Callable[
-            [storage.UpdateHmacKeyRequest],
-            storage.HmacKeyMetadata]:
-        # The return type is fine, but mypy isn't sophisticated enough to determine what's going on here.
-        # In C++ this would require a dynamic_cast
-        return self._UpdateHmacKey(self._session, self._host, self._interceptor) # type: ignore
 
     @property
     def update_object(self) -> Callable[

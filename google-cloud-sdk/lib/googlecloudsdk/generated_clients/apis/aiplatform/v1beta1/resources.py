@@ -24,6 +24,36 @@ DOCS_URL = 'https://cloud.google.com/vertex-ai/'
 class Collections(enum.Enum):
   """Collections for all supported apis."""
 
+  BATCHPREDICTIONJOBS = (
+      'batchPredictionJobs',
+      '{+name}',
+      {
+          '':
+              'batchPredictionJobs/{batchPredictionJobsId}',
+      },
+      ['name'],
+      True
+  )
+  DATASETS = (
+      'datasets',
+      '{+name}',
+      {
+          '':
+              'datasets/{datasetsId}',
+      },
+      ['name'],
+      True
+  )
+  DATASETS_DATASETVERSIONS = (
+      'datasets.datasetVersions',
+      '{+name}',
+      {
+          '':
+              'datasets/{datasetsId}/datasetVersions/{datasetVersionsId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS = (
       'projects',
       'projects/{projectsId}',
@@ -84,6 +114,17 @@ class Collections(enum.Enum):
           '':
               'projects/{projectsId}/locations/{locationsId}/'
               'batchPredictionJobs/{batchPredictionJobsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_CACHEDCONTENTS = (
+      'projects.locations.cachedContents',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/cachedContents/'
+              '{cachedContentsId}',
       },
       ['name'],
       True
@@ -312,6 +353,72 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_LOCATIONS_EVALUATIONITEMS = (
+      'projects.locations.evaluationItems',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/evaluationItems/'
+              '{evaluationItemsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_EVALUATIONITEMS_OPERATIONS = (
+      'projects.locations.evaluationItems.operations',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/evaluationItems/'
+              '{evaluationItemsId}/operations/{operationsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_EVALUATIONRUNS = (
+      'projects.locations.evaluationRuns',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/evaluationRuns/'
+              '{evaluationRunsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_EVALUATIONRUNS_OPERATIONS = (
+      'projects.locations.evaluationRuns.operations',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/evaluationRuns/'
+              '{evaluationRunsId}/operations/{operationsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_EVALUATIONSETS = (
+      'projects.locations.evaluationSets',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/evaluationSets/'
+              '{evaluationSetsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_EVALUATIONSETS_OPERATIONS = (
+      'projects.locations.evaluationSets.operations',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/evaluationSets/'
+              '{evaluationSetsId}/operations/{operationsId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS_LOCATIONS_EVALUATIONTASKS = (
       'projects.locations.evaluationTasks',
       'projects/{projectsId}/locations/{locationsId}/evaluationTasks/'
@@ -333,10 +440,13 @@ class Collections(enum.Enum):
   )
   PROJECTS_LOCATIONS_EXAMPLESTORES = (
       'projects.locations.exampleStores',
-      'projects/{projectsId}/locations/{locationsId}/exampleStores/'
-      '{exampleStoresId}',
-      {},
-      ['projectsId', 'locationsId', 'exampleStoresId'],
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/exampleStores/'
+              '{exampleStoresId}',
+      },
+      ['name'],
       True
   )
   PROJECTS_LOCATIONS_EXAMPLESTORES_OPERATIONS = (
@@ -399,6 +509,41 @@ class Collections(enum.Enum):
           '':
               'projects/{projectsId}/locations/{locationsId}/featureGroups/'
               '{featureGroupsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_FEATUREGROUPS_FEATUREMONITORS = (
+      'projects.locations.featureGroups.featureMonitors',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/featureGroups/'
+              '{featureGroupsId}/featureMonitors/{featureMonitorsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_FEATUREGROUPS_FEATUREMONITORS_FEATUREMONITORJOBS = (
+      'projects.locations.featureGroups.featureMonitors.featureMonitorJobs',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/featureGroups/'
+              '{featureGroupsId}/featureMonitors/{featureMonitorsId}/'
+              'featureMonitorJobs/{featureMonitorJobsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_FEATUREGROUPS_FEATUREMONITORS_OPERATIONS = (
+      'projects.locations.featureGroups.featureMonitors.operations',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/featureGroups/'
+              '{featureGroupsId}/featureMonitors/{featureMonitorsId}/'
+              'operations/{operationsId}',
       },
       ['name'],
       True
@@ -900,6 +1045,18 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_LOCATIONS_NOTEBOOKEXECUTIONJOBS_OPERATIONS = (
+      'projects.locations.notebookExecutionJobs.operations',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'notebookExecutionJobs/{notebookExecutionJobsId}/operations/'
+              '{operationsId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS_LOCATIONS_NOTEBOOKRUNTIMETEMPLATES = (
       'projects.locations.notebookRuntimeTemplates',
       '{+name}',
@@ -911,6 +1068,18 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_LOCATIONS_NOTEBOOKRUNTIMETEMPLATES_OPERATIONS = (
+      'projects.locations.notebookRuntimeTemplates.operations',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'notebookRuntimeTemplates/{notebookRuntimeTemplatesId}/'
+              'operations/{operationsId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS_LOCATIONS_NOTEBOOKRUNTIMES = (
       'projects.locations.notebookRuntimes',
       '{+name}',
@@ -918,6 +1087,18 @@ class Collections(enum.Enum):
           '':
               'projects/{projectsId}/locations/{locationsId}/'
               'notebookRuntimes/{notebookRuntimesId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_NOTEBOOKRUNTIMES_OPERATIONS = (
+      'projects.locations.notebookRuntimes.operations',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'notebookRuntimes/{notebookRuntimesId}/operations/'
+              '{operationsId}',
       },
       ['name'],
       True
@@ -980,10 +1161,13 @@ class Collections(enum.Enum):
   )
   PROJECTS_LOCATIONS_RAGCORPORA = (
       'projects.locations.ragCorpora',
-      'projects/{projectsId}/locations/{locationsId}/ragCorpora/'
-      '{ragCorporaId}',
-      {},
-      ['projectsId', 'locationsId', 'ragCorporaId'],
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/ragCorpora/'
+              '{ragCorporaId}',
+      },
+      ['name'],
       True
   )
   PROJECTS_LOCATIONS_RAGCORPORA_OPERATIONS = (
@@ -999,10 +1183,13 @@ class Collections(enum.Enum):
   )
   PROJECTS_LOCATIONS_RAGCORPORA_RAGFILES = (
       'projects.locations.ragCorpora.ragFiles',
-      'projects/{projectsId}/locations/{locationsId}/ragCorpora/'
-      '{ragCorporaId}/ragFiles/{ragFilesId}',
-      {},
-      ['projectsId', 'locationsId', 'ragCorporaId', 'ragFilesId'],
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/ragCorpora/'
+              '{ragCorporaId}/ragFiles/{ragFilesId}',
+      },
+      ['name'],
       True
   )
   PROJECTS_LOCATIONS_RAGCORPORA_RAGFILES_OPERATIONS = (
@@ -1012,6 +1199,17 @@ class Collections(enum.Enum):
           '':
               'projects/{projectsId}/locations/{locationsId}/ragCorpora/'
               '{ragCorporaId}/ragFiles/{ragFilesId}/operations/{operationsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_RAGENGINECONFIG_OPERATIONS = (
+      'projects.locations.ragEngineConfig.operations',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/ragEngineConfig/'
+              'operations/{operationsId}',
       },
       ['name'],
       True
@@ -1027,6 +1225,49 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_LOCATIONS_REASONINGENGINES_EXAMPLES = (
+      'projects.locations.reasoningEngines.examples',
+      'projects/{projectsId}/locations/{locationsId}/reasoningEngines/'
+      '{reasoningEnginesId}/examples/{examplesId}',
+      {},
+      ['projectsId', 'locationsId', 'reasoningEnginesId', 'examplesId'],
+      True
+  )
+  PROJECTS_LOCATIONS_REASONINGENGINES_EXAMPLES_OPERATIONS = (
+      'projects.locations.reasoningEngines.examples.operations',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'reasoningEngines/{reasoningEnginesId}/examples/{examplesId}/'
+              'operations/{operationsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_REASONINGENGINES_MEMORIES = (
+      'projects.locations.reasoningEngines.memories',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'reasoningEngines/{reasoningEnginesId}/memories/{memoriesId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_REASONINGENGINES_MEMORIES_OPERATIONS = (
+      'projects.locations.reasoningEngines.memories.operations',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'reasoningEngines/{reasoningEnginesId}/memories/{memoriesId}/'
+              'operations/{operationsId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS_LOCATIONS_REASONINGENGINES_OPERATIONS = (
       'projects.locations.reasoningEngines.operations',
       '{+name}',
@@ -1035,6 +1276,53 @@ class Collections(enum.Enum):
               'projects/{projectsId}/locations/{locationsId}/'
               'reasoningEngines/{reasoningEnginesId}/operations/'
               '{operationsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_REASONINGENGINES_SANDBOXENVIRONMENTS = (
+      'projects.locations.reasoningEngines.sandboxEnvironments',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'reasoningEngines/{reasoningEnginesId}/sandboxEnvironments/'
+              '{sandboxEnvironmentsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_REASONINGENGINES_SANDBOXENVIRONMENTS_OPERATIONS = (
+      'projects.locations.reasoningEngines.sandboxEnvironments.operations',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'reasoningEngines/{reasoningEnginesId}/sandboxEnvironments/'
+              '{sandboxEnvironmentsId}/operations/{operationsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_REASONINGENGINES_SESSIONS = (
+      'projects.locations.reasoningEngines.sessions',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'reasoningEngines/{reasoningEnginesId}/sessions/{sessionsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_REASONINGENGINES_SESSIONS_OPERATIONS = (
+      'projects.locations.reasoningEngines.sessions.operations',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'reasoningEngines/{reasoningEnginesId}/sessions/{sessionsId}/'
+              'operations/{operationsId}',
       },
       ['name'],
       True
@@ -1057,6 +1345,17 @@ class Collections(enum.Enum):
           '':
               'projects/{projectsId}/locations/{locationsId}/schedules/'
               '{schedulesId}/operations/{operationsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_SERVERLESSRAYJOBS = (
+      'projects.locations.serverlessRayJobs',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'serverlessRayJobs/{serverlessRayJobsId}',
       },
       ['name'],
       True
@@ -1260,6 +1559,17 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_LOCATIONS_TUNINGJOBS = (
+      'projects.locations.tuningJobs',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/tuningJobs/'
+              '{tuningJobsId}',
+      },
+      ['name'],
+      True
+  )
   PUBLISHERS = (
       'publishers',
       'publishers/{publishersId}',
@@ -1273,6 +1583,36 @@ class Collections(enum.Enum):
       {
           '':
               'publishers/{publishersId}/models/{modelsId}',
+      },
+      ['name'],
+      True
+  )
+  REASONINGENGINES = (
+      'reasoningEngines',
+      '{+name}',
+      {
+          '':
+              'reasoningEngines/{reasoningEnginesId}',
+      },
+      ['name'],
+      True
+  )
+  REASONINGENGINES_MEMORIES = (
+      'reasoningEngines.memories',
+      '{+name}',
+      {
+          '':
+              'reasoningEngines/{reasoningEnginesId}/memories/{memoriesId}',
+      },
+      ['name'],
+      True
+  )
+  REASONINGENGINES_SESSIONS = (
+      'reasoningEngines.sessions',
+      '{+name}',
+      {
+          '':
+              'reasoningEngines/{reasoningEnginesId}/sessions/{sessionsId}',
       },
       ['name'],
       True

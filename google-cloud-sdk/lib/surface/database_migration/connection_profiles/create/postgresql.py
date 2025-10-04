@@ -46,6 +46,7 @@ DETAILED_HELP = {
 
 
 @base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.DefaultUniverseOnly
 class PostgreSQL(base.Command):
   """Create a Database Migration Service connection profile for PostgreSQL."""
 
@@ -63,10 +64,11 @@ class PostgreSQL(base.Command):
 
     cp_flags.AddNoAsyncFlag(parser)
     cp_flags.AddDisplayNameFlag(parser)
-    cp_flags.AddDatabaseParamsFlags(parser)
+    cp_flags.AddDatabaseParamsFlags(parser, with_database_name=True)
     cp_flags.AddSslConfigGroup(parser, base.ReleaseTrack.GA)
     cp_flags.AddCloudSQLInstanceFlag(parser)
     cp_flags.AddAlloydbClusterFlag(parser)
+    cp_flags.AddRoleFlag(parser)
     flags.AddLabelsCreateFlags(parser)
 
   def Run(self, args):

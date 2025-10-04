@@ -160,6 +160,10 @@
               help_text: |
                 The maximal number of autoscale workers. Must be equal to or greater than
                 autoscale-min-size.
+            - api_field: workerPool.autoscale.minIdleWorkers
+              arg_name: autoscale-min-idle-workers
+              help_text: |
+                The minimum number of idle workers. Must be equal to or greater than 0.
     - api_field: workerPool.workerConfig.networkAccess
       arg_name: network-access
       required: false
@@ -203,5 +207,10 @@
         first user account in the chain should be granted roles/iam.serviceAccountTokenCreator on
         the second user account in the chain, and so on. If user service account is empty then the
         user code will use the VM's service account.
+    - api_field: workerPool.workerConfig.networkAllowlist
+      arg_name: network-allowlist
+      required: false
+      help_text: |
+        The network allowlist mode for the worker pool. If per_action, the network allowlist will be applied per action.
     labels:
       api_field: workerPool.workerConfig.labels

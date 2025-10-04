@@ -13,69 +13,113 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Creates an image from Source."""
+
+import re
+
 from apitools.base.py import encoding
+from apitools.base.py import exceptions as apitools_exceptions
 from googlecloudsdk.api_lib.cloudbuild import cloudbuild_util
-from googlecloudsdk.api_lib.run import run_util
+from googlecloudsdk.api_lib.run import global_methods
+from googlecloudsdk.api_lib.util import apis
 from googlecloudsdk.api_lib.util import waiter
-from googlecloudsdk.calliope import base
+from googlecloudsdk.calliope import base as calliope_base
 from googlecloudsdk.command_lib.builds import submit_util
+from googlecloudsdk.command_lib.run import artifact_registry
+from googlecloudsdk.command_lib.run import exceptions
 from googlecloudsdk.command_lib.run import stages
 from googlecloudsdk.command_lib.run.sourcedeploys import sources
+from googlecloudsdk.command_lib.run.sourcedeploys import types
 from googlecloudsdk.core import properties
 from googlecloudsdk.core import resources
 
 
-# TODO(b/313435281): Bundle these "build_" variables into an object
+_BUILD_NAME_PATTERN = re.compile(
+    'projects/(?P<projectId>[^/]*)/locations/(?P<location>[^/]*)/builds/(?P<build>[^/]*)'
+)
+_DEFAULT_IMAGE_REPOSITORY_NAME = '/cloud-run-source-deploy'
+
+
+# TODO(b/383160656): Bundle these "build_" variables into an object
+# pylint:disable=unused-argument - release_track is piped through everywhere.
+# It shouldn't be removed just because there are no pre-GA features in progress.
 def CreateImage(
     tracker,
     build_image,
     build_source,
     build_pack,
+    repo_to_create,
     release_track,
     already_activated_services,
     region: str,
     resource_ref,
     delegate_builds=False,
     base_image=None,
+    service_account=None,
+    build_worker_pool=None,
+    build_machine_type=None,
+    build_env_vars=None,
+    enable_automatic_updates=False,
+    source_bucket=None,
+    kms_key=None,
 ):
   """Creates an image from Source."""
-  # Automatic base image updates implies call to build API.
-  delegate_builds = base_image or delegate_builds
-  base_image_from_build = None
-  # Upload source and call build API if it's in alpha and `--delegate-builds`
-  # flag is set. Otherwise, default behavior stays the same.
-  if release_track is base.ReleaseTrack.ALPHA and delegate_builds:
-    submit_build_request = _PrepareSubmitBuildRequest(
-        tracker,
-        build_image,
-        build_source,
-        build_pack,
-        region,
-        resource_ref,
-        release_track,
-        base_image,
+  if repo_to_create:
+    tracker.StartStage(stages.CREATE_REPO)
+    tracker.UpdateHeaderMessage('Creating Container Repository.')
+    artifact_registry.CreateRepository(
+        repo_to_create, already_activated_services
     )
+    tracker.CompleteStage(stages.CREATE_REPO)
+
+  base_image_from_build = None
+  source = None
+
+  tracker.StartStage(stages.UPLOAD_SOURCE)
+  if kms_key:
+    tracker.UpdateHeaderMessage('Using the source from the specified bucket.')
+    _ValidateCmekDeployment(
+        build_source, build_image, kms_key
+    )
+    source = sources.GetGcsObject(build_source)
+  else:
+    tracker.UpdateHeaderMessage('Uploading sources.')
+    source = sources.Upload(build_source, region, resource_ref, source_bucket)
+  tracker.CompleteStage(stages.UPLOAD_SOURCE)
+  submit_build_request = _PrepareSubmitBuildRequest(
+      build_image,
+      build_pack,
+      region,
+      base_image,
+      source,
+      resource_ref,
+      service_account,
+      build_worker_pool,
+      build_machine_type,
+      build_env_vars,
+      enable_automatic_updates,
+      release_track,
+  )
+  try:
     response_dict, build_log_url, base_image_from_build = _SubmitBuild(
         tracker,
-        release_track,
-        region,
         submit_build_request,
     )
-  else:
-    build_messages, build_config = _PrepareBuildConfig(
+  except apitools_exceptions.HttpNotFoundError as e:
+    # This happens if user didn't have permission to access the builds API.
+    if base_image or delegate_builds:
+      # If the customer enabled automatic base image updates or set the
+      # --delegate-builds falling back is not possible.
+      raise e
+
+    # If the user didn't explicitly opt-in to the API, we can fall back to
+    # the old client orchestrated builds functionality.
+    response_dict, build_log_url = _CreateImageWithoutSubmitBuild(
         tracker,
         build_image,
         build_source,
         build_pack,
-        release_track,
-        region,
-        resource_ref,
-    )
-    response_dict, build_log_url = _BuildFromSource(
-        tracker,
-        build_messages,
-        build_config,
-        skip_activation_prompt=already_activated_services,
+        already_activated_services,
+        remote_source=source,
     )
 
   if response_dict and response_dict['status'] != 'SUCCESS':
@@ -89,13 +133,41 @@ def CreateImage(
             )
         ),
     )
-    return None  # Failed to create an image
+    return None, None, None, None, None  # Failed to create an image
   else:
     tracker.CompleteStage(stages.BUILD_READY)
     return (
         response_dict['results']['images'][0]['digest'],
         base_image_from_build,
+        response_dict['id'],
+        source,
+        response_dict['name'],
     )
+
+
+def _CreateImageWithoutSubmitBuild(
+    tracker,
+    build_image,
+    build_source,
+    build_pack,
+    already_activated_services,
+    remote_source,
+):
+  """Creates an image from source by calling GCB direcly, bypassing the SubmitBuild API."""
+  build_messages, build_config = _PrepareBuildConfig(
+      tracker,
+      build_image,
+      build_source,
+      build_pack,
+      remote_source,
+  )
+  response_dict, build_log_url = _BuildFromSource(
+      tracker,
+      build_messages,
+      build_config,
+      skip_activation_prompt=already_activated_services,
+  )
+  return response_dict, build_log_url
 
 
 def _PrepareBuildConfig(
@@ -103,22 +175,16 @@ def _PrepareBuildConfig(
     build_image,
     build_source,
     build_pack,
-    release_track,
-    region,
-    resource_ref,
+    remote_source,
 ):
-  """Upload the provided build source and prepare build config for cloud build."""
-  tracker.StartStage(stages.UPLOAD_SOURCE)
-  tracker.UpdateHeaderMessage('Uploading sources.')
+  """Prepare build config for cloud build."""
+
   build_messages = cloudbuild_util.GetMessagesModule()
 
-  # Make this the default after CRF is out of Alpha
-  if release_track is base.ReleaseTrack.ALPHA:
-    source = sources.Upload(build_source, region, resource_ref)
-
+  if remote_source:
     # add the source uri as a label to the image
     # https://github.com/GoogleCloudPlatform/buildpacks/blob/main/cmd/utils/label/README.md
-    uri = f'gs://{source.bucket}/{source.name}#{source.generation}'
+    uri = sources.GetGsutilUri(remote_source)
     if build_pack is not None:
       envs = build_pack[0].get('envs', [])
       envs.append(f'GOOGLE_LABEL_SOURCE={uri}')  # "google.source"
@@ -154,18 +220,20 @@ def _PrepareBuildConfig(
 
     # is docker build
     if build_pack is None:
-      assert build_config.steps[0].name == 'gcr.io/cloud-builders/docker'
+      assert build_config.steps[0].name == 'gcr.io/cloud-builders/gcb-internal'
       # https://docs.docker.com/engine/reference/commandline/image_build/
       build_config.steps[0].args.extend(['--label', f'google.source={uri}'])
 
     build_config.source = build_messages.Source(
         storageSource=build_messages.StorageSource(
-            bucket=source.bucket,
-            object=source.name,
-            generation=source.generation,
+            bucket=remote_source.bucket,
+            object=remote_source.name,
+            generation=remote_source.generation,
         )
     )
   else:
+    tracker.StartStage(stages.UPLOAD_SOURCE)
+    tracker.UpdateHeaderMessage('Uploading sources.')
     # force disable Kaniko since we don't support customizing the build here.
     properties.VALUES.builds.use_kaniko.Set(False)
     build_config = submit_util.CreateBuildConfig(
@@ -192,9 +260,43 @@ def _PrepareBuildConfig(
         hide_logs=True,
         client_tag='gcloudrun',
     )
+    tracker.CompleteStage(stages.UPLOAD_SOURCE)
 
-  tracker.CompleteStage(stages.UPLOAD_SOURCE)
   return build_messages, build_config
+
+
+def _ValidateCmekDeployment(
+    source: str, image_repository: str, kms_key: str
+) -> None:
+  """Validate the CMEK parameters of the deployment."""
+  if not kms_key:
+    return
+
+  if not sources.IsGcsObject(source):
+    raise exceptions.ArgumentError(
+        f'Invalid source location: {source}.'
+        ' Deployments encrypted with a customer-managed encryption key (CMEK)'
+        ' expect the source to be passed in a pre-configured Cloud Storage'
+        ' bucket. See'
+        ' https://cloud.google.com/run/docs/securing/using-cmek#source-deploy'
+        ' for more details.'
+    )
+  if not image_repository:
+    raise exceptions.ArgumentError(
+        'Deployments encrypted with a customer-managed encryption key (CMEK)'
+        ' require a pre-configured Artifact Registry repository to be passed'
+        ' via the `--image` flag. See'
+        ' https://cloud.google.com/run/docs/securing/using-cmek#source-deploy'
+        ' for more details.'
+    )
+  if _IsDefaultImageRepository(image_repository):
+    raise exceptions.ArgumentError(
+        'The default Artifact Registry repository can not be used when'
+        ' deploying with a customer-managed encryption key (CMEK). Please'
+        ' provide a pre-configured repository using the `--image` flag. See'
+        ' https://cloud.google.com/run/docs/securing/using-cmek#source-deploy'
+        ' for more details.'
+    )
 
 
 def _BuildFromSource(
@@ -229,69 +331,96 @@ def _BuildFromSource(
 
 
 def _PrepareSubmitBuildRequest(
-    tracker,
-    build_image,
-    build_source,
+    docker_image,
     build_pack,
     region,
-    resource_ref,
-    release_track,
     base_image,
+    source,
+    resource_ref,
+    service_account,
+    build_worker_pool,
+    build_machine_type,
+    build_env_vars,
+    enable_automatic_updates,
+    release_track,
 ):
   """Upload the provided build source and prepare submit build request."""
-  messages = run_util.GetMessagesModule(release_track)
-  tracker.StartStage(stages.UPLOAD_SOURCE)
-  tracker.UpdateHeaderMessage('Uploading sources.')
-  source = sources.Upload(build_source, region, resource_ref)
-  tracker.CompleteStage(stages.UPLOAD_SOURCE)
+  messages = apis.GetMessagesModule(global_methods.SERVERLESS_API_NAME, 'v2')
   parent = 'projects/{project}/locations/{region}'.format(
       project=properties.VALUES.core.project.Get(required=True), region=region
   )
   storage_source = messages.GoogleCloudRunV2StorageSource(
       bucket=source.bucket, object=source.name, generation=source.generation
   )
+  tags = _GetBuildTags(resource_ref)
 
-  buildpack_build = None
-  docker_build = None
   if build_pack:
+    # submit a buildpacks build
     function_target = None
-    # https://github.com/GoogleCloudPlatform/buildpacks/blob/main/cmd/utils/label/README.md
-    # uri = f'gs://{source.bucket}/{source.name}#{source.generation}'
-    envs = build_pack[0].get('envs', [])
-    function_target_env = [
-        x for x in envs if x.startswith('GOOGLE_FUNCTION_TARGET')
-    ]
-    if function_target_env:
-      function_target = function_target_env[0].split('=')[1]
-    buildpack_build = messages.GoogleCloudRunV2BuildpacksBuild(
-        baseImage=base_image, functionTarget=function_target
+    project_descriptor = build_pack[0].get('project_descriptor', None)
+    for env in build_pack[0].get('envs', []):
+      if env.startswith('GOOGLE_FUNCTION_TARGET'):
+        function_target = env.split('=')[1]
+
+    if build_env_vars is not None:
+      build_env_vars = messages.GoogleCloudRunV2BuildpacksBuild.EnvironmentVariablesValue(
+          additionalProperties=[
+              messages.GoogleCloudRunV2BuildpacksBuild.EnvironmentVariablesValue.AdditionalProperty(
+                  key=key, value=value
+              )
+              for key, value in sorted(build_env_vars.items())
+          ]
+      )
+    return messages.RunProjectsLocationsBuildsSubmitRequest(
+        parent=parent,
+        googleCloudRunV2SubmitBuildRequest=messages.GoogleCloudRunV2SubmitBuildRequest(
+            storageSource=storage_source,
+            imageUri=build_pack[0].get('image'),
+            buildpackBuild=messages.GoogleCloudRunV2BuildpacksBuild(
+                baseImage=base_image,
+                functionTarget=function_target,
+                environmentVariables=build_env_vars,
+                enableAutomaticUpdates=enable_automatic_updates,
+                projectDescriptor=project_descriptor,
+            ),
+            dockerBuild=None,
+            tags=tags,
+            serviceAccount=service_account,
+            workerPool=build_worker_pool,
+            machineType=build_machine_type,
+            releaseTrack=_MapToReleaseTrackEnum(release_track, messages),
+        ),
     )
-  else:
-    docker_build = messages.GoogleCloudRunV2DockerBuild()
-  submit_build_request = messages.RunProjectsLocationsBuildsSubmitRequest(
+
+  # submit a docker build
+  return messages.RunProjectsLocationsBuildsSubmitRequest(
       parent=parent,
       googleCloudRunV2SubmitBuildRequest=messages.GoogleCloudRunV2SubmitBuildRequest(
           storageSource=storage_source,
-          imageUri=build_image,
-          buildpackBuild=buildpack_build,
-          dockerBuild=docker_build,
+          imageUri=docker_image,
+          buildpackBuild=None,
+          dockerBuild=messages.GoogleCloudRunV2DockerBuild(),
+          tags=tags,
+          serviceAccount=service_account,
+          workerPool=build_worker_pool,
+          machineType=build_machine_type,
+          releaseTrack=_MapToReleaseTrackEnum(release_track, messages),
       ),
   )
-  return submit_build_request
+
+
+def _GetBuildTags(resource_ref):
+  return [f'{types.GetKind(resource_ref)}_{resource_ref.Name()}']
 
 
 def _SubmitBuild(
     tracker,
-    release_track,
-    region,
     submit_build_request,
 ):
   """Call Build API to submit a build.
 
   Arguments:
     tracker: StagedProgressTracker, to report on the progress of releasing.
-    release_track: ReleaseTrack, the release track of a command calling this.
-    region: str, The region of the control plane.
     submit_build_request: SubmitBuildRequest, the request to submit build.
 
   Returns:
@@ -300,18 +429,21 @@ def _SubmitBuild(
     build_response.baseImageUri: The rectified uri of the base image that should
     be used in automatic base image update.
   """
-  run_client = run_util.GetClientInstance(release_track)
+  run_client = apis.GetClientInstance(global_methods.SERVERLESS_API_NAME, 'v2')
   build_messages = cloudbuild_util.GetMessagesModule()
 
   build_response = run_client.projects_locations_builds.Submit(
       submit_build_request
   )
+  if build_response.baseImageWarning:
+    tracker.AddWarning(build_response.baseImageWarning)
   build_op = build_response.buildOperation
   json = encoding.MessageToJson(build_op.metadata)
   build = encoding.JsonToMessage(
       build_messages.BuildOperationMetadata, json
   ).build
-  name = f'projects/{build.projectId}/locations/{region}/operations/{build.id}'
+  build_region = _GetBuildRegion(build.name)
+  name = f'projects/{build.projectId}/locations/{build_region}/operations/{build.id}'
 
   build_op_ref = resources.REGISTRY.ParseRelativeName(
       name, collection='cloudbuild.projects.locations.operations'
@@ -336,3 +468,26 @@ def _PollUntilBuildCompletes(build_op_ref):
   )
   operation = waiter.PollUntilDone(poller, build_op_ref)
   return encoding.MessageToPyValue(operation.response)
+
+
+def _GetBuildRegion(build_name):
+  match = _BUILD_NAME_PATTERN.match(build_name)
+  if match:
+    return match.group('location')
+  raise ValueError(f'Invalid build name: {build_name}')
+
+
+def _IsDefaultImageRepository(image_repository: str) -> bool:
+  """Checks if the image repository is the default one."""
+  return _DEFAULT_IMAGE_REPOSITORY_NAME in image_repository
+
+
+def _MapToReleaseTrackEnum(release_track, messages):
+  """Returns the enum value for the release track."""
+  release_track_enum_value = None
+  if release_track and release_track != calliope_base.ReleaseTrack.GA:
+    release_track_enum_cls = (
+        messages.GoogleCloudRunV2SubmitBuildRequest.ReleaseTrackValueValuesEnum
+    )
+    release_track_enum_value = release_track_enum_cls(release_track.name)
+  return release_track_enum_value

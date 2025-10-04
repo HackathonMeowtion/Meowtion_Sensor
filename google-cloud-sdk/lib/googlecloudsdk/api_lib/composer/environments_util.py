@@ -775,7 +775,7 @@ def Delete(environment_ref, release_track=base.ReleaseTrack.GA):
           name=environment_ref.RelativeName()))
 
 
-def RestartWebServer(environment_ref, release_track=base.ReleaseTrack.BETA):
+def RestartWebServer(environment_ref, release_track=base.ReleaseTrack.GA):
   """Calls the Composer Environments.RestartWebServer method.
 
   Args:
@@ -1011,7 +1011,7 @@ def FetchDatabaseProperties(environment_ref,
 
 def CheckUpgrade(environment_ref,
                  image_version,
-                 release_track=base.ReleaseTrack.BETA):
+                 release_track=base.ReleaseTrack.GA):
   """Calls the Composer Environments.CheckUpgrade method.
 
   Args:

@@ -25,7 +25,6 @@ from googlecloudsdk.core import log
 _WORKER_POOL_ANNOTATION = "cloudbuild.googleapis.com/worker-pool"
 _MANAGED_SIDECARS_ANNOTATION = "cloudbuild.googleapis.com/managed-sidecars"
 _MACHINE_TYPE = "cloudbuild.googleapis.com/worker/machine-type"
-_PRIVILEGE_MODE = "cloudbuild.googleapis.com/security/privilege-mode"
 _PROVENANCE_ENABLED = "cloudbuild.googleapis.com/provenance/enabled"
 _PROVENANCE_STORAGE = "cloudbuild.googleapis.com/provenance/storage"
 _PROVENANCE_REGION = "cloudbuild.googleapis.com/provenance/region"
@@ -125,8 +124,6 @@ def _MetadataTransform(data):
     spec["worker"] = {"machineType": annotations[_MACHINE_TYPE]}
 
   security = {}
-  if _PRIVILEGE_MODE in annotations:
-    security["privilegeMode"] = annotations[_PRIVILEGE_MODE].upper()
   if security:
     spec["security"] = security
 
@@ -198,10 +195,12 @@ def _ServiceAccountTransformPipelineSpec(spec):
   if "taskRunTemplate" in spec:
     if "serviceAccountName" in spec["taskRunTemplate"]:
       sa = spec.pop("taskRunTemplate").pop("serviceAccountName")
-      # TODO(b/321276962): Deprecate this once we move to use security configs.
-      spec["serviceAccount"] = sa
       security = spec.setdefault("security", {})
       security["serviceAccount"] = sa
+      return
+  raise cloudbuild_exceptions.InvalidYamlError(
+      "spec.taskRunTemplate.serviceAccountName is required."
+  )
 
 
 def _ServiceAccountTransformTaskSpec(spec):

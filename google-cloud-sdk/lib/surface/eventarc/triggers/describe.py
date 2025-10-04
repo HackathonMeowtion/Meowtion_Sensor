@@ -36,6 +36,7 @@ _DETAILED_HELP = {
 
 
 @base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.DefaultUniverseOnly
 class Describe(base.DescribeCommand):
   """Describe an Eventarc trigger."""
 
@@ -48,7 +49,7 @@ class Describe(base.DescribeCommand):
 
   def Run(self, args):
     """Run the describe command."""
-    client = triggers.CreateTriggersClient(self.ReleaseTrack())
+    client = triggers.TriggersClientV1()
     trigger_ref = args.CONCEPTS.trigger.Parse()
     trigger = client.Get(trigger_ref)
     event_type = client.GetEventType(trigger)
@@ -61,19 +62,3 @@ class Describe(base.DescribeCommand):
       log.warning(
           'The trigger was recently modified and will become active by {}.'
           .format(self._active_time))
-
-
-@base.Deprecate(
-    is_removed=True,
-    warning=(
-        'This command is deprecated. '
-        'Please use `gcloud eventarc triggers describe` instead.'
-    ),
-    error=(
-        'This command has been removed. '
-        'Please use `gcloud eventarc triggers describe` instead.'
-    ),
-)
-@base.ReleaseTracks(base.ReleaseTrack.BETA)
-class DescribeBeta(Describe):
-  """Describe an Eventarc trigger."""

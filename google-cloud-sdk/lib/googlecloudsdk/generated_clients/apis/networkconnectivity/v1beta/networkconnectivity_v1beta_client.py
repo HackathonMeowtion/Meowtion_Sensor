@@ -39,454 +39,21 @@ class NetworkconnectivityV1beta(base_api.BaseApiClient):
         default_global_params=default_global_params,
         additional_http_headers=additional_http_headers,
         response_encoding=response_encoding)
-    self.projects_locations_customHardwareInstances = self.ProjectsLocationsCustomHardwareInstancesService(self)
-    self.projects_locations_customHardwareLinkAttachments = self.ProjectsLocationsCustomHardwareLinkAttachmentsService(self)
-    self.projects_locations_customHardwareLinkConnectPairs = self.ProjectsLocationsCustomHardwareLinkConnectPairsService(self)
     self.projects_locations_global_hubs_groups = self.ProjectsLocationsGlobalHubsGroupsService(self)
     self.projects_locations_global_hubs_routeTables_routes = self.ProjectsLocationsGlobalHubsRouteTablesRoutesService(self)
     self.projects_locations_global_hubs_routeTables = self.ProjectsLocationsGlobalHubsRouteTablesService(self)
     self.projects_locations_global_hubs = self.ProjectsLocationsGlobalHubsService(self)
+    self.projects_locations_global_policyBasedRoutes = self.ProjectsLocationsGlobalPolicyBasedRoutesService(self)
     self.projects_locations_global = self.ProjectsLocationsGlobalService(self)
+    self.projects_locations_multicloudDataTransferConfigs_destinations = self.ProjectsLocationsMulticloudDataTransferConfigsDestinationsService(self)
+    self.projects_locations_multicloudDataTransferConfigs = self.ProjectsLocationsMulticloudDataTransferConfigsService(self)
+    self.projects_locations_multicloudDataTransferSupportedServices = self.ProjectsLocationsMulticloudDataTransferSupportedServicesService(self)
     self.projects_locations_operations = self.ProjectsLocationsOperationsService(self)
     self.projects_locations_regionalEndpoints = self.ProjectsLocationsRegionalEndpointsService(self)
+    self.projects_locations_spokes_gatewayAdvertisedRoutes = self.ProjectsLocationsSpokesGatewayAdvertisedRoutesService(self)
     self.projects_locations_spokes = self.ProjectsLocationsSpokesService(self)
     self.projects_locations = self.ProjectsLocationsService(self)
     self.projects = self.ProjectsService(self)
-
-  class ProjectsLocationsCustomHardwareInstancesService(base_api.BaseApiService):
-    """Service class for the projects_locations_customHardwareInstances resource."""
-
-    _NAME = 'projects_locations_customHardwareInstances'
-
-    def __init__(self, client):
-      super(NetworkconnectivityV1beta.ProjectsLocationsCustomHardwareInstancesService, self).__init__(client)
-      self._upload_configs = {
-          }
-
-    def Create(self, request, global_params=None):
-      r"""Creates a new CustomHardwareInstance in a given project and location.
-
-      Args:
-        request: (NetworkconnectivityProjectsLocationsCustomHardwareInstancesCreateRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleLongrunningOperation) The response message.
-      """
-      config = self.GetMethodConfig('Create')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Create.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/customHardwareInstances',
-        http_method='POST',
-        method_id='networkconnectivity.projects.locations.customHardwareInstances.create',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['customHardwareInstanceId', 'requestId'],
-        relative_path='v1beta/{+parent}/customHardwareInstances',
-        request_field='googleCloudNetworkconnectivityV1betaCustomHardwareInstance',
-        request_type_name='NetworkconnectivityProjectsLocationsCustomHardwareInstancesCreateRequest',
-        response_type_name='GoogleLongrunningOperation',
-        supports_download=False,
-    )
-
-    def Delete(self, request, global_params=None):
-      r"""Deletes a single CustomHardwareInstance.
-
-      Args:
-        request: (NetworkconnectivityProjectsLocationsCustomHardwareInstancesDeleteRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleLongrunningOperation) The response message.
-      """
-      config = self.GetMethodConfig('Delete')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Delete.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/customHardwareInstances/{customHardwareInstancesId}',
-        http_method='DELETE',
-        method_id='networkconnectivity.projects.locations.customHardwareInstances.delete',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=['requestId'],
-        relative_path='v1beta/{+name}',
-        request_field='',
-        request_type_name='NetworkconnectivityProjectsLocationsCustomHardwareInstancesDeleteRequest',
-        response_type_name='GoogleLongrunningOperation',
-        supports_download=False,
-    )
-
-    def Get(self, request, global_params=None):
-      r"""Gets details of a single CustomHardwareInstance.
-
-      Args:
-        request: (NetworkconnectivityProjectsLocationsCustomHardwareInstancesGetRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleCloudNetworkconnectivityV1betaCustomHardwareInstance) The response message.
-      """
-      config = self.GetMethodConfig('Get')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Get.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/customHardwareInstances/{customHardwareInstancesId}',
-        http_method='GET',
-        method_id='networkconnectivity.projects.locations.customHardwareInstances.get',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=[],
-        relative_path='v1beta/{+name}',
-        request_field='',
-        request_type_name='NetworkconnectivityProjectsLocationsCustomHardwareInstancesGetRequest',
-        response_type_name='GoogleCloudNetworkconnectivityV1betaCustomHardwareInstance',
-        supports_download=False,
-    )
-
-    def List(self, request, global_params=None):
-      r"""Lists CustomHardwareInstances in a given project and location.
-
-      Args:
-        request: (NetworkconnectivityProjectsLocationsCustomHardwareInstancesListRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleCloudNetworkconnectivityV1betaListCustomHardwareInstancesResponse) The response message.
-      """
-      config = self.GetMethodConfig('List')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    List.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/customHardwareInstances',
-        http_method='GET',
-        method_id='networkconnectivity.projects.locations.customHardwareInstances.list',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
-        relative_path='v1beta/{+parent}/customHardwareInstances',
-        request_field='',
-        request_type_name='NetworkconnectivityProjectsLocationsCustomHardwareInstancesListRequest',
-        response_type_name='GoogleCloudNetworkconnectivityV1betaListCustomHardwareInstancesResponse',
-        supports_download=False,
-    )
-
-    def Patch(self, request, global_params=None):
-      r"""Updates the parameters of a single CustomHardwareInstance.
-
-      Args:
-        request: (NetworkconnectivityProjectsLocationsCustomHardwareInstancesPatchRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleLongrunningOperation) The response message.
-      """
-      config = self.GetMethodConfig('Patch')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Patch.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/customHardwareInstances/{customHardwareInstancesId}',
-        http_method='PATCH',
-        method_id='networkconnectivity.projects.locations.customHardwareInstances.patch',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=['requestId', 'updateMask'],
-        relative_path='v1beta/{+name}',
-        request_field='googleCloudNetworkconnectivityV1betaCustomHardwareInstance',
-        request_type_name='NetworkconnectivityProjectsLocationsCustomHardwareInstancesPatchRequest',
-        response_type_name='GoogleLongrunningOperation',
-        supports_download=False,
-    )
-
-  class ProjectsLocationsCustomHardwareLinkAttachmentsService(base_api.BaseApiService):
-    """Service class for the projects_locations_customHardwareLinkAttachments resource."""
-
-    _NAME = 'projects_locations_customHardwareLinkAttachments'
-
-    def __init__(self, client):
-      super(NetworkconnectivityV1beta.ProjectsLocationsCustomHardwareLinkAttachmentsService, self).__init__(client)
-      self._upload_configs = {
-          }
-
-    def Create(self, request, global_params=None):
-      r"""Creates a new CustomHardwareLinkAttachment in a given project and location.
-
-      Args:
-        request: (NetworkconnectivityProjectsLocationsCustomHardwareLinkAttachmentsCreateRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleLongrunningOperation) The response message.
-      """
-      config = self.GetMethodConfig('Create')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Create.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/customHardwareLinkAttachments',
-        http_method='POST',
-        method_id='networkconnectivity.projects.locations.customHardwareLinkAttachments.create',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['customHardwareLinkAttachmentId', 'requestId'],
-        relative_path='v1beta/{+parent}/customHardwareLinkAttachments',
-        request_field='googleCloudNetworkconnectivityV1betaCustomHardwareLinkAttachment',
-        request_type_name='NetworkconnectivityProjectsLocationsCustomHardwareLinkAttachmentsCreateRequest',
-        response_type_name='GoogleLongrunningOperation',
-        supports_download=False,
-    )
-
-    def Delete(self, request, global_params=None):
-      r"""Deletes a single CustomHardwareLinkAttachment.
-
-      Args:
-        request: (NetworkconnectivityProjectsLocationsCustomHardwareLinkAttachmentsDeleteRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleLongrunningOperation) The response message.
-      """
-      config = self.GetMethodConfig('Delete')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Delete.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/customHardwareLinkAttachments/{customHardwareLinkAttachmentsId}',
-        http_method='DELETE',
-        method_id='networkconnectivity.projects.locations.customHardwareLinkAttachments.delete',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=['requestId'],
-        relative_path='v1beta/{+name}',
-        request_field='',
-        request_type_name='NetworkconnectivityProjectsLocationsCustomHardwareLinkAttachmentsDeleteRequest',
-        response_type_name='GoogleLongrunningOperation',
-        supports_download=False,
-    )
-
-    def Get(self, request, global_params=None):
-      r"""Gets details of a single CustomHardwareLinkAttachment.
-
-      Args:
-        request: (NetworkconnectivityProjectsLocationsCustomHardwareLinkAttachmentsGetRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleCloudNetworkconnectivityV1betaCustomHardwareLinkAttachment) The response message.
-      """
-      config = self.GetMethodConfig('Get')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Get.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/customHardwareLinkAttachments/{customHardwareLinkAttachmentsId}',
-        http_method='GET',
-        method_id='networkconnectivity.projects.locations.customHardwareLinkAttachments.get',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=[],
-        relative_path='v1beta/{+name}',
-        request_field='',
-        request_type_name='NetworkconnectivityProjectsLocationsCustomHardwareLinkAttachmentsGetRequest',
-        response_type_name='GoogleCloudNetworkconnectivityV1betaCustomHardwareLinkAttachment',
-        supports_download=False,
-    )
-
-    def List(self, request, global_params=None):
-      r"""Lists CustomHardwareLinkAttachments in a given project and location.
-
-      Args:
-        request: (NetworkconnectivityProjectsLocationsCustomHardwareLinkAttachmentsListRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleCloudNetworkconnectivityV1betaListCustomHardwareLinkAttachmentsResponse) The response message.
-      """
-      config = self.GetMethodConfig('List')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    List.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/customHardwareLinkAttachments',
-        http_method='GET',
-        method_id='networkconnectivity.projects.locations.customHardwareLinkAttachments.list',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
-        relative_path='v1beta/{+parent}/customHardwareLinkAttachments',
-        request_field='',
-        request_type_name='NetworkconnectivityProjectsLocationsCustomHardwareLinkAttachmentsListRequest',
-        response_type_name='GoogleCloudNetworkconnectivityV1betaListCustomHardwareLinkAttachmentsResponse',
-        supports_download=False,
-    )
-
-    def Patch(self, request, global_params=None):
-      r"""Updates the parameters of a single CustomHardwareLinkAttachment.
-
-      Args:
-        request: (NetworkconnectivityProjectsLocationsCustomHardwareLinkAttachmentsPatchRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleLongrunningOperation) The response message.
-      """
-      config = self.GetMethodConfig('Patch')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Patch.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/customHardwareLinkAttachments/{customHardwareLinkAttachmentsId}',
-        http_method='PATCH',
-        method_id='networkconnectivity.projects.locations.customHardwareLinkAttachments.patch',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=['requestId', 'updateMask'],
-        relative_path='v1beta/{+name}',
-        request_field='googleCloudNetworkconnectivityV1betaCustomHardwareLinkAttachment',
-        request_type_name='NetworkconnectivityProjectsLocationsCustomHardwareLinkAttachmentsPatchRequest',
-        response_type_name='GoogleLongrunningOperation',
-        supports_download=False,
-    )
-
-  class ProjectsLocationsCustomHardwareLinkConnectPairsService(base_api.BaseApiService):
-    """Service class for the projects_locations_customHardwareLinkConnectPairs resource."""
-
-    _NAME = 'projects_locations_customHardwareLinkConnectPairs'
-
-    def __init__(self, client):
-      super(NetworkconnectivityV1beta.ProjectsLocationsCustomHardwareLinkConnectPairsService, self).__init__(client)
-      self._upload_configs = {
-          }
-
-    def Create(self, request, global_params=None):
-      r"""Creates a new CustomHardwareLinkConnectPair in a given project and location.
-
-      Args:
-        request: (NetworkconnectivityProjectsLocationsCustomHardwareLinkConnectPairsCreateRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleLongrunningOperation) The response message.
-      """
-      config = self.GetMethodConfig('Create')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Create.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/customHardwareLinkConnectPairs',
-        http_method='POST',
-        method_id='networkconnectivity.projects.locations.customHardwareLinkConnectPairs.create',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['customHardwareLinkConnectPairId', 'requestId'],
-        relative_path='v1beta/{+parent}/customHardwareLinkConnectPairs',
-        request_field='googleCloudNetworkconnectivityV1betaCustomHardwareLinkConnectPair',
-        request_type_name='NetworkconnectivityProjectsLocationsCustomHardwareLinkConnectPairsCreateRequest',
-        response_type_name='GoogleLongrunningOperation',
-        supports_download=False,
-    )
-
-    def Delete(self, request, global_params=None):
-      r"""Deletes a single CustomHardwareLinkConnectPair.
-
-      Args:
-        request: (NetworkconnectivityProjectsLocationsCustomHardwareLinkConnectPairsDeleteRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleLongrunningOperation) The response message.
-      """
-      config = self.GetMethodConfig('Delete')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Delete.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/customHardwareLinkConnectPairs/{customHardwareLinkConnectPairsId}',
-        http_method='DELETE',
-        method_id='networkconnectivity.projects.locations.customHardwareLinkConnectPairs.delete',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=['requestId'],
-        relative_path='v1beta/{+name}',
-        request_field='',
-        request_type_name='NetworkconnectivityProjectsLocationsCustomHardwareLinkConnectPairsDeleteRequest',
-        response_type_name='GoogleLongrunningOperation',
-        supports_download=False,
-    )
-
-    def Get(self, request, global_params=None):
-      r"""Gets details of a single CustomHardwareLinkConnectPair.
-
-      Args:
-        request: (NetworkconnectivityProjectsLocationsCustomHardwareLinkConnectPairsGetRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleCloudNetworkconnectivityV1betaCustomHardwareLinkConnectPair) The response message.
-      """
-      config = self.GetMethodConfig('Get')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Get.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/customHardwareLinkConnectPairs/{customHardwareLinkConnectPairsId}',
-        http_method='GET',
-        method_id='networkconnectivity.projects.locations.customHardwareLinkConnectPairs.get',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=[],
-        relative_path='v1beta/{+name}',
-        request_field='',
-        request_type_name='NetworkconnectivityProjectsLocationsCustomHardwareLinkConnectPairsGetRequest',
-        response_type_name='GoogleCloudNetworkconnectivityV1betaCustomHardwareLinkConnectPair',
-        supports_download=False,
-    )
-
-    def List(self, request, global_params=None):
-      r"""Lists CustomHardwareLinkConnectPairs in a given project and location.
-
-      Args:
-        request: (NetworkconnectivityProjectsLocationsCustomHardwareLinkConnectPairsListRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleCloudNetworkconnectivityV1betaListCustomHardwareLinkConnectPairsResponse) The response message.
-      """
-      config = self.GetMethodConfig('List')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    List.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/customHardwareLinkConnectPairs',
-        http_method='GET',
-        method_id='networkconnectivity.projects.locations.customHardwareLinkConnectPairs.list',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
-        relative_path='v1beta/{+parent}/customHardwareLinkConnectPairs',
-        request_field='',
-        request_type_name='NetworkconnectivityProjectsLocationsCustomHardwareLinkConnectPairsListRequest',
-        response_type_name='GoogleCloudNetworkconnectivityV1betaListCustomHardwareLinkConnectPairsResponse',
-        supports_download=False,
-    )
-
-    def Patch(self, request, global_params=None):
-      r"""Updates the parameters of a single CustomHardwareLinkConnectPair.
-
-      Args:
-        request: (NetworkconnectivityProjectsLocationsCustomHardwareLinkConnectPairsPatchRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (GoogleLongrunningOperation) The response message.
-      """
-      config = self.GetMethodConfig('Patch')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Patch.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/customHardwareLinkConnectPairs/{customHardwareLinkConnectPairsId}',
-        http_method='PATCH',
-        method_id='networkconnectivity.projects.locations.customHardwareLinkConnectPairs.patch',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=['requestId', 'updateMask'],
-        relative_path='v1beta/{+name}',
-        request_field='googleCloudNetworkconnectivityV1betaCustomHardwareLinkConnectPair',
-        request_type_name='NetworkconnectivityProjectsLocationsCustomHardwareLinkConnectPairsPatchRequest',
-        response_type_name='GoogleLongrunningOperation',
-        supports_download=False,
-    )
 
   class ProjectsLocationsGlobalHubsGroupsService(base_api.BaseApiService):
     """Service class for the projects_locations_global_hubs_groups resource."""
@@ -576,6 +143,33 @@ class NetworkconnectivityV1beta(base_api.BaseApiClient):
         request_field='',
         request_type_name='NetworkconnectivityProjectsLocationsGlobalHubsGroupsListRequest',
         response_type_name='GoogleCloudNetworkconnectivityV1betaListGroupsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates the parameters of a Network Connectivity Center group.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsGlobalHubsGroupsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/global/hubs/{hubsId}/groups/{groupsId}',
+        http_method='PATCH',
+        method_id='networkconnectivity.projects.locations.global.hubs.groups.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId', 'updateMask'],
+        relative_path='v1beta/{+name}',
+        request_field='googleCloudNetworkconnectivityV1betaGroup',
+        request_type_name='NetworkconnectivityProjectsLocationsGlobalHubsGroupsPatchRequest',
+        response_type_name='GoogleLongrunningOperation',
         supports_download=False,
     )
 
@@ -798,6 +392,33 @@ class NetworkconnectivityV1beta(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def AcceptSpokeUpdate(self, request, global_params=None):
+      r"""Accepts a proposal to update a Network Connectivity Center spoke in a hub.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsGlobalHubsAcceptSpokeUpdateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('AcceptSpokeUpdate')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    AcceptSpokeUpdate.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/global/hubs/{hubsId}:acceptSpokeUpdate',
+        http_method='POST',
+        method_id='networkconnectivity.projects.locations.global.hubs.acceptSpokeUpdate',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta/{+name}:acceptSpokeUpdate',
+        request_field='googleCloudNetworkconnectivityV1betaAcceptSpokeUpdateRequest',
+        request_type_name='NetworkconnectivityProjectsLocationsGlobalHubsAcceptSpokeUpdateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
     def Create(self, request, global_params=None):
       r"""Creates a new Network Connectivity Center hub in the specified project.
 
@@ -987,6 +608,33 @@ class NetworkconnectivityV1beta(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def QueryStatus(self, request, global_params=None):
+      r"""Query the Private Service Connect propagation status of a Network Connectivity Center hub.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsGlobalHubsQueryStatusRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudNetworkconnectivityV1betaQueryHubStatusResponse) The response message.
+      """
+      config = self.GetMethodConfig('QueryStatus')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    QueryStatus.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/global/hubs/{hubsId}:queryStatus',
+        http_method='GET',
+        method_id='networkconnectivity.projects.locations.global.hubs.queryStatus',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['filter', 'groupBy', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1beta/{+name}:queryStatus',
+        request_field='',
+        request_type_name='NetworkconnectivityProjectsLocationsGlobalHubsQueryStatusRequest',
+        response_type_name='GoogleCloudNetworkconnectivityV1betaQueryHubStatusResponse',
+        supports_download=False,
+    )
+
     def RejectSpoke(self, request, global_params=None):
       r"""Rejects a Network Connectivity Center spoke from being attached to a hub. If the spoke was previously in the `ACTIVE` state, it transitions to the `INACTIVE` state and is no longer able to connect to other spokes that are attached to the hub.
 
@@ -1010,6 +658,33 @@ class NetworkconnectivityV1beta(base_api.BaseApiClient):
         relative_path='v1beta/{+name}:rejectSpoke',
         request_field='googleCloudNetworkconnectivityV1betaRejectHubSpokeRequest',
         request_type_name='NetworkconnectivityProjectsLocationsGlobalHubsRejectSpokeRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def RejectSpokeUpdate(self, request, global_params=None):
+      r"""Rejects a proposal to update a Network Connectivity Center spoke in a hub.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsGlobalHubsRejectSpokeUpdateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('RejectSpokeUpdate')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    RejectSpokeUpdate.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/global/hubs/{hubsId}:rejectSpokeUpdate',
+        http_method='POST',
+        method_id='networkconnectivity.projects.locations.global.hubs.rejectSpokeUpdate',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta/{+name}:rejectSpokeUpdate',
+        request_field='googleCloudNetworkconnectivityV1betaRejectSpokeUpdateRequest',
+        request_type_name='NetworkconnectivityProjectsLocationsGlobalHubsRejectSpokeUpdateRequest',
         response_type_name='GoogleLongrunningOperation',
         supports_download=False,
     )
@@ -1068,6 +743,205 @@ class NetworkconnectivityV1beta(base_api.BaseApiClient):
         supports_download=False,
     )
 
+  class ProjectsLocationsGlobalPolicyBasedRoutesService(base_api.BaseApiService):
+    """Service class for the projects_locations_global_policyBasedRoutes resource."""
+
+    _NAME = 'projects_locations_global_policyBasedRoutes'
+
+    def __init__(self, client):
+      super(NetworkconnectivityV1beta.ProjectsLocationsGlobalPolicyBasedRoutesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new policy-based route in a given project and location.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsGlobalPolicyBasedRoutesCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/global/policyBasedRoutes',
+        http_method='POST',
+        method_id='networkconnectivity.projects.locations.global.policyBasedRoutes.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['policyBasedRouteId', 'requestId'],
+        relative_path='v1beta/{+parent}/policyBasedRoutes',
+        request_field='googleCloudNetworkconnectivityV1betaPolicyBasedRoute',
+        request_type_name='NetworkconnectivityProjectsLocationsGlobalPolicyBasedRoutesCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a single policy-based route.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsGlobalPolicyBasedRoutesDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/global/policyBasedRoutes/{policyBasedRoutesId}',
+        http_method='DELETE',
+        method_id='networkconnectivity.projects.locations.global.policyBasedRoutes.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId'],
+        relative_path='v1beta/{+name}',
+        request_field='',
+        request_type_name='NetworkconnectivityProjectsLocationsGlobalPolicyBasedRoutesDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets details of a single policy-based route.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsGlobalPolicyBasedRoutesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudNetworkconnectivityV1betaPolicyBasedRoute) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/global/policyBasedRoutes/{policyBasedRoutesId}',
+        http_method='GET',
+        method_id='networkconnectivity.projects.locations.global.policyBasedRoutes.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta/{+name}',
+        request_field='',
+        request_type_name='NetworkconnectivityProjectsLocationsGlobalPolicyBasedRoutesGetRequest',
+        response_type_name='GoogleCloudNetworkconnectivityV1betaPolicyBasedRoute',
+        supports_download=False,
+    )
+
+    def GetIamPolicy(self, request, global_params=None):
+      r"""Gets the access control policy for a resource. Returns an empty policy if the resource exists and does not have a policy set.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsGlobalPolicyBasedRoutesGetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleIamV1Policy) The response message.
+      """
+      config = self.GetMethodConfig('GetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/global/policyBasedRoutes/{policyBasedRoutesId}:getIamPolicy',
+        http_method='GET',
+        method_id='networkconnectivity.projects.locations.global.policyBasedRoutes.getIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=['options_requestedPolicyVersion'],
+        relative_path='v1beta/{+resource}:getIamPolicy',
+        request_field='',
+        request_type_name='NetworkconnectivityProjectsLocationsGlobalPolicyBasedRoutesGetIamPolicyRequest',
+        response_type_name='GoogleIamV1Policy',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists policy-based routes in a given project and location.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsGlobalPolicyBasedRoutesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudNetworkconnectivityV1betaListPolicyBasedRoutesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/global/policyBasedRoutes',
+        http_method='GET',
+        method_id='networkconnectivity.projects.locations.global.policyBasedRoutes.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1beta/{+parent}/policyBasedRoutes',
+        request_field='',
+        request_type_name='NetworkconnectivityProjectsLocationsGlobalPolicyBasedRoutesListRequest',
+        response_type_name='GoogleCloudNetworkconnectivityV1betaListPolicyBasedRoutesResponse',
+        supports_download=False,
+    )
+
+    def SetIamPolicy(self, request, global_params=None):
+      r"""Sets the access control policy on the specified resource. Replaces any existing policy. Can return `NOT_FOUND`, `INVALID_ARGUMENT`, and `PERMISSION_DENIED` errors.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsGlobalPolicyBasedRoutesSetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleIamV1Policy) The response message.
+      """
+      config = self.GetMethodConfig('SetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/global/policyBasedRoutes/{policyBasedRoutesId}:setIamPolicy',
+        http_method='POST',
+        method_id='networkconnectivity.projects.locations.global.policyBasedRoutes.setIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1beta/{+resource}:setIamPolicy',
+        request_field='googleIamV1SetIamPolicyRequest',
+        request_type_name='NetworkconnectivityProjectsLocationsGlobalPolicyBasedRoutesSetIamPolicyRequest',
+        response_type_name='GoogleIamV1Policy',
+        supports_download=False,
+    )
+
+    def TestIamPermissions(self, request, global_params=None):
+      r"""Returns permissions that a caller has on the specified resource. If the resource does not exist, this will return an empty set of permissions, not a `NOT_FOUND` error. Note: This operation is designed to be used for building permission-aware UIs and command-line tools, not for authorization checking. This operation may "fail open" without warning.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsGlobalPolicyBasedRoutesTestIamPermissionsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleIamV1TestIamPermissionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('TestIamPermissions')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    TestIamPermissions.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/global/policyBasedRoutes/{policyBasedRoutesId}:testIamPermissions',
+        http_method='POST',
+        method_id='networkconnectivity.projects.locations.global.policyBasedRoutes.testIamPermissions',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1beta/{+resource}:testIamPermissions',
+        request_field='googleIamV1TestIamPermissionsRequest',
+        request_type_name='NetworkconnectivityProjectsLocationsGlobalPolicyBasedRoutesTestIamPermissionsRequest',
+        response_type_name='GoogleIamV1TestIamPermissionsResponse',
+        supports_download=False,
+    )
+
   class ProjectsLocationsGlobalService(base_api.BaseApiService):
     """Service class for the projects_locations_global resource."""
 
@@ -1077,6 +951,360 @@ class NetworkconnectivityV1beta(base_api.BaseApiClient):
       super(NetworkconnectivityV1beta.ProjectsLocationsGlobalService, self).__init__(client)
       self._upload_configs = {
           }
+
+  class ProjectsLocationsMulticloudDataTransferConfigsDestinationsService(base_api.BaseApiService):
+    """Service class for the projects_locations_multicloudDataTransferConfigs_destinations resource."""
+
+    _NAME = 'projects_locations_multicloudDataTransferConfigs_destinations'
+
+    def __init__(self, client):
+      super(NetworkconnectivityV1beta.ProjectsLocationsMulticloudDataTransferConfigsDestinationsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a `Destination` resource in a specified project and location.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsMulticloudDataTransferConfigsDestinationsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/multicloudDataTransferConfigs/{multicloudDataTransferConfigsId}/destinations',
+        http_method='POST',
+        method_id='networkconnectivity.projects.locations.multicloudDataTransferConfigs.destinations.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['destinationId', 'requestId'],
+        relative_path='v1beta/{+parent}/destinations',
+        request_field='googleCloudNetworkconnectivityV1betaDestination',
+        request_type_name='NetworkconnectivityProjectsLocationsMulticloudDataTransferConfigsDestinationsCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a `Destination` resource.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsMulticloudDataTransferConfigsDestinationsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/multicloudDataTransferConfigs/{multicloudDataTransferConfigsId}/destinations/{destinationsId}',
+        http_method='DELETE',
+        method_id='networkconnectivity.projects.locations.multicloudDataTransferConfigs.destinations.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['etag', 'requestId'],
+        relative_path='v1beta/{+name}',
+        request_field='',
+        request_type_name='NetworkconnectivityProjectsLocationsMulticloudDataTransferConfigsDestinationsDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets the details of a `Destination` resource.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsMulticloudDataTransferConfigsDestinationsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudNetworkconnectivityV1betaDestination) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/multicloudDataTransferConfigs/{multicloudDataTransferConfigsId}/destinations/{destinationsId}',
+        http_method='GET',
+        method_id='networkconnectivity.projects.locations.multicloudDataTransferConfigs.destinations.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta/{+name}',
+        request_field='',
+        request_type_name='NetworkconnectivityProjectsLocationsMulticloudDataTransferConfigsDestinationsGetRequest',
+        response_type_name='GoogleCloudNetworkconnectivityV1betaDestination',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists the `Destination` resources in a specified project and location.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsMulticloudDataTransferConfigsDestinationsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudNetworkconnectivityV1betaListDestinationsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/multicloudDataTransferConfigs/{multicloudDataTransferConfigsId}/destinations',
+        http_method='GET',
+        method_id='networkconnectivity.projects.locations.multicloudDataTransferConfigs.destinations.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken', 'returnPartialSuccess'],
+        relative_path='v1beta/{+parent}/destinations',
+        request_field='',
+        request_type_name='NetworkconnectivityProjectsLocationsMulticloudDataTransferConfigsDestinationsListRequest',
+        response_type_name='GoogleCloudNetworkconnectivityV1betaListDestinationsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates a `Destination` resource in a specified project and location.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsMulticloudDataTransferConfigsDestinationsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/multicloudDataTransferConfigs/{multicloudDataTransferConfigsId}/destinations/{destinationsId}',
+        http_method='PATCH',
+        method_id='networkconnectivity.projects.locations.multicloudDataTransferConfigs.destinations.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId', 'updateMask'],
+        relative_path='v1beta/{+name}',
+        request_field='googleCloudNetworkconnectivityV1betaDestination',
+        request_type_name='NetworkconnectivityProjectsLocationsMulticloudDataTransferConfigsDestinationsPatchRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsMulticloudDataTransferConfigsService(base_api.BaseApiService):
+    """Service class for the projects_locations_multicloudDataTransferConfigs resource."""
+
+    _NAME = 'projects_locations_multicloudDataTransferConfigs'
+
+    def __init__(self, client):
+      super(NetworkconnectivityV1beta.ProjectsLocationsMulticloudDataTransferConfigsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a `MulticloudDataTransferConfig` resource in a specified project and location.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsMulticloudDataTransferConfigsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/multicloudDataTransferConfigs',
+        http_method='POST',
+        method_id='networkconnectivity.projects.locations.multicloudDataTransferConfigs.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['multicloudDataTransferConfigId', 'requestId'],
+        relative_path='v1beta/{+parent}/multicloudDataTransferConfigs',
+        request_field='googleCloudNetworkconnectivityV1betaMulticloudDataTransferConfig',
+        request_type_name='NetworkconnectivityProjectsLocationsMulticloudDataTransferConfigsCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a `MulticloudDataTransferConfig` resource.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsMulticloudDataTransferConfigsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/multicloudDataTransferConfigs/{multicloudDataTransferConfigsId}',
+        http_method='DELETE',
+        method_id='networkconnectivity.projects.locations.multicloudDataTransferConfigs.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['etag', 'requestId'],
+        relative_path='v1beta/{+name}',
+        request_field='',
+        request_type_name='NetworkconnectivityProjectsLocationsMulticloudDataTransferConfigsDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets the details of a `MulticloudDataTransferConfig` resource.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsMulticloudDataTransferConfigsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudNetworkconnectivityV1betaMulticloudDataTransferConfig) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/multicloudDataTransferConfigs/{multicloudDataTransferConfigsId}',
+        http_method='GET',
+        method_id='networkconnectivity.projects.locations.multicloudDataTransferConfigs.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta/{+name}',
+        request_field='',
+        request_type_name='NetworkconnectivityProjectsLocationsMulticloudDataTransferConfigsGetRequest',
+        response_type_name='GoogleCloudNetworkconnectivityV1betaMulticloudDataTransferConfig',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists the `MulticloudDataTransferConfig` resources in a specified project and location.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsMulticloudDataTransferConfigsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudNetworkconnectivityV1betaListMulticloudDataTransferConfigsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/multicloudDataTransferConfigs',
+        http_method='GET',
+        method_id='networkconnectivity.projects.locations.multicloudDataTransferConfigs.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken', 'returnPartialSuccess'],
+        relative_path='v1beta/{+parent}/multicloudDataTransferConfigs',
+        request_field='',
+        request_type_name='NetworkconnectivityProjectsLocationsMulticloudDataTransferConfigsListRequest',
+        response_type_name='GoogleCloudNetworkconnectivityV1betaListMulticloudDataTransferConfigsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates a `MulticloudDataTransferConfig` resource in a specified project and location.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsMulticloudDataTransferConfigsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/multicloudDataTransferConfigs/{multicloudDataTransferConfigsId}',
+        http_method='PATCH',
+        method_id='networkconnectivity.projects.locations.multicloudDataTransferConfigs.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId', 'updateMask'],
+        relative_path='v1beta/{+name}',
+        request_field='googleCloudNetworkconnectivityV1betaMulticloudDataTransferConfig',
+        request_type_name='NetworkconnectivityProjectsLocationsMulticloudDataTransferConfigsPatchRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsMulticloudDataTransferSupportedServicesService(base_api.BaseApiService):
+    """Service class for the projects_locations_multicloudDataTransferSupportedServices resource."""
+
+    _NAME = 'projects_locations_multicloudDataTransferSupportedServices'
+
+    def __init__(self, client):
+      super(NetworkconnectivityV1beta.ProjectsLocationsMulticloudDataTransferSupportedServicesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Get(self, request, global_params=None):
+      r"""Gets the details of a service that is supported for Data Transfer Essentials.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsMulticloudDataTransferSupportedServicesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudNetworkconnectivityV1betaMulticloudDataTransferSupportedService) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/multicloudDataTransferSupportedServices/{multicloudDataTransferSupportedServicesId}',
+        http_method='GET',
+        method_id='networkconnectivity.projects.locations.multicloudDataTransferSupportedServices.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta/{+name}',
+        request_field='',
+        request_type_name='NetworkconnectivityProjectsLocationsMulticloudDataTransferSupportedServicesGetRequest',
+        response_type_name='GoogleCloudNetworkconnectivityV1betaMulticloudDataTransferSupportedService',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists the services in the project for a region that are supported for Data Transfer Essentials.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsMulticloudDataTransferSupportedServicesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudNetworkconnectivityV1betaListMulticloudDataTransferSupportedServicesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/multicloudDataTransferSupportedServices',
+        http_method='GET',
+        method_id='networkconnectivity.projects.locations.multicloudDataTransferSupportedServices.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['pageSize', 'pageToken'],
+        relative_path='v1beta/{+parent}/multicloudDataTransferSupportedServices',
+        request_field='',
+        request_type_name='NetworkconnectivityProjectsLocationsMulticloudDataTransferSupportedServicesListRequest',
+        response_type_name='GoogleCloudNetworkconnectivityV1betaListMulticloudDataTransferSupportedServicesResponse',
+        supports_download=False,
+    )
 
   class ProjectsLocationsOperationsService(base_api.BaseApiService):
     """Service class for the projects_locations_operations resource."""
@@ -1089,7 +1317,7 @@ class NetworkconnectivityV1beta(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (NetworkconnectivityProjectsLocationsOperationsCancelRequest) input message
@@ -1314,6 +1542,151 @@ class NetworkconnectivityV1beta(base_api.BaseApiClient):
         supports_download=False,
     )
 
+  class ProjectsLocationsSpokesGatewayAdvertisedRoutesService(base_api.BaseApiService):
+    """Service class for the projects_locations_spokes_gatewayAdvertisedRoutes resource."""
+
+    _NAME = 'projects_locations_spokes_gatewayAdvertisedRoutes'
+
+    def __init__(self, client):
+      super(NetworkconnectivityV1beta.ProjectsLocationsSpokesGatewayAdvertisedRoutesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Create a GatewayAdvertisedRoute.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsSpokesGatewayAdvertisedRoutesCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/spokes/{spokesId}/gatewayAdvertisedRoutes',
+        http_method='POST',
+        method_id='networkconnectivity.projects.locations.spokes.gatewayAdvertisedRoutes.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['gatewayAdvertisedRouteId', 'requestId'],
+        relative_path='v1beta/{+parent}/gatewayAdvertisedRoutes',
+        request_field='googleCloudNetworkconnectivityV1betaGatewayAdvertisedRoute',
+        request_type_name='NetworkconnectivityProjectsLocationsSpokesGatewayAdvertisedRoutesCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Delete a GatewayAdvertisedRoute.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsSpokesGatewayAdvertisedRoutesDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/spokes/{spokesId}/gatewayAdvertisedRoutes/{gatewayAdvertisedRoutesId}',
+        http_method='DELETE',
+        method_id='networkconnectivity.projects.locations.spokes.gatewayAdvertisedRoutes.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId'],
+        relative_path='v1beta/{+name}',
+        request_field='',
+        request_type_name='NetworkconnectivityProjectsLocationsSpokesGatewayAdvertisedRoutesDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Get a GatewayAdvertisedRoute.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsSpokesGatewayAdvertisedRoutesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudNetworkconnectivityV1betaGatewayAdvertisedRoute) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/spokes/{spokesId}/gatewayAdvertisedRoutes/{gatewayAdvertisedRoutesId}',
+        http_method='GET',
+        method_id='networkconnectivity.projects.locations.spokes.gatewayAdvertisedRoutes.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta/{+name}',
+        request_field='',
+        request_type_name='NetworkconnectivityProjectsLocationsSpokesGatewayAdvertisedRoutesGetRequest',
+        response_type_name='GoogleCloudNetworkconnectivityV1betaGatewayAdvertisedRoute',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""List GatewayAdvertisedRoutes.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsSpokesGatewayAdvertisedRoutesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudNetworkconnectivityV1betaListGatewayAdvertisedRoutesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/spokes/{spokesId}/gatewayAdvertisedRoutes',
+        http_method='GET',
+        method_id='networkconnectivity.projects.locations.spokes.gatewayAdvertisedRoutes.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1beta/{+parent}/gatewayAdvertisedRoutes',
+        request_field='',
+        request_type_name='NetworkconnectivityProjectsLocationsSpokesGatewayAdvertisedRoutesListRequest',
+        response_type_name='GoogleCloudNetworkconnectivityV1betaListGatewayAdvertisedRoutesResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Update a GatewayAdvertisedRoute.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsSpokesGatewayAdvertisedRoutesPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/spokes/{spokesId}/gatewayAdvertisedRoutes/{gatewayAdvertisedRoutesId}',
+        http_method='PATCH',
+        method_id='networkconnectivity.projects.locations.spokes.gatewayAdvertisedRoutes.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId', 'updateMask'],
+        relative_path='v1beta/{+name}',
+        request_field='googleCloudNetworkconnectivityV1betaGatewayAdvertisedRoute',
+        request_type_name='NetworkconnectivityProjectsLocationsSpokesGatewayAdvertisedRoutesPatchRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
   class ProjectsLocationsSpokesService(base_api.BaseApiService):
     """Service class for the projects_locations_spokes resource."""
 
@@ -1323,6 +1696,33 @@ class NetworkconnectivityV1beta(base_api.BaseApiClient):
       super(NetworkconnectivityV1beta.ProjectsLocationsSpokesService, self).__init__(client)
       self._upload_configs = {
           }
+
+    def Activate(self, request, global_params=None):
+      r"""Activates a Network Connectivity Center spoke. By activating a spoke, you permit connectivity between it and other spokes that are attached to the same hub.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsSpokesActivateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Activate')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Activate.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/spokes/{spokesId}:activate',
+        http_method='POST',
+        method_id='networkconnectivity.projects.locations.spokes.activate',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta/{+name}:activate',
+        request_field='googleCloudNetworkconnectivityV1betaActivateSpokeRequest',
+        request_type_name='NetworkconnectivityProjectsLocationsSpokesActivateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
 
     def Create(self, request, global_params=None):
       r"""Creates a Network Connectivity Center spoke.
@@ -1347,6 +1747,33 @@ class NetworkconnectivityV1beta(base_api.BaseApiClient):
         relative_path='v1beta/{+parent}/spokes',
         request_field='googleCloudNetworkconnectivityV1betaSpoke',
         request_type_name='NetworkconnectivityProjectsLocationsSpokesCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Deactivate(self, request, global_params=None):
+      r"""Deactivates a Network Connectivity Center spoke. When you deactivate a spoke, it can't connect to other spokes that are attached to the same hub.
+
+      Args:
+        request: (NetworkconnectivityProjectsLocationsSpokesDeactivateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Deactivate')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Deactivate.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta/projects/{projectsId}/locations/{locationsId}/spokes/{spokesId}:deactivate',
+        http_method='POST',
+        method_id='networkconnectivity.projects.locations.spokes.deactivate',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta/{+name}:deactivate',
+        request_field='googleCloudNetworkconnectivityV1betaDeactivateSpokeRequest',
+        request_type_name='NetworkconnectivityProjectsLocationsSpokesDeactivateRequest',
         response_type_name='GoogleLongrunningOperation',
         supports_download=False,
     )
@@ -1596,7 +2023,7 @@ class NetworkconnectivityV1beta(base_api.BaseApiClient):
         method_id='networkconnectivity.projects.locations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['extraLocationTypes', 'filter', 'pageSize', 'pageToken'],
         relative_path='v1beta/{+name}/locations',
         request_field='',
         request_type_name='NetworkconnectivityProjectsLocationsListRequest',

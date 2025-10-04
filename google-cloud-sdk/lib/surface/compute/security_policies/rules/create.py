@@ -50,12 +50,8 @@ class CreateHelper(object):
   def Args(
       cls,
       parser,
-      support_redirect,
-      support_rate_limit,
-      support_header_action,
-      support_fairshare,
-      support_multiple_rate_limit_keys,
-      support_recaptcha_options,
+      support_fairshare=False,
+      support_rpc_status=False,
   ):
     """Generates the flagset for a Create command."""
     cls.NAME_ARG = (flags.PriorityArgument('add'))
@@ -68,24 +64,16 @@ class CreateHelper(object):
     flags.AddMatcherAndNetworkMatcher(parser)
     flags.AddAction(
         parser,
-        support_redirect=support_redirect,
-        support_rate_limit=support_rate_limit,
         support_fairshare=support_fairshare)
     flags.AddDescription(parser)
-    flags.AddPreview(parser, default=None)
-    if support_redirect:
-      flags.AddRedirectOptions(parser)
-    if support_rate_limit:
-      flags.AddRateLimitOptions(
-          parser,
-          support_exceed_redirect=support_redirect,
-          support_fairshare=support_fairshare,
-          support_multiple_rate_limit_keys=support_multiple_rate_limit_keys,
-      )
-    if support_header_action:
-      flags.AddRequestHeadersToAdd(parser)
-    if support_recaptcha_options:
-      flags.AddRecaptchaOptions(parser)
+    flags.AddPreview(parser)
+    flags.AddRedirectOptions(parser)
+    flags.AddRateLimitOptions(
+        parser,
+        support_rpc_status=support_rpc_status,
+    )
+    flags.AddRequestHeadersToAdd(parser)
+    flags.AddRecaptchaOptions(parser)
     parser.display_info.AddCacheUpdater(
         security_policies_flags.SecurityPoliciesCompleter)
 
@@ -94,12 +82,7 @@ class CreateHelper(object):
       cls,
       release_track,
       args,
-      support_redirect,
-      support_rate_limit,
-      support_header_action,
-      support_fairshare,
-      support_multiple_rate_limit_keys,
-      support_recaptcha_options,
+      support_rpc_status,
   ):
     """Validates arguments and creates a security policy rule."""
     holder = base_classes.ComputeApiHolder(release_track)
@@ -151,28 +134,20 @@ class CreateHelper(object):
     security_policy_rule = client.SecurityPolicyRule(
         ref, compute_client=holder.client)
 
-    redirect_options = None
-    rate_limit_options = None
-    if support_redirect:
-      redirect_options = (
-          security_policies_utils.CreateRedirectOptions(holder.client, args))
-    if support_rate_limit:
-      rate_limit_options = security_policies_utils.CreateRateLimitOptions(
-          holder.client,
-          args,
-          support_fairshare,
-          support_multiple_rate_limit_keys,
-      )
+    redirect_options = security_policies_utils.CreateRedirectOptions(
+        holder.client, args
+    )
+    rate_limit_options = security_policies_utils.CreateRateLimitOptions(
+        holder.client,
+        args,
+        support_rpc_status,
+    )
 
-    request_headers_to_add = None
-    if support_header_action:
-      request_headers_to_add = args.request_headers_to_add
+    request_headers_to_add = args.request_headers_to_add
 
-    expression_options = None
-    if support_recaptcha_options:
-      expression_options = security_policies_utils.CreateExpressionOptions(
-          holder.client, args
-      )
+    expression_options = security_policies_utils.CreateExpressionOptions(
+        holder.client, args
+    )
 
     network_matcher = security_policies_utils.CreateNetworkMatcher(
         holder.client, args
@@ -192,6 +167,7 @@ class CreateHelper(object):
     )
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class CreateGA(base.CreateCommand):
   r"""Create a Compute Engine security policy rule.
@@ -213,38 +189,24 @@ class CreateGA(base.CreateCommand):
   SECURITY_POLICY_ARG = None
   NAME_ARG = None
 
-  _support_redirect = True
-  _support_rate_limit = True
-  _support_multiple_rate_limit_keys = True
-  _support_header_action = True
-  _support_fairshare = False
-  _support_recaptcha_options = True
+  _support_rpc_status = False
 
   @classmethod
   def Args(cls, parser):
     CreateHelper.Args(
         parser,
-        support_redirect=cls._support_redirect,
-        support_rate_limit=cls._support_rate_limit,
-        support_header_action=cls._support_header_action,
-        support_fairshare=cls._support_fairshare,
-        support_multiple_rate_limit_keys=cls._support_multiple_rate_limit_keys,
-        support_recaptcha_options=cls._support_recaptcha_options,
+        support_rpc_status=cls._support_rpc_status,
     )
 
   def Run(self, args):
     return CreateHelper.Run(
         self.ReleaseTrack(),
         args,
-        support_redirect=self._support_redirect,
-        support_rate_limit=self._support_rate_limit,
-        support_header_action=self._support_header_action,
-        support_fairshare=self._support_fairshare,
-        support_multiple_rate_limit_keys=self._support_multiple_rate_limit_keys,
-        support_recaptcha_options=self._support_recaptcha_options,
+        support_rpc_status=self._support_rpc_status,
     )
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.BETA)
 class CreateBeta(base.CreateCommand):
   r"""Create a Compute Engine security policy rule.
@@ -265,38 +227,25 @@ class CreateBeta(base.CreateCommand):
 
   SECURITY_POLICY_ARG = None
 
-  _support_redirect = True
-  _support_rate_limit = True
-  _support_multiple_rate_limit_keys = True
-  _support_header_action = True
-  _support_fairshare = False
-  _support_recaptcha_options = True
+  _support_rpc_status = False
 
   @classmethod
   def Args(cls, parser):
     CreateHelper.Args(
         parser,
-        support_redirect=cls._support_redirect,
-        support_rate_limit=cls._support_rate_limit,
-        support_header_action=cls._support_header_action,
-        support_fairshare=cls._support_fairshare,
-        support_multiple_rate_limit_keys=cls._support_multiple_rate_limit_keys,
-        support_recaptcha_options=cls._support_recaptcha_options,
+        support_fairshare=True,
+        support_rpc_status=cls._support_rpc_status,
     )
 
   def Run(self, args):
     return CreateHelper.Run(
         self.ReleaseTrack(),
         args,
-        support_redirect=self._support_redirect,
-        support_rate_limit=self._support_rate_limit,
-        support_header_action=self._support_header_action,
-        support_fairshare=self._support_fairshare,
-        support_multiple_rate_limit_keys=self._support_multiple_rate_limit_keys,
-        support_recaptcha_options=self._support_recaptcha_options,
+        support_rpc_status=self._support_rpc_status,
     )
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
 class CreateAlpha(base.CreateCommand):
   r"""Create a Compute Engine security policy rule.
@@ -317,33 +266,19 @@ class CreateAlpha(base.CreateCommand):
 
   SECURITY_POLICY_ARG = None
 
-  _support_redirect = True
-  _support_rate_limit = True
-  _support_multiple_rate_limit_keys = True
-  _support_header_action = True
-  _support_fairshare = True
-  _support_recaptcha_options = True
+  _support_rpc_status = True
 
   @classmethod
   def Args(cls, parser):
     CreateHelper.Args(
         parser,
-        support_redirect=cls._support_redirect,
-        support_rate_limit=cls._support_rate_limit,
-        support_header_action=cls._support_header_action,
-        support_fairshare=cls._support_fairshare,
-        support_multiple_rate_limit_keys=cls._support_multiple_rate_limit_keys,
-        support_recaptcha_options=cls._support_recaptcha_options,
+        support_fairshare=True,
+        support_rpc_status=cls._support_rpc_status,
     )
 
   def Run(self, args):
     return CreateHelper.Run(
         self.ReleaseTrack(),
         args,
-        support_redirect=self._support_redirect,
-        support_rate_limit=self._support_rate_limit,
-        support_header_action=self._support_header_action,
-        support_fairshare=self._support_fairshare,
-        support_multiple_rate_limit_keys=self._support_multiple_rate_limit_keys,
-        support_recaptcha_options=self._support_recaptcha_options,
+        support_rpc_status=self._support_rpc_status,
     )

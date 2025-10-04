@@ -24,11 +24,19 @@ from googlecloudsdk.command_lib.compute import completers as compute_completers
 from googlecloudsdk.command_lib.compute import flags as compute_flags
 from googlecloudsdk.command_lib.util.apis import arg_utils
 
+DEFAULT_CREATE_FORMAT = """\
+    table(
+      name,
+      region.basename(),
+      network.basename().if(network),
+      ncc_gateway.basename().if(ncc_gateway)
+    )"""
+
 DEFAULT_LIST_FORMAT = """\
     table(
       name,
       region.basename(),
-      network.basename()
+      network.basename().yesno(no="N/A")
     )"""
 
 _MODE_CHOICES = {
@@ -84,7 +92,7 @@ def RouterArgumentForVpnTunnel(required=True):
       plural=False,
       required=required,
       regional_collection='compute.routers',
-      short_help='The Router to use for dynamic routing.',
+      short_help='Router to use for dynamic routing.',
       region_explanation=compute_flags.REGION_PROPERTY_EXPLANATION,
   )
 
@@ -101,7 +109,7 @@ def RouterArgumentForOtherResources(required=True, suppress_region=True):
       plural=False,
       required=required,
       regional_collection='compute.routers',
-      short_help='The Google Cloud Router to use for dynamic routing.',
+      short_help='Google Cloud Router to use for dynamic routing.',
       region_explanation=region_explanation,
       region_hidden=suppress_region,
   )
@@ -115,7 +123,7 @@ def RouterArgumentForNat():
       plural=False,
       required=True,
       regional_collection='compute.routers',
-      short_help='The Router to use for NAT.',
+      short_help='Router to use for NAT.',
       region_hidden=True,
   )
 
@@ -171,6 +179,15 @@ def AddBgpIdentifierRangeArg(parser):
   )
 
 
+def AddNccGatewayArg(parser):
+  """NccGateway for router."""
+  parser.add_argument(
+      '--ncc-gateway',
+      type=str,
+      help='The NCC gateway for this router.',
+  )
+
+
 def AddAsnArg(parser):
   """Adds Asn argument for routers."""
   parser.add_argument(
@@ -185,7 +202,7 @@ def AddAsnArg(parser):
   )
 
 
-def AddInterfaceArgs(parser, for_update=False, enable_ipv6_bgp=False):
+def AddInterfaceArgs(parser, for_update=False):
   """Adds common arguments for routers add-interface or update-interface."""
 
   operation = 'added'
@@ -198,52 +215,35 @@ def AddInterfaceArgs(parser, for_update=False, enable_ipv6_bgp=False):
       help='The name of the interface being {0}.'.format(operation),
   )
 
-  if enable_ipv6_bgp:
-    parser.add_argument(
-        '--ip-address',
-        type=utils.IPArgument,
-        help=(
-            'The link local (IPv4) or ULA (IPv6) address of the router for this'
-            ' interface.'
-        ),
-    )
-    parser.add_argument(
-        '--mask-length',
-        type=arg_parsers.BoundedInt(lower_bound=0, upper_bound=126),
-        help=(
-            'The subnet mask for the IP range of the interface. The interface'
-            ' IP address and BGP peer IP address must be selected from the'
-            ' subnet defined by this range.'
-        ),
-    )
-    parser.add_argument(
-        '--ip-version',
-        type=arg_utils.ChoiceToEnumName,
-        choices={
-            'IPV4': 'Interface with IPv4-based BGP.',
-            'IPV6': 'Interface with IPv6-based BGP.',
-        },
-        help=(
-            'IP version of the interface. Possible values are IPV4 and IPV6.'
-            ' Defaults to IPV4.'
-        ),
-    )
-
-  else:
-    parser.add_argument(
-        '--ip-address',
-        type=utils.IPV4Argument,
-        help='The link local address of the router for this interface.',
-    )
-    parser.add_argument(
-        '--mask-length',
-        type=arg_parsers.BoundedInt(lower_bound=0, upper_bound=31),
-        help=(
-            'The subnet mask for the link-local IP range of the interface. The'
-            ' interface IP address and BGP peer IP address must be selected'
-            ' from the subnet defined by this link-local range.'
-        ),
-    )
+  parser.add_argument(
+      '--ip-address',
+      type=utils.IPArgument,
+      help=(
+          'The link local (IPv4) or ULA (IPv6) address of the router for this'
+          ' interface.'
+      ),
+  )
+  parser.add_argument(
+      '--mask-length',
+      type=arg_parsers.BoundedInt(lower_bound=0, upper_bound=126),
+      help=(
+          'The subnet mask for the IP range of the interface. The interface'
+          ' IP address and BGP peer IP address must be selected from the'
+          ' subnet defined by this range.'
+      ),
+  )
+  parser.add_argument(
+      '--ip-version',
+      type=arg_utils.ChoiceToEnumName,
+      choices={
+          'IPV4': 'Interface with IPv4-based BGP.',
+          'IPV6': 'Interface with IPv6-based BGP.',
+      },
+      help=(
+          'IP version of the interface. Possible values are IPV4 and IPV6.'
+          ' Defaults to IPV4.'
+      ),
+  )
 
   if not for_update:
     parser.add_argument(
@@ -252,13 +252,7 @@ def AddInterfaceArgs(parser, for_update=False, enable_ipv6_bgp=False):
     )
 
 
-def AddBgpPeerArgs(
-    parser,
-    for_add_bgp_peer=False,
-    is_update=False,
-    enable_ipv6_bgp=False,
-    enable_route_policies=False,
-):
+def AddBgpPeerArgs(parser, for_add_bgp_peer=False, is_update=False):
   """Adds common arguments for managing BGP peers."""
 
   operation = 'updated'
@@ -290,49 +284,27 @@ def AddBgpPeerArgs(
 
   # For add_bgp_peer, we only require the interface and infer the IP instead.
   if not for_add_bgp_peer:
-    if enable_ipv6_bgp:
-      parser.add_argument(
-          '--ip-address',
-          type=utils.IPArgument,
-          help=(
-              'The address of the Cloud Router interface for this BGP peer.'
-              ' Must be a link-local IPv4 address in  the range 169.254.0.0/16'
-              ' or an ULA IPv6 address in the range fdff:1::/64. It must also'
-              ' be in the same subnet as the interface address of the peer'
-              ' router.'
-          ),
-      )
-    else:
-      parser.add_argument(
-          '--ip-address',
-          type=utils.IPV4Argument,
-          help=(
-              'The link-local address of the Cloud Router interface for this'
-              ' BGP peer. Must be a link-local IPv4 address belonging to the'
-              ' range 169.254.0.0/16 and must belong to same subnet as the'
-              ' interface address of the peer router.'
-          ),
-      )
-
-  if enable_ipv6_bgp:
     parser.add_argument(
-        '--peer-ip-address',
+        '--ip-address',
         type=utils.IPArgument,
         help=(
-            'The address of the peer router. Must be a link-local IPv4 address'
-            ' in the the range 169.254.0.0/16 or an ULA IPv6 address in the'
-            ' range fdff:1::/64.'
+            'The address of the Cloud Router interface for this BGP peer.'
+            ' Must be a link-local IPv4 address in  the range 169.254.0.0/16'
+            ' or an ULA IPv6 address in the range fdff:1::/64. It must also'
+            ' be in the same subnet as the interface address of the peer'
+            ' router.'
         ),
     )
-  else:
-    parser.add_argument(
-        '--peer-ip-address',
-        type=utils.IPV4Argument,
-        help=(
-            'The link-local address of the peer router. Must be a link-local '
-            'IPv4 address belonging to the range 169.254.0.0/16.'
-        ),
-    )
+
+  parser.add_argument(
+      '--peer-ip-address',
+      type=utils.IPArgument,
+      help=(
+          'The address of the peer router. Must be a link-local IPv4 address'
+          ' in the range 169.254.0.0/16 or an ULA IPv6 address in the'
+          ' range fdff:1::/64.'
+      ),
+  )
 
   parser.add_argument(
       '--advertised-route-priority',
@@ -428,85 +400,66 @@ def AddBgpPeerArgs(
       help=enable_ipv6_display_help,
   )
 
-  if enable_ipv6_bgp:
-    ipv6_nexthop_address_help = (
-        'If IPv6 route exchange is enabled for IPv4-based BGP, the IPv6 next'
-        ' hop address of the Cloud Router interface for this BGP peer.'
-        ' Ignored otherwise. Must be a Google owned global unicast IPv6'
-        ' address belonging to the range 2600:2d00:0:2:0:0:0:0/64 or'
-        ' 2600:2d00:0:3:0:0:0:0/64 and must belong to same subnet as the'
-        ' interface address of the peer router.'
-    )
-  else:
-    ipv6_nexthop_address_help = (
-        'The IPv6 next hop address of the Cloud Router interface '
-        'for this BGP peer. Must be a Google owned global unicast IPv6 '
-        'address belonging to the range 2600:2d00:0:2:0:0:0:0/64 or '
-        '2600:2d00:0:3:0:0:0:0/64 and must belong to same subnet as '
-        'the interface address of the peer router.'
-    )
   parser.add_argument(
       '--ipv6-nexthop-address',
       type=utils.IPV6Argument,
-      help=ipv6_nexthop_address_help,
+      help=(
+          'If IPv6 route exchange is enabled for IPv4-based BGP, the IPv6 next'
+          ' hop address of the Cloud Router interface for this BGP peer.'
+          ' Ignored otherwise. Must be a Google owned global unicast IPv6'
+          ' address belonging to the range 2600:2d00:0:2:0:0:0:0/64 or'
+          ' 2600:2d00:0:3:0:0:0:0/64 and must belong to same subnet as the'
+          ' interface address of the peer router.'
+      ),
   )
 
-  if enable_ipv6_bgp:
-    peer_ipv6_nexthop_address_help = (
-        'If IPv6 route exchange is enabled for IPv4-based BGP, the IPv6 next'
-        ' hop address of the peer router. Ignored otherwise. Must be a Google'
-        ' owned global unicast IPv6 address belonging to the range'
-        ' 2600:2d00:0:2:0:0:0:0/64 or 2600:2d00:0:3:0:0:0:0/64.'
-    )
-  else:
-    peer_ipv6_nexthop_address_help = (
-        'The IPv6 next hop address of the peer router. Must be a '
-        'Google owned global unicast IPv6 address belonging to the range '
-        '2600:2d00:0:2:0:0:0:0/64 or 2600:2d00:0:3:0:0:0:0/64.'
-    )
   parser.add_argument(
       '--peer-ipv6-nexthop-address',
       type=utils.IPV6Argument,
-      help=peer_ipv6_nexthop_address_help,
+      help=(
+          'If IPv6 route exchange is enabled for IPv4-based BGP, the IPv6 next'
+          ' hop address of the peer router. Ignored otherwise. Must be a Google'
+          ' owned global unicast IPv6 address belonging to the range'
+          ' 2600:2d00:0:2:0:0:0:0/64 or 2600:2d00:0:3:0:0:0:0/64.'
+      ),
   )
 
-  if enable_ipv6_bgp:
-    enable_ipv4_display_help = (
-        'If IPv4 is enabled, the peer connection can be established with '
-        'IPv4 route exchange. If disabled, no IPv4 route exchange is allowed '
-        'on any active session.'
+  enable_ipv4_display_help = (
+      'If IPv4 is enabled, the peer connection can be established with '
+      'IPv4 route exchange. If disabled, no IPv4 route exchange is allowed '
+      'on any active session.'
+  )
+  if not is_update:
+    enable_ipv4_display_help += (
+        ' By default enabled for IPv4-based BGP sessions.'
     )
-    if not is_update:
-      enable_ipv4_display_help += (
-          ' By default enabled for IPv4-based BGP sessions.'
-      )
-    parser.add_argument(
-        '--enable-ipv4',
-        action=arg_parsers.StoreTrueFalseAction,
-        help=enable_ipv4_display_help,
-    )
+  parser.add_argument(
+      '--enable-ipv4',
+      action=arg_parsers.StoreTrueFalseAction,
+      help=enable_ipv4_display_help,
+  )
 
-    parser.add_argument(
-        '--ipv4-nexthop-address',
-        type=utils.IPV4Argument,
-        help=(
-            'If IPv4 route exchange is enabled for IPv6-based BGP, the IPv4'
-            ' next hop address of the Cloud Router interface for this BGP peer.'
-            ' Ignored otherwise. Must be a Google owned link-local IPv4 address'
-            ' in the range 169.254.0.0/16 and must belong to the same subnet as'
-            ' the interface address of the peer router.'
-        ),
-    )
+  parser.add_argument(
+      '--ipv4-nexthop-address',
+      type=utils.IPV4Argument,
+      help=(
+          'If IPv4 route exchange is enabled for IPv6-based BGP, the IPv4'
+          ' next hop address of the Cloud Router interface for this BGP peer.'
+          ' Ignored otherwise. Must be a Google owned link-local IPv4 address'
+          ' in the range 169.254.0.0/16 and must belong to the same subnet as'
+          ' the interface address of the peer router.'
+      ),
+  )
 
-    parser.add_argument(
-        '--peer-ipv4-nexthop-address',
-        type=utils.IPV4Argument,
-        help=(
-            'If IPv4 route exchange is enabled for IPv6-based BGP, the IPv4'
-            ' next hop address of the peer router. Ignored otherwise. Must be a'
-            ' Google owned link-local IPv4 address in the range 169.254.0.0/16.'
-        ),
-    )
+  parser.add_argument(
+      '--peer-ipv4-nexthop-address',
+      type=utils.IPV4Argument,
+      help=(
+          'If IPv4 route exchange is enabled for IPv6-based BGP, the IPv4'
+          ' next hop address of the peer router. Ignored otherwise. Must be a'
+          ' Google owned link-local IPv4 address in the range 169.254.0.0/16.'
+      ),
+  )
 
   parser.add_argument(
       '--md5-authentication-key',
@@ -524,27 +477,24 @@ def AddBgpPeerArgs(
         default=None,
         help='If specified, remove MD5 authentication from the BGP peer.',
     )
-  if enable_route_policies:
-    parser.add_argument(
-        '--export-policies',
-        metavar='EXPORT_POLICY',
-        type=arg_parsers.ArgList(),
-        help=(
-            'Comma-separated list of export policies. Passing an empty string'
-            ' removes all export policies.'
-        ),
-        hidden=True,
-    )
-    parser.add_argument(
-        '--import-policies',
-        type=arg_parsers.ArgList(),
-        metavar='IMPORT_POLICY',
-        help=(
-            'Comma-separated list of import policies. Passing an empty string'
-            ' removes all import policies.'
-        ),
-        hidden=True,
-    )
+  parser.add_argument(
+      '--export-policies',
+      metavar='EXPORT_POLICY',
+      type=arg_parsers.ArgList(),
+      help=(
+          'Comma-separated list of export policies. Passing an empty string'
+          ' removes all export policies.'
+      ),
+  )
+  parser.add_argument(
+      '--import-policies',
+      type=arg_parsers.ArgList(),
+      metavar='IMPORT_POLICY',
+      help=(
+          'Comma-separated list of import policies. Passing an empty string'
+          ' removes all import policies.'
+      ),
+  )
 
 
 def AddUpdateCustomAdvertisementArgs(parser, resource_str):

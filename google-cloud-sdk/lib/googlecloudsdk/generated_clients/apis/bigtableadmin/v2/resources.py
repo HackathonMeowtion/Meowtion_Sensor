@@ -84,6 +84,28 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_INSTANCES_LOGICALVIEWS = (
+      'projects.instances.logicalViews',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/instances/{instancesId}/logicalViews/'
+              '{logicalViewsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_INSTANCES_MATERIALIZEDVIEWS = (
+      'projects.instances.materializedViews',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/instances/{instancesId}/'
+              'materializedViews/{materializedViewsId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS_INSTANCES_TABLES = (
       'projects.instances.tables',
       '{+name}',
@@ -102,6 +124,17 @@ class Collections(enum.Enum):
           '':
               'projects/{projectsId}/instances/{instancesId}/tables/'
               '{tablesId}/authorizedViews/{authorizedViewsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_INSTANCES_TABLES_SCHEMABUNDLES = (
+      'projects.instances.tables.schemaBundles',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/instances/{instancesId}/tables/'
+              '{tablesId}/schemaBundles/{schemaBundlesId}',
       },
       ['name'],
       True

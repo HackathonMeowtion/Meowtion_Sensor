@@ -34,8 +34,21 @@ def _AddArgsCommon(parser):
   flags.GetPolicyAltNameServersArg().AddToParser(parser)
   flags.GetPolicyLoggingArg().AddToParser(parser)
   flags.GetPolicyPrivateAltNameServersArg().AddToParser(parser)
+  flags.GetEnableDns64AllQueriesArg(update=True).AddToParser(parser)
 
 
+def _ArgsNeededForUpdateCommon():
+  return (
+      'networks',
+      'description',
+      'enable_inbound_forwarding',
+      'enable_logging',
+      'alternative_name_servers',
+      'enable_dns64_all_queries',
+  )
+
+
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class UpdateGA(base.UpdateCommand):
   """Update an existing Cloud DNS policy.
@@ -73,11 +86,8 @@ class UpdateGA(base.UpdateCommand):
     # Get Policy
     policy_ref = args.CONCEPTS.policy.Parse()
     to_update = self._FetchPolicy(policy_ref, api_version)
-
-    if not (args.IsSpecified('networks') or args.IsSpecified('description') or
-            args.IsSpecified('enable_inbound_forwarding') or
-            args.IsSpecified('enable_logging') or
-            args.IsSpecified('alternative_name_servers')):
+    args_needed_for_update = _ArgsNeededForUpdateCommon()
+    if not any(args.IsSpecified(arg) for arg in args_needed_for_update):
       log.status.Print('Nothing to update.')
       return to_update
 
@@ -104,6 +114,13 @@ class UpdateGA(base.UpdateCommand):
     if args.IsSpecified('enable_logging'):
       to_update.enableLogging = args.enable_logging
 
+    if args.IsSpecified('enable_dns64_all_queries'):
+      to_update.dns64Config = messages.PolicyDns64Config(
+          scope=messages.PolicyDns64ConfigScope(
+              allQueries=args.enable_dns64_all_queries
+          )
+      )
+
     if args.IsSpecified('description'):
       to_update.description = args.description
 
@@ -119,6 +136,7 @@ class UpdateGA(base.UpdateCommand):
     return updated_policy
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.BETA)
 class UpdateBeta(UpdateGA):
   """Update an existing Cloud DNS policy.
@@ -148,11 +166,8 @@ class UpdateBeta(UpdateGA):
     # Get Policy
     policy_ref = args.CONCEPTS.policy.Parse()
     to_update = self._FetchPolicy(policy_ref, api_version)
-
-    if not (args.IsSpecified('networks') or args.IsSpecified('description') or
-            args.IsSpecified('enable_inbound_forwarding') or
-            args.IsSpecified('enable_logging') or
-            args.IsSpecified('alternative_name_servers')):
+    args_needed_for_update = _ArgsNeededForUpdateCommon()
+    if not any(args.IsSpecified(arg) for arg in args_needed_for_update):
       log.status.Print('Nothing to update.')
       return to_update
 
@@ -177,6 +192,12 @@ class UpdateBeta(UpdateGA):
       to_update.enableInboundForwarding = args.enable_inbound_forwarding
     if args.IsSpecified('enable_logging'):
       to_update.enableLogging = args.enable_logging
+    if args.IsSpecified('enable_dns64_all_queries'):
+      to_update.dns64Config = messages.PolicyDns64Config(
+          scope=messages.PolicyDns64ConfigScope(
+              allQueries=args.enable_dns64_all_queries
+          )
+      )
 
     if args.IsSpecified('description'):
       to_update.description = args.description
@@ -193,6 +214,7 @@ class UpdateBeta(UpdateGA):
     return updated_policy
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
 class UpdateAlpha(UpdateBeta):
   """Update an existing Cloud DNS policy.

@@ -34,6 +34,21 @@ globalDefaultLocation:
     - hook: googlecloudsdk.command_lib.network_security.util:SetGlobalLocation
       hint: location is global by default
 
+allDefaultLocation:
+  name: location
+  collection: networksecurity.projects.locations
+  attributes:
+  - *project
+  - &allDefaultLocation
+    parameter_name: locationsId
+    attribute_name: location
+    help: |
+      The location Id.
+    fallthroughs:
+    - value: "-"
+      hint: |-
+        if left empty, will use the wildcard '-' to list all locations
+
 serverTlsPolicy:
   name: server TLS policy
   collection: networksecurity.projects.locations.serverTlsPolicies
@@ -119,6 +134,19 @@ authorizationPolicy:
     attribute_name: authorization_policy
     help: Id of the authorization policy.
 
+authzPolicy:
+  name: AuthzPolicy
+  collection: networksecurity.projects.locations.authzPolicies
+  request_id_field: authzPolicyId
+  attributes:
+  - *project
+  - *location
+  - &authzPolicy:
+    parameter_name: authzPoliciesId
+    attribute_name: authz_policy
+    help: |
+      The ID of the `AuthzPolicy`.
+
 addressGroup:
   name: address group
   collection: networksecurity.projects.locations.addressGroups
@@ -203,6 +231,30 @@ securityProfileGroup:
     attribute_name: security_profile_group
     help: ID of the security profile group.
 
+sacRealm:
+  name: SAC realm
+  collection: networksecurity.projects.locations.sacRealms
+  request_id_field: sacRealmId
+  attributes:
+  - *project
+  - *globalDefaultLocation
+  - &sacRealm
+    parameter_name: sacRealmsId
+    attribute_name: sac_realm
+    help: Id of the SAC realm.
+
+sacAttachment:
+  name: SAC attachment
+  collection: networksecurity.projects.locations.sacAttachments
+  request_id_field: sacAttachmentId
+  attributes:
+  - *project
+  - *location
+  - &sacAttachment
+    parameter_name: sacAttachmentsId
+    attribute_name: sac_attachment
+    help: Id of the SAC attachment.
+
 sseRealm:
   name: SSE realm
   collection: networksecurity.projects.locations.sseRealms
@@ -286,3 +338,15 @@ firewallAttachment:
     parameter_name: firewallAttachmentId
     attribute_name: firewall_attachment
     help: Id of the firewall attachment
+
+backendAuthenticationConfig:
+  name: backend authentication config
+  collection: networksecurity.projects.locations.backendAuthenticationConfigs
+  request_id_field: backendAuthenticationConfigId
+  attributes:
+  - *project
+  - *location
+  - &backendAuthenticationConfig
+    parameter_name: backendAuthenticationConfigsId
+    attribute_name: backend_authentication_config
+    help: Id of the backend authentication config.

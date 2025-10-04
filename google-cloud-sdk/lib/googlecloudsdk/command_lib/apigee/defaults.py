@@ -69,6 +69,17 @@ def _SaveCachedDataWithName(data, name):
   files.WriteFileContents(cache_path, yaml.dump(data))
 
 
+def _DeleteCachedDataWithName(name):
+  """Deletes a named cache file."""
+  config_dir = config.Paths().global_config_dir
+  cache_path = os.path.join(config_dir, ".apigee-cached-" + name)
+  if os.path.isfile(cache_path):
+    try:
+      os.remove(cache_path)
+    except OSError:
+      return
+
+
 class Fallthrough(deps.Fallthrough):
   """Base class for Apigee resource argument fallthroughs."""
   _handled_fields = []
@@ -83,49 +94,147 @@ class Fallthrough(deps.Fallthrough):
   def _Call(self, parsed_args):
     raise NotImplementedError(
         "Subclasses of googlecloudsdk.commnand_lib.apigee.Fallthrough must "
-        "actually provide a fallthrough.")
+        "actually provide a fallthrough."
+    )
 
 
-def OrganizationFromGCPProduct():
+def _GetProjectMapping(project, user_provided_org=None):
+  """Returns the project mapping for the given GCP project.
+
+  Args:
+    project: The GCP project name.
+    user_provided_org: The organization ID provided by the user, if any.
+
+  Returns:
+    The project mapping for the given GCP project.
+  """
+
+  project_mappings = _CachedDataWithName("project-mapping-v2") or {}
+
+  if user_provided_org:
+    mapping = project_mappings.get(user_provided_org, None)
+    if mapping:
+      return mapping
+    else:
+      try:
+        project_mapping = apigee.OrganizationsClient.ProjectMapping(
+            {"organizationsId": user_provided_org}
+        )
+        if "organization" not in project_mapping:
+          raise errors.UnauthorizedRequestError(
+              message=(
+                  'Permission denied on resource "organizations/%s" (or it may'
+                  " not exist)"
+              )
+              % user_provided_org
+          )
+
+        project_mappings[project] = project_mapping
+        _SaveCachedDataWithName(project_mappings, "project-mapping-v2")
+        return project_mapping
+      except (errors.EntityNotFoundError, errors.UnauthorizedRequestError):
+        raise errors.UnauthorizedRequestError(
+            message=(
+                'Permission denied on resource "organizations/%s" (or it may'
+                " not exist)"
+            )
+            % user_provided_org
+        )
+      except errors.RequestError as e:
+        raise e
+
+  if project not in project_mappings:
+    try:
+      project_mapping = apigee.OrganizationsClient.ProjectMapping(
+          {"organizationsId": project}
+      )
+      if "organization" not in project_mapping:
+        return None
+
+      if project_mapping.get("projectId", None) != project:
+        return None
+
+      project_mappings[project] = project_mapping
+      _SaveCachedDataWithName(project_mappings, "project-mapping-v2")
+    except (errors.EntityNotFoundError, errors.UnauthorizedRequestError):
+      return None
+    except errors.RequestError as e:
+      raise e
+
+  return project_mappings[project]
+
+
+def _FindMappingForProject(project):
+  """Returns the Apigee organization for the given GCP project."""
+  project_mapping = _CachedDataWithName("project-mapping-v2") or {}
+
+  if project in project_mapping:
+    return project_mapping[project]
+
+  # Listing organizations is an expensive operation for users with a lot of GCP
+  # projects. Since the GCP project -> Apigee organization mapping is immutable
+  # once created, cache known mappings to avoid the extra API call.
+  overrides = properties.VALUES.api_endpoint_overrides.apigee.Get()
+  if overrides:
+    list_orgs = apigee.OrganizationsClient.List()
+  else:
+    list_orgs = apigee.OrganizationsClient.ListOrganizationsGlobal()
+
+  for organization in list_orgs["organizations"]:
+    for matching_project in organization["projectIds"]:
+      project_mapping[matching_project] = {}
+      project_mapping[matching_project] = organization
+  _SaveCachedDataWithName(project_mapping, "project-mapping-v2")
+  _DeleteCachedDataWithName("project-mapping")
+
+  if project not in project_mapping:
+    return None
+
+  return project_mapping[project]
+
+
+def OrganizationFromGCPProject():
   """Returns the organization associated with the active GCP project."""
   project = properties.VALUES.core.project.Get()
   if project is None:
     log.warning("Neither Apigee organization nor GCP project is known.")
     return None
 
-  # Listing organizations is an expensive operation for users with a lot of GCP
-  # projects. Since the GCP project -> Apigee organization mapping is immutable
-  # once created, cache known mappings to avoid the extra API call.
+  # Use the cached project_mapping_v2 if available. This should handle all the
+  # cases where the project name is same as the organization name when cache
+  # miss happens.
+  project_mapping = _GetProjectMapping(project)
+  if project_mapping:
+    return project_mapping["organization"]
 
-  project_mapping = _CachedDataWithName("project-mapping")
-  if project not in project_mapping:
-    for organization in apigee.OrganizationsClient.List()["organizations"]:
-      organization_name = organization["organization"]
-      for matching_project in organization["projectIds"]:
-        project_mapping[matching_project] = organization_name
-    _SaveCachedDataWithName(project_mapping, "project-mapping")
+  # Otherwise, list all organizations and update the project_mapping cache for
+  # all the projects in the response.
+  mapping = _FindMappingForProject(project)
+  if mapping:
+    return mapping["organization"]
 
-  if project not in project_mapping:
-    log.warning("No Apigee organization found for GCP project `%s`." % project)
-    return None
-
-  chosen_organization = project_mapping[project]
-  log.status.Print("Using Apigee organization `%s`" % chosen_organization)
-  return chosen_organization
+  log.warning("No Apigee organization is known for GCP project %s.", project)
+  log.warning(
+      "Please provide the argument [--organization] on the command "
+      "line, or set the property [api_endpoint_overrides/apigee]."
+  )
+  return None
 
 
 class GCPProductOrganizationFallthrough(Fallthrough):
   """Falls through to the organization for the active GCP project."""
+
   _handled_fields = ["organization"]
 
   def __init__(self):
     super(GCPProductOrganizationFallthrough, self).__init__(
         "set the property [project] or provide the argument [--project] on the "
         "command line, using a Cloud Platform project with an associated "
-        "Apigee organization")
+        "Apigee organization"
+    )
 
   def _Call(self, parsed_args):
-    return OrganizationFromGCPProduct()
+    return OrganizationFromGCPProject()
 
 
 class StaticFallthrough(Fallthrough):
@@ -168,3 +277,24 @@ def FallBackToDeployedProxyRevision(args):
   deployed_revision = deployments[0]["revision"]
   log.status.Print("Using deployed revision `%s`" % deployed_revision)
   args["revisionsId"] = deployed_revision
+
+
+def GetOrganizationLocation(organization):
+  """Returns the location of the Apigee organization."""
+  project = properties.VALUES.core.project.Get()
+  mapping = _GetProjectMapping(project, organization)
+  if mapping:
+    return mapping.get("location", None)
+
+  # Project mapping is not available, assume projectId is not same as
+  # organization.
+  mapping = _FindMappingForProject(project)
+  if mapping:
+    return mapping.get("location", None)
+
+  log.warning("No Apigee organization is known for GCP project %s.", project)
+  log.warning(
+      "Please provide the argument [--organization] on the command "
+      "line, or set the property [api_endpoint_overrides/apigee]."
+  )
+  raise errors.LocationResolutionError()

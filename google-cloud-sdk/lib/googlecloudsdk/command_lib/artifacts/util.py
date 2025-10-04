@@ -20,13 +20,18 @@ from __future__ import unicode_literals
 
 import collections
 from concurrent import futures
+import copy
 # TODO(b/142489773) Required because of thread-safety issue with loading python
 # modules in the presence of threads.
 import encodings.idna  # pylint: disable=unused-import
 import json
 import mimetypes
+import multiprocessing
 import os
+import random
 import re
+import sys
+import time
 
 from apitools.base.py import encoding
 from apitools.base.py import exceptions as apitools_exceptions
@@ -35,10 +40,13 @@ from containerregistry.client.v2_2 import docker_http
 from containerregistry.client.v2_2 import docker_image
 from googlecloudsdk.api_lib import artifacts
 from googlecloudsdk.api_lib.artifacts import exceptions as ar_exceptions
+from googlecloudsdk.api_lib.artifacts import filter_rewriter
+from googlecloudsdk.api_lib.cloudresourcemanager import projects_api
 from googlecloudsdk.api_lib.container.images import util
 from googlecloudsdk.api_lib.util import common_args
 from googlecloudsdk.api_lib.util import waiter
 from googlecloudsdk.calliope import base
+from googlecloudsdk.command_lib.artifacts import docker_util
 from googlecloudsdk.command_lib.artifacts import remote_repo_util
 from googlecloudsdk.command_lib.artifacts import requests as ar_requests
 from googlecloudsdk.command_lib.artifacts import upgrade_util
@@ -51,8 +59,11 @@ from googlecloudsdk.core.console import console_attr
 from googlecloudsdk.core.console import console_io
 from googlecloudsdk.core.console import progress_tracker
 from googlecloudsdk.core.resource import resource_printer
+from googlecloudsdk.core.universe_descriptor import universe_descriptor
 from googlecloudsdk.core.util import edit
+from googlecloudsdk.core.util import files
 from googlecloudsdk.core.util import parallel
+from googlecloudsdk.core.util import platforms
 import requests
 
 _INVALID_REPO_NAME_ERROR = (
@@ -79,7 +90,7 @@ _REPO_REGEX = "^[a-z]([a-z0-9-]*[a-z0-9])?$"
 # https://google.aip.dev/122
 _RESOURCE_ID_REGEX = "^[a-z]([a-z0-9._-]*[a-z0-9])?$"
 
-_AR_SERVICE_ACCOUNT = "service-{project_num}@gcp-sa-artifactregistry.iam.gserviceaccount.com"
+_AR_SERVICE_ACCOUNT = "service-{project_num}@gcp-sa-artifactregistry.{project_prefix}iam.gserviceaccount.com"
 
 _GCR_BUCKETS = {
     "us": {
@@ -150,12 +161,12 @@ Example of the file contents:
 [
   {
     "id": "test1",
-    "repository": "projects/p1/locations/us-central1/repository/repo1",
+    "repository": "projects/p1/locations/us-central1/repositories/repo1",
     "priority": 1
   },
   {
     "id": "test2",
-    "repository": "projects/p2/locations/us-west2/repository/repo2",
+    "repository": "projects/p2/locations/us-west2/repositories/repo2",
     "priority": 2
   }
 ]
@@ -186,6 +197,13 @@ def GetProject(args):
   return args.project or properties.VALUES.core.project.GetOrFail()
 
 
+def GetParent(project, location):
+  parent = "{}".format(project)
+  if location is not None:
+    parent = f"{project}/locations/{location}"
+  return parent
+
+
 def GetRepo(args):
   """Gets repository resource from either argument flag or attribute."""
   return args.repository or properties.VALUES.artifacts.repository.GetOrFail()
@@ -212,7 +230,7 @@ def ValidateGcrRepo(repo_name, repo_format, location, docker_format):
 
 
 def AppendRepoDataToRequest(repo_ref, repo_args, request):
-  """Adds repository data to CreateRepositoryRequest."""
+  """Adds repository data to CreateRepositoryRequest or UpdateRepositoryRequest."""
   repo_name = repo_ref.repositoriesId
   location = GetLocation(repo_args)
   messages = _GetMessagesForResource(repo_ref)
@@ -227,6 +245,17 @@ def AppendRepoDataToRequest(repo_ref, repo_args, request):
     request = remote_repo_util.AppendRemoteRepoConfigToRequest(
         messages, repo_args, request
     )
+  if hasattr(repo_args, "alternative_hostname"):  # only v1 has this
+    if repo_args.alternative_hostname:
+      request.repository.networkConfig.alternativeHostname = (
+          repo_args.alternative_hostname
+      )
+    if repo_args.alternative_hostname_path_prefix:
+      request.repository.networkConfig.prefix = (
+          repo_args.alternative_hostname_path_prefix
+      )
+    if repo_args.alternative_hostname_default:
+      request.repository.networkConfig.isDefault = True
 
   request.repository.name = repo_ref.RelativeName()
   request.repositoryId = repo_ref.repositoriesId
@@ -307,6 +336,62 @@ def AddRepositoryFormatArgBeta():
   ]
 
 
+def AddTargetForAttachments(unused_repo_ref, repo_args, request):
+  """If the target field is set, adds it to the server side request.
+
+  Args:
+    unused_repo_ref: Repo reference input.
+    repo_args: User input arguments.
+    request: ListAttachments request.
+
+  Returns:
+    ListAttachments request.
+  """
+  if not repo_args.target:
+    return request
+  target = repo_args.target
+  try:
+    docker_version = docker_util.ParseDockerVersionStr(repo_args.target)
+    target = docker_version.GetVersionName()
+  except ar_exceptions.InvalidInputValueError:
+    pass
+  request.filter = f'target="{target}"'
+  return request
+
+
+def AddTypeForAttachments(unused_repo_ref, repo_args, request):
+  """If the type field is set, add it to the server side request.
+
+  Args:
+    unused_repo_ref: Repo reference input.
+    repo_args: User input arguments.
+    request: ListAttachments request.
+
+  Returns:
+    ListAttachments request.
+  """
+  if not repo_args.attachment_type:
+    return request
+  if request.filter:
+    request.filter += f' AND type="{repo_args.attachment_type}"'
+  else:
+    request.filter = f'type="{repo_args.attachment_type}"'
+  return request
+
+
+def _GetServiceAgent(project_id):
+  """Returns the service agent for the given project."""
+  project_num = project_util.GetProjectNumber(project_id)
+  project_prefix = (
+      universe_descriptor.GetUniverseDomainDescriptor().project_prefix
+  )
+  if project_prefix:
+    project_prefix = project_prefix + "."
+  return _AR_SERVICE_ACCOUNT.format(
+      project_num=project_num, project_prefix=project_prefix
+  )
+
+
 def CheckServiceAccountPermission(unused_repo_ref, repo_args, request):
   """Checks and grants key encrypt/decrypt permission for service account.
 
@@ -328,9 +413,8 @@ def CheckServiceAccountPermission(unused_repo_ref, repo_args, request):
   # Best effort to check if AR's service account has permission to use the key;
   # ignore if the caller identity does not have enough permission to check.
   try:
-    project_num = project_util.GetProjectNumber(GetProject(repo_args))
+    service_account = _GetServiceAgent(GetProject(repo_args))
     policy = ar_requests.GetCryptoKeyPolicy(repo_args.kms_key)
-    service_account = _AR_SERVICE_ACCOUNT.format(project_num=project_num)
     for binding in policy.bindings:
       if "serviceAccount:" + service_account in binding.members and (
           binding.role == "roles/cloudkms.cryptoKeyEncrypterDecrypter" or
@@ -338,9 +422,11 @@ def CheckServiceAccountPermission(unused_repo_ref, repo_args, request):
         return request
     grant_permission = console_io.PromptContinue(
         prompt_string=(
-            "\nGrant the Artifact Registry Service Account "
+            "\nGrant the Artifact Registry Service Account {service_account} "
             "permission to encrypt/decrypt with the selected key [{key_name}]"
-            .format(key_name=repo_args.kms_key)))
+            .format(service_account=service_account, key_name=repo_args.kms_key)
+        )
+    )
     if not grant_permission:
       return request
     try:
@@ -424,6 +510,11 @@ def EscapePackageName(pkg_ref, unused_args, request):
   return request
 
 
+def EscapePackageStr(pkg: str):
+  """Escapes slashes and pluses in package name of type string."""
+  return pkg.replace("/", "%2F").replace("+", "%2B").replace("^", "%5E")
+
+
 def AppendSortingToRequest(unused_ref, ver_args, request):
   """Adds order_by and page_size parameters to the request."""
   order_by = common_args.ParseSortByArg(ver_args.sort_by)
@@ -505,7 +596,7 @@ def GetGCRRepos(buckets, project):
   def RepoMsg(bucket):
     return bucket["repository"]
 
-  return map(RepoMsg, existing_buckets)
+  return list(map(RepoMsg, existing_buckets))
 
 
 def GetExistingGCRBuckets(buckets, project):
@@ -555,117 +646,136 @@ def ListRepositories(args):
     ])
 
   pool_size = len(loc_paths) if loc_paths else 1
-  pool = parallel.GetPool(pool_size)
+  if platforms.OperatingSystem.Current() is platforms.OperatingSystem.WINDOWS:
+    pool_size = multiprocessing.cpu_count() if loc_paths else 1
+
   page_size = args.page_size
-  try:
-    pool.Start()
-    results = pool.Map(
-        lambda x: ar_requests.ListRepositories(x, page_size=page_size),
-        loc_paths)
-  except parallel.MultiError as e:
-    error_set = set(err.content for err in e.errors)
-    msg = "\n".join(error_set)
-    raise ar_exceptions.ArtifactRegistryError(msg)
-  finally:
-    pool.Join()
+  order_by = common_args.ParseSortByArg(args.sort_by)
+  _, server_filter = filter_rewriter.Rewriter().Rewrite(args.filter)
+
+  if order_by is not None:
+    if "," in order_by:
+      # Multi-ordering is not supported yet on backend, fall back to client-side
+      # sort-by.
+      order_by = None
+
+  if args.limit is not None and args.filter is not None:
+    if server_filter is not None:
+      # Use server-side paging with server-side filtering.
+      page_size = args.limit
+      args.page_size = args.limit
+    else:
+      # Fall back to client-side paging with client-side filtering.
+      page_size = None
+
+  def ListLocationRepos(
+      project, page_size=None, order_by=None, server_filter=None
+  ):
+    """Lists repositories in a given project and location, and if an error occurs, returns an empty list."""
+    try:
+      return ar_requests.ListRepositories(
+          project,
+          page_size=page_size,
+          order_by=order_by,
+          server_filter=server_filter,
+      )
+    except apitools_exceptions.HttpError as e:
+      if e.status_code > 500:
+        log.warning(
+            "Failed to list repositories for project {}".format(
+                project
+            )
+        )
+        return []
+      else:
+        raise
+
+  def ListRepos(page_size=None, order_by=None, server_filter=None):
+    pool = parallel.GetPool(pool_size)
+    try:
+      pool.Start()
+      results = pool.Map(
+          lambda x: ListLocationRepos(
+              x,
+              page_size=page_size,
+              order_by=order_by,
+              server_filter=server_filter,
+          ),
+          loc_paths,
+      )
+    except parallel.MultiError as e:
+      if server_filter or order_by:
+        for err in e.errors:
+          if err.status_code == 400:
+            raise apitools_exceptions.HttpBadRequestError(
+                err.content, err.status_code, err.url
+            )
+      error_set = set(err.content for err in e.errors)
+      msg = "\n".join(error_set)
+      raise ar_exceptions.ArtifactRegistryError(msg)
+    finally:
+      pool.Join()
+    return results
 
   repos = []
-  for sublist in results:
+  server_args = {
+      "server_filter": server_filter,
+      "page_size": page_size,
+      "order_by": order_by
+  }
+  server_args_skipped, result = RetryOnInvalidArguments(
+      ListRepos,
+      **server_args)
+  for sublist in result:
     repos.extend(sublist)
-  repos.sort(key=lambda x: x.name.split("/")[-1])
+
+  # If server-side filter or sort-by is parsed correctly and the request
+  # succeeds, remove the client-side filter and sort-by.
+  if not server_args_skipped:
+    if server_args["order_by"]:
+      args.sort_by = None
+    if (
+        server_args["server_filter"]
+        and server_args["server_filter"] == args.filter
+    ):
+      args.filter = None
 
   return repos
 
 
-def ListFiles(args):
-  """Lists files in a given project.
+def RetryOnInvalidArguments(func, **kwargs):
+  """Retry the request on invalid arguments error.
+
+  If the request fails with 400 because of unsupported server-side filter or
+  sort-by, retry the request with no filter or sort-by.
 
   Args:
-    args: User input arguments.
+    func: Retry function.
+    **kwargs: User input arguments.
 
   Returns:
-    List of files.
+    retried: If the request is retried without server-side filter or sort-by.
+    results: List of results.
+
   """
-  client = ar_requests.GetClient()
-  messages = ar_requests.GetMessages()
-  project = GetProject(args)
-  location = args.location or properties.VALUES.artifacts.location.Get()
-  repo = GetRepo(args)
-  package = args.package
-  version = args.version
-  tag = args.tag
-  page_size = args.page_size
-  arg_filters = ""
+  try:
+    results = func(**kwargs)
+    return False, results
+  except apitools_exceptions.HttpBadRequestError:
+    if kwargs["server_filter"]:
+      kwargs["server_filter"] = None
+      # If server-side filter is not supported, discard the server-side paging
+      # in retry.
+      if kwargs.get("page_size"):
+        kwargs["page_size"] = None
+      if kwargs.get("limit"):
+        kwargs["limit"] = None
 
-  if args.filter:
-    arg_filters = args.filter
-    if package or version or tag:
-      raise ar_exceptions.InvalidInputValueError(
-          "Cannot specify --filter with --package, --version or --tag.")
-
-  # Parse fully qualified path in package argument
-  if package:
-    if re.match(r"projects\/.*\/locations\/.*\/repositories\/.*\/packages\/.*",
-                package):
-      params = package.replace("projects/", "", 1).replace(
-          "/locations/", " ", 1).replace("/repositories/", " ",
-                                         1).replace("/packages/", " ",
-                                                    1).split(" ")
-      project, location, repo, package = [params[i] for i in range(len(params))]
-
-  # Escape slashes, pluses and carets in package name
-  if package:
-    package = package.replace("/", "%2F").replace("+", "%2B")
-    package = package.replace("^", "%5E")
-
-  # Retrieve version from tag name
-  if version and tag:
-    raise ar_exceptions.InvalidInputValueError(
-        "Specify either --version or --tag with --package argument.")
-  if package and tag:
-    tag_path = resources.Resource.RelativeName(
-        resources.REGISTRY.Create(
-            "artifactregistry.projects.locations.repositories.packages.tags",
-            projectsId=project,
-            locationsId=location,
-            repositoriesId=repo,
-            packagesId=package,
-            tagsId=tag))
-    version = ar_requests.GetVersionFromTag(client, messages, tag_path)
-
-  if package and version:
-    version_path = resources.Resource.RelativeName(
-        resources.REGISTRY.Create(
-            "artifactregistry.projects.locations.repositories.packages.versions",
-            projectsId=project,
-            locationsId=location,
-            repositoriesId=repo,
-            packagesId=package,
-            versionsId=version))
-    arg_filters = 'owner="{}"'.format(version_path)
-  elif package:
-    package_path = resources.Resource.RelativeName(
-        resources.REGISTRY.Create(
-            "artifactregistry.projects.locations.repositories.packages",
-            projectsId=project,
-            locationsId=location,
-            repositoriesId=repo,
-            packagesId=package))
-    arg_filters = 'owner="{}"'.format(package_path)
-  elif version or tag:
-    raise ar_exceptions.InvalidInputValueError(
-        "Package name is required when specifying version or tag.")
-
-  repo_path = resources.Resource.RelativeName(
-      resources.REGISTRY.Create(
-          "artifactregistry.projects.locations.repositories",
-          projectsId=project,
-          locationsId=location,
-          repositoriesId=repo))
-  files = ar_requests.ListFiles(client, messages, repo_path, arg_filters,
-                                page_size)
-
-  return files
+    if kwargs.get("order_by"):
+      kwargs["order_by"] = None
+    return True, func(**kwargs)
+  except Exception as e:
+    raise ar_exceptions.ArtifactRegistryError(e)
 
 
 def AddEncryptionLogToRepositoryInfo(response, unused_args):
@@ -679,18 +789,19 @@ def AddEncryptionLogToRepositoryInfo(response, unused_args):
 
 def AddRegistryBaseToRepositoryInfo(response, unused_args):
   """Adds the base URL of the repo for registry operations to repository info."""
-  repo_name = resources.REGISTRY.ParseRelativeName(
-      response.name,
-      collection="artifactregistry.projects.locations.repositories",
-  )
-  log.status.Print(
-      "Registry URL: {}-{}.pkg.dev/{}/{}".format(
-          repo_name.locationsId,
-          str(response.format).lower(),
-          repo_name.projectsId.replace(":", "/"),
-          repo_name.repositoriesId,
-      )
-  )
+  if not response.registryUri:
+    repo_name = resources.REGISTRY.ParseRelativeName(
+        response.name,
+        collection="artifactregistry.projects.locations.repositories",
+    )
+    log.status.Print(
+        "Registry URL: {}-{}.pkg.dev/{}/{}".format(
+            repo_name.locationsId,
+            str(response.format).lower(),
+            repo_name.projectsId.replace(":", "/"),
+            repo_name.repositoriesId,
+        )
+    )
   return response
 
 
@@ -751,18 +862,6 @@ def EscapeVersionNameHook(ref, unused_args, req):
   return req
 
 
-def EscapeFileNameHook(ref, unused_args, req):
-  """Escapes slashes from request names."""
-  file = resources.REGISTRY.Create(
-      "artifactregistry.projects.locations.repositories.files",
-      projectsId=ref.projectsId,
-      locationsId=ref.locationsId,
-      repositoriesId=ref.repositoriesId,
-      filesId=ref.filesId.replace("/", "%2F"),
-  )
-  req.name = file.RelativeName()
-  return req
-
 gcr_base = getattr(properties.VALUES.artifacts, "gcr_host").Get()
 host_seperator = "-" if "-" in gcr_base else "."
 
@@ -822,7 +921,6 @@ def GetMultiProjectRedirectionEnablementReport(projects):
         report_line[1] += 1
         p_repos.append(gcr_repo)
     repo_report.append(report_line)
-    log.status.Print(report_line)
     if p_repos:
       missing_repos[project] = p_repos
 
@@ -923,40 +1021,6 @@ def UpdateSettingsResource(unused_ref, unused_args, req):
   return req
 
 
-def CheckRedirectionPermission(projects):
-  """Checks redirection permission for the projects."""
-  for project in projects:
-    con = console_attr.GetConsoleAttr()
-    authorized = ar_requests.TestRedirectionIAMPermission(project)
-    if not authorized:
-      if len(projects) == 1:
-        log.status.Print(
-            con.Colorize("FAIL: ", "red")
-            + "This operation requires the"
-            f" {','.join(ar_requests.REDIRECT_PERMISSIONS)} permission(s) on"
-            f" project {project}."
-        )
-      else:
-        log.status.Print(
-            con.Colorize("FAIL: ", "red")
-            + "This operation requires the"
-            f" {','.join(ar_requests.REDIRECT_PERMISSIONS)} permission(s) on"
-            f" each project to migrate, including {project}."
-        )
-      user = properties.VALUES.core.account.Get()
-      if user.endswith("gserviceaccount.com"):
-        prefix = "serviceAccount"
-      else:
-        prefix = "user"
-      log.status.Print(
-          "You can set this permission with the following command:"
-          f"\n  gcloud projects add-iam-policy-binding {project} "
-          f"--member={prefix}:{user} --role='roles/storage.admin'"
-      )
-      return False
-  return True
-
-
 def GetVPCSCConfig(unused_ref, args):
   project = GetProject(args)
   location = GetLocation(args)
@@ -975,8 +1039,45 @@ def DenyVPCSCConfig(unused_ref, args):
   return ar_requests.DenyVPCSCConfig(project, location)
 
 
+def LogUserPermissionDeniedError(project):
+  """Logs a message about how to grant the user permission to perform migration steps.
+
+  Args:
+    project: The project missing permission
+  """
+  user = properties.VALUES.core.account.Get()
+  if user.endswith("gserviceaccount.com"):
+    prefix = "serviceAccount"
+  else:
+    prefix = "user"
+  con = console_attr.GetConsoleAttr()
+  log.status.Print(
+      con.Emphasize(
+          "\nYou can get permission to perform all migration steps if a project"
+          " owner grants you"
+          " roles/artifactregistry.containerRegistryMigrationAdmin:",
+          bold=True,
+      ),
+  )
+  log.status.Print(
+      f"  gcloud projects add-iam-policy-binding {project} "
+      f"--member={prefix}:{user} --role='roles/artifactregistry.containerRegistryMigrationAdmin'\n"
+      .format(prefix=prefix, user=user),
+  )
+
+
 def GetRedirectionStates(projects):
-  """Gets the redirection states for the given projects."""
+  """Gets the redirection states for the given projects.
+
+  Args:
+    projects: The projects to get the redirection states for
+
+  Returns:
+    A dictionary of project to redirection state.
+  raises:
+    apitools_exceptions.HttpForbiddenError: If the user does not have permission
+    to get the redirection state for a project.
+  """
   env = "prod"
   endpoint_property = getattr(
       properties.VALUES.api_endpoint_overrides, "artifactregistry"
@@ -990,9 +1091,13 @@ def GetRedirectionStates(projects):
   redirection_states = {}
   try:
     for project in projects:
-      redirection_states[project] = ar_requests.GetProjectSettings(
-          project
-      ).legacyRedirectionState
+      try:
+        redirection_states[project] = ar_requests.GetProjectSettings(
+            project
+        ).legacyRedirectionState
+      except apitools_exceptions.HttpForbiddenError as e:
+        LogUserPermissionDeniedError(project)
+        raise e
   finally:
     if env == "staging":
       endpoint_property.Set(old_endpoint)
@@ -1017,6 +1122,7 @@ def SetRedirectionStatus(project, status, pull_percent=None):
     con = console_attr.GetConsoleAttr()
     match = re.search("requires (.*) to have storage.objects.", str(e))
     if not match:
+      LogUserPermissionDeniedError(project)
       raise
     log.status.Print(
         con.Colorize("\nERROR:", "red")
@@ -1043,17 +1149,10 @@ def RecommendAuthChange(
     repo,
     failures,
     pkg_dev=False,
+    output_iam_policy_dir=None,
 ):
   """Prompts the user to possibly change the repository's iam policy."""
   con = console_attr.GetConsoleAttr()
-  log.status.Print(
-      con.Emphasize(
-          "\nPotential IAM change for {} repository in project {}:\n".format(
-              repo, project
-          ),
-          bold=True,
-      )
-  )
 
   if existing_policy.bindings:
     etag = existing_policy.etag
@@ -1067,15 +1166,55 @@ def RecommendAuthChange(
     new_string = yaml.dump(encoding.MessageToDict(policy_addition)).split(
         "\n", 1
     )[1]
-    string_policy = (
-        "# Existing repository policy:\n{existing}\n# New additions:\n{new}"
-        .format(existing=existing_string, new=new_string)
-    )
+    if new_string:
+      string_policy = (
+          f"# Existing repository policy:\n{existing_string}\n# New"
+          f" additions:\n{new_string}"
+      )
+    else:
+      string_policy = (
+          f"# Existing repository policy:\n{existing_string}\n# No new bindings"
+          " added"
+      )
   else:
-    string_policy = yaml.dump(encoding.MessageToDict(policy_addition))
+    d = encoding.MessageToDict(policy_addition)
+    string_policy = yaml.dump(d)
+    if not d:
+      string_policy += "\n# No bindings needed"
     etag = ""
 
+  warning_message = (
+      f"Generated bindings for {project}/{repo} may be"
+      " insufficient because you do not have access to analyze IAM for the"
+      f" following resources: {failures}"
+      "\nSee"
+      " https://cloud.google.com/policy-intelligence/docs/analyze-iam-policies#required-permissions"
+  )
+
+  if output_iam_policy_dir:
+    log.status.Print(f"\nWriting bindings for {project}/{repo}...")
+    if failures:
+      log.status.Print(f"{con.Colorize('Warning:', 'red')} {warning_message}")
+      commented_warning = "# " + "\n# ".join(warning_message.split("\n"))
+      string_policy = f"{commented_warning}\n\n{string_policy}"
+    outfile = os.path.join(output_iam_policy_dir, project, f"{repo}.yaml")
+    # WriteFileContents calls ExpandHomeDir internally only for the path,
+    # which causes weird errors if we don't pre-expand it
+    files.WriteFileContents(
+        files.ExpandHomeDir(outfile), string_policy, create_path=True
+    )
+    return True
+
+  log.status.Print(
+      con.Emphasize(
+          "\nPotential IAM change for {} repository in project {}:\n".format(
+              repo, project
+          ),
+          bold=True,
+      )
+  )
   log.status.Print(string_policy)
+
   message = (
       "This IAM policy will grant users the ability to perform all actions in"
       " Artifact Registry that they can currently perform in Container"
@@ -1083,13 +1222,7 @@ def RecommendAuthChange(
       " deny policies or IAM conditions."
   )
   if failures:
-    message += (
-        f"\n\n{con.Colorize('Warning:','red')} Generated bindings may be"
-        " insufficient because you do not have access to analyze IAM for the"
-        f" following resources: {failures}"
-        "\nSee"
-        " https://cloud.google.com/policy-intelligence/docs/analyze-iam-policies#required-permissions\n\n"
-    )
+    message += f"\n\n{con.Colorize('Warning:', 'red')} {warning_message}\n\n"
 
   if not console_io.CanPrompt():
     log.status.Print(message)
@@ -1101,27 +1234,39 @@ def RecommendAuthChange(
     )
 
   edited = False
+  c = console_attr.GetConsoleAttr()
   while True:
-    options = [
-        "Apply {} policy to the {}/{} Artifact Registry repository".format(
-            "edited" if edited else "above", project, repo
-        ),
-        "Edit policy",
-    ]
+    choices = []
+    options = []
     if pkg_dev:
-      options.append("Do not change permissions for this repo")
+      options = [
+          "Apply {} policy to the {}/{} Artifact Registry repository".format(
+              "edited" if edited else "above", project, repo
+          ),
+          "Edit policy",
+          "Do not copy permissions for this repo",
+          "Exit",
+      ]
       choices = ["apply", "edit", "skip", "exit"]
     else:
-      options.append(
-          "Do not change permissions for this repo"
-          f" (users may lose access to {repo}/{project.replace(':', '/')})"
-      )
-      options.append(
-          "Skip permission updates for all remaining repos (users may"
-          " lose access to all remaining repos)"
-      )
+      options = [
+          "Apply {} policy to the {}/{} Artifact Registry repository".format(
+              "edited" if edited else "above", project, repo
+          )
+          + c.Colorize(" (preserves accesss for GCR users)", "green"),
+          "Edit policy",
+          "Do not copy permissions for this repo"
+          + c.Colorize(
+              f" (users may lose access to {repo}/{project.replace(':', '/')})",
+              "red",
+          ),
+          "Skip permission copying for all remaining repos"
+          + c.Colorize(
+              " (users may lose access to all remaining repos)", "red"
+          ),
+          "Exit",
+      ]
       choices = ["apply", "edit", "skip", "skip_all", "exit"]
-    options.append("Exit")
 
     option = console_io.PromptChoice(
         message=message,
@@ -1153,6 +1298,7 @@ def RecommendAuthChange(
                 json.loads(e.content)["error"]["message"]
             )
         )
+        raise e
     elif choices[option] == "edit":
       string_policy = edit.OnlineEdit(string_policy)
       message = con.Emphasize(
@@ -1173,25 +1319,40 @@ def RecommendAuthChange(
       raise ValueError(f"Unknown choice: {choices[option]}")
 
 
-def SetupAuthForProject(project, repos, repos_with_buckets):
+def SetupAuthForProject(
+    project,
+    repos,
+    repos_with_buckets,
+    output_iam_policy_dir=None,
+    input_iam_policy_dir=None,
+    use_analyze=True,
+):
   """Sets up auth for all repos in the given project."""
-  missing_auth = False
+  diffs_found = False
   for repo in repos:
-    has_bucket = repo in repos_with_buckets
-    diffs_found, continue_auth_check = SetupAuthForRepository(
-        project, project, repo["repository"], repo, has_bucket
+    has_bucket = repo["repository"] in repos_with_buckets
+    repo_diffs, continue_auth_check = SetupAuthForRepository(
+        project,
+        project,
+        repo["repository"],
+        repo,
+        has_bucket,
+        output_iam_policy_dir=output_iam_policy_dir,
+        input_iam_policy_dir=input_iam_policy_dir,
+        use_analyze=use_analyze,
     )
-    if diffs_found:
-      missing_auth = True
+    if repo_diffs:
+      diffs_found = True
     if not continue_auth_check:
-      return False
-  if not missing_auth:
+      return diffs_found, False
+  if not diffs_found and not input_iam_policy_dir:
     con = console_attr.GetConsoleAttr()
     log.status.Print(
         con.Colorize("OK: ", "green")
         + "All Container Registry repositories have equivalent Artifact"
         " Registry permissions for project {}".format(project)
     )
+  return diffs_found, True
 
 
 def WarnNoAuthGenerated(pkg_dev=False):
@@ -1226,6 +1387,9 @@ def CalculateMissingAuth(gcr_auth, ar_non_repo_auth, ar_repo_policy):
             )
             and not member.endswith(
                 "gcp-sa-artifactregistry.iam.gserviceaccount.com"
+            )
+            and not member.endswith(
+                "artifact-registry-same-project-copier@system.gserviceaccount.com"
             ),
             missing_auth[role],
         )
@@ -1236,7 +1400,15 @@ def CalculateMissingAuth(gcr_auth, ar_non_repo_auth, ar_repo_policy):
 
 
 def SetupAuthForRepository(
-    gcr_project, ar_project, host, repo, has_bucket, pkg_dev=False
+    gcr_project,
+    ar_project,
+    host,
+    repo,
+    has_bucket,
+    pkg_dev=False,
+    output_iam_policy_dir=None,
+    input_iam_policy_dir=None,
+    use_analyze=True,
 ):
   """Checks permissions for a repository and prompts for changes if any is missing.
 
@@ -1251,6 +1423,9 @@ def SetupAuthForRepository(
     repo: The AR repo being copied to
     has_bucket: Whether a GCR bucket exists for this repository
     pkg_dev: If true, this is for a single pkg.dev repo (prompts are different)
+    output_iam_policy_dir: If set, output iam files to this dir
+    input_iam_policy_dir: If set, use iam files from this dir
+    use_analyze: If true, use AnalyzeIamPolicy to generate the policy
 
   Returns:
     A tuple of (diffs_found, should_continue) where diffs_found is true if
@@ -1259,23 +1434,69 @@ def SetupAuthForRepository(
     repos.
   """
 
-  gcr_auth, failures = upgrade_util.iam_map(
-      host,
-      gcr_project,
-      skip_bucket=(not has_bucket),
-      from_ar_permissions=False,
-      best_effort=True,
+  if input_iam_policy_dir:
+    try:
+      string_policy = files.ReadFileContents(
+          os.path.join(
+              files.ExpandHomeDir(input_iam_policy_dir),
+              ar_project,
+              f"{repo['repository']}.yaml",
+          )
+      )
+    except files.MissingFileError:
+      log.status.Print(
+          f"No policy change found for {ar_project}/{repo['repository']}."
+          " Skipping this repository."
+      )
+      return False, True
+    con = console_attr.GetConsoleAttr()
+    log.status.Print(
+        con.Colorize(
+            f"Applying policy to repository {ar_project}/{repo['repository']}",
+            "green",
+        )
+    )
+    new_binding = encoding.PyValueToMessage(
+        ar_requests.GetMessages().Policy, yaml.load(string_policy)
+    )
+    try:
+      ar_requests.SetIamPolicy(
+          "projects/{}/locations/{}/repositories/{}".format(
+              ar_project, repo["location"], repo["repository"]
+          ),
+          new_binding,
+      )
+      return True, True
+    except apitools_exceptions.HttpError as e:
+      log.status.Print(
+          "\nFailed to update iam policy:\n{}\n".format(
+              json.loads(e.content)["error"]["message"]
+          )
+      )
+      raise e
+  gcr_auth, failures = copy.deepcopy(
+      upgrade_util.iam_map(
+          host if has_bucket else "",
+          gcr_project,
+          skip_bucket=(not has_bucket),
+          from_ar_permissions=False,
+          best_effort=True,
+          use_analyze=use_analyze,
+      )
   )
   if not gcr_auth and failures:
     WarnNoAuthGenerated(pkg_dev=pkg_dev)
     return True, False
 
-  ar_non_repo_auth, _ = upgrade_util.iam_map(
-      "",
-      ar_project,
-      skip_bucket=True,
-      from_ar_permissions=True,
-      best_effort=True,
+  ar_non_repo_auth, _ = copy.deepcopy(
+      upgrade_util.iam_map(
+          "",
+          ar_project,
+          skip_bucket=True,
+          from_ar_permissions=True,
+          best_effort=True,
+          use_analyze=use_analyze,
+      )
   )
 
   # The AR auth policy on the repo. Doesn't include project+ auth above
@@ -1288,7 +1509,7 @@ def SetupAuthForRepository(
       gcr_auth, ar_non_repo_auth, ar_repo_policy
   )
 
-  if missing_auth:
+  if missing_auth or output_iam_policy_dir:
     continue_checking_auth = RecommendAuthChange(
         upgrade_util.policy_from_map(missing_auth),
         ar_repo_policy,
@@ -1297,8 +1518,20 @@ def SetupAuthForRepository(
         repo["repository"],
         failures=failures,
         pkg_dev=pkg_dev,
+        output_iam_policy_dir=output_iam_policy_dir,
     )
     return True, continue_checking_auth
+  elif failures:
+    # Nothing to do, but we still need to warn
+    con = console_attr.GetConsoleAttr()
+    warning_message = (
+        "Unable to confirm IAM bindings for"
+        f" {ar_project}/{repo['repository']} are sufficient because you do not"
+        " have access to view IAM bindings for the following resources:"
+        f" {failures}\nUse --log-http to see detailed errors."
+    )
+    log.status.Print(f"\n{con.Colorize('Warning:', 'red')} {warning_message}")
+    return True, True
   # No diffs found, continue checking auth
   return False, True
 
@@ -1307,8 +1540,19 @@ def MigrateToArtifactRegistry(unused_ref, args):
   """Runs the automigrate wizard for the current project."""
   if args.projects:
     projects = args.projects.split(",")
+    base.DisableUserProjectQuota()
   else:
     projects = [args.project or properties.VALUES.core.project.GetOrFail()]
+  project_ids = []
+  for project in projects:
+    if project.isnumeric():
+      project_ids.append(
+          projects_api.Get(project_util.ParseProject(project)).projectId
+      )
+    else:
+      project_ids.append(project)
+  projects = project_ids
+
   recent_images = args.recent_images
   last_uploaded_versions = args.last_uploaded_versions
   from_gcr = args.from_gcr
@@ -1316,46 +1560,78 @@ def MigrateToArtifactRegistry(unused_ref, args):
   copy_only = args.copy_only
   canary_reads = args.canary_reads
   skip_iam = args.skip_iam_update
-  if recent_images is not None and (recent_images < 30 or recent_images > 90):
-    log.status.Print("--recent-images must be between 30 and 90 inclusive")
-    return None
-  if canary_reads is not None and (canary_reads < 1 or canary_reads > 100):
-    log.status.Print("--canary-reads must be between 1 and 100 inclusive")
-    return None
-  if args.projects and (from_gcr or to_pkg_dev):
+  ar_location = args.pkg_dev_location
+  skip_pre_copy = args.skip_pre_copy
+  use_analyze = args.use_analyze_iam
+  if ar_location and not to_pkg_dev:
+    log.status.Print(
+        "--pkg-dev-location is only used when migrating to pkg.dev repos"
+    )
+    sys.exit(1)
+  if recent_images is not None and (recent_images < 30 or recent_images > 180):
+    log.status.Print("--recent-images must be between 30 and 180 inclusive")
+    sys.exit(1)
+  output_iam_policy_dir = args.output_iam_policy_dir
+  input_iam_policy_dir = args.input_iam_policy_dir
+  if output_iam_policy_dir and (skip_iam or copy_only):
+    log.status.Print(
+        "--output-iam-policy-dir is only used when determining iam policy"
+    )
+    sys.exit(1)
+  if input_iam_policy_dir and (skip_iam or copy_only):
+    log.status.Print(
+        "--input-iam-policy-dir is only used when determining iam policy"
+    )
+    sys.exit(1)
+  if input_iam_policy_dir and output_iam_policy_dir:
+    log.status.Print(
+        "--input-iam-policy-dir and --output-iam-policy-dir should not be"
+        " called in the same invocation"
+    )
+    sys.exit(1)
+  if input_iam_policy_dir:
+    if not os.path.isdir(files.ExpandHomeDir(input_iam_policy_dir)):
+      log.status.Print("--input-iam-policy-dir must be a directory")
+      sys.exit(1)
+  if canary_reads is not None and (canary_reads < 0 or canary_reads > 100):
+    log.status.Print("--canary-reads must be between 0 and 100 inclusive")
+    sys.exit(1)
+  if (args.projects or args.project) and (from_gcr or to_pkg_dev):
     log.status.Print(
         "Projects argument may not be used when providing --from-gcr and"
         " --to-pkg-dev"
     )
-    return None
+    sys.exit(1)
 
   if bool(from_gcr) != bool(to_pkg_dev):
     log.status.Print(
         "--from-gcr and --to-pkg-dev-repo should be provided together"
     )
-    return None
+    sys.exit(1)
 
   if last_uploaded_versions and recent_images:
     log.status.Print(
         "Only one of --last-uploaded-versions and --recent-images can be used"
     )
-    return None
+    sys.exit(1)
 
   if to_pkg_dev:
-    s = from_gcr.split("/", 1)
+    s = from_gcr.split("/", 2)
     if len(s) != 2:
       log.status.Print("--from-gcr must be of the form {host}/{project}")
+      sys.exit(1)
     gcr_host, gcr_project = s
-    s = to_pkg_dev.split("/", 1)
+    s = to_pkg_dev.split("/", 2)
     if len(s) != 2:
       log.status.Print("--to-pkg-dev must be of the form {project}/{repo}")
+      sys.exit(1)
     ar_project, ar_repo = s
     if "gcr.io" in ar_repo:
       log.status.Print(
           "--to-pkg-dev is only used for pkg.dev repos. Use --projects to"
           " migrate to a gcr.io repo"
       )
-      return None
+      sys.exit(1)
     if gcr_host not in _ALLOWED_GCR_REPO_LOCATION.keys():
       log.status.Print(
           "{gcr_host} is not a valid gcr host. Valid hosts: {hosts}".format(
@@ -1363,12 +1639,15 @@ def MigrateToArtifactRegistry(unused_ref, args):
               hosts=", ".join(_ALLOWED_GCR_REPO_LOCATION.keys()),
           )
       )
-      return None
+      sys.exit(1)
     location = _ALLOWED_GCR_REPO_LOCATION[gcr_host]
+    if ar_location:
+      location = ar_location
     host = "{}{}-docker.pkg.dev".format(
         properties.VALUES.artifacts.registry_endpoint_prefix.Get(), location
     )
     if not copy_only:
+      CreatePkgDevIfMissing(host, location, ar_project, ar_repo)
       has_bucket = GetGCRRepos(
           {
               k: v
@@ -1378,14 +1657,39 @@ def MigrateToArtifactRegistry(unused_ref, args):
           gcr_project,
       )
       if not skip_iam:
-        SetupAuthForRepository(
+        if input_iam_policy_dir:
+          cont = console_io.PromptContinue(
+              f"\nContinuing will update {ar_project}/{ar_repo} IAM policy"
+              f" based on {input_iam_policy_dir}.",
+              default=True,
+          )
+          if not cont:
+            return None
+        diffs_found, _ = SetupAuthForRepository(
             gcr_project=gcr_project,
             ar_project=ar_project,
             host=gcr_host,
             repo={"location": location, "repository": ar_repo},
             has_bucket=has_bucket,
             pkg_dev=True,
+            input_iam_policy_dir=input_iam_policy_dir,
+            output_iam_policy_dir=output_iam_policy_dir,
+            use_analyze=use_analyze,
         )
+        if output_iam_policy_dir:
+          if diffs_found:
+            log.status.Print(
+                "\nAll policies written. After verifying IAM policies, rerun"
+                " this tool with"
+                f" --input-iam-policy-dir={output_iam_policy_dir} to complete"
+                " migration"
+            )
+          else:
+            log.status.Print(
+                "No IAM changes are needed. Rerun this tool without"
+                " --output-iam-policy to complete migration"
+            )
+          return None
     if not WrappedCopyImagesFromGCR(
         [host],
         to_pkg_dev,
@@ -1413,8 +1717,6 @@ def MigrateToArtifactRegistry(unused_ref, args):
     invalid_projects = []
     partial_projects = []
   else:
-    if not CheckRedirectionPermission(projects):
-      return None
     redirection_state = GetRedirectionStates(projects)
     enabled_projects = []
     disabled_projects = []
@@ -1447,30 +1749,53 @@ def MigrateToArtifactRegistry(unused_ref, args):
 
   if invalid_projects:
     log.status.Print(
-        "Skipping migration for projects in unsppoted state: {}".format(
+        "Skipping migration for projects in unsupported state: {}".format(
             invalid_projects
         )
     )
     if len(invalid_projects) == len(projects):
-      return None
+      sys.exit(1)
 
   # Exit early if all projects are migrated
-  if len(enabled_projects) == len(projects):
+  if (
+      len(enabled_projects) == len(projects)
+      and canary_reads != 100
+      and canary_reads != 0
+  ):
     log.status.Print(
         "Artifact Registry is already handling all requests for *gcr.io repos"
         " for the provided projects. If there are images you still need to"
         " copy, use the --copy-only flag."
     )
-    return None
+    sys.exit(1)
 
-  if enabled_projects:
+  if enabled_projects and canary_reads != 100 and canary_reads != 0:
     log.status.Print(
         "Skipping already migrated projects: {}\n".format(enabled_projects)
     )
 
+  # Allow going backwards -> 100% canary reads, which is the safest way to
+  # revert
+  # Also allow backwards ->0% canary reads, because it is clear user wants to
+  # disable redirection
+  # Disallow other values, because those are probably accidents when grouping
+  # multiple projects
+  if canary_reads == 100 or canary_reads == 0:
+    partial_projects.extend(copying_projects)
+    copying_projects = []
+    partial_projects.extend(enabled_projects)
+    enabled_projects = []
+  elif canary_reads is not None and copying_projects:
+    log.status.Print(
+        f"Skipping projects in final copying: {copying_projects}\n"
+        "Only --canary-reads=100 (safer) or --canary-reads=0 are"
+        " allowed for projects with migrated writes.\n",
+    )
+    copying_projects = []
+
   # Only do the initial steps for projects where we haven't started redirection
   # yet. Otherwise, we pick up where we left off.
-  if disabled_projects:
+  if disabled_projects and not input_iam_policy_dir:
     if not MaybeCreateMissingRepos(
         disabled_projects, automigrate=True, dry_run=False
     ):
@@ -1491,6 +1816,7 @@ def MigrateToArtifactRegistry(unused_ref, args):
           "Skipping project {} because it has no Artifact Registry repos to"
           " migrate to".format(project)
       )
+      continue
     # If we're missing any repos, check if they're repos with GCR buckets
     missing_bucket_repos = []
     repos_with_gcr_buckets = GetGCRRepos(_GCR_BUCKETS, project)
@@ -1535,7 +1861,12 @@ def MigrateToArtifactRegistry(unused_ref, args):
   # 1) A smoke test such that if something breaks, it breaks BEFORE we redirect
   # 2) Gets most of the commonly used images copied ahead of time to avoid
   # a load/quota spike at redirection time
-  if not copy_only and projects_to_redirect:
+  if (
+      not copy_only
+      and not output_iam_policy_dir
+      and projects_to_redirect
+      and not skip_pre_copy
+  ):
     pre_copied_projects = []
     log.status.Print(
         "\nCopying initial images (additional images will be copied later)...\n"
@@ -1564,16 +1895,68 @@ def MigrateToArtifactRegistry(unused_ref, args):
     projects_to_redirect = pre_copied_projects
 
   if not skip_iam:
-    for project in projects_to_redirect:
-      continue_checking_auth = SetupAuthForProject(
-          project, existing_repos[project], repo_bucket_map[project]
+    if input_iam_policy_dir:
+      cont = console_io.PromptContinue(
+          "\nContinuing will update IAM policies for repositories in the"
+          " following projects based on the files in"
+          f" {input_iam_policy_dir}:\n{projects_to_redirect}",
+          default=True,
       )
+      if not cont:
+        return None
+    diffs_found = False
+    needs_removal = []
+    for project in projects_to_redirect:
+      try:
+        project_diffs, continue_checking_auth = SetupAuthForProject(
+            project,
+            existing_repos[project],
+            repo_bucket_map[project],
+            output_iam_policy_dir=output_iam_policy_dir,
+            input_iam_policy_dir=input_iam_policy_dir,
+            use_analyze=use_analyze,
+        )
+      except apitools_exceptions.HttpError as e:
+        needs_removal.append(project)
+        log.status.Print(
+            f"Skipping {project} due to error setting policy:"
+            f" {json.loads(e.content)['error']['message']}"
+        )
+        continue
+      if project_diffs:
+        diffs_found = True
+      elif input_iam_policy_dir:
+        if not os.path.isdir(
+            os.path.join(files.ExpandHomeDir(input_iam_policy_dir), project)
+        ):
+          log.status.Print(
+              f"Skipping {project} because no policy directory found"
+          )
+          needs_removal.append(project)
       if not continue_checking_auth:
         break
+    for project in needs_removal:
+      projects_to_redirect.remove(project)
+    if output_iam_policy_dir:
+      if diffs_found:
+        log.status.Print(
+            "\nAll policies written. After verifying IAM policies, rerun this"
+            f" tool with --input-iam-policy-dir={output_iam_policy_dir} to"
+            " complete migration"
+        )
+      else:
+        log.status.Print(
+            "No IAM changes are needed. Rerun this tool without"
+            " --output-iam-policy to complete migration"
+        )
+      return None
+    if input_iam_policy_dir and not diffs_found:
+      log.status.Print(f"No IAM policies found at {input_iam_policy_dir}")
+      sys.exit(1)
 
   projects_to_redirect.extend(partial_projects)
 
-  if canary_reads and projects_to_redirect:
+  if canary_reads is not None and projects_to_redirect:
     log.status.Print(
         f"\nThe next step will redirect {canary_reads}% of *gcr.io read"
         " traffic to Artifact Registry. All pushes will still write to"
@@ -1582,7 +1965,7 @@ def MigrateToArtifactRegistry(unused_ref, args):
     )
     update = console_io.PromptContinue(
         "Projects to redirect: {}".format(projects_to_redirect),
-        default=False,
+        default=True,
     )
     if not update:
       return None
@@ -1595,14 +1978,14 @@ def MigrateToArtifactRegistry(unused_ref, args):
       ):
         copying_projects.append(project)
         log.status.Print(
-            f"{canary_reads}% of *gcr.io read traffic is now being served by"
+            f"\n{canary_reads}% of *gcr.io read traffic is now being served by"
             f" Artifact Registry for {project}. Missing images are copied from"
             " Container Registry.\nTo send traffic back to Container Registry,"
             " run:\n  gcloud artifacts settings disable-upgrade-redirection"
             f" --project={project}\nTo send all traffic to Artifact"
             " Registry, re-run this script without --canary-reads"
         )
-        return None
+    return None
 
   if projects_to_redirect:
     caveat = ""
@@ -1638,13 +2021,23 @@ def MigrateToArtifactRegistry(unused_ref, args):
         messages.ProjectSettings.LegacyRedirectionStateValueValuesEnum.REDIRECTION_FROM_GCR_IO_ENABLED_AND_COPYING,
     ):
       copying_projects.append(project)
-      log.status.Print(
+      rollback_command = (
           "*gcr.io traffic is now being served by Artifact Registry for"
-          " {project}. Missing images are being copied from Container Registry"
-          "\nTo send traffic back to Container Registry, run:"
-          "\n  gcloud artifacts settings disable-upgrade-redirection"
-          " --project={project}\n".format(project=project)
+          f" {project}. Missing images are being copied from Container"
+          " Registry\nTo send all write traffic back to Container Registry,"
+          " re-run this command with --canary-reads=100\n"
       )
+
+      # Don't even mention full rollback if doing a partial migration, because
+      # it is a footgun. If doing a full migration, give both options.
+      if not partial_projects:
+        rollback_command += (
+            "To send all read and write traffic to "
+            " Container Registry, instead run:\n"
+            "  gcloud artifacts settings disable-upgrade-redirection"
+            f" --project={project}\n"
+        )
+      log.status.Print(rollback_command)
 
   if not copying_projects:
     return None
@@ -1665,6 +2058,8 @@ def MigrateToArtifactRegistry(unused_ref, args):
       if (
           state
           == messages.ProjectSettings.LegacyRedirectionStateValueValuesEnum.REDIRECTION_FROM_GCR_IO_DISABLED
+          or state
+          == messages.ProjectSettings.LegacyRedirectionStateValueValuesEnum.REDIRECTION_FROM_GCR_IO_PARTIAL_AND_COPYING
       ):
         unredirected_copying_projects.add(project)
   for project in copying_projects:
@@ -1729,7 +2124,7 @@ def MigrateToArtifactRegistry(unused_ref, args):
         )
     )
     log.status.Print(
-        "\nThis script can be re-run to migrate any projects that haven't"
+        "\nThis script can be re-run to migrate any projects that haven't "
         "finished."
     )
 
@@ -1822,6 +2217,22 @@ def WrappedCopyImagesFromGCR(
       for example_failure in results["example_failures"]:
         log.status.Print(example_failure)
       # Some errors are okay when pre-copying. We'll just try again later
+      # Print out the GCR data loss failures if there's any.
+      if results["manifestsFailedWithNotFound"] > 0:
+        log.status.Print(
+            "\nAmong those failures, there are {not_found} image copy"
+            " failures due to parts of the image missing from GCR."
+            " You may try pulling the images directly from GCR to confirm."
+            " Because the images are already currupted in GCR, there's no"
+            " action required for these images.".format(
+                not_found=results["manifestsFailedWithNotFound"],
+            ),
+        )
+        log.status.Print(
+            "\nExample images that failed to copy due to missing data in GCR:"
+        )
+        for example_not_found in results["not_found_failures"]:
+          log.status.Print(example_not_found)
       return pre_copy
     return True
   except docker_http.V2DiagnosticException as e:
@@ -1858,6 +2269,7 @@ def CopyImagesFromGCR(
   http_obj = util.Http(timeout=10 * 60)
   repository = docker_name.Repository(repo_path)
   next_page = ""
+  backoff = 5
   while True:
     try:
       with docker_image.FromRegistry(
@@ -1882,15 +2294,38 @@ def CopyImagesFromGCR(
           break
     except requests.exceptions.ReadTimeout:
       continue
+    except docker_http.V2DiagnosticException as e:
+      # Gateway Timeout
+      if e.status == 504:
+        continue
+      # Too Many Requests
+      if e.status == 429:
+        # All requests will likely hit quota at ~same time, so randomize backoff
+        # to spread them out
+        if backoff < 100:
+          backoff += random.randrange(1, 25)
+        time.sleep(backoff)
+        continue
+      raise
   results["manifestsCopied"] += tags_payload.get("manifestsCopied", 0)
   results["tagsCopied"] += tags_payload.get("tagsCopied", 0)
   results["manifestsFailed"] += tags_payload.get("manifestsFailed", 0)
+  results["manifestsFailedWithNotFound"] += tags_payload.get(
+      "manifestsFailedWithNotFound", 0
+  )
   results["tagsFailed"] += tags_payload.get("tagsFailed", 0)
   failures = tags_payload.get("exampleFailures", [])
   if failures:
     if not results["example_failures"]:
       results["example_failures"] = []
     results["example_failures"] = (results["example_failures"] + failures)[0:10]
+  not_found_failures = tags_payload.get("exampleFailuresWithNotFound", [])
+  if not_found_failures:
+    if not results["not_found_failures"]:
+      results["not_found_failures"] = []
+    results["not_found_failures"] = (
+        results["not_found_failures"] + not_found_failures
+    )[0:10]
   for child in tags_payload["child"]:
     copy_args = [
         thread_futures,
@@ -1911,7 +2346,6 @@ def CopyImagesFromGCR(
 # Returns if we should continue with migration
 def MaybeCreateMissingRepos(projects, automigrate, dry_run):
   """Creates missing repos if needed and requested by the user."""
-  messages = ar_requests.GetMessages()
   if len(projects) == 1:
     missing_repos = {projects[0]: GetRedirectionEnablementReport(projects[0])}
   else:
@@ -1935,41 +2369,8 @@ def MaybeCreateMissingRepos(projects, automigrate, dry_run):
     if not create_repos:
       return True
 
-    op_resources = []
     for project, repos in missing_repos.items():
-      for repo in repos:
-        repository_message = messages.Repository(
-            name="projects/{}/locations/{}/repositories/{}".format(
-                project, repo["location"], repo["repository"]
-            ),
-            description="Created by gcloud",
-            format=messages.Repository.FormatValueValuesEnum.DOCKER,
-        )
-        try:
-          op = ar_requests.CreateRepository(
-              project, repo["location"], repository_message
-          )
-          op_resources.append(
-              resources.REGISTRY.ParseRelativeName(
-                  op.name,
-                  collection="artifactregistry.projects.locations.operations",
-              )
-          )
-        except apitools_exceptions.HttpError as e:
-          log.status.Print(
-              "Failed to create repository %s: %s\n" % (repo["location"]),
-              json.loads(e.content)["error"]["message"],
-          )
-
-    client = ar_requests.GetClient()
-    for resource in op_resources:
-      waiter.WaitFor(
-          waiter.CloudOperationPollerNoResources(
-              client.projects_locations_operations
-          ),
-          resource,
-          message="Waiting for repo creation to complete...",
-      )
+      CreateRepositories(project, repos)
   else:
     con = console_attr.GetConsoleAttr()
     log.status.Print(
@@ -1981,14 +2382,83 @@ def MaybeCreateMissingRepos(projects, automigrate, dry_run):
   return True
 
 
+def CreatePkgDevIfMissing(host, location, project, repo):
+  """Create a pkg.dev repository if it doesn't exist.
+
+  Args:
+    host: AR hostname (string)
+    location: repo location (string)
+    project: project id of the repo (string)
+    repo: repo_id to be created (string)
+  """
+  try:
+    ar_requests.GetRepository(
+        f"projects/{project}/locations/{location}/repositories/{repo}"
+    )
+  except apitools_exceptions.HttpNotFoundError:
+    con = console_attr.GetConsoleAttr()
+    console_io.PromptContinue(
+        con.Colorize(
+            f"\nNo repository found at {host}/{project}/{repo}", "yellow"
+        ),
+        "Create missing repository?",
+        default=True,
+        cancel_on_no=True,
+    )
+    CreateRepositories(project, [{"location": location, "repository": repo}])
+
+
+def CreateRepositories(project, repos):
+  """Creates repositories in Artifact Registry."""
+  messages = ar_requests.GetMessages()
+  op_resources = []
+  for repo in repos:
+    repository_message = messages.Repository(
+        name="projects/{}/locations/{}/repositories/{}".format(
+            project, repo["location"], repo["repository"]
+        ),
+        description="Created by gcloud",
+        format=messages.Repository.FormatValueValuesEnum.DOCKER,
+    )
+    try:
+      op = ar_requests.CreateRepository(
+          project, repo["location"], repository_message
+      )
+      op_resources.append(
+          resources.REGISTRY.ParseRelativeName(
+              op.name,
+              collection="artifactregistry.projects.locations.operations",
+          )
+      )
+    except apitools_exceptions.HttpForbiddenError as e:
+      log.status.Print(
+          f"Failed to create repository {repo['location']}:"
+          f" {json.loads(e.content)['error']['message']}\n"
+      )
+      LogUserPermissionDeniedError(project)
+    except apitools_exceptions.HttpError as e:
+      log.status.Print(
+          f"Failed to create repository {repo['location']}:"
+          f" {json.loads(e.content)['error']['message']}\n"
+      )
+
+  client = ar_requests.GetClient()
+  for resource in op_resources:
+    waiter.WaitFor(
+        waiter.CloudOperationPollerNoResources(
+            client.projects_locations_operations
+        ),
+        resource,
+        message="Waiting for repo creation to complete...",
+    )
+
+
 def EnableUpgradeRedirection(unused_ref, args):
   """Enables upgrade redirection for the active project."""
   project = GetProject(args)
   dry_run = args.dry_run
 
   log.status.Print("Performing redirection enablement checks...\n")
-  if not CheckRedirectionPermission([project]):
-    return None
 
   messages = ar_requests.GetMessages()
   settings = ar_requests.GetProjectSettings(project)
@@ -2014,13 +2484,17 @@ def EnableUpgradeRedirection(unused_ref, args):
   if not MaybeCreateMissingRepos([project], False, dry_run):
     return None
 
+  con = console_attr.GetConsoleAttr()
   update = console_io.PromptContinue(
       "\nThis action will redirect all Container Registry traffic to Artifact "
-      "Registry for project {}."
-      " After enabling redirection, you can route traffic back to Container "
-      "Registry if needed."
-      .format(project),
-      default=False)
+      + f"Registry for project {project}."
+      + con.Colorize(
+          " Your existing images and IAM policies will NOT be copied.\n", "red"
+      )
+      + "To preserve existing GCR behavior, consider running `gcloud artifacts"
+      f" docker upgrade migrate --project={project}` instead.",
+      default=True,
+  )
   if not update:
     log.status.Print("No changes made.")
     return None
@@ -2035,8 +2509,6 @@ def DisableUpgradeRedirection(unused_ref, args):
   con = console_attr.GetConsoleAttr()
 
   log.status.Print("Disabling upgrade redirection...\n")
-  if not CheckRedirectionPermission([project]):
-    return None
 
   # If the current state is finalized, then disabling is not possible
   log.status.Print("Checking current redirection status...\n")
@@ -2053,9 +2525,15 @@ def DisableUpgradeRedirection(unused_ref, args):
 
   update = console_io.PromptContinue(
       "This action will disable the redirection of Container Registry traffic "
-      "to Artifact Registry for project {}"
-      .format(project),
-      default=False)
+      f"to Artifact Registry for project {project}\n\n"
+      + con.Colorize("WARNING:", "red")
+      + " This will disable redirection for both read and write traffic to"
+      f" Artifact Registry for project {project} and you may lose access to"
+      " images pushed to Artifact Registry. To disable redirection for write"
+      " traffic only, run:\n  gcloud artifacts docker upgrade migrate"
+      f" --project={project} --canary-reads=100",
+      default=True,
+  )
   if not update:
     log.status.Print("No changes made.")
     return None

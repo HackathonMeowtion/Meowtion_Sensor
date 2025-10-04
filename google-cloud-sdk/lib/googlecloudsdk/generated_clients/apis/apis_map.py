@@ -36,7 +36,7 @@ class APIDef(object):
                apitools=None,
                gapic=None,
                default_version=False,
-               enable_mtls=False,
+               enable_mtls=True,
                mtls_endpoint_override=''):
     self.apitools = apitools
     self.gapic = gapic
@@ -209,6 +209,8 @@ MAP = {
                     client_classpath='aiplatform_v1_client.AiplatformV1',
                     base_url='https://aiplatform.googleapis.com/',
                     messages_modulepath='aiplatform_v1_messages'),
+                gapic=GapicClientDef(
+                    class_path='googlecloudsdk.generated_clients.gapic_wrappers.aiplatform.v1'),
                 default_version=False,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
@@ -219,6 +221,8 @@ MAP = {
                     client_classpath='aiplatform_v1beta1_client.AiplatformV1beta1',
                     base_url='https://aiplatform.googleapis.com/',
                     messages_modulepath='aiplatform_v1beta1_messages'),
+                gapic=GapicClientDef(
+                    class_path='googlecloudsdk.generated_clients.gapic_wrappers.aiplatform.v1beta1'),
                 default_version=True,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
@@ -353,14 +357,14 @@ MAP = {
                 enable_mtls=True,
                 mtls_endpoint_override=''),
     },
-    'apigeeregistry': {
+    'apihub': {
         'v1':
             APIDef(
                 apitools=ApitoolsClientDef(
-                    class_path='googlecloudsdk.generated_clients.apis.apigeeregistry.v1',
-                    client_classpath='apigeeregistry_v1_client.ApigeeregistryV1',
-                    base_url='https://apigeeregistry.googleapis.com/',
-                    messages_modulepath='apigeeregistry_v1_messages'),
+                    class_path='googlecloudsdk.generated_clients.apis.apihub.v1',
+                    client_classpath='apihub_v1_client.ApihubV1',
+                    base_url='https://apihub.googleapis.com/',
+                    messages_modulepath='apihub_v1_messages'),
                 default_version=True,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
@@ -383,18 +387,6 @@ MAP = {
                     client_classpath='apikeys_v2alpha1_client.ApikeysV2alpha1',
                     base_url='https://apikeys.googleapis.com/',
                     messages_modulepath='apikeys_v2alpha1_messages'),
-                default_version=True,
-                enable_mtls=True,
-                mtls_endpoint_override=''),
-    },
-    'appconfigmanager': {
-        'v1alpha':
-            APIDef(
-                apitools=ApitoolsClientDef(
-                    class_path='googlecloudsdk.generated_clients.apis.appconfigmanager.v1alpha',
-                    client_classpath='appconfigmanager_v1alpha_client.AppconfigmanagerV1alpha',
-                    base_url='https://appconfigmanager.googleapis.com/',
-                    messages_modulepath='appconfigmanager_v1alpha_messages'),
                 default_version=True,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
@@ -461,17 +453,7 @@ MAP = {
                     client_classpath='artifactregistry_v1_client.ArtifactregistryV1',
                     base_url='https://artifactregistry.googleapis.com/',
                     messages_modulepath='artifactregistry_v1_messages'),
-                default_version=False,
-                enable_mtls=True,
-                mtls_endpoint_override=''),
-        'v1alpha1':
-            APIDef(
-                apitools=ApitoolsClientDef(
-                    class_path='googlecloudsdk.generated_clients.apis.artifactregistry.v1alpha1',
-                    client_classpath='artifactregistry_v1alpha1_client.ArtifactregistryV1alpha1',
-                    base_url='https://artifactregistry.googleapis.com/',
-                    messages_modulepath='artifactregistry_v1alpha1_messages'),
-                default_version=False,
+                default_version=True,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
         'v1beta1':
@@ -491,7 +473,7 @@ MAP = {
                     client_classpath='artifactregistry_v1beta2_client.ArtifactregistryV1beta2',
                     base_url='https://artifactregistry.googleapis.com/',
                     messages_modulepath='artifactregistry_v1beta2_messages'),
-                default_version=True,
+                default_version=False,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
     },
@@ -518,6 +500,16 @@ MAP = {
                 mtls_endpoint_override=''),
     },
     'auditmanager': {
+        'v1':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.auditmanager.v1',
+                    client_classpath='auditmanager_v1_client.AuditmanagerV1',
+                    base_url='https://auditmanager.googleapis.com/',
+                    messages_modulepath='auditmanager_v1_messages'),
+                default_version=True,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
         'v1alpha':
             APIDef(
                 apitools=ApitoolsClientDef(
@@ -525,7 +517,7 @@ MAP = {
                     client_classpath='auditmanager_v1alpha_client.AuditmanagerV1alpha',
                     base_url='https://auditmanager.googleapis.com/',
                     messages_modulepath='auditmanager_v1alpha_messages'),
-                default_version=True,
+                default_version=False,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
     },
@@ -572,7 +564,7 @@ MAP = {
                     base_url='https://baremetalsolution.googleapis.com/',
                     messages_modulepath='baremetalsolution_v1_messages'),
                 default_version=False,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
         'v2':
             APIDef(
@@ -582,7 +574,7 @@ MAP = {
                     base_url='https://baremetalsolution.googleapis.com/',
                     messages_modulepath='baremetalsolution_v2_messages'),
                 default_version=True,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
     },
     'batch': {
@@ -639,6 +631,18 @@ MAP = {
                 enable_mtls=True,
                 mtls_endpoint_override=''),
     },
+    'biglake': {
+        'v1':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.biglake.v1',
+                    client_classpath='biglake_v1_client.BiglakeV1',
+                    base_url='https://biglake.googleapis.com/',
+                    messages_modulepath='biglake_v1_messages'),
+                default_version=True,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+    },
     'bigquery': {
         'v2':
             APIDef(
@@ -659,6 +663,18 @@ MAP = {
                     client_classpath='bigquerydatatransfer_v1_client.BigquerydatatransferV1',
                     base_url='https://bigquerydatatransfer.googleapis.com/',
                     messages_modulepath='bigquerydatatransfer_v1_messages'),
+                default_version=True,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+    },
+    'bigquerymigration': {
+        'v2':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.bigquerymigration.v2',
+                    client_classpath='bigquerymigration_v2_client.BigquerymigrationV2',
+                    base_url='https://bigquerymigration.googleapis.com/',
+                    messages_modulepath='bigquerymigration_v2_messages'),
                 default_version=True,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
@@ -774,23 +790,25 @@ MAP = {
                 default_version=True,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
-        'v1alpha1':
+    },
+    'cloudaicompanion': {
+        'v1':
             APIDef(
                 apitools=ApitoolsClientDef(
-                    class_path='googlecloudsdk.generated_clients.apis.certificatemanager.v1alpha1',
-                    client_classpath='certificatemanager_v1alpha1_client.CertificatemanagerV1alpha1',
-                    base_url='https://certificatemanager.googleapis.com/',
-                    messages_modulepath='certificatemanager_v1alpha1_messages'),
-                default_version=False,
+                    class_path='googlecloudsdk.generated_clients.apis.cloudaicompanion.v1',
+                    client_classpath='cloudaicompanion_v1_client.CloudaicompanionV1',
+                    base_url='https://cloudaicompanion.googleapis.com/',
+                    messages_modulepath='cloudaicompanion_v1_messages'),
+                default_version=True,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
-        'v1alpha2':
+        'v1alpha':
             APIDef(
                 apitools=ApitoolsClientDef(
-                    class_path='googlecloudsdk.generated_clients.apis.certificatemanager.v1alpha2',
-                    client_classpath='certificatemanager_v1alpha2_client.CertificatemanagerV1alpha2',
-                    base_url='https://certificatemanager.googleapis.com/',
-                    messages_modulepath='certificatemanager_v1alpha2_messages'),
+                    class_path='googlecloudsdk.generated_clients.apis.cloudaicompanion.v1alpha',
+                    client_classpath='cloudaicompanion_v1alpha_client.CloudaicompanionV1alpha',
+                    base_url='https://cloudaicompanion.googleapis.com/',
+                    messages_modulepath='cloudaicompanion_v1alpha_messages'),
                 default_version=False,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
@@ -1054,13 +1072,25 @@ MAP = {
                 default_version=True,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
-        'v1alpha1':
+    },
+    'cloudlocationfinder': {
+        'v1':
             APIDef(
                 apitools=ApitoolsClientDef(
-                    class_path='googlecloudsdk.generated_clients.apis.cloudkms.v1alpha1',
-                    client_classpath='cloudkms_v1alpha1_client.CloudkmsV1alpha1',
-                    base_url='https://cloudkms.googleapis.com/',
-                    messages_modulepath='cloudkms_v1alpha1_messages'),
+                    class_path='googlecloudsdk.generated_clients.apis.cloudlocationfinder.v1',
+                    client_classpath='cloudlocationfinder_v1_client.CloudlocationfinderV1',
+                    base_url='https://cloudlocationfinder.googleapis.com/',
+                    messages_modulepath='cloudlocationfinder_v1_messages'),
+                default_version=True,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+        'v1alpha':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.cloudlocationfinder.v1alpha',
+                    client_classpath='cloudlocationfinder_v1alpha_client.CloudlocationfinderV1alpha',
+                    base_url='https://cloudlocationfinder.googleapis.com/',
+                    messages_modulepath='cloudlocationfinder_v1alpha_messages'),
                 default_version=False,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
@@ -1086,6 +1116,26 @@ MAP = {
                     base_url='https://cloudquotas.googleapis.com/',
                     messages_modulepath='cloudquotas_v1_messages'),
                 default_version=True,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+        'v1alpha':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.cloudquotas.v1alpha',
+                    client_classpath='cloudquotas_v1alpha_client.CloudquotasV1alpha',
+                    base_url='https://cloudquotas.googleapis.com/',
+                    messages_modulepath='cloudquotas_v1alpha_messages'),
+                default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+        'v1beta':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.cloudquotas.v1beta',
+                    client_classpath='cloudquotas_v1beta_client.CloudquotasV1beta',
+                    base_url='https://cloudquotas.googleapis.com/',
+                    messages_modulepath='cloudquotas_v1beta_messages'),
+                default_version=False,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
     },
@@ -1192,7 +1242,7 @@ MAP = {
                     base_url='https://cloudshell.googleapis.com/',
                     messages_modulepath='cloudshell_v1_messages'),
                 default_version=False,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
         'v1alpha1':
             APIDef(
@@ -1202,7 +1252,7 @@ MAP = {
                     base_url='https://cloudshell.googleapis.com/',
                     messages_modulepath='cloudshell_v1alpha1_messages'),
                 default_version=True,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
     },
     'cloudtasks': {
@@ -1348,6 +1398,16 @@ MAP = {
                 mtls_endpoint_override=''),
     },
     'configdelivery': {
+        'v1':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.configdelivery.v1',
+                    client_classpath='configdelivery_v1_client.ConfigdeliveryV1',
+                    base_url='https://configdelivery.googleapis.com/',
+                    messages_modulepath='configdelivery_v1_messages'),
+                default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
         'v1alpha':
             APIDef(
                 apitools=ApitoolsClientDef(
@@ -1358,8 +1418,28 @@ MAP = {
                 default_version=True,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
+        'v1beta':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.configdelivery.v1beta',
+                    client_classpath='configdelivery_v1beta_client.ConfigdeliveryV1beta',
+                    base_url='https://configdelivery.googleapis.com/',
+                    messages_modulepath='configdelivery_v1beta_messages'),
+                default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
     },
     'connectgateway': {
+        'v1':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.connectgateway.v1',
+                    client_classpath='connectgateway_v1_client.ConnectgatewayV1',
+                    base_url='https://connectgateway.googleapis.com/',
+                    messages_modulepath='connectgateway_v1_messages'),
+                default_version=True,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
         'v1alpha1':
             APIDef(
                 apitools=ApitoolsClientDef(
@@ -1367,7 +1447,17 @@ MAP = {
                     client_classpath='connectgateway_v1alpha1_client.ConnectgatewayV1alpha1',
                     base_url='https://connectgateway.googleapis.com/',
                     messages_modulepath='connectgateway_v1alpha1_messages'),
-                default_version=True,
+                default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+        'v1beta1':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.connectgateway.v1beta1',
+                    client_classpath='connectgateway_v1beta1_client.ConnectgatewayV1beta1',
+                    base_url='https://connectgateway.googleapis.com/',
+                    messages_modulepath='connectgateway_v1beta1_messages'),
+                default_version=False,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
     },
@@ -1491,6 +1581,18 @@ MAP = {
                 enable_mtls=True,
                 mtls_endpoint_override=''),
     },
+    'dataform': {
+        'v1beta1':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.dataform.v1beta1',
+                    client_classpath='dataform_v1beta1_client.DataformV1beta1',
+                    base_url='https://dataform.googleapis.com/',
+                    messages_modulepath='dataform_v1beta1_messages'),
+                default_version=True,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+    },
     'datafusion': {
         'v1beta1':
             APIDef(
@@ -1500,7 +1602,7 @@ MAP = {
                     base_url='https://datafusion.googleapis.com/',
                     messages_modulepath='datafusion_v1beta1_messages'),
                 default_version=True,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
     },
     'datamigration': {
@@ -1562,6 +1664,16 @@ MAP = {
                 mtls_endpoint_override=''),
     },
     'dataprocgdc': {
+        'v1':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.dataprocgdc.v1',
+                    client_classpath='dataprocgdc_v1_client.DataprocgdcV1',
+                    base_url='https://dataprocgdc.googleapis.com/',
+                    messages_modulepath='dataprocgdc_v1_messages'),
+                default_version=True,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
         'v1alpha1':
             APIDef(
                 apitools=ApitoolsClientDef(
@@ -1569,7 +1681,7 @@ MAP = {
                     client_classpath='dataprocgdc_v1alpha1_client.DataprocgdcV1alpha1',
                     base_url='https://dataprocgdc.googleapis.com/',
                     messages_modulepath='dataprocgdc_v1alpha1_messages'),
-                default_version=True,
+                default_version=False,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
     },
@@ -1648,6 +1760,18 @@ MAP = {
                 default_version=False,
                 enable_mtls=True,
                 mtls_endpoint_override='https://www.mtls.googleapis.com/deploymentmanager/v2beta/'),
+    },
+    'designcenter': {
+        'v1alpha':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.designcenter.v1alpha',
+                    client_classpath='designcenter_v1alpha_client.DesigncenterV1alpha',
+                    base_url='https://designcenter.googleapis.com/',
+                    messages_modulepath='designcenter_v1alpha_messages'),
+                default_version=True,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
     },
     'developerconnect': {
         'v1':
@@ -1770,7 +1894,7 @@ MAP = {
                     base_url='https://domains.googleapis.com/',
                     messages_modulepath='domains_v1_messages'),
                 default_version=True,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
         'v1alpha2':
             APIDef(
@@ -1780,7 +1904,7 @@ MAP = {
                     base_url='https://domains.googleapis.com/',
                     messages_modulepath='domains_v1alpha2_messages'),
                 default_version=False,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
         'v1beta1':
             APIDef(
@@ -1790,7 +1914,7 @@ MAP = {
                     base_url='https://domains.googleapis.com/',
                     messages_modulepath='domains_v1beta1_messages'),
                 default_version=False,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
     },
     'edgecontainer': {
@@ -1802,7 +1926,7 @@ MAP = {
                     base_url='https://edgecontainer.googleapis.com/',
                     messages_modulepath='edgecontainer_v1_messages'),
                 default_version=False,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
         'v1alpha':
             APIDef(
@@ -1812,7 +1936,7 @@ MAP = {
                     base_url='https://edgecontainer.googleapis.com/',
                     messages_modulepath='edgecontainer_v1alpha_messages'),
                 default_version=True,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
         'v1beta':
             APIDef(
@@ -1822,7 +1946,7 @@ MAP = {
                     base_url='https://edgecontainer.googleapis.com/',
                     messages_modulepath='edgecontainer_v1beta_messages'),
                 default_version=False,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
     },
     'edgenetwork': {
@@ -1834,7 +1958,7 @@ MAP = {
                     base_url='https://edgenetwork.googleapis.com/',
                     messages_modulepath='edgenetwork_v1_messages'),
                 default_version=False,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
         'v1alpha1':
             APIDef(
@@ -1844,7 +1968,7 @@ MAP = {
                     base_url='https://edgenetwork.googleapis.com/',
                     messages_modulepath='edgenetwork_v1alpha1_messages'),
                 default_version=True,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
     },
     'essentialcontacts': {
@@ -1888,16 +2012,6 @@ MAP = {
                     base_url='https://eventarc.googleapis.com/',
                     messages_modulepath='eventarc_v1_messages'),
                 default_version=True,
-                enable_mtls=True,
-                mtls_endpoint_override=''),
-        'v1beta1':
-            APIDef(
-                apitools=ApitoolsClientDef(
-                    class_path='googlecloudsdk.generated_clients.apis.eventarc.v1beta1',
-                    client_classpath='eventarc_v1beta1_client.EventarcV1beta1',
-                    base_url='https://eventarc.googleapis.com/',
-                    messages_modulepath='eventarc_v1beta1_messages'),
-                default_version=False,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
     },
@@ -1977,6 +2091,16 @@ MAP = {
                     client_classpath='firebasedataconnect_v1alpha_client.FirebasedataconnectV1alpha',
                     base_url='https://firebasedataconnect.googleapis.com/',
                     messages_modulepath='firebasedataconnect_v1alpha_messages'),
+                default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+        'v1beta':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.firebasedataconnect.v1beta',
+                    client_classpath='firebasedataconnect_v1beta_client.FirebasedataconnectV1beta',
+                    base_url='https://firebasedataconnect.googleapis.com/',
+                    messages_modulepath='firebasedataconnect_v1beta_messages'),
                 default_version=True,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
@@ -2010,6 +2134,18 @@ MAP = {
                     base_url='https://firestore.googleapis.com/',
                     messages_modulepath='firestore_v1beta2_messages'),
                 default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+    },
+    'geminicloudassist': {
+        'v1alpha':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.geminicloudassist.v1alpha',
+                    client_classpath='geminicloudassist_v1alpha_client.GeminicloudassistV1alpha',
+                    base_url='https://geminicloudassist.googleapis.com/',
+                    messages_modulepath='geminicloudassist_v1alpha_messages'),
+                default_version=True,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
     },
@@ -2118,6 +2254,36 @@ MAP = {
                 default_version=False,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
+        'v2':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.gkehub.v2',
+                    client_classpath='gkehub_v2_client.GkehubV2',
+                    base_url='https://gkehub.googleapis.com/',
+                    messages_modulepath='gkehub_v2_messages'),
+                default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+        'v2alpha':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.gkehub.v2alpha',
+                    client_classpath='gkehub_v2alpha_client.GkehubV2alpha',
+                    base_url='https://gkehub.googleapis.com/',
+                    messages_modulepath='gkehub_v2alpha_messages'),
+                default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+        'v2beta':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.gkehub.v2beta',
+                    client_classpath='gkehub_v2beta_client.GkehubV2beta',
+                    base_url='https://gkehub.googleapis.com/',
+                    messages_modulepath='gkehub_v2beta_messages'),
+                default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
     },
     'gkemulticloud': {
         'v1':
@@ -2140,6 +2306,28 @@ MAP = {
                     base_url='https://gkeonprem.googleapis.com/',
                     messages_modulepath='gkeonprem_v1_messages'),
                 default_version=True,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+    },
+    'gkerecommender': {
+        'v1':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.gkerecommender.v1',
+                    client_classpath='gkerecommender_v1_client.GkerecommenderV1',
+                    base_url='https://gkerecommender.googleapis.com/',
+                    messages_modulepath='gkerecommender_v1_messages'),
+                default_version=True,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+        'v1alpha1':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.gkerecommender.v1alpha1',
+                    client_classpath='gkerecommender_v1alpha1_client.GkerecommenderV1alpha1',
+                    base_url='https://gkerecommender.googleapis.com/',
+                    messages_modulepath='gkerecommender_v1alpha1_messages'),
+                default_version=False,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
     },
@@ -2184,6 +2372,18 @@ MAP = {
                     base_url='https://healthcare.googleapis.com/',
                     messages_modulepath='healthcare_v1beta1_messages'),
                 default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+    },
+    'hypercomputecluster': {
+        'v1alpha':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.hypercomputecluster.v1alpha',
+                    client_classpath='hypercomputecluster_v1alpha_client.HypercomputeclusterV1alpha',
+                    base_url='https://hypercomputecluster.googleapis.com/',
+                    messages_modulepath='hypercomputecluster_v1alpha_messages'),
+                default_version=True,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
     },
@@ -2235,6 +2435,16 @@ MAP = {
                     client_classpath='iam_v2beta_client.IamV2beta',
                     base_url='https://iam.googleapis.com/',
                     messages_modulepath='iam_v2beta_messages'),
+                default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+        'v3':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.iam.v3',
+                    client_classpath='iam_v3_client.IamV3',
+                    base_url='https://iam.googleapis.com/',
+                    messages_modulepath='iam_v3_messages'),
                 default_version=False,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
@@ -2302,7 +2512,7 @@ MAP = {
                     base_url='https://ids.googleapis.com/',
                     messages_modulepath='ids_v1_messages'),
                 default_version=True,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
     },
     'kmsinventory': {
@@ -2398,14 +2608,48 @@ MAP = {
                 default_version=True,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
-        'v1alpha1':
+        'v1alpha2':
             APIDef(
                 apitools=ApitoolsClientDef(
-                    class_path='googlecloudsdk.generated_clients.apis.looker.v1alpha1',
-                    client_classpath='looker_v1alpha1_client.LookerV1alpha1',
+                    class_path='googlecloudsdk.generated_clients.apis.looker.v1alpha2',
+                    client_classpath='looker_v1alpha2_client.LookerV1alpha2',
                     base_url='https://looker.googleapis.com/',
-                    messages_modulepath='looker_v1alpha1_messages'),
+                    messages_modulepath='looker_v1alpha2_messages'),
                 default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+    },
+    'lustre': {
+        'v1':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.lustre.v1',
+                    client_classpath='lustre_v1_client.LustreV1',
+                    base_url='https://lustre.googleapis.com/',
+                    messages_modulepath='lustre_v1_messages'),
+                default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+        'v1alpha':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.lustre.v1alpha',
+                    client_classpath='lustre_v1alpha_client.LustreV1alpha',
+                    base_url='https://lustre.googleapis.com/',
+                    messages_modulepath='lustre_v1alpha_messages'),
+                default_version=True,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+    },
+    'managedflink': {
+        'v1alpha':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.managedflink.v1alpha',
+                    client_classpath='managedflink_v1alpha_client.ManagedflinkV1alpha',
+                    base_url='https://managedflink.googleapis.com/',
+                    messages_modulepath='managedflink_v1alpha_messages'),
+                default_version=True,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
     },
@@ -2499,6 +2743,38 @@ MAP = {
                 enable_mtls=True,
                 mtls_endpoint_override=''),
     },
+    'memorystore': {
+        'v1':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.memorystore.v1',
+                    client_classpath='memorystore_v1_client.MemorystoreV1',
+                    base_url='https://memorystore.googleapis.com/',
+                    messages_modulepath='memorystore_v1_messages'),
+                default_version=True,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+        'v1alpha':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.memorystore.v1alpha',
+                    client_classpath='memorystore_v1alpha_client.MemorystoreV1alpha',
+                    base_url='https://memorystore.googleapis.com/',
+                    messages_modulepath='memorystore_v1alpha_messages'),
+                default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+        'v1beta':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.memorystore.v1beta',
+                    client_classpath='memorystore_v1beta_client.MemorystoreV1beta',
+                    base_url='https://memorystore.googleapis.com/',
+                    messages_modulepath='memorystore_v1beta_messages'),
+                default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+    },
     'messagestreams': {
         'v1alpha':
             APIDef(
@@ -2564,6 +2840,38 @@ MAP = {
                     base_url='https://ml.googleapis.com/',
                     messages_modulepath='ml_v1_messages'),
                 default_version=True,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+    },
+    'modelarmor': {
+        'v1':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.modelarmor.v1',
+                    client_classpath='modelarmor_v1_client.ModelarmorV1',
+                    base_url='https://modelarmor.us.rep.googleapis.com/',
+                    messages_modulepath='modelarmor_v1_messages'),
+                default_version=True,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+        'v1alpha':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.modelarmor.v1alpha',
+                    client_classpath='modelarmor_v1alpha_client.ModelarmorV1alpha',
+                    base_url='https://modelarmor.us.rep.googleapis.com/',
+                    messages_modulepath='modelarmor_v1alpha_messages'),
+                default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+        'v1beta':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.modelarmor.v1beta',
+                    client_classpath='modelarmor_v1beta_client.ModelarmorV1beta',
+                    base_url='https://modelarmor.us.rep.googleapis.com/',
+                    messages_modulepath='modelarmor_v1beta_messages'),
+                default_version=False,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
     },
@@ -2694,7 +3002,7 @@ MAP = {
                     base_url='https://networksecurity.googleapis.com/',
                     messages_modulepath='networksecurity_v1_messages'),
                 default_version=True,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
         'v1alpha1':
             APIDef(
@@ -2704,7 +3012,7 @@ MAP = {
                     base_url='https://networksecurity.googleapis.com/',
                     messages_modulepath='networksecurity_v1alpha1_messages'),
                 default_version=False,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
         'v1beta1':
             APIDef(
@@ -2714,7 +3022,7 @@ MAP = {
                     base_url='https://networksecurity.googleapis.com/',
                     messages_modulepath='networksecurity_v1beta1_messages'),
                 default_version=False,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
     },
     'networkservices': {
@@ -2726,7 +3034,7 @@ MAP = {
                     base_url='https://networkservices.googleapis.com/',
                     messages_modulepath='networkservices_v1_messages'),
                 default_version=True,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
         'v1alpha1':
             APIDef(
@@ -2736,7 +3044,7 @@ MAP = {
                     base_url='https://networkservices.googleapis.com/',
                     messages_modulepath='networkservices_v1alpha1_messages'),
                 default_version=False,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
         'v1beta1':
             APIDef(
@@ -2746,7 +3054,7 @@ MAP = {
                     base_url='https://networkservices.googleapis.com/',
                     messages_modulepath='networkservices_v1beta1_messages'),
                 default_version=False,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
     },
     'notebooks': {
@@ -2781,6 +3089,18 @@ MAP = {
                 enable_mtls=True,
                 mtls_endpoint_override=''),
     },
+    'observability': {
+        'v1':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.observability.v1',
+                    client_classpath='observability_v1_client.ObservabilityV1',
+                    base_url='https://observability.googleapis.com/',
+                    messages_modulepath='observability_v1_messages'),
+                default_version=True,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+    },
     'ondemandscanning': {
         'v1':
             APIDef(
@@ -2800,6 +3120,28 @@ MAP = {
                     base_url='https://ondemandscanning.googleapis.com/',
                     messages_modulepath='ondemandscanning_v1beta1_messages'),
                 default_version=True,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+    },
+    'oracledatabase': {
+        'v1':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.oracledatabase.v1',
+                    client_classpath='oracledatabase_v1_client.OracledatabaseV1',
+                    base_url='https://oracledatabase.googleapis.com/',
+                    messages_modulepath='oracledatabase_v1_messages'),
+                default_version=True,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+        'v1alpha':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.oracledatabase.v1alpha',
+                    client_classpath='oracledatabase_v1alpha_client.OracledatabaseV1alpha',
+                    base_url='https://oracledatabase.googleapis.com/',
+                    messages_modulepath='oracledatabase_v1alpha_messages'),
+                default_version=False,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
     },
@@ -2858,6 +3200,36 @@ MAP = {
                 default_version=False,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
+        'v2':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.osconfig.v2',
+                    client_classpath='osconfig_v2_client.OsconfigV2',
+                    base_url='https://osconfig.googleapis.com/',
+                    messages_modulepath='osconfig_v2_messages'),
+                default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+        'v2alpha':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.osconfig.v2alpha',
+                    client_classpath='osconfig_v2alpha_client.OsconfigV2alpha',
+                    base_url='https://osconfig.googleapis.com/',
+                    messages_modulepath='osconfig_v2alpha_messages'),
+                default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+        'v2beta':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.osconfig.v2beta',
+                    client_classpath='osconfig_v2beta_client.OsconfigV2beta',
+                    base_url='https://osconfig.googleapis.com/',
+                    messages_modulepath='osconfig_v2beta_messages'),
+                default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
     },
     'oslogin': {
         'v1':
@@ -2892,6 +3264,16 @@ MAP = {
                 mtls_endpoint_override=''),
     },
     'parallelstore': {
+        'v1':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.parallelstore.v1',
+                    client_classpath='parallelstore_v1_client.ParallelstoreV1',
+                    base_url='https://parallelstore.googleapis.com/',
+                    messages_modulepath='parallelstore_v1_messages'),
+                default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
         'v1alpha':
             APIDef(
                 apitools=ApitoolsClientDef(
@@ -2910,6 +3292,18 @@ MAP = {
                     base_url='https://parallelstore.googleapis.com/',
                     messages_modulepath='parallelstore_v1beta_messages'),
                 default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+    },
+    'parametermanager': {
+        'v1':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.parametermanager.v1',
+                    client_classpath='parametermanager_v1_client.ParametermanagerV1',
+                    base_url='https://parametermanager.googleapis.com/',
+                    messages_modulepath='parametermanager_v1_messages'),
+                default_version=True,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
     },
@@ -2976,7 +3370,7 @@ MAP = {
                     base_url='https://policytroubleshooter.googleapis.com/',
                     messages_modulepath='policytroubleshooter_v1_messages'),
                 default_version=True,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
         'v1beta':
             APIDef(
@@ -2986,7 +3380,7 @@ MAP = {
                     base_url='https://policytroubleshooter.googleapis.com/',
                     messages_modulepath='policytroubleshooter_v1beta_messages'),
                 default_version=False,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
         'v2alpha1':
             APIDef(
@@ -2996,7 +3390,7 @@ MAP = {
                     base_url='https://policytroubleshooter.googleapis.com/',
                     messages_modulepath='policytroubleshooter_v2alpha1_messages'),
                 default_version=False,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
         'v3':
             APIDef(
@@ -3006,7 +3400,7 @@ MAP = {
                     base_url='https://policytroubleshooter.googleapis.com/',
                     messages_modulepath='policytroubleshooter_v3_messages'),
                 default_version=False,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
         'v3alpha':
             APIDef(
@@ -3016,7 +3410,7 @@ MAP = {
                     base_url='https://policytroubleshooter.googleapis.com/',
                     messages_modulepath='policytroubleshooter_v3alpha_messages'),
                 default_version=False,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
         'v3beta':
             APIDef(
@@ -3026,7 +3420,7 @@ MAP = {
                     base_url='https://policytroubleshooter.googleapis.com/',
                     messages_modulepath='policytroubleshooter_v3beta_messages'),
                 default_version=False,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
     },
     'privateca': {
@@ -3042,6 +3436,16 @@ MAP = {
                 mtls_endpoint_override=''),
     },
     'privilegedaccessmanager': {
+        'v1':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.privilegedaccessmanager.v1',
+                    client_classpath='privilegedaccessmanager_v1_client.PrivilegedaccessmanagerV1',
+                    base_url='https://privilegedaccessmanager.googleapis.com/',
+                    messages_modulepath='privilegedaccessmanager_v1_messages'),
+                default_version=True,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
         'v1alpha':
             APIDef(
                 apitools=ApitoolsClientDef(
@@ -3049,7 +3453,7 @@ MAP = {
                     client_classpath='privilegedaccessmanager_v1alpha_client.PrivilegedaccessmanagerV1alpha',
                     base_url='https://privilegedaccessmanager.googleapis.com/',
                     messages_modulepath='privilegedaccessmanager_v1alpha_messages'),
-                default_version=True,
+                default_version=False,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
         'v1beta':
@@ -3072,7 +3476,7 @@ MAP = {
                     base_url='https://publicca.googleapis.com/',
                     messages_modulepath='publicca_v1_messages'),
                 default_version=True,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
         'v1alpha1':
             APIDef(
@@ -3082,7 +3486,7 @@ MAP = {
                     base_url='https://publicca.googleapis.com/',
                     messages_modulepath='publicca_v1alpha1_messages'),
                 default_version=False,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
         'v1beta1':
             APIDef(
@@ -3092,7 +3496,7 @@ MAP = {
                     base_url='https://publicca.googleapis.com/',
                     messages_modulepath='publicca_v1beta1_messages'),
                 default_version=False,
-                enable_mtls=False,
+                enable_mtls=True,
                 mtls_endpoint_override=''),
     },
     'pubsub': {
@@ -3207,28 +3611,6 @@ MAP = {
                 enable_mtls=True,
                 mtls_endpoint_override=''),
     },
-    'resourcesettings': {
-        'v1':
-            APIDef(
-                apitools=ApitoolsClientDef(
-                    class_path='googlecloudsdk.generated_clients.apis.resourcesettings.v1',
-                    client_classpath='resourcesettings_v1_client.ResourcesettingsV1',
-                    base_url='https://resourcesettings.googleapis.com/',
-                    messages_modulepath='resourcesettings_v1_messages'),
-                default_version=True,
-                enable_mtls=True,
-                mtls_endpoint_override=''),
-        'v1alpha1':
-            APIDef(
-                apitools=ApitoolsClientDef(
-                    class_path='googlecloudsdk.generated_clients.apis.resourcesettings.v1alpha1',
-                    client_classpath='resourcesettings_v1alpha1_client.ResourcesettingsV1alpha1',
-                    base_url='https://resourcesettings.googleapis.com/',
-                    messages_modulepath='resourcesettings_v1alpha1_messages'),
-                default_version=False,
-                enable_mtls=True,
-                mtls_endpoint_override=''),
-    },
     'run': {
         'v1':
             APIDef(
@@ -3257,6 +3639,8 @@ MAP = {
                     client_classpath='run_v2_client.RunV2',
                     base_url='https://run.googleapis.com/',
                     messages_modulepath='run_v2_messages'),
+                gapic=GapicClientDef(
+                    class_path='googlecloudsdk.generated_clients.gapic_wrappers.run.v2'),
                 default_version=False,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
@@ -3285,6 +3669,28 @@ MAP = {
                 enable_mtls=True,
                 mtls_endpoint_override=''),
     },
+    'saasservicemgmt': {
+        'v1alpha1':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.saasservicemgmt.v1alpha1',
+                    client_classpath='saasservicemgmt_v1alpha1_client.SaasservicemgmtV1alpha1',
+                    base_url='https://saasservicemgmt.googleapis.com/',
+                    messages_modulepath='saasservicemgmt_v1alpha1_messages'),
+                default_version=True,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+        'v1beta1':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.saasservicemgmt.v1beta1',
+                    client_classpath='saasservicemgmt_v1beta1_client.SaasservicemgmtV1beta1',
+                    base_url='https://saasservicemgmt.googleapis.com/',
+                    messages_modulepath='saasservicemgmt_v1beta1_messages'),
+                default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+    },
     'sasportal': {
         'v1alpha1':
             APIDef(
@@ -3310,6 +3716,16 @@ MAP = {
                 mtls_endpoint_override=''),
     },
     'seclm': {
+        'v1':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.seclm.v1',
+                    client_classpath='seclm_v1_client.SeclmV1',
+                    base_url='https://seclm.googleapis.com/',
+                    messages_modulepath='seclm_v1_messages'),
+                default_version=True,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
         'v1alpha':
             APIDef(
                 apitools=ApitoolsClientDef(
@@ -3317,7 +3733,7 @@ MAP = {
                     client_classpath='seclm_v1alpha_client.SeclmV1alpha',
                     base_url='https://seclm.googleapis.com/',
                     messages_modulepath='seclm_v1alpha_messages'),
-                default_version=True,
+                default_version=False,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
     },
@@ -3342,18 +3758,6 @@ MAP = {
                 default_version=False,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
-    },
-    'securedlandingzone': {
-        'v1beta':
-            APIDef(
-                apitools=ApitoolsClientDef(
-                    class_path='googlecloudsdk.generated_clients.apis.securedlandingzone.v1beta',
-                    client_classpath='securedlandingzone_v1beta_client.SecuredlandingzoneV1beta',
-                    base_url='https://securedlandingzone.googleapis.com/',
-                    messages_modulepath='securedlandingzone_v1beta_messages'),
-                default_version=True,
-                enable_mtls=True,
-                mtls_endpoint_override='https://securedlandingzone.mtls.googleapis.com/'),
     },
     'securesourcemanager': {
         'v1':
@@ -3542,6 +3946,16 @@ MAP = {
                 default_version=False,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
+        'v2beta':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.serviceusage.v2beta',
+                    client_classpath='serviceusage_v2beta_client.ServiceusageV2beta',
+                    base_url='https://serviceusage.googleapis.com/',
+                    messages_modulepath='serviceusage_v2beta_messages'),
+                default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
     },
     'source': {
         'v1':
@@ -3638,9 +4052,26 @@ MAP = {
                 mtls_endpoint_override=''),
         'v2':
             APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.storage.v2',
+                    client_classpath='storage_v2_client.StorageV2',
+                    base_url='https://storage.googleapis.com/',
+                    messages_modulepath='storage_v2_messages'),
                 gapic=GapicClientDef(
                     class_path='googlecloudsdk.generated_clients.gapic_wrappers.storage.v2'),
                 default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
+    },
+    'storagebatchoperations': {
+        'v1':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.storagebatchoperations.v1',
+                    client_classpath='storagebatchoperations_v1_client.StoragebatchoperationsV1',
+                    base_url='https://storagebatchoperations.googleapis.com/',
+                    messages_modulepath='storagebatchoperations_v1_messages'),
+                default_version=True,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
     },
@@ -3915,6 +4346,16 @@ MAP = {
                 mtls_endpoint_override=''),
     },
     'websecurityscanner': {
+        'v1':
+            APIDef(
+                apitools=ApitoolsClientDef(
+                    class_path='googlecloudsdk.generated_clients.apis.websecurityscanner.v1',
+                    client_classpath='websecurityscanner_v1_client.WebsecurityscannerV1',
+                    base_url='https://websecurityscanner.googleapis.com/',
+                    messages_modulepath='websecurityscanner_v1_messages'),
+                default_version=False,
+                enable_mtls=True,
+                mtls_endpoint_override=''),
         'v1beta':
             APIDef(
                 apitools=ApitoolsClientDef(
@@ -3987,18 +4428,6 @@ MAP = {
                     base_url='https://workflows.googleapis.com/',
                     messages_modulepath='workflows_v1beta_messages'),
                 default_version=False,
-                enable_mtls=True,
-                mtls_endpoint_override=''),
-    },
-    'workloadcertificate': {
-        'v1alpha1':
-            APIDef(
-                apitools=ApitoolsClientDef(
-                    class_path='googlecloudsdk.generated_clients.apis.workloadcertificate.v1alpha1',
-                    client_classpath='workloadcertificate_v1alpha1_client.WorkloadcertificateV1alpha1',
-                    base_url='https://workloadcertificate.googleapis.com/',
-                    messages_modulepath='workloadcertificate_v1alpha1_messages'),
-                default_version=True,
                 enable_mtls=True,
                 mtls_endpoint_override=''),
     },

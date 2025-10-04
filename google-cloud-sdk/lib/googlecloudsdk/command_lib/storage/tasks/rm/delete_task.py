@@ -75,7 +75,7 @@ class DeleteFileTask(DeleteTask):
   """Task to delete a file."""
 
   def _perform_deletion(self):
-    os.remove(self._url.object_name)
+    os.remove(self._url.resource_name)
 
 
 class CloudDeleteTask(DeleteTask):
@@ -125,7 +125,23 @@ class DeleteManagedFolderTask(CloudDeleteTask):
 
   def _make_delete_api_call(self, client, request_config):
     del request_config  # Unused.
-    client.delete_managed_folder(self._url.bucket_name, self._url.object_name)
+    client.delete_managed_folder(self._url.bucket_name, self._url.resource_name)
+
+
+class DeleteFolderTask(CloudDeleteTask):
+  """Task to delete a folder."""
+
+  @property
+  def folder_url(self):
+    """The URL of the resource deleted by this task.
+
+    Exposing this allows execution to respect containment order.
+    """
+    return self._url
+
+  def _make_delete_api_call(self, client, request_config):
+    del request_config  # Unused.
+    client.delete_folder(self._url.bucket_name, self._url.resource_name)
 
 
 class DeleteObjectTask(CloudDeleteTask):

@@ -22,10 +22,13 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import contextlib
+import copy
 import dataclasses
 import functools
+import json
 import random
 import string
+from typing import List
 
 from apitools.base.py import encoding
 from apitools.base.py import exceptions as api_exceptions
@@ -41,11 +44,13 @@ from googlecloudsdk.api_lib.run import revision
 from googlecloudsdk.api_lib.run import route
 from googlecloudsdk.api_lib.run import service
 from googlecloudsdk.api_lib.run import task
+from googlecloudsdk.api_lib.run import worker_pool as worker_pool_lib
 from googlecloudsdk.api_lib.util import apis
 from googlecloudsdk.api_lib.util import apis_internal
+from googlecloudsdk.api_lib.util import exceptions as api_lib_exceptions
 from googlecloudsdk.api_lib.util import waiter
+from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.iam import iam_util
-from googlecloudsdk.command_lib.run import artifact_registry
 from googlecloudsdk.command_lib.run import config_changes as config_changes_mod
 from googlecloudsdk.command_lib.run import exceptions as serverless_exceptions
 from googlecloudsdk.command_lib.run import messages_util
@@ -54,27 +59,30 @@ from googlecloudsdk.command_lib.run import op_pollers
 from googlecloudsdk.command_lib.run import resource_name_conversion
 from googlecloudsdk.command_lib.run import stages
 from googlecloudsdk.command_lib.run.sourcedeploys import deployer
+from googlecloudsdk.command_lib.run.sourcedeploys import sources
 from googlecloudsdk.core import exceptions
 from googlecloudsdk.core import log
 from googlecloudsdk.core import metrics
 from googlecloudsdk.core import properties
 from googlecloudsdk.core import resources
 from googlecloudsdk.core.console import progress_tracker
+from googlecloudsdk.core.universe_descriptor import universe_descriptor
 from googlecloudsdk.core.util import retry
 import six
+
 
 DEFAULT_ENDPOINT_VERSION = 'v1'
 
 _NONCE_LENGTH = 10
 
-# Wait 11 mins for each deployment. This is longer than the server timeout,
-# making it more likely to get a useful error message from the server.
-MAX_WAIT_MS = 660000
-
 ALLOW_UNAUTH_POLICY_BINDING_MEMBER = 'allUsers'
 ALLOW_UNAUTH_POLICY_BINDING_ROLE = 'roles/run.invoker'
 
 NEEDED_IAM_PERMISSIONS = ['run.services.setIamPolicy']
+
+FAKE_IMAGE_DIGEST = (
+    'sha256:fd2fdc0ac4a07f8d96ebe538566331e9da0f4bea069fb88de981cd8054b8cabc'
+)
 
 
 class UnknownAPIError(exceptions.Error):
@@ -130,9 +138,7 @@ def Connect(conn_context, already_activated_service=False):
     # pylint: enable=protected-access
     yield ServerlessOperations(
         client,
-        conn_info.api_name,
-        conn_info.api_version,
-        conn_info.region,
+        conn_info,
         op_client,
     )
 
@@ -204,23 +210,23 @@ class _AddDigestToImageChange(config_changes_mod.TemplateConfigChanger):
 class ServerlessOperations(object):
   """Client used by Serverless to communicate with the actual Serverless API."""
 
-  def __init__(self, client, api_name, api_version, region, op_client):
+  def __init__(self, client, conn_context, op_client):
     """Inits ServerlessOperations with given API clients.
 
     Args:
       client: The API client for interacting with Kubernetes Cloud Run APIs.
-      api_name: str, The name of the Cloud Run API.
-      api_version: str, The version of the Cloud Run API.
-      region: str, The region of the control plane if operating against hosted
-        Cloud Run, else None.
+      conn_context: the connection context used to create this object.
       op_client: The API client for interacting with One Platform APIs. Or None
         if interacting with Cloud Run for Anthos.
     """
     self._client = client
     self._registry = resources.REGISTRY.Clone()
-    self._registry.RegisterApiByName(api_name, api_version)
+    self._registry.RegisterApiByName(
+        conn_context.api_name, conn_context.api_version
+    )
     self._op_client = op_client
-    self._region = region
+    self._region = conn_context.region
+    self._conn_context = conn_context
 
   @property
   def messages_module(self):
@@ -337,7 +343,9 @@ class ServerlessOperations(object):
     except api_exceptions.HttpNotFoundError:
       return None
 
-  def WaitService(self, operation_id):
+  def WaitService(
+      self, operation_id, service_ref, release_track=base.ReleaseTrack.GA
+  ):
     """Return the relevant Service from the server, or None if 404."""
     messages = self.messages_module
     project = properties.VALUES.core.project.Get(required=True)
@@ -350,13 +358,31 @@ class ServerlessOperations(object):
     try:
       with metrics.RecordDuration(metric_names.WAIT_OPERATION):
         poller = op_pollers.WaitOperationPoller(
+            self.messages_module,
             self._client.projects_locations_services,
             self._client.projects_locations_operations,
         )
-        operation = waiter.PollUntilDone(poller, op_ref)
-        as_dict = encoding.MessageToPyValue(operation.response)
-        as_pb = encoding.PyValueToMessage(messages.Service, as_dict)
-        return service.Service(as_pb, self.messages_module)
+        if release_track == base.ReleaseTrack.ALPHA:
+          operation = poller.Poll(op_ref)
+          # operation.response will only be filled if the operation is done.
+          # if the opration isn't done, operation.metadata should have status
+          # information for the tracker.
+          if operation.response:
+            as_dict = encoding.MessageToPyValue(operation.response)
+            as_pb = encoding.PyValueToMessage(messages.Service, as_dict)
+            return service.Service(as_pb, self.messages_module)
+          elif operation.metadata:
+            as_dict = encoding.MessageToPyValue(operation.metadata)
+            as_pb = encoding.PyValueToMessage(messages.Service, as_dict)
+            return service.Service(as_pb, self.messages_module)
+          else:
+            return self.GetService(service_ref)
+        else:
+          operation = waiter.PollUntilDone(poller, op_ref)
+          as_dict = encoding.MessageToPyValue(operation.response)
+          as_pb = encoding.PyValueToMessage(messages.Service, as_dict)
+          return service.Service(as_pb, self.messages_module)
+
     except api_exceptions.InvalidDataFromServerError as e:
       serverless_exceptions.MaybeRaiseCustomFieldMismatch(e)
     except api_exceptions.HttpNotFoundError:
@@ -618,6 +644,12 @@ class ServerlessOperations(object):
     except api_exceptions.HttpBadRequestError as e:
       exceptions.reraise(serverless_exceptions.HttpError(e))
     except api_exceptions.HttpNotFoundError as e:
+      parsed_err = api_lib_exceptions.HttpException(e)
+      if (
+          hasattr(parsed_err.payload, 'domain_details')
+          and 'run.googleapis.com' in parsed_err.payload.domain_details
+      ):
+        raise parsed_err
       platform = properties.VALUES.run.platform.Get()
       error_msg = 'Deployment endpoint was not found.'
       if platform == 'gke':
@@ -664,7 +696,15 @@ class ServerlessOperations(object):
           )
       )
 
-  def UpdateTraffic(self, service_ref, config_changes, tracker, asyn):
+  def UpdateTraffic(
+      self,
+      service_ref,
+      config_changes,
+      tracker,
+      asyn,
+      is_verbose,
+      release_track,
+  ):
     """Update traffic splits for service."""
     if tracker is None:
       tracker = progress_tracker.NoOpStagedProgressTracker(
@@ -685,12 +725,15 @@ class ServerlessOperations(object):
     if not asyn:
       if updated_serv.conditions.IsReady():
         return updated_serv
-
-      getter = (
-          functools.partial(self.GetService, service_ref)
-          if updated_serv.operation_id is None
-          else functools.partial(self.WaitService, updated_serv.operation_id)
-      )
+      if updated_serv.operation_id is None or is_verbose:
+        getter = functools.partial(self.GetService, service_ref)
+      else:
+        getter = functools.partial(
+            self.WaitService,
+            updated_serv.operation_id,
+            service_ref,
+            release_track,
+        )
       poller = op_pollers.ServiceConditionPoller(
           getter, tracker, serv=updated_serv
       )
@@ -706,7 +749,17 @@ class ServerlessOperations(object):
     )
     config_changes.insert(0, _NewRevisionForcingChange(revision_suffix))
 
-  def _ReplaceBaseImage(
+  def _DeleteRevisionBaseImageAnnotation(
+      self, config_changes, source_container_name
+  ):
+    """Delete the base image revision level annotation for source container."""
+    config_changes.append(
+        config_changes_mod.BaseImagesAnnotationChange(
+            deletes=[source_container_name]
+        )
+    )
+
+  def _ReplaceOrAddBaseImage(
       self,
       config_changes,
       base_image_from_build,
@@ -721,18 +774,50 @@ class ServerlessOperations(object):
       ingress_container_name: The name of the ingress container that is build
         from source. This could be empty string.
     """
-    for change in config_changes:
-      if isinstance(
-          change, config_changes_mod.IngressContainerBaseImagesAnnotationChange
-      ):
-        config_changes_mod.IngressContainerBaseImagesAnnotationChange.replace(
-            change,
-            config_changes_mod.IngressContainerBaseImagesAnnotationChange(
-                base_image=base_image_from_build
-            ),
+    config_changes.append(
+        config_changes_mod.BaseImagesAnnotationChange(
+            updates={ingress_container_name: base_image_from_build}
         )
-      elif isinstance(change, config_changes_mod.BaseImagesAnnotationChange):
-        change.updates[ingress_container_name] = base_image_from_build
+    )
+
+  def _GetFunctionTargetFromBuildPack(self, pack):
+    """Get the function target from the build pack."""
+    if pack:
+      for env_var in pack[0].get('envs', []):
+        if env_var.startswith('GOOGLE_FUNCTION_TARGET='):
+          return env_var.split('=', 1)[1]
+    return None
+
+  def _ValidateServiceBeforeSourceDeploy(
+      self,
+      tracker: progress_tracker.StagedProgressTracker,
+      service_ref: string,
+      prefetch: service.Service,
+      config_changes: List[config_changes_mod.ConfigChanger],
+      generate_name: bool,
+  ):
+    """Validate the service in dry run before building."""
+    svc = None
+    validate_config_changes = config_changes[:]
+    if prefetch:
+      svc = service.Service(
+          copy.deepcopy(prefetch.Message()), self.messages_module
+      )
+      # if there's a template change and the name is set, this would fail
+      # unless we clear the name. Use the same forcing logic as down below.
+      # just to make sure there's no issue.
+      if config_changes_mod.AdjustsTemplate(config_changes):
+        if generate_name:
+          self._AddRevisionForcingChange(prefetch, validate_config_changes)
+        else:
+          validate_config_changes.append(_NewRevisionNonceChange(_Nonce()))
+
+    tracker.StartStage(stages.VALIDATE_SERVICE)
+    tracker.UpdateHeaderMessage('Validating Service...')
+    self._UpdateOrCreateService(
+        service_ref, validate_config_changes, True, svc, dry_run=True
+    )
+    tracker.CompleteStage(stages.VALIDATE_SERVICE)
 
   def ReleaseService(
       self,
@@ -742,10 +827,12 @@ class ServerlessOperations(object):
       tracker=None,
       asyn=False,
       allow_unauthenticated=None,
+      multiregion_regions=None,
       for_replace=False,
       prefetch=False,
       build_image=None,
       build_pack=None,
+      build_region=None,
       build_source=None,
       repo_to_create=None,
       already_activated_services=False,
@@ -753,7 +840,17 @@ class ServerlessOperations(object):
       generate_name=False,
       delegate_builds=False,
       base_image=None,
-      build_from_source_container_name='',
+      build_service_account=None,
+      deploy_from_source_container_name='',
+      build_worker_pool=None,
+      build_machine_type=None,
+      build_env_vars=None,
+      enable_automatic_updates=False,
+      is_verbose=False,
+      source_bucket=None,
+      kms_key=None,
+      iap_enabled=None,
+      skip_build=False,
   ):
     """Change the given service in prod using the given config_changes.
 
@@ -770,6 +867,7 @@ class ServerlessOperations(object):
         which should also have its IAM policy set to allow unauthenticated
         access. False if removing the IAM policy to allow unauthenticated access
         from a service.
+      multiregion_regions: The regions for a multi-region service.
       for_replace: bool, If the change is for a replacing the service from a
         YAML specification.
       prefetch: the service, pre-fetched for ReleaseService. `False` indicates
@@ -777,6 +875,7 @@ class ServerlessOperations(object):
         service.
       build_image: The build image reference to the build.
       build_pack: The build pack reference to the build.
+      build_region: The region to use for the build, in case of multi-region.
       build_source: The build source reference to the build.
       repo_to_create: Optional
         googlecloudsdk.command_lib.artifacts.docker_util.DockerRepo defining a
@@ -787,54 +886,128 @@ class ServerlessOperations(object):
       generate_name: bool. If true, create a revision name, otherwise add nonce.
       delegate_builds: bool. If true, use the Build API to submit builds.
       base_image: The build base image to opt-in automatic build image updates.
-      build_from_source_container_name: The name of the ingress container that
-        is build from source. This could be empty string.
+      build_service_account: The service account to use to execute the build.
+      deploy_from_source_container_name: The name of the ingress container that
+        is deployed from source include build-from-source and zip deploy. This
+        field could be an empty string.
+      build_worker_pool:  The name of the Cloud Build custom worker pool that
+        should be used to build the function.
+      build_machine_type: The machine type from Cloud Build default pool to use
+        for the build.
+      build_env_vars: Dictionary of build env vars to send to submit build.
+      enable_automatic_updates: If true, opt-in automatic build image updates.
+        If false, opt-out automatic build image updates.
+      is_verbose: Print verbose output. Forces polling instead of waiting.
+      source_bucket: The existing bucket to use for source uploads. Leave it as
+        None to create a new bucket.
+      kms_key: The KMS key to use for the deployment.
+      iap_enabled: If true, assign run.invoker access to IAP P4SA, if false,
+        remove run.invoker access from IAP P4SA.
+      skip_build: If true, skip the cloud build step.
 
     Returns:
       service.Service, the service as returned by the server on the POST/PUT
        request to create/update the service.
     """
+    requires_build = build_source is not None and not skip_build
+    should_validate_service = requires_build and release_track in [
+        base.ReleaseTrack.ALPHA,
+        base.ReleaseTrack.BETA,
+    ]
+    region = build_region or self._region
     if tracker is None:
       tracker = progress_tracker.NoOpStagedProgressTracker(
           stages.ServiceStages(
               allow_unauthenticated is not None,
-              include_build=build_source is not None,
+              include_validate_service=should_validate_service,
+              include_upload_source=build_source is not None,
+              include_build=requires_build,
               include_create_repo=repo_to_create is not None,
+              include_iap=iap_enabled is not None,
           ),
           interruptable=True,
           aborted_message='aborted',
       )
 
-    # TODO(b/321837261): Use Build API to create Repository
-    if repo_to_create:
-      self._CreateRepository(
-          tracker,
-          repo_to_create,
-          skip_activation_prompt=already_activated_services,
-      )
-
-    if build_source is not None:
-      image_digest, base_image_from_build = deployer.CreateImage(
-          tracker,
-          build_image,
-          build_source,
-          build_pack,
-          release_track,
-          already_activated_services,
-          self._region,
-          service_ref,
-          delegate_builds,
-          base_image,
-      )
-      if image_digest is None:
-        return
-      config_changes.append(_AddDigestToImageChange(image_digest))
-      if base_image_from_build:
-        self._ReplaceBaseImage(
-            config_changes,
-            base_image_from_build,
-            build_from_source_container_name,
+    if build_source is not None and skip_build:
+      tracker.StartStage(stages.UPLOAD_SOURCE)
+      if sources.IsGcsObject(build_source):
+        tracker.UpdateHeaderMessage(
+            'Using the source from the specified bucket.'
         )
+        source_path = build_source
+      else:
+        source = sources.Upload(
+            build_source,
+            region,
+            service_ref,
+            source_bucket,
+            sources.ArchiveType.TAR,
+            respect_gitignore=False,
+        )
+        # TODO(b/423646813): Remove this once zip deploys properly handles the
+        # generation number.
+        source.generation = None
+        source_path = sources.GetGsutilUri(source)
+      config_changes.append(
+          config_changes_mod.SourcesAnnotationChange(
+              updates={deploy_from_source_container_name: source_path}
+          )
+      )
+      tracker.CompleteStage(stages.UPLOAD_SOURCE)
+    elif requires_build:
+      new_conn = self._conn_context.GetContextWithRegionOverride(region)
+      with new_conn:
+        if should_validate_service:
+          self._ValidateServiceBeforeSourceDeploy(
+              tracker, service_ref, prefetch, config_changes, generate_name
+          )
+        # TODO(b/355762514): Either remove or re-enable this validation.
+        # self._ValidateService(service_ref, config_changes)
+        (
+            image_digest,
+            build_base_image,
+            build_id,
+            uploaded_source,
+            build_name,
+        ) = deployer.CreateImage(
+            tracker,
+            build_image,
+            build_source,
+            build_pack,
+            repo_to_create,
+            release_track,
+            already_activated_services,
+            region,
+            service_ref,
+            delegate_builds,
+            base_image,
+            build_service_account,
+            build_worker_pool,
+            build_machine_type,
+            build_env_vars,
+            enable_automatic_updates,
+            source_bucket,
+            kms_key,
+        )
+        if image_digest is None:
+          return
+        self._ClearRunFunctionsAnnotations(config_changes)
+        self._AddRunFunctionsAnnotations(
+            config_changes=config_changes,
+            uploaded_source=uploaded_source,
+            service_account=build_service_account,
+            worker_pool=build_worker_pool,
+            build_env_vars=build_env_vars,
+            build_pack=build_pack,
+            build_id=build_id,
+            build_image=build_image,
+            build_name=build_name,
+            build_base_image=build_base_image,
+            build_from_source_container_name=deploy_from_source_container_name,
+            enable_automatic_updates=enable_automatic_updates,
+        )
+        config_changes.append(_AddDigestToImageChange(image_digest))
     if prefetch is None:
       serv = None
     elif build_source:
@@ -857,8 +1030,10 @@ class ServerlessOperations(object):
           self._AddRevisionForcingChange(serv, config_changes)
         else:
           config_changes.append(_NewRevisionNonceChange(_Nonce()))
-        if serv and not with_image:
+        if serv and not with_image and not multiregion_regions:
           # Avoid changing the running code by making the new revision by digest
+          # We can't do this in multi-region services, because there is no
+          # Revisions API.
           self._EnsureImageDigest(serv, config_changes)
 
     if serv and serv.metadata.deletionTimestamp is not None:
@@ -872,6 +1047,46 @@ class ServerlessOperations(object):
         service_ref, config_changes, with_image, serv, dry_run
     )
 
+    # Handle SetIamPolicy call(s).
+    self._HandleAllowUnauthenticated(
+        service_ref, allow_unauthenticated, multiregion_regions, tracker
+    )
+
+    self._HandleIap(service_ref, iap_enabled, updated_service, tracker)
+
+    if not asyn and not dry_run:
+      if updated_service.conditions.IsReady():
+        return updated_service
+      if updated_service.operation_id is None or is_verbose:
+        getter = functools.partial(self.GetService, service_ref)
+      else:
+        getter = functools.partial(
+            self.WaitService,
+            updated_service.operation_id,
+            service_ref,
+            release_track,
+        )
+      poller = op_pollers.ServiceConditionPoller(
+          getter,
+          tracker,
+          dependencies=stages.ServiceDependencies(multiregion_regions),
+          serv=updated_service,
+      )
+      self.WaitForCondition(poller)
+      for msg in run_condition.GetNonTerminalMessages(poller.GetConditions()):
+        tracker.AddWarning(msg)
+      updated_service = poller.GetResource()
+
+    return updated_service
+
+  def _HandleAllowUnauthenticated(
+      self, service_ref, allow_unauthenticated, multiregion_regions, tracker
+  ):
+    """Handle SetIamPolicy call(s)."""
+    if allow_unauthenticated is not None and multiregion_regions is not None:
+      return self._HandleMultiRegionAllowUnauthenticated(
+          service_ref, allow_unauthenticated, multiregion_regions, tracker
+      )
     if allow_unauthenticated is not None:
       try:
         tracker.StartStage(stages.SERVICE_IAM_POLICY_SET)
@@ -897,152 +1112,302 @@ class ServerlessOperations(object):
             stages.SERVICE_IAM_POLICY_SET, warning_message=warning_message
         )
 
-    if not asyn and not dry_run:
-      if updated_service.conditions.IsReady():
-        return updated_service
-
-      getter = (
-          functools.partial(self.GetService, service_ref)
-          if updated_service.operation_id is None
-          else functools.partial(self.WaitService, updated_service.operation_id)
-      )
-      poller = op_pollers.ServiceConditionPoller(
-          getter,
-          tracker,
-          dependencies=stages.ServiceDependencies(),
-          serv=updated_service,
-      )
-      self.WaitForCondition(poller)
-      for msg in run_condition.GetNonTerminalMessages(poller.GetConditions()):
-        tracker.AddWarning(msg)
-      updated_service = poller.GetResource()
-
-    return updated_service
-
-  # TODO(b/322180968): Once Worker API is ready, factor out worker related
-  # operations wired up to the API in a separate file.
-  def GetWorker(self, worker_ref):
-    return self.GetService(worker_ref)
-
-  def ReleaseWorker(
-      self,
-      worker_ref,
-      config_changes,
-      release_track,
-      tracker=None,
-      asyn=False,
-      for_replace=False,
-      prefetch=False,
-      build_image=None,
-      build_pack=None,
-      build_source=None,
-      repo_to_create=None,
-      already_activated_services=False,
-      dry_run=False,
-      generate_name=False,
+  def _HandleMultiRegionAllowUnauthenticated(
+      self, service_ref, allow_unauthenticated, multiregion_regions, tracker
   ):
-    """Stubbed method for worker deploy surface.
+    """Handle SetIamPolicy calls for Multi-Region Services."""
+    tracker.StartStage(stages.SERVICE_IAM_POLICY_SET)
+    warning_message = None
+    for region in multiregion_regions:
+      try:
+        tracker.UpdateStage(
+            stages.SERVICE_IAM_POLICY_SET,
+            'Setting IAM policy for region {}'.format(region),
+        )
+        self.AddOrRemoveIamPolicyBinding(
+            service_ref,
+            allow_unauthenticated,
+            ALLOW_UNAUTH_POLICY_BINDING_MEMBER,
+            ALLOW_UNAUTH_POLICY_BINDING_ROLE,
+            region_override=region,
+        )
+      except api_exceptions.HttpError:
+        if not warning_message:
+          warning_message = (
+              'Setting IAM policy failed, try "gcloud beta run services '
+              '{}-iam-policy-binding --region=[region] --member=allUsers '
+              '--role=roles/run.invoker {service}" for regions: {region}'
+              .format(
+                  'add' if allow_unauthenticated else 'remove',
+                  region=region,
+                  service=service_ref.servicesId,
+              )
+          )
+        else:
+          warning_message += region
+    if not warning_message:
+      tracker.CompleteStage(stages.SERVICE_IAM_POLICY_SET)
+    else:
+      tracker.CompleteStageWithWarning(
+          stages.SERVICE_IAM_POLICY_SET, warning_message=warning_message
+      )
+
+  def GetServiceAgent(self, project_num):
+    """Returns the service agent for the given project.
+
+    For Universe Projects, the format will look like
+    service-{project_num}@gcp-sa-iap.{project_prefix}iam.gserviceaccount.com
+    FOR GDU format will look like
+    service-{project_num}@gcp-sa-iap.iam.gserviceaccount.com
 
     Args:
-      worker_ref: Resource, the worker to release.
-      config_changes: list, objects that implement Adjust().
-      release_track: ReleaseTrack, the release track of a command calling this.
-      tracker: StagedProgressTracker, to report on the progress of releasing.
-      asyn: bool, if True, return without waiting for the service to be updated.
-      for_replace: bool, If the change is for a replacing the service from a
-        YAML specification.
-      prefetch: the service, pre-fetched for ReleaseService. `False` indicates
-        the caller did not perform a prefetch; `None` indicates a nonexistent
-        service.
-      build_image: The build image reference to the build.
-      build_pack: The build pack reference to the build.
-      build_source: The build source reference to the build.
-      repo_to_create: Optional
-        googlecloudsdk.command_lib.artifacts.docker_util.DockerRepo defining a
-        repository to be created.
-      already_activated_services: bool. If true, skip activation prompts for
-        services
-      dry_run: bool. If true, only validate the configuration.
-      generate_name: bool. If true, create a revision name, otherwise add nonce.
-
-    For private preview Worker is still Service underneath.
-
-    Returns:
-      service.Service, the service as returned by the server on the POST/PUT
-       request to create/update the service.
+      project_num: The project number.
     """
-    return self.ReleaseService(
-        worker_ref,
-        config_changes,
-        release_track,
-        tracker=tracker,
-        asyn=asyn,
-        for_replace=for_replace,
-        prefetch=prefetch,
-        build_image=build_image,
-        build_pack=build_pack,
-        build_source=build_source,
-        repo_to_create=repo_to_create,
-        already_activated_services=already_activated_services,
-        dry_run=dry_run,
-        generate_name=generate_name,
+    project_prefix = (
+        universe_descriptor.GetUniverseDomainDescriptor().project_prefix
+    )
+    if project_prefix:
+      return f'serviceAccount:service-{project_num}@gcp-sa-iap.{project_prefix}.iam.gserviceaccount.com'
+    return f'serviceAccount:service-{project_num}@gcp-sa-iap.iam.gserviceaccount.com'
+
+  def _HandleIap(self, service_ref, iap_enabled, updated_service, tracker):
+    """Handle IAP changes."""
+    iap_service_agent = self.GetServiceAgent(updated_service.namespace)
+    if iap_enabled is not None:
+      try:
+        tracker.StartStage(stages.SERVICE_IAP_ENABLE)
+        tracker.UpdateStage(stages.SERVICE_IAP_ENABLE, '')
+        if iap_enabled:
+          self._AddIamPolicyBindingWithRetry(service_ref, iap_service_agent)
+        else:
+          self.AddOrRemoveIamPolicyBinding(
+              service_ref,
+              False,
+              iap_service_agent,
+              ALLOW_UNAUTH_POLICY_BINDING_ROLE,
+          )
+        tracker.CompleteStage(stages.SERVICE_IAP_ENABLE)
+      except api_exceptions.HttpError as e:
+        if (
+            iap_enabled and e.status_code == 400
+        ):  # IAP service agent not ready yet.
+          warning_message = (
+              'IAP has not been successfully enabled. If this is the first time'
+              " you're enabling IAP in this project, please wait a few minutes"
+              ' for the service agent to propagate, then try enabling IAP again'
+              ' on this service.'
+          )
+        else:
+          warning_message = (
+              'Setting IAM policy failed, try "gcloud run services'
+              ' {}-iam-policy-binding --region={region} --member={member}'
+              ' --role=roles/run.invoker {service}"'.format(
+                  'add' if iap_enabled else 'remove',
+                  region=self._region,
+                  member=iap_service_agent,
+                  service=service_ref.servicesId,
+              )
+          )
+        tracker.CompleteStageWithWarning(
+            stages.SERVICE_IAP_ENABLE, warning_message=warning_message
+        )
+
+  @retry.RetryOnException(max_retrials=10, sleep_ms=15 * 1000)
+  def _AddIamPolicyBindingWithRetry(self, service_ref, iap_service_agent):
+    return self.AddOrRemoveIamPolicyBinding(
+        service_ref, True, iap_service_agent, ALLOW_UNAUTH_POLICY_BINDING_ROLE
     )
 
-  # TODO(b/322180968): Once Worker API is ready, replace Service related
-  # references.
-  def ListWorkers(self, namespace_ref):
-    """Returns all workers in the project/location specified."""
-    return self.ListServices(namespace_ref)
-
-  def DeleteWorker(self, worker_ref):
-    """Delete the provided Worker.
-
-    Args:
-      worker_ref: Resource, a reference to the Worker to delete
-
-    Raises:
-      WorkerNotFoundError: if provided worker is not found.
-    """
+  def GetWorkerPool(self, worker_pool_ref):
+    """Return the relevant WorkerPool from the server, or None if 404."""
     messages = self.messages_module
-    worker_name = worker_ref.RelativeName()
-    worker_delete_request = messages.RunNamespacesServicesDeleteRequest(
-        name=worker_name,
+    worker_pool_get_request = messages.RunNamespacesWorkerpoolsGetRequest(
+        name=worker_pool_ref.RelativeName()
     )
 
     try:
-      with metrics.RecordDuration(metric_names.DELETE_SERVICE):
-        self._client.namespaces_services.Delete(worker_delete_request)
+      with metrics.RecordDuration(metric_names.GET_WORKER_POOL):
+        worker_pool_get_response = self._client.namespaces_workerpools.Get(
+            worker_pool_get_request
+        )
+        return worker_pool_lib.WorkerPool(worker_pool_get_response, messages)
+    except api_exceptions.InvalidDataFromServerError as e:
+      serverless_exceptions.MaybeRaiseCustomFieldMismatch(e)
     except api_exceptions.HttpNotFoundError:
-      raise serverless_exceptions.WorkerNotFoundError(
-          'Worker [{}] could not be found.'.format(worker_ref.servicesId)
-      )
+      return None
 
-  def UpdateInstanceSplit(self, worker_ref, config_changes, tracker, asyn):
-    return self.UpdateTraffic(worker_ref, config_changes, tracker, asyn)
+  def ListWorkerPools(self, project_ref):
+    """Returns all worker pools in the project."""
+    messages = self.messages_module
+    request = messages.RunNamespacesWorkerpoolsListRequest(
+        parent=project_ref.RelativeName()
+    )
+    try:
+      with metrics.RecordDuration(metric_names.LIST_WORKER_POOLS):
+        response = self._client.namespaces_workerpools.List(request)
+      return [
+          worker_pool_lib.WorkerPool(item, messages) for item in response.items
+      ]
+    except api_exceptions.InvalidDataFromServerError as e:
+      serverless_exceptions.MaybeRaiseCustomFieldMismatch(e)
 
-  def GetWorkerRevision(self, revision_ref):
-    return self.GetRevision(revision_ref)
-
-  def ListWorkerRevisions(
-      self, namespace_ref, worker_name, limit=None, page_size=100
+  def ReplaceWorkerPool(
+      self,
+      worker_pool_ref,
+      config_changes,
+      tracker,
+      asyn,
+      dry_run,
   ):
-    """List all worker revisions for the given worker.
-
-    Revision list gets sorted by worker name and creation timestamp.
+    """Replace the given worker pool in prod using the given config_changes.
 
     Args:
-      namespace_ref: Resource, namespace to list worker revisions in
-      worker_name: str, The Worker for which to list revisions.
-      limit: Optional[int], max number of revisions to list.
-      page_size: Optional[int], number of revisions to fetch at a time
+      worker_pool_ref: Resource, the worker pool to replace.
+      config_changes: list, objects that implement Adjust().
+      tracker: StagedProgressTracker, to report on the progress of releasing.
+      asyn: bool, if True, return without waiting for the worker pool to be
+        updated.
+      dry_run: bool. If true, only validate the configuration.
 
     Returns:
-      Revisions for the given surface
+      worker_pool.WorkerPool, the worker pool as returned by the server on the
+      POST/PUT request to create/update the worker pool.
     """
-    return self.ListRevisions(namespace_ref, worker_name, limit, page_size)
+    if tracker is None:
+      tracker = progress_tracker.NoOpStagedProgressTracker(
+          stages.WorkerPoolStages(),
+          interruptable=True,
+          aborted_message='aborted',
+      )
+    worker_pool = self.GetWorkerPool(worker_pool_ref)
 
-  def DeleteWorkerRevision(self, revision_ref):
-    return self.DeleteRevision(revision_ref)
+    if worker_pool and worker_pool.metadata.deletionTimestamp is not None:
+      raise serverless_exceptions.DeploymentFailedError(
+          'Worker pool [{}] is in the process of being deleted.'.format(
+              worker_pool_ref.workerpoolsId
+          )
+      )
+
+    # update or create worker pool
+    updated_worker_pool = self._UpdateOrCreateWorkerPool(
+        worker_pool_ref, config_changes, worker_pool, dry_run
+    )
+
+    if not asyn and not dry_run:
+      if updated_worker_pool.conditions.IsReady():
+        return updated_worker_pool
+    if updated_worker_pool.operation_id is None:
+      getter = functools.partial(self.GetWorkerPool, worker_pool_ref)
+    else:
+      getter = functools.partial(
+          self.WaitWorkerPool, updated_worker_pool.operation_id
+      )
+    poller = op_pollers.WorkerPoolConditionPoller(
+        getter,
+        tracker,
+        worker_pool=updated_worker_pool,
+    )
+    self.WaitForCondition(poller)
+    for msg in run_condition.GetNonTerminalMessages(poller.GetConditions()):
+      tracker.AddWarning(msg)
+    updated_worker_pool = poller.GetResource()
+
+    return updated_worker_pool
+
+  def WaitWorkerPool(self, operation_id):
+    """Return the relevant WorkerPool from the server, or None if 404."""
+    messages = self.messages_module
+    project = properties.VALUES.core.project.Get(required=True)
+    op_name = (
+        f'projects/{project}/locations/{self._region}/operations/{operation_id}'
+    )
+    op_ref = self._registry.ParseRelativeName(
+        op_name, collection='run.projects.locations.operations'
+    )
+    try:
+      with metrics.RecordDuration(metric_names.WAIT_OPERATION):
+        poller = op_pollers.WaitOperationPoller(
+            self.messages_module,
+            self._client.projects_locations_workerpools,
+            self._client.projects_locations_operations,
+        )
+        operation = waiter.PollUntilDone(poller, op_ref)
+        as_dict = encoding.MessageToPyValue(operation.response)
+        as_pb = encoding.PyValueToMessage(messages.WorkerPool, as_dict)
+        return worker_pool_lib.WorkerPool(as_pb, self.messages_module)
+    except api_exceptions.HttpNotFoundError:
+      return None
+
+  def _UpdateOrCreateWorkerPool(
+      self,
+      worker_pool_ref,
+      config_changes,
+      worker_pool,
+      dry_run,
+  ):
+    """Update or create worker pool."""
+    messages = self.messages_module
+    try:
+      if worker_pool:
+        # PUT the changed WorkerPool
+        worker_pool = config_changes_mod.WithChanges(
+            worker_pool, config_changes
+        )
+        worker_pool_name = worker_pool_ref.RelativeName()
+        worker_pool_update_req = (
+            messages.RunNamespacesWorkerpoolsReplaceWorkerPoolRequest(
+                workerPool=worker_pool.Message(),
+                name=worker_pool_name,
+                dryRun=('all' if dry_run else None),
+            )
+        )
+        with metrics.RecordDuration(metric_names.UPDATE_WORKER_POOL):
+          updated = self._client.namespaces_workerpools.ReplaceWorkerPool(
+              worker_pool_update_req
+          )
+        return worker_pool_lib.WorkerPool(updated, messages)
+      else:
+        # POST a new WorkerPool
+        new_worker_pool = worker_pool_lib.WorkerPool.New(
+            self._client, worker_pool_ref.namespacesId
+        )
+        new_worker_pool.name = worker_pool_ref.workerpoolsId
+        parent = worker_pool_ref.Parent().RelativeName()
+        new_worker_pool = config_changes_mod.WithChanges(
+            new_worker_pool, config_changes
+        )
+        worker_pool_create_req = messages.RunNamespacesWorkerpoolsCreateRequest(
+            workerPool=new_worker_pool.Message(),
+            parent=parent,
+            dryRun='all' if dry_run else None,
+        )
+        with metrics.RecordDuration(metric_names.CREATE_WORKER_POOL):
+          raw_worker_pool = self._client.namespaces_workerpools.Create(
+              worker_pool_create_req
+          )
+        return worker_pool_lib.WorkerPool(raw_worker_pool, messages)
+    except api_exceptions.HttpBadRequestError as e:
+      exceptions.reraise(serverless_exceptions.HttpError(e))
+    except api_exceptions.HttpNotFoundError as e:
+      parsed_err = api_lib_exceptions.HttpException(e)
+      if (
+          hasattr(parsed_err.payload, 'domain_details')
+          and 'run.googleapis.com' in parsed_err.payload.domain_details
+      ):
+        raise parsed_err
+      error_msg = 'Deployment endpoint was not found.'
+      all_regions = global_methods.ListRegions(self._op_client)
+      if self._region not in all_regions:
+        regions = ['* {}'.format(r) for r in all_regions]
+        error_msg += (
+            ' The provided region was invalid. '
+            'Pass the `--region` flag or set the '
+            '`run/region` property to a valid region and retry.'
+            '\nAvailable regions:\n{}'.format('\n'.join(regions))
+        )
+      raise serverless_exceptions.DeploymentFailedError(error_msg)
+    except api_exceptions.HttpError as e:
+      exceptions.reraise(e)
 
   def ListExecutions(
       self, namespace_ref, label_selector='', limit=None, page_size=100
@@ -1063,11 +1428,6 @@ class ServerlessOperations(object):
       Executions for the given surface
     """
     messages = self.messages_module
-    # NB: This is a hack to compensate for apitools not generating this line.
-    #     It's necessary to make the URL parameter be "continue".
-    encoding.AddCustomJsonFieldMapping(
-        messages.RunNamespacesExecutionsListRequest, 'continue_', 'continue'
-    )
     request = messages.RunNamespacesExecutionsListRequest(
         parent=namespace_ref.RelativeName()
     )
@@ -1108,11 +1468,6 @@ class ServerlessOperations(object):
       Executions for the given surface
     """
     messages = self.messages_module
-    # NB: This is a hack to compensate for apitools not generating this line.
-    #     It's necessary to make the URL parameter be "continue".
-    encoding.AddCustomJsonFieldMapping(
-        messages.RunNamespacesTasksListRequest, 'continue_', 'continue'
-    )
     request = messages.RunNamespacesTasksListRequest(
         parent=namespace_ref.RelativeName()
     )
@@ -1145,7 +1500,7 @@ class ServerlessOperations(object):
       serverless_exceptions.MaybeRaiseCustomFieldMismatch(e)
 
   def ListRevisions(
-      self, namespace_ref, service_name, limit=None, page_size=100
+      self, namespace_ref, label_selector, limit=None, page_size=100
   ):
     """List all revisions for the given service.
 
@@ -1153,7 +1508,8 @@ class ServerlessOperations(object):
 
     Args:
       namespace_ref: Resource, namespace to list revisions in
-      service_name: str, The service for which to list revisions.
+      label_selector: str, label selector for either a service or worker pool
+        for which to list revisions.
       limit: Optional[int], max number of revisions to list.
       page_size: Optional[int], number of revisions to fetch at a time
 
@@ -1161,20 +1517,14 @@ class ServerlessOperations(object):
       Revisions for the given surface
     """
     messages = self.messages_module
-    # NB: This is a hack to compensate for apitools not generating this line.
-    #     It's necessary to make the URL parameter be "continue".
-    encoding.AddCustomJsonFieldMapping(
-        messages.RunNamespacesRevisionsListRequest, 'continue_', 'continue'
-    )
     request = messages.RunNamespacesRevisionsListRequest(
         parent=namespace_ref.RelativeName(),
     )
-    if service_name is not None:
-      # For now, same as the service name, and keeping compatible with
-      # 'service-less' operation.
-      request.labelSelector = 'serving.knative.dev/service = {}'.format(
-          service_name
-      )
+    if label_selector is not None:
+      # If provided this will be either:
+      # 1. 'serving.knative.dev/service = <service>' or
+      # 2. 'run.googleapis.com/workerPool = <worker_pool>'.
+      request.labelSelector = label_selector
     try:
       for result in list_pager.YieldFromList(
           service=self._client.namespaces_revisions,
@@ -1358,20 +1708,13 @@ class ServerlessOperations(object):
           aborted_message='aborted',
       )
 
-    # TODO(b/321837261): Use Build API to create Repository
-    if repo_to_create:
-      self._CreateRepository(
-          tracker,
-          repo_to_create,
-          skip_activation_prompt=already_activated_services,
-      )
-
     if build_source is not None:
-      image_digest = deployer.CreateImage(
+      image_digest, _, _, _, _ = deployer.CreateImage(
           tracker,
           build_image,
           build_source,
           build_pack,
+          repo_to_create,
           release_track,
           already_activated_services,
           self._region,
@@ -1544,12 +1887,11 @@ class ServerlessOperations(object):
     try:
       with metrics.RecordDuration(metric_names.GET_JOB):
         job_response = self._client.namespaces_jobs.Get(get_request)
+        return job.Job(job_response, messages)
     except api_exceptions.InvalidDataFromServerError as e:
       serverless_exceptions.MaybeRaiseCustomFieldMismatch(e)
     except api_exceptions.HttpNotFoundError:
       return None
-
-    return job.Job(job_response, messages)
 
   def GetTask(self, task_ref):
     """Return the relevant Task from the server, or None if 404."""
@@ -1561,12 +1903,11 @@ class ServerlessOperations(object):
     try:
       with metrics.RecordDuration(metric_names.GET_TASK):
         task_response = self._client.namespaces_tasks.Get(get_request)
+        return task.Task(task_response, messages)
     except api_exceptions.InvalidDataFromServerError as e:
       serverless_exceptions.MaybeRaiseCustomFieldMismatch(e)
     except api_exceptions.HttpNotFoundError:
       return None
-
-    return task.Task(task_response, messages)
 
   def GetExecution(self, execution_ref):
     """Return the relevant Execution from the server, or None if 404."""
@@ -1578,12 +1919,11 @@ class ServerlessOperations(object):
     try:
       with metrics.RecordDuration(metric_names.GET_EXECUTION):
         execution_response = self._client.namespaces_executions.Get(get_request)
+        return execution.Execution(execution_response, messages)
     except api_exceptions.InvalidDataFromServerError as e:
       serverless_exceptions.MaybeRaiseCustomFieldMismatch(e)
     except api_exceptions.HttpNotFoundError:
       return None
-
-    return execution.Execution(execution_response, messages)
 
   def ListJobs(self, namespace_ref):
     """Returns all jobs in the namespace."""
@@ -1594,10 +1934,9 @@ class ServerlessOperations(object):
     try:
       with metrics.RecordDuration(metric_names.LIST_JOBS):
         response = self._client.namespaces_jobs.List(request)
+        return [job.Job(item, messages) for item in response.items]
     except api_exceptions.InvalidDataFromServerError as e:
       serverless_exceptions.MaybeRaiseCustomFieldMismatch(e)
-
-    return [job.Job(item, messages) for item in response.items]
 
   def DeleteJob(self, job_ref):
     """Delete the provided Job.
@@ -1672,7 +2011,12 @@ class ServerlessOperations(object):
     return response
 
   def AddOrRemoveIamPolicyBinding(
-      self, service_ref, add_binding=True, member=None, role=None
+      self,
+      service_ref,
+      add_binding=True,
+      member=None,
+      role=None,
+      region_override=None,
   ):
     """Add or remove the given IAM policy binding to the provided service.
 
@@ -1685,13 +2029,15 @@ class ServerlessOperations(object):
       add_binding: bool, Whether to add to or remove from the IAM policy.
       member: str, One of the users for which the binding applies.
       role: str, The role to grant the provided members.
+      region_override: str, The region to use instead of the configured region.
 
     Returns:
       A google.iam.v1.TestIamPermissionsResponse.
     """
     messages = self.messages_module
+    region = region_override or self._region
     oneplatform_service = resource_name_conversion.K8sToOnePlatform(
-        service_ref, self._region
+        service_ref, region
     )
     policy = self._GetIamPolicy(oneplatform_service)
     # Don't modify bindings if not member or roles provided
@@ -1707,11 +2053,12 @@ class ServerlessOperations(object):
     result = self._op_client.projects_locations_services.SetIamPolicy(request)
     return result
 
-  def CanSetIamPolicyBinding(self, service_ref):
+  def CanSetIamPolicyBinding(self, service_ref, region_override=None):
     """Check if user has permission to set the iam policy on the service."""
     messages = self.messages_module
+    region = region_override or self._region
     oneplatform_service = resource_name_conversion.K8sToOnePlatform(
-        service_ref, self._region
+        service_ref, region
     )
     request = messages.RunProjectsLocationsServicesTestIamPermissionsRequest(
         resource=six.text_type(oneplatform_service),
@@ -1724,14 +2071,105 @@ class ServerlessOperations(object):
     )
     return set(NEEDED_IAM_PERMISSIONS).issubset(set(response.permissions))
 
-  def _CreateRepository(self, tracker, repo_to_create, skip_activation_prompt):
-    """Create an artifact repository."""
-    tracker.StartStage(stages.CREATE_REPO)
-    tracker.UpdateHeaderMessage('Creating Container Repository.')
-    artifact_registry.CreateRepository(repo_to_create, skip_activation_prompt)
-    tracker.CompleteStage(stages.CREATE_REPO)
+  def _ValidateService(self, service_ref, config_changes):
+    """Validates starting service operation with provided config."""
+    serv = self.GetService(service_ref)
+    fake_validation_image = _AddDigestToImageChange(FAKE_IMAGE_DIGEST)
+    config_changes.append(fake_validation_image)
+    self._UpdateOrCreateService(
+        service_ref, config_changes, with_code=True, serv=serv, dry_run=True
+    )
+    config_changes.pop()
 
-  def ValidateConfigOverrides(self, job_ref, config_overrides):
+  def _ClearRunFunctionsAnnotations(self, config_changes):
+    """Clear run functions annotations to the service before setting them."""
+    config_changes.append(
+        config_changes_mod.DeleteAnnotationChange(
+            service.RUN_FUNCTIONS_SOURCE_LOCATION_ANNOTATION_DEPRECATED
+        )
+    )
+    config_changes.append(
+        config_changes_mod.DeleteAnnotationChange(
+            service.RUN_FUNCTIONS_FUNCTION_TARGET_ANNOTATION_DEPRECATED
+        )
+    )
+    config_changes.append(
+        config_changes_mod.DeleteAnnotationChange(
+            service.RUN_FUNCTIONS_IMAGE_URI_ANNOTATION_DEPRECATED
+        )
+    )
+    config_changes.append(
+        config_changes_mod.DeleteAnnotationChange(
+            service.RUN_FUNCTIONS_ENABLE_AUTOMATIC_UPDATES_DEPRECATED
+        )
+    )
+
+  def _AddRunFunctionsAnnotations(
+      self,
+      config_changes,
+      uploaded_source,
+      service_account,
+      worker_pool,
+      build_env_vars,
+      build_pack,
+      build_id,
+      build_image,
+      build_name,
+      build_base_image,
+      build_from_source_container_name,
+      enable_automatic_updates: bool,
+  ):
+    """Add run functions annotations to the service."""
+    build_env_vars_str = json.dumps(build_env_vars) if build_env_vars else None
+    function_target = self._GetFunctionTargetFromBuildPack(build_pack)
+    source_path = None
+    if uploaded_source:
+      source_path = sources.GetGsutilUri(uploaded_source)
+    image_uri = build_pack[0].get('image') if build_pack else build_image
+    annotations_map = {
+        service.RUN_FUNCTIONS_BUILD_SERVICE_ACCOUNT_ANNOTATION: service_account,
+        service.RUN_FUNCTIONS_BUILD_WORKER_POOL_ANNOTATION: worker_pool,
+        service.RUN_FUNCTIONS_BUILD_ENV_VARS_ANNOTATION: build_env_vars_str,
+        service.RUN_FUNCTIONS_BUILD_ID_ANNOTATION: build_id,
+        service.RUN_FUNCTIONS_BUILD_NAME_ANNOTATION: build_name,
+        service.RUN_FUNCTIONS_BUILD_IMAGE_URI_ANNOTATION: image_uri,
+        service.RUN_FUNCTIONS_BUILD_SOURCE_LOCATION_ANNOTATION: source_path,
+        service.RUN_FUNCTIONS_BUILD_FUNCTION_TARGET_ANNOTATION: function_target,
+        service.RUN_FUNCTIONS_BUILD_ENABLE_AUTOMATIC_UPDATES: (
+            'true' if enable_automatic_updates else 'false'
+        ),
+    }
+
+    if enable_automatic_updates:
+      self._ReplaceOrAddBaseImage(
+          config_changes,
+          build_base_image,
+          build_from_source_container_name,
+      )
+    else:
+      self._DeleteRevisionBaseImageAnnotation(
+          config_changes, build_from_source_container_name
+      )
+
+    config_changes.extend(
+        config_changes_mod.SetAnnotationChange(k, v)
+        for k, v in annotations_map.items()
+        if v is not None
+    )
+    if build_base_image:
+      config_changes.append(
+          config_changes_mod.SetAnnotationChange(
+              service.RUN_FUNCTIONS_BUILD_BASE_IMAGE, build_base_image
+          )
+      )
+    else:
+      config_changes.append(
+          config_changes_mod.DeleteAnnotationChange(
+              service.RUN_FUNCTIONS_BUILD_BASE_IMAGE
+          )
+      )
+
+  def ValidateConfigOverrides(self, job_ref, config_changes):
     """Apply config changes to Job resource to validate.
 
     This is to replicate the same validation logic in `jobs/services update`.
@@ -1741,11 +2179,11 @@ class ServerlessOperations(object):
 
     Args:
       job_ref: Resource, job resource.
-      config_overrides: Job configuration changes from Overrides
+      config_changes: Job configuration changes from Overrides
     """
     run_job = self.GetJob(job_ref)
-    for override in config_overrides:
-      run_job = override.Adjust(run_job)
+    for change in config_changes:
+      run_job = change.Adjust(run_job)
 
   def GetExecutionOverrides(self, tasks, task_timeout, container_overrides):
     return self.messages_module.Overrides(
@@ -1754,15 +2192,13 @@ class ServerlessOperations(object):
         timeoutSeconds=task_timeout,
     )
 
-  def GetContainerOverrides(self, update_env_vars, args, clear_args):
-    container_overrides = []
-    env_vars = self._GetEnvVarList(update_env_vars)
-    container_overrides.append(
-        self.messages_module.ContainerOverride(
-            args=args or [], env=env_vars, clearArgs=clear_args
-        )
+  def MakeContainerOverride(self, name, update_env_vars, args, clear_args):
+    return self.messages_module.ContainerOverride(
+        name=name,
+        args=args or [],
+        env=self._GetEnvVarList(update_env_vars),
+        clearArgs=clear_args,
     )
-    return container_overrides
 
   def _GetEnvVarList(self, env_vars):
     env_var_list = []

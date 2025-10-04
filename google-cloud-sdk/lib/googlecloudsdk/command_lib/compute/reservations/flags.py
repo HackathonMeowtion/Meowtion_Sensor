@@ -109,7 +109,8 @@ def GetLocalSsdFlagWithCount(custom_name=None):
   values are `scsi` and `nvme`. SCSI is the default and is supported by more
   guest operating systems. NVME may provide higher performance.
   *size*::: The size of the local SSD in base-2 GB.
-  *count*::: The number of local SSD to use per VM. Default value is 1.
+  *count*::: The number of local SSD to use per VM. If you don't specify this
+  argument, then the default value is 1.
   """
   return base.Argument(
       custom_name if custom_name else '--local-ssd',
@@ -142,25 +143,44 @@ def GetAcceleratorFlag(custom_name=None):
       help=help_text)
 
 
-def GetSharedSettingFlag(custom_name=None):
+def GetSharedSettingFlag(custom_name=None, support_folder_share_setting=False):
   """Gets the --share-setting flag."""
   help_text = """\
-  Specify if this reservation is shared, and if so, the type of sharing. If you
-  omit this flag, this value is local (not shared) by default.
+  The projects that can use the reservation.
   """
+  choices = {
+      'local': ('Only your project can use the reservation. This is the'
+                ' default value.'),
+      'projects': """\
+          Your project and up to 100 other projects within your
+          project's organization can use the reservation. If you specify
+          this value, then you must also include the --share-with flag in
+          the command.
+        """,
+      }
+  if support_folder_share_setting:
+    choices.update({'folders': 'Any project on the specified list of folders'
+                               ' can use the reservation.'})
+
   return base.Argument(
       custom_name if custom_name else '--share-setting',
-      choices=['local', 'projects', 'folders'],
+      choices=choices,
       help=help_text)
 
 
-def GetShareWithFlag(custom_name=None):
+def GetShareWithFlag(custom_name=None, support_folder_share_setting=False):
   """Gets the --share-with flag."""
   help_text = """\
-  If this reservation is shared (--share-setting is not local), provide a list
-  of all of the specific projects or folders that this reservation is shared
-  with. List must contain project IDs or project numbers or folder IDs.
-  """
+    If this reservation is shared (--share-setting=projects), then specify a
+    comma-separated list of projects to share the reservation with. List
+    projects using project IDs or project numbers.
+    """
+  if support_folder_share_setting:
+    help_text = """\
+    If this reservation is shared (--share-setting=projects), then specify a
+    comma-separated list of projects to share the reservation with. List
+    projects using project IDs, project numbers, or folder IDs.
+    """
   return base.Argument(
       custom_name if custom_name else '--share-with',
       type=arg_parsers.ArgList(min_length=1),
@@ -171,8 +191,9 @@ def GetShareWithFlag(custom_name=None):
 def GetAddShareWithFlag(custom_name=None):
   """Gets the --add-share-with flag."""
   help_text = """\
-  A list of specific projects to add to the list of projects that this
-  reservation is shared with. List must contain project IDs or project numbers.
+  If this reservation is shared (--share-setting is projects), then
+  specify a comma-separated list of projects to share the reservation
+  with. You must list the projects using project IDs or project numbers.
   """
   return base.Argument(
       custom_name if custom_name else '--add-share-with',
@@ -222,6 +243,27 @@ def GetDeleteAfterDurationFlag():
   )
 
 
+def AddScopeFlags(parser):
+  """Adds scope flag to the parser."""
+  parser.add_argument(
+      '--scope',
+      metavar='SCOPE',
+      type=lambda x: x.lower(),
+      choices={
+          'all': 'Perform maintenance on all hosts in the reservation.',
+          'running': (
+              'Perform maintenance only on the hosts in the reservation that'
+              ' have running VMs.'
+          ),
+          'unused': (
+              'Perform maintenance only on the hosts in the reservation that'
+              " don't have running VMs."
+          ),
+      },
+      help='The maintenance scope to set for the reservation.',
+  )
+
+
 def GetDisableAutoDelete():
   """Gets the --disable-auto-delete flag."""
   help_text = """\
@@ -258,14 +300,134 @@ def GetSourceInstanceTemplateFlag(custom_name=None):
   )
 
 
-def AddCreateFlags(parser,
-                   support_fleet=False,
-                   support_share_setting=False,
-                   support_ssd_count=False,
-                   support_auto_delete=False):
+def GetReservationSharingPolicyFlag(custom_name=None):
+  """Gets the --reservation-sharing-policy flag."""
+  help_text = """\
+  The reservation sharing policy to use for this reservation.
+  """
+  return base.Argument(
+      custom_name or '--reservation-sharing-policy',
+      type=lambda x: x.upper(),
+      choices={
+          'ALLOW_ALL': (
+              'The reservation can be shared with Google Cloud services.'
+          ),
+          'DISALLOW_ALL': (
+              "The reservation won't be shared with Google Cloud services. If"
+              ' you omit this flag during creation, the default value is'
+              ' DISALLOW_ALL.'
+          ),
+      },
+      help=help_text,
+  )
+
+
+def GetTpuVersion(required=True):
+  """Gets the --tpu-version flag."""
+  help_text = """\
+  The version of Cloud TPU to reserve.
+  """
+  return base.Argument(
+      '--tpu-version',
+      type=lambda x: x.upper(),
+      choices={
+          'V5E': 'Cloud TPU v5e Lite',
+          'V5P': 'Cloud TPU v5p',
+          'V6E': 'Cloud TPU v6e',
+      },
+      required=required,
+      help=help_text,
+  )
+
+
+def GetChipCount(required=False):
+  """Gets the --chip-count flag."""
+  help_text = """\
+  The number of chips to reserve.
+  """
+  return base.Argument(
+      '--chip-count', type=int, required=required, help=help_text
+  )
+
+
+def GetWorkloadType(required=False):
+  """Gets the --workload-type flag."""
+  help_text = """\
+  The workload type of the TPU reservation.
+  """
+  return base.Argument(
+      '--workload-type',
+      type=lambda x: x.upper(),
+      choices={
+          'SERVING': (
+              'Reserved resources will be optimized for SERVING workloads, such'
+              ' as ML inference'
+          ),
+          'BATCH': (
+              'Reserved resources will be optimized for BATCH workloads, such'
+              ' as ML training.'
+          ),
+      },
+      required=required,
+      help=help_text,
+  )
+
+
+def GetAcceleratorType(required=True):
+  """Gets the --accelerator-type flag."""
+  help_text = """\
+  The accelerator type to use for this reservation.
+  """
+  return base.Argument('--accelerator-type', required=required, help=help_text)
+
+
+def GetEnableEmergentMaintenanceFlag():
+  """--emergent-maintenance flag."""
+  help_text = """\
+  Enables the reservation to receive notifications when urgent maintenance
+  for a GPU VM starts after the VM encounters a host error.
+  """
+  return base.Argument(
+      '--enable-emergent-maintenance',
+      action=arg_parsers.StoreTrueFalseAction,
+      help=help_text,
+  )
+
+
+def GetSchedulingTypeFlag():
+  """--scheduling-type flag."""
+  help_text = """\
+  How Compute Engine schedules maintenance events for your reserved hosts.
+  """
+  return base.Argument(
+      '--scheduling-type',
+      choices={
+          'GROUPED': (
+              'In GROUPED mode, maintenance is synchronized across all your'
+              ' VMs.'
+          ),
+          'INDEPENDENT': (
+              'In INDEPENDENT mode, your VMs have different, unsynchronized'
+              ' maintenance schedules.'
+          ),
+      },
+      help=help_text,
+  )
+
+
+def AddCreateFlags(
+    parser,
+    support_fleet=False,
+    support_folder_share_setting=False,
+    support_ssd_count=False,
+    support_auto_delete=False,
+    support_reservation_sharing_policy=False,
+):
   """Adds all flags needed for the create command."""
   GetDescriptionFlag().AddToParser(parser)
 
+  if support_reservation_sharing_policy:
+    GetReservationSharingPolicyFlag().AddToParser(parser)
   # create the group for all properties used in SpecificSkuReservations
   specific_sku_group = base.ArgumentGroup(
       'Manage the SpecificSKU reservation properties.', required=True)
@@ -308,12 +470,19 @@ def AddCreateFlags(parser,
   specific_sku_group.AddArgument(specific_sku_properties_group)
   specific_sku_group.AddToParser(parser)
 
-  if support_share_setting:
-    share_group = base.ArgumentGroup(
-        'Manage the properties of a shared reservation.', required=False)
-    share_group.AddArgument(GetSharedSettingFlag())
-    share_group.AddArgument(GetShareWithFlag())
-    share_group.AddToParser(parser)
+  share_group = base.ArgumentGroup(
+      'Manage the properties of a shared reservation.', required=False)
+  share_group.AddArgument(
+      GetSharedSettingFlag(
+          support_folder_share_setting=support_folder_share_setting
+      )
+  )
+  share_group.AddArgument(
+      GetShareWithFlag(
+          support_folder_share_setting=support_folder_share_setting
+      )
+  )
+  share_group.AddToParser(parser)
 
   if support_auto_delete:
     auto_delete_group = base.ArgumentGroup(

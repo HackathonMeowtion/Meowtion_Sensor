@@ -152,8 +152,12 @@ class GoogleCloudRecommenderV1beta1Impact(_messages.Message):
   Fields:
     category: Category that is being targeted.
     costProjection: Use with CategoryType.COST
+    impactComponents: If populated, the impact contains multiple components.
+      In this case, the top-level impact contains aggregated values and each
+      component contains per-service details.
     reliabilityProjection: Use with CategoryType.RELIABILITY
     securityProjection: Use with CategoryType.SECURITY
+    service: The service that this impact is associated with.
     sustainabilityProjection: Use with CategoryType.SUSTAINABILITY
   """
 
@@ -181,9 +185,11 @@ class GoogleCloudRecommenderV1beta1Impact(_messages.Message):
 
   category = _messages.EnumField('CategoryValueValuesEnum', 1)
   costProjection = _messages.MessageField('GoogleCloudRecommenderV1beta1CostProjection', 2)
-  reliabilityProjection = _messages.MessageField('GoogleCloudRecommenderV1beta1ReliabilityProjection', 3)
-  securityProjection = _messages.MessageField('GoogleCloudRecommenderV1beta1SecurityProjection', 4)
-  sustainabilityProjection = _messages.MessageField('GoogleCloudRecommenderV1beta1SustainabilityProjection', 5)
+  impactComponents = _messages.MessageField('GoogleCloudRecommenderV1beta1Impact', 3, repeated=True)
+  reliabilityProjection = _messages.MessageField('GoogleCloudRecommenderV1beta1ReliabilityProjection', 4)
+  securityProjection = _messages.MessageField('GoogleCloudRecommenderV1beta1SecurityProjection', 5)
+  service = _messages.StringField(6)
+  sustainabilityProjection = _messages.MessageField('GoogleCloudRecommenderV1beta1SustainabilityProjection', 7)
 
 
 class GoogleCloudRecommenderV1beta1Insight(_messages.Message):
@@ -412,8 +418,8 @@ class GoogleCloudRecommenderV1beta1InsightTypeConfig(_messages.Message):
       when updating.
     insightTypeGenerationConfig: InsightTypeGenerationConfig which configures
       the generation of insights for this insight type.
-    name: Name of insight type config. Eg, projects/[PROJECT_NUMBER]/locations
-      /[LOCATION]/insightTypes/[INSIGHT_TYPE_ID]/config
+    name: Identifier. Name of insight type config. Eg, projects/[PROJECT_NUMBE
+      R]/locations/[LOCATION]/insightTypes/[INSIGHT_TYPE_ID]/config
     revisionId: Output only. Immutable. The revision ID of the config. A new
       revision is committed whenever the config is changed in any way. The
       format is an 8-character hexadecimal string.
@@ -1130,8 +1136,8 @@ class GoogleCloudRecommenderV1beta1RecommenderConfig(_messages.Message):
       used in user interfaces.
     etag: Fingerprint of the RecommenderConfig. Provides optimistic locking
       when updating.
-    name: Name of recommender config. Eg, projects/[PROJECT_NUMBER]/locations/
-      [LOCATION]/recommenders/[RECOMMENDER_ID]/config
+    name: Identifier. Name of recommender config. Eg, projects/[PROJECT_NUMBER
+      ]/locations/[LOCATION]/recommenders/[RECOMMENDER_ID]/config
     recommenderGenerationConfig: RecommenderGenerationConfig which configures
       the Generation of recommendations for this recommender.
     revisionId: Output only. Immutable. The revision ID of the config. A new
@@ -1469,8 +1475,8 @@ class RecommenderBillingAccountsLocationsInsightTypesUpdateConfigRequest(_messag
     googleCloudRecommenderV1beta1InsightTypeConfig: A
       GoogleCloudRecommenderV1beta1InsightTypeConfig resource to be passed as
       the request body.
-    name: Name of insight type config. Eg, projects/[PROJECT_NUMBER]/locations
-      /[LOCATION]/insightTypes/[INSIGHT_TYPE_ID]/config
+    name: Identifier. Name of insight type config. Eg, projects/[PROJECT_NUMBE
+      R]/locations/[LOCATION]/insightTypes/[INSIGHT_TYPE_ID]/config
     updateMask: The list of fields to be updated.
     validateOnly: If true, validate the request and preview the change, but do
       not actually update it.
@@ -1486,6 +1492,9 @@ class RecommenderBillingAccountsLocationsListRequest(_messages.Message):
   r"""A RecommenderBillingAccountsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -1496,10 +1505,11 @@ class RecommenderBillingAccountsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class RecommenderBillingAccountsLocationsRecommendersGetConfigRequest(_messages.Message):
@@ -1641,8 +1651,8 @@ class RecommenderBillingAccountsLocationsRecommendersUpdateConfigRequest(_messag
     googleCloudRecommenderV1beta1RecommenderConfig: A
       GoogleCloudRecommenderV1beta1RecommenderConfig resource to be passed as
       the request body.
-    name: Name of recommender config. Eg, projects/[PROJECT_NUMBER]/locations/
-      [LOCATION]/recommenders/[RECOMMENDER_ID]/config
+    name: Identifier. Name of recommender config. Eg, projects/[PROJECT_NUMBER
+      ]/locations/[LOCATION]/recommenders/[RECOMMENDER_ID]/config
     updateMask: The list of fields to be updated.
     validateOnly: If true, validate the request and preview the change, but do
       not actually update it.
@@ -1723,6 +1733,9 @@ class RecommenderFoldersLocationsListRequest(_messages.Message):
   r"""A RecommenderFoldersLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -1733,10 +1746,11 @@ class RecommenderFoldersLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class RecommenderFoldersLocationsRecommendersRecommendationsGetRequest(_messages.Message):
@@ -1961,8 +1975,8 @@ class RecommenderOrganizationsLocationsInsightTypesUpdateConfigRequest(_messages
     googleCloudRecommenderV1beta1InsightTypeConfig: A
       GoogleCloudRecommenderV1beta1InsightTypeConfig resource to be passed as
       the request body.
-    name: Name of insight type config. Eg, projects/[PROJECT_NUMBER]/locations
-      /[LOCATION]/insightTypes/[INSIGHT_TYPE_ID]/config
+    name: Identifier. Name of insight type config. Eg, projects/[PROJECT_NUMBE
+      R]/locations/[LOCATION]/insightTypes/[INSIGHT_TYPE_ID]/config
     updateMask: The list of fields to be updated.
     validateOnly: If true, validate the request and preview the change, but do
       not actually update it.
@@ -1978,6 +1992,9 @@ class RecommenderOrganizationsLocationsListRequest(_messages.Message):
   r"""A RecommenderOrganizationsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -1988,10 +2005,11 @@ class RecommenderOrganizationsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class RecommenderOrganizationsLocationsRecommendersGetConfigRequest(_messages.Message):
@@ -2131,8 +2149,8 @@ class RecommenderOrganizationsLocationsRecommendersUpdateConfigRequest(_messages
     googleCloudRecommenderV1beta1RecommenderConfig: A
       GoogleCloudRecommenderV1beta1RecommenderConfig resource to be passed as
       the request body.
-    name: Name of recommender config. Eg, projects/[PROJECT_NUMBER]/locations/
-      [LOCATION]/recommenders/[RECOMMENDER_ID]/config
+    name: Identifier. Name of recommender config. Eg, projects/[PROJECT_NUMBER
+      ]/locations/[LOCATION]/recommenders/[RECOMMENDER_ID]/config
     updateMask: The list of fields to be updated.
     validateOnly: If true, validate the request and preview the change, but do
       not actually update it.
@@ -2232,8 +2250,8 @@ class RecommenderProjectsLocationsInsightTypesUpdateConfigRequest(_messages.Mess
     googleCloudRecommenderV1beta1InsightTypeConfig: A
       GoogleCloudRecommenderV1beta1InsightTypeConfig resource to be passed as
       the request body.
-    name: Name of insight type config. Eg, projects/[PROJECT_NUMBER]/locations
-      /[LOCATION]/insightTypes/[INSIGHT_TYPE_ID]/config
+    name: Identifier. Name of insight type config. Eg, projects/[PROJECT_NUMBE
+      R]/locations/[LOCATION]/insightTypes/[INSIGHT_TYPE_ID]/config
     updateMask: The list of fields to be updated.
     validateOnly: If true, validate the request and preview the change, but do
       not actually update it.
@@ -2249,6 +2267,9 @@ class RecommenderProjectsLocationsListRequest(_messages.Message):
   r"""A RecommenderProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -2259,10 +2280,11 @@ class RecommenderProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class RecommenderProjectsLocationsRecommendersGetConfigRequest(_messages.Message):
@@ -2404,8 +2426,8 @@ class RecommenderProjectsLocationsRecommendersUpdateConfigRequest(_messages.Mess
     googleCloudRecommenderV1beta1RecommenderConfig: A
       GoogleCloudRecommenderV1beta1RecommenderConfig resource to be passed as
       the request body.
-    name: Name of recommender config. Eg, projects/[PROJECT_NUMBER]/locations/
-      [LOCATION]/recommenders/[RECOMMENDER_ID]/config
+    name: Identifier. Name of recommender config. Eg, projects/[PROJECT_NUMBER
+      ]/locations/[LOCATION]/recommenders/[RECOMMENDER_ID]/config
     updateMask: The list of fields to be updated.
     validateOnly: If true, validate the request and preview the change, but do
       not actually update it.

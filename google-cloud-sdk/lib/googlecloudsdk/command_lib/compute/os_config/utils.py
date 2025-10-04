@@ -158,6 +158,20 @@ def GetApiVersion(args):
     raise core_exceptions.UnsupportedReleaseTrackError(release_track)
 
 
+def GetApiVersionV2(args):
+  """Return v2 api version for the corresponding release track."""
+  release_track = args.calliope_command.ReleaseTrack()
+
+  if release_track == base.ReleaseTrack.ALPHA:
+    return 'v2alpha'
+  elif release_track == base.ReleaseTrack.BETA:
+    return 'v2beta'
+  elif release_track == base.ReleaseTrack.GA:
+    return 'v2'
+  else:
+    raise core_exceptions.UnsupportedReleaseTrackError(release_track)
+
+
 def GetOperationDescribeCommandFormat(args):
   """Returns api version for the corresponding release track."""
   release_track = args.calliope_command.ReleaseTrack()
@@ -300,6 +314,292 @@ def ParseOSConfigAssignmentFile(ref, args, req):
   update_fields.sort()
   if 'update' in args.command_path:
     req.updateMask = ','.join(update_fields)
+  return req
+
+
+def GetOrchestrationScopeMessage(messages, api_version):
+  """Returns the orchestration scope message for the given API version."""
+  if api_version == 'v2alpha':
+    return messages.GoogleCloudOsconfigV2alphaOrchestrationScope()
+  elif api_version == 'v2beta':
+    return messages.GoogleCloudOsconfigV2betaOrchestrationScope()
+  elif api_version == 'v2':
+    return messages.GoogleCloudOsconfigV2OrchestrationScope()
+  else:
+    raise core_exceptions.UnsupportedReleaseTrackError(api_version)
+
+
+def GetOrchestrationScopeSelectorMessage(messages, api_version):
+  """Returns the orchestration scope selector message for the given API version."""
+  if api_version == 'v2alpha':
+    return messages.GoogleCloudOsconfigV2alphaOrchestrationScopeSelector()
+  elif api_version == 'v2beta':
+    return messages.GoogleCloudOsconfigV2betaOrchestrationScopeSelector()
+  elif api_version == 'v2':
+    return messages.GoogleCloudOsconfigV2OrchestrationScopeSelector()
+  else:
+    raise core_exceptions.UnsupportedReleaseTrackError(api_version)
+
+
+def GetResourceHierarchySelectorMessage(messages, api_version):
+  """Returns the resource hierarchy selector message for the given API version."""
+  if api_version == 'v2alpha':
+    return (
+        messages.GoogleCloudOsconfigV2alphaOrchestrationScopeResourceHierarchySelector()
+    )
+  elif api_version == 'v2beta':
+    return (
+        messages.GoogleCloudOsconfigV2betaOrchestrationScopeResourceHierarchySelector()
+    )
+  elif api_version == 'v2':
+    return (
+        messages.GoogleCloudOsconfigV2OrchestrationScopeResourceHierarchySelector()
+    )
+  else:
+    raise core_exceptions.UnsupportedReleaseTrackError(api_version)
+
+
+def GetLocationSelectorMessage(messages, api_version):
+  """Returns the location selector message for the given API version."""
+  if api_version == 'v2alpha':
+    return (
+        messages.GoogleCloudOsconfigV2alphaOrchestrationScopeLocationSelector()
+    )
+  elif api_version == 'v2beta':
+    return (
+        messages.GoogleCloudOsconfigV2betaOrchestrationScopeLocationSelector()
+    )
+  elif api_version == 'v2':
+    return messages.GoogleCloudOsconfigV2OrchestrationScopeLocationSelector()
+  else:
+    raise core_exceptions.UnsupportedReleaseTrackError(api_version)
+
+
+def ModifyOrchestratorPolicySetSelectors(
+    args, req, messages, api_version, orchestrator, use_clear=False
+):
+  """Sets selectors inside policy orchestrator.
+
+  Args:
+    args: args to the command
+    req: request
+    messages: messages for selected v2 API version
+    api_version: api version
+    orchestrator: orchestrator to set selectors in
+    use_clear: if true, clear_projects flag is used to clear selectors
+    (optional)
+
+  Returns:
+    modified request, boolean  indicating if selectors were set
+  """
+  selectors_set = (
+      args.include_projects
+      or (use_clear and args.clear_projects)
+      or args.include_folders
+      or (use_clear and args.clear_folders)
+      or args.include_locations
+      or (use_clear and args.clear_locations)
+  )
+  if not selectors_set:
+    return req, False
+
+  # TODO(b/315289440): add validations for selectors.
+  included_projects = None
+  included_folders = None
+  included_locations = None
+
+  # If clear_projects is set, we have to clear included projects from selectors.
+  if use_clear and args.clear_projects:
+    included_projects = []
+
+  # If clear_folders is set, we have to clear included folders from selectors.
+  if use_clear and args.clear_folders:
+    included_folders = []
+
+  # If clear_locations is set, we have to clear included locations from
+  # selectors.
+  if use_clear and args.clear_locations:
+    included_locations = []
+
+  if args.include_projects:
+    included_projects = []
+    for project_id in args.include_projects.split(','):
+      included_projects.append('projects/' + project_id)
+
+  if args.include_folders:
+    included_folders = []
+    for folder_id in args.include_folders.split(','):
+      included_folders.append('folders/' + folder_id)
+
+  if args.include_locations:
+    included_locations = []
+    for location in args.include_locations.split(','):
+      included_locations.append(location)
+
+  if not orchestrator.orchestrationScope:
+    orchestrator.orchestrationScope = (
+        GetOrchestrationScopeMessage(messages, api_version)
+    )
+
+  # If selectors are not set in the orchestrator, we have to create them.
+  hierarchy_selector = None
+  location_selector = None
+  if orchestrator.orchestrationScope.selectors:
+    for selector in orchestrator.orchestrationScope.selectors:
+      if selector.resourceHierarchySelector:
+        hierarchy_selector = selector
+      elif selector.locationSelector:
+        location_selector = selector
+  if not hierarchy_selector:
+    hierarchy_selector = GetOrchestrationScopeSelectorMessage(
+        messages, api_version)
+  if not location_selector:
+    location_selector = GetOrchestrationScopeSelectorMessage(
+        messages, api_version)
+
+  orchestrator.orchestrationScope.selectors = [
+      hierarchy_selector,
+      location_selector
+  ]
+
+  if not hierarchy_selector.resourceHierarchySelector:
+    hierarchy_selector.resourceHierarchySelector = (
+        GetResourceHierarchySelectorMessage(messages, api_version)
+    )
+
+  if not location_selector.locationSelector:
+    location_selector.locationSelector = (
+        GetLocationSelectorMessage(messages, api_version)
+    )
+
+  # Nit: we have to set included projects/folders/locations if they're [] to
+  # clear the selectors.
+  if included_projects is not None:
+    hierarchy_selector.resourceHierarchySelector.includedProjects = (
+        included_projects
+    )
+  if included_folders is not None:
+    hierarchy_selector.resourceHierarchySelector.includedFolders = (
+        included_folders
+    )
+  if included_locations is not None:
+    location_selector.locationSelector.includedLocations = included_locations
+
+  return req, True
+
+
+def ModifyOrchestrorPolicyCreateRequest(ref, args, req):
+  """Returns modified request with parsed orchestartor's policy assignment."""
+
+  # Settings PolicyOrchestrator payload.
+  api_version = GetApiVersionV2(args)
+  messages = GetApiMessage(api_version)
+
+  # For DELETE action we still have to specify empty payload.
+  policy_assignment_config = messages.OSPolicyAssignment()
+  if args.action == 'upsert':
+    (policy_assignment_config, _) = GetResourceAndUpdateFieldsFromFile(
+        args.policy_file, messages.OSPolicyAssignment
+    )
+
+  req_orchestrator = None
+  if api_version == 'v2alpha':
+    req_orchestrator = messages.GoogleCloudOsconfigV2alphaPolicyOrchestrator()
+    req_orchestrator.orchestratedResource = (
+        messages.GoogleCloudOsconfigV2alphaOrchestratedResource()
+    )
+    req.googleCloudOsconfigV2alphaPolicyOrchestrator = req_orchestrator
+  elif api_version == 'v2beta':
+    req_orchestrator = messages.GoogleCloudOsconfigV2betaPolicyOrchestrator()
+    req_orchestrator.orchestratedResource = (
+        messages.GoogleCloudOsconfigV2betaOrchestratedResource()
+    )
+    req.googleCloudOsconfigV2betaPolicyOrchestrator = req_orchestrator
+  elif api_version == 'v2':
+    req_orchestrator = messages.GoogleCloudOsconfigV2PolicyOrchestrator()
+    req_orchestrator.orchestratedResource = (
+        messages.GoogleCloudOsconfigV2OrchestratedResource()
+    )
+    req.googleCloudOsconfigV2PolicyOrchestrator = req_orchestrator
+
+  req_orchestrator.orchestratedResource.osPolicyAssignmentV1Payload = (
+      policy_assignment_config
+  )
+
+  if args.policy_id:
+    req_orchestrator.orchestratedResource.id = args.policy_id
+
+  req_orchestrator.action = args.action.upper()
+  req_orchestrator.state = args.state.upper()
+  req, _ = ModifyOrchestratorPolicySetSelectors(
+      args, req, messages, api_version, req_orchestrator
+  )
+
+  # Setting request-level fields.
+  req.policyOrchestratorId = ref.Name()
+  # req.parent contains full resource path, we have to shorten it.
+  req.parent = '/'.join(req.parent.split('/')[:-2])
+  return req
+
+
+def ModifyOrchestrorPolicyUpdateRequest(unused_ref, args, req):
+  """Returns modified request with parsed orchestartor's policy assignment."""
+
+  # Settings PolicyOrchestrator payload.
+  api_version = GetApiVersionV2(args)
+  messages = GetApiMessage(api_version)
+  # PolicyOrchestrator is already set in the request as the result of
+  # read_modify_update flag (i.e. it forces 'get' on the current version of the
+  # resource before the update). We have to retrive the proper version first.
+  req_orchestrator = None
+
+  if api_version == 'v2alpha':
+    req_orchestrator = req.googleCloudOsconfigV2alphaPolicyOrchestrator
+  elif api_version == 'v2beta':
+    req_orchestrator = req.googleCloudOsconfigV2betaPolicyOrchestrator
+  elif api_version == 'v2':
+    req_orchestrator = req.googleCloudOsconfigV2PolicyOrchestrator
+
+  update_mask = []
+
+  if args.action:
+    req_orchestrator.action = args.action.upper()
+    update_mask.append('action')
+
+  if args.policy_file:
+    (policy_assignment_config, _) = GetResourceAndUpdateFieldsFromFile(
+        args.policy_file, messages.OSPolicyAssignment
+    )
+    req_orchestrator.orchestratedResource.osPolicyAssignmentV1Payload = (
+        policy_assignment_config
+    )
+    update_mask.append(
+        'orchestrated_resource.os_policy_assignment_v1_payload'
+    )
+
+  if args.policy_id:
+    req_orchestrator.orchestratedResource.id = args.policy_id
+    update_mask.append('orchestrated_resource.id')
+
+  if args.state:
+    req_orchestrator.state = args.state.upper()
+    update_mask.append('state')
+
+  req, modified = ModifyOrchestratorPolicySetSelectors(
+      args, req, messages, api_version, req_orchestrator, use_clear=True
+  )
+  if modified:
+    update_mask.append('orchestration_scope.selectors')
+
+  req.updateMask = ','.join(update_mask)
+
+  return req
+
+
+def ModifyOrchestrorPolicyListRequest(unused_ref, unused_args, req):
+  """Extends request with global location part."""
+
+  req.parent += '/locations/global'
   return req
 
 

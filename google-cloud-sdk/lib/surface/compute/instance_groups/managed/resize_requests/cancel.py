@@ -37,7 +37,8 @@ DETAILED_HELP = {
 }
 
 
-@base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.GA)
+@base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.DefaultUniverseOnly
 class Cancel(base.UpdateCommand):
   """Cancel a Compute Engine managed instance group resize request.
 
@@ -60,10 +61,39 @@ class Cancel(base.UpdateCommand):
         help='A list of comma-separated names of resize requests to cancel.',
     )
 
-  def _CreateResizeRequestReferences(self, resize_requests, igm_ref, resources):
+  def Run(self, args):
+    """Creates and issues an instanceGroupManagerResizeRequests.cancel requests.
+
+    Args:
+      args: the argparse arguments that this command was invoked with.
+
+    Returns:
+      A list of URI paths of the successfully canceled resize requests.
+    """
+
+    holder = base_classes.ComputeApiHolder(self.ReleaseTrack())
+    resource_arg = instance_groups_flags.MakeZonalInstanceGroupManagerArg()
+    igm_ref = self._GetIgmRef(args, holder, resource_arg)
+    resize_request_refs = self._CreateResizeRequestReferences(
+        args.resize_requests, igm_ref, holder.resources
+    )
+    return self._MakeRequests(holder.client, igm_ref, resize_request_refs)
+
+  def _GetIgmRef(self, args, holder, resource_arg):
+    igm_ref = resource_arg.ResolveAsResource(
+        args,
+        holder.resources,
+        default_scope=compute_scope.ScopeEnum.ZONE,
+        scope_lister=flags.GetDefaultScopeLister(holder.client),
+    )
+    return igm_ref
+
+  def _CreateResizeRequestReferences(
+      self, resize_request_names, igm_ref, resources
+  ):
     resize_request_references = []
     if igm_ref.Collection() == 'compute.instanceGroupManagers':
-      for resize_request_name in resize_requests:
+      for resize_request_name in resize_request_names:
         resize_request_references.append(
             resources.Parse(
                 resize_request_name,
@@ -78,48 +108,29 @@ class Cancel(base.UpdateCommand):
       return resize_request_references
     raise ValueError('Unknown reference type {0}'.format(igm_ref.Collection()))
 
-  def Run(self, args):
-    """Creates and issues an instanceGroupManagerResizeRequests.cancel requests.
-
-    Args:
-      args: the argparse arguments that this command was invoked with.
-
-    Returns:
-      A list of URI paths of the successfully canceled resize requests.
-    """
-    holder = base_classes.ComputeApiHolder(self.ReleaseTrack())
-    client = holder.client
-    resource_arg = instance_groups_flags.MakeZonalInstanceGroupManagerArg()
-    default_scope = compute_scope.ScopeEnum.ZONE
-    scope_lister = flags.GetDefaultScopeLister(client)
-    igm_ref = resource_arg.ResolveAsResource(
-        args,
-        holder.resources,
-        default_scope=default_scope,
-        scope_lister=scope_lister,
-    )
-
-    resize_request_refs = self._CreateResizeRequestReferences(
-        args.resize_requests, igm_ref, holder.resources
-    )
-
+  def _MakeRequests(self, client, igm_ref, resize_request_refs):
     requests = []
-    for resize_request_ref in resize_request_refs:
-      requests.append((
-          client.apitools_client.instanceGroupManagerResizeRequests,
-          'Cancel',
-          client.messages.ComputeInstanceGroupManagerResizeRequestsCancelRequest(
-              project=igm_ref.project,
-              zone=igm_ref.zone,
-              instanceGroupManager=igm_ref.instanceGroupManager,
-              resizeRequest=resize_request_ref.resizeRequest,
-          ),
-      ))
+    if igm_ref.Collection() == 'compute.instanceGroupManagers':
+      for resize_request_ref in resize_request_refs:
+        requests.append((
+            client.apitools_client.instanceGroupManagerResizeRequests,
+            'Cancel',
+            client.messages.ComputeInstanceGroupManagerResizeRequestsCancelRequest(
+                project=igm_ref.project,
+                zone=igm_ref.zone,
+                instanceGroupManager=igm_ref.instanceGroupManager,
+                resizeRequest=resize_request_ref.resizeRequest,
+            ),
+        ))
+    else:
+      raise ValueError(
+          'Unknown reference type {0}'.format(igm_ref.Collection())
+      )
     return client.MakeRequests(requests)
 
 
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
-class CancelAlpha(Cancel):
+@base.ReleaseTracks(base.ReleaseTrack.BETA)
+class CancelBeta(Cancel):
   """Cancel a Compute Engine managed instance group resize request.
 
   *{command}* cancels one or more Compute Engine managed instance group resize
@@ -132,8 +143,121 @@ class CancelAlpha(Cancel):
 
   @classmethod
   def Args(cls, parser):
-    instance_groups_flags.MakeZonalInstanceGroupManagerArg().AddArgument(
-        parser)
+    instance_groups_flags.MULTISCOPE_INSTANCE_GROUP_MANAGER_ARG.AddArgument(
+        parser
+    )
+    parser.add_argument(
+        '--resize-requests',
+        type=arg_parsers.ArgList(min_length=1),
+        metavar='RESIZE_REQUEST_NAMES',
+        required=True,
+        help='A list of comma-separated names of resize requests to cancel.',
+    )
+
+  def Run(self, args):
+    """Creates and issues an instanceGroupManagerResizeRequests.cancel requests.
+
+    Args:
+      args: the argparse arguments that this command was invoked with.
+
+    Returns:
+      A list of URI paths of the successfully canceled resize requests.
+    """
+
+    holder = base_classes.ComputeApiHolder(self.ReleaseTrack())
+    resource_arg = instance_groups_flags.MULTISCOPE_INSTANCE_GROUP_MANAGER_ARG
+    igm_ref = self._GetIgmRef(args, holder, resource_arg)
+    resize_request_refs = self._CreateResizeRequestReferences(
+        args.resize_requests, igm_ref, holder.resources
+    )
+    return self._MakeRequests(holder.client, igm_ref, resize_request_refs)
+
+  def _CreateResizeRequestReferences(
+      self, resize_request_names, igm_ref, resources
+  ):
+    resize_request_references = []
+    if igm_ref.Collection() == 'compute.instanceGroupManagers':
+      for resize_request_name in resize_request_names:
+        resize_request_references.append(
+            resources.Parse(
+                resize_request_name,
+                {
+                    'project': igm_ref.project,
+                    'zone': igm_ref.zone,
+                    'instanceGroupManager': igm_ref.instanceGroupManager,
+                },
+                collection='compute.instanceGroupManagerResizeRequests',
+            )
+        )
+    elif igm_ref.Collection() == 'compute.regionInstanceGroupManagers':
+      for resize_request_name in resize_request_names:
+        resize_request_references.append(
+            resources.Parse(
+                resize_request_name,
+                {
+                    'project': igm_ref.project,
+                    'region': igm_ref.region,
+                    'instanceGroupManager': igm_ref.instanceGroupManager,
+                },
+                collection='compute.regionInstanceGroupManagerResizeRequests',
+            )
+        )
+    else:
+      raise ValueError(
+          'Unknown reference type {0}'.format(igm_ref.Collection())
+      )
+    return resize_request_references
+
+  def _MakeRequests(self, client, igm_ref, resize_request_refs):
+    requests = []
+    if igm_ref.Collection() == 'compute.instanceGroupManagers':
+      for resize_request_ref in resize_request_refs:
+        requests.append((
+            client.apitools_client.instanceGroupManagerResizeRequests,
+            'Cancel',
+            client.messages.ComputeInstanceGroupManagerResizeRequestsCancelRequest(
+                project=igm_ref.project,
+                zone=igm_ref.zone,
+                instanceGroupManager=igm_ref.instanceGroupManager,
+                resizeRequest=resize_request_ref.resizeRequest,
+            ),
+        ))
+    elif igm_ref.Collection() == 'compute.regionInstanceGroupManagers':
+      for resize_request_ref in resize_request_refs:
+        requests.append((
+            client.apitools_client.regionInstanceGroupManagerResizeRequests,
+            'Cancel',
+            client.messages.ComputeRegionInstanceGroupManagerResizeRequestsCancelRequest(
+                project=igm_ref.project,
+                region=igm_ref.region,
+                instanceGroupManager=igm_ref.instanceGroupManager,
+                resizeRequest=resize_request_ref.resizeRequest,
+            ),
+        ))
+    else:
+      raise ValueError(
+          'Unknown reference type {0}'.format(igm_ref.Collection())
+      )
+    return client.MakeRequests(requests)
+
+
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class CancelAlpha(CancelBeta):
+  """Cancel a Compute Engine managed instance group resize request.
+
+  *{command}* cancels one or more Compute Engine managed instance group resize
+  requests.
+
+  You can only cancel a resize request when it is in the ACCEPTED state.
+  """
+
+  detailed_help = DETAILED_HELP
+
+  @classmethod
+  def Args(cls, parser):
+    instance_groups_flags.MULTISCOPE_INSTANCE_GROUP_MANAGER_ARG.AddArgument(
+        parser
+    )
     rr_group = parser.add_group(mutex=True, required=True)
     rr_group.add_argument(
         '--resize-requests',
@@ -159,17 +283,10 @@ class CancelAlpha(Cancel):
     Returns:
       A URI path of the successfully canceled resize request.
     """
-    holder = base_classes.ComputeApiHolder(self.ReleaseTrack())
-    client = holder.client
-    resource_arg = instance_groups_flags.MakeZonalInstanceGroupManagerArg()
-    default_scope = compute_scope.ScopeEnum.ZONE
-    scope_lister = flags.GetDefaultScopeLister(client)
-    igm_ref = resource_arg.ResolveAsResource(
-        args,
-        holder.resources,
-        default_scope=default_scope,
-        scope_lister=scope_lister)
 
+    holder = base_classes.ComputeApiHolder(self.ReleaseTrack())
+    resource_arg = instance_groups_flags.MULTISCOPE_INSTANCE_GROUP_MANAGER_ARG
+    igm_ref = self._GetIgmRef(args, holder, resource_arg)
     if args.IsKnownAndSpecified('resize_request'):
       resize_request_refs = self._CreateResizeRequestReferences(
           [args.resize_request], igm_ref, holder.resources
@@ -178,17 +295,4 @@ class CancelAlpha(Cancel):
       resize_request_refs = self._CreateResizeRequestReferences(
           args.resize_requests, igm_ref, holder.resources
       )
-
-    requests = []
-    for resize_request_ref in resize_request_refs:
-      requests.append((
-          client.apitools_client.instanceGroupManagerResizeRequests,
-          'Cancel',
-          client.messages.ComputeInstanceGroupManagerResizeRequestsCancelRequest(
-              project=igm_ref.project,
-              zone=igm_ref.zone,
-              instanceGroupManager=igm_ref.instanceGroupManager,
-              resizeRequest=resize_request_ref.resizeRequest,
-          ),
-      ))
-    return client.MakeRequests(requests)
+    return self._MakeRequests(holder.client, igm_ref, resize_request_refs)

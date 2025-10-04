@@ -23,14 +23,17 @@ from __future__ import unicode_literals
 import textwrap
 
 from googlecloudsdk.calliope import arg_parsers
+from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.compute import flags
 from googlecloudsdk.core import log
+
+ReleaseTrack = base.ReleaseTrack
 
 
 def AddDescription(parser):
   parser.add_argument(
-      '--description',
-      help='An optional, textual description for the backend.')
+      '--description', help='An optional, textual description for the backend.'
+  )
 
 
 def AddInstanceGroup(parser, operation_type, with_deprecated_zone=False):
@@ -68,7 +71,7 @@ def WarnOnDeprecatedFlags(args):
         ' instead. It will be removed in a future release.')
 
 
-def _GetBalancingModes():
+def _GetBalancingModes(release_track=None):
   """Returns the --balancing-modes flag value choices name:description dict."""
   per_rate_flags = '*--max-rate-per-instance*'
   per_connection_flags = '*--max-connections-per-instance*'
@@ -118,13 +121,29 @@ def _GetBalancingModes():
           `--max-connections`, `--max-connections-per-instance`.
           For valid combinations, see `--max-utilization`.
           """).format(per_connection_flags),
+      'CUSTOM_METRICS': """
+          Spreads load based on custom defined and reported metrics.
+          """,
   }
+  if release_track == ReleaseTrack.ALPHA:
+    balancing_modes['IN_FLIGHT'] = """
+                    Available if the backend service's load balancing scheme is
+          `INTERNAL_MANAGED`, `INTERNAL_SELF_MANAGED`, or `EXTERNAL_MANAGED`. Available
+          if the backend service's protocol is one of HTTP, HTTPS, or HTTP/2.
+
+          Spreads load based on how many in-flight requests the backend can handle.
+
+          You must specify exactly one of these additional parameters:
+          `--max-in-flight-requests`, `--max-in-flight-requests-per-instance`, or
+          `--max-in-flight-requests-per-endpoint`, and `--traffic-duration=LONG`.
+          """
+
   return balancing_modes
 
 
 def AddBalancingMode(parser,
                      support_global_neg=False,
-                     support_region_neg=False):
+                     support_region_neg=False, release_track=None):
   """Adds balancing mode argument to the argparse."""
   help_text = """\
   Defines how to measure whether a backend can handle additional traffic or is
@@ -144,14 +163,15 @@ def AddBalancingMode(parser,
     """.format(_JoinTypes(incompatible_types))
   parser.add_argument(
       '--balancing-mode',
-      choices=_GetBalancingModes(),
+      choices=_GetBalancingModes(release_track),
       type=lambda x: x.upper(),
       help=help_text)
 
 
 def AddCapacityLimits(parser,
                       support_global_neg=False,
-                      support_region_neg=False):
+                      support_region_neg=False,
+                      release_track=None):
   """Adds capacity thresholds arguments to the argparse."""
   AddMaxUtilization(parser)
   capacity_group = parser.add_group(mutex=True)
@@ -232,6 +252,30 @@ def AddCapacityLimits(parser,
       by the number of instances in the instance group, and then dividing by
       the number of healthy instances.
       """)
+  if release_track == ReleaseTrack.ALPHA:
+    capacity_group.add_argument(
+        '--max-in-flight-requests',
+        type=int,
+        help="""\
+        Maximum number of in-flight requests that the backend can handle.
+        """ + append_help_text,
+    )
+    capacity_group.add_argument(
+        '--max-in-flight-requests-per-instance',
+        type=int,
+        help="""\
+        Only valid for instance group backends. Defines the maximum number of
+        in-flight requests per instance.
+        """ + append_help_text,
+    )
+    capacity_group.add_argument(
+        '--max-in-flight-requests-per-endpoint',
+        type=int,
+        help="""\
+        Only valid for network endpoint group backends. Defines the maximum number
+        of in-flight requests per endpoint.
+        """ + append_help_text,
+    )
 
 
 def AddMaxUtilization(parser):
@@ -296,7 +340,7 @@ def _GetPreference():
           This is the default setting. If the designated preferred backends
           don't have enough capacity, backends in the default category are used.
           Traffic is distributed between default backends based on the load
-          balancing algorithm you use.
+          balancing algorithm used.
           """),
       'PREFERRED': textwrap.dedent("""
           Backends with this preference setting are used up to their capacity
@@ -309,8 +353,8 @@ def _GetPreference():
 def AddPreference(parser):
   """Adds preference argument to the argparse."""
   help_text = """\
-  Defines whether a backend should be fully utilized before
-  sending traffic to backends with default preference.
+  This parameter specifies whether a backend should be fully utilized before
+  sending traffic to backends with the default preference.
   """
   incompatible_types = ['INTERNET_IP_PORT', 'INTERNET_FQDN_PORT', 'SERVERLESS']
   help_text += """\
@@ -322,6 +366,93 @@ def AddPreference(parser):
       choices=_GetPreference(),
       type=lambda x: x.upper(),
       help=help_text)
+
+
+def _GetTrafficDuration():
+  """Returns the --traffic-duration flag value choices name:description dict."""
+  traffic_durations = {
+      'TRAFFIC_DURATION_UNSPECIFIED': textwrap.dedent("""
+          Default value. Defaults to SHORT.
+          """),
+      'SHORT': textwrap.dedent("""
+          Most requests are expected to finish with a sub-second latency.
+          """),
+      'LONG': textwrap.dedent("""
+          Most of the requests are expected to take more than multiple seconds to finish.
+          """),
+  }
+  return traffic_durations
+
+
+def AddTrafficDuration(parser):
+  """Adds traffic duration argument to the argparse."""
+  parser.add_argument(
+      '--traffic-duration',
+      choices=_GetTrafficDuration(),
+      type=lambda x: x.upper(),
+      help="""\
+      The expected traffic duration for this service.
+      """,
+  )
+
+
+def AddCustomMetrics(parser, add_clear_argument=False):
+  """Adds a --custom-metrics flag to the given parser."""
+  group = parser.add_mutually_exclusive_group()
+  help_text = """\
+  List of custom metrics that are used for CUSTOM_METRICS balancing mode and
+  WEIGHTED_ROUND_ROBIN locality load balancing policy.
+
+  Example:
+
+    $ {command} --custom-metrics='name=my-signal,maxUtilization=0.8,dryRun=true'
+    $ {command} --custom-metrics='name=my-signal,maxUtilization=0.8,dryRun=true' --custom-metrics='name=my-signal2,maxUtilization=0.2'
+    $ {command} --custom-metrics='[{"name" : "my-signal", "maxUtilization" : 0.8, "dryRun" : true}, {"name" : "my-signal2", "maxUtilization" : 0.1}]'"""
+  group.add_argument(
+      '--custom-metrics',
+      metavar='CUSTOM_METRICS',
+      type=arg_parsers.ArgObject(
+          spec={
+              'name': str,
+              'maxUtilization': float,
+              'dryRun': bool,
+          },
+          required_keys=['name'],
+          repeated=True,
+      ),
+      action=arg_parsers.FlattenAction(),
+      help=help_text,
+  )
+  help_text_file = """\
+  File path to json file with custom metrics that are used for CUSTOM_METRICS
+  balancing mode and WEIGHTED_ROUND_ROBIN locality load balancing policy.
+
+  Example:
+
+    $ {command} --custom-metrics-file='customMetric.json'"""
+  group.add_argument(
+      '--custom-metrics-file',
+      metavar='CUSTOM_METRICS',
+      type=arg_parsers.ArgObject(
+          spec={
+              'name': str,
+              'maxUtilization': float,
+              'dryRun': bool,
+          },
+          required_keys=['name'],
+          repeated=True,
+      ),
+      action=arg_parsers.FlattenAction(),
+      help=help_text_file,
+  )
+  if add_clear_argument:
+    group.add_argument(
+        '--clear-custom-metrics',
+        required=False,
+        action='store_true',
+        default=None,
+        help='Clears current list of CUSTOM_METRICS.',
+    )
 
 
 def _JoinTypes(types):

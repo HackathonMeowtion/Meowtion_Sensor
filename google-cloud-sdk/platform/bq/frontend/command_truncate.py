@@ -10,14 +10,15 @@ from typing import Optional
 from absl import app
 from absl import flags
 
+import bq_flags
+from clients import client_job
+from clients import client_table
 from clients import utils as bq_client_utils
 from frontend import bigquery_command
 from frontend import bq_cached_client
 from utils import bq_error
 from utils import bq_id_utils
 from utils import bq_processor_utils
-
-FLAGS = flags.FLAGS
 
 # These aren't relevant for user-facing docstrings:
 # pylint: disable=g-doc-return-or-yield
@@ -77,7 +78,9 @@ class Truncate(bigquery_command.BigqueryCmd):  # pylint: disable=missing-docstri
     client = bq_cached_client.Client.Get()
 
     if identifier:
-      reference = client.GetReference(identifier.strip())
+      reference = bq_client_utils.GetReference(
+          id_fallbacks=client, identifier=identifier.strip()
+      )
     else:
       raise app.UsageError('Must specify one of project, dataset or table')
 
@@ -97,8 +100,14 @@ class Truncate(bigquery_command.BigqueryCmd):  # pylint: disable=missing-docstri
         if isinstance(reference, bq_id_utils.ApiClientHelper.DatasetReference):
           all_tables = list(
               map(
-                  lambda x: client.GetReference(x['id']),
-                  client.ListTables(reference, max_results=1000 * 1000),
+                  lambda x: bq_client_utils.GetReference(
+                      id_fallbacks=client, identifier=x['id']
+                  ),
+                  client_table.list_tables(
+                      apiclient=client.apiclient,
+                      reference=reference,
+                      max_results=1000 * 1000,
+                  ),
               )
           )
       for a_table in all_tables:
@@ -120,7 +129,7 @@ class Truncate(bigquery_command.BigqueryCmd):  # pylint: disable=missing-docstri
         recovery_timestamp = min(
             list(map(self._GetRecoveryTimestamp, all_table_infos))
         )
-      except (ValueError, TypeError):
+      except (ValueError, bq_error.BigqueryTypeError):
         recovery_timestamp = None
       # Error out if we can't figure out a recovery timestamp
       # This can happen in following cases:
@@ -135,6 +144,8 @@ class Truncate(bigquery_command.BigqueryCmd):  # pylint: disable=missing-docstri
       print('Recommended timestamp to truncate to is %s' % recovery_timestamp)
 
       for a_table in all_table_infos:
+        if not hasattr(reference, 'datasetId'):
+          raise AttributeError('Missing `datasetId` on reference.')
         try:
           table_reference = bq_id_utils.ApiClientHelper.TableReference.Create(
               projectId=reference.projectId,
@@ -242,7 +253,7 @@ FROM (
   def _ReadTableInfo(self, query: str, row_count: int):
     client = bq_cached_client.Client.Get()
     try:
-      job = client.Query(query, use_legacy_sql=False)
+      job = client_job.Query(client, query, use_legacy_sql=False)
     except bq_error.BigqueryError as e:
       # TODO(b/324243535): Correct this typing.
       # pytype: disable=attribute-error
@@ -255,8 +266,8 @@ FROM (
         raise e
     all_table_infos = []
     if not bq_client_utils.IsFailedJob(job):
-      _, rows = client.ReadSchemaAndJobRows(
-          job['jobReference'], start_row=0, max_rows=row_count
+      _, rows = client_job.ReadSchemaAndJobRows(
+          client, job['jobReference'], start_row=0, max_rows=row_count
       )
       for i in range(len(rows)):
         table_info = {}
@@ -303,17 +314,18 @@ FROM (
       )
     kwds = {
         'write_disposition': 'WRITE_TRUNCATE',
-        'ignore_already_exists': 'False',
+        'ignore_already_exists': False,
         'operation_type': 'COPY',
     }
-    if FLAGS.location:
-      kwds['location'] = FLAGS.location
-    source_table = client.GetTableReference(
-        '%s@%s' % (table_reference, recovery_timestamp)
+    if bq_flags.LOCATION.value:
+      kwds['location'] = bq_flags.LOCATION.value
+    source_table = bq_client_utils.GetTableReference(
+        id_fallbacks=client,
+        identifier='%s@%s' % (table_reference, recovery_timestamp),
     )
     job_ref = ' '
     try:
-      job = client.CopyTable([source_table], dest, **kwds)
+      job = client_job.CopyTable(client, [source_table], dest, **kwds)
       if job is None:
         self.failed_table_count += 1
         return self._formatOutputString(dest, 'Failed')

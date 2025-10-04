@@ -14,31 +14,20 @@
 # limitations under the License.
 """Utilities for Package Rollouts Releases API."""
 
+from apitools.base.py import exceptions as apitools_exceptions
 from apitools.base.py import list_pager
-from googlecloudsdk.api_lib.util import apis
-from googlecloudsdk.core import resources
+from googlecloudsdk.api_lib.container.fleet.packages import util
+from googlecloudsdk.api_lib.container.fleet.packages import variants as variants_apis
+from googlecloudsdk.api_lib.util import waiter
 
 _LIST_REQUEST_BATCH_SIZE_ATTRIBUTE = 'pageSize'
+_VARIANT_STORAGE_STRATEGY_LABEL_KEY = 'configdelivery-variant-storage-strategy'
+_VARIANT_STORAGE_STRATEGY_LABEL_VALUE_NESTED = 'nested'
+_SKIP_CREATING_VARIANT_RESOURCES_LABEL_KEY = 'configdelivery-skip-creating-variant-resources'
+_SKIP_CREATING_VARIANT_RESOURCES_LABEL_VALUE = 'true'
 
 
-def GetClientInstance(no_http=False):
-  """Returns instance of generated Config Delivery gapic client."""
-  return apis.GetClientInstance('configdelivery', 'v1alpha', no_http=no_http)
-
-
-def GetMessagesModule(client=None):
-  """Returns generated Config Delivery gapic messages."""
-  client = client or GetClientInstance()
-  return client.MESSAGES_MODULE
-
-
-def GetReleaseURI(resource):
-  """Returns URI of Release for use with gapic client."""
-  release = resources.REGISTRY.ParseRelativeName(
-      resource.name,
-      collection='configdelivery.projects.locations.resourceBundles.releases',
-  )
-  return release.SelfLink()
+RELEASE_COLLECTION = 'configdelivery.projects.locations.resourceBundles.releases'
 
 
 def _ParentPath(project, location, parent_bundle):
@@ -55,10 +44,15 @@ def _FullyQualifiedPath(project, location, resource_bundle, release):
 class ReleasesClient(object):
   """Client for Releases in Config Delivery Package Rollouts API."""
 
-  def __init__(self, client=None, messages=None):
-    self.client = client or GetClientInstance()
-    self.messages = messages or GetMessagesModule(client)
+  def __init__(self, api_version, client=None, messages=None):
+    self._api_version = api_version or util.DEFAULT_API_VERSION
+    self.client = client or util.GetClientInstance(self._api_version)
+    self.messages = messages or util.GetMessagesModule(self.client)
     self._service = self.client.projects_locations_resourceBundles_releases
+    self.release_waiter = waiter.CloudOperationPollerNoResources(
+        operation_service=self.client.projects_locations_operations,
+        get_name_func=lambda x: x.name,
+    )
 
   def GetLifecycleEnum(self, lifecycle_str):
     """Converts input-format lifecycle to internal enum."""
@@ -66,37 +60,6 @@ class ReleasesClient(object):
       return self.messages.Release.LifecycleValueValuesEnum.DRAFT
     else:
       return self.messages.Release.LifecycleValueValuesEnum.PUBLISHED
-
-  def _VariantsValueFromInputVariants(self, variants):
-    """Converts input-format variants to internal variant objects.
-
-    Args:
-      variants: input-format variants
-
-    Returns:
-      A VariantsValue object, that contains a list of variants. To be used in
-      API requests.
-    """
-    additional_properties = []
-    for variant_entry in variants:
-      variant = self.messages.Variant(
-          labels=None, resources=variants[variant_entry]
-      )
-      if len(variants) == 1:
-        additional_properties.append(
-            self.messages.Release.VariantsValue.AdditionalProperty(
-                key='default', value=variant
-            )
-        )
-      else:
-        additional_properties.append(
-            self.messages.Release.VariantsValue.AdditionalProperty(
-                key=variant_entry, value=variant
-            )
-        )
-    return self.messages.Release.VariantsValue(
-        additionalProperties=additional_properties
-    )
 
   def List(self, project, location, parent_bundle, limit=None, page_size=100):
     """List Releases of a ResourceBundle.
@@ -132,6 +95,7 @@ class ReleasesClient(object):
       location,
       lifecycle=None,
       variants=None,
+      skip_creating_variant_resources=False,
   ):
     """Create Release for a ResourceBundle.
 
@@ -142,6 +106,8 @@ class ReleasesClient(object):
       location: Valid GCP location (e.g., uc-central1)
       lifecycle: Lifecycle of the Release.
       variants: Variants of the Release.
+      skip_creating_variant_resources: Whether to use the crane upload strategy
+        to upload variant images.
 
     Returns:
       Created Release resource.
@@ -149,12 +115,35 @@ class ReleasesClient(object):
     fully_qualified_path = _FullyQualifiedPath(
         project, location, resource_bundle, version
     )
-    variants_value = self._VariantsValueFromInputVariants(variants)
+
+    # Create Draft Release, create nested Variant resources, then updates
+    # release to have those variants. Publishes release at update step, if
+    # necessary.
+    if not variants and lifecycle is None:
+      raise ValueError(
+          'No variants found in source directory. Please check the source'
+          ' directory and variants pattern, or create the release with'
+          ' --lifecycle=DRAFT.'
+      )
+    labels = self.messages.Release.LabelsValue(
+        additionalProperties=[
+            self.messages.Release.LabelsValue.AdditionalProperty(
+                key=_VARIANT_STORAGE_STRATEGY_LABEL_KEY,
+                value=_VARIANT_STORAGE_STRATEGY_LABEL_VALUE_NESTED,
+            )
+        ]
+    )
+    if skip_creating_variant_resources:
+      labels.additionalProperties.append(
+          self.messages.Release.LabelsValue.AdditionalProperty(
+              key=_SKIP_CREATING_VARIANT_RESOURCES_LABEL_KEY,
+              value=_SKIP_CREATING_VARIANT_RESOURCES_LABEL_VALUE,
+          )
+      )
     release = self.messages.Release(
         name=fully_qualified_path,
-        labels=None,
-        lifecycle=self.GetLifecycleEnum(lifecycle),
-        variants=variants_value,
+        labels=labels,
+        lifecycle=self.GetLifecycleEnum('DRAFT'),
         version=version,
     )
     create_request = self.messages.ConfigdeliveryProjectsLocationsResourceBundlesReleasesCreateRequest(
@@ -162,27 +151,66 @@ class ReleasesClient(object):
         release=release,
         releaseId=version.replace('.', '-'),
     )
-    return self._service.Create(create_request)
+    _ = waiter.WaitFor(
+        self.release_waiter,
+        self._service.Create(create_request),
+        f'Creating Release {fully_qualified_path}',
+    )
+    for variant, variant_resources in variants.items():
+      variants_client = variants_apis.VariantsClient(self._api_version)
+      try:
+        variants_client.Create(
+            resource_bundle=resource_bundle,
+            release=version.replace('.', '-'),
+            name=variant,
+            project=project,
+            location=location,
+            variant_resources=variant_resources,
+        )
+      except apitools_exceptions.HttpConflictError as e:
+        # If the variant already exists, we can safely skip.
+        if 'already_exists' in str(e).lower():
+          pass
+        else:
+          # Re-raise the exception if conflict is not due to "already exists".
+          raise
+    return self.Update(
+        release=version,
+        project=project,
+        location=location,
+        resource_bundle=resource_bundle,
+        labels=labels,
+        lifecycle=lifecycle,
+    )
 
-  def Delete(self, project, location, resource_bundle, release):
-    """Delete a ResourceBundle resource.
+  def Delete(self, project, location, resource_bundle, release, force=False):
+    """Delete a Release resource.
 
     Args:
       project: GCP project ID.
       location: GCP location of Release.
       resource_bundle: Name of ResourceBundle.
       release: Name of Release.
+      force: Whether to force deletion of any child variants.
 
     Returns:
       Empty Response Message.
     """
     fully_qualified_path = _FullyQualifiedPath(
-        project, location, resource_bundle, release
+        project,
+        location,
+        resource_bundle,
+        release,
     )
     delete_req = self.messages.ConfigdeliveryProjectsLocationsResourceBundlesReleasesDeleteRequest(
-        name=fully_qualified_path
+        name=fully_qualified_path,
+        force=force,
     )
-    return self._service.Delete(delete_req)
+    return waiter.WaitFor(
+        self.release_waiter,
+        self._service.Delete(delete_req),
+        f'Deleting Release {fully_qualified_path}',
+    )
 
   def Describe(self, project, location, resource_bundle, release):
     """Describe a Release resource.
@@ -210,8 +238,8 @@ class ReleasesClient(object):
       project,
       location,
       resource_bundle,
+      labels=None,
       lifecycle=None,
-      variants=None,
       update_mask=None,
   ):
     """Update Release for a ResourceBundle.
@@ -221,8 +249,8 @@ class ReleasesClient(object):
       project: GCP project ID.
       location: GCP location of Release.
       resource_bundle: Name of parent ResourceBundle.
+      labels: Labels of the Release.
       lifecycle: Lifecycle of the Release.
-      variants: Variants of the Release.
       update_mask: Fields to be updated.
 
     Returns:
@@ -231,15 +259,17 @@ class ReleasesClient(object):
     fully_qualified_path = _FullyQualifiedPath(
         project, location, resource_bundle, release
     )
-    variants_value = self._VariantsValueFromInputVariants(variants)
     release = self.messages.Release(
         name=fully_qualified_path,
-        labels=None,
+        labels=labels,
         lifecycle=self.GetLifecycleEnum(lifecycle),
-        variants=variants_value,
         version=release,
     )
     update_request = self.messages.ConfigdeliveryProjectsLocationsResourceBundlesReleasesPatchRequest(
         name=fully_qualified_path, release=release, updateMask=update_mask
     )
-    return self._service.Patch(update_request)
+    return waiter.WaitFor(
+        self.release_waiter,
+        self._service.Patch(update_request),
+        f'Updating Release {fully_qualified_path}',
+    )

@@ -166,6 +166,9 @@ _RATE_LIMIT_ENFORCE_ON_KEY_TYPES_DESCRIPTION = """
       - ``user-ip'': key type takes the IP address of the originating client,
                      which is resolved based on user-ip-request-headers
                      configured with the security policy
+      - ``tls-ja4-fingerprint'': key type takes the value of JA4 TLS/SSL
+                                 fingerprint if the client connects using HTTPS,
+                                 HTTP/2 or HTTP/3
 """
 
 
@@ -301,8 +304,6 @@ def AddMatcherAndNetworkMatcher(parser, required=True):
 
 def AddAction(parser,
               required=True,
-              support_redirect=False,
-              support_rate_limit=False,
               support_fairshare=False):
   """Adds the action argument to the argparse."""
   actions = {
@@ -327,6 +328,18 @@ def AddAction(parser,
           ' reCAPTCHA Enterprise assessment. This flag choice is deprecated. '
           'Use --action=redirect and --redirect-type=google-recaptcha instead.'
       ),
+      'redirect': (
+          'Redirects the request from HTTP(S) Load Balancing, based on '
+          'redirect options.'
+      ),
+      'rate-based-ban': (
+          'Enforces rate-based ban action from HTTP(S) Load Balancing, '
+          'based on rate limit options.'
+      ),
+      'throttle': (
+          'Enforces throttle action from HTTP(S) Load Balancing, based on '
+          'rate limit options.'
+      ),
   }
   if support_fairshare:
     actions.update({
@@ -334,21 +347,6 @@ def AddAction(parser,
             'When traffic reaches the threshold limit, requests from the '
             'clients matching this rule begin to be rate-limited using the '
             'Fair Share algorithm.'
-    })
-  if support_redirect:
-    actions.update({
-        'redirect':
-            'Redirects the request from HTTP(S) Load Balancing, based on '
-            'redirect options.'
-    })
-  if support_rate_limit:
-    actions.update({
-        'rate-based-ban':
-            'Enforces rate-based ban action from HTTP(S) Load Balancing, '
-            'based on rate limit options.',
-        'throttle':
-            'Enforces throttle action from HTTP(S) Load Balancing, based on '
-            'rate limit options.'
     })
   parser.add_argument(
       '--action',
@@ -364,13 +362,16 @@ def AddDescription(parser):
       '--description', help='An optional, textual description for the rule.')
 
 
-def AddPreview(parser, default):
+def AddPreview(parser, for_update=False):
   """Adds the preview argument to the argparse."""
+  if for_update:
+    kwargs = {'action': arg_parsers.StoreTrueFalseAction}
+  else:
+    kwargs = {'action': 'store_true', 'default': None}
   parser.add_argument(
       '--preview',
-      action='store_true',
-      default=default,
-      help='If specified, the action will not be enforced.')
+      help='If specified, the action will not be enforced.',
+      **kwargs)
 
 
 def AddRedirectOptions(parser):
@@ -396,9 +397,7 @@ def AddRedirectOptions(parser):
 
 def AddRateLimitOptions(
     parser,
-    support_exceed_redirect=True,
-    support_fairshare=False,
-    support_multiple_rate_limit_keys=False,
+    support_rpc_status=False,
 ):
   """Adds rate limiting related arguments to the argparse."""
   parser.add_argument(
@@ -422,9 +421,14 @@ def AddRateLimitOptions(
             'requests are throttled, this is also the action for all requests '
             'which are not dropped.'))
 
-  exceed_actions = ['deny-403', 'deny-404', 'deny-429', 'deny-502', 'deny']
-  if support_exceed_redirect:
-    exceed_actions.append('redirect')
+  exceed_actions = [
+      'deny-403',
+      'deny-404',
+      'deny-429',
+      'deny-502',
+      'deny',
+      'redirect',
+  ]
   parser.add_argument(
       '--exceed-action',
       choices=exceed_actions,
@@ -436,21 +440,22 @@ def AddRateLimitOptions(
       --exceed-redirect-target below.
       """)
 
-  if support_exceed_redirect:
-    exceed_redirect_types = ['google-recaptcha', 'external-302']
-    parser.add_argument(
-        '--exceed-redirect-type',
-        choices=exceed_redirect_types,
-        type=lambda x: x.lower(),
-        help="""\
-        Type for the redirect action that is configured as the exceed action.
-        """)
-    parser.add_argument(
-        '--exceed-redirect-target',
-        help="""\
-        URL target for the redirect action that is configured as the exceed
-        action when the redirect type is ``external-302''.
-        """)
+  exceed_redirect_types = ['google-recaptcha', 'external-302']
+  parser.add_argument(
+      '--exceed-redirect-type',
+      choices=exceed_redirect_types,
+      type=lambda x: x.lower(),
+      help="""\
+      Type for the redirect action that is configured as the exceed action.
+      """,
+  )
+  parser.add_argument(
+      '--exceed-redirect-target',
+      help="""\
+      URL target for the redirect action that is configured as the exceed
+      action when the redirect type is ``external-302''.
+      """,
+  )
 
   enforce_on_key = [
       'ip',
@@ -463,6 +468,7 @@ def AddRateLimitOptions(
       'region-code',
       'tls-ja3-fingerprint',
       'user-ip',
+      'tls-ja4-fingerprint',
   ]
   parser.add_argument(
       '--enforce-on-key',
@@ -484,33 +490,33 @@ def AddRateLimitOptions(
       value.
       """)
 
-  if support_multiple_rate_limit_keys:
-    parser.add_argument(
-        '--enforce-on-key-configs',
-        type=arg_parsers.ArgDict(
-            spec={key: str for key in enforce_on_key},
-            min_length=1,
-            max_length=3,
-            allow_key_only=True,
-        ),
-        # The default renders as follows:
-        # [all=ALL],[http-cookie=HTTP-COOKIE],
-        # [http-header=HTTP-HEADER],[http-path=HTTP-PATH],
-        # [ip=IP],[region-code=REGION-CODE],[sni=SNI],
-        # [tls-ja3-fingerprint=TLS-JA3-FINGERPRINT],[user-ip=USER-IP],
-        # [xff-ip=XFF-IP]]
-        metavar='[[all],[ip],[xff-ip],[http-cookie=HTTP_COOKIE],[http-header=HTTP_HEADER],[http-path],[sni],[region-code],[tls-ja3-fingerprint],[user-ip]]',
-        help="""\
-        Specify up to 3 key type/name pairs to rate limit.
-        Valid key types are:
-        """
-        + _RATE_LIMIT_ENFORCE_ON_KEY_TYPES_DESCRIPTION
-        + """
-      Key names are only applicable to the following key types:
-      - http-header: The name of the HTTP header whose value is taken as the key value.
-      - http-cookie: The name of the HTTP cookie whose value is taken as the key value.
-      """,
-    )
+  parser.add_argument(
+      '--enforce-on-key-configs',
+      type=arg_parsers.ArgDict(
+          spec={key: str for key in enforce_on_key},
+          min_length=1,
+          max_length=3,
+          allow_key_only=True,
+      ),
+      # The default renders as follows:
+      # [all=ALL],[http-cookie=HTTP-COOKIE],
+      # [http-header=HTTP-HEADER],[http-path=HTTP-PATH],
+      # [ip=IP],[region-code=REGION-CODE],[sni=SNI],
+      # [tls-ja3-fingerprint=TLS-JA3-FINGERPRINT],[user-ip=USER-IP],
+      # [tls-ja4-fingerprint=TLS-JA4-FINGERPRINT],
+      # [xff-ip=XFF-IP]]
+      metavar='[[all],[ip],[xff-ip],[http-cookie=HTTP_COOKIE],[http-header=HTTP_HEADER],[http-path],[sni],[region-code],[tls-ja3-fingerprint],[user-ip],[tls-ja4-fingerprint]]',
+      help="""\
+      Specify up to 3 key type/name pairs to rate limit.
+      Valid key types are:
+      """
+      + _RATE_LIMIT_ENFORCE_ON_KEY_TYPES_DESCRIPTION
+      + """
+    Key names are only applicable to the following key types:
+    - http-header: The name of the HTTP header whose value is taken as the key value.
+    - http-cookie: The name of the HTTP cookie whose value is taken as the key value.
+    """,
+  )
 
   parser.add_argument(
       '--ban-threshold-count',
@@ -545,7 +551,7 @@ def AddRateLimitOptions(
       the traffic will continue to be banned by the rate limit after
       the rate falls below the threshold.
       """)
-  if support_fairshare:
+  if support_rpc_status:
     parser.add_argument(
         '--exceed-action-rpc-status-code',
         type=int,

@@ -41,6 +41,17 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_LOCATIONS_AUTHZEXTENSIONS = (
+      'projects.locations.authzExtensions',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/authzExtensions/'
+              '{authzExtensionsId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS_LOCATIONS_EDGECACHEKEYSETS = (
       'projects.locations.edgeCacheKeysets',
       '{+name}',
@@ -92,6 +103,17 @@ class Collections(enum.Enum):
           '':
               'projects/{projectsId}/locations/{locationsId}/gateways/'
               '{gatewaysId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_GATEWAYS_ROUTEVIEWS = (
+      'projects.locations.gateways.routeViews',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/gateways/'
+              '{gatewaysId}/routeViews/{routeViewsId}',
       },
       ['name'],
       True
@@ -151,6 +173,17 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_LOCATIONS_MESHES_ROUTEVIEWS = (
+      'projects.locations.meshes.routeViews',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/meshes/'
+              '{meshesId}/routeViews/{routeViewsId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS_LOCATIONS_MULTICASTCONSUMERASSOCIATIONS = (
       'projects.locations.multicastConsumerAssociations',
       '{+name}',
@@ -170,6 +203,17 @@ class Collections(enum.Enum):
           '':
               'projects/{projectsId}/locations/{locationsId}/'
               'multicastDomainActivations/{multicastDomainActivationsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_MULTICASTDOMAINGROUPS = (
+      'projects.locations.multicastDomainGroups',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'multicastDomainGroups/{multicastDomainGroupsId}',
       },
       ['name'],
       True
@@ -197,24 +241,49 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
-  PROJECTS_LOCATIONS_MULTICASTGROUPDEFINITIONS = (
-      'projects.locations.multicastGroupDefinitions',
+  PROJECTS_LOCATIONS_MULTICASTGROUPPRODUCERACTIVATIONS = (
+      'projects.locations.multicastGroupProducerActivations',
       '{+name}',
       {
           '':
               'projects/{projectsId}/locations/{locationsId}/'
-              'multicastGroupDefinitions/{multicastGroupDefinitionsId}',
+              'multicastGroupProducerActivations/'
+              '{multicastGroupProducerActivationsId}',
       },
       ['name'],
       True
   )
-  PROJECTS_LOCATIONS_MULTICASTGROUPS = (
-      'projects.locations.multicastGroups',
+  PROJECTS_LOCATIONS_MULTICASTGROUPRANGEACTIVATIONS = (
+      'projects.locations.multicastGroupRangeActivations',
       '{+name}',
       {
           '':
-              'projects/{projectsId}/locations/{locationsId}/multicastGroups/'
-              '{multicastGroupsId}',
+              'projects/{projectsId}/locations/{locationsId}/'
+              'multicastGroupRangeActivations/'
+              '{multicastGroupRangeActivationsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_MULTICASTGROUPRANGES = (
+      'projects.locations.multicastGroupRanges',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'multicastGroupRanges/{multicastGroupRangesId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_MULTICASTPRODUCERASSOCIATIONS = (
+      'projects.locations.multicastProducerAssociations',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'multicastProducerAssociations/'
+              '{multicastProducerAssociationsId}',
       },
       ['name'],
       True
@@ -270,17 +339,6 @@ class Collections(enum.Enum):
           '':
               'projects/{projectsId}/locations/{locationsId}/tlsRoutes/'
               '{tlsRoutesId}',
-      },
-      ['name'],
-      True
-  )
-  PROJECTS_LOCATIONS_WASMACTIONS = (
-      'projects.locations.wasmActions',
-      '{+name}',
-      {
-          '':
-              'projects/{projectsId}/locations/{locationsId}/wasmActions/'
-              '{wasmActionsId}',
       },
       ['name'],
       True

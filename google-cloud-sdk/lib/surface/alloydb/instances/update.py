@@ -30,6 +30,10 @@ from googlecloudsdk.core import properties
 from googlecloudsdk.core import resources
 
 
+# TODO(b/312466999): Change @base.DefaultUniverseOnly to
+# @base.UniverseCompatible once b/312466999 is fixed.
+# See go/gcloud-cli-running-tpc-tests.
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Update(base.UpdateCommand):
   """Updates an AlloyDB instance within a given cluster."""
@@ -45,14 +49,15 @@ class Update(base.UpdateCommand):
         """,
   }
 
-  @staticmethod
-  def Args(parser):
+  @classmethod
+  def Args(cls, parser):
     """Specifies additional command flags.
 
     Args:
       parser: argparse.Parser, Parser object for command line inputs
     """
     base.ASYNC_FLAG.AddToParser(parser)
+    alloydb_messages = api_util.GetMessagesModule(cls.ReleaseTrack())
     # Update runs for a long time, it is better to default to async mode so that
     # users can query the operation status and find the status.
     base.ASYNC_FLAG.SetDefault(parser, True)
@@ -61,6 +66,7 @@ class Update(base.UpdateCommand):
     flags.AddDatabaseFlags(parser)
     flags.AddInstance(parser)
     flags.AddCPUCount(parser, required=False)
+    flags.AddMachineType(parser, required=False)
     flags.AddReadPoolNodeCount(parser)
     flags.AddRegion(parser)
     flags.AddInsightsConfigQueryStringLength(parser)
@@ -73,9 +79,29 @@ class Update(base.UpdateCommand):
     )
     flags.AddSSLMode(parser, update=True)
     flags.AddRequireConnectors(parser)
-    flags.AddAssignInboundPublicIp(parser, update=True)
+    flags.AddAssignInboundPublicIp(parser)
     flags.AddAuthorizedExternalNetworks(parser)
+    flags.AddOutboundPublicIp(parser, show_negated_in_help=True)
     flags.AddAllowedPSCProjects(parser)
+    flags.AddPSCNetworkAttachmentUri(parser)
+    flags.ClearPSCNetworkAttachmentUri(parser)
+    flags.AddPSCAutoConnectionGroup(parser)
+    flags.AddActivationPolicy(parser, alloydb_messages)
+
+    # Connection pooling flags.
+    flags.AddEnableConnectionPooling(parser)
+    flags.AddConnectionPoolingPoolMode(parser)
+    flags.AddConnectionPoolingMinPoolSize(parser)
+    flags.AddConnectionPoolingMaxPoolSize(parser)
+    flags.AddConnectionPoolingMaxClientConnections(parser)
+    flags.AddConnectionPoolingServerIdleTimeout(parser)
+    flags.AddConnectionPoolingQueryWaitTimeout(parser)
+    flags.AddConnectionPoolingStatsUsers(parser)
+    flags.AddConnectionPoolingIgnoreStartupParameters(parser)
+    flags.AddConnectionPoolingServerLifetime(parser)
+    flags.AddConnectionPoolingClientConnectionIdleTimeout(parser)
+    flags.AddConnectionPoolingMaxPreparedStatements(parser)
+
     # TODO(b/185795425): Add --ssl-required and --labels later once we
     # understand the use cases
 
@@ -122,10 +148,27 @@ class Update(base.UpdateCommand):
 class UpdateBeta(Update):
   """Updates an AlloyDB instance within a given cluster."""
 
-  @staticmethod
-  def Args(parser):
-    super(UpdateBeta, UpdateBeta).Args(parser)
+  @classmethod
+  def Args(cls, parser):
+    super(UpdateBeta, cls).Args(parser)
     flags.AddUpdateMode(parser)
+    flags.AddObservabilityConfigEnabled(
+        parser, show_negated_in_help=True
+    )
+    flags.AddObservabilityConfigPreserveComments(
+        parser, show_negated_in_help=True
+    )
+    flags.AddObservabilityConfigTrackWaitEvents(
+        parser, show_negated_in_help=False
+    )
+    flags.AddObservabilityConfigMaxQueryStringLength(parser)
+    flags.AddObservabilityConfigRecordApplicationTags(
+        parser, show_negated_in_help=True
+    )
+    flags.AddObservabilityConfigQueryPlansPerMinute(parser)
+    flags.AddObservabilityConfigTrackActiveQueries(
+        parser, show_negated_in_help=True
+    )
 
   def ConstructPatchRequestFromArgs(self, alloydb_messages, instance_ref, args):
     return instance_helper.ConstructPatchRequestFromArgsBeta(
@@ -137,9 +180,9 @@ class UpdateBeta(Update):
 class UpdateAlpha(UpdateBeta):
   """Updates an AlloyDB instance within a given cluster."""
 
-  @staticmethod
-  def Args(parser):
-    super(UpdateAlpha, UpdateAlpha).Args(parser)
+  @classmethod
+  def Args(cls, parser):
+    super(UpdateAlpha, cls).Args(parser)
 
   def ConstructPatchRequestFromArgs(self, alloydb_messages, instance_ref, args):
     return instance_helper.ConstructPatchRequestFromArgsAlpha(

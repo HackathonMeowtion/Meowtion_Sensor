@@ -2360,6 +2360,33 @@ class VmwareengineV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def PrivateCloudDeletionNow(self, request, global_params=None):
+      r"""Accelerates the deletion of a private cloud that is currently in soft deletion A `PrivateCloud` resource in soft deletion has `PrivateCloud.state` set to `SOFT_DELETED` and `PrivateCloud.expireTime` set to the time when deletion can no longer be reversed.
+
+      Args:
+        request: (VmwareengineProjectsLocationsPrivateCloudsPrivateCloudDeletionNowRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('PrivateCloudDeletionNow')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    PrivateCloudDeletionNow.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/privateClouds/{privateCloudsId}:privateCloudDeletionNow',
+        http_method='POST',
+        method_id='vmwareengine.projects.locations.privateClouds.privateCloudDeletionNow',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}:privateCloudDeletionNow',
+        request_field='acceleratePrivateCloudDeletionRequest',
+        request_type_name='VmwareengineProjectsLocationsPrivateCloudsPrivateCloudDeletionNowRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
     def ResetNsxCredentials(self, request, global_params=None):
       r"""Resets credentials of the NSX appliance.
 
@@ -3013,7 +3040,7 @@ class VmwareengineV1(base_api.BaseApiClient):
         method_id='vmwareengine.projects.locations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['extraLocationTypes', 'filter', 'pageSize', 'pageToken'],
         relative_path='v1/{+name}/locations',
         request_field='',
         request_type_name='VmwareengineProjectsLocationsListRequest',

@@ -27,6 +27,7 @@ from googlecloudsdk.command_lib.pubsub import resource_args
 from googlecloudsdk.command_lib.pubsub import util
 from googlecloudsdk.core import log
 from googlecloudsdk.core import properties
+import six
 
 # Maximum number of attributes you can specify for a message.
 MAX_ATTRIBUTES = 100
@@ -43,43 +44,53 @@ DURATION_HELP_STR = (
     'respectively. If the unit is omitted, seconds is assumed.'
 )
 
-# Mapping of flag name to the feature of subscription
-NON_GDU_DISABLED_SUBSCRIPION_FLAG_FEATURE_MAP = {
-    'enable_message_ordering': 'ENABLE_MESSAGE_ORDERING',
-    'enable_exactly_once_delivery': 'ENABLE_EXACTLY_ONCE_DELIVERY',
-    'min_retry_delay': 'RETRY_POLICY',
-    'max_retry_delay': 'RETRY_POLICY',
-    'dead_letter_topic': 'DEAD_LETTER_TOPIC',
-    'bigquery_table': 'BIGQUERY_TABLE',
-    'cloud_storage_bucket': 'CLOUD_STORAGE_CONFIG',
-    'cloud_storage_file_prefix': 'CLOUD_STORAGE_CONFIG',
-    'cloud_storage_file_suffix': 'CLOUD_STORAGE_CONFIG',
-    'cloud_storage_file_datetime_format': 'CLOUD_STORAGE_CONFIG',
-    'cloud_storage_max_bytes': 'CLOUD_STORAGE_CONFIG',
-    'cloud_storage_max_duration': 'CLOUD_STORAGE_CONFIG',
-    'cloud_storage_write_metadata': 'CLOUD_STORAGE_CONFIG',
-    'message_filter': 'MESSAGE_FILTER',
-    'clear_dead_letter_policy': 'CLEAR_DEAD_LETTER_POLICY',
-    'clear_retry_policy': 'CLEAR_RETRY_POLICY',
-    'clear_bigquery_config': 'CLEAR_BIGQUERY_CONFIG',
-    'clear_cloud_storage_config': 'CLEAR_CLOUD_STORAGE_CONFIG',
-    'snapshot': 'SNAPSHOT',
-}
+# Universe Help Text is only shown when the gcloud client is configured
+# to target non-GDU. It looks like the following
+#
+# FLAGS
+#  --my-flag-name
+#     UNIVERSE INFO: This is not available.
+#
+# go/gcloud:tpc-doc-specific-help-text-support
+MESSAGE_ORDERING_NOT_SUPPORTED_IN_TPC = 'Message Ordering is not available.'
+MESSAGE_FILTERING_NOT_SUPPORTED_IN_TPC = 'Message Filtering is not available.'
+DEAD_LETTER_TOPICS_NOT_SUPPORTED_IN_TPC = (
+    'Dead-Letter Topics are not available.'
+)
+RETRY_POLICY_NOT_SUPPORTED_IN_TPC = 'Retry Policy is not available.'
+EXACTLY_ONCE_NOT_SUPPORTED_IN_TPC = 'Exactly-Once Delivery is not available.'
+SCHEMA_NOT_SUPPORTED_IN_TPC = 'Schema is not available.'
+INGESTION_NOT_SUPPORTED_IN_TPC = 'Ingestion is not available.'
+BIGQUERY_EXPORT_NOT_SUPPORTED_IN_TPC = (
+    'BigQuery Export Subscriptions are not available.'
+)
+CLOUD_STORAGE_EXPORT_NOT_SUPPORTED_IN_TPC = (
+    'Cloud Storage Export Subscriptions are not available.'
+)
 
-# Mapping of flag name to the feature of topic
-NON_GDU_DISABLED_TOPIC_FLAG_FEATURE_MAP = {
-    'schema': 'SCHEMA',
-}
+
+def MustSpecifyAllHelpText(config_name: str, is_update: bool):
+  """The help text to tell users all fields must be specified during update."""
+  if is_update:
+    return (
+        f'\n\nWhen updating {config_name} flags, all {config_name} flags must'
+        f' be specified. Otherwise, any omitted {config_name} flags revert to'
+        ' their default value.'
+    )
+  return ''
 
 
 def NegativeBooleanFlagHelpText(flag_name):
   return f'Use --no-{flag_name} to disable this flag.'
 
 
-def AddBooleanFlag(parser, flag_name, help_text, **kwargs):
+def AddBooleanFlag(parser, flag_name, help_text, universe_help=None, **kwargs):
   parser.add_argument(
       '--' + flag_name,
-      help=help_text + ' ' + NegativeBooleanFlagHelpText(flag_name),
+      help=arg_parsers.UniverseHelpText(
+          help_text + ' ' + NegativeBooleanFlagHelpText(flag_name),
+          universe_help,
+      ),
       **kwargs,
   )
 
@@ -242,9 +253,22 @@ def AddPullFlags(
     )
 
 
-def AddPushConfigFlags(parser, required=False, is_update=False):
+def AddPushConfigFlags(
+    parser, required=False, is_update=False, is_modify_push_config_request=False
+):
   """Adds flags for push subscriptions to the parser."""
-  parser.add_argument(
+
+  current_group = parser
+  if not is_modify_push_config_request:
+    # Don't create an outer group if this is a ModifyPushConfigRequest
+    current_group = parser.add_group(
+        mutex=False,
+        help='Push Config Options. Configuration for a push delivery endpoint.'
+        + MustSpecifyAllHelpText('PushConfig', is_update),
+        required=False,
+    )
+
+  current_group.add_argument(
       '--push-endpoint',
       required=required,
       help=(
@@ -252,7 +276,7 @@ def AddPushConfigFlags(parser, required=False, is_update=False):
           'also automatically set the subscription type to PUSH.'
       ),
   )
-  parser.add_argument(
+  current_group.add_argument(
       '--push-auth-service-account',
       required=False,
       dest='SERVICE_ACCOUNT_EMAIL',
@@ -261,7 +285,7 @@ def AddPushConfigFlags(parser, required=False, is_update=False):
           'Open ID Connect token for authenticated push.'
       ),
   )
-  parser.add_argument(
+  current_group.add_argument(
       '--push-auth-token-audience',
       required=False,
       dest='OPTIONAL_AUDIENCE_OVERRIDE',
@@ -271,7 +295,6 @@ def AddPushConfigFlags(parser, required=False, is_update=False):
           'push-endpoint.'
       ),
   )
-  current_group = parser
   if is_update:
     mutual_exclusive_group = current_group.add_mutually_exclusive_group()
     AddBooleanFlag(
@@ -325,12 +348,17 @@ def AddSubscriptionMessageRetentionFlags(parser, is_update):
   """Adds flags subscription's message retention properties to the parser."""
   if is_update:
     retention_parser = ParseSubscriptionRetentionDurationWithDefault
-    retention_default_help = 'Specify "default" to use the default value.'
+    retention_default_help = (
+        'Specify "default" to use the default value of 7 days. The minimum is'
+        ' 10 minutes, and the maximum is 31 days.'
+    )
   else:
-    retention_parser = arg_parsers.Duration()
+    retention_parser = arg_parsers.Duration(
+        lower_bound='10m', upper_bound='31d'
+    )
     retention_default_help = (
         'The default value is 7 days, the minimum is '
-        '10 minutes, and the maximum is 7 days.'
+        '10 minutes, and the maximum is 31 days.'
     )
 
   retention_parser = retention_parser or arg_parsers.Duration()
@@ -391,13 +419,18 @@ def AddBigQueryConfigFlags(
         action='store_true',
         default=None,
         help_text="""If set, clear the BigQuery config from the subscription.""",
+        universe_help=BIGQUERY_EXPORT_NOT_SUPPORTED_IN_TPC,
     )
     current_group = mutual_exclusive_group
   bigquery_config_group = current_group.add_argument_group(
-      help="""BigQuery Config Options. The Cloud Pub/Sub service account
+      help=arg_parsers.UniverseHelpText(
+          default="""BigQuery Config Options. The Cloud Pub/Sub service account
          associated with the enclosing subscription's parent project (i.e.,
          service-{project_number}@gcp-sa-pubsub.iam.gserviceaccount.com)
          must have permission to write to this BigQuery table."""
+          + MustSpecifyAllHelpText('BigQueryConfig', is_update),
+          universe_help=BIGQUERY_EXPORT_NOT_SUPPORTED_IN_TPC,
+      )
   )
   bigquery_config_group.add_argument(
       '--bigquery-table',
@@ -459,6 +492,15 @@ def AddBigQueryConfigFlags(
           ' BigQuery table schema.'
       ),
   )
+  bigquery_config_group.add_argument(
+      '--bigquery-service-account-email',
+      default=None,
+      help=(
+          'The service account email to use when writing to BigQuery. If'
+          ' unspecified, uses the Pub/Sub service agent'
+          ' (https://cloud.google.com/iam/docs/service-account-types#service-agents).'
+      ),
+  )
 
 
 def AddCloudStorageConfigFlags(parser, is_update):
@@ -469,7 +511,9 @@ def AddCloudStorageConfigFlags(parser, is_update):
         parent project (i.e.,
         service-{project_number}@gcp-sa-pubsub.iam.gserviceaccount.com)
         must have permission to write to this Cloud Storage bucket and to read
-        this bucket's metadata."""
+        this bucket's metadata.""" + MustSpecifyAllHelpText(
+      'CloudStorageConfig', is_update
+  )
   if is_update:
     mutual_exclusive_group = current_group.add_mutually_exclusive_group()
     AddBooleanFlag(
@@ -478,13 +522,17 @@ def AddCloudStorageConfigFlags(parser, is_update):
         action='store_true',
         default=None,
         help_text="""If set, clear the Cloud Storage config from the subscription.""",
+        universe_help=CLOUD_STORAGE_EXPORT_NOT_SUPPORTED_IN_TPC,
     )
     current_group = mutual_exclusive_group
     cloud_storage_config_group_help += """\n\nNote that an update to the Cloud
           Storage config will replace it with a new config containing only the
           flags that are passed in the `update` CLI."""
   cloud_storage_config_group = current_group.add_argument_group(
-      help=cloud_storage_config_group_help
+      help=arg_parsers.UniverseHelpText(
+          default=cloud_storage_config_group_help,
+          universe_help=CLOUD_STORAGE_EXPORT_NOT_SUPPORTED_IN_TPC,
+      )
   )
   cloud_storage_config_group.add_argument(
       '--cloud-storage-bucket',
@@ -516,15 +564,23 @@ def AddCloudStorageConfigFlags(parser, is_update):
   cloud_storage_config_group.add_argument(
       '--cloud-storage-max-bytes',
       type=arg_parsers.BinarySize(
-          lower_bound='1KB',
+          lower_bound='1000B',
           upper_bound='10GB',
           default_unit='KB',
-          suggested_binary_size_scales=['KB', 'KiB', 'MB', 'MiB', 'GB', 'GiB'],
+          suggested_binary_size_scales=[
+              'B',
+              'KB',
+              'KiB',
+              'MB',
+              'MiB',
+              'GB',
+              'GiB',
+          ],
       ),
       default=None,
       help=(
           ' The maximum bytes that can be written to a Cloud Storage file'
-          ' before a new file is created. The value must be between 1KB to'
+          ' before a new file is created. The value must be between 1000B and'
           ' 10GB. If the unit is omitted, KB is assumed.'
       ),
   )
@@ -536,6 +592,16 @@ def AddCloudStorageConfigFlags(parser, is_update):
       help="""The maximum duration that can elapse before a new Cloud Storage
           file is created. The value must be between 1m and 10m.
           {}""".format(DURATION_HELP_STR),
+  )
+  cloud_storage_config_group.add_argument(
+      '--cloud-storage-max-messages',
+      type=arg_parsers.BoundedInt(lower_bound=1000),
+      default=None,
+      help=(
+          'The maximum number of messages that can be written to a Cloud'
+          ' Storage file before a new file is created. The value must be'
+          ' greater than or equal to 1000.'
+      ),
   )
   cloud_storage_config_group.add_argument(
       '--cloud-storage-output-format',
@@ -569,6 +635,27 @@ def AddCloudStorageConfigFlags(parser, is_update):
           ' --cloud-storage-output-format=avro.'
       ),
   )
+  AddBooleanFlag(
+      parser=cloud_storage_config_group,
+      flag_name='cloud-storage-use-topic-schema',
+      action='store_true',
+      default=None,
+      help_text=(
+          "Whether or not to use the schema for the subscription's topic (if"
+          ' it exists) when writing messages to Cloud Storage. This has an'
+          ' effect only for subscriptions with'
+          ' --cloud-storage-output-format=avro.'
+      ),
+  )
+  cloud_storage_config_group.add_argument(
+      '--cloud-storage-service-account-email',
+      default=None,
+      help=(
+          'The service account email to use when writing to Cloud Storage. If'
+          ' unspecified, uses the Pub/Sub service agent'
+          ' (https://cloud.google.com/iam/docs/service-account-types#service-agents).'
+      ),
+  )
 
 
 def AddPubsubExportConfigFlags(parser, is_update):
@@ -594,7 +681,8 @@ def AddPubsubExportConfigFlags(parser, is_update):
       help="""Cloud Pub/Sub Export Config Options. The Cloud Pub/Sub service
       account associated with the enclosing subscription's parent project
       (i.e., service-{project_number}@gcp-sa-pubsub.iam.gserviceaccount.com)
-      must have permission to publish to the destination Cloud Pub/Sub topic.""",
+      must have permission to publish to the destination Cloud Pub/Sub topic."""
+      + MustSpecifyAllHelpText('PubsubExportConfig', is_update),
   )
   pubsub_export_topic = resource_args.CreateTopicResourceArg(
       'to publish messages to.',
@@ -622,7 +710,9 @@ def AddPubsubExportConfigFlags(parser, is_update):
 def ParseSubscriptionRetentionDurationWithDefault(value):
   if value == subscriptions.DEFAULT_MESSAGE_RETENTION_VALUE:
     return value
-  return util.FormatDuration(arg_parsers.Duration()(value))
+  return util.FormatDuration(
+      arg_parsers.Duration(lower_bound='10m', upper_bound='31d')(value)
+  )
 
 
 def ParseExpirationPeriodWithNeverSentinel(value):
@@ -641,7 +731,7 @@ def AddSubscriptionSettingsFlags(
   Args:
     parser: The argparse parser.
     is_update: Whether or not this is for the update operation (vs. create).
-    enable_push_to_cps: whether or not to enable Pubsub Export config flags
+    enable_push_to_cps: Whether or not to enable Pubsub Export config flags
       support.
   """
   AddAckDeadlineFlag(parser)
@@ -665,15 +755,19 @@ def AddSubscriptionSettingsFlags(
         help_text="""Whether to receive messages with the same ordering key in order.
             If set, messages with the same ordering key are sent to subscribers
             in the order that Pub/Sub receives them.""",
+        universe_help=MESSAGE_ORDERING_NOT_SUPPORTED_IN_TPC,
     )
   if not is_update:
     parser.add_argument(
         '--message-filter',
         type=str,
-        help="""Expression to filter messages. If set, Pub/Sub only delivers the
+        help=arg_parsers.UniverseHelpText(
+            default="""Expression to filter messages. If set, Pub/Sub only delivers the
         messages that match the filter. The expression must be a non-empty
         string in the [Pub/Sub filtering
         language](https://cloud.google.com/pubsub/docs/filtering).""",
+            universe_help=MESSAGE_FILTERING_NOT_SUPPORTED_IN_TPC,
+        ),
     )
   current_group = parser
   if is_update:
@@ -683,16 +777,23 @@ def AddSubscriptionSettingsFlags(
         flag_name='clear-dead-letter-policy',
         action='store_true',
         default=None,
-        help_text="""If set, clear the dead letter policy from the subscription.""",
+        help_text=arg_parsers.UniverseHelpText(
+            default="""If set, clear the dead letter policy from the subscription.""",
+            universe_help=DEAD_LETTER_TOPICS_NOT_SUPPORTED_IN_TPC,
+        ),
     )
     current_group = mutual_exclusive_group
 
   set_dead_letter_policy_group = current_group.add_argument_group(
-      help="""Dead Letter Queue Options. The Cloud Pub/Sub service account
+      help=arg_parsers.UniverseHelpText(
+          default="""Dead Letter Queue Options. The Cloud Pub/Sub service account
            associated with the enclosing subscription's parent project (i.e.,
            service-{project_number}@gcp-sa-pubsub.iam.gserviceaccount.com)
            must have permission to Publish() to this topic and Acknowledge()
            messages on this subscription."""
+          + MustSpecifyAllHelpText('DeadLetterPolicy', is_update),
+          universe_help=DEAD_LETTER_TOPICS_NOT_SUPPORTED_IN_TPC,
+      )
   )
   dead_letter_topic = resource_args.CreateTopicResourceArg(
       'to publish dead letter messages to.',
@@ -729,13 +830,20 @@ def AddSubscriptionSettingsFlags(
         flag_name='clear-retry-policy',
         action='store_true',
         default=None,
-        help_text="""If set, clear the retry policy from the subscription.""",
+        help_text=arg_parsers.UniverseHelpText(
+            default="""If set, clear the retry policy from the subscription.""",
+            universe_help=RETRY_POLICY_NOT_SUPPORTED_IN_TPC,
+        ),
     )
     current_group = mutual_exclusive_group
 
   set_retry_policy_group = current_group.add_argument_group(
-      help="""Retry Policy Options. Retry policy specifies how Cloud Pub/Sub
+      help=arg_parsers.UniverseHelpText(
+          default="""Retry Policy Options. Retry policy specifies how Cloud Pub/Sub
               retries message delivery for this subscription."""
+          + MustSpecifyAllHelpText('RetryPolicy', is_update),
+          universe_help=RETRY_POLICY_NOT_SUPPORTED_IN_TPC,
+      )
   )
 
   set_retry_policy_group.add_argument(
@@ -749,15 +857,10 @@ def AddSubscriptionSettingsFlags(
       '--max-retry-delay',
       type=arg_parsers.Duration(lower_bound='0s', upper_bound='600s'),
       help="""The maximum delay between consecutive deliveries of a given
-          message. Value should be between 0 and 600 seconds. Defaults to 10
+          message. Value should be between 0 and 600 seconds. Defaults to 600
           seconds. {}""".format(DURATION_HELP_STR),
   )
-  help_text_suffix = ''
-  if is_update:
-    help_text_suffix = (
-        ' To disable exactly-once delivery use '
-        '`--no-enable-exactly-once-delivery`.'
-    )
+
   AddBooleanFlag(
       parser=parser,
       flag_name='enable-exactly-once-delivery',
@@ -769,8 +872,8 @@ def AddSubscriptionSettingsFlags(
           of a message with a given value of `message_id` on this
           subscription: The message sent to a subscriber is guaranteed not to
           be resent before the message's acknowledgment deadline expires. An
-          acknowledged message will not be resent to a subscriber."""
-      + help_text_suffix,
+          acknowledged message will not be resent to a subscriber.""",
+      universe_help=EXACTLY_ONCE_NOT_SUPPORTED_IN_TPC,
   )
 
 
@@ -812,9 +915,12 @@ def AddPublishMessageFlags(parser, add_deprecated=False):
 
   parser.add_argument(
       '--ordering-key',
-      help="""The key for ordering delivery to subscribers. All messages with
+      help=arg_parsers.UniverseHelpText(
+          default="""The key for ordering delivery to subscribers. All messages with
           the same ordering key are sent to subscribers in the order that
           Pub/Sub receives them.""",
+          universe_help=MESSAGE_ORDERING_NOT_SUPPORTED_IN_TPC,
+      ),
   )
 
 
@@ -835,11 +941,18 @@ def AddSchemaSettingsFlags(parser, is_update=False):
         action='store_true',
         default=None,
         help_text="""If set, clear the Schema Settings from the topic.""",
+        universe_help=SCHEMA_NOT_SUPPORTED_IN_TPC,
     )
     current_group = mutual_exclusive_group
   set_schema_settings_group = current_group.add_argument_group(
-      # pylint: disable=line-too-long
-      help="""Schema settings. The schema that messages published to this topic must conform to and the expected message encoding."""
+      help=arg_parsers.UniverseHelpText(
+          default=(
+              'Schema settings. The schema that messages published to this '
+              'topic must conform to and the expected message encoding.'
+          )
+          + MustSpecifyAllHelpText('SchemaSettings', is_update),
+          universe_help=SCHEMA_NOT_SUPPORTED_IN_TPC,
+      ),
   )
 
   schema_help_text = 'that messages published to this topic must conform to.'
@@ -873,7 +986,10 @@ def AddSchemaSettingsFlags(parser, is_update=False):
   )
 
 
-def AddIngestionDatasourceFlags(parser, is_update=False):
+def AddIngestionDatasourceFlags(
+    parser,
+    is_update=False,
+):
   """Adds the flags for Datasource Ingestion.
 
   Args:
@@ -898,30 +1014,46 @@ def AddIngestionDatasourceFlags(parser, is_update=False):
         help_text=(
             'If set, clear the Ingestion Data Source Settings from the topic.'
         ),
+        universe_help=INGESTION_NOT_SUPPORTED_IN_TPC,
     )
     current_group = clear_settings_group
 
-  ingestion_source_types_group = current_group.add_mutually_exclusive_group()
+  ingestion_source_settings_group = current_group.add_argument_group(
+      help=arg_parsers.UniverseHelpText(
+          default=(
+              'Following flags are for specifying the data source settings'
+              ' for an import topic'
+          )
+          + MustSpecifyAllHelpText('IngestionDataSourceSettings', is_update),
+          universe_help=INGESTION_NOT_SUPPORTED_IN_TPC,
+      ),
+  )
 
-  aws_kinesis_group = ingestion_source_types_group.add_argument_group(
-      help=(
-          'The following flags are for specifying ingestion settings for an'
-          ' import topic from Amazon Web Services (AWS) Kinesis Data Streams'
+  ingestion_data_source_group = (
+      ingestion_source_settings_group.add_mutually_exclusive_group()
+  )
+
+  aws_kinesis_group = ingestion_data_source_group.add_argument_group(
+      help=arg_parsers.UniverseHelpText(
+          default=(
+              'Flags that specify settings for an import topic from Amazon Web'
+              ' Services (AWS) Kinesis Data Streams'
+          )
+          + MustSpecifyAllHelpText('AWSKinesis Source', is_update),
+          universe_help=INGESTION_NOT_SUPPORTED_IN_TPC,
       )
   )
   aws_kinesis_group.add_argument(
       '--kinesis-ingestion-stream-arn',
       default=None,
-      help=(
-          'The Kinesis data stream ARN from which to ingest data.'
-      ),
+      help='Kinesis data stream ARN from which to ingest data.',
       required=True,
   )
   aws_kinesis_group.add_argument(
       '--kinesis-ingestion-consumer-arn',
       default=None,
       help=(
-          'The Kinesis data streams consumer Amazon Resource Name (ARN) to use'
+          'Kinesis data streams consumer Amazon Resource Name (ARN) to use'
           ' for ingestion.'
       ),
       required=True,
@@ -939,8 +1071,212 @@ def AddIngestionDatasourceFlags(parser, is_update=False):
       '--kinesis-ingestion-service-account',
       default=None,
       help=(
-          'The service account to be used for Federated Identity authentication'
-          ' with Kinesis.'
+          'Google Cloud service account to be used for Federated Identity'
+          ' authentication with Kinesis.'
+      ),
+      required=True,
+  )
+
+  cloud_storage_group = ingestion_data_source_group.add_argument_group(
+      help=arg_parsers.UniverseHelpText(
+          default=(
+              'Flags that specify settings for an import topic from Cloud'
+              ' Storage'
+          )
+          + MustSpecifyAllHelpText('CloudStorage Source', is_update),
+          universe_help=INGESTION_NOT_SUPPORTED_IN_TPC,
+      ),
+      sort_args=False,
+  )
+  cloud_storage_group.add_argument(
+      '--cloud-storage-ingestion-bucket',
+      default=None,
+      help='Cloud Storage bucket from which to ingest data.',
+      required=True,
+  )
+  cloud_storage_group.add_argument(
+      '--cloud-storage-ingestion-input-format',
+      type=arg_parsers.ArgList(
+          element_type=lambda x: str(x).lower(),
+          min_length=1,
+          max_length=1,
+          choices=['text', 'avro', 'pubsub_avro'],
+      ),
+      default=None,
+      metavar='INPUT_FORMAT',
+      help='Format of the data in the Cloud Storage bucket.',
+      required=True,
+  )
+  cloud_storage_group.add_argument(
+      '--cloud-storage-ingestion-text-delimiter',
+      default=None,
+      help='Delimiter to use with text format when partitioning the object.',
+      required=False,
+  )
+  cloud_storage_group.add_argument(
+      '--cloud-storage-ingestion-minimum-object-create-time',
+      default=None,
+      help=(
+          'Only Cloud Storage objects with a larger or equal creation'
+          ' timestamp will be ingested.'
+      ),
+      required=False,
+  )
+  cloud_storage_group.add_argument(
+      '--cloud-storage-ingestion-match-glob',
+      default=None,
+      help=(
+          'Glob pattern used to match Cloud Storage objects that will be'
+          ' ingested. If unset, all objects will be ingested.'
+      ),
+      required=False,
+  )
+
+  ingestion_source_settings_group.add_argument(
+      '--ingestion-log-severity',
+      default=None,
+      help='Log severity to use for ingestion.',
+      required=False,
+  )
+
+  azure_event_hubs_group = ingestion_data_source_group.add_argument_group(
+      help=arg_parsers.UniverseHelpText(
+          default=(
+              'Flags that specify settings for an import topic from Azure'
+              ' Event Hubs'
+          )
+          + MustSpecifyAllHelpText('AzureEventHubs Source', is_update),
+          universe_help=INGESTION_NOT_SUPPORTED_IN_TPC,
+      ),
+  )
+  azure_event_hubs_group.add_argument(
+      '--azure-event-hubs-ingestion-resource-group',
+      default=None,
+      help='Azure Event Hubs resource group from within an Azure subscription.',
+      required=True,
+  )
+  azure_event_hubs_group.add_argument(
+      '--azure-event-hubs-ingestion-namespace',
+      default=None,
+      help='Azure Event Hubs namespace from which to ingest data.',
+      required=True,
+  )
+  azure_event_hubs_group.add_argument(
+      '--azure-event-hubs-ingestion-event-hub',
+      default=None,
+      help='Azure event hub from which to ingest data.',
+      required=True,
+  )
+  azure_event_hubs_group.add_argument(
+      '--azure-event-hubs-ingestion-client-id',
+      default=None,
+      help='Azure Event Hubs client ID to use for ingestion.',
+      required=True,
+  )
+  azure_event_hubs_group.add_argument(
+      '--azure-event-hubs-ingestion-tenant-id',
+      default=None,
+      help='Azure Event Hubs tenant ID to use for ingestion.',
+      required=True,
+  )
+  azure_event_hubs_group.add_argument(
+      '--azure-event-hubs-ingestion-subscription-id',
+      default=None,
+      help='Azure Event Hubs subscription ID to use for ingestion.',
+      required=True,
+  )
+  azure_event_hubs_group.add_argument(
+      '--azure-event-hubs-ingestion-service-account',
+      default=None,
+      help=(
+          'Google Cloud service account to be used for Federated Identity'
+          ' authentication with Azure Event Hubs.'
+      ),
+      required=True,
+  )
+  aws_msk_group = ingestion_data_source_group.add_argument_group(
+      help=arg_parsers.UniverseHelpText(
+          default=(
+              'Flags that specify settings for an import topic from Amazon'
+              ' Web Services (AWS) Managed Streaming for Apache Kafka (MSK)'
+          )
+          + MustSpecifyAllHelpText('AWS MSK Source', is_update),
+          universe_help=INGESTION_NOT_SUPPORTED_IN_TPC,
+      ),
+  )
+  aws_msk_group.add_argument(
+      '--aws-msk-ingestion-cluster-arn',
+      default=None,
+      help='ARN that uniquely identifies the MSK cluster.',
+      required=True,
+  )
+  aws_msk_group.add_argument(
+      '--aws-msk-ingestion-topic',
+      default=None,
+      help='Name of the MSK topic that Pub/Sub will import from.',
+      required=True,
+  )
+  aws_msk_group.add_argument(
+      '--aws-msk-ingestion-aws-role-arn',
+      default=None,
+      help=(
+          'AWS role ARN to be used for Federated Identity authentication with'
+          ' MSK.'
+      ),
+      required=True,
+  )
+  aws_msk_group.add_argument(
+      '--aws-msk-ingestion-service-account',
+      default=None,
+      help=(
+          'Google Cloud service account to be used for Federated Identity'
+          ' authentication with MSK.'
+      ),
+      required=True,
+  )
+  confluent_cloud_group = ingestion_data_source_group.add_argument_group(
+      help=arg_parsers.UniverseHelpText(
+          default=(
+              'Flags that specify settings for an import topic from'
+              ' Confluent Cloud'
+          )
+          + MustSpecifyAllHelpText('ConfluentCloud Source', is_update),
+          universe_help=INGESTION_NOT_SUPPORTED_IN_TPC,
+      ),
+  )
+  confluent_cloud_group.add_argument(
+      '--confluent-cloud-ingestion-bootstrap-server',
+      default=None,
+      help='Confluent Cloud bootstrap server. The format is url:port.',
+      required=True,
+  )
+  confluent_cloud_group.add_argument(
+      '--confluent-cloud-ingestion-cluster-id',
+      default=None,
+      help='Confluent Cloud cluster ID.',
+      required=True,
+  )
+  confluent_cloud_group.add_argument(
+      '--confluent-cloud-ingestion-topic',
+      default=None,
+      help='Name of the Confluent Cloud topic that Pub/Sub will import from.',
+      required=True,
+  )
+  confluent_cloud_group.add_argument(
+      '--confluent-cloud-ingestion-identity-pool-id',
+      default=None,
+      help=(
+          'Identity pool ID to be used for Federated Identity'
+          ' authentication with Confluent Cloud.'
+      ),
+      required=True,
+  )
+  confluent_cloud_group.add_argument(
+      '--confluent-cloud-ingestion-service-account',
+      default=None,
+      help=(
+          'Google Cloud service account to be used for Federated Identity'
+          ' authentication with Confluent Cloud.'
       ),
       required=True,
   )
@@ -1014,7 +1350,7 @@ def AddTopicMessageStoragePolicyFlags(parser, is_update):
       'Options for explicitly specifying the [message storage'
       ' policy](https://cloud.google.com/pubsub/docs/resource-location-restriction)'
       ' for a topic.'
-  )
+  ) + MustSpecifyAllHelpText('MessageStoragePolicy', is_update)
 
   if is_update:
     recompute_msp_group = current_group.add_group(
@@ -1055,6 +1391,86 @@ def AddTopicMessageStoragePolicyFlags(parser, is_update):
           ' and push delivery are only handled in allowed Cloud regions.'
       ),
   )
+
+
+def AddMessageTransformsFlags(parser, is_update=False):
+  """Add flags for the Message Transforms.
+
+  Args:
+    parser: The argparse parser.
+    is_update: Whether the operation is for updating message transforms.
+  """
+  current_group = parser
+  if is_update:
+    mutex_group = parser.add_mutually_exclusive_group()
+    AddBooleanFlag(
+        parser=mutex_group,
+        flag_name='clear-message-transforms',
+        action='store_true',
+        help_text='If set, clears the message transforms field.',
+    )
+    current_group = mutex_group
+  current_group.add_argument(
+      '--message-transforms-file',
+      type=str,
+      help='Path to YAML or JSON file containing message transforms.',
+  )
+
+
+def AddValidateMessageTransformFlags(parser):
+  """Add flags for message transform validation.
+
+  Args:
+    parser: The argparse parser.
+  """
+  parser.add_argument(
+      '--message-transform-file',
+      type=str,
+      help='Path to YAML or JSON file containing a message transform.',
+      required=True,
+  )
+
+
+def AddTestMessageTransformFlags(parser):
+  """Add flags for testing message transforms.
+
+  Args:
+    parser: The argparse parser.
+  """
+  message_group = parser.add_argument_group(
+      help='Message to test the message transforms against.', required=True
+  )
+  message_group.add_argument(
+      '--message', help='Message body to test the message transforms against.'
+  )
+  message_group.add_argument(
+      '--attribute',
+      type=arg_parsers.ArgDict(max_length=MAX_ATTRIBUTES),
+      metavar='ATTRIBUTE',
+      help=(
+          'Comma-separated list of attributes to attach to the message. Each'
+          ' ATTRIBUTE has the form name="value". You can specify up to {0}'
+          ' attributes.'.format(MAX_ATTRIBUTES)
+      ),
+  )
+  mutex_group = parser.add_mutually_exclusive_group(required=True)
+  mutex_group.add_argument(
+      '--message-transforms-file',
+      type=str,
+      help='Path to YAML or JSON file containing message transforms.',
+  )
+  help_text = (
+      'from which the message transforms are taken to be applied to the'
+      ' message.'
+  )
+
+  topic = resource_args.CreateTopicResourceArg(
+      help_text, positional=False, required=False
+  )
+  subscription = resource_args.CreateSubscriptionResourceArg(
+      help_text, required=False, positional=False
+  )
+  resource_args.AddResourceArgs(mutex_group, [topic, subscription])
 
 
 def ParseMessageBody(args):
@@ -1132,40 +1548,6 @@ def _RaiseExceptionIfContains(args, universe_domain, feature_map):
       )
 
 
-def ValidateSubscriptionArgsUseUniverseSupportedFeatures(args):
-  """Raises an exception if args has unsupported features in non default universe.
-
-  Args:
-    args (argparse.Namespace): Parsed arguments
-
-  Raises:
-    InvalidArgumentException: if invalid flags are set in current universe.
-  """
-  if properties.IsDefaultUniverse():
-    return
-  universe_domain = properties.GetUniverseDomain()
-  _RaiseExceptionIfContains(
-      args, universe_domain, NON_GDU_DISABLED_SUBSCRIPION_FLAG_FEATURE_MAP
-  )
-
-
-def ValidateTopicArgsUseUniverseSupportedFeatures(args):
-  """Raises an exception if args has unsupported features in non default universe.
-
-  Args:
-    args (argparse.Namespace): Parsed arguments
-
-  Raises:
-    InvalidArgumentException: if invalid flags are set in current universe.
-  """
-  if properties.IsDefaultUniverse():
-    return
-  universe_domain = properties.GetUniverseDomain()
-  _RaiseExceptionIfContains(
-      args, universe_domain, NON_GDU_DISABLED_TOPIC_FLAG_FEATURE_MAP
-  )
-
-
 def ValidateIsDefaultUniverse(command):
   """Raises an exception if it's not in default universe.
 
@@ -1180,6 +1562,36 @@ def ValidateIsDefaultUniverse(command):
   universe_domain = properties.GetUniverseDomain()
   raise exceptions.InvalidArgumentException(
       str.upper(command),
-      command + ' is not available in universe_domain ' +
-      universe_domain
+      command + ' is not available in universe_domain ' + universe_domain,
+  )
+
+
+def AddTagsFlag(parser):
+  """Adds the --tags flag to the parser."""
+  help_text = (
+      'List of tags KEY=VALUE pairs to bind. Each item must be expressed as'
+      ' `<tag-key-namespaced-name>=<tag-value-short-name>`.\n'
+      'Example: `123/environment=production,123/costCenter=marketing`'
+  )
+  parser.add_argument(
+      '--tags',
+      metavar='KEY=VALUE',
+      type=arg_parsers.ArgDict(),
+      action=arg_parsers.UpdateAction,
+      help=help_text,
+      hidden=True,
+  )
+
+
+def GetTagsMessage(args, tags_message, tags_arg_name='tags'):
+  """Makes the tags message object."""
+  tags = getattr(args, tags_arg_name, None)
+  if not tags:
+    return None
+  # Sorted for test stability
+  return tags_message(
+      additionalProperties=[
+          tags_message.AdditionalProperty(key=key, value=value)
+          for key, value in sorted(six.iteritems(tags))
+      ]
   )

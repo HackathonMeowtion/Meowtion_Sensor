@@ -42,6 +42,7 @@ IAP_API = 'iap'
 
 APPENGINE_APPS_COLLECTION = 'appengine.apps'
 COMPUTE_BACKEND_SERVICES_COLLECTION = 'compute.backendServices'
+COMPUTE_REGION_BACKEND_SERVICES_COLLECTION = 'compute.regionBackendServices'
 PROJECTS_COLLECTION = 'iap.projects'
 IAP_WEB_COLLECTION = 'iap.projects.iap_web'
 IAP_WEB_SERVICES_COLLECTION = 'iap.projects.iap_web.services'
@@ -351,17 +352,40 @@ class BackendService(IapIamResource):
     holder = base_classes.ComputeApiHolder(base.ReleaseTrack.GA)
     client = holder.client
     def MakeRequest(method, request):
-      return holder.client.apitools_client.backendServices, method, request
+      if self.region_id:
+        return (
+            holder.client.apitools_client.regionBackendServices,
+            method,
+            request,
+        )
+      else:
+        return holder.client.apitools_client.backendServices, method, request
 
-    backend_service = holder.resources.Parse(
-        self.service_id,
-        params={
-            'project': self.project,
-        },
-        collection=COMPUTE_BACKEND_SERVICES_COLLECTION)
-    get_request = client.messages.ComputeBackendServicesGetRequest(
-        project=backend_service.project,
-        backendService=backend_service.Name())
+    if self.region_id:
+      backend_service = holder.resources.Parse(
+          self.service_id,
+          params={
+              'project': self.project,
+              'region': self.region_id,
+          },
+          collection=COMPUTE_REGION_BACKEND_SERVICES_COLLECTION,
+      )
+      get_request = client.messages.ComputeRegionBackendServicesGetRequest(
+          project=backend_service.project,
+          region=backend_service.region,
+          backendService=backend_service.Name(),
+      )
+    else:
+      backend_service = holder.resources.Parse(
+          self.service_id,
+          params={
+              'project': self.project,
+          },
+          collection=COMPUTE_BACKEND_SERVICES_COLLECTION,
+      )
+      get_request = client.messages.ComputeBackendServicesGetRequest(
+          project=backend_service.project, backendService=backend_service.Name()
+      )
 
     objects = client.MakeRequests([MakeRequest('Get', get_request)])
     if (enabled and objects[0].protocol is
@@ -373,10 +397,20 @@ class BackendService(IapIamResource):
                                 oauth2_client_id, oauth2_client_secret)
     replacement = encoding.CopyProtoMessage(objects[0])
     replacement.iap = client.messages.BackendServiceIAP(**iap_kwargs)
-    update_request = client.messages.ComputeBackendServicesPatchRequest(
-        project=backend_service.project,
-        backendService=backend_service.Name(),
-        backendServiceResource=replacement)
+
+    if self.region_id:
+      update_request = client.messages.ComputeRegionBackendServicesPatchRequest(
+          project=backend_service.project,
+          region=backend_service.region,
+          backendService=backend_service.Name(),
+          backendServiceResource=replacement,
+      )
+    else:
+      update_request = client.messages.ComputeBackendServicesPatchRequest(
+          project=backend_service.project,
+          backendService=backend_service.Name(),
+          backendServiceResource=replacement)
+
     return client.MakeRequests([MakeRequest('Patch', update_request)])
 
   def Enable(self, oauth2_client_id, oauth2_client_secret):
@@ -388,6 +422,126 @@ class BackendService(IapIamResource):
   def Disable(self):
     """Disable IAP on a backend service."""
     return self._SetBackendServiceIap(False)
+
+
+FORWARDING_RULE = 'forwarding_rule'
+
+
+class ForwardingRules(IapIamResource):
+  """IAP IAM forwarding rules resource.
+  """
+
+  def __init__(self, release_track, project, region_id):
+    super(ForwardingRules, self).__init__(release_track, project)
+    self.region_id = region_id
+
+  def _Name(self):
+    return 'forwarding rules'
+
+  def _IapWebId(self):
+    if self.region_id:
+      return '%s-%s' % (FORWARDING_RULE, self.region_id)
+    else:
+      return FORWARDING_RULE
+
+  def _Parse(self):
+    project = _GetProject(self.project)
+    iap_web_id = self._IapWebId()
+    return self.registry.Parse(
+        None,
+        params={
+            'project': project.projectNumber,
+            'iapWebId': iap_web_id,
+        },
+        collection=IAP_WEB_COLLECTION)
+
+
+class ForwardingRule(IapIamResource):
+  """IAP IAM forwarding rule resource.
+  """
+
+  def __init__(self, release_track, project, region_id, service_id):
+    super(ForwardingRule, self).__init__(release_track, project)
+    self.region_id = region_id
+    self.service_id = service_id
+
+  def _Name(self):
+    return 'forwarding rule'
+
+  def _IapWebId(self):
+    if self.region_id:
+      return '%s-%s' % (FORWARDING_RULE, self.region_id)
+    else:
+      return FORWARDING_RULE
+
+  def _Parse(self):
+    project = _GetProject(self.project)
+    iap_web_id = self._IapWebId()
+    return self.registry.Parse(
+        None,
+        params={
+            'project': project.projectNumber,
+            'iapWebId': iap_web_id,
+            'serviceId': self.service_id,
+        },
+        collection=IAP_WEB_SERVICES_COLLECTION)
+
+
+CLOUD_RUN = 'cloud_run'
+
+
+class CloudRuns(IapIamResource):
+  """IAP IAM cloud runs resource.
+  """
+
+  def __init__(self, release_track, project, region_id):
+    super(CloudRuns, self).__init__(release_track, project)
+    self.region_id = region_id
+
+  def _Name(self):
+    return 'cloud runs'
+
+  def _IapWebId(self):
+    return '%s-%s' % (CLOUD_RUN, self.region_id)
+
+  def _Parse(self):
+    project = _GetProject(self.project)
+    iap_web_id = self._IapWebId()
+    return self.registry.Parse(
+        None,
+        params={
+            'project': project.projectNumber,
+            'iapWebId': iap_web_id,
+        },
+        collection=IAP_WEB_COLLECTION)
+
+
+class CloudRun(IapIamResource):
+  """IAP IAM cloud run resource.
+  """
+
+  def __init__(self, release_track, project, region_id, service_id):
+    super(CloudRun, self).__init__(release_track, project)
+    self.region_id = region_id
+    self.service_id = service_id
+
+  def _Name(self):
+    return 'cloud run'
+
+  def _IapWebId(self):
+    return '%s-%s' % (CLOUD_RUN, self.region_id)
+
+  def _Parse(self):
+    project = _GetProject(self.project)
+    iap_web_id = self._IapWebId()
+    return self.registry.Parse(
+        None,
+        params={
+            'project': project.projectNumber,
+            'iapWebId': iap_web_id,
+            'serviceId': self.service_id,
+        },
+        collection=IAP_WEB_SERVICES_COLLECTION)
 
 
 def _MakeIAPKwargs(is_backend_service, existing_iap_settings, enabled,
@@ -460,13 +614,37 @@ class IapSettingsResource(object):
        BadFileException if JSON file is malformed.
     """
     iap_settings_to_parse = yaml.load_path(iap_settings_file_path)
+    if (
+        'access_settings' in iap_settings_to_parse
+        and 'oauth_settings' in iap_settings_to_parse['access_settings']
+        and 'login_hint'
+        in iap_settings_to_parse['access_settings']['oauth_settings']
+    ):
+      log.warning(
+          'login_hint setting is not a replacement for access control. Always'
+          ' enforce an appropriate access policy if you want to restrict'
+          ' access to users outside your domain.'
+      )
+
+    if (
+        'access_settings' in iap_settings_to_parse
+        and 'gcip_settings' in iap_settings_to_parse['access_settings']
+    ):
+      log.warning(
+          'Enabling gcip_settings significantly changes the way IAP'
+          ' authenticates users. Identity Platform does not support IAM, so'
+          ' IAP will not enforce any IAM policies for requests to your'
+          ' application.'
+      )
     try:
       iap_settings_message = encoding.PyValueToMessage(
-          iap_settings_message_type, iap_settings_to_parse)
-    except (AttributeError) as e:
+          iap_settings_message_type, iap_settings_to_parse
+      )
+    except AttributeError as e:
       raise calliope_exceptions.BadFileException(
           'Iap settings file {0} does not contain properly formatted JSON {1}'
-          .format(iap_settings_file_path, six.text_type(e)))
+          .format(iap_settings_file_path, six.text_type(e))
+      )
     return iap_settings_message
 
   def GetIapSetting(self):
@@ -476,11 +654,13 @@ class IapSettingsResource(object):
 
   def SetIapSetting(self, setting_file):
     """Set the setting for an IAP resource."""
-    iap_settings = self._ParseIapSettingsFile(setting_file,
-                                              self.messages.IapSettings)
+    iap_settings = self._ParseIapSettingsFile(
+        setting_file, self.messages.IapSettings
+    )
     iap_settings.name = self.resource_name
     request = self.messages.IapUpdateIapSettingsRequest(
-        iapSettings=iap_settings, name=self.resource_name)
+        iapSettings=iap_settings, name=self.resource_name
+    )
     return self.service.UpdateIapSettings(request)
 
 
@@ -535,34 +715,43 @@ class IapTunnelDestGroupResource(IapIamResource):
     """Creates a TunnelDestGroup."""
 
     tunnel_dest_group = self._CreateTunnelDestGroupObject(cidr_list, fqdn_list)
-    request = self.messages.IapProjectsIapTunnelLocationsDestGroupsCreateRequest(
-        parent=self._ParseWithoutGroupId().RelativeName(),
-        tunnelDestGroup=tunnel_dest_group,
-        tunnelDestGroupId=self.group_name)
+    request = (
+        self.messages.IapProjectsIapTunnelLocationsDestGroupsCreateRequest(
+            parent=self._ParseWithoutGroupId().RelativeName(),
+            tunnelDestGroup=tunnel_dest_group,
+            tunnelDestGroupId=self.group_name,
+        )
+    )
     return self.ResourceService().Create(request)
 
   def Delete(self):
     """Deletes the TunnelDestGroup."""
-    request = self.messages.IapProjectsIapTunnelLocationsDestGroupsDeleteRequest(
-        name=self._Parse().RelativeName())
+    request = (
+        self.messages.IapProjectsIapTunnelLocationsDestGroupsDeleteRequest(
+            name=self._Parse().RelativeName()
+        )
+    )
     return self.ResourceService().Delete(request)
 
   def List(self, page_size=None, limit=None, list_filter=None):
     """Yields TunnelDestGroups."""
     list_req = self.messages.IapProjectsIapTunnelLocationsDestGroupsListRequest(
-        parent=self._ParseWithoutGroupId().RelativeName())
+        parent=self._ParseWithoutGroupId().RelativeName()
+    )
     return list_pager.YieldFromList(
         self.ResourceService(),
         list_req,
         batch_size=page_size,
         limit=limit,
         field='tunnelDestGroups',
-        batch_size_attribute='pageSize')
+        batch_size_attribute='pageSize',
+    )
 
   def Get(self):
     """Get TunnelDestGroup."""
     request = self.messages.IapProjectsIapTunnelLocationsDestGroupsGetRequest(
-        name=self._Parse().RelativeName())
+        name=self._Parse().RelativeName()
+    )
     return self.ResourceService().Get(request)
 
   def Update(self, cidr_list, fqdn_list, update_mask):

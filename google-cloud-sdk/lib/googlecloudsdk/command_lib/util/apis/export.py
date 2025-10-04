@@ -96,6 +96,33 @@ def _NormalizeTypeName(name):
   return s
 
 
+def _IsProtobufStructField(field):
+  """Returns whether the field represents a google.protobuf.Struct message.
+
+  google.protobuf.Struct is the following message:
+    message Struct {
+      // Unordered map of dynamically typed values.
+      map<string, Value> fields = 1;
+    }
+
+  In apitools, this corresponds to a message with an additionalProperties
+  field containing a list of AdditionalProperty messages each of which holds a
+  key/value pair, where the value is a extra_types.JsonValue message.
+
+  Args:
+    field: A message spec field dict.
+  Returns:
+    True iff the field is a google.protobuf.Struct.
+  """
+  maybe_map_value_type = field.get(
+      'fields', {}).get(
+          'additionalProperties', {}).get(
+              'fields', {}).get(
+                  'value', {}).get(
+                      'type', '')
+  return maybe_map_value_type == 'JsonValue'
+
+
 def _GetRequiredFields(fields):
   """Returns the list of required field names in fields.
 
@@ -189,9 +216,13 @@ class ExportSchemasGenerator(object):
         d = items
         depth += 2
 
+      # When generating the message spec, we set 'type' to the name of the
+      # message type for message fields; otherwise it will be the apitools
+      # variant type.
+      is_message_field = isinstance(value.get('type'), str)
       type_name = value.get('type', 'boolean')
-      subfields = value.get('fields')
-      if subfields:
+      subfields = value.get('fields', {})
+      if is_message_field:
         if name == 'additionalProperties':
           # This is proto 'additionalProperties', not JSON schema.
           del spec[name]
@@ -199,6 +230,11 @@ class ExportSchemasGenerator(object):
           self._AddFields(depth, d, properties, subfields)
           if properties:
             parent[name] = properties
+        elif _IsProtobufStructField(value):
+          # A google.protobuf.Struct field is a map of strings to arbitrary JSON
+          # values, so for the corresponding schema we accept an object type
+          # with no constraints on the (jsonschema) additionalProperties.
+          d['type'] = 'object'
         else:
           # Reference another schema file that we'll generate right now.
           d['$ref'] = self._GetSchemaFileName(type_name)

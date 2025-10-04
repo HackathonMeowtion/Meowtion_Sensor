@@ -32,8 +32,10 @@ operation:
     attribute_name: operation
     help: The id of the Dataproc GDC operation.
 
-service_instance:
-  name: service_instance
+# NOTE: this is only included to make the deprecated `gcloud alpha dataproc-gdc instances` command
+# work. Prefer to use the service_instance resource instead.
+instance:
+  name: instance
   collection: dataprocgdc.projects.locations.serviceInstances
   disable_auto_completers: false
   request_id_field: serviceInstanceId
@@ -44,3 +46,44 @@ service_instance:
     parameter_name: serviceInstancesId
     attribute_name: instance
     help: The id of the Dataproc GDC instance.
+
+service_instance:
+  name: service_instance
+  collection: dataprocgdc.projects.locations.serviceInstances
+  disable_auto_completers: false
+  request_id_field: serviceInstanceId
+  attributes:
+  - *project
+  - *location
+  - &serviceInstance
+    parameter_name: serviceInstancesId
+    attribute_name: service-instance
+    help: The id of the Dataproc GDC instance.
+
+spark_application:
+  name: spark_application
+  collection: dataprocgdc.projects.locations.serviceInstances.sparkApplications
+  disable_auto_completers: false
+  request_id_field: sparkApplicationsId
+  attributes:
+  - *project
+  - *location
+  - *serviceInstance
+  - &sparkApplication
+    parameter_name: sparkApplicationsId
+    attribute_name: spark_application
+    help: The id of the Dataproc GDC spark Application.
+
+application_environment:
+  name: application_environment
+  collection: dataprocgdc.projects.locations.serviceInstances.applicationEnvironments
+  disable_auto_completers: false
+  request_id_field: applicationEnvironmentsId
+  attributes:
+  - *project
+  - *location
+  - *serviceInstance
+  - &applicationEnvironment
+    parameter_name: applicationEnvironmentsId
+    attribute_name: application_environment
+    help: The id of the Dataproc GDC applicatin environment.

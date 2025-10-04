@@ -128,7 +128,7 @@ from gslib.utils import shim_util
 import six
 from six.moves import http_client
 from six.moves import range
-from six.moves import xrange
+from six.moves import range
 
 if six.PY3:
   long = int  # pylint: disable=redefined-builtin,invalid-name
@@ -2137,8 +2137,8 @@ class TestCp(testcase.GsUtilIntegrationTestCase):
 
     _Check1()
 
-  @unittest.skipIf(
-      IS_WINDOWS, 'Unicode handling on Windows requires mods to site-packages')
+  @unittest.skipIf(IS_WINDOWS,
+                   'Unicode handling on Windows requires mods to site-packages')
   @SequentialAndParallelTransfer
   def test_cp_manifest_upload_unicode(self):
     return self._ManifestUpload('foo-unicöde'.encode(UTF8),
@@ -3385,11 +3385,7 @@ class TestCp(testcase.GsUtilIntegrationTestCase):
     ]):
       self.RunGsUtil(['cp', '-s', 'nearline', fpath, obj_suri])
     stdout = self.RunGsUtil(['ls', '-L', obj_suri], return_stdout=True)
-    if self._use_gcloud_storage:
-      self.assertRegexpMatchesWithFlags(
-          stdout, r'Storage class:               NEARLINE', flags=re.IGNORECASE)
-    else:
-      self.assertRegexpMatchesWithFlags(stdout,
+    self.assertRegexpMatchesWithFlags(stdout,
                                         r'Storage class:          NEARLINE',
                                         flags=re.IGNORECASE)
 
@@ -3829,7 +3825,7 @@ class TestCp(testcase.GsUtilIntegrationTestCase):
     object_uri = self.CreateObject()
     random.seed(0)
     contents = str([
-        random.choice(string.ascii_letters) for _ in xrange(self.halt_size)
+        random.choice(string.ascii_letters) for _ in range(self.halt_size)
     ]).encode('ascii')
     random.seed()  # Reset the seed for any other tests.
     fpath1 = self.CreateTempFile(file_name='unzipped.txt', contents=contents)
@@ -5009,6 +5005,10 @@ class TestCpUnitTests(testcase.GsUtilUnitTestCase):
     self.assertEqual(sub_opts, [('--flag-key', 'flag-value'),
                                 ('-a', 'publicRead'), ('-a', 'does-not-exist')])
 
+
+class TestCpShimUnitTests(testcase.ShimUnitTestBase):
+  """Unit tests for shimming cp flags"""
+
   def test_shim_translates_flags(self):
     bucket_uri = self.CreateBucket()
     fpath = self.CreateTempFile(contents=b'abcd')
@@ -5019,7 +5019,7 @@ class TestCpUnitTests(testcase.GsUtilUnitTestCase):
           'CLOUDSDK_ROOT_DIR': 'fake_dir',
       }):
         mock_log_handler = self.RunCommand('cp', [
-            '-e', '-n', '-r', '-R', '-s', 'some-class', '-v', '-a',
+            '-e', '-n', '-r', '-R', '-s', 'some-class', '-v', '-U', '-a',
             'public-read', fpath,
             suri(bucket_uri)
         ],
@@ -5028,7 +5028,7 @@ class TestCpUnitTests(testcase.GsUtilUnitTestCase):
         self.assertIn(
             'Gcloud Storage Command: {} storage cp'
             ' --ignore-symlinks --no-clobber -r -r --storage-class some-class'
-            ' --print-created-message --predefined-acl publicRead {} {}'.format(
+            ' --print-created-message --skip-unsupported --predefined-acl publicRead {} {}'.format(
                 shim_util._get_gcloud_binary_path('fake_dir'), fpath,
                 suri(bucket_uri)), info_lines)
         warn_lines = '\n'.join(mock_log_handler.messages['warning'])

@@ -28,6 +28,7 @@ def _CommonArgs(parser, release_track):
   volumes_flags.AddVolumeUpdateArgs(parser, release_track=release_track)
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Update(base.UpdateCommand):
   """Update a Cloud NetApp Volume."""
@@ -106,18 +107,18 @@ class Update(base.UpdateCommand):
       )
     else:
       security_style = None
-    if (self._RELEASE_TRACK == base.ReleaseTrack.BETA or
-        self._RELEASE_TRACK == base.ReleaseTrack.GA):
+    if self._RELEASE_TRACK in [base.ReleaseTrack.BETA, base.ReleaseTrack.GA]:
       backup_config = args.backup_config
       source_backup = args.source_backup
     else:
       backup_config = None
       source_backup = None
-    if (self._RELEASE_TRACK == base.ReleaseTrack.ALPHA or
-        self._RELEASE_TRACK == base.ReleaseTrack.BETA):
-      tiering_policy = args.tiering_policy
-    else:
-      tiering_policy = None
+    cache_parameters = args.cache_parameters
+    block_devices = []
+    if self._RELEASE_TRACK in [base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA]:
+      block_devices = args.block_devices
+    throughput_mibps = args.throughput_mibps
+
     volume = client.ParseUpdatedVolumeConfig(
         original_volume,
         description=args.description,
@@ -138,7 +139,11 @@ class Update(base.UpdateCommand):
         backup=source_backup,
         restricted_actions=restricted_actions,
         backup_config=backup_config,
-        tiering_policy=tiering_policy)
+        tiering_policy=args.tiering_policy,
+        cache_parameters=cache_parameters,
+        throughput_mibps=throughput_mibps,
+        block_devices=block_devices,
+    )
 
     updated_fields = []
     # add possible updated volume fields
@@ -174,24 +179,29 @@ class Update(base.UpdateCommand):
       updated_fields.append('restoreParameters')
     if args.IsSpecified('restricted_actions'):
       updated_fields.append('restrictedActions')
+    if args.IsSpecified('throughput_mibps'):
+      updated_fields.append('throughputMibps')
     if (self._RELEASE_TRACK == base.ReleaseTrack.BETA or
         self._RELEASE_TRACK == base.ReleaseTrack.GA):
       if args.IsSpecified('source_backup'):
         updated_fields.append('restoreParameters')
       if backup_config is not None:
-        if backup_config.get('backup-policies', []):
+        if backup_config.get('backup-policies') is not None:
           updated_fields.append('backupConfig.backupPolicies')
-        if backup_config.get('backup-vault', ''):
+        if backup_config.get('backup-vault') is not None:
           updated_fields.append('backupConfig.backupVault')
         if backup_config.get('enable-scheduled-backups') is not None:
           updated_fields.append('backupConfig.scheduledBackupEnabled')
-    if (self._RELEASE_TRACK == base.ReleaseTrack.ALPHA or
-        self._RELEASE_TRACK == base.ReleaseTrack.BETA):
-      if tiering_policy is not None:
-        if tiering_policy.get('tier-action') is not None:
-          updated_fields.append('tieringPolicy.tierAction')
-        if tiering_policy.get('cooling-threshold-days') is not None:
-          updated_fields.append('tieringPolicy.coolingThresholdDays')
+    if args.IsSpecified('tiering_policy'):
+      if args.tiering_policy.get('tier-action') is not None:
+        updated_fields.append('tieringPolicy.tierAction')
+      if args.tiering_policy.get('cooling-threshold-days') is not None:
+        updated_fields.append('tieringPolicy.coolingThresholdDays')
+      if (
+          self._RELEASE_TRACK == base.ReleaseTrack.BETA
+          or self._RELEASE_TRACK == base.ReleaseTrack.ALPHA
+      ) and args.tiering_policy.get('enable-hot-tier-bypass-mode') is not None:
+        updated_fields.append('tieringPolicy.hotTierBypassModeEnabled')
     if args.IsSpecified('description'):
       updated_fields.append('description')
     if (
@@ -200,6 +210,28 @@ class Update(base.UpdateCommand):
         or args.IsSpecified('clear_labels')
     ):
       updated_fields.append('labels')
+    if (
+        args.IsSpecified('cache_parameters')
+        and args.cache_parameters.get('cache-config') is not None
+    ):
+      for config in args.cache_parameters.get('cache-config'):
+        # TODO(b/433897931): Add atime-scrub-enabled and atime-scrub-days
+        # back for AGA
+        # if 'atime-scrub-enabled' in config:
+        #   updated_fields.append('cacheParameters.cacheConfig.atimeScrubEnabled')
+        # if 'atime-scrub-minutes' in config:
+        #   updated_fields.append('cacheParameters.cacheConfig.atimeScrubMinutes')
+        if 'cifs-change-notify-enabled' in config:
+          updated_fields.append(
+              'cacheParameters.cacheConfig.cifsChangeNotifyEnabled'
+          )
+
+    if (
+        self._RELEASE_TRACK == base.ReleaseTrack.ALPHA
+        or self._RELEASE_TRACK == base.ReleaseTrack.BETA
+    ):
+      if args.IsSpecified('block_devices'):
+        updated_fields.append('blockDevices')
     update_mask = ','.join(updated_fields)
 
     result = client.UpdateVolume(volume_ref, volume, update_mask, args.async_)
@@ -234,4 +266,3 @@ class UpdateAlpha(UpdateBeta):
   @staticmethod
   def Args(parser):
     _CommonArgs(parser, UpdateAlpha._RELEASE_TRACK)
-

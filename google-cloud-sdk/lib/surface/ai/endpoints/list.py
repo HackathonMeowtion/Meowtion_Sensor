@@ -29,9 +29,13 @@ from googlecloudsdk.core import resources
 _DEFAULT_FORMAT = """
         table(
             name.basename():label=ENDPOINT_ID,
-            displayName
+            displayName,
+            deployedModels.yesno(yes=Yes).if(list_model_garden_endpoints_only):label=HAS_DEPLOYED_MODEL,
+            deployedModels[0].id.if(list_model_garden_endpoints_only):label=DEPLOYED_MODEL_ID
         )
     """
+_API_DEPLOY_FILTER = 'labels.mg-deploy:*'
+_ONE_CLICK_DEPLOY_FILTER = 'labels.mg-one-click-deploy:*'
 
 
 def _GetUri(endpoint):
@@ -45,16 +49,36 @@ def _AddArgs(parser):
   parser.display_info.AddUriFunc(_GetUri)
   flags.AddRegionResourceArg(
       parser, 'to list endpoints', prompt_func=region_util.PromptForOpRegion)
+  parser.add_argument(
+      '--list-model-garden-endpoints-only',
+      action='store_true',
+      default=False,
+      required=False,
+      help='Whether to only list endpoints related to Model Garden.',
+  )
 
 
 def _Run(args, version):
+  """List existing Vertex AI endpoints."""
   region_ref = args.CONCEPTS.region.Parse()
   args.region = region_ref.AsDict()['locationsId']
+
   with endpoint_util.AiplatformEndpointOverrides(version, region=args.region):
-    return client.EndpointsClient(version=version).List(region_ref)
+    if args.list_model_garden_endpoints_only:
+      return client.EndpointsClient(version=version).List(
+          region_ref,
+          ' OR '.join([_API_DEPLOY_FILTER, _ONE_CLICK_DEPLOY_FILTER]),
+      )
+    elif version == constants.BETA_VERSION:
+      return client.EndpointsClient(version=version).List(
+          region_ref, gdc_zone=args.gdc_zone
+      )
+    else:
+      return client.EndpointsClient(version=version).List(region_ref)
 
 
 @base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.UniverseCompatible
 class ListGa(base.ListCommand):
   """List existing Vertex AI endpoints.
 
@@ -64,6 +88,12 @@ class ListGa(base.ListCommand):
   run:
 
     $ {command} --project=example --region=us-central1
+
+  To list the endpoints under project ``example'' in region ``us-central1''
+  that are created from Model Garden, run:
+
+    $ {command} --project=example --region=us-central1
+    --list-model-garden-endpoints-only
   """
 
   @staticmethod
@@ -75,7 +105,8 @@ class ListGa(base.ListCommand):
 
 
 @base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.ALPHA)
-class ListBeta(ListGa):
+@base.UniverseCompatible
+class ListBeta(base.ListCommand):
   """List existing Vertex AI endpoints.
 
   ## EXAMPLES
@@ -84,7 +115,18 @@ class ListBeta(ListGa):
   run:
 
     $ {command} --project=example --region=us-central1
+
+  To list the endpoints under project ``example'' in region ``us-central1''
+  that are created from Model Garden, run:
+
+    $ {command} --project=example --region=us-central1
+    --list-model-garden-endpoints-only
   """
+
+  @staticmethod
+  def Args(parser):
+    _AddArgs(parser)
+    flags.GetGdcZoneArg().AddToParser(parser)
 
   def Run(self, args):
     return _Run(args, constants.BETA_VERSION)

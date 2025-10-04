@@ -682,6 +682,14 @@ class GoogleCloudSaasacceleratorManagementProvidersV1Instance(_messages.Message)
       service consumers do not recognize. This is a required field for tenants
       onboarding to Maintenance Window notifications (go/slm-rollout-
       maintenance-policies#prerequisites).
+    consumerProjectNumber: Optional. The consumer_project_number associated
+      with this Apigee instance. This field is added specifically to support
+      Apigee integration with SLM Rollout and UMM. It represents the numerical
+      project ID of the GCP project that consumes this Apigee instance. It is
+      used for SLM rollout notifications and UMM integration, enabling proper
+      mapping to customer projects and log delivery for Apigee instances. This
+      field complements consumer_project_id and may be used for specific
+      Apigee scenarios where the numerical ID is required.
     createTime: Output only. Timestamp when the resource was created.
     instanceType: Optional. The instance_type of this instance of format: proj
       ects/{project_number}/locations/{location_id}/instanceTypes/{instance_ty
@@ -928,22 +936,23 @@ class GoogleCloudSaasacceleratorManagementProvidersV1Instance(_messages.Message)
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
   consumerDefinedName = _messages.StringField(1)
-  createTime = _messages.StringField(2)
-  instanceType = _messages.StringField(3)
-  labels = _messages.MessageField('LabelsValue', 4)
-  maintenancePolicyNames = _messages.MessageField('MaintenancePolicyNamesValue', 5)
-  maintenanceSchedules = _messages.MessageField('MaintenanceSchedulesValue', 6)
-  maintenanceSettings = _messages.MessageField('GoogleCloudSaasacceleratorManagementProvidersV1MaintenanceSettings', 7)
-  name = _messages.StringField(8)
-  notificationParameters = _messages.MessageField('NotificationParametersValue', 9)
-  producerMetadata = _messages.MessageField('ProducerMetadataValue', 10)
-  provisionedResources = _messages.MessageField('GoogleCloudSaasacceleratorManagementProvidersV1ProvisionedResource', 11, repeated=True)
-  slmInstanceTemplate = _messages.StringField(12)
-  sloMetadata = _messages.MessageField('GoogleCloudSaasacceleratorManagementProvidersV1SloMetadata', 13)
-  softwareVersions = _messages.MessageField('SoftwareVersionsValue', 14)
-  state = _messages.EnumField('StateValueValuesEnum', 15)
-  tenantProjectId = _messages.StringField(16)
-  updateTime = _messages.StringField(17)
+  consumerProjectNumber = _messages.StringField(2)
+  createTime = _messages.StringField(3)
+  instanceType = _messages.StringField(4)
+  labels = _messages.MessageField('LabelsValue', 5)
+  maintenancePolicyNames = _messages.MessageField('MaintenancePolicyNamesValue', 6)
+  maintenanceSchedules = _messages.MessageField('MaintenanceSchedulesValue', 7)
+  maintenanceSettings = _messages.MessageField('GoogleCloudSaasacceleratorManagementProvidersV1MaintenanceSettings', 8)
+  name = _messages.StringField(9)
+  notificationParameters = _messages.MessageField('NotificationParametersValue', 10)
+  producerMetadata = _messages.MessageField('ProducerMetadataValue', 11)
+  provisionedResources = _messages.MessageField('GoogleCloudSaasacceleratorManagementProvidersV1ProvisionedResource', 12, repeated=True)
+  slmInstanceTemplate = _messages.StringField(13)
+  sloMetadata = _messages.MessageField('GoogleCloudSaasacceleratorManagementProvidersV1SloMetadata', 14)
+  softwareVersions = _messages.MessageField('SoftwareVersionsValue', 15)
+  state = _messages.EnumField('StateValueValuesEnum', 16)
+  tenantProjectId = _messages.StringField(17)
+  updateTime = _messages.StringField(18)
 
 
 class GoogleCloudSaasacceleratorManagementProvidersV1MaintenanceSchedule(_messages.Message):
@@ -2342,6 +2351,9 @@ class ManagedidentitiesProjectsLocationsListRequest(_messages.Message):
   r"""A ManagedidentitiesProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -2352,10 +2364,11 @@ class ManagedidentitiesProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class OnPremDomainDetails(_messages.Message):
@@ -2514,8 +2527,8 @@ class OperationMetadata(_messages.Message):
     apiVersion: Output only. API version used to start the operation.
     cancelRequested: Output only. Identifies whether the user has requested
       cancellation of the operation. Operations that have been cancelled
-      successfully have Operation.error value with a google.rpc.Status.code of
-      1, corresponding to `Code.CANCELLED`.
+      successfully have google.longrunning.Operation.error value with a
+      google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
     createTime: Output only. The time the operation was created.
     endTime: Output only. The time the operation finished running.
     statusDetail: Output only. Human-readable status of the operation, if any.
@@ -3005,13 +3018,16 @@ class TimeOfDay(_messages.Message):
   seconds. Related types are google.type.Date and `google.protobuf.Timestamp`.
 
   Fields:
-    hours: Hours of day in 24 hour format. Should be from 0 to 23. An API may
-      choose to allow the value "24:00:00" for scenarios like business closing
-      time.
-    minutes: Minutes of hour of day. Must be from 0 to 59.
-    nanos: Fractions of seconds in nanoseconds. Must be from 0 to 999,999,999.
-    seconds: Seconds of minutes of the time. Must normally be from 0 to 59. An
-      API may allow the value 60 if it allows leap-seconds.
+    hours: Hours of a day in 24 hour format. Must be greater than or equal to
+      0 and typically must be less than or equal to 23. An API may choose to
+      allow the value "24:00:00" for scenarios like business closing time.
+    minutes: Minutes of an hour. Must be greater than or equal to 0 and less
+      than or equal to 59.
+    nanos: Fractions of seconds, in nanoseconds. Must be greater than or equal
+      to 0 and less than or equal to 999,999,999.
+    seconds: Seconds of a minute. Must be greater than or equal to 0 and
+      typically must be less than or equal to 59. An API may allow the value
+      60 if it allows leap-seconds.
   """
 
   hours = _messages.IntegerField(1, variant=_messages.Variant.INT32)
@@ -3192,3 +3208,9 @@ encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    ManagedidentitiesProjectsLocationsGlobalDomainsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    ManagedidentitiesProjectsLocationsGlobalDomainsBackupsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    ManagedidentitiesProjectsLocationsGlobalPeeringsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')

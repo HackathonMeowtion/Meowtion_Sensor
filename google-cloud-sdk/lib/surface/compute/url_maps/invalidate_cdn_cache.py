@@ -22,6 +22,7 @@ from googlecloudsdk.api_lib.compute import base_classes
 from googlecloudsdk.api_lib.compute import batch_helper
 from googlecloudsdk.api_lib.compute import utils
 from googlecloudsdk.calliope import base
+from googlecloudsdk.command_lib.compute import exceptions as compute_exceptions
 from googlecloudsdk.command_lib.compute import scope as compute_scope
 from googlecloudsdk.command_lib.compute.url_maps import flags
 from googlecloudsdk.command_lib.compute.url_maps import url_maps_utils
@@ -48,7 +49,7 @@ def _Args(parser):
 
   parser.add_argument(
       '--path',
-      required=True,
+      required=False,
       help="""\
       A path specifying which objects to invalidate. PATH must start with
       ``/'' and the only place a ``*'' is allowed is at the end following a
@@ -80,6 +81,18 @@ def _Args(parser):
       specified host.
       """)
 
+  parser.add_argument(
+      '--tags',
+      required=False,
+      default=None,
+      help="""\
+      A single tag or a comma-delimited list of tags. When multiple tags are
+      specified, the invalidation applies them using boolean OR logic.
+
+      Example:
+      - ``--tags=abcd,user123''
+      """)
+
   base.ASYNC_FLAG.AddToParser(parser)
 
 
@@ -87,25 +100,27 @@ def _CreateRequests(holder, args, url_map_arg):
   """Returns a list of requests necessary for cache invalidations."""
   url_map_ref = url_map_arg.ResolveAsResource(
       args, holder.resources, default_scope=compute_scope.ScopeEnum.GLOBAL)
+  if url_maps_utils.IsRegionalUrlMapRef(url_map_ref):
+    raise compute_exceptions.ArgumentError(
+        'Invalid flag [--region]:'
+        ' Regional URL maps do not support Cloud CDN caching.'
+    )
+
   cache_invalidation_rule = holder.client.messages.CacheInvalidationRule(
       path=args.path)
   if args.host is not None:
     cache_invalidation_rule.host = args.host
 
+  if hasattr(args, 'tags') and args.tags is not None:
+    cache_invalidation_rule.cacheTags.extend(
+        [tag.strip() for tag in args.tags.split(',')])
+
   messages = holder.client.messages
-  if url_maps_utils.IsRegionalUrlMapRef(url_map_ref):
-    request = messages.ComputeRegionUrlMapsInvalidateCacheRequest(
-        project=url_map_ref.project,
-        urlMap=url_map_ref.Name(),
-        cacheInvalidationRule=cache_invalidation_rule,
-        region=url_map_ref.region)
-    collection = holder.client.apitools_client.regionUrlMaps
-  else:
-    request = messages.ComputeUrlMapsInvalidateCacheRequest(
-        project=url_map_ref.project,
-        urlMap=url_map_ref.Name(),
-        cacheInvalidationRule=cache_invalidation_rule)
-    collection = holder.client.apitools_client.urlMaps
+  request = messages.ComputeUrlMapsInvalidateCacheRequest(
+      project=url_map_ref.project,
+      urlMap=url_map_ref.Name(),
+      cacheInvalidationRule=cache_invalidation_rule)
+  collection = holder.client.apitools_client.urlMaps
 
   return [(collection, 'InvalidateCache', request)]
 
@@ -136,6 +151,7 @@ def _Run(args, holder, url_map_arg):
   return resources
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class InvalidateCdnCache(base.SilentCommand):
   """Invalidate specified objects for a URL map in Cloud CDN caches."""
@@ -145,7 +161,7 @@ class InvalidateCdnCache(base.SilentCommand):
 
   @classmethod
   def Args(cls, parser):
-    cls.URL_MAP_ARG = flags.UrlMapArgument()
+    cls.URL_MAP_ARG = flags.GlobalUrlMapArgument()
     cls.URL_MAP_ARG.AddArgument(parser, cust_metavar='URLMAP')
     _Args(parser)
 
@@ -154,11 +170,13 @@ class InvalidateCdnCache(base.SilentCommand):
     return _Run(args, holder, self.URL_MAP_ARG)
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.BETA)
 class InvalidateCdnCacheBeta(InvalidateCdnCache):
   pass
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
 class InvalidateCdnCacheAlpha(InvalidateCdnCacheBeta):
   pass

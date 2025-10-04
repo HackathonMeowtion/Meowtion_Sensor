@@ -25,6 +25,7 @@ from googlecloudsdk.command_lib.container.fleet import resources
 from googlecloudsdk.command_lib.util.args import labels_util
 
 
+@base.DefaultUniverseOnly
 class Create(base.CreateCommand):
   """Create an RBAC RoleBinding.
 
@@ -45,6 +46,13 @@ class Create(base.CreateCommand):
 
     $ {command} RBRB --scope=SCOPE --role=viewer
     --group=people@google.com
+
+  To create an RBAC RoleBinding with a custom role `custom-role` in scope
+  `SCOPE` for user `person@google.com`, run:
+
+    $ {command} RBRB --scope=SCOPE --role=admin
+    --user=person@google.com
+    --custom-role=custom-role
   """
 
   @classmethod
@@ -69,11 +77,16 @@ class Create(base.CreateCommand):
         type=str,
         help='Group for the RoleBinding.',
     )
-    parser.add_argument(
+    roledef = parser.add_mutually_exclusive_group(required=True)
+    roledef.add_argument(
         '--role',
-        required=True,
         choices=['admin', 'edit', 'view'],
-        help='Role to assign.',
+        help='Predefined role to assign to principal (admin, edit, view).',
+    )
+    roledef.add_argument(
+        '--custom-role',
+        type=str,
+        help='Custom role to assign to principal.',
     )
     labels_util.AddCreateLabelsFlags(parser)
 
@@ -83,9 +96,12 @@ class Create(base.CreateCommand):
     labels = labels_diff.Apply(
         fleetclient.messages.RBACRoleBinding.LabelsValue, None
     ).GetOrNone()
+    # Only set the custom role field if the release track is alpha.
+    custom_role = args.custom_role
     return fleetclient.CreateScopeRBACRoleBinding(
         resources.RBACResourceName(args),
         role=args.role,
+        custom_role=custom_role,
         user=args.user,
         group=args.group,
         labels=labels,

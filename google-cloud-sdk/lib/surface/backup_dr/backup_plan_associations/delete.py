@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Deletes a Backup and DR Backup Plan Association."""
+"""Delete a specified Backup and DR Backup Plan Association."""
 
 
 from __future__ import absolute_import
@@ -29,13 +29,13 @@ from googlecloudsdk.core import log
 from googlecloudsdk.core.console import console_io
 
 
-@base.Hidden
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
-class DeleteAlpha(base.DeleteCommand):
-  """Delete the specified Backup plan association."""
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.GA)
+class Delete(base.DeleteCommand):
+  """Delete the specified backup plan association."""
 
   detailed_help = {
-      'BRIEF': 'Deletes a specific backup plan association',
+      'BRIEF': 'Delete a specific backup plan association',
       'DESCRIPTION': '{description}',
       'EXAMPLES': """\
         To delete a backup plan association `sample-bpa` in project `sample-project` and location `us-central1` , run:
@@ -88,13 +88,10 @@ class DeleteAlpha(base.DeleteCommand):
       raise exceptions.HttpException(e, util.HTTP_ERROR_FORMAT)
     if is_async:
       log.DeletedResource(
-          operation.name,
+          backup_plan_association.RelativeName(),
           kind='backup plan association',
           is_async=True,
-          details=(
-              'Run the [gcloud backup-dr operations describe] command '
-              'to check the status of this operation.'
-          ),
+          details=util.ASYNC_OPERATION_MESSAGE.format(operation.name),
       )
       return operation
 
@@ -102,7 +99,7 @@ class DeleteAlpha(base.DeleteCommand):
         operation_ref=client.GetOperationRef(operation),
         message=(
             'Deleting backup plan association [{}]. (This operation could'
-            ' take upto 2 minutes.)'.format(
+            ' take up to 2 minutes.)'.format(
                 backup_plan_association.RelativeName()
             )
         ),

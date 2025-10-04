@@ -26,6 +26,7 @@ import heapq
 import os
 import pathlib
 import re
+from typing import Iterator
 
 from googlecloudsdk.api_lib.storage import api_factory
 from googlecloudsdk.api_lib.storage import cloud_api
@@ -75,10 +76,13 @@ def get_wildcard_iterator(
     halt_on_empty_response=True,
     ignore_symlinks=False,
     managed_folder_setting=folder_util.ManagedFolderSetting.DO_NOT_LIST,
+    folder_setting=folder_util.FolderSetting.DO_NOT_LIST,
     next_page_token=None,
     object_state=cloud_api.ObjectState.LIVE,
     preserve_symlinks=False,
     raise_managed_folder_precondition_errors=False,
+    soft_deleted_buckets=False,
+    list_filter=None,
 ):
   """Instantiate a WildcardIterator for the given URL string.
 
@@ -105,6 +109,8 @@ def get_wildcard_iterator(
     ignore_symlinks (bool): Skip over symlinks instead of following them.
     managed_folder_setting (folder_util.ManagedFolderSetting): Indicates how to
       deal with managed folders.
+     folder_setting (folder_util.FolderSetting): Indicates how to deal with
+       folders.
     next_page_token (str|None): Used to resume LIST calls.
     object_state (cloud_api.ObjectState): Versions of objects to query.
     preserve_symlinks (bool): Preserve symlinks instead of following them.
@@ -112,6 +118,11 @@ def get_wildcard_iterator(
       precondition errors from managed folder listing. Otherwise, suppresses
       these errors. This is helpful in commands that list managed folders by
       default.
+    soft_deleted_buckets (bool): If true, soft deleted buckets will be queried.
+    list_filter (str|None): If provided, objects with matching filters
+      will be returned, The prefixes would still be returned regardless of
+      whether they match the specified filter, See
+      go/gcs-object-context-filtering for more details.
 
   Returns:
     A WildcardIterator object.
@@ -128,9 +139,12 @@ def get_wildcard_iterator(
         get_bucket_metadata=get_bucket_metadata,
         halt_on_empty_response=halt_on_empty_response,
         managed_folder_setting=managed_folder_setting,
+        folder_setting=folder_setting,
         next_page_token=next_page_token,
         object_state=object_state,
         raise_managed_folder_precondition_errors=raise_managed_folder_precondition_errors,
+        soft_deleted_buckets=soft_deleted_buckets,
+        list_filter=list_filter,
     )
   elif isinstance(url, storage_url.FileUrl):
     return FileWildcardIterator(
@@ -218,12 +232,15 @@ class FileWildcardIterator(WildcardIterator):
     self._ignore_symlinks = ignore_symlinks
     self._preserve_symlinks = preserve_symlinks
 
-    if force_include_hidden_files and url.object_name.rstrip('*')[-1] != os.sep:
+    if (
+        force_include_hidden_files
+        and url.resource_name.rstrip('*')[-1] != os.sep
+    ):
       raise command_errors.InvalidUrlError(
           'If force-including hidden files, input URL must be directory or'
           ' directory followed by wildcards.'
       )
-    self._path = self._url.object_name
+    self._path = self._url.resource_name
     self._recurse = '**' in self._path
     self._include_hidden_files = (
         self._recurse or force_include_hidden_files or _is_hidden(self._path)
@@ -234,7 +251,7 @@ class FileWildcardIterator(WildcardIterator):
     if self._url.is_stdio:
       if self._files_only:
         raise command_errors.InvalidUrlError(
-            _FILES_ONLY_ERROR_FORMAT.format(self._url.object_name)
+            _FILES_ONLY_ERROR_FORMAT.format(self._url.resource_name)
         )
       yield resource_reference.FileObjectResource(self._url)
       return
@@ -279,7 +296,7 @@ class FileWildcardIterator(WildcardIterator):
       if self._files_only and not os.path.isfile(path):
         if storage_url.is_named_pipe(path):
           raise command_errors.InvalidUrlError(
-              _FILES_ONLY_ERROR_FORMAT.format(self._url.object_name)
+              _FILES_ONLY_ERROR_FORMAT.format(self._url.resource_name)
           )
         continue
 
@@ -332,9 +349,12 @@ class CloudWildcardIterator(WildcardIterator):
       get_bucket_metadata=False,
       halt_on_empty_response=True,
       managed_folder_setting=folder_util.ManagedFolderSetting.DO_NOT_LIST,
+      folder_setting=folder_util.FolderSetting.DO_NOT_LIST,
       next_page_token=None,
       object_state=cloud_api.ObjectState.LIVE,
       raise_managed_folder_precondition_errors=True,
+      soft_deleted_buckets=False,
+      list_filter=None,
   ):
     """Instantiates an iterator that matches the wildcard URL.
 
@@ -358,12 +378,20 @@ class CloudWildcardIterator(WildcardIterator):
         See CloudApi for details.
       managed_folder_setting (folder_util.ManagedFolderSetting): Indicates how
         to deal with managed folders.
+      folder_setting (folder_util.FolderSetting): Indicates how to deal with
+        folders.
       next_page_token (str|None): Used to resume LIST calls.
       object_state (cloud_api.ObjectState): Versions of objects to query.
       raise_managed_folder_precondition_errors (bool): If True, raises
         precondition errors from managed folder listing. Otherwise, suppresses
         these errors. This is helpful in commands that list managed folders by
         default.
+      soft_deleted_buckets (bool): If true, soft deleted buckets will be
+        queried.
+      list_filter (str|None): If provided, objects with matching
+        contexts will be returned. The prefixes would still be returned
+        regardless of whether they match the specified context, See
+        go/gcs-object-context-filtering for more details.
     """
     super(CloudWildcardIterator, self).__init__(
         url, exclude_patterns=exclude_patterns, files_only=files_only
@@ -375,11 +403,14 @@ class CloudWildcardIterator(WildcardIterator):
     self._get_bucket_metadata = get_bucket_metadata
     self._halt_on_empty_response = halt_on_empty_response
     self._managed_folder_setting = managed_folder_setting
+    self._folder_setting = folder_setting
     self._next_page_token = next_page_token
     self._object_state = object_state
     self._raise_managed_folder_precondition_errors = (
         raise_managed_folder_precondition_errors
     )
+    self._soft_deleted_buckets = soft_deleted_buckets
+    self._list_filter = list_filter
 
     if (
         object_state is cloud_api.ObjectState.LIVE
@@ -398,15 +429,27 @@ class CloudWildcardIterator(WildcardIterator):
     if self._files_only and (self._url.is_provider() or self._url.is_bucket()):
       return
     if self._url.is_provider():
-      for bucket_resource in self._client.list_buckets(self._fields_scope):
+      for bucket_resource in self._client.list_buckets(
+          fields_scope=self._fields_scope,
+          soft_deleted=self._soft_deleted_buckets,
+      ):
         yield bucket_resource
     else:
       for bucket_or_unknown_resource in self._fetch_buckets():
         if self._url.is_bucket():
           yield bucket_or_unknown_resource
         else:  # URL is an object or prefix.
-          for resource in self._fetch_sub_bucket_resources(
+          # We have to fetch information metadata of a Bucket again as we
+          # do not always list the full scope of fields during the above steps.
+          # We may not want to do that even now, to avoid extra information
+          # being printed anywhere in the output.
+          is_hns_bucket = self._is_hns_bucket(
               bucket_or_unknown_resource.storage_url.bucket_name
+          )
+
+          for resource in self._fetch_sub_bucket_resources(
+              bucket_or_unknown_resource.storage_url.bucket_name,
+              is_hns_bucket=is_hns_bucket,
           ):
             if self._exclude_patterns and self._exclude_patterns.match(
                 resource.storage_url.versionless_url_string
@@ -416,7 +459,7 @@ class CloudWildcardIterator(WildcardIterator):
             if self._files_only and (
                 not isinstance(resource, resource_reference.ObjectResource)
                 or (  # Directory placeholder object.
-                    resource.storage_url.object_name.endswith(
+                    resource.storage_url.resource_name.endswith(
                         storage_url.CLOUD_URL_DELIMITER
                     )
                     and resource.size == 0
@@ -430,6 +473,13 @@ class CloudWildcardIterator(WildcardIterator):
                 and not isinstance(
                     resource, resource_reference.ManagedFolderResource
                 )
+            ):
+              continue
+
+            if (
+                self._folder_setting
+                is folder_util.FolderSetting.LIST_WITHOUT_OBJECTS
+                and not isinstance(resource, resource_reference.FolderResource)
             ):
               continue
 
@@ -476,7 +526,7 @@ class CloudWildcardIterator(WildcardIterator):
     try:
       resource = self._client.get_object_metadata(
           bucket_name,
-          self._url.object_name,
+          self._url.resource_name,
           # TODO(b/197754758): add user request args from surface.
           request_config_factory.get_request_config(self._url),
           generation=self._url.generation,
@@ -488,12 +538,28 @@ class CloudWildcardIterator(WildcardIterator):
     except api_errors.NotFoundError:
       # Object does not exist. Could be a prefix.
       pass
+    except api_errors.GcsApiError as e:
+      # GET with soft-deleted objects requires generation.
+      if (
+          e.status_code == 400
+          and 'You must specify a generation' in str(e)
+          and self._url.url_string.endswith(self._url.delimiter)
+          and self._soft_deleted
+      ):
+        log.debug(
+            'GET failed with "must specify generation" error. This is'
+            ' expected for a soft-deleted object listed with a trailing'
+            ' slash. Falling back to a LIST call.'
+        )
+        pass
+      else:
+        raise
     return None
 
-  def _fetch_sub_bucket_resources(self, bucket_name):
+  def _fetch_sub_bucket_resources(self, bucket_name, is_hns_bucket=False):
     """Fetch all objects for the given bucket that match the URL."""
     needs_further_expansion = (
-        contains_wildcard(self._url.object_name)
+        contains_wildcard(self._url.resource_name)
         or self._object_state_requires_expansion
         or self._url.url_string.endswith(self._url.delimiter)
     )
@@ -503,7 +569,7 @@ class CloudWildcardIterator(WildcardIterator):
       if direct_query_result:
         return [direct_query_result]
     # Will run if direct check found no result.
-    return self._expand_object_path(bucket_name)
+    return self._expand_object_path(bucket_name, is_hns_bucket)
 
   def _get_managed_folder_iterator(self, bucket_name, wildcard_parts):
     # Listing all objects under a prefix (recursive listing) occurs when
@@ -532,11 +598,55 @@ class CloudWildcardIterator(WildcardIterator):
       if self._raise_managed_folder_precondition_errors:
         raise
 
-  def _get_resource_iterator(self, bucket_name, wildcard_parts):
+  def _get_folder_iterator(
+      self, bucket_name, wildcard_parts, is_hns_bucket=False
+  ):
+    is_recursive_expansion = wildcard_parts.delimiter is None
+    is_list_as_folders = (
+        self._folder_setting is folder_util.FolderSetting.LIST_AS_FOLDERS
+        and is_hns_bucket
+    )
+    should_list_folders = (
+        self._folder_setting
+        in (folder_util.FolderSetting.LIST_WITHOUT_OBJECTS,)
+        or is_list_as_folders
+    )
+
+    if wildcard_parts.prefix:
+      modified_prefix = (
+          wildcard_parts.prefix + '/'
+          if not wildcard_parts.prefix.endswith('/')
+          else wildcard_parts.prefix
+      )
+    else:
+      modified_prefix = None
+
     if (
-        self._managed_folder_setting
-        is not folder_util.ManagedFolderSetting.LIST_WITHOUT_OBJECTS
-        # Even if we're just listing managed folders, we need to call
+        should_list_folders
+        and cloud_api.Capability.FOLDERS in self._client.capabilities
+        and is_recursive_expansion
+    ):
+      folder_iterator = self._client.list_folders(
+          bucket_name=bucket_name,
+          prefix=modified_prefix,
+      )
+    else:
+      folder_iterator = []
+
+    for resource in folder_iterator:
+      yield resource
+
+  def _get_resource_iterator(
+      self, bucket_name, wildcard_parts, is_hns_bucket=False
+  ):
+    if (
+        (
+            self._managed_folder_setting
+            is not folder_util.ManagedFolderSetting.LIST_WITHOUT_OBJECTS
+            and self._folder_setting
+            is not folder_util.FolderSetting.LIST_WITHOUT_OBJECTS
+        )
+        # Even if we're just listing managed folders/folders, we need to call
         # list_objects to expand non-recursive wildcards using delimiters. For
         # example, to expand gs://bucket/*/dir/**, we will call list_objects to
         # get PrefixResources needed to expand the first wildcard. After all
@@ -549,6 +659,7 @@ class CloudWildcardIterator(WildcardIterator):
       setting_is_do_not_list = (
           self._managed_folder_setting
           is folder_util.ManagedFolderSetting.DO_NOT_LIST
+          and self._folder_setting is folder_util.FolderSetting.DO_NOT_LIST
       )
 
       # The API raises an error if we attempt to include folders as prefixes
@@ -570,6 +681,7 @@ class CloudWildcardIterator(WildcardIterator):
           next_page_token=self._next_page_token,
           prefix=wildcard_parts.prefix or None,
           object_state=self._object_state_for_listing,
+          list_filter=self._list_filter,
       )
     else:
       object_iterator = []
@@ -578,9 +690,14 @@ class CloudWildcardIterator(WildcardIterator):
         bucket_name, wildcard_parts
     )
 
+    folder_iterator = self._get_folder_iterator(
+        bucket_name, wildcard_parts, is_hns_bucket
+    )
+
     return heapq.merge(
         object_iterator,
         managed_folder_iterator,
+        folder_iterator,
         key=lambda resource: resource.storage_url.url_string,
     )
 
@@ -603,24 +720,55 @@ class CloudWildcardIterator(WildcardIterator):
     try:
       prefix_url = resource.storage_url
       return self._client.get_managed_folder(
-          prefix_url.bucket_name, prefix_url.object_name
+          prefix_url.bucket_name, prefix_url.resource_name
       )
     except api_errors.NotFoundError:
       return resource
 
-  def _expand_object_path(self, bucket_name):
+  def _maybe_convert_prefix_to_folder(self, resource, is_hns_bucket=False):
+    """If resource is a prefix, attempts to convert it to a folder."""
+    if (
+        # pylint: disable=unidiomatic-typecheck
+        # We do not want this check to pass for child classes.
+        type(resource) is not resource_reference.PrefixResource
+        # pylint: enable=unidiomatic-typecheck
+        or self._folder_setting
+        not in {
+            folder_util.FolderSetting.LIST_WITHOUT_OBJECTS,
+            folder_util.FolderSetting.LIST_AS_FOLDERS,
+        }
+        or cloud_api.Capability.FOLDERS not in self._client.capabilities
+    ):
+      return resource
+
+    if (
+        self._folder_setting is folder_util.FolderSetting.LIST_AS_FOLDERS
+        and not is_hns_bucket
+    ):
+      return resource
+
+    try:
+      prefix_url = resource.storage_url
+      return self._client.get_folder(
+          prefix_url.bucket_name, prefix_url.resource_name
+      )
+    except api_errors.NotFoundError:
+      return resource
+
+  def _expand_object_path(self, bucket_name, is_hns_bucket=False):
     """Expands object names.
 
     Args:
       bucket_name (str): Name of the bucket.
+      is_hns_bucket (bool): Whether the bucket is an HNS bucket.
 
     Yields:
       resource_reference.Resource objects where each resource can be
       an ObjectResource object or a PrefixResource object.
     """
-    original_object_name = self._url.object_name
+    original_object_name = self._url.resource_name
     if original_object_name.endswith(self._url.delimiter):
-      if not contains_wildcard(self._url.object_name):
+      if not contains_wildcard(self._url.resource_name):
         # Get object with trailing slash in addition to prefix check below.
         direct_query_result = self._try_getting_object_directly(bucket_name)
         if direct_query_result:
@@ -643,7 +791,7 @@ class CloudWildcardIterator(WildcardIterator):
 
       # Fetch all the objects and prefixes.
       resource_iterator = self._get_resource_iterator(
-          bucket_name, wildcard_parts
+          bucket_name, wildcard_parts, is_hns_bucket
       )
 
       # We have all the objects and prefixes that matched wildcard_parts.prefix.
@@ -654,7 +802,7 @@ class CloudWildcardIterator(WildcardIterator):
       )
 
       for resource in filtered_resources:
-        resource_path = resource.storage_url.object_name
+        resource_path = resource.storage_url.resource_name
         if wildcard_parts.suffix:
           # pylint: disable=unidiomatic-typecheck
           # We do not want this check to pass for child classes.
@@ -681,7 +829,15 @@ class CloudWildcardIterator(WildcardIterator):
           ) and original_object_name.endswith(self._url.delimiter):
             continue
 
-          resource = self._maybe_convert_prefix_to_managed_folder(resource)
+          # The order is important as Folders should take precdence
+          # over Managed Folders for an HNS bucket, So if a resource is a
+          # Folder, then we need not convert it to a Managed Folder
+          resource = self._maybe_convert_prefix_to_folder(
+              resource, is_hns_bucket
+          )
+          if not isinstance(resource, resource_reference.FolderResource):
+            resource = self._maybe_convert_prefix_to_managed_folder(resource)
+
           yield self._decrypt_resource_if_necessary(resource)
 
     if error:
@@ -743,7 +899,7 @@ class CloudWildcardIterator(WildcardIterator):
         # Filter based on generation, if generation is present in the request.
         continue
       for regex_pattern in regex_patterns:
-        if regex_pattern.match(resource.storage_url.object_name):
+        if regex_pattern.match(resource.storage_url.resource_name):
           yield resource
           break
 
@@ -754,17 +910,54 @@ class CloudWildcardIterator(WildcardIterator):
       An iterable of BucketResource or UnknownResource objects.
     """
     if contains_wildcard(self._url.bucket_name):
-      return self._expand_bucket_wildcards(self._url.bucket_name)
+      return self._list_buckets_matching_wildcard(self._url.bucket_name)
     elif self._url.is_bucket() and self._get_bucket_metadata:
+      # If --soft-deleted is specified, fetch all soft-deleted generations of
+      # this bucket. Otherwise, return the live bucket.
+      if self._soft_deleted_buckets:
+        return self._fetch_all_soft_deleted_generations_of_bucket(
+            self._url.bucket_name
+        )
+
       return [
-          self._client.get_bucket(self._url.bucket_name, self._fields_scope)
+          self._client.get_bucket(
+              bucket_name=self._url.bucket_name,
+              fields_scope=self._fields_scope,
+          )
       ]
     else:
       # Avoids API call.
       return [resource_reference.UnknownResource(self._url)]
 
-  def _expand_bucket_wildcards(self, bucket_name):
-    """Expand bucket names with wildcard.
+  def _fetch_all_soft_deleted_generations_of_bucket(
+      self, bucket_name: str
+  ) -> Iterator[resource_reference.BucketResource]:
+    """Fetch the soft-deleted buckets with the given name.
+
+      List_buckets retrieves all versions of a bucket, including
+      soft-deleted ones. Get_bucket retrieves the live bucket or a specific
+      soft-deleted version of the bucket if generation is specified. This is
+      useful when needing to access a particular deleted version that has been
+      identified from the List_buckets output.
+
+    Args:
+      bucket_name (str): Bucket name.
+
+    Yields:
+      BucketResource objects.
+    """
+    # TODO: b/350559758 - Add prefix support to list_buckets and use it here.
+    for bucket_resource in self._client.list_buckets(
+        fields_scope=self._fields_scope,
+        soft_deleted=self._soft_deleted_buckets,
+    ):
+      if bucket_name == bucket_resource.name:
+        yield bucket_resource
+
+  def _list_buckets_matching_wildcard(
+      self, bucket_name: str
+  ) -> Iterator[resource_reference.BucketResource]:
+    """List buckets matching the wildcard pattern.
 
     Args:
       bucket_name (str): Bucket name with wildcard.
@@ -774,9 +967,36 @@ class CloudWildcardIterator(WildcardIterator):
     """
     regex = fnmatch.translate(bucket_name)
     bucket_pattern = re.compile(regex)
-    for bucket_resource in self._client.list_buckets(self._fields_scope):
+    for bucket_resource in self._client.list_buckets(
+        fields_scope=self._fields_scope,
+        soft_deleted=self._soft_deleted_buckets,
+    ):
       if bucket_pattern.match(bucket_resource.name):
         yield bucket_resource
+
+  def _is_hns_bucket(self, bucket_name):
+    if (
+        self._folder_setting is not folder_util.FolderSetting.LIST_AS_FOLDERS
+        or cloud_api.Capability.STORAGE_LAYOUT not in self._client.capabilities
+    ):
+      return False
+
+    try:
+      bucket_layout = self._client.get_storage_layout(bucket_name)
+    except api_errors.GcsApiError as error:
+      # GetStorageLayout requires ListObjects permission to work.
+      # While for most cases, (especially in this code path) the user would
+      # have the permission, we still ideally do not want to fail for a corner
+      # case where someone user may not have the required permission.
+      if error.payload.status_code != 403:
+        # Avoids unexpectedly escalating permissions.
+        raise
+      return False
+
+    return bool(
+        getattr(bucket_layout, 'hierarchicalNamespace', None)
+        and bucket_layout.hierarchicalNamespace.enabled
+    )
 
 
 class CloudWildcardParts:

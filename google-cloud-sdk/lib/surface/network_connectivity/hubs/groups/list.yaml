@@ -1,4 +1,4 @@
-- release_tracks: [GA]
+- release_tracks: [BETA, GA]
 
   help_text:
     brief: List groups.
@@ -11,17 +11,20 @@
 
       To list all groups in hub `my-hub`, run:
 
-        ${command} --hub=my-hub
+        $ {command} --hub=my-hub
 
   arguments:
     resource:
-      spec: !REF googlecloudsdk.command_lib.network_connectivity.resources:hub
+      spec: !REF googlecloudsdk.command_lib.network_connectivity.resources:hubDefaultAll
       help_text: Parent hub of the groups to display.
 
   request: &request
-    api_version: v1
+    BETA:
+      api_version: v1beta
+    GA:
+      api_version: v1
     collection: networkconnectivity.projects.locations.global.hubs.groups
 
   output:
     # Columns: NAME, HUB, DESCRIPTION
-    format: table(name.basename(), name.segment(5):label=HUB, description)
+    format: table(name.basename():sort=2, name.segment(5):label=HUB:sort=1, description)

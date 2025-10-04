@@ -19,6 +19,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import copy
+import datetime
+import enum
+from typing import List
 
 from apitools.base.py import encoding
 from apitools.base.py import encoding_helper
@@ -33,6 +36,7 @@ from googlecloudsdk.command_lib.storage import storage_url
 from googlecloudsdk.command_lib.storage import user_request_args_factory
 from googlecloudsdk.command_lib.storage.resources import gcs_resource_reference
 from googlecloudsdk.command_lib.storage.resources import resource_reference
+from googlecloudsdk.command_lib.storage.resources import resource_util
 from googlecloudsdk.core import properties
 
 
@@ -43,6 +47,10 @@ from googlecloudsdk.core import properties
 # object ACL.
 PRIVATE_DEFAULT_OBJECT_ACL = apis.GetMessagesModule(
     'storage', 'v1').ObjectAccessControl(id='PRIVATE_DEFAULT_OBJ_ACL')
+CONTEXT_TYPE_LITERAL = 'type'
+CONTEXT_VALUE_LITERAL = 'value'
+CONTEXT_CREATE_TIME_LITERAL = 'createTime'
+CONTEXT_UPDATE_TIME_LITERAL = 'updateTime'
 
 _NO_TRANSFORM = 'no-transform'
 
@@ -59,10 +67,33 @@ def _message_to_dict(message):
   return None
 
 
+class ContextType(enum.Enum):
+  """Used to distinguish between custom and google generated contexts."""
+  CUSTOM = 'CUSTOM'
+
+
+class MethodType(enum.Enum):
+  """Configuration for copying metadata."""
+  OBJECT_PATCH = 'object_patch'
+  OBJECT_REWRITE = 'object_rewrite'
+  OBJECT_COMPOSE = 'object_compose'
+  OBJECT_INSERT = 'object_insert'
+
+
+def get_context_value_dict_from_value(value):
+  """Returns the context value dict based on the value.
+
+  Args:
+    value (str): The value to be parsed.
+  """
+  return {CONTEXT_VALUE_LITERAL: value}
+
+
 def copy_object_metadata(source_metadata,
                          destination_metadata,
                          request_config,
-                         should_deep_copy=False):
+                         should_deep_copy=False,
+                         method_type=MethodType.OBJECT_REWRITE):
   """Copies specific metadata from source_metadata to destination_metadata.
 
   The API manually generates metadata for destination objects most of the time,
@@ -75,6 +106,8 @@ def copy_object_metadata(source_metadata,
       about the copy operation.
     should_deep_copy (bool): Copy all metadata, removing fields the
       backend must generate and preserving destination address.
+    method_type (MethodType): The type of method being used to copy the object,
+        defaulting to MethodType.OBJECT_REWRITE.
 
   Returns:
     New destination metadata with data copied from source (messages.Object).
@@ -108,6 +141,15 @@ def copy_object_metadata(source_metadata,
     destination_metadata.customTime = source_metadata.customTime
     destination_metadata.md5Hash = source_metadata.md5Hash
     destination_metadata.metadata = copy.deepcopy(source_metadata.metadata)
+    if method_type != MethodType.OBJECT_COMPOSE:
+      # Currently this method is being called for preparing request for
+      # object.compose, and object.rewrite.
+      # The compose method pick up certain attributes from the first object
+      # speicified in the compose request, and ignore the rest,
+      # but we do not want this in case of object contexts, because instead we
+      # want the merged contexts from all the objects present in the compose
+      # request.
+      destination_metadata.contexts = copy.deepcopy(source_metadata.contexts)
 
   return destination_metadata
 
@@ -120,7 +162,7 @@ def get_apitools_metadata_from_url(cloud_url):
   elif cloud_url.is_object():
     generation = int(cloud_url.generation) if cloud_url.generation else None
     return messages.Object(
-        name=cloud_url.object_name,
+        name=cloud_url.resource_name,
         bucket=cloud_url.bucket_name,
         generation=generation)
 
@@ -160,11 +202,13 @@ def get_bucket_resource_from_metadata(metadata):
       default_storage_class=metadata.storageClass,
       etag=metadata.etag,
       labels=_message_to_dict(metadata.labels),
+      ip_filter_config=_message_to_dict(metadata.ipFilter),
       lifecycle_config=_message_to_dict(metadata.lifecycle),
       location=metadata.location,
       location_type=metadata.locationType,
       logging_config=_message_to_dict(metadata.logging),
       metadata=metadata,
+      generation=metadata.generation,
       metageneration=metadata.metageneration,
       per_object_retention=_message_to_dict(metadata.objectRetention),
       project_number=metadata.projectNumber,
@@ -178,6 +222,8 @@ def get_bucket_resource_from_metadata(metadata):
       soft_delete_policy=_message_to_dict(metadata.softDeletePolicy),
       uniform_bucket_level_access=uniform_bucket_level_access,
       update_time=metadata.updated,
+      soft_delete_time=metadata.softDeleteTime,
+      hard_delete_time=metadata.hardDeleteTime,
       versioning_enabled=getattr(metadata.versioning, 'enabled', None),
       website_config=_message_to_dict(metadata.website),
   )
@@ -215,7 +261,7 @@ def get_anywhere_cache_resource_from_metadata(metadata):
   url = storage_url.CloudUrl(
       scheme=storage_url.ProviderPrefix.GCS,
       bucket_name=metadata.bucket,
-      object_name=metadata.anywhereCacheId,
+      resource_name=metadata.anywhereCacheId,
   )
   return gcs_resource_reference.GcsAnywhereCacheResource(
       admission_policy=metadata.admissionPolicy,
@@ -232,6 +278,88 @@ def get_anywhere_cache_resource_from_metadata(metadata):
       update_time=metadata.updateTime,
       zone=metadata.zone,
   )
+
+
+def parse_custom_contexts_dict_from_resource_contexts_dict(
+    resource_contexts_dict,
+):
+  """Parses custom contexts from resource contexts for request purposes.
+
+  Examples:
+    resource_contexts_dict={
+        'key': {
+            'value': 'value',
+            'createTime': '2025-01-01T00:00:00Z',
+            'updateTime': '2025-01-01T00:00:00Z',
+            'type': 'CUSTOM'
+        }
+        'key2': {
+            'value': 'value2',
+            'createTime': '2025-01-01T00:00:00Z',
+            'updateTime': '2025-01-01T00:00:00Z',
+            'type': 'GENERATED'
+        }
+    } would return the following dictionary:
+    {
+        'custom': {
+          'key': {
+              'value': 'value',
+          }
+        }
+    }
+
+  Note: the method intentionally drops all other fields other than the context
+  value, as they are internal only fields, or not meant to be sent to the API.
+
+  Args:
+    resource_contexts_dict (dict): The resource contexts dict to parse.
+
+  Returns:
+    a dictionary of contexts in apitools format for request purposes.
+  """
+  if resource_contexts_dict is None:
+    return resource_contexts_dict
+  custom_contexts_dict = {}
+  for key, value in resource_contexts_dict.items():
+    context_type = value.get(CONTEXT_TYPE_LITERAL, None)
+    context_value = value.get(CONTEXT_VALUE_LITERAL, None)
+    if context_type == ContextType.CUSTOM.value:
+      custom_contexts_dict[key] = (
+          get_context_value_dict_from_value(context_value)
+      )
+  return get_contexts_dict_from_custom_contexts_dict(custom_contexts_dict)
+
+
+def _parse_contexts_from_object_metadata(metadata):
+  """Returns parsed contexts from apitools object metadata.
+
+  apitools object metadata separates custom contexts, and google generated
+  contexts (coming in 2026) into separate maps, However CLI along with other
+  clients uses a single map with a type field to distinguish between the two.
+  This method parses the apitools object metadata into the single map format
+  used by CLI and other clients.
+
+  Args:
+    metadata (messages.Object): The object metadata to parse contexts from.
+  """
+  if not (metadata.contexts and metadata.contexts.custom):
+    return None
+
+  custom_contexts = _message_to_dict(metadata.contexts.custom)
+  parsed_contexts = {}
+  for key, value in custom_contexts.items():
+    context_value_dict = {}
+    for field in [CONTEXT_CREATE_TIME_LITERAL, CONTEXT_UPDATE_TIME_LITERAL]:
+      if field in value:
+        context_value_dict[field] = (
+            resource_util.get_formatted_string_from_datetime_object(
+                datetime.datetime.fromisoformat(value[field])
+            )
+        )
+    context_value_dict[CONTEXT_VALUE_LITERAL] = value[CONTEXT_VALUE_LITERAL]
+    context_value_dict[CONTEXT_TYPE_LITERAL] = ContextType.CUSTOM.value
+    parsed_contexts[key] = context_value_dict
+  return parsed_contexts
 
 
 def get_object_resource_from_metadata(metadata):
@@ -251,7 +379,7 @@ def get_object_resource_from_metadata(metadata):
   url = storage_url.CloudUrl(
       scheme=storage_url.ProviderPrefix.GCS,
       bucket_name=metadata.bucket,
-      object_name=metadata.name,
+      resource_name=metadata.name,
       generation=generation)
 
   if metadata.customerEncryption:
@@ -271,6 +399,7 @@ def get_object_resource_from_metadata(metadata):
       content_type=metadata.contentType,
       crc32c_hash=metadata.crc32c,
       creation_time=metadata.timeCreated,
+      contexts=_parse_contexts_from_object_metadata(metadata),
       custom_fields=_message_to_dict(metadata.metadata),
       custom_time=metadata.customTime,
       decryption_key_hash_sha256=decryption_key_hash_sha256,
@@ -501,6 +630,12 @@ def update_bucket_metadata_from_request_config(bucket_metadata, request_config):
     bucket_metadata.storageClass = (
         metadata_field_converters.process_default_storage_class(
             resource_args.default_storage_class))
+  if (
+      resource_args.ip_filter_file_path is not None
+  ):
+    bucket_metadata.ipFilter = metadata_field_converters.process_ip_filter(
+        resource_args.ip_filter_file_path
+    )
   if resource_args.lifecycle_file_path is not None:
     bucket_metadata.lifecycle = (
         metadata_field_converters.process_lifecycle(
@@ -643,6 +778,32 @@ def get_cleared_bucket_fields(request_config):
   return cleared_fields
 
 
+def get_cleared_ip_filter_fields(
+    ip_filter
+) -> List[str]:
+  """Returns cleared IP filter fields for the bucket.
+
+  Args:
+    ip_filter: IP filter object.
+
+  Returns:
+    List of IP filter fields to be cleared.
+  """
+  cleared_fields = []
+  if ip_filter.mode is None:
+    cleared_fields.append('ipFilter.mode')
+  if ip_filter.publicNetworkSource is None:
+    cleared_fields.append('ipFilter.publicNetworkSource')
+  elif (
+      ip_filter.publicNetworkSource is not None
+      and not ip_filter.publicNetworkSource.allowedIpCidrRanges
+  ):
+    cleared_fields.append('ipFilter.publicNetworkSource.allowedIpCidrRanges')
+  if not ip_filter.vpcNetworkSources:
+    cleared_fields.append('ipFilter.vpcNetworkSources')
+  return cleared_fields
+
+
 def get_cache_control(should_gzip_locally, resource_args):
   """Returns cache control metadata value.
 
@@ -698,7 +859,7 @@ def get_should_gzip_locally(attributes_resource, request_config):
   if isinstance(attributes_resource, resource_reference.FileObjectResource):
     return gzip_util.should_gzip_locally(
         request_config.gzip_settings,
-        attributes_resource.storage_url.object_name,
+        attributes_resource.storage_url.resource_name,
     )
 
   return False
@@ -712,11 +873,197 @@ def process_value_or_clear_flag(metadata, key, value):
     setattr(metadata, key, value)
 
 
+def get_contexts_dict_from_custom_contexts_dict(custom_contexts_dict):
+  """Returns contexts dict from custom contexts dict."""
+  return {ContextType.CUSTOM.value.lower(): custom_contexts_dict}
+
+
+def parse_custom_contexts_from_file(file_path):
+  """Parses custom contexts from a file, and validate it against the message.
+
+  Args:
+    file_path (str): Path to the file containing the custom contexts.
+
+  Returns:
+    A dictionary containing the custom contexts parsed from the file.
+
+  Raises:
+    errors.Error: If the provided file doesn't exist or is not a valid
+      json/yaml file.
+  """
+  try:
+    messages = apis.GetMessagesModule('storage', 'v1')
+    parsed_custom_contexts = metadata_util.cached_read_yaml_json_file(
+        file_path
+    )
+
+    # We extract the value from the dict, because user might specify other
+    # fields in the dict which API might not expect, such as 'type' or
+    # 'createTime'.
+    extracted_custom_contexts = {}
+    for key, value in parsed_custom_contexts.items():
+      if (
+          not isinstance(value, dict)
+          or CONTEXT_VALUE_LITERAL not in value
+      ):
+        raise errors.Error('Invalid format for specified contexts file.')
+
+      extracted_custom_contexts[key] = (
+          get_context_value_dict_from_value(
+              value[CONTEXT_VALUE_LITERAL]
+          )
+      )
+
+    # Validate the parsed content respect the API message.
+    encoding_helper.DictToMessage(
+        extracted_custom_contexts, messages.Object.ContextsValue.CustomValue
+    )
+    return extracted_custom_contexts
+  except (errors.InvalidUrlError, AttributeError):
+    raise errors.Error(
+        'Error while parsing the specified contexts file, please ensure that'
+        ' specified file exists and is valid.',
+    )
+
+
+def get_updated_custom_contexts(
+    existing_custom_contexts,
+    request_config,
+    method_type,
+):
+  """Returns a dictionary with updated custom contexts based on a merge strategy.
+
+  Args:
+    existing_custom_contexts (dict): Existing custom contexts for an object.
+    request_config (request_config): May contain custom contexts fields that
+      should be modified.
+    method_type (MethodType): method_type for which the custom contexts are
+      being updated.
+
+  Returns:
+    A dictionary containing the updated custom contexts, or None if no updates
+    are needed.
+  """
+  resource_args = request_config.resource_args
+  if not resource_args or not (
+      resource_args.custom_contexts_to_set
+      or resource_args.custom_contexts_to_remove
+      or resource_args.custom_contexts_to_update
+  ):
+    return (
+        copy.deepcopy(existing_custom_contexts)
+        if method_type != MethodType.OBJECT_PATCH
+        else None
+    )
+
+  if resource_args.custom_contexts_to_set == user_request_args_factory.CLEAR:
+    return {}
+
+  if resource_args.custom_contexts_to_set:
+    if isinstance(resource_args.custom_contexts_to_set, str):
+      # It points to a file, so parse it and update the contexts.
+      parsed_custom_contexts = parse_custom_contexts_from_file(
+          resource_args.custom_contexts_to_set
+      )
+    else:
+      parsed_custom_contexts = {
+          key: get_context_value_dict_from_value(value)
+          for key, value in resource_args.custom_contexts_to_set.items()
+      }
+
+    if method_type != MethodType.OBJECT_PATCH:
+      # 'override' behavior: Just return the new set of contexts
+      return parsed_custom_contexts
+
+    # `patch` behavior: Clear existing contexts before setting new ones
+    updated_custom_contexts = {elem: {} for elem in existing_custom_contexts}
+    updated_custom_contexts.update(**parsed_custom_contexts)
+    return updated_custom_contexts
+
+  updated_custom_contexts = (
+      copy.deepcopy(existing_custom_contexts)
+      if method_type != MethodType.OBJECT_PATCH
+      else {}
+  )
+
+  if resource_args.custom_contexts_to_remove:
+    for key in resource_args.custom_contexts_to_remove:
+      if method_type == MethodType.OBJECT_PATCH:
+        # patch behavior: Remove the specified contexts from the existing
+        # contexts
+        updated_custom_contexts[key] = {}
+      else:
+        # override behavior: Remove the keys from the updated contexts.
+        updated_custom_contexts.pop(key, None)
+
+  if resource_args.custom_contexts_to_update:
+    for key, value in resource_args.custom_contexts_to_update.items():
+      updated_custom_contexts[key] = (
+          get_context_value_dict_from_value(value)
+      )
+
+  return updated_custom_contexts
+
+
+def update_custom_contexts_from_request_config(
+    object_metadata,
+    request_config,
+    method_type=None,
+):
+  """Updates custom contexts in object_metadata based on request_config.
+
+  Args:
+    object_metadata (storage_v1_messages.Object): Existing object metadata.
+    request_config (request_config): May contain custom contexts fields that
+      should be modified.
+    method_type (MethodType): Different API methods have different metadata
+      handling. for example, objects.rewrite handles contexts updates in one
+      way, while objects.patch handles contexts updates in another way. This
+      variable is tune the handling of metadata updates based on the API method.
+      If invalid an error will be thrown, if None, the default handling
+      would be used (object.patch behavior)
+
+  Raises:
+    errors.Error: If the method type is not supported.
+  """
+  if not object_metadata.contexts or not object_metadata.contexts.custom:
+    existing_custom_contexts = {}
+  else:
+    existing_custom_contexts = encoding_helper.MessageToDict(
+        object_metadata.contexts.custom
+    )
+
+  if not method_type:
+    method_type = MethodType.OBJECT_PATCH
+  elif not isinstance(method_type, MethodType):
+    raise errors.Error(
+        'Unsupported method type for updating custom contexts: {}.'.format(
+            method_type
+        )
+    )
+
+  messages = apis.GetMessagesModule('storage', 'v1')
+  custom_contexts_dict = get_updated_custom_contexts(
+      existing_custom_contexts, request_config, method_type
+  )
+  if method_type != MethodType.OBJECT_PATCH and not custom_contexts_dict:
+    custom_contexts_dict = None
+
+  if custom_contexts_dict is not None:
+    object_metadata.contexts = encoding_helper.DictToMessage(
+        get_contexts_dict_from_custom_contexts_dict(custom_contexts_dict),
+        messages.Object.ContextsValue,
+    )
+  else:
+    object_metadata.contexts = None
+
+
 def update_object_metadata_from_request_config(
     object_metadata,
     request_config,
     attributes_resource=None,
     posix_to_set=None,
+    method_type=None,
 ):
   """Sets Apitools Object fields based on values in request_config.
 
@@ -731,6 +1078,15 @@ def update_object_metadata_from_request_config(
       --preserve_symlink flags. This value is ignored unless it is an instance
       of FileObjectResource.
     posix_to_set (PosixAttributes|None): Set as custom metadata on target.
+    method_type (MethodType|None): Different API methods have different metadata
+      handling, for example, objects.rewrite handles contexts updates in one
+      way, while objects.patch handles contexts updates in another way. This
+      variable is tune the handling of metadata updates based on the API method.
+      If invalid, an error will be thrown. If None, the default handling
+      would be used for each metadata field.
+
+  Raises:
+    errors.Error: If the method type is not supported.
   """
   resource_args = request_config.resource_args
 
@@ -751,6 +1107,11 @@ def update_object_metadata_from_request_config(
     messages = apis.GetMessagesModule('storage', 'v1')
     object_metadata.metadata = encoding_helper.DictToMessage(
         custom_fields_dict, messages.Object.MetadataValue)
+
+  # Custom contexts handling.
+  update_custom_contexts_from_request_config(
+      object_metadata, request_config, method_type
+  )
 
   should_gzip_locally = get_should_gzip_locally(
       attributes_resource, request_config)
@@ -827,6 +1188,9 @@ def get_cleared_object_fields(request_config):
   if resource_args.cache_control == user_request_args_factory.CLEAR:
     cleared_fields.append('cacheControl')
 
+  if resource_args.content_type == user_request_args_factory.CLEAR:
+    cleared_fields.append('contentType')
+
   if resource_args.content_disposition == user_request_args_factory.CLEAR:
     cleared_fields.append('contentDisposition')
 
@@ -853,9 +1217,25 @@ def get_managed_folder_resource_from_metadata(metadata):
   url = storage_url.CloudUrl(
       scheme=storage_url.ProviderPrefix.GCS,
       bucket_name=metadata.bucket,
-      object_name=metadata.name,
+      resource_name=metadata.name,
   )
   return resource_reference.ManagedFolderResource(
+      url,
+      create_time=metadata.createTime,
+      metadata=metadata,
+      metageneration=metadata.metageneration,
+      update_time=metadata.updateTime,
+  )
+
+
+def get_folder_resource_from_metadata(metadata):
+  """Returns a FolderResource from Apitools metadata."""
+  url = storage_url.CloudUrl(
+      scheme=storage_url.ProviderPrefix.GCS,
+      bucket_name=metadata.bucket,
+      resource_name=metadata.name,
+  )
+  return resource_reference.FolderResource(
       url,
       create_time=metadata.createTime,
       metadata=metadata,

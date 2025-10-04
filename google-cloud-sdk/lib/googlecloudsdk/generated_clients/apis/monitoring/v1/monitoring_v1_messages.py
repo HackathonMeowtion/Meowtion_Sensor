@@ -519,13 +519,76 @@ class ColumnLayout(_messages.Message):
 class ColumnSettings(_messages.Message):
   r"""The persistent settings for a table's columns.
 
+  Enums:
+    AlignmentValueValuesEnum: Optional. Whether the column should be left /
+      middle / right aligned
+
   Fields:
+    alignment: Optional. Whether the column should be left / middle / right
+      aligned
     column: Required. The id of the column.
+    displayName: Optional. Display name of the column
+    thresholds: Optional. The thresholds used to determine how the table cell
+      should be rendered given the time series' current value.
     visible: Required. Whether the column should be visible on page load.
   """
 
+  class AlignmentValueValuesEnum(_messages.Enum):
+    r"""Optional. Whether the column should be left / middle / right aligned
+
+    Values:
+      CELL_ALIGNMENT_UNSPECIFIED: No horizontal alignment specified; fall back
+        to the default behavior. Label values are left aligned. Numeric values
+        are right aligned.
+      LEFT: Left-align
+      CENTER: Center-align
+      RIGHT: Right-align
+    """
+    CELL_ALIGNMENT_UNSPECIFIED = 0
+    LEFT = 1
+    CENTER = 2
+    RIGHT = 3
+
+  alignment = _messages.EnumField('AlignmentValueValuesEnum', 1)
+  column = _messages.StringField(2)
+  displayName = _messages.StringField(3)
+  thresholds = _messages.MessageField('Threshold', 4, repeated=True)
+  visible = _messages.BooleanField(5)
+
+
+class ColumnSortingOptions(_messages.Message):
+  r"""Data structure to storing column's sort strategy
+
+  Enums:
+    DirectionValueValuesEnum: Optional. A sorting direction that determines
+      ascending or descending order. This is a legacy field kept for backwards
+      compatibility with table.
+
+  Fields:
+    column: Optional. Column name to sort data by
+    direction: Optional. A sorting direction that determines ascending or
+      descending order. This is a legacy field kept for backwards
+      compatibility with table.
+  """
+
+  class DirectionValueValuesEnum(_messages.Enum):
+    r"""Optional. A sorting direction that determines ascending or descending
+    order. This is a legacy field kept for backwards compatibility with table.
+
+    Values:
+      SORT_ORDER_UNSPECIFIED: An unspecified sort order. This option is
+        invalid when sorting is required.
+      SORT_ORDER_NONE: No sorting is applied.
+      SORT_ORDER_ASCENDING: The lowest-valued entries are selected first.
+      SORT_ORDER_DESCENDING: The highest-valued entries are selected first.
+    """
+    SORT_ORDER_UNSPECIFIED = 0
+    SORT_ORDER_NONE = 1
+    SORT_ORDER_ASCENDING = 2
+    SORT_ORDER_DESCENDING = 3
+
   column = _messages.StringField(1)
-  visible = _messages.BooleanField(2)
+  direction = _messages.EnumField('DirectionValueValuesEnum', 2)
 
 
 class Dashboard(_messages.Message):
@@ -536,6 +599,8 @@ class Dashboard(_messages.Message):
     LabelsValue: Labels applied to the dashboard
 
   Fields:
+    annotations: Configuration for event annotations to display on this
+      dashboard.
     columnLayout: The content is divided into equally spaced columns and the
       widgets are arranged vertically.
     dashboardFilters: Filters to reduce the amount of data charted based on
@@ -581,15 +646,33 @@ class Dashboard(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
-  columnLayout = _messages.MessageField('ColumnLayout', 1)
-  dashboardFilters = _messages.MessageField('DashboardFilter', 2, repeated=True)
-  displayName = _messages.StringField(3)
-  etag = _messages.StringField(4)
-  gridLayout = _messages.MessageField('GridLayout', 5)
-  labels = _messages.MessageField('LabelsValue', 6)
-  mosaicLayout = _messages.MessageField('MosaicLayout', 7)
-  name = _messages.StringField(8)
-  rowLayout = _messages.MessageField('RowLayout', 9)
+  annotations = _messages.MessageField('DashboardAnnotations', 1)
+  columnLayout = _messages.MessageField('ColumnLayout', 2)
+  dashboardFilters = _messages.MessageField('DashboardFilter', 3, repeated=True)
+  displayName = _messages.StringField(4)
+  etag = _messages.StringField(5)
+  gridLayout = _messages.MessageField('GridLayout', 6)
+  labels = _messages.MessageField('LabelsValue', 7)
+  mosaicLayout = _messages.MessageField('MosaicLayout', 8)
+  name = _messages.StringField(9)
+  rowLayout = _messages.MessageField('RowLayout', 10)
+
+
+class DashboardAnnotations(_messages.Message):
+  r"""Dashboard-level configuration for annotations
+
+  Fields:
+    defaultResourceNames: Dashboard level defaults for names of logging
+      resources to search for events. Currently only projects are supported.
+      Each individual EventAnnotation may have its own overrides. If both this
+      field and the per annotation field is empty, then the scoping project is
+      used. Limit: 50 projects. For example: "projects/some-project-id"
+    eventAnnotations: List of annotation configurations for this dashboard.
+      Each entry specifies one event type.
+  """
+
+  defaultResourceNames = _messages.StringField(1, repeated=True)
+  eventAnnotations = _messages.MessageField('EventAnnotation', 2, repeated=True)
 
 
 class DashboardFilter(_messages.Message):
@@ -597,14 +680,28 @@ class DashboardFilter(_messages.Message):
 
   Enums:
     FilterTypeValueValuesEnum: The specified filter type
+    ValueTypeValueValuesEnum: The type of the filter value. If value_type is
+      not provided, it will be inferred from the default_value. If neither
+      value_type nor default_value is provided, value_type will be set to
+      STRING by default.
 
   Fields:
     filterType: The specified filter type
-    labelKey: Required. The key for the label
-    stringValue: A variable-length string value.
+    labelKey: Optional. The key for the label. This must be omitted if the
+      filter_type is VALUE_ONLY but is required otherwise.
+    stringArray: A list of possible string values for the filter
+    stringArrayValue: An array of variable-length string values. If this field
+      is set, value_type must be set to STRING_ARRAY or VALUE_TYPE_UNSPECIFIED
+    stringValue: A variable-length string value. If this field is set,
+      value_type must be set to STRING or VALUE_TYPE_UNSPECIFIED
     templateVariable: The placeholder text that can be referenced in a filter
       string or MQL query. If omitted, the dashboard filter will be applied to
       all relevant widgets in the dashboard.
+    timeSeriesQuery: A query to run to fetch possible values for the filter.
+      Only OpsAnalyticsQueries are supported
+    valueType: The type of the filter value. If value_type is not provided, it
+      will be inferred from the default_value. If neither value_type nor
+      default_value is provided, value_type will be set to STRING by default.
   """
 
   class FilterTypeValueValuesEnum(_messages.Enum):
@@ -618,6 +715,8 @@ class DashboardFilter(_messages.Message):
       USER_METADATA_LABEL: Filter on a user metadata label value
       SYSTEM_METADATA_LABEL: Filter on a system metadata label value
       GROUP: Filter on a group id
+      VALUE_ONLY: Filter that only contains a value. The label_key field must
+        be unset for filters of this type.
     """
     FILTER_TYPE_UNSPECIFIED = 0
     RESOURCE_LABEL = 1
@@ -625,11 +724,30 @@ class DashboardFilter(_messages.Message):
     USER_METADATA_LABEL = 3
     SYSTEM_METADATA_LABEL = 4
     GROUP = 5
+    VALUE_ONLY = 6
+
+  class ValueTypeValueValuesEnum(_messages.Enum):
+    r"""The type of the filter value. If value_type is not provided, it will
+    be inferred from the default_value. If neither value_type nor
+    default_value is provided, value_type will be set to STRING by default.
+
+    Values:
+      VALUE_TYPE_UNSPECIFIED: Value type is unspecified
+      STRING: String type
+      STRING_ARRAY: String array type
+    """
+    VALUE_TYPE_UNSPECIFIED = 0
+    STRING = 1
+    STRING_ARRAY = 2
 
   filterType = _messages.EnumField('FilterTypeValueValuesEnum', 1)
   labelKey = _messages.StringField(2)
-  stringValue = _messages.StringField(3)
-  templateVariable = _messages.StringField(4)
+  stringArray = _messages.MessageField('StringArray', 3)
+  stringArrayValue = _messages.MessageField('StringArray', 4)
+  stringValue = _messages.StringField(5)
+  templateVariable = _messages.StringField(6)
+  timeSeriesQuery = _messages.MessageField('TimeSeriesQuery', 7)
+  valueType = _messages.EnumField('ValueTypeValueValuesEnum', 8)
 
 
 class DataSet(_messages.Message):
@@ -655,6 +773,8 @@ class DataSet(_messages.Message):
       minutes. It would not make sense to fetch and align data at one minute
       intervals.
     plotType: How this data should be plotted on the chart.
+    sort: Optional. A collection of sort options, affects the order of the
+      data and legend.
     targetAxis: Optional. The target axis to use for plotting the metric.
     timeSeriesQuery: Required. Fields for querying time series data from the
       Stackdriver metrics API.
@@ -707,8 +827,9 @@ class DataSet(_messages.Message):
   measures = _messages.MessageField('Measure', 4, repeated=True)
   minAlignmentPeriod = _messages.StringField(5)
   plotType = _messages.EnumField('PlotTypeValueValuesEnum', 6)
-  targetAxis = _messages.EnumField('TargetAxisValueValuesEnum', 7)
-  timeSeriesQuery = _messages.MessageField('TimeSeriesQuery', 8)
+  sort = _messages.MessageField('ColumnSortingOptions', 7, repeated=True)
+  targetAxis = _messages.EnumField('TargetAxisValueValuesEnum', 8)
+  timeSeriesQuery = _messages.MessageField('TimeSeriesQuery', 9)
 
 
 class Dimension(_messages.Message):
@@ -719,8 +840,10 @@ class Dimension(_messages.Message):
     SortOrderValueValuesEnum: The sort order applied to the sort column.
 
   Fields:
-    column: Required. The name of the column in the source SQL query that is
-      used to chart the dimension.
+    column: Required. For widgets that use SQL queries, set the value to the
+      name of the column in the results table whose data is charted. For a
+      histogram that uses a time series query, set the value of this field to
+      metric_value.
     columnType: Optional. The type of the dimension column. This is relevant
       only if one of the bin_size fields is set. If it is empty, the type
       TIMESTAMP or INT64 will be assumed based on which bin_size field is set.
@@ -728,18 +851,23 @@ class Dimension(_messages.Message):
       TIME, DATETIME, TIMESTAMP, BIGNUMERIC, INT64, NUMERIC, FLOAT64.
     floatBinSize: Optional. float_bin_size is used when the column type used
       for a dimension is a floating point numeric column.
-    maxBinCount: A limit to the number of bins generated. When 0 is specified,
-      the maximum count is not enforced.
+    maxBinCount: For widgets that use SQL queries, the limit to the number of
+      bins to generate. When 0 is specified, the maximum count is not
+      enforced. For a histogram that uses a time series query, the exact
+      number of bins to generate. If not specified or the value is 0, then the
+      histogram determines the number of bins to use.
     numericBinSize: numeric_bin_size is used when the column type used for a
-      dimension is numeric or string.
+      dimension is numeric or string. If the column field is set to
+      metric_value, then numericBinSize overrides maxBinCount.
     sortColumn: The column name to sort on for binning. This column can be the
       same column as this dimension or any other column used as a measure in
       the results. If sort_order is set to NONE, then this value is not used.
     sortOrder: The sort order applied to the sort column.
-    timeBinSize: time_bin_size is used when the data type specified by column
-      is a time type and the bin size is determined by a time duration. If
-      column_type is DATE, this must be a whole value multiple of 1 day. If
-      column_type is TIME, this must be less than or equal to 24 hours.
+    timeBinSize: time_bin_size is used when the data type of the specified
+      dimension is a time type and the bin size is determined by a time
+      duration. If column_type is DATE, this must be a whole value multiple of
+      1 day. If column_type is TIME, this must be less than or equal to 24
+      hours.
   """
 
   class SortOrderValueValuesEnum(_messages.Enum):
@@ -854,8 +982,95 @@ class ErrorReportingPanel(_messages.Message):
   versions = _messages.StringField(3, repeated=True)
 
 
+class EventAnnotation(_messages.Message):
+  r"""Annotation configuration for one event type on a dashboard
+
+  Enums:
+    EventTypeValueValuesEnum: The type of event to display.
+
+  Fields:
+    displayName: Solely for UI display. Should not be used programmatically.
+    enabled: Whether or not to show the events on the dashboard by default
+    eventType: The type of event to display.
+    filter: string filtering the events - event dependant. Example values:
+      "resource.labels.pod_name = 'pod-1'"
+      "protoPayload.authenticationInfo.principalEmail='user@example.com'"
+    resourceNames: Per annotation level override for the names of logging
+      resources to search for events. Currently only projects are supported.
+      If both this field and the per annotation field is empty, it will
+      default to the host project. Limit: 50 projects. For example:
+      "projects/another-project-id"
+  """
+
+  class EventTypeValueValuesEnum(_messages.Enum):
+    r"""The type of event to display.
+
+    Values:
+      EVENT_TYPE_UNSPECIFIED: No event type specified.
+      GKE_WORKLOAD_DEPLOYMENT: Patch/update of GKE workload.
+      GKE_POD_CRASH: Crash events for a GKE Pod.
+      GKE_POD_UNSCHEDULABLE: Scheduling failures for GKE Pods.
+      GKE_CONTAINER_CREATION_FAILED: Failure to create a GKE container.
+      GKE_CLUSTER_CREATE_DELETE: Create/delete of a GKE cluster.
+      GKE_CLUSTER_UPDATE: Update of a GKE cluster.
+      GKE_NODE_POOL_UPDATE: Update of a GKE node pool.
+      GKE_CLUSTER_AUTOSCALER: GKE cluster autoscaler event.
+      GKE_POD_AUTOSCALER: GKE pod autoscaler event.
+      VM_TERMINATION: Termination of a virtual machine.
+      VM_GUEST_OS_ERROR: Guest OS error on a virtual machine.
+      VM_START_FAILED: Start failure on a virtual machine.
+      MIG_UPDATE: Update of a managed instance group.
+      MIG_AUTOSCALER: Autoscaler event for a managed instance group.
+      CLOUD_RUN_DEPLOYMENT: New deployment of a Cloud Run service.
+      CLOUD_SQL_FAILOVER: Failover of a Cloud SQL instance.
+      CLOUD_SQL_START_STOP: Start/stop of a Cloud SQL instance.
+      CLOUD_SQL_STORAGE: Storage event for a Cloud SQL instance.
+      UPTIME_CHECK_FAILURE: Failure of a Cloud Monitoring uptime check.
+      CLOUD_ALERTING_ALERT: Alerts from Cloud Alerting
+      SERVICE_HEALTH_INCIDENT: Incidents from Service Health
+      SAP_BACKINT: Agent for SAP Backint related events.
+      SAP_AVAILABILITY: Agent for SAP availability related events.
+      SAP_OPERATIONS: Agent for SAP operations related events.
+    """
+    EVENT_TYPE_UNSPECIFIED = 0
+    GKE_WORKLOAD_DEPLOYMENT = 1
+    GKE_POD_CRASH = 2
+    GKE_POD_UNSCHEDULABLE = 3
+    GKE_CONTAINER_CREATION_FAILED = 4
+    GKE_CLUSTER_CREATE_DELETE = 5
+    GKE_CLUSTER_UPDATE = 6
+    GKE_NODE_POOL_UPDATE = 7
+    GKE_CLUSTER_AUTOSCALER = 8
+    GKE_POD_AUTOSCALER = 9
+    VM_TERMINATION = 10
+    VM_GUEST_OS_ERROR = 11
+    VM_START_FAILED = 12
+    MIG_UPDATE = 13
+    MIG_AUTOSCALER = 14
+    CLOUD_RUN_DEPLOYMENT = 15
+    CLOUD_SQL_FAILOVER = 16
+    CLOUD_SQL_START_STOP = 17
+    CLOUD_SQL_STORAGE = 18
+    UPTIME_CHECK_FAILURE = 19
+    CLOUD_ALERTING_ALERT = 20
+    SERVICE_HEALTH_INCIDENT = 21
+    SAP_BACKINT = 22
+    SAP_AVAILABILITY = 23
+    SAP_OPERATIONS = 24
+
+  displayName = _messages.StringField(1)
+  enabled = _messages.BooleanField(2)
+  eventType = _messages.EnumField('EventTypeValueValuesEnum', 3)
+  filter = _messages.StringField(4)
+  resourceNames = _messages.StringField(5, repeated=True)
+
+
 class Field(_messages.Message):
-  r"""A single field of a message type.
+  r"""A single field of a message type.New usages of this message as an
+  alternative to FieldDescriptorProto are strongly discouraged. This message
+  does not reliability preserve all information necessary to model the schema
+  and preserve semantics. Instead make use of FileDescriptorSet which
+  preserves the necessary information.
 
   Enums:
     CardinalityValueValuesEnum: The field cardinality.
@@ -1110,8 +1325,8 @@ class LogsPanel(_messages.Message):
       queries). Only log entries that match the filter are returned. An empty
       filter matches all log entries.
     resourceNames: The names of logging resources to collect logs for.
-      Currently only projects are supported. If empty, the widget will default
-      to the host project.
+      Currently projects and storage views are supported. If empty, the widget
+      will default to the host project.
   """
 
   filter = _messages.StringField(1)
@@ -1167,6 +1382,8 @@ class MonitoredProject(_messages.Message):
 
   Fields:
     createTime: Output only. The time when this MonitoredProject was created.
+    isTombstoned: Output only. Set if the project has been tombstoned by the
+      user.
     name: Immutable. The resource name of the MonitoredProject. On input, the
       resource name includes the scoping project ID and monitored project ID.
       On output, it contains the equivalent project numbers. Example: location
@@ -1175,7 +1392,8 @@ class MonitoredProject(_messages.Message):
   """
 
   createTime = _messages.StringField(1)
-  name = _messages.StringField(2)
+  isTombstoned = _messages.BooleanField(2)
+  name = _messages.StringField(3)
 
 
 class MonitoredResource(_messages.Message):
@@ -1386,10 +1604,10 @@ class MonitoringProjectsLocationPrometheusApiV1LabelValuesRequest(_messages.Mess
     location: Location of the resource information. Has to be "global" now.
     match: A list of matchers encoded in the Prometheus label matcher format
       to constrain the values to series that satisfy them.
-    name: The workspace on which to execute the request. It is not part of the
-      open source API but used as a request path prefix to distinguish
-      different virtual Prometheus instances of Google Prometheus Engine. The
-      format is: projects/PROJECT_ID_OR_NUMBER.
+    name: Required. The workspace on which to execute the request. It is not
+      part of the open source API but used as a request path prefix to
+      distinguish different virtual Prometheus instances of Google Prometheus
+      Engine. The format is: projects/PROJECT_ID_OR_NUMBER.
     start: The start time to evaluate the query for. Either floating point
       UNIX seconds or RFC3339 formatted timestamp.
   """
@@ -1407,10 +1625,10 @@ class MonitoringProjectsLocationPrometheusApiV1LabelsRequest(_messages.Message):
 
   Fields:
     location: Location of the resource information. Has to be "global" now.
-    name: The workspace on which to execute the request. It is not part of the
-      open source API but used as a request path prefix to distinguish
-      different virtual Prometheus instances of Google Prometheus Engine. The
-      format is: projects/PROJECT_ID_OR_NUMBER.
+    name: Required. The workspace on which to execute the request. It is not
+      part of the open source API but used as a request path prefix to
+      distinguish different virtual Prometheus instances of Google Prometheus
+      Engine. The format is: projects/PROJECT_ID_OR_NUMBER.
     queryLabelsRequest: A QueryLabelsRequest resource to be passed as the
       request body.
   """
@@ -1446,8 +1664,8 @@ class MonitoringProjectsLocationPrometheusApiV1QueryExemplarsRequest(_messages.M
 
   Fields:
     location: Location of the resource information. Has to be "global" now.
-    name: The project on which to execute the request. Data associcated with
-      the project's workspace stored under the The format is:
+    name: Required. The project on which to execute the request. Data
+      associcated with the project's workspace stored under the The format is:
       projects/PROJECT_ID_OR_NUMBER. Open source API but used as a request
       path prefix to distinguish different virtual Prometheus instances of
       Google Prometheus Engine.
@@ -1465,8 +1683,8 @@ class MonitoringProjectsLocationPrometheusApiV1QueryRangeRequest(_messages.Messa
 
   Fields:
     location: Location of the resource information. Has to be "global" now.
-    name: The project on which to execute the request. Data associcated with
-      the project's workspace stored under the The format is:
+    name: Required. The project on which to execute the request. Data
+      associcated with the project's workspace stored under the The format is:
       projects/PROJECT_ID_OR_NUMBER. Open source API but used as a request
       path prefix to distinguish different virtual Prometheus instances of
       Google Prometheus Engine.
@@ -1484,8 +1702,8 @@ class MonitoringProjectsLocationPrometheusApiV1QueryRequest(_messages.Message):
 
   Fields:
     location: Location of the resource information. Has to be "global" now.
-    name: The project on which to execute the request. Data associcated with
-      the project's workspace stored under the The format is:
+    name: Required. The project on which to execute the request. Data
+      associcated with the project's workspace stored under the The format is:
       projects/PROJECT_ID_OR_NUMBER. Open source API but used as a request
       path prefix to distinguish different virtual Prometheus instances of
       Google Prometheus Engine.
@@ -1524,7 +1742,7 @@ class MosaicLayout(_messages.Message):
 
   Fields:
     columns: The number of columns in the mosaic grid. The number of columns
-      must be between 1 and 12, inclusive.
+      must be between 1 and 48, inclusive.
     tiles: The tiles to display.
   """
 
@@ -1688,7 +1906,9 @@ class OpsAnalyticsQuery(_messages.Message):
 
 class Option(_messages.Message):
   r"""A protocol buffer option, which can be attached to a message, field,
-  enumeration, etc.
+  enumeration, etc.New usages of this message as an alternative to
+  FileOptions, MessageOptions, FieldOptions, EnumOptions, EnumValueOptions,
+  ServiceOptions, or MethodOptions are strongly discouraged.
 
   Messages:
     ValueValue: The option's value packed in an Any message. If the value is a
@@ -1891,7 +2111,7 @@ class QueryExemplarsRequest(_messages.Message):
   Fields:
     end: The end time to evaluate the query for. Either floating point UNIX
       seconds or RFC3339 formatted timestamp.
-    query: A PromQL query string. Query lanauge documentation:
+    query: A PromQL query string. Query language documentation:
       https://prometheus.io/docs/prometheus/latest/querying/basics/.
     start: The start time to evaluate the query for. Either floating point
       UNIX seconds or RFC3339 formatted timestamp.
@@ -1907,7 +2127,7 @@ class QueryInstantRequest(_messages.Message):
   instant query API plus GCM specific parameters.
 
   Fields:
-    query: A PromQL query string. Query lanauge documentation:
+    query: A PromQL query string. Query language documentation:
       https://prometheus.io/docs/prometheus/latest/querying/basics/.
     time: The single point in time to evaluate the query for. Either floating
       point UNIX seconds or RFC3339 formatted timestamp.
@@ -1949,7 +2169,7 @@ class QueryRangeRequest(_messages.Message):
   Fields:
     end: The end time to evaluate the query for. Either floating point UNIX
       seconds or RFC3339 formatted timestamp.
-    query: A PromQL query string. Query lanauge documentation:
+    query: A PromQL query string. Query language documentation:
       https://prometheus.io/docs/prometheus/latest/querying/basics/.
     start: The start time to evaluate the query for. Either floating point
       UNIX seconds or RFC3339 formatted timestamp.
@@ -2037,7 +2257,15 @@ class Scorecard(_messages.Message):
   Fields:
     blankView: Will cause the Scorecard to show only the value, with no
       indicator to its value relative to its thresholds.
+    breakdowns: Optional. The collection of breakdowns to be applied to the
+      dataset. A breakdown is a way to slice the data. For example, you can
+      break down the data by region.
+    dimensions: Optional. A dimension is a structured label, class, or
+      category for a set of measurements in your data.
     gaugeView: Will cause the scorecard to show a gauge chart.
+    measures: Optional. A measure is a measured value of a property in your
+      data. For example, rainfall in inches, number of units sold, revenue
+      gained, etc.
     sparkChartView: Will cause the scorecard to show a spark chart.
     thresholds: The thresholds used to determine the state of the scorecard
       given the time series' current value. For an actual value x, the
@@ -2060,10 +2288,13 @@ class Scorecard(_messages.Message):
   """
 
   blankView = _messages.MessageField('Empty', 1)
-  gaugeView = _messages.MessageField('GaugeView', 2)
-  sparkChartView = _messages.MessageField('SparkChartView', 3)
-  thresholds = _messages.MessageField('Threshold', 4, repeated=True)
-  timeSeriesQuery = _messages.MessageField('TimeSeriesQuery', 5)
+  breakdowns = _messages.MessageField('Breakdown', 2, repeated=True)
+  dimensions = _messages.MessageField('Dimension', 3, repeated=True)
+  gaugeView = _messages.MessageField('GaugeView', 4)
+  measures = _messages.MessageField('Measure', 5, repeated=True)
+  sparkChartView = _messages.MessageField('SparkChartView', 6)
+  thresholds = _messages.MessageField('Threshold', 7, repeated=True)
+  timeSeriesQuery = _messages.MessageField('TimeSeriesQuery', 8)
 
 
 class SectionHeader(_messages.Message):
@@ -2084,8 +2315,30 @@ class SingleViewGroup(_messages.Message):
   r"""A widget that groups the other widgets by using a dropdown menu. All
   widgets that are within the area spanned by the grouping widget are
   considered member widgets.
+
+  Enums:
+    DisplayTypeValueValuesEnum: Optional. Determines how the widget selector
+      will be displayed.
+
+  Fields:
+    displayType: Optional. Determines how the widget selector will be
+      displayed.
   """
 
+  class DisplayTypeValueValuesEnum(_messages.Enum):
+    r"""Optional. Determines how the widget selector will be displayed.
+
+    Values:
+      DISPLAY_TYPE_UNSPECIFIED: Display type is not specified, defaults to
+        DROPDOWN.
+      DROPDOWN: Renders the widget selector as a dropdown.
+      TAB: Renders the widget selector as a tab list.
+    """
+    DISPLAY_TYPE_UNSPECIFIED = 0
+    DROPDOWN = 1
+    TAB = 2
+
+  displayType = _messages.EnumField('DisplayTypeValueValuesEnum', 1)
 
 
 class SourceContext(_messages.Message):
@@ -2306,6 +2559,16 @@ class Status(_messages.Message):
   message = _messages.StringField(3)
 
 
+class StringArray(_messages.Message):
+  r"""An array of strings
+
+  Fields:
+    values: The values of the array
+  """
+
+  values = _messages.StringField(1, repeated=True)
+
+
 class TableDataSet(_messages.Message):
   r"""Groups a time series query definition with table options.
 
@@ -2341,6 +2604,49 @@ class TableDisplayOptions(_messages.Message):
   """
 
   shownColumns = _messages.StringField(1, repeated=True)
+
+
+class TemplateVariableCondition(_messages.Message):
+  r"""A condition whose evaluation is based on the value of a template
+  variable.
+
+  Enums:
+    ComparatorValueValuesEnum: Comparator to use to evaluate whether the value
+      of the template variable matches the template_variable_value. For
+      example, if the comparator is REGEX_FULL_MATCH, template_variable_value
+      would contain a regex that is matched against the value of the template
+      variable.
+
+  Fields:
+    comparator: Comparator to use to evaluate whether the value of the
+      template variable matches the template_variable_value. For example, if
+      the comparator is REGEX_FULL_MATCH, template_variable_value would
+      contain a regex that is matched against the value of the template
+      variable.
+    templateVariable: The template variable whose value is evaluated.
+    templateVariableValue: The value to compare the template variable to. For
+      example, if the comparator is REGEX_FULL_MATCH, this field should
+      contain a regex.
+  """
+
+  class ComparatorValueValuesEnum(_messages.Enum):
+    r"""Comparator to use to evaluate whether the value of the template
+    variable matches the template_variable_value. For example, if the
+    comparator is REGEX_FULL_MATCH, template_variable_value would contain a
+    regex that is matched against the value of the template variable.
+
+    Values:
+      COMPARATOR_UNSPECIFIED: No comparator specified. Behavior defaults to
+        REGEX_FULL_MATCH.
+      REGEX_FULL_MATCH: Condition with this comparator evaluates to true when
+        the value of the template variables matches the specified regex.
+    """
+    COMPARATOR_UNSPECIFIED = 0
+    REGEX_FULL_MATCH = 1
+
+  comparator = _messages.EnumField('ComparatorValueValuesEnum', 1)
+  templateVariable = _messages.StringField(2)
+  templateVariableValue = _messages.StringField(3)
 
 
 class Text(_messages.Message):
@@ -2716,8 +3022,49 @@ class TimeSeriesTable(_messages.Message):
   metricVisualization = _messages.EnumField('MetricVisualizationValueValuesEnum', 3)
 
 
+class Treemap(_messages.Message):
+  r"""A widget that displays hierarchical data as a treemap.
+
+  Fields:
+    dataSets: Required. The collection of datasets used to construct and
+      populate the treemap. For the rendered treemap rectangles: Color is
+      determined by the aggregated value for each grouping. Size is
+      proportional to the count of time series aggregated within that
+      rectangle's segment.
+    treemapHierarchy: Required. Ordered labels representing the hierarchical
+      treemap structure.
+  """
+
+  dataSets = _messages.MessageField('TreemapDataSet', 1, repeated=True)
+  treemapHierarchy = _messages.StringField(2, repeated=True)
+
+
+class TreemapDataSet(_messages.Message):
+  r"""The data represented by the treemap. Needs to include the data itself,
+  plus rules on how to organize it hierarchically.
+
+  Fields:
+    breakdowns: Optional. The collection of breakdowns to be applied to the
+      dataset. A breakdown is a way to slice the data. For example, you can
+      break down the data by region.
+    measures: Optional. A collection of measures. A measure is a measured
+      value of a property in your data. For example, rainfall in inches,
+      number of units sold, revenue gained, etc.
+    timeSeriesQuery: Required. The query that fetches the relevant data. See
+      google.monitoring.dashboard.v1.TimeSeriesQuery
+  """
+
+  breakdowns = _messages.MessageField('Breakdown', 1, repeated=True)
+  measures = _messages.MessageField('Measure', 2, repeated=True)
+  timeSeriesQuery = _messages.MessageField('TimeSeriesQuery', 3)
+
+
 class Type(_messages.Message):
-  r"""A protocol buffer message type.
+  r"""A protocol buffer message type.New usages of this message as an
+  alternative to DescriptorProto are strongly discouraged. This message does
+  not reliability preserve all information necessary to model the schema and
+  preserve semantics. Instead make use of FileDescriptorSet which preserves
+  the necessary information.
 
   Enums:
     SyntaxValueValuesEnum: The source syntax.
@@ -2754,6 +3101,17 @@ class Type(_messages.Message):
   syntax = _messages.EnumField('SyntaxValueValuesEnum', 7)
 
 
+class VisibilityCondition(_messages.Message):
+  r"""Condition that determines whether the widget should be displayed.
+
+  Fields:
+    templateVariableCondition: A condition whose evaluation is based on the
+      value of a template variable.
+  """
+
+  templateVariableCondition = _messages.MessageField('TemplateVariableCondition', 1)
+
+
 class Widget(_messages.Message):
   r"""Widget contains a single dashboard component and configuration of how to
   present the component in the dashboard.
@@ -2779,6 +3137,9 @@ class Widget(_messages.Message):
     timeSeriesTable: A widget that displays time series data in a tabular
       format.
     title: Optional. The title of the widget.
+    treemap: A widget that displays data as a treemap.
+    visibilityCondition: Optional. If set, this widget is rendered only when
+      the condition is evaluated to true.
     xyChart: A chart of time series data.
   """
 
@@ -2796,7 +3157,9 @@ class Widget(_messages.Message):
   text = _messages.MessageField('Text', 12)
   timeSeriesTable = _messages.MessageField('TimeSeriesTable', 13)
   title = _messages.StringField(14)
-  xyChart = _messages.MessageField('XyChart', 15)
+  treemap = _messages.MessageField('Treemap', 15)
+  visibilityCondition = _messages.MessageField('VisibilityCondition', 16)
+  xyChart = _messages.MessageField('XyChart', 17)
 
 
 class XyChart(_messages.Message):

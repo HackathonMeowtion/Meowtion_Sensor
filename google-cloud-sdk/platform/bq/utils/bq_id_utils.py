@@ -2,66 +2,15 @@
 """BQ CLI helper functions for IDs."""
 
 import collections
-import re
 import sys
 from typing import Any, Optional, Tuple, Type, Union
 from absl import app
+from utils import bq_error
 from pyglib import stringutil
 
 collections_abc = collections
 if sys.version_info > (3, 8):
   collections_abc = collections.abc
-
-
-def FormatDataTransferIdentifiers(client, transfer_identifier: str) -> str:
-  """Formats a transfer config or run identifier.
-
-  Transfer configuration/run commands should be able to support different
-  formats of how the user could input the project information. This function
-  will take the user input and create a uniform transfer config or
-  transfer run reference that can be used for various commands.
-
-  This function will also set the client's project id to the specified
-  project id.
-
-  Returns:
-    The formatted transfer config or run.
-  """
-
-  formatted_identifier = transfer_identifier
-  match = re.search(r'projects/([^/]+)', transfer_identifier)
-  if not match:
-    formatted_identifier = ('projects/' +
-                            client.GetProjectReference().projectId + '/' +
-                            transfer_identifier)
-  else:
-    # TODO(b/324243535): Refactor out this side-effect.
-    client.project_id = match.group(1)
-
-  return formatted_identifier
-
-
-def FormatProjectIdentifier(client, project_id: str) -> str:
-  """Formats a project identifier.
-
-  If the user specifies a project with "projects/${PROJECT_ID}", isolate the
-  project id and return it.
-
-  This function will also set the client's project id to the specified
-  project id.
-
-  Returns:
-    The project is.
-  """
-
-  formatted_identifier = project_id
-  match = re.search(r'projects/([^/]+)', project_id)
-  if match:
-    formatted_identifier = match.group(1)
-    # TODO(b/324243535): Refactor out this side-effect.
-    client.project_id = formatted_identifier
-
-  return formatted_identifier
 
 
 class ApiClientHelper:
@@ -72,6 +21,7 @@ class ApiClientHelper:
 
   class Reference(collections_abc.Mapping):
     """Base class for Reference objects returned by apiclient."""
+
     _required_fields = frozenset()
     _optional_fields = frozenset()
     _format_str = ''
@@ -81,11 +31,14 @@ class ApiClientHelper:
       if type(self) == ApiClientHelper.Reference:
         self.typename: str = 'unimplemented'
         raise NotImplementedError(
-            'Cannot instantiate abstract class ApiClientHelper.Reference')
+            'Cannot instantiate abstract class ApiClientHelper.Reference'
+        )
       for name in self._required_fields:
         if not kwds.get(name, ''):
-          raise ValueError('Missing required argument %s to %s' %
-                           (name, self.__class__.__name__))
+          raise ValueError(
+              'Missing required argument %s to %s'
+              % (name, self.__class__.__name__)
+          )
         setattr(self, name, kwds[name])
       for name in self._optional_fields:
         if kwds.get(name, ''):
@@ -94,9 +47,11 @@ class ApiClientHelper:
     @classmethod
     def Create(cls, **kwds: Any) -> 'ApiClientHelper.Reference':
       """Factory method for this class."""
-      args = dict((k, v)
-                  for k, v in kwds.items()
-                  if k in cls._required_fields.union(cls._optional_fields))
+      args = dict(
+          (k, v)
+          for k, v in kwds.items()
+          if k in cls._required_fields.union(cls._optional_fields)
+      )
       return cls(**args)
 
     def __iter__(self):
@@ -128,10 +83,12 @@ class ApiClientHelper:
       d = dict(other)
       return all(
           getattr(self, name, None) == d.get(name, None)
-          for name in self._required_fields.union(self._optional_fields))
+          for name in self._required_fields.union(self._optional_fields)
+      )
 
   class JobReference(Reference):
     """A JobReference."""
+
     _required_fields = frozenset(('projectId', 'jobId'))
     _optional_fields = frozenset(('location',))
     _format_str = '%(projectId)s:%(jobId)s'
@@ -149,6 +106,7 @@ class ApiClientHelper:
 
   class ProjectReference(Reference):
     """A ProjectReference."""
+
     _required_fields = frozenset(('projectId',))
     _format_str = '%(projectId)s'
     typename = 'project'
@@ -163,16 +121,19 @@ class ApiClientHelper:
         self, dataset_id: str
     ) -> 'ApiClientHelper.DatasetReference':
       return ApiClientHelper.DatasetReference.Create(
-          projectId=self.projectId, datasetId=dataset_id)
+          projectId=self.projectId, datasetId=dataset_id
+      )
 
     def GetTableReference(
         self, dataset_id: str, table_id: str
     ) -> 'ApiClientHelper.TableReference':
       return ApiClientHelper.TableReference.Create(
-          projectId=self.projectId, datasetId=dataset_id, tableId=table_id)
+          projectId=self.projectId, datasetId=dataset_id, tableId=table_id
+      )
 
   class DatasetReference(Reference):
     """A DatasetReference."""
+
     _required_fields = frozenset(('projectId', 'datasetId'))
     _format_str = '%(projectId)s:%(datasetId)s'
     typename = 'dataset'
@@ -191,11 +152,13 @@ class ApiClientHelper:
         self, table_id: str
     ) -> 'ApiClientHelper.TableReference':
       return ApiClientHelper.TableReference.Create(
-          projectId=self.projectId, datasetId=self.datasetId, tableId=table_id)
+          projectId=self.projectId, datasetId=self.datasetId, tableId=table_id
+      )
 
 
   class TableReference(Reference):
     """A TableReference."""
+
     _required_fields = frozenset(('projectId', 'datasetId', 'tableId'))
     _format_str = '%(projectId)s:%(datasetId)s.%(tableId)s'
     typename = 'table'
@@ -210,7 +173,8 @@ class ApiClientHelper:
 
     def GetDatasetReference(self) -> 'ApiClientHelper.DatasetReference':
       return ApiClientHelper.DatasetReference.Create(
-          projectId=self.projectId, datasetId=self.datasetId)
+          projectId=self.projectId, datasetId=self.datasetId
+      )
 
     def GetProjectReference(self) -> 'ApiClientHelper.ProjectReference':
       return ApiClientHelper.ProjectReference.Create(projectId=self.projectId)
@@ -229,8 +193,14 @@ class ApiClientHelper:
       super().__init__(**kwds)
 
   class RoutineReference(Reference):
+    """A RoutineReference."""
+
     _required_fields = frozenset(('projectId', 'datasetId', 'routineId'))
     _format_str = '%(projectId)s:%(datasetId)s.%(routineId)s'
+    _path_str = (
+        'projects/%(projectId)s/datasets/%(datasetId)s/routines/%(routineId)s'
+    )
+
     typename = 'routine'
 
     def __init__(self, **kwds):
@@ -241,9 +211,13 @@ class ApiClientHelper:
       # pylint: enable=invalid-name
       super().__init__(**kwds)
 
+    def path(self) -> str:
+      return self._path_str % dict(self)
+
   class RowAccessPolicyReference(Reference):
     _required_fields = frozenset(
-        ('projectId', 'datasetId', 'tableId', 'policyId'))
+        ('projectId', 'datasetId', 'tableId', 'policyId')
+    )
     _format_str = '%(projectId)s:%(datasetId)s.%(tableId)s.%(policyId)s'
     typename = 'row access policy'
 
@@ -272,6 +246,12 @@ class ApiClientHelper:
     _format_str = '%(transferRunName)s'
     typename = 'transfer run'
 
+    def __init__(self, **kwds):
+      # pylint: disable=invalid-name Aligns with API
+      self.transferRunName: str = kwds['transferRunName']
+      # pylint: enable=invalid-name
+      super().__init__(**kwds)
+
   class NextPageTokenReference(Reference):
     _required_fields = frozenset(('pageTokenId',))
     _format_str = '%(pageTokenId)s'
@@ -298,24 +278,33 @@ class ApiClientHelper:
     def path(self) -> str:  # pylint: disable=invalid-name Legacy
       return self._path_str % dict(self)
 
-  class BetaReservationReference(ReservationReference):
-    """Reference for v1beta1 reservation service."""
-
   class CapacityCommitmentReference(Reference):
     """Helper class to provide a reference to capacity commitment."""
+
     _required_fields = frozenset(
-        ('projectId', 'location', 'capacityCommitmentId'))
+        ('projectId', 'location', 'capacityCommitmentId')
+    )
     _format_str = '%(projectId)s:%(location)s.%(capacityCommitmentId)s'
     _path_str = 'projects/%(projectId)s/locations/%(location)s/capacityCommitments/%(capacityCommitmentId)s'
     typename = 'capacity commitment'
+
+    def __init__(self, **kwds):
+      # pylint: disable=invalid-name Aligns with API
+      self.projectId: str = kwds['projectId']
+      self.location: str = kwds['location']
+      self.capacityCommitmentId: str = kwds['capacityCommitmentId']
+      # pylint: enable=invalid-name
+      super().__init__(**kwds)
 
     def path(self) -> str:  # pylint: disable=invalid-name Legacy
       return self._path_str % dict(self)
 
   class ReservationAssignmentReference(Reference):
     """Helper class to provide a reference to reservation assignment."""
+
     _required_fields = frozenset(
-        ('projectId', 'location', 'reservationId', 'reservationAssignmentId'))
+        ('projectId', 'location', 'reservationId', 'reservationAssignmentId')
+    )
     _format_str = '%(projectId)s:%(location)s.%(reservationId)s.%(reservationAssignmentId)s'
     _path_str = 'projects/%(projectId)s/locations/%(location)s/reservations/%(reservationId)s/assignments/%(reservationAssignmentId)s'
     _reservation_format_str = '%(projectId)s:%(location)s.%(reservationId)s'
@@ -327,11 +316,9 @@ class ApiClientHelper:
     def reservation_path(self) -> str:  # pylint: disable=invalid-name Legacy
       return self._reservation_format_str % dict(self)
 
-  class BetaReservationAssignmentReference(ReservationAssignmentReference):
-    """Reference for v1beta1 reservation service."""
-
   class BiReservationReference(Reference):
     """Helper class to provide a reference to bi reservation."""
+
     _required_fields = frozenset(('projectId', 'location'))
     _format_str = '%(projectId)s:%(location)s'
     _path_str = 'projects/%(projectId)s/locations/%(location)s/biReservation'
@@ -343,6 +330,27 @@ class ApiClientHelper:
 
     def create_path(self) -> str:  # pylint: disable=invalid-name Legacy
       return self._create_path_str % dict(self)
+
+  class ReservationGroupReference(Reference):
+    """Helper class to provide a reference to reservation group."""
+
+    _required_fields = frozenset(
+        ('projectId', 'location', 'reservationGroupId')
+    )
+    _format_str = '%(projectId)s:%(location)s.%(reservationGroupId)s'
+    _path_str = 'projects/%(projectId)s/locations/%(location)s/reservationGroups/%(reservationGroupId)s'
+    typename = 'reservation group'
+
+    def __init__(self, **kwds):
+      # pylint: disable=invalid-name Aligns with API
+      self.projectId: str = kwds['projectId']
+      self.location: str = kwds['location']
+      self.reservationGroupId: str = kwds['reservationGroupId']
+      # pylint: enable=invalid-name
+      super().__init__(**kwds)
+
+    def path(self) -> str:  # pylint: disable=invalid-name Legacy
+      return self._path_str % dict(self)
 
   class ConnectionReference(Reference):
     _required_fields = frozenset(('projectId', 'location', 'connectionId'))
@@ -365,7 +373,7 @@ def typecheck(  # pylint: disable=invalid-name
     # In code on the surface, taking user input, we throw a usage error.
     is_usage_error: bool = False,
 ) -> None:
-  """Ensure the obj is the correct type, or throw a TypeError."""
+  """Ensure the obj is the correct type, or throw a BigqueryTypeError."""
   if not isinstance(obj, types):
     if not message:
       if method:
@@ -375,4 +383,4 @@ def typecheck(  # pylint: disable=invalid-name
     if is_usage_error:
       raise app.UsageError(message)
     else:
-      raise TypeError(message)
+      raise bq_error.BigqueryTypeError(message)

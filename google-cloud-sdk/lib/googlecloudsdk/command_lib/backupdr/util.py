@@ -14,10 +14,13 @@
 # limitations under the License.
 """Utilities for Backup and DR commands."""
 
-import datetime
+import math
 import uuid
+
+from dateutil import tz
 from googlecloudsdk.calliope import arg_parsers
 from googlecloudsdk.calliope import exceptions
+from googlecloudsdk.core.util import iso_duration
 from googlecloudsdk.core.util import times
 
 
@@ -29,56 +32,110 @@ def ConvertIntToStr(duration):
   return str(duration) + 's'
 
 
-def TransformTo12AmUtcTime(effective_time):
-  """Transforms the datetime object to UTC time string fixed at 12AM.
-
-  Args:
-    effective_time: Date to be converted to UTC time string fixed at 12AM.
-
-  Returns:
-    UTC time.
-
-  Raises:
-    ArgumentTypeError: If the date is not in the future.
-  """
-  if effective_time is None:
+def VerifyDateInFuture(date, flag):
+  """Verify that the date is in the future."""
+  if date is None:
     return None
-  if effective_time < times.Now().date():
+  if date < times.Now():
     raise exceptions.InvalidArgumentException(
-        'Date must be in the future: {0}'.format(effective_time),
-        'effective_time',
+        flag,
+        'Date must be in the future: {0}'.format(date)
     )
-  year = effective_time.year
-  month = effective_time.month
-  day = effective_time.day
-  effective_time = datetime.datetime(
-      year, month, day, 0, 0, 0, 0, datetime.timezone.utc
-  ).strftime('%Y-%m-%dT%H:%M:%SZ')
-  return effective_time
+  date = date.astimezone(tz.tzutc())
+  return date.strftime('%Y-%m-%dT%H:%M:%SZ')
 
 
 def ResetEnforcedRetention():
   return '0001-01-01T00:00:00.000Z'
 
 
-# TODO: b/332661929 - Add unit tests for this class.
 class OptionsMapValidator(object):
   """Option that are passed as key(alternative) value(actual) pairs are validated on the args."""
 
   def __init__(self, options):
-    self.key_len = max(len(option) for option in options.keys())
-    self.options = options
-
-  def IsValid(self, s):
-    if not s:
-      return False
-    return s[: self.key_len].upper() in self.options.keys()
+    self.options = {opt.upper(): options[opt] for opt in options}
 
   def Parse(self, s):
-    if not self.IsValid(s):
+    if s.upper() in self.options.keys():
+      return self.options[s.upper()]
+    elif s in self.options.values():
+      return s
+    else:
       raise arg_parsers.ArgumentTypeError(
           'Failed to parse the arg ({}). Value should be one of {}'.format(
-              s, ', '.join(self.options.keys())
+              s,
+              ', '.join(
+                  list(self.options.keys()) + list(self.options.values())
+              ),
           )
       )
-    return self.options.get(s[: self.key_len].upper(), 'UNKNOWN')
+
+
+def TransformEnforcedRetention(backup_vault):
+  """Transforms the backup vault enforced retention to a human readable format.
+
+  Args:
+    backup_vault: type of backup_vault can be either a Backup vault object or a
+      dict.
+
+  Returns:
+    Human readable format of backup vault enforced retention.
+  """
+
+  if isinstance(backup_vault, dict):
+    backup_min_enforced_retention = backup_vault.get(
+        'backupMinimumEnforcedRetentionDuration', {}
+    )
+  else:
+    backup_min_enforced_retention = (
+        backup_vault.backupMinimumEnforcedRetentionDuration
+    )
+
+  if not backup_min_enforced_retention:
+    return ''
+
+  seconds_in_hour = 3600
+  seconds_in_day = 86400
+  seconds_in_month = 2629744
+  seconds_in_year = 31556926
+
+  seconds = times.ParseDuration(backup_min_enforced_retention).total_seconds
+
+  year = math.floor(seconds / seconds_in_year)
+  remaining_seconds = seconds % seconds_in_year
+  month = math.floor(remaining_seconds / seconds_in_month)
+  remaining_seconds %= seconds_in_month
+  day = math.floor(remaining_seconds / seconds_in_day)
+  remaining_seconds %= seconds_in_day
+  hour = math.ceil(remaining_seconds / seconds_in_hour)
+  duration = iso_duration.Duration(
+      years=year, months=month, days=day, hours=hour
+  )
+  return times.FormatDuration(duration, parts=-1)
+
+
+def GetOneOfValidator(name, options):
+  validtor = arg_parsers.CustomFunctionValidator(
+      lambda arg: arg in options,
+      '{} should be one of the following: '.format(name) + ', '.join(options),
+      str,
+  )
+  return validtor
+
+
+class EnumMapper(object):
+  """Maps the args to Enum values."""
+
+  def __init__(self, enum_mapping):
+    self.enum_mapping = enum_mapping
+
+  def Parse(self, s):
+    if s in self.enum_mapping:
+      return self.enum_mapping[s]
+    else:
+      raise arg_parsers.ArgumentTypeError(
+          'Failed to parse the arg ({}). Value should be one of {}'.format(
+              s,
+              ', '.join(list(self.enum_mapping.keys())),
+          )
+      )

@@ -21,32 +21,51 @@ from googlecloudsdk.command_lib.container.fleet.packages import flags
 _DETAILED_HELP = {
     'DESCRIPTION': '{description}',
     'EXAMPLES': """ \
-        To delete Release ``v1.0.0'' of ``cert-manager'' in ``us-central1'', run:
+        To delete Release `v1.0.0` of `cert-manager` in `us-central1`, run:
 
           $ {command} v1.0.0 --location=us-central1 --resource-bundle=cert-manager
         """,
 }
 
 
-@base.Hidden
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.GA)
 class Delete(base.DeleteCommand):
   """Delete Package Rollouts Release."""
 
   detailed_help = _DETAILED_HELP
+  _api_version = 'v1'
 
   @staticmethod
   def Args(parser):
     flags.AddReleaseFlag(parser)
     flags.AddLocationFlag(parser)
     flags.AddResourceBundleFlag(parser)
+    flags.AddForceDeleteFlag(parser, 'Release')
 
   def Run(self, args):
     """Run the delete command."""
-    client = apis.ReleasesClient()
+    client = apis.ReleasesClient(self._api_version)
     return client.Delete(
         release=args.release,
         project=flags.GetProject(args),
         location=flags.GetLocation(args),
         resource_bundle=args.resource_bundle,
+        force=args.force,
     )
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.BETA)
+class DeleteBeta(Delete):
+  """Delete Package Rollouts Release."""
+
+  _api_version = 'v1beta'
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class DeleteAlpha(Delete):
+  """Delete Package Rollouts Release."""
+
+  _api_version = 'v1alpha'

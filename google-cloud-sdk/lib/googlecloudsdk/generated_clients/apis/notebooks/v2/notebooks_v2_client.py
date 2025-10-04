@@ -54,6 +54,33 @@ class NotebooksV2(base_api.BaseApiClient):
       self._upload_configs = {
           }
 
+    def CheckAuthorization(self, request, global_params=None):
+      r"""Initiated by Cloud Console for Oauth consent flow for Workbench Instances. Do not use this method directly. Design doc: go/wbi-euc:auth-dd.
+
+      Args:
+        request: (NotebooksProjectsLocationsInstancesCheckAuthorizationRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (CheckAuthorizationResponse) The response message.
+      """
+      config = self.GetMethodConfig('CheckAuthorization')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    CheckAuthorization.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}:checkAuthorization',
+        http_method='POST',
+        method_id='notebooks.projects.locations.instances.checkAuthorization',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v2/{+name}:checkAuthorization',
+        request_field='checkAuthorizationRequest',
+        request_type_name='NotebooksProjectsLocationsInstancesCheckAuthorizationRequest',
+        response_type_name='CheckAuthorizationResponse',
+        supports_download=False,
+    )
+
     def CheckUpgradability(self, request, global_params=None):
       r"""Checks whether a notebook instance is upgradable.
 
@@ -162,6 +189,33 @@ class NotebooksV2(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def GenerateAccessToken(self, request, global_params=None):
+      r"""Called by VM to return an EUC for the instance owner. Do not use this method directly. Design doc: go/wbi-euc:dd.
+
+      Args:
+        request: (NotebooksProjectsLocationsInstancesGenerateAccessTokenRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GenerateAccessTokenResponse) The response message.
+      """
+      config = self.GetMethodConfig('GenerateAccessToken')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GenerateAccessToken.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}:generateAccessToken',
+        http_method='POST',
+        method_id='notebooks.projects.locations.instances.generateAccessToken',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v2/{+name}:generateAccessToken',
+        request_field='generateAccessTokenRequest',
+        request_type_name='NotebooksProjectsLocationsInstancesGenerateAccessTokenRequest',
+        response_type_name='GenerateAccessTokenResponse',
+        supports_download=False,
+    )
+
     def Get(self, request, global_params=None):
       r"""Gets details of a single Instance.
 
@@ -190,7 +244,7 @@ class NotebooksV2(base_api.BaseApiClient):
     )
 
     def GetConfig(self, request, global_params=None):
-      r"""Gets general backend configurations that might also affect the frontend. Location is required by CCFE. Although we could bypass it to send location- less request directly to the backend job, we would need CPE (go/cloud-cpe). Having the location might also be useful depending on the query.
+      r"""Returns various configuration parameters.
 
       Args:
         request: (NotebooksProjectsLocationsInstancesGetConfigRequest) input message
@@ -374,6 +428,33 @@ class NotebooksV2(base_api.BaseApiClient):
         relative_path='v2/{+notebookInstance}:resizeDisk',
         request_field='resizeDiskRequest',
         request_type_name='NotebooksProjectsLocationsInstancesResizeDiskRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Restore(self, request, global_params=None):
+      r"""RestoreInstance restores an Instance from a BackupSource.
+
+      Args:
+        request: (NotebooksProjectsLocationsInstancesRestoreRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Restore')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Restore.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}:restore',
+        http_method='POST',
+        method_id='notebooks.projects.locations.instances.restore',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v2/{+name}:restore',
+        request_field='restoreInstanceRequest',
+        request_type_name='NotebooksProjectsLocationsInstancesRestoreRequest',
         response_type_name='Operation',
         supports_download=False,
     )
@@ -578,7 +659,7 @@ class NotebooksV2(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (NotebooksProjectsLocationsOperationsCancelRequest) input message
@@ -741,7 +822,7 @@ class NotebooksV2(base_api.BaseApiClient):
         method_id='notebooks.projects.locations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['extraLocationTypes', 'filter', 'pageSize', 'pageToken'],
         relative_path='v2/{+name}/locations',
         request_field='',
         request_type_name='NotebooksProjectsLocationsListRequest',

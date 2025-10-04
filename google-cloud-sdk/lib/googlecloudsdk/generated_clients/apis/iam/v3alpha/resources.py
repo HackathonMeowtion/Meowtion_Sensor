@@ -33,10 +33,18 @@ class Collections(enum.Enum):
   )
   FOLDERS_LOCATIONS = (
       'folders.locations',
+      'folders/{foldersId}/locations/{locationsId}',
+      {},
+      ['foldersId', 'locationsId'],
+      True
+  )
+  FOLDERS_LOCATIONS_ACCESSPOLICIES = (
+      'folders.locations.accessPolicies',
       '{+name}',
       {
           '':
-              'folders/{foldersId}/locations/{locationsId}',
+              'folders/{foldersId}/locations/{locationsId}/accessPolicies/'
+              '{accessPoliciesId}',
       },
       ['name'],
       True
@@ -48,17 +56,6 @@ class Collections(enum.Enum):
           '':
               'folders/{foldersId}/locations/{locationsId}/operations/'
               '{operationsId}',
-      },
-      ['name'],
-      True
-  )
-  FOLDERS_LOCATIONS_POLICIES = (
-      'folders.locations.policies',
-      '{+name}',
-      {
-          '':
-              'folders/{foldersId}/locations/{locationsId}/policies/'
-              '{policiesId}',
       },
       ['name'],
       True
@@ -83,10 +80,18 @@ class Collections(enum.Enum):
   )
   ORGANIZATIONS_LOCATIONS = (
       'organizations.locations',
+      'organizations/{organizationsId}/locations/{locationsId}',
+      {},
+      ['organizationsId', 'locationsId'],
+      True
+  )
+  ORGANIZATIONS_LOCATIONS_ACCESSPOLICIES = (
+      'organizations.locations.accessPolicies',
       '{+name}',
       {
           '':
-              'organizations/{organizationsId}/locations/{locationsId}',
+              'organizations/{organizationsId}/locations/{locationsId}/'
+              'accessPolicies/{accessPoliciesId}',
       },
       ['name'],
       True
@@ -98,17 +103,6 @@ class Collections(enum.Enum):
           '':
               'organizations/{organizationsId}/locations/{locationsId}/'
               'operations/{operationsId}',
-      },
-      ['name'],
-      True
-  )
-  ORGANIZATIONS_LOCATIONS_POLICIES = (
-      'organizations.locations.policies',
-      '{+name}',
-      {
-          '':
-              'organizations/{organizationsId}/locations/{locationsId}/'
-              'policies/{policiesId}',
       },
       ['name'],
       True
@@ -145,10 +139,18 @@ class Collections(enum.Enum):
   )
   PROJECTS_LOCATIONS = (
       'projects.locations',
+      'projects/{projectsId}/locations/{locationsId}',
+      {},
+      ['projectsId', 'locationsId'],
+      True
+  )
+  PROJECTS_LOCATIONS_ACCESSPOLICIES = (
+      'projects.locations.accessPolicies',
       '{+name}',
       {
           '':
-              'projects/{projectsId}/locations/{locationsId}',
+              'projects/{projectsId}/locations/{locationsId}/accessPolicies/'
+              '{accessPoliciesId}',
       },
       ['name'],
       True
@@ -160,17 +162,6 @@ class Collections(enum.Enum):
           '':
               'projects/{projectsId}/locations/{locationsId}/operations/'
               '{operationsId}',
-      },
-      ['name'],
-      True
-  )
-  PROJECTS_LOCATIONS_POLICIES = (
-      'projects.locations.policies',
-      '{+name}',
-      {
-          '':
-              'projects/{projectsId}/locations/{locationsId}/policies/'
-              '{policiesId}',
       },
       ['name'],
       True

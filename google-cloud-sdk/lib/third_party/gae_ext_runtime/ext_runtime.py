@@ -30,7 +30,7 @@ from six.moves import input
 
 # Try importing these modules from the cloud SDK first.
 try:
-  from googlecloudsdk.third_party.appengine.admin.tools.conversion import schema
+  from googlecloudsdk.appengine.admin.tools.conversion import schema
 except ImportError:
   from yaml_conversion import schema
 
@@ -346,7 +346,7 @@ class _Collector(object):
 _LOG_FUNCS = {
     'info': logging.info,
     'error': logging.error,
-    'warn': logging.warn,
+    'warn': logging.warning,
     'debug': logging.debug
 }
 
@@ -744,4 +744,3 @@ class ExternalizedRuntime(object):
     if not created:
       notify('All config files already exist, not generating anything.')
     return created
-

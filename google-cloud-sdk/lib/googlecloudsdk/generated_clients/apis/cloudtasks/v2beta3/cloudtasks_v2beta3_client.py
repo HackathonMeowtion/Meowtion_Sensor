@@ -136,7 +136,7 @@ class CloudtasksV2beta3(base_api.BaseApiClient):
     )
 
     def Get(self, request, global_params=None):
-      r"""Gets a task.
+      r"""Gets a task. After a task is successfully executed or has exhausted its retry attempts, the task is deleted. A `GetTask` request for a deleted task returns a `NOT_FOUND` error.
 
       Args:
         request: (CloudtasksProjectsLocationsQueuesTasksGetRequest) input message
@@ -606,7 +606,7 @@ class CloudtasksV2beta3(base_api.BaseApiClient):
         method_id='cloudtasks.projects.locations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['extraLocationTypes', 'filter', 'pageSize', 'pageToken'],
         relative_path='v2beta3/{+name}/locations',
         request_field='',
         request_type_name='CloudtasksProjectsLocationsListRequest',

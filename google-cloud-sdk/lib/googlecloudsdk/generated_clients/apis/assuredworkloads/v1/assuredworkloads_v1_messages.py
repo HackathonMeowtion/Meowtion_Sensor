@@ -51,7 +51,7 @@ class AssuredworkloadsOrganizationsLocationsWorkloadsAnalyzeWorkloadMoveRequest(
       [here](https://cloud.google.com/asset-inventory/docs/supported-asset-
       types).
     pageSize: Optional. Page size. If a value is not specified, the default
-      value of 10 is used.
+      value of 10 is used. The maximum value is 50.
     pageToken: Optional. The page token from the previous response. It needs
       to be passed in the second and following requests.
     project: The source type is a project. Specify the project's relative
@@ -106,6 +106,18 @@ class AssuredworkloadsOrganizationsLocationsWorkloadsDeleteRequest(_messages.Mes
 
   etag = _messages.StringField(1)
   name = _messages.StringField(2, required=True)
+
+
+class AssuredworkloadsOrganizationsLocationsWorkloadsEnableComplianceUpdatesRequest(_messages.Message):
+  r"""A AssuredworkloadsOrganizationsLocationsWorkloadsEnableComplianceUpdates
+  Request object.
+
+  Fields:
+    name: Required. The `name` field is used to identify the workload. Format:
+      organizations/{org_id}/locations/{location_id}/workloads/{workload_id}
+  """
+
+  name = _messages.StringField(1, required=True)
 
 
 class AssuredworkloadsOrganizationsLocationsWorkloadsEnableResourceMonitoringRequest(_messages.Message):
@@ -204,6 +216,40 @@ class AssuredworkloadsOrganizationsLocationsWorkloadsRestrictAllowedResourcesReq
 
   googleCloudAssuredworkloadsV1RestrictAllowedResourcesRequest = _messages.MessageField('GoogleCloudAssuredworkloadsV1RestrictAllowedResourcesRequest', 1)
   name = _messages.StringField(2, required=True)
+
+
+class AssuredworkloadsOrganizationsLocationsWorkloadsUpdatesApplyRequest(_messages.Message):
+  r"""A AssuredworkloadsOrganizationsLocationsWorkloadsUpdatesApplyRequest
+  object.
+
+  Fields:
+    googleCloudAssuredworkloadsV1ApplyWorkloadUpdateRequest: A
+      GoogleCloudAssuredworkloadsV1ApplyWorkloadUpdateRequest resource to be
+      passed as the request body.
+    name: Required. The resource name of the update. Format: organizations/{or
+      g_id}/locations/{location_id}/workloads/{workload_id}/updates/{update_id
+      }
+  """
+
+  googleCloudAssuredworkloadsV1ApplyWorkloadUpdateRequest = _messages.MessageField('GoogleCloudAssuredworkloadsV1ApplyWorkloadUpdateRequest', 1)
+  name = _messages.StringField(2, required=True)
+
+
+class AssuredworkloadsOrganizationsLocationsWorkloadsUpdatesListRequest(_messages.Message):
+  r"""A AssuredworkloadsOrganizationsLocationsWorkloadsUpdatesListRequest
+  object.
+
+  Fields:
+    pageSize: Page size. The default value is 20 and the max allowed value is
+      100.
+    pageToken: Page token returned from previous request.
+    parent: Required.
+      organizations/{org_id}/locations/{location_id}/workloads/{workload_id}
+  """
+
+  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
 
 
 class AssuredworkloadsOrganizationsLocationsWorkloadsViolationsAcknowledgeRequest(_messages.Message):
@@ -314,6 +360,66 @@ class GoogleCloudAssuredworkloadsV1AnalyzeWorkloadMoveResponse(_messages.Message
   nextPageToken = _messages.StringField(2)
 
 
+class GoogleCloudAssuredworkloadsV1ApplyWorkloadUpdateOperationMetadata(_messages.Message):
+  r"""Operation metadata to give request details of ApplyWorkloadUpdate.
+
+  Enums:
+    ActionValueValuesEnum: Optional. The time the operation was created.
+
+  Fields:
+    action: Optional. The time the operation was created.
+    createTime: Optional. Output only. The time the operation was created.
+    updateName: Required. The resource name of the update
+  """
+
+  class ActionValueValuesEnum(_messages.Enum):
+    r"""Optional. The time the operation was created.
+
+    Values:
+      WORKLOAD_UPDATE_ACTION_UNSPECIFIED: Unspecified value.
+      APPLY: The update is applied.
+    """
+    WORKLOAD_UPDATE_ACTION_UNSPECIFIED = 0
+    APPLY = 1
+
+  action = _messages.EnumField('ActionValueValuesEnum', 1)
+  createTime = _messages.StringField(2)
+  updateName = _messages.StringField(3)
+
+
+class GoogleCloudAssuredworkloadsV1ApplyWorkloadUpdateRequest(_messages.Message):
+  r"""Request to apply update to a workload.
+
+  Enums:
+    ActionValueValuesEnum: The action to be performed on the update.
+
+  Fields:
+    action: The action to be performed on the update.
+  """
+
+  class ActionValueValuesEnum(_messages.Enum):
+    r"""The action to be performed on the update.
+
+    Values:
+      WORKLOAD_UPDATE_ACTION_UNSPECIFIED: Unspecified value.
+      APPLY: The update is applied.
+    """
+    WORKLOAD_UPDATE_ACTION_UNSPECIFIED = 0
+    APPLY = 1
+
+  action = _messages.EnumField('ActionValueValuesEnum', 1)
+
+
+class GoogleCloudAssuredworkloadsV1ApplyWorkloadUpdateResponse(_messages.Message):
+  r"""Response for ApplyWorkloadUpdate endpoint.
+
+  Fields:
+    appliedUpdate: The update that was applied.
+  """
+
+  appliedUpdate = _messages.MessageField('GoogleCloudAssuredworkloadsV1WorkloadUpdate', 1)
+
+
 class GoogleCloudAssuredworkloadsV1AssetMoveAnalysis(_messages.Message):
   r"""Represents move analysis results for an asset.
 
@@ -359,8 +465,9 @@ class GoogleCloudAssuredworkloadsV1CreateWorkloadOperationMetadata(_messages.Mes
       FEDRAMP_MODERATE: FedRAMP Moderate data protection controls
       US_REGIONAL_ACCESS: Assured Workloads For US Regions data protection
         controls
-      HIPAA: Health Insurance Portability and Accountability Act controls
-      HITRUST: Health Information Trust Alliance controls
+      HIPAA: [DEPRECATED] Health Insurance Portability and Accountability Act
+        controls
+      HITRUST: [DEPRECATED] Health Information Trust Alliance controls
       EU_REGIONS_AND_SUPPORT: Assured Workloads For EU Regions and Support
         controls
       CA_REGIONS_AND_SUPPORT: Assured Workloads For Canada Regions and Support
@@ -369,15 +476,47 @@ class GoogleCloudAssuredworkloadsV1CreateWorkloadOperationMetadata(_messages.Mes
       AU_REGIONS_AND_US_SUPPORT: Assured Workloads for Australia Regions and
         Support controls
       ASSURED_WORKLOADS_FOR_PARTNERS: Assured Workloads for Partners;
-      ISR_REGIONS: Assured Workloads for Israel
+      ISR_REGIONS: Assured Workloads for Israel Regions
       ISR_REGIONS_AND_SUPPORT: Assured Workloads for Israel Regions
       CA_PROTECTED_B: Assured Workloads for Canada Protected B regime
       IL5: Information protection as per DoD IL5 requirements.
       IL2: Information protection as per DoD IL2 requirements.
       JP_REGIONS_AND_SUPPORT: Assured Workloads for Japan Regions
-      KSA_REGIONS_AND_SUPPORT_WITH_SOVEREIGNTY_CONTROLS: KSA R5 Controls.
-      REGIONAL_CONTROLS: Assured Workloads for Regional Controls/Free Regions
-      FREE_REGIONS: Assured Workloads for Regional Controls/Free Regions
+      KSA_REGIONS_AND_SUPPORT_WITH_SOVEREIGNTY_CONTROLS: Assured Workloads
+        Sovereign Controls KSA
+      REGIONAL_CONTROLS: Assured Workloads for Regional Controls
+      HEALTHCARE_AND_LIFE_SCIENCES_CONTROLS: Healthcare and Life Science
+        Controls
+      HEALTHCARE_AND_LIFE_SCIENCES_CONTROLS_US_SUPPORT: Healthcare and Life
+        Science Controls with US Support
+      IRS_1075: Internal Revenue Service 1075 controls
+      CANADA_CONTROLLED_GOODS: Canada Controlled Goods
+      AUSTRALIA_DATA_BOUNDARY_AND_SUPPORT: Australia Data Boundary and Support
+      CANADA_DATA_BOUNDARY_AND_SUPPORT: Canada Data Boundary and Support
+      DATA_BOUNDARY_FOR_CANADA_CONTROLLED_GOODS: Data Boundary for Canada
+        Controlled Goods
+      DATA_BOUNDARY_FOR_CANADA_PROTECTED_B: Data Boundary for Canada Protected
+        B
+      DATA_BOUNDARY_FOR_CJIS: Data Boundary for CJIS
+      DATA_BOUNDARY_FOR_FEDRAMP_HIGH: Data Boundary for FedRAMP High
+      DATA_BOUNDARY_FOR_FEDRAMP_MODERATE: Data Boundary for FedRAMP Moderate
+      DATA_BOUNDARY_FOR_IL2: Data Boundary for IL2
+      DATA_BOUNDARY_FOR_IL4: Data Boundary for IL4
+      DATA_BOUNDARY_FOR_IL5: Data Boundary for IL5
+      DATA_BOUNDARY_FOR_IRS_PUBLICATION_1075: Data Boundary for IRS
+        Publication 1075
+      DATA_BOUNDARY_FOR_ITAR: Data Boundary for ITAR
+      EU_DATA_BOUNDARY_AND_SUPPORT: Data Boundary for EU Regions and Support
+      ISRAEL_DATA_BOUNDARY_AND_SUPPORT: Data Boundary for Israel Regions
+      US_DATA_BOUNDARY_AND_SUPPORT: Data Boundary for US Regions and Support
+      US_DATA_BOUNDARY_FOR_HEALTHCARE_AND_LIFE_SCIENCES: Data Boundary for US
+        Healthcare and Life Sciences
+      US_DATA_BOUNDARY_FOR_HEALTHCARE_AND_LIFE_SCIENCES_WITH_SUPPORT: Data
+        Boundary for US Healthcare and Life Sciences with Support
+      KSA_DATA_BOUNDARY_WITH_ACCESS_JUSTIFICATIONS: KSA Data Boundary with
+        Access Justifications
+      REGIONAL_DATA_BOUNDARY: Regional Data Boundary
+      JAPAN_DATA_BOUNDARY: JAPAN Data Boundary
     """
     COMPLIANCE_REGIME_UNSPECIFIED = 0
     IL4 = 1
@@ -400,12 +539,39 @@ class GoogleCloudAssuredworkloadsV1CreateWorkloadOperationMetadata(_messages.Mes
     JP_REGIONS_AND_SUPPORT = 18
     KSA_REGIONS_AND_SUPPORT_WITH_SOVEREIGNTY_CONTROLS = 19
     REGIONAL_CONTROLS = 20
-    FREE_REGIONS = 21
+    HEALTHCARE_AND_LIFE_SCIENCES_CONTROLS = 21
+    HEALTHCARE_AND_LIFE_SCIENCES_CONTROLS_US_SUPPORT = 22
+    IRS_1075 = 23
+    CANADA_CONTROLLED_GOODS = 24
+    AUSTRALIA_DATA_BOUNDARY_AND_SUPPORT = 25
+    CANADA_DATA_BOUNDARY_AND_SUPPORT = 26
+    DATA_BOUNDARY_FOR_CANADA_CONTROLLED_GOODS = 27
+    DATA_BOUNDARY_FOR_CANADA_PROTECTED_B = 28
+    DATA_BOUNDARY_FOR_CJIS = 29
+    DATA_BOUNDARY_FOR_FEDRAMP_HIGH = 30
+    DATA_BOUNDARY_FOR_FEDRAMP_MODERATE = 31
+    DATA_BOUNDARY_FOR_IL2 = 32
+    DATA_BOUNDARY_FOR_IL4 = 33
+    DATA_BOUNDARY_FOR_IL5 = 34
+    DATA_BOUNDARY_FOR_IRS_PUBLICATION_1075 = 35
+    DATA_BOUNDARY_FOR_ITAR = 36
+    EU_DATA_BOUNDARY_AND_SUPPORT = 37
+    ISRAEL_DATA_BOUNDARY_AND_SUPPORT = 38
+    US_DATA_BOUNDARY_AND_SUPPORT = 39
+    US_DATA_BOUNDARY_FOR_HEALTHCARE_AND_LIFE_SCIENCES = 40
+    US_DATA_BOUNDARY_FOR_HEALTHCARE_AND_LIFE_SCIENCES_WITH_SUPPORT = 41
+    KSA_DATA_BOUNDARY_WITH_ACCESS_JUSTIFICATIONS = 42
+    REGIONAL_DATA_BOUNDARY = 43
+    JAPAN_DATA_BOUNDARY = 44
 
   complianceRegime = _messages.EnumField('ComplianceRegimeValueValuesEnum', 1)
   createTime = _messages.StringField(2)
   displayName = _messages.StringField(3)
   parent = _messages.StringField(4)
+
+
+class GoogleCloudAssuredworkloadsV1EnableComplianceUpdatesResponse(_messages.Message):
+  r"""Response for EnableComplianceUpdates endpoint."""
 
 
 class GoogleCloudAssuredworkloadsV1EnableResourceMonitoringResponse(_messages.Message):
@@ -423,6 +589,18 @@ class GoogleCloudAssuredworkloadsV1ListViolationsResponse(_messages.Message):
 
   nextPageToken = _messages.StringField(1)
   violations = _messages.MessageField('GoogleCloudAssuredworkloadsV1Violation', 2, repeated=True)
+
+
+class GoogleCloudAssuredworkloadsV1ListWorkloadUpdatesResponse(_messages.Message):
+  r"""Response of listing the compliance updates per workload with pagination.
+
+  Fields:
+    nextPageToken: The next page token. Return empty if reached the last page.
+    workloadUpdates: The list of workload updates for a given workload.
+  """
+
+  nextPageToken = _messages.StringField(1)
+  workloadUpdates = _messages.MessageField('GoogleCloudAssuredworkloadsV1WorkloadUpdate', 2, repeated=True)
 
 
 class GoogleCloudAssuredworkloadsV1ListWorkloadsResponse(_messages.Message):
@@ -493,6 +671,77 @@ class GoogleCloudAssuredworkloadsV1MutatePartnerPermissionsRequest(_messages.Mes
   updateMask = _messages.StringField(3)
 
 
+class GoogleCloudAssuredworkloadsV1OrgPolicy(_messages.Message):
+  r"""This assured workload service object is used to represent the org policy
+  attached to a resource. It servces the same purpose as the
+  orgpolicy.v2.Policy object but with functionality that is limited to what is
+  supported by Assured Workloads(e.g. only one rule under one OrgPolicy
+  object, no conditions, etc).
+
+  Fields:
+    constraint: The constraint name of the OrgPolicy. e.g.
+      "constraints/gcp.resourceLocations".
+    inherit: If `inherit` is true, policy rules of the lowest ancestor in the
+      resource hierarchy chain are inherited. If it is false, policy rules are
+      not inherited.
+    reset: Ignores policies set above this resource and restores to the
+      `constraint_default` value. `reset` can only be true when `rules` is
+      empty and `inherit` is false.
+    resource: Resource that the OrgPolicy attaches to. Format: folders/123"
+      projects/123".
+    rule: The rule of the OrgPolicy.
+  """
+
+  constraint = _messages.StringField(1)
+  inherit = _messages.BooleanField(2)
+  reset = _messages.BooleanField(3)
+  resource = _messages.StringField(4)
+  rule = _messages.MessageField('GoogleCloudAssuredworkloadsV1OrgPolicyPolicyRule', 5)
+
+
+class GoogleCloudAssuredworkloadsV1OrgPolicyPolicyRule(_messages.Message):
+  r"""A rule used to express this policy.
+
+  Fields:
+    allowAll: ListPolicy only when all values are allowed.
+    denyAll: ListPolicy only when all values are denied.
+    enforce: BooleanPolicy only.
+    values: ListPolicy only when custom values are specified.
+  """
+
+  allowAll = _messages.BooleanField(1)
+  denyAll = _messages.BooleanField(2)
+  enforce = _messages.BooleanField(3)
+  values = _messages.MessageField('GoogleCloudAssuredworkloadsV1OrgPolicyPolicyRuleStringValues', 4)
+
+
+class GoogleCloudAssuredworkloadsV1OrgPolicyPolicyRuleStringValues(_messages.Message):
+  r"""The values allowed for a ListPolicy.
+
+  Fields:
+    allowedValues: List of values allowed at this resource.
+    deniedValues: List of values denied at this resource.
+  """
+
+  allowedValues = _messages.StringField(1, repeated=True)
+  deniedValues = _messages.StringField(2, repeated=True)
+
+
+class GoogleCloudAssuredworkloadsV1OrgPolicyUpdate(_messages.Message):
+  r"""Represents an update for an org policy control applied on an Assured
+  Workload resource. The inherited org policy is not considered.
+
+  Fields:
+    appliedPolicy: The org policy currently applied on the assured workload
+      resource.
+    suggestedPolicy: The suggested org policy that replaces the applied
+      policy.
+  """
+
+  appliedPolicy = _messages.MessageField('GoogleCloudAssuredworkloadsV1OrgPolicy', 1)
+  suggestedPolicy = _messages.MessageField('GoogleCloudAssuredworkloadsV1OrgPolicy', 2)
+
+
 class GoogleCloudAssuredworkloadsV1RestrictAllowedResourcesRequest(_messages.Message):
   r"""Request for restricting list of available resources in Workload
   environment.
@@ -533,6 +782,16 @@ class GoogleCloudAssuredworkloadsV1RestrictAllowedResourcesRequest(_messages.Mes
 
 class GoogleCloudAssuredworkloadsV1RestrictAllowedResourcesResponse(_messages.Message):
   r"""Response for restricting the list of allowed resources."""
+
+
+class GoogleCloudAssuredworkloadsV1UpdateDetails(_messages.Message):
+  r"""The details of the update.
+
+  Fields:
+    orgPolicyUpdate: Update to one org policy, e.g. gcp.resourceLocation.
+  """
+
+  orgPolicyUpdate = _messages.MessageField('GoogleCloudAssuredworkloadsV1OrgPolicyUpdate', 1)
 
 
 class GoogleCloudAssuredworkloadsV1Violation(_messages.Message):
@@ -687,6 +946,8 @@ class GoogleCloudAssuredworkloadsV1ViolationRemediation(_messages.Message):
       REMEDIATION_RESTRICT_CMEK_CRYPTO_KEY_PROJECTS_ORG_POLICY_VIOLATION:
         Remediation type for gcp.restrictCmekCryptoKeyProjects
       REMEDIATION_RESOURCE_VIOLATION: Remediation type for resource violation.
+      REMEDIATION_RESOURCE_VIOLATION_NON_CMEK_SERVICES: Remediation type for
+        resource violation due to gcp.restrictNonCmekServices
     """
     REMEDIATION_TYPE_UNSPECIFIED = 0
     REMEDIATION_BOOLEAN_ORG_POLICY_VIOLATION = 1
@@ -694,6 +955,7 @@ class GoogleCloudAssuredworkloadsV1ViolationRemediation(_messages.Message):
     REMEDIATION_LIST_DENIED_VALUES_ORG_POLICY_VIOLATION = 3
     REMEDIATION_RESTRICT_CMEK_CRYPTO_KEY_PROJECTS_ORG_POLICY_VIOLATION = 4
     REMEDIATION_RESOURCE_VIOLATION = 5
+    REMEDIATION_RESOURCE_VIOLATION_NON_CMEK_SERVICES = 6
 
   compliantValues = _messages.StringField(1, repeated=True)
   instructions = _messages.MessageField('GoogleCloudAssuredworkloadsV1ViolationRemediationInstructions', 2)
@@ -798,6 +1060,12 @@ class GoogleCloudAssuredworkloadsV1Workload(_messages.Message):
     partner: Optional. Partner regime associated with this workload.
     partnerPermissions: Optional. Permissions granted to the AW Partner SA
       account for the customer workload
+    partnerServicesBillingAccount: Optional. Billing account necessary for
+      purchasing services from Sovereign Partners. This field is required for
+      creating SIA/PSN/CNTXT partner workloads. The caller should have
+      'billing.resourceAssociations.create' IAM permission on this billing-
+      account. The format of this string is billingAccounts/AAAAAA-BBBBBB-
+      CCCCCC
     provisionedResourcesParent: Input only. The parent resource for the
       resources managed by this Assured Workload. May be either empty or a
       folder resource which is a child of the Workload parent. If not
@@ -825,6 +1093,8 @@ class GoogleCloudAssuredworkloadsV1Workload(_messages.Message):
       should only be updated via updateWorkload call. Any Changes to this
       field during the createWorkload call will not be honored. This will
       always be true while creating the workload.
+    workloadOptions: Optional. Options to be set for the given created
+      workload.
   """
 
   class ComplianceRegimeValueValuesEnum(_messages.Enum):
@@ -838,8 +1108,9 @@ class GoogleCloudAssuredworkloadsV1Workload(_messages.Message):
       FEDRAMP_MODERATE: FedRAMP Moderate data protection controls
       US_REGIONAL_ACCESS: Assured Workloads For US Regions data protection
         controls
-      HIPAA: Health Insurance Portability and Accountability Act controls
-      HITRUST: Health Information Trust Alliance controls
+      HIPAA: [DEPRECATED] Health Insurance Portability and Accountability Act
+        controls
+      HITRUST: [DEPRECATED] Health Information Trust Alliance controls
       EU_REGIONS_AND_SUPPORT: Assured Workloads For EU Regions and Support
         controls
       CA_REGIONS_AND_SUPPORT: Assured Workloads For Canada Regions and Support
@@ -848,15 +1119,47 @@ class GoogleCloudAssuredworkloadsV1Workload(_messages.Message):
       AU_REGIONS_AND_US_SUPPORT: Assured Workloads for Australia Regions and
         Support controls
       ASSURED_WORKLOADS_FOR_PARTNERS: Assured Workloads for Partners;
-      ISR_REGIONS: Assured Workloads for Israel
+      ISR_REGIONS: Assured Workloads for Israel Regions
       ISR_REGIONS_AND_SUPPORT: Assured Workloads for Israel Regions
       CA_PROTECTED_B: Assured Workloads for Canada Protected B regime
       IL5: Information protection as per DoD IL5 requirements.
       IL2: Information protection as per DoD IL2 requirements.
       JP_REGIONS_AND_SUPPORT: Assured Workloads for Japan Regions
-      KSA_REGIONS_AND_SUPPORT_WITH_SOVEREIGNTY_CONTROLS: KSA R5 Controls.
-      REGIONAL_CONTROLS: Assured Workloads for Regional Controls/Free Regions
-      FREE_REGIONS: Assured Workloads for Regional Controls/Free Regions
+      KSA_REGIONS_AND_SUPPORT_WITH_SOVEREIGNTY_CONTROLS: Assured Workloads
+        Sovereign Controls KSA
+      REGIONAL_CONTROLS: Assured Workloads for Regional Controls
+      HEALTHCARE_AND_LIFE_SCIENCES_CONTROLS: Healthcare and Life Science
+        Controls
+      HEALTHCARE_AND_LIFE_SCIENCES_CONTROLS_US_SUPPORT: Healthcare and Life
+        Science Controls with US Support
+      IRS_1075: Internal Revenue Service 1075 controls
+      CANADA_CONTROLLED_GOODS: Canada Controlled Goods
+      AUSTRALIA_DATA_BOUNDARY_AND_SUPPORT: Australia Data Boundary and Support
+      CANADA_DATA_BOUNDARY_AND_SUPPORT: Canada Data Boundary and Support
+      DATA_BOUNDARY_FOR_CANADA_CONTROLLED_GOODS: Data Boundary for Canada
+        Controlled Goods
+      DATA_BOUNDARY_FOR_CANADA_PROTECTED_B: Data Boundary for Canada Protected
+        B
+      DATA_BOUNDARY_FOR_CJIS: Data Boundary for CJIS
+      DATA_BOUNDARY_FOR_FEDRAMP_HIGH: Data Boundary for FedRAMP High
+      DATA_BOUNDARY_FOR_FEDRAMP_MODERATE: Data Boundary for FedRAMP Moderate
+      DATA_BOUNDARY_FOR_IL2: Data Boundary for IL2
+      DATA_BOUNDARY_FOR_IL4: Data Boundary for IL4
+      DATA_BOUNDARY_FOR_IL5: Data Boundary for IL5
+      DATA_BOUNDARY_FOR_IRS_PUBLICATION_1075: Data Boundary for IRS
+        Publication 1075
+      DATA_BOUNDARY_FOR_ITAR: Data Boundary for ITAR
+      EU_DATA_BOUNDARY_AND_SUPPORT: Data Boundary for EU Regions and Support
+      ISRAEL_DATA_BOUNDARY_AND_SUPPORT: Data Boundary for Israel Regions
+      US_DATA_BOUNDARY_AND_SUPPORT: Data Boundary for US Regions and Support
+      US_DATA_BOUNDARY_FOR_HEALTHCARE_AND_LIFE_SCIENCES: Data Boundary for US
+        Healthcare and Life Sciences
+      US_DATA_BOUNDARY_FOR_HEALTHCARE_AND_LIFE_SCIENCES_WITH_SUPPORT: Data
+        Boundary for US Healthcare and Life Sciences with Support
+      KSA_DATA_BOUNDARY_WITH_ACCESS_JUSTIFICATIONS: KSA Data Boundary with
+        Access Justifications
+      REGIONAL_DATA_BOUNDARY: Regional Data Boundary
+      JAPAN_DATA_BOUNDARY: JAPAN Data Boundary
     """
     COMPLIANCE_REGIME_UNSPECIFIED = 0
     IL4 = 1
@@ -879,7 +1182,30 @@ class GoogleCloudAssuredworkloadsV1Workload(_messages.Message):
     JP_REGIONS_AND_SUPPORT = 18
     KSA_REGIONS_AND_SUPPORT_WITH_SOVEREIGNTY_CONTROLS = 19
     REGIONAL_CONTROLS = 20
-    FREE_REGIONS = 21
+    HEALTHCARE_AND_LIFE_SCIENCES_CONTROLS = 21
+    HEALTHCARE_AND_LIFE_SCIENCES_CONTROLS_US_SUPPORT = 22
+    IRS_1075 = 23
+    CANADA_CONTROLLED_GOODS = 24
+    AUSTRALIA_DATA_BOUNDARY_AND_SUPPORT = 25
+    CANADA_DATA_BOUNDARY_AND_SUPPORT = 26
+    DATA_BOUNDARY_FOR_CANADA_CONTROLLED_GOODS = 27
+    DATA_BOUNDARY_FOR_CANADA_PROTECTED_B = 28
+    DATA_BOUNDARY_FOR_CJIS = 29
+    DATA_BOUNDARY_FOR_FEDRAMP_HIGH = 30
+    DATA_BOUNDARY_FOR_FEDRAMP_MODERATE = 31
+    DATA_BOUNDARY_FOR_IL2 = 32
+    DATA_BOUNDARY_FOR_IL4 = 33
+    DATA_BOUNDARY_FOR_IL5 = 34
+    DATA_BOUNDARY_FOR_IRS_PUBLICATION_1075 = 35
+    DATA_BOUNDARY_FOR_ITAR = 36
+    EU_DATA_BOUNDARY_AND_SUPPORT = 37
+    ISRAEL_DATA_BOUNDARY_AND_SUPPORT = 38
+    US_DATA_BOUNDARY_AND_SUPPORT = 39
+    US_DATA_BOUNDARY_FOR_HEALTHCARE_AND_LIFE_SCIENCES = 40
+    US_DATA_BOUNDARY_FOR_HEALTHCARE_AND_LIFE_SCIENCES_WITH_SUPPORT = 41
+    KSA_DATA_BOUNDARY_WITH_ACCESS_JUSTIFICATIONS = 42
+    REGIONAL_DATA_BOUNDARY = 43
+    JAPAN_DATA_BOUNDARY = 44
 
   class KajEnrollmentStateValueValuesEnum(_messages.Enum):
     r"""Output only. Represents the KAJ enrollment state of the given
@@ -905,12 +1231,18 @@ class GoogleCloudAssuredworkloadsV1Workload(_messages.Message):
       SOVEREIGN_CONTROLS_BY_SIA_MINSAIT: Enum representing SIA_MINSAIT (Indra)
         partner.
       SOVEREIGN_CONTROLS_BY_PSN: Enum representing PSN (TIM) partner.
+      SOVEREIGN_CONTROLS_BY_CNTXT: Enum representing CNTXT (Kingdom of Saudi
+        Arabia) partner.
+      SOVEREIGN_CONTROLS_BY_CNTXT_NO_EKM: Enum representing CNTXT (Kingdom of
+        Saudi Arabia) partner offering without EKM.
     """
     PARTNER_UNSPECIFIED = 0
     LOCAL_CONTROLS_BY_S3NS = 1
     SOVEREIGN_CONTROLS_BY_T_SYSTEMS = 2
     SOVEREIGN_CONTROLS_BY_SIA_MINSAIT = 3
     SOVEREIGN_CONTROLS_BY_PSN = 4
+    SOVEREIGN_CONTROLS_BY_CNTXT = 5
+    SOVEREIGN_CONTROLS_BY_CNTXT_NO_EKM = 6
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
@@ -951,12 +1283,14 @@ class GoogleCloudAssuredworkloadsV1Workload(_messages.Message):
   name = _messages.StringField(13)
   partner = _messages.EnumField('PartnerValueValuesEnum', 14)
   partnerPermissions = _messages.MessageField('GoogleCloudAssuredworkloadsV1WorkloadPartnerPermissions', 15)
-  provisionedResourcesParent = _messages.StringField(16)
-  resourceMonitoringEnabled = _messages.BooleanField(17)
-  resourceSettings = _messages.MessageField('GoogleCloudAssuredworkloadsV1WorkloadResourceSettings', 18, repeated=True)
-  resources = _messages.MessageField('GoogleCloudAssuredworkloadsV1WorkloadResourceInfo', 19, repeated=True)
-  saaEnrollmentResponse = _messages.MessageField('GoogleCloudAssuredworkloadsV1WorkloadSaaEnrollmentResponse', 20)
-  violationNotificationsEnabled = _messages.BooleanField(21)
+  partnerServicesBillingAccount = _messages.StringField(16)
+  provisionedResourcesParent = _messages.StringField(17)
+  resourceMonitoringEnabled = _messages.BooleanField(18)
+  resourceSettings = _messages.MessageField('GoogleCloudAssuredworkloadsV1WorkloadResourceSettings', 19, repeated=True)
+  resources = _messages.MessageField('GoogleCloudAssuredworkloadsV1WorkloadResourceInfo', 20, repeated=True)
+  saaEnrollmentResponse = _messages.MessageField('GoogleCloudAssuredworkloadsV1WorkloadSaaEnrollmentResponse', 21)
+  violationNotificationsEnabled = _messages.BooleanField(22)
+  workloadOptions = _messages.MessageField('GoogleCloudAssuredworkloadsV1WorkloadWorkloadOptions', 23)
 
 
 class GoogleCloudAssuredworkloadsV1WorkloadComplianceStatus(_messages.Message):
@@ -987,15 +1321,15 @@ class GoogleCloudAssuredworkloadsV1WorkloadEkmProvisioningResponse(_messages.Mes
       error if any.
     EkmProvisioningErrorMappingValueValuesEnum: Detailed error message if Ekm
       provisioning fails
-    EkmProvisioningStateValueValuesEnum: Indicates Ekm enrollment Provisioning
-      of a given workload.
+    EkmProvisioningStateValueValuesEnum: Output only. Indicates Ekm enrollment
+      Provisioning of a given workload.
 
   Fields:
     ekmProvisioningErrorDomain: Indicates Ekm provisioning error if any.
     ekmProvisioningErrorMapping: Detailed error message if Ekm provisioning
       fails
-    ekmProvisioningState: Indicates Ekm enrollment Provisioning of a given
-      workload.
+    ekmProvisioningState: Output only. Indicates Ekm enrollment Provisioning
+      of a given workload.
   """
 
   class EkmProvisioningErrorDomainValueValuesEnum(_messages.Enum):
@@ -1036,7 +1370,8 @@ class GoogleCloudAssuredworkloadsV1WorkloadEkmProvisioningResponse(_messages.Mes
     MISSING_EKM_CONNECTION_ADMIN_PERMISSION = 3
 
   class EkmProvisioningStateValueValuesEnum(_messages.Enum):
-    r"""Indicates Ekm enrollment Provisioning of a given workload.
+    r"""Output only. Indicates Ekm enrollment Provisioning of a given
+    workload.
 
     Values:
       EKM_PROVISIONING_STATE_UNSPECIFIED: Default State for Ekm Provisioning
@@ -1075,17 +1410,20 @@ class GoogleCloudAssuredworkloadsV1WorkloadPartnerPermissions(_messages.Message)
   workload
 
   Fields:
+    accessTransparencyLogsSupportCaseViewer: Optional. Allow partner to view
+      support case details for an AXT log
     assuredWorkloadsMonitoring: Optional. Allow partner to view violation
       alerts.
-    dataLogsViewer: Allow the partner to view inspectability logs and
-      monitoring violations.
+    dataLogsViewer: Optional. Allow the partner to view inspectability logs
+      and monitoring violations.
     serviceAccessApprover: Optional. Allow partner to view access approval
       logs.
   """
 
-  assuredWorkloadsMonitoring = _messages.BooleanField(1)
-  dataLogsViewer = _messages.BooleanField(2)
-  serviceAccessApprover = _messages.BooleanField(3)
+  accessTransparencyLogsSupportCaseViewer = _messages.BooleanField(1)
+  assuredWorkloadsMonitoring = _messages.BooleanField(2)
+  dataLogsViewer = _messages.BooleanField(3)
+  serviceAccessApprover = _messages.BooleanField(4)
 
 
 class GoogleCloudAssuredworkloadsV1WorkloadResourceInfo(_messages.Message):
@@ -1095,8 +1433,8 @@ class GoogleCloudAssuredworkloadsV1WorkloadResourceInfo(_messages.Message):
     ResourceTypeValueValuesEnum: Indicates the type of resource.
 
   Fields:
-    resourceId: Resource identifier. For a project this represents
-      project_number.
+    resourceId: Output only. Resource identifier. For a project this
+      represents project_number.
     resourceType: Indicates the type of resource.
   """
 
@@ -1172,12 +1510,13 @@ class GoogleCloudAssuredworkloadsV1WorkloadSaaEnrollmentResponse(_messages.Messa
 
   Enums:
     SetupErrorsValueListEntryValuesEnum:
-    SetupStatusValueValuesEnum: Indicates SAA enrollment status of a given
-      workload.
+    SetupStatusValueValuesEnum: Output only. Indicates SAA enrollment status
+      of a given workload.
 
   Fields:
     setupErrors: Indicates SAA enrollment setup error if any.
-    setupStatus: Indicates SAA enrollment status of a given workload.
+    setupStatus: Output only. Indicates SAA enrollment status of a given
+      workload.
   """
 
   class SetupErrorsValueListEntryValuesEnum(_messages.Enum):
@@ -1202,7 +1541,7 @@ class GoogleCloudAssuredworkloadsV1WorkloadSaaEnrollmentResponse(_messages.Messa
     ERROR_SETUP_CHECK_FAILED = 4
 
   class SetupStatusValueValuesEnum(_messages.Enum):
-    r"""Indicates SAA enrollment status of a given workload.
+    r"""Output only. Indicates SAA enrollment status of a given workload.
 
     Values:
       SETUP_STATE_UNSPECIFIED: Unspecified.
@@ -1215,6 +1554,69 @@ class GoogleCloudAssuredworkloadsV1WorkloadSaaEnrollmentResponse(_messages.Messa
 
   setupErrors = _messages.EnumField('SetupErrorsValueListEntryValuesEnum', 1, repeated=True)
   setupStatus = _messages.EnumField('SetupStatusValueValuesEnum', 2)
+
+
+class GoogleCloudAssuredworkloadsV1WorkloadUpdate(_messages.Message):
+  r"""A workload update is a change to the workload's compliance
+  configuration.
+
+  Enums:
+    StateValueValuesEnum: Output only. The state of the update.
+
+  Fields:
+    createTime: The time the update was created.
+    details: The details of the update.
+    name: Output only. Immutable. Identifier. Resource name of the
+      WorkloadUpdate. Format: organizations/{organization}/locations/{location
+      }/workloads/{workload}/updates/{update}
+    state: Output only. The state of the update.
+    updateTime: The time the update was last updated.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. The state of the update.
+
+    Values:
+      STATE_UNSPECIFIED: Unspecified.
+      AVAILABLE: The update is available to be applied.
+      APPLIED: The update has been applied.
+      WITHDRAWN: The update has been withdrawn by the service.
+    """
+    STATE_UNSPECIFIED = 0
+    AVAILABLE = 1
+    APPLIED = 2
+    WITHDRAWN = 3
+
+  createTime = _messages.StringField(1)
+  details = _messages.MessageField('GoogleCloudAssuredworkloadsV1UpdateDetails', 2)
+  name = _messages.StringField(3)
+  state = _messages.EnumField('StateValueValuesEnum', 4)
+  updateTime = _messages.StringField(5)
+
+
+class GoogleCloudAssuredworkloadsV1WorkloadWorkloadOptions(_messages.Message):
+  r"""Options to be set for the given created workload.
+
+  Enums:
+    KajEnrollmentTypeValueValuesEnum: Optional. Specifies type of KAJ
+      Enrollment if provided.
+
+  Fields:
+    kajEnrollmentType: Optional. Specifies type of KAJ Enrollment if provided.
+  """
+
+  class KajEnrollmentTypeValueValuesEnum(_messages.Enum):
+    r"""Optional. Specifies type of KAJ Enrollment if provided.
+
+    Values:
+      KAJ_ENROLLMENT_TYPE_UNSPECIFIED: KAJ Enrollment type is unspecified
+      KEY_ACCESS_TRANSPARENCY_OFF: KAT sets External, Hardware, and Software
+        key feature logging only to TRUE.
+    """
+    KAJ_ENROLLMENT_TYPE_UNSPECIFIED = 0
+    KEY_ACCESS_TRANSPARENCY_OFF = 1
+
+  kajEnrollmentType = _messages.EnumField('KajEnrollmentTypeValueValuesEnum', 1)
 
 
 class GoogleLongrunningListOperationsResponse(_messages.Message):
@@ -1467,3 +1869,7 @@ encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    AssuredworkloadsOrganizationsLocationsWorkloadsViolationsListRequest, 'interval_endTime', 'interval.endTime')
+encoding.AddCustomJsonFieldMapping(
+    AssuredworkloadsOrganizationsLocationsWorkloadsViolationsListRequest, 'interval_startTime', 'interval.startTime')

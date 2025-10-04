@@ -64,7 +64,9 @@ class AutoDetectDecodingConfig(_messages.Message):
   an rfc4867.5 header. * FLAC: FLAC frames in the "native FLAC" container
   format. * MP3: MPEG audio frames with optional (ignored) ID3 metadata. *
   OGG_OPUS: Opus audio frames in an Ogg container. * WEBM_OPUS: Opus audio
-  frames in a WebM container. * M4A: M4A audio format.
+  frames in a WebM container. * MP4_AAC: AAC audio frames in an MP4 container.
+  * M4A_AAC: AAC audio frames in an M4A container. * MOV_AAC: AAC audio frames
+  in an MOV container.
   """
 
 
@@ -179,7 +181,7 @@ class BatchRecognizeRequest(_messages.Message):
       provided, config completely overrides and replaces the config in the
       recognizer for this recognition request.
     files: Audio files with file metadata for ASR. The maximum number of files
-      allowed to be specified is 5.
+      allowed to be specified is 15.
     processingStrategy: Processing strategy to use for this request.
     recognitionOutputConfig: Configuration options for where to output the
       transcripts of each file.
@@ -564,6 +566,23 @@ class DeleteRecognizerRequest(_messages.Message):
   validateOnly = _messages.BooleanField(4)
 
 
+class DenoiserConfig(_messages.Message):
+  r"""Denoiser config. May not be supported for all models and may have no
+  effect.
+
+  Fields:
+    denoiseAudio: Denoise audio before sending to the transcription model.
+    snrThreshold: Signal-to-Noise Ratio (SNR) threshold for the denoiser. Here
+      SNR means the loudness of the speech signal. Audio with an SNR below
+      this threshold, meaning the speech is too quiet, will be prevented from
+      being sent to the transcription model. If snr_threshold=0, no filtering
+      will be applied.
+  """
+
+  denoiseAudio = _messages.BooleanField(1)
+  snrThreshold = _messages.FloatField(2, variant=_messages.Variant.FLOAT)
+
+
 class Entry(_messages.Message):
   r"""A single replacement configuration.
 
@@ -586,20 +605,18 @@ class ExplicitDecodingConfig(_messages.Message):
       recognition.
 
   Fields:
-    audioChannelCount: Number of channels present in the audio data sent for
-      recognition. Supported for the following encodings: * LINEAR16:
-      Headerless 16-bit signed little-endian PCM samples. * MULAW: Headerless
-      8-bit companded mulaw samples. * ALAW: Headerless 8-bit companded alaw
-      samples. The maximum allowed value is 8.
+    audioChannelCount: Optional. Number of channels present in the audio data
+      sent for recognition. Note that this field is marked as OPTIONAL for
+      backward compatibility reasons. It is (and has always been) effectively
+      REQUIRED. The maximum allowed value is 8.
     encoding: Required. Encoding of the audio data sent for recognition.
-    sampleRateHertz: Sample rate in Hertz of the audio data sent for
-      recognition. Valid values are: 8000-48000. 16000 is optimal. For best
-      results, set the sampling rate of the audio source to 16000 Hz. If
+    sampleRateHertz: Optional. Sample rate in Hertz of the audio data sent for
+      recognition. Valid values are: 8000-48000, and 16000 is optimal. For
+      best results, set the sampling rate of the audio source to 16000 Hz. If
       that's not possible, use the native sample rate of the audio source
-      (instead of re-sampling). Supported for the following encodings: *
-      LINEAR16: Headerless 16-bit signed little-endian PCM samples. * MULAW:
-      Headerless 8-bit companded mulaw samples. * ALAW: Headerless 8-bit
-      companded alaw samples.
+      (instead of resampling). Note that this field is marked as OPTIONAL for
+      backward compatibility reasons. It is (and has always been) effectively
+      REQUIRED.
   """
 
   class EncodingValueValuesEnum(_messages.Enum):
@@ -610,11 +627,29 @@ class ExplicitDecodingConfig(_messages.Message):
       LINEAR16: Headerless 16-bit signed little-endian PCM samples.
       MULAW: Headerless 8-bit companded mulaw samples.
       ALAW: Headerless 8-bit companded alaw samples.
+      AMR: AMR frames with an rfc4867.5 header.
+      AMR_WB: AMR-WB frames with an rfc4867.5 header.
+      FLAC: FLAC frames in the "native FLAC" container format.
+      MP3: MPEG audio frames with optional (ignored) ID3 metadata.
+      OGG_OPUS: Opus audio frames in an Ogg container.
+      WEBM_OPUS: Opus audio frames in a WebM container.
+      MP4_AAC: AAC audio frames in an MP4 container.
+      M4A_AAC: AAC audio frames in an M4A container.
+      MOV_AAC: AAC audio frames in an MOV container.
     """
     AUDIO_ENCODING_UNSPECIFIED = 0
     LINEAR16 = 1
     MULAW = 2
     ALAW = 3
+    AMR = 4
+    AMR_WB = 5
+    FLAC = 6
+    MP3 = 7
+    OGG_OPUS = 8
+    WEBM_OPUS = 9
+    MP4_AAC = 10
+    M4A_AAC = 11
+    MOV_AAC = 12
 
   audioChannelCount = _messages.IntegerField(1, variant=_messages.Variant.INT32)
   encoding = _messages.EnumField('EncodingValueValuesEnum', 2)
@@ -855,7 +890,7 @@ class LocationsMetadata(_messages.Message):
 
 
 class ModelFeature(_messages.Message):
-  r"""Representes a singular feature of a model. If the feature is
+  r"""Represents a singular feature of a model. If the feature is
   `recognizer`, the release_state of the feature represents the release_state
   of the model
 
@@ -1107,12 +1142,12 @@ class OutputFormatConfig(_messages.Message):
 
   Fields:
     native: Configuration for the native output format. If this field is set
-      or if no other output format field is set then transcripts will be
+      or if no other output format field is set, then transcripts will be
       written to the sink in the native format.
-    srt: Configuration for the srt output format. If this field is set then
-      transcripts will be written to the sink in the srt format.
-    vtt: Configuration for the vtt output format. If this field is set then
-      transcripts will be written to the sink in the vtt format.
+    srt: Configuration for the SRT output format. If this field is set, then
+      transcripts will be written to the sink in the SRT format.
+    vtt: Configuration for the VTT output format. If this field is set, then
+      transcripts will be written to the sink in the VTT format.
   """
 
   native = _messages.MessageField('NativeOutputFileFormatConfig', 1)
@@ -1264,6 +1299,8 @@ class RecognitionConfig(_messages.Message):
       for specific words and phrases.
     autoDecodingConfig: Automatically detect decoding parameters. Preferred
       for supported formats.
+    denoiserConfig: Optional. Optional denoiser config. May not be supported
+      for all models and may have no effect.
     explicitDecodingConfig: Explicitly specified decoding parameters. Required
       if using headerless PCM audio (linear16, mulaw, alaw).
     features: Speech recognition features to enable.
@@ -1295,12 +1332,13 @@ class RecognitionConfig(_messages.Message):
 
   adaptation = _messages.MessageField('SpeechAdaptation', 1)
   autoDecodingConfig = _messages.MessageField('AutoDetectDecodingConfig', 2)
-  explicitDecodingConfig = _messages.MessageField('ExplicitDecodingConfig', 3)
-  features = _messages.MessageField('RecognitionFeatures', 4)
-  languageCodes = _messages.StringField(5, repeated=True)
-  model = _messages.StringField(6)
-  transcriptNormalization = _messages.MessageField('TranscriptNormalization', 7)
-  translationConfig = _messages.MessageField('TranslationConfig', 8)
+  denoiserConfig = _messages.MessageField('DenoiserConfig', 3)
+  explicitDecodingConfig = _messages.MessageField('ExplicitDecodingConfig', 4)
+  features = _messages.MessageField('RecognitionFeatures', 5)
+  languageCodes = _messages.StringField(6, repeated=True)
+  model = _messages.StringField(7)
+  transcriptNormalization = _messages.MessageField('TranscriptNormalization', 8)
+  translationConfig = _messages.MessageField('TranslationConfig', 9)
 
 
 class RecognitionFeatures(_messages.Message):
@@ -1398,11 +1436,13 @@ class RecognitionResponseMetadata(_messages.Message):
   r"""Metadata about the recognition request and response.
 
   Fields:
+    requestId: Global request identifier auto-generated by the API.
     totalBilledDuration: When available, billed audio seconds for the
       corresponding request.
   """
 
-  totalBilledDuration = _messages.StringField(1)
+  requestId = _messages.StringField(1)
+  totalBilledDuration = _messages.StringField(2)
 
 
 class RecognizeRequest(_messages.Message):
@@ -1754,6 +1794,9 @@ class SpeechProjectsLocationsListRequest(_messages.Message):
   r"""A SpeechProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -1764,10 +1807,11 @@ class SpeechProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class SpeechProjectsLocationsOperationsGetRequest(_messages.Message):

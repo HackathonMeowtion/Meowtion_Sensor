@@ -1,4 +1,4 @@
-- release_tracks: [ALPHA]
+- release_tracks: [ALPHA, GA]
   help_text:
     brief: List backup plans in the project
     description: List backup plans in the project.
@@ -23,17 +23,5 @@
       spec: !REF googlecloudsdk.command_lib.backupdr.resources:locationDefaultGlobal
 
   output:
-    format: |
-      table(
-        name.basename():label=NAME:sort=2,
-        name.scope("locations").segment(0):label=LOCATION,
-        state:label=STATUS,
-        createTime.date():sort=1:reverse,
-        backupRules[]:format=
-          'table(
-            ruleId:label=BACKUP_RULE_ID,
-            backupRetentionDays:label=RETENTION_DAYS,
-            standardSchedule.recurrenceType:label=RECURRENCE_TYPE,
-            backupVault.basename():label=BACKUP_VAULT_NAME
-          )'
-      )
+    format: json
+# TODO: b/336698260 Update the format to table format

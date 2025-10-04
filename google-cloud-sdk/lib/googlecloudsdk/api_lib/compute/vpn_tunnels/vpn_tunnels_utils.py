@@ -47,9 +47,21 @@ class VpnTunnelHelper(object):
     return self._client.vpnTunnels
 
   def GetHighAvailabilityVpnTunnelForInsert(
-      self, name, description, ike_version, peer_ip, shared_secret, vpn_gateway,
-      vpn_gateway_interface, router, peer_external_gateway,
-      peer_external_gateway_interface, peer_gcp_gateway):
+      self,
+      name,
+      description,
+      ike_version,
+      peer_ip,
+      shared_secret,
+      vpn_gateway,
+      vpn_gateway_interface,
+      router,
+      peer_external_gateway,
+      peer_external_gateway_interface,
+      peer_gcp_gateway,
+      params=None,
+      support_tagging_at_creation=False,
+  ):
     """Returns the HA VpnTunnel message for an insert request.
 
     Args:
@@ -69,24 +81,102 @@ class VpnTunnelHelper(object):
         gateway to which the VPN tunnel is connected.
       peer_external_gateway_interface: Interface ID of the External VPN gateway
         to which this VPN tunnel is connected.
-      peer_gcp_gateway:  String representing of peer side HA GCP VPN gateway
-        to which this VPN tunnel is connected.
+      peer_gcp_gateway:  String representing of peer side HA GCP VPN gateway to
+        which this VPN tunnel is connected.
+      params: Dictionary of params to set on the request.
+      support_tagging_at_creation: Boolean representing the support of tagging
+        at creation.
 
     Returns:
       The VpnTunnel message object that can be used in an insert request.
     """
+    vpn_tunnel_args = {
+        'name': name,
+        'description': description,
+        'ikeVersion': ike_version,
+        'peerIp': peer_ip,
+        'sharedSecret': shared_secret,
+        'vpnGateway': vpn_gateway,
+        'vpnGatewayInterface': vpn_gateway_interface,
+        'router': router,
+        'peerExternalGateway': peer_external_gateway,
+        'peerExternalGatewayInterface': peer_external_gateway_interface,
+        'peerGcpGateway': peer_gcp_gateway,
+    }
+    if (support_tagging_at_creation and params is not None):
+      vpn_tunnel_args['params'] = params
+
     return self._messages.VpnTunnel(
-        name=name,
-        description=description,
-        ikeVersion=ike_version,
-        peerIp=peer_ip,
-        sharedSecret=shared_secret,
-        vpnGateway=vpn_gateway,
-        vpnGatewayInterface=vpn_gateway_interface,
-        router=router,
-        peerExternalGateway=peer_external_gateway,
-        peerExternalGatewayInterface=peer_external_gateway_interface,
-        peerGcpGateway=peer_gcp_gateway)
+        **vpn_tunnel_args
+    )
+
+  def GetHighAvailabilityVpnTunnelForInsertWithCipherSuite(
+      self,
+      name,
+      description,
+      ike_version,
+      peer_ip,
+      shared_secret,
+      vpn_gateway,
+      vpn_gateway_interface,
+      router,
+      peer_external_gateway,
+      peer_external_gateway_interface,
+      peer_gcp_gateway,
+      cipher_suite=None,
+      params=None,
+      support_tagging_at_creation=False,
+  ):
+    """Returns the HA VpnTunnel message for an insert request.
+
+    Args:
+      name: String representing the name of the VPN tunnel resource.
+      description: String representing the description for the VPN tunnel
+        resource.
+      ike_version: The IKE protocol version for establishing the VPN tunnel.
+      peer_ip: String representing the peer IP address for the VPN tunnel.
+      shared_secret: String representing the shared secret (IKE pre-shared key).
+      vpn_gateway: String representing the VPN Gateway URL the VPN tunnel
+        resource should be associated with.
+      vpn_gateway_interface: Integer representing the VPN Gateway interface ID
+        that VPN tunnel resource should be associated with.
+      router: String representing the Router URL the VPN tunnel resource should
+        be associated with.
+      peer_external_gateway: String representing of the peer side external VPN
+        gateway to which the VPN tunnel is connected.
+      peer_external_gateway_interface: Interface ID of the External VPN gateway
+        to which this VPN tunnel is connected.
+      peer_gcp_gateway:  String representing of peer side HA GCP VPN gateway to
+        which this VPN tunnel is connected.
+      cipher_suite: String representing the cipher suite to use for the VPN
+        tunnel.
+      params: Dictionary of params to set on the request.
+      support_tagging_at_creation: Boolean representing the support of tagging
+        at creation.
+
+    Returns:
+      The VpnTunnel message object that can be used in an insert request.
+    """
+    vpn_tunnel_args = {
+        'name': name,
+        'description': description,
+        'ikeVersion': ike_version,
+        'peerIp': peer_ip,
+        'sharedSecret': shared_secret,
+        'vpnGateway': vpn_gateway,
+        'vpnGatewayInterface': vpn_gateway_interface,
+        'router': router,
+        'peerExternalGateway': peer_external_gateway,
+        'peerExternalGatewayInterface': peer_external_gateway_interface,
+        'peerGcpGateway': peer_gcp_gateway,
+        'cipherSuite': cipher_suite,
+    }
+    if (support_tagging_at_creation and params is not None):
+      vpn_tunnel_args['params'] = params
+
+    return self._messages.VpnTunnel(
+        **vpn_tunnel_args
+    )
 
   def GetClassicVpnTunnelForInsert(self,
                                    name,
@@ -95,9 +185,64 @@ class VpnTunnelHelper(object):
                                    peer_ip,
                                    shared_secret,
                                    target_vpn_gateway,
-                                   router=None,
                                    local_traffic_selector=None,
-                                   remote_traffic_selector=None):
+                                   remote_traffic_selector=None,
+                                   params=None,
+                                   support_tagging_at_creation=False):
+    """Returns the Classic VpnTunnel message for an insert request.
+
+    Args:
+      name: String representing the name of the VPN tunnel resource.
+      description: String representing the description for the VPN tunnel
+        resource.
+      ike_version: The IKE protocol version for establishing the VPN tunnel.
+      peer_ip: String representing the peer IP address for the VPN tunnel.
+      shared_secret: String representing the shared secret (IKE pre-shared key).
+      target_vpn_gateway: String representing the Target VPN Gateway URL the VPN
+        tunnel resource should be associated with.
+      local_traffic_selector: List of strings representing the local CIDR ranges
+        that should be able to send traffic using this VPN tunnel.
+      remote_traffic_selector: List of strings representing the remote CIDR
+        ranges that should be able to send traffic using this VPN tunnel.
+      params: Dictionary of params to set on the request.
+      support_tagging_at_creation: Boolean representing the support of tagging
+        at creation.
+
+    Returns:
+      The VpnTunnel message object that can be used in an insert request.
+    """
+    vpn_tunnel_args = {
+        'name': name,
+        'description': description,
+        'ikeVersion': ike_version,
+        'peerIp': peer_ip,
+        'sharedSecret': shared_secret,
+        'targetVpnGateway': target_vpn_gateway,
+        'localTrafficSelector': local_traffic_selector or [],
+        'remoteTrafficSelector': remote_traffic_selector or [],
+    }
+    if (support_tagging_at_creation and params is not None):
+      vpn_tunnel_args['params'] = params
+
+    return self._messages.VpnTunnel(
+        **vpn_tunnel_args
+    )
+
+  def GetClassicVpnTunnelForInsertWithCipherSuite(
+      self,
+      name,
+      description,
+      ike_version,
+      peer_ip,
+      shared_secret,
+      target_vpn_gateway,
+      router=None,
+      local_traffic_selector=None,
+      remote_traffic_selector=None,
+      cipher_suite=None,
+      params=None,
+      support_tagging_at_creation=False,
+  ):
     """Returns the Classic VpnTunnel message for an insert request.
 
     Args:
@@ -115,20 +260,68 @@ class VpnTunnelHelper(object):
         that should be able to send traffic using this VPN tunnel.
       remote_traffic_selector: List of strings representing the remote CIDR
         ranges that should be able to send traffic using this VPN tunnel.
+      cipher_suite: The cipher suite to use during IKE negotiation.
+      params: Dictionary of params to set on the request.
+      support_tagging_at_creation: Boolean representing the support of tagging
+        at creation.
 
     Returns:
       The VpnTunnel message object that can be used in an insert request.
     """
+
+    vpn_tunnel_args = {
+        'name': name,
+        'description': description,
+        'ikeVersion': ike_version,
+        'peerIp': peer_ip,
+        'sharedSecret': shared_secret,
+        'targetVpnGateway': target_vpn_gateway,
+        'router': router,
+        'localTrafficSelector': local_traffic_selector or [],
+        'remoteTrafficSelector': remote_traffic_selector or [],
+        'cipherSuite': cipher_suite,
+    }
+    if (support_tagging_at_creation and params is not None):
+      vpn_tunnel_args['params'] = params
+
     return self._messages.VpnTunnel(
-        name=name,
-        description=description,
-        ikeVersion=ike_version,
-        peerIp=peer_ip,
-        sharedSecret=shared_secret,
-        targetVpnGateway=target_vpn_gateway,
-        router=router,
-        localTrafficSelector=local_traffic_selector or [],
-        remoteTrafficSelector=remote_traffic_selector or [])
+        **vpn_tunnel_args
+    )
+
+  def GetVpnTunnelPhase1Algorithms(self, phase1_encryption=None,
+                                   phase1_integrity=None,
+                                   phase1_dh=None,
+                                   phase1_prf=None):
+    """Returns the phase 1 algorithms message object for a VPN tunnel."""
+    phase1_algorithms = self._messages.VpnTunnelPhase1Algorithms()
+    if phase1_dh:
+      phase1_algorithms.dh = phase1_dh
+    if phase1_encryption:
+      phase1_algorithms.encryption = phase1_encryption
+    if phase1_integrity:
+      phase1_algorithms.integrity = phase1_integrity
+    if phase1_prf:
+      phase1_algorithms.prf = phase1_prf
+    if (phase1_dh or phase1_encryption or phase1_integrity or phase1_prf):
+      return phase1_algorithms
+    else:
+      return None
+
+  def GetVpnTunnelPhase2Algorithms(self, phase2_encryption=None,
+                                   phase2_integrity=None,
+                                   phase2_pfs=None):
+    """Returns the phase 2 algorithms message object for a VPN tunnel."""
+    phase2_algorithms = self._messages.VpnTunnelPhase2Algorithms()
+    if phase2_encryption:
+      phase2_algorithms.encryption = phase2_encryption
+    if phase2_integrity:
+      phase2_algorithms.integrity = phase2_integrity
+    if phase2_pfs:
+      phase2_algorithms.pfs = phase2_pfs
+    if (phase2_encryption or phase2_integrity or phase2_pfs):
+      return phase2_algorithms
+    else:
+      return None
 
   def WaitForOperation(self, vpn_tunnel_ref, operation_ref, wait_message):
     """Waits for the specified operation to complete and returns the target.
@@ -189,20 +382,44 @@ class VpnTunnelHelper(object):
     return self._resources.Parse(
         operation.selfLink, collection='compute.regionOperations')
 
-  def List(self, project, filter_expr):
+  def List(self, project, filter_expr, regions=None):
     """Yields a VPN tunnel resource from the list of VPN tunnels.
 
     Sends an AggregatedList request to obtain the list of VPN tunnels and
     yields the next VPN tunnel in this list.
 
+    Sends a List request to obtain the list of VPN tunnels in the specified
+    regions and yields the next VPN tunnel in this list.
+
     Args:
       project: String representing the project to use for the request.
       filter_expr: The expression used to filter the results.
+      regions: List of regions to list VPN tunnels from. If not specified,
+        aggregated list is used.
     """
+    if regions:
+      for region in regions:
+        next_page_token = None
+        while True:
+          request = self._messages.ComputeVpnTunnelsListRequest(
+              project=project,
+              region=region,
+              filter=filter_expr,
+              pageToken=next_page_token,
+              returnPartialSuccess=True,
+          )
+          response = self._service.List(request)
+          next_page_token = response.nextPageToken
+          for vpn_tunnel in response.items:
+            yield vpn_tunnel
+          if not next_page_token:
+            break
+      return
     next_page_token = None
     while True:
       request = self._messages.ComputeVpnTunnelsAggregatedListRequest(
-          project=project, filter=filter_expr, pageToken=next_page_token)
+          project=project, filter=filter_expr, pageToken=next_page_token,
+          returnPartialSuccess=True)
       response = self._service.AggregatedList(request)
       next_page_token = response.nextPageToken
       for scoped_vpn_tunnels in response.items.additionalProperties:

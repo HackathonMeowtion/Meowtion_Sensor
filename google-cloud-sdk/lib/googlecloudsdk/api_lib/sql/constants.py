@@ -22,7 +22,7 @@ from __future__ import unicode_literals
 DEFAULT_MACHINE_TYPE = 'db-n1-standard-1'
 
 # Determining what executables, flags, and defaults to use for sql connect.
-DB_EXE = {'MYSQL': 'mysql', 'POSTGRES': 'psql', 'SQLSERVER': 'mssql-cli'}
+DB_EXE = {'MYSQL': 'mysql', 'POSTGRES': 'psql', 'SQLSERVER': 'sqlcmd'}
 
 EXE_FLAGS = {
     'mysql': {
@@ -38,7 +38,7 @@ EXE_FLAGS = {
         'port': '-p',
         'database': '-d'
     },
-    'mssql-cli': {
+    'sqlcmd': {
         'user': '-U',
         'hostname': '-S',
         'database': '-d'
@@ -48,7 +48,7 @@ EXE_FLAGS = {
 DEFAULT_SQL_USER = {
     'mysql': 'root',
     'psql': 'postgres',
-    'mssql-cli': 'sqlserver'
+    'sqlcmd': 'sqlserver'
 }
 
 # Size conversions.
@@ -62,3 +62,7 @@ DEFAULT_PROXY_PORT_NUMBER = 9470
 PROXY_ADDRESS_IN_USE_ERROR = 'bind: address already in use'
 
 PROXY_READY_FOR_CONNECTIONS_MSG = 'Ready for new connections'
+
+PROXY_V2_READY_FOR_CONNECTIONS_MSG = (
+    'The proxy has started successfully and is ready for new connections!'
+)

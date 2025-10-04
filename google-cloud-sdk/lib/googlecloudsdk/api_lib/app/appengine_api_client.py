@@ -37,11 +37,11 @@ from googlecloudsdk.api_lib.app import util
 from googlecloudsdk.api_lib.app import version_util
 from googlecloudsdk.api_lib.app.api import appengine_api_client_base
 from googlecloudsdk.api_lib.cloudbuild import logs as cloudbuild_logs
+from googlecloudsdk.appengine.admin.tools.conversion import convert_yaml
 from googlecloudsdk.calliope import base as calliope_base
 from googlecloudsdk.core import log
 from googlecloudsdk.core import properties
 from googlecloudsdk.core import resources
-from googlecloudsdk.third_party.appengine.admin.tools.conversion import convert_yaml
 import six
 from six.moves import filter  # pylint: disable=redefined-builtin
 from six.moves import map  # pylint: disable=redefined-builtin
@@ -57,6 +57,8 @@ APPENGINE_VERSIONS_MAP = {
 def GetApiClientForTrack(release_track):
   api_version = APPENGINE_VERSIONS_MAP[release_track]
   return AppengineApiClient.GetApiClient(api_version)
+
+gen1_runtimes = ['python27']
 
 
 class AppengineApiClient(appengine_api_client_base.AppengineApiClientBase):
@@ -131,7 +133,7 @@ class AppengineApiClient(appengine_api_client_base.AppengineApiClientBase):
     return operations_util.WaitForOperation(
         self.client.apps_operations, operation, message=progress_message)
 
-  def CreateApp(self, location, service_account=None):
+  def CreateApp(self, location, service_account=None, ssl_policy=None):
     """Creates an App Engine app within the current cloud project.
 
     Creates a new singleton app within the currently selected Cloud Project.
@@ -141,6 +143,8 @@ class AppengineApiClient(appengine_api_client_base.AppengineApiClientBase):
       location: str, The location (region) of the app, i.e. "us-central"
       service_account: str, The app level service account of the app, i.e.
         "123@test-app.iam.gserviceaccount.com"
+      ssl_policy: enum, the app-level SSL policy to update for this App Engine
+        app. Can be DEFAULT or MODERN.
 
     Raises:
       apitools_exceptions.HttpConflictError if app already exists
@@ -155,6 +159,9 @@ class AppengineApiClient(appengine_api_client_base.AppengineApiClientBase):
     else:
       create_request = self.messages.Application(
           id=self.project, locationId=location)
+
+    if ssl_policy:
+      create_request.sslPolicy = ssl_policy
 
     operation = self.client.apps.Create(create_request)
 
@@ -850,3 +857,88 @@ class AppengineApiClient(appengine_api_client_base.AppengineApiClientBase):
 
     return operations_util.WaitForOperation(self.client.apps_operations,
                                             operation)
+
+  def CheckGen1AppId(self, service_name, project_id):
+    """Checks if the service contains a Gen1 app.
+
+    Args:
+      service_name: str, The service name
+      project_id: str, The project id
+
+    Returns:
+      boolean, True if the service contains a Gen1 app, False otherwise
+    """
+    request = self.messages.AppengineAppsServicesMigrationCheckGen1appIdRequest(
+        name=self._GetServiceRelativeName(service_name),
+        checkGen1AppIdRequest=self.messages.CheckGen1AppIdRequest(
+            projectId=project_id
+        ),
+    )
+    return self.client.apps_services_migration.CheckGen1appId(request)
+
+  def MigrateConfigYaml(
+      self, project_id, config_as_string, runtime, service_name
+  ):
+    """Migrates the app.yaml file provided by the user to be Gen2 compatible.
+
+    Args:
+      project_id: str, The project id
+      config_as_string: str, The config as a string
+      runtime: str, The runtime
+      service_name: str, The service name
+
+    Returns:
+      str, The migrated config as a string
+    """
+    if runtime in gen1_runtimes:
+      runtime_enum = (
+          self.messages.MigrateConfigYamlRequest.RuntimeValueValuesEnum.GEN1_PYTHON27
+      )
+    else:
+      runtime_enum = (
+          self.messages.MigrateConfigYamlRequest.RuntimeValueValuesEnum.MIGRATION_ASSIST_RUNTIME_UNSPECIFIED
+      )
+    req = self.messages.AppengineAppsServicesMigrationMigrateConfigYamlRequest(
+        name=self._GetServiceRelativeName(service_name),
+        migrateConfigYamlRequest=self.messages.MigrateConfigYamlRequest(
+            projectId=project_id,
+            configAsString=config_as_string,
+            runtime=runtime_enum,
+        ),
+    )
+    return self.client.apps_services_migration.MigrateConfigYaml(req)
+
+  def MigrateCodeFile(self, project_id, code_as_string, runtime, service_name):
+    """Migrates the code file provided by the user to Gen2 runtime.
+
+    Args:
+      project_id: str, The project id
+      code_as_string: str, The code as a string
+      runtime: str, The runtime
+      service_name: str, The service name
+
+    Returns:
+      Long running operation
+    """
+    if runtime in gen1_runtimes:
+      runtime_enum = (
+          self.messages.MigrateCodeFileRequest.RuntimeValueValuesEnum.GEN1_PYTHON27
+      )
+    else:
+      runtime_enum = (
+          self.messages.MigrateCodeFileRequest.RuntimeValueValuesEnum.MIGRATION_ASSIST_RUNTIME_UNSPECIFIED
+      )
+    request = (
+        self.messages.AppengineAppsServicesMigrationMigrateCodeFileRequest(
+            name=self._GetServiceRelativeName(service_name),
+            migrateCodeFileRequest=self.messages.MigrateCodeFileRequest(
+                projectId=project_id,
+                codeAsString=code_as_string,
+                runtime=runtime_enum,
+            ),
+        )
+    )
+    operation = self.client.apps_services_migration.MigrateCodeFile(request)
+    return operations_util.WaitForOperation(
+        self.client.apps_operations, operation
+    )

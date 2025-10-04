@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*- #
-# Copyright 2024 Google LLC. All Rights Reserved.
+# Copyright 2025 Google LLC. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 # AUTOGEN_CLI_VERSION: HEAD
 - release_tracks:
   - BETA
-  hidden: true
+  auto_generated: true
   help_text:
     brief: Delete PolicyBinding instance.
     description: |
@@ -32,13 +32,22 @@
         The name of the policy binding to delete.
 
         Format:
-          `projects/{project_id}/locations/{location}/policyBindings/{policy_binding_id}`
-          `projects/{project_number}/locations/{location}/policyBindings/{policy_binding_id}`
-          `folders/{folder_id}/locations/{location}/policyBindings/{policy_binding_id}`
-          `organizations/{organization_id}/locations/{location}/policyBindings/{policy_binding_id}`
+
+        * `projects/{project_id}/locations/{location}/policyBindings/{policy_binding_id}`
+        * `projects/{project_number}/locations/{location}/policyBindings/{policy_binding_id}`
+        * `folders/{folder_id}/locations/{location}/policyBindings/{policy_binding_id}`
+        * `organizations/{organization_id}/locations/{location}/policyBindings/{policy_binding_id}`
       is_positional: true
-      resource_spec: !REF googlecloudsdk.command_lib.iam.v3beta_resources:folder_or_organization_or_project_location_policy_binding
+      is_primary_resource: true
+      resource_spec: !REF googlecloudsdk.command_lib.iam.v3beta_resources:folders_or_organizations_or_projects_locations_policy_bindings
       required: true
+    - arg_name: etag
+      api_field: etag
+      required: false
+      repeated: false
+      help_text: |-
+        The etag of the policy binding.
+        If this is provided, it must match the server's etag.
   request:
     api_version: v3beta
     collection:

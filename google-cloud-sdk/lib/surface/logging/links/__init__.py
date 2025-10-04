@@ -22,6 +22,7 @@ from __future__ import unicode_literals
 from googlecloudsdk.calliope import base
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(
     base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA, base.ReleaseTrack.GA
 )
@@ -31,3 +32,5 @@ class Links(base.Group):
   Commands for managing linked datasets. A linked BigQuery dataset contains log
   data for the linked dataset's parent log bucket.
   """
+
+  category = base.MANAGEMENT_TOOLS_CATEGORY

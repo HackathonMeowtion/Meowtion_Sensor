@@ -216,6 +216,18 @@ def _create_composite_credentials(
         credentials_file (str): A file with credentials that can be loaded with
             :func:`google.auth.load_credentials_from_file`. This argument is
             mutually exclusive with credentials.
+
+            .. warning::
+                Important: If you accept a credential configuration (credential JSON/File/Stream)
+                from an external source for authentication to Google Cloud Platform, you must
+                validate it before providing it to any Google API or client library. Providing an
+                unvalidated credential configuration to Google APIs or libraries can compromise
+                the security of your systems and data. For more information, refer to
+                `Validate credential configurations from external sources`_.
+
+            .. _Validate credential configurations from external sources:
+
+            https://cloud.google.com/docs/authentication/external/externally-sourced-credentials
         default_scopes (Sequence[str]): A optional list of scopes needed for this
             service. These are only used when credentials are not specified and
             are passed to :func:`google.auth.default`.
@@ -316,6 +328,18 @@ def create_channel(
         credentials_file (str): A file with credentials that can be loaded with
             :func:`google.auth.load_credentials_from_file`. This argument is
             mutually exclusive with credentials.
+
+            .. warning::
+                Important: If you accept a credential configuration (credential JSON/File/Stream)
+                from an external source for authentication to Google Cloud Platform, you must
+                validate it before providing it to any Google API or client library. Providing an
+                unvalidated credential configuration to Google APIs or libraries can compromise
+                the security of your systems and data. For more information, refer to
+                `Validate credential configurations from external sources`_.
+
+            .. _Validate credential configurations from external sources:
+
+            https://cloud.google.com/docs/authentication/external/externally-sourced-credentials
         quota_project_id (str): An optional project to use for billing and quota.
         default_scopes (Sequence[str]): Default scopes passed by a Google client
             library. Use 'scopes' for user-defined scopes.
@@ -569,20 +593,42 @@ class ChannelStub(grpc.Channel):
         except KeyError:
             raise AttributeError
 
-    def unary_unary(self, method, request_serializer=None, response_deserializer=None):
+    def unary_unary(
+        self,
+        method,
+        request_serializer=None,
+        response_deserializer=None,
+        _registered_method=False,
+    ):
         """grpc.Channel.unary_unary implementation."""
         return self._stub_for_method(method)
 
-    def unary_stream(self, method, request_serializer=None, response_deserializer=None):
+    def unary_stream(
+        self,
+        method,
+        request_serializer=None,
+        response_deserializer=None,
+        _registered_method=False,
+    ):
         """grpc.Channel.unary_stream implementation."""
         return self._stub_for_method(method)
 
-    def stream_unary(self, method, request_serializer=None, response_deserializer=None):
+    def stream_unary(
+        self,
+        method,
+        request_serializer=None,
+        response_deserializer=None,
+        _registered_method=False,
+    ):
         """grpc.Channel.stream_unary implementation."""
         return self._stub_for_method(method)
 
     def stream_stream(
-        self, method, request_serializer=None, response_deserializer=None
+        self,
+        method,
+        request_serializer=None,
+        response_deserializer=None,
+        _registered_method=False,
     ):
         """grpc.Channel.stream_stream implementation."""
         return self._stub_for_method(method)

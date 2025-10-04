@@ -25,6 +25,7 @@ from googlecloudsdk.core import log
 from googlecloudsdk.core.console import console_io
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(
     base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA, base.ReleaseTrack.GA
 )
@@ -80,8 +81,14 @@ class Create(base.CreateCommand):
     parser.add_argument(
         '--retention-days',
         type=int,
-        help='The period logs will be retained, after which logs will '
-        'automatically be deleted. The default is 30 days.')
+        help=arg_parsers.UniverseHelpText(
+            default=(
+                'The period logs will be retained, after which logs will'
+                ' automatically be deleted. The default is 30 days.'
+            ),
+            universe_help='This is not available.\n',
+        ),
+    )
     parser.add_argument(
         '--index',
         action='append',
@@ -113,9 +120,12 @@ class Create(base.CreateCommand):
         '--enable-analytics',
         action='store_true',
         default=None,
-        help=(
-            'Whether to opt the bucket into Log Analytics. Once opted in, the'
-            ' bucket cannot be opted out of Log Analytics.'
+        help=arg_parsers.UniverseHelpText(
+            default=(
+                'Whether to opt the bucket into Log Analytics. Once opted in,'
+                ' the bucket cannot be opted out of Log Analytics.'
+            ),
+            universe_help='This is not available.\n',
         ),
     )
     base.ASYNC_FLAG.AddToParser(parser)
@@ -123,6 +133,7 @@ class Create(base.CreateCommand):
         parser, True,
         'Location in which to create the bucket. Once the bucket is created, '
         'the location cannot be changed.')
+    util.GetTagsArg().AddToParser(parser)
 
   def _Run(self, args):
     bucket_data = {}
@@ -137,6 +148,10 @@ class Create(base.CreateCommand):
 
     if args.IsSpecified('enable_analytics'):
       bucket_data['analyticsEnabled'] = args.enable_analytics
+
+    if args.IsSpecified('tags'):
+      tags = util.GetTagsFromArgs(args, util.GetMessages().LogBucket.TagsValue)
+      bucket_data['tags'] = tags
 
     if args.IsSpecified('cmek_kms_key_name'):
       console_io.PromptContinue(

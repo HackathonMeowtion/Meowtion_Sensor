@@ -22,6 +22,7 @@ from googlecloudsdk.calliope import base
 
 
 @base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.DefaultUniverseOnly
 class PrivateCaGa(base.Group):
   """Manage private Certificate Authorities on Google Cloud.
 
@@ -32,7 +33,5 @@ class PrivateCaGa(base.Group):
   category = base.IDENTITY_AND_SECURITY_CATEGORY
 
   def Filter(self, context, args):
-    # TODO(b/190538423):  Determine if command group works with project number
-    base.RequireProjectID(args)
     del context, args
     base.DisableUserProjectQuota()

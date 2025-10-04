@@ -26,6 +26,7 @@ from googlecloudsdk.api_lib.util import common_args
 from googlecloudsdk.api_lib.util import waiter
 from googlecloudsdk.command_lib.artifacts import containeranalysis_util as ca_util
 from googlecloudsdk.command_lib.artifacts import requests as ar_requests
+from googlecloudsdk.command_lib.artifacts import util
 from googlecloudsdk.core import log
 from googlecloudsdk.core import properties
 from googlecloudsdk.core import resources
@@ -60,6 +61,14 @@ A valid container image has the format of
   LOCATION-docker.DOMAIN/PROJECT-ID/REPOSITORY-ID/IMAGE
 
 A valid container image that can be referenced by tag or digest, has the format of
+  LOCATION-docker.DOMAIN/PROJECT-ID/REPOSITORY-ID/IMAGE:tag
+  LOCATION-docker.DOMAIN/PROJECT-ID/REPOSITORY-ID/IMAGE@sha256:digest
+"""
+
+_INVALID_VERSION_STR_ERROR = """Invalid Docker image/Version.
+
+A valid container image that can be referenced by tag or digest, has the format of
+  projects/PROJECT-ID/locations/LOCATION/repositories/REPOSITORY-ID/packages/PACKAGE-ID/versions/sha256:digest
   LOCATION-docker.DOMAIN/PROJECT-ID/REPOSITORY-ID/IMAGE:tag
   LOCATION-docker.DOMAIN/PROJECT-ID/REPOSITORY-ID/IMAGE@sha256:digest
 """
@@ -113,9 +122,9 @@ _VERSION_COLLECTION_NAME = (
     "artifactregistry.projects.locations.repositories.packages.versions"
 )
 
-DOCKER_URI_REGEX = (
-    r"https://((us\.|eu\.|asia\.)?gcr.io)?(?P<docker_string>.*docker\.pkg\.dev.*)"
-)
+_VERSION_REGEX = r"projects\/(?P<project>[^\/]+)\/locations\/(?P<location>[^\/]+)\/repositories\/(?P<repository>[^\/]+)\/packages\/(?P<package>.+)\/versions\/(?P<version>[^\/]+)$"
+
+DOCKER_URI_REGEX = r"https://(?P<docker_string>.*(docker\.pkg\.dev|gcr\.io).*)"
 
 
 def _GetDefaultResources():
@@ -213,6 +222,54 @@ def _ParseDockerImage(img_str, err_msg, strict=True):
                              whole_img_match.group("img").strip("/"))
     return docker_img, None if strict else DockerTag(docker_img, "latest")
   raise ar_exceptions.InvalidInputValueError(err_msg)
+
+
+def ParseDockerVersionStr(version_str):
+  """Validates and parses an image string into a DockerImage.
+
+  Args:
+    version_str: str, User input docker formatted or AR version resource string.
+
+  Raises:
+    ar_exceptions.InvalidInputValueError if user input is invalid.
+    ar_exceptions.UnsupportedLocationError if provided location is invalid.
+
+  Returns:
+    A DockerVersion.
+  """
+  # Resource collection parser cannot be used for resource path with packages
+  # containing unescaped "/".
+  match = re.match(_VERSION_REGEX, version_str)
+  if match:
+    return DockerVersion(
+        DockerImage(
+            DockerRepo(
+                match.group("project"),
+                match.group("location"),
+                match.group("repository"),
+            ),
+            util.EscapePackageStr(match.group("package")),
+        ),
+        match.group("version"),
+    )
+
+  try:
+    docker_repo = _ParseInput(version_str)
+  except ar_exceptions.InvalidInputValueError:
+    raise ar_exceptions.InvalidInputValueError(_INVALID_VERSION_STR_ERROR)
+
+  uri_digest_match = re.match(DOCKER_IMG_BY_DIGEST_REGEX, version_str)
+  uri_tag_match = re.match(DOCKER_IMG_BY_TAG_REGEX, version_str)
+
+  if uri_digest_match:
+    docker_img = DockerImage(docker_repo, uri_digest_match.group("img"))
+    return DockerVersion(docker_img, uri_digest_match.group("digest"))
+  elif uri_tag_match:
+    docker_img = DockerImage(docker_repo, uri_tag_match.group("img"))
+    tag = DockerTag(docker_img, uri_tag_match.group("tag"))
+    return _ValidateAndGetDockerVersion(tag)
+
+  raise ar_exceptions.InvalidInputValueError(_INVALID_VERSION_STR_ERROR)
 
 
 def _ParseDockerTag(tag):
@@ -314,10 +371,10 @@ def _GetDockerVersions(docker_img,
         ver.name, collection=_VERSION_COLLECTION_NAME).Name()
     img = {
         "package": docker_img.GetDockerString(),
-        "tags": ", ".join([t.name.split("/")[-1] for t in ver.relatedTags]),
+        "tags": [t.name.split("/")[-1] for t in ver.relatedTags],
         "version": v,
         "createTime": ver.createTime,
-        "updateTime": ver.updateTime
+        "updateTime": ver.updateTime,
     }
     if ver.metadata is not None:
       img["metadata"] = {
@@ -435,8 +492,10 @@ class DockerRepo(object):
     )
 
   def GetRepositoryName(self):
+    loc = RemoveEndpointPrefix(self.location)
     return "projects/{}/locations/{}/repositories/{}".format(
-        self.project, self.location, self.repo)
+        self.project, loc, self.repo
+    )
 
 
 class DockerImage(object):
@@ -585,26 +644,75 @@ def GetDockerImages(resource, args):
 
   if isinstance(resource, DockerRepo):
     _ValidateDockerRepo(resource.GetRepositoryName())
-
     log.status.Print(
         "Listing items under project {}, location {}, repository {}.\n".format(
-            resource.project, resource.location, resource.repo))
-    return _GetDockerPackagesAndVersions(resource, args.include_tags,
-                                         args.page_size, order_by, limit)
+            resource.project, resource.location, resource.repo
+        )
+    )
+
+    # Docker util predates avaliblity of ListDockerImages API, thus doesn't
+    # use DockerImage resource. Converting to legacy shape is requrired to
+    # prevent breaking change.
+    return [
+        DockerImageToLegacy(img, args.include_tags)
+        for img in ar_requests.ListDockerImages(
+            resource.GetRepositoryName(), args.page_size, limit
+        )
+    ]
   elif isinstance(resource, DockerImage):
     _ValidateDockerRepo(resource.docker_repo.GetRepositoryName())
     log.status.Print(
         "Listing items under project {}, location {}, repository {}.\n".format(
-            resource.docker_repo.project, resource.docker_repo.location,
-            resource.docker_repo.repo))
+            resource.docker_repo.project,
+            resource.docker_repo.location,
+            resource.docker_repo.repo,
+        )
+    )
     return _GetDockerVersions(
         resource,
         args.include_tags,
         args.page_size,
         order_by,
         limit,
-        search_subdirs=True)
+        search_subdirs=True,
+    )
   return []
+
+
+def DockerImageToLegacy(img, include_tags: bool) -> map:
+  """Converts a docker image resource from generated client into legacy format.
+
+  Args:
+    img: The docker image to convert to legacy format
+    include_tags: Bool to specify if tags should be included
+
+  Returns:
+    Legacy representation of a docker image.
+  """
+  splits = img.uri.split("@")
+  if len(splits) != 2:
+    raise ar_exceptions.ArtifactRegistryError(
+        "Unable to parse docker image URI: {}".format(img.uri)
+    )
+
+  return {
+      # Package is URI without the version.
+      "package": splits[0],
+      "version": splits[1],
+      "createTime": img.uploadTime,
+      "updateTime": img.updateTime,
+      "metadata": {
+          "buildTime": img.buildTime,
+          "mediaType": img.mediaType,
+          # Legacy format uses a string here instead of a int.
+          "imageSizeBytes": str(img.imageSizeBytes),
+          "name": img.name,
+      },
+      # Historically tags were not queried from backend by default. Now tags
+      # are always included, but to prevent breaking change only include if
+      # requested.
+      "tags": img.tags if include_tags else "",
+  }
 
 
 def WaitForOperation(operation, message):
@@ -978,6 +1086,14 @@ def IsARDockerImage(uri):
 def IsGCRImage(uri):
   return (
       re.match(GCR_DOCKER_REPO_REGEX, uri) is not None
-      or re.match(GCR_DOCKER_DOMAIN_SCOPED_REPO_REGEX, uri)
-      is not None
+      or re.match(GCR_DOCKER_DOMAIN_SCOPED_REPO_REGEX, uri) is not None
+  )
+
+
+def RemoveEndpointPrefix(location):
+  endpoint_prefix = properties.VALUES.artifacts.registry_endpoint_prefix.Get()
+  return (
+      location[len(endpoint_prefix) :]
+      if location.startswith(endpoint_prefix)
+      else location
   )

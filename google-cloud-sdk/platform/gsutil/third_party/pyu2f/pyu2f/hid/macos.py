@@ -13,11 +13,11 @@
 # limitations under the License.
 
 """Implements HID device interface on MacOS using IOKit and HIDManager."""
-from six.moves import queue
-from six.moves import range
 import ctypes
 import ctypes.util
 import logging
+import queue
+import range
 import sys
 import threading
 
@@ -174,7 +174,7 @@ if sys.platform.startswith('darwin'):
                                          ctypes.POINTER(ctypes.c_uint8),
                                          CF_INDEX]
 else:
-  logger.warn('Not running on MacOS')
+  logger.warning('Not running on MacOS')
 
 
 def CFStr(s):

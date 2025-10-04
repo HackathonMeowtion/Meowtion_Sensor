@@ -23,6 +23,7 @@ import enum
 from googlecloudsdk.api_lib.storage import cloud_api
 from googlecloudsdk.calliope import actions
 from googlecloudsdk.calliope import arg_parsers
+from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.storage import errors
 from googlecloudsdk.core import properties
 from googlecloudsdk.core import resources
@@ -38,6 +39,54 @@ ALL_INVENTORY_REPORTS_METADATA_FIELDS = (
     REQUIRED_INVENTORY_REPORTS_METADATA_FIELDS +
     OPTIONAL_INVENTORY_REPORTS_METADATA_FIELDS)
 
+_IP_FILTER_HELP_TEXT = """
+Sets the IP filter for the bucket. The IP filter is a list of ip
+ranges that are allowed to access the bucket. For example,
+The following JSON document shows the IP filter configuration with mode
+enabled and list of public network sources and vpc network sources:
+
+  {
+    "mode": "Enabled",
+    "publicNetworkSource": { "allowedIpCidrRanges": ["0.0.0.0/0"] },
+    "vpcNetworkSources": [
+        {
+            "network": "projects/PROJECT_NAME/global/networks/NETWORK_NAME",
+            "allowedIpCidrRanges": ["0.0.0.0/0"]
+        },
+    ]
+  }
+
+For more information about supported configurations, see
+[Cloud Storage bucket IP filtering configurations](https://cloud.google.com/storage/docs/create-ip-filter#ip-filtering-configurations)
+"""
+
+_CUSTOM_CONTEXT_FILE_HELP_TEXT = """
+Path to a local JSON or YAML file containing custom contexts one wants to set on
+an object. For example:
+
+1. The following JSON document shows two key value
+pairs, i.e. (key1, value1) and (key2, value2):
+
+  ```
+    {
+      "key1": {"value": "value1"},
+      "key2": {"value": "value2"}
+    }
+  ```
+
+2. The following YAML document shows two key value
+pairs, i.e. (key1, value1) and (key2, value2):
+
+  ```
+    key1:
+      value: value1
+    key2:
+      value: value2
+  ```
+
+Note: Currently object contexts only supports string format for values.
+"""
+
 
 class ReplicationStrategy(enum.Enum):
   """Enum class for specifying the replication setting."""
@@ -51,6 +100,15 @@ class RetentionMode(enum.Enum):
   UNLOCKED = 'Unlocked'
 
 
+class LogAction(enum.Enum):
+  TRANSFORM = 'transform'
+
+
+class LogActionState(enum.Enum):
+  SUCCEEDED = 'succeeded'
+  FAILED = 'failed'
+
+
 def get_object_state_from_flags(flag_args):
   """Returns object version to query based on user flags."""
   if getattr(flag_args, 'soft_deleted', False):
@@ -58,6 +116,73 @@ def get_object_state_from_flags(flag_args):
   if getattr(flag_args, 'all_versions', False):
     return cloud_api.ObjectState.LIVE_AND_NONCURRENT
   return cloud_api.ObjectState.LIVE
+
+
+def add_object_context_setter_flags(parser):
+  """Adds flags that allow users to set object contexts."""
+  parser.add_argument(
+      '--custom-contexts',
+      metavar='CUSTOM_CONTEXTS_KEYS_AND_VALUES',
+      type=arg_parsers.ArgDict(),
+      help=(
+          'Sets custom contexts on objects. The existing custom contexts (if'
+          ' any) would be overwritten.'
+      ),
+  )
+  parser.add_argument(
+      '--custom-contexts-file',
+      type=str,
+      metavar='CUSTOM_CONTEXTS_FILE',
+      help=_CUSTOM_CONTEXT_FILE_HELP_TEXT,
+  )
+
+
+def get_object_context_group(parser):
+  """Returns a group of flags that allow users to handle object contexts."""
+  return parser.add_mutually_exclusive_group(
+      category='OBJECT CONTEXTS',
+      help=(
+          'Group that allow users to handle object contexts.'
+      ),
+      hidden=True,
+  )
+
+
+def add_object_contexts_flags(parser):
+  """Adds common object context related flags."""
+  context_group = get_object_context_group(parser)
+  add_object_context_setter_flags(context_group)
+  context_group.add_argument(
+      '--clear-custom-contexts',
+      action='store_true',
+      help='Clears all custom contexts on objects.',
+  )
+  context_subgroup = context_group.add_group(
+      help=(
+          'Flags that preserves the existing contexts on the object, and can be'
+          ' specified together. However they cannot be specified with'
+          ' `--clear-custom-contexts`, `--custom-contexts` or'
+          ' `--custom-contexts-file`.'
+      ),
+  )
+  context_subgroup.add_argument(
+      '--update-custom-contexts',
+      metavar='CUSTOM_CONTEXTS_KEYS_AND_VALUES',
+      type=arg_parsers.ArgDict(),
+      help=(
+          'Updates the custom contexts on the object, if an entry is found, it'
+          ' would be overwritten, otherwise the entry would be added.'
+      ),
+  )
+  context_subgroup.add_argument(
+      '--remove-custom-contexts',
+      metavar='CUSTOM_CONTEXTS_KEYS',
+      type=arg_parsers.ArgList(),
+      help=(
+          'Removes the custom contexts on the object, if an entry is not found,'
+          ' it would be ignored.'
+      ),
+  )
 
 
 def add_additional_headers_flag(parser):
@@ -178,6 +303,23 @@ def add_acl_modifier_flags(parser):
   )
 
 
+# TODO: b/377792482 - Add help text for the Zonal Buckets in the placement flag.
+def add_placement_flag(parser):
+  """Adds placement flag to set placement config for Dual-region."""
+  parser.add_argument(
+      '--placement',
+      metavar='REGION',
+      type=arg_parsers.ArgList(custom_delim_char=','),
+      help=(
+          'A comma-separated list of regions that form the custom [dual-region]'
+          '(https://cloud.google.com/storage/docs/locations#location-dr).'
+          ' Only regions within the same continent are or will ever be valid.'
+          ' Invalid location pairs (such as mixed-continent, or with'
+          ' unsupported regions) will return an error.'
+      ),
+  )
+
+
 def add_precondition_flags(parser):
   """Add flags indicating a precondition for an operation to happen."""
   preconditions_group = parser.add_group(
@@ -195,7 +337,9 @@ def add_precondition_flags(parser):
       ' the requested object.')
 
 
-def add_object_metadata_flags(parser, allow_patch=False):
+def add_object_metadata_flags(
+    parser, allow_patch=False, release_track=base.ReleaseTrack.GA
+):
   """Add flags that allow setting object metadata."""
   metadata_group = parser.add_group(category='OBJECT METADATA')
   metadata_group.add_argument(
@@ -259,6 +403,9 @@ def add_object_metadata_flags(parser, allow_patch=False):
           ' be used with `--update-custom-metadata`. When used with'
           ' `--preserve-posix`, POSIX attributes specified by this flag are not'
           ' preserved.'))
+
+  if release_track == base.ReleaseTrack.ALPHA:
+    add_object_contexts_flags(metadata_group)
 
   if allow_patch:
     metadata_group.add_argument(
@@ -501,10 +648,152 @@ def add_dataset_config_create_update_flags(parser, is_update=False):
       required=not is_update,
       help='Provide retention period for the config.',
   )
+
+  parser.add_argument(
+      '--activity-data-retention-period-days',
+      type=int,
+      metavar='ACTIVITY_DATA_RETENTION_DAYS',
+      required=False,
+      help='Provide retention period for the activity data in the config. This'
+      ' overrides the retention period for activity data. Otherwise, the'
+      ' `retention_period_days` value is used for activity data as well.',
+  )
+
   parser.add_argument(
       '--description',
       type=str,
       help='Description for dataset config.',
+  )
+
+  # TODO: b/424351797 - Provide custom error message if mutual exclusivity is
+  # violated.
+  source_options_group = parser.add_group(
+      mutex=True,
+      required=not is_update,
+      help=(
+          'List of source options either source projects or source folders '
+          'or enable organization scope. Refer '
+          '[Dataset Configuration Properties](https://cloud.google.com/storage'
+          '/docs/insights/datasets#dataset-config) '
+          'for more details.'
+      ),
+  )
+  source_options_group.add_argument(
+      '--enable-organization-scope',
+      action='store_true',
+      help=(
+          'If passed, the dataset config will be enabled on the organization.'
+      ),
+  )
+  source_projects_group = source_options_group.add_group(
+      mutex=True,
+      help=(
+          'List of source project numbers or the file containing list of'
+          ' project numbers.'
+      ),
+  )
+  source_projects_group.add_argument(
+      '--source-projects',
+      type=arg_parsers.ArgList(element_type=int),
+      metavar='SOURCE_PROJECT_NUMBERS',
+      help='List of source project numbers.',
+  )
+  source_projects_group.add_argument(
+      '--source-projects-file',
+      type=str,
+      metavar='SOURCE_PROJECT_NUMBERS_IN_FILE',
+      help=(
+          'CSV formatted file containing source project numbers, one per line.'
+      ),
+  )
+  source_folders_group = source_options_group.add_group(
+      mutex=True,
+      help=(
+          'List of source folder IDs or the file containing list of folder IDs.'
+      ),
+  )
+  source_folders_group.add_argument(
+      '--source-folders',
+      type=arg_parsers.ArgList(element_type=int),
+      metavar='SOURCE_FOLDER_NUMBERS',
+      help='List of source folder IDs.',
+  )
+  source_folders_group.add_argument(
+      '--source-folders-file',
+      type=str,
+      metavar='SOURCE_FOLDER_NUMBERS_IN_FILE',
+      help=(
+          'CSV formatted file containing source folder IDs, one per line.'
+      ),
+  )
+
+  include_exclude_buckets_group = parser.add_group(
+      mutex=True,
+      help=(
+          'Specify the list of buckets to be included or excluded, both a list'
+          ' of bucket names and prefix regexes can be specified for either'
+          ' include or exclude buckets.'
+      ),
+  )
+  include_buckets_group = include_exclude_buckets_group.add_group(
+      help='Specify the list of buckets to be included.',
+  )
+  include_buckets_group.add_argument(
+      '--include-bucket-names',
+      type=arg_parsers.ArgList(),
+      metavar='BUCKETS_NAMES',
+      help='List of bucket names be included.',
+  )
+  include_buckets_group.add_argument(
+      '--include-bucket-prefix-regexes',
+      type=arg_parsers.ArgList(),
+      metavar='BUCKETS_REGEXES',
+      help=(
+          'List of bucket prefix regexes to be included. The dataset config'
+          ' will include all the buckets that match with the prefix regex.'
+          ' Examples of allowed prefix regex patterns can be'
+          ' testbucket```*```, testbucket.```*```foo, testb.+foo```*``` . It'
+          ' should follow syntax specified in google/re2 on GitHub. '
+      ),
+  )
+  exclude_buckets_group = include_exclude_buckets_group.add_group(
+      help='Specify the list of buckets to be excluded.',
+  )
+  exclude_buckets_group.add_argument(
+      '--exclude-bucket-names',
+      type=arg_parsers.ArgList(),
+      metavar='BUCKETS_NAMES',
+      help='List of bucket names to be excluded.',
+  )
+  exclude_buckets_group.add_argument(
+      '--exclude-bucket-prefix-regexes',
+      type=arg_parsers.ArgList(),
+      metavar='BUCKETS_REGEXES',
+      help=(
+          'List of bucket prefix regexes to be excluded. Allowed regex patterns'
+          ' are similar to those for the --include-bucket-prefix-regexes flag.'
+      ),
+  )
+
+  include_exclude_locations_group = parser.add_group(
+      mutex=True,
+      help=(
+          'Specify the list of locations for source projects to be included or'
+          ' excluded from [available'
+          ' locations](https://cloud.google.com/storage/docs/locations#available-locations).'
+      ),
+  )
+  include_exclude_locations_group.add_argument(
+      '--include-source-locations',
+      type=arg_parsers.ArgList(),
+      metavar='LIST_OF_SOURCE_LOCATIONS',
+      help='List of locations for projects to be included.',
+  )
+  include_exclude_locations_group.add_argument(
+      '--exclude-source-locations',
+      type=arg_parsers.ArgList(),
+      metavar='LIST_OF_SOURCE_LOCATIONS',
+      help='List of locations for projects to be excluded.',
   )
 
 
@@ -597,14 +886,31 @@ def add_per_object_retention_flags(parser, is_update=False):
   )
 
 
-def add_soft_deleted_flag(parser):
-  """Adds flag for only displaying soft-deleted objects."""
+def add_soft_deleted_flag(parser, hidden=False):
+  """Adds flag for only displaying soft-deleted resources."""
   parser.add_argument(
       '--soft-deleted',
       action='store_true',
       help=(
-          'Displays soft-deleted objects only. Excludes live and noncurrent'
-          ' objects.'
+          'Displays soft-deleted resources only. For objects, it will'
+          ' exclude live and noncurrent ones.'
+      ),
+      hidden=hidden,
+  )
+
+
+def add_metadata_filter_flag(parser):
+  """Adds flag for filtering objects by server side filtering."""
+  parser.add_argument(
+      '--metadata-filter',
+      type=str,
+      hidden=True,
+      help=(
+          'Server side filtering for objects, Works only for Google Cloud'
+          ' Storage URLs. The filter only works for objects, and not'
+          ' directories or buckets. which means commands like `storage ls` and'
+          ' `storage du` will still list directories or buckets even if they do'
+          ' not contain any objects matching the filter.'
       ),
   )
 
@@ -680,6 +986,256 @@ def add_recovery_point_objective_flag(parser):
             '/docs/availability-durability#cross-region-redundancy).'))
 
 
+def add_ip_filter_file_flag(parser):
+  """Adds the ip filter file flag for buckets commands.
+
+  Args:
+    parser (parser_arguments.ArgumentInterceptor): Parser passed to surface.
+  """
+  parser.add_argument(
+      '--ip-filter-file', help=_IP_FILTER_HELP_TEXT
+  )
+
+
+def add_management_hub_level_flags(parser):
+  """Adds the GCP resource hierarchy level flag for management-hubs commands."""
+
+  management_hub_level_group = parser.add_group(
+      category='LEVEL', mutex=True, required=True
+  )
+
+  management_hub_level_group.add_argument(
+      '--organization',
+      help='Specifies organization id for the management hub.',
+      metavar='ORGANIZATION',
+      type=str,
+  )
+  management_hub_level_group.add_argument(
+      '--project',
+      help='Specifies project for the management hub.',
+      type=str,
+      metavar='PROJECT',
+  )
+  management_hub_level_group.add_argument(
+      '--sub-folder',
+      help='Specifies sub-folder id for the management hub.',
+      type=str,
+      metavar='SUB_FOLDER',
+  )
+
+
+def add_management_hub_filter_flags(parser):
+  """Adds the management hub filter flags for management-hubs commands."""
+  management_hub_localtion_filter_group = parser.add_group(
+      category='LOCATION', mutex=True
+  )
+
+  management_hub_localtion_filter_group.add_argument(
+      '--exclude-locations',
+      help=(
+          'Comma separated list of'
+          ' [locations](https://cloud.google.com/storage/docs/locations#available-locations)'
+          ' to exclude in Management Hub filter. To clear'
+          ' excluded locations, provide flag with empty list. e.g'
+          ' `--exclude-locations=""` or `--exclude-locations=` .'
+      ),
+      type=arg_parsers.ArgList(),
+      metavar='EXCLUDE_LOCATIONS',
+  )
+  management_hub_localtion_filter_group.add_argument(
+      '--include-locations',
+      help=(
+          'Comma separated list of'
+          ' [locations](https://cloud.google.com/storage/docs/locations#available-locations)'
+          ' to include in management hub filter. To clear included locations,'
+          ' provide flag with empty list. e.g `--include-locations=""` or'
+          ' `--include-locations=` .'
+      ),
+      type=arg_parsers.ArgList(),
+      metavar='INCLUDE_LOCATIONS',
+  )
+
+  management_hub_bucket_filter_group = parser.add_group(
+      category='BUCKET_FILTER', mutex=True
+  )
+
+  management_hub_include_bucket_filter_group = management_hub_bucket_filter_group.add_group(
+      category='BUCKET_INCLUDE_FILTER',
+      help=(
+          'Sets the cloud storage buckets inclusion filter. '
+          'Full filters should be specified using available flags in this '
+          'group, gcloud CLI infers missing flags of this group as empty which '
+          'will result in clearing of the individual filters.'
+      ),
+  )
+  management_hub_include_bucket_filter_group.add_argument(
+      '--include-bucket-ids',
+      help=(
+          'Comma separated list of bucket ids to include in the management hub'
+          ' filter. To clear bucket id list, provide flag with empty list. e.g'
+          ' `--include-bucket-ids=""` or `--include-bucket-ids=` .'
+      ),
+      type=arg_parsers.ArgList(),
+      metavar='INCLUDE_BUCKET_IDS',
+  )
+  management_hub_include_bucket_filter_group.add_argument(
+      '--include-bucket-id-regexes',
+      help=(
+          'Sets filter for bucket id regexes to include. Accepts list of bucket'
+          ' id regexes in comma separated format. If the regex contains special'
+          ' characters that may have a specific meaning in the shell,'
+          ' escape them using backslashes(\\). To clear'
+          ' bucket id regexes list, provide flag with empty list. e.g'
+          ' `--include-bucket-id-regexes=""` or'
+          ' `--include-bucket-id-regexes=` .'
+      ),
+      type=arg_parsers.ArgList(),
+      metavar='INCLUDE_BUCKET_ID_REGEXES',
+  )
+
+  management_hub_exclude_bucket_filter_group = management_hub_bucket_filter_group.add_group(
+      category='BUCKET_EXCLUDE_FILTER',
+      help=(
+          'Sets the cloud storage buckets exclusion filter. '
+          'Full filters should be specified using available flags in this '
+          'group, gcloud CLI infers missing flags of this group as empty which '
+          'will result in clearing of the individual filters.'
+      ),
+  )
+  management_hub_exclude_bucket_filter_group.add_argument(
+      '--exclude-bucket-ids',
+      help=(
+          'Comma separated list of bucket ids to exclude in the management hub'
+          ' filter. To clear bucket id list, provide flag with an empty list.'
+          ' e.g `--exclude-bucket-ids=""` or `--exclude-bucket-ids=` .'
+      ),
+      type=arg_parsers.ArgList(),
+      metavar='EXCLUDE_BUCKET_IDS',
+  )
+  management_hub_exclude_bucket_filter_group.add_argument(
+      '--exclude-bucket-id-regexes',
+      help=(
+          'Sets filter for bucket id regexes to exclude. Accepts list of bucket'
+          ' id regexes in comma separated format. If the regex contains special'
+          ' characters that may have a specific meaning in the shell,'
+          ' escape them using backslashes(\\). To clear bucket id'
+          ' regexes list, provide flag with an empty list. e.g'
+          ' `--exclude-bucket-id-regexes=""` or'
+          ' `--exclude-bucket-id-regexes=` .'
+      ),
+      type=arg_parsers.ArgList(),
+      metavar='EXCLUDE_BUCKET_ID_REGEXES',
+  )
+
+
+def add_storage_intelligence_configs_level_flags(parser):
+  """Adds the GCP resource hierarchy level flag for storage intelligence-configs commands."""
+
+  storage_intelligence_configs_level_group = parser.add_group(
+      category='LEVEL', mutex=True, required=True
+  )
+
+  storage_intelligence_configs_level_group.add_argument(
+      '--organization',
+      help='Specifies organization id for the storage intelligence config.',
+      metavar='ORGANIZATION',
+      type=str,
+  )
+  storage_intelligence_configs_level_group.add_argument(
+      '--project',
+      help='Specifies project for the storage intelligence config.',
+      type=str,
+      metavar='PROJECT',
+  )
+  storage_intelligence_configs_level_group.add_argument(
+      '--sub-folder',
+      help='Specifies sub-folder id for the storage intelligence config.',
+      type=str,
+      metavar='SUB_FOLDER',
+  )
+
+
+def add_storage_intelligence_configs_settings_flags(parser):
+  """Adds the settings flags for storage intelligence-configs commands."""
+  parser.add_argument(
+      '--trial-edition',
+      action='store_true',
+      help=(
+          'Enables Storage Intelligence for TRIAL edition.'
+      ),
+  )
+  filters = parser.add_group(
+      category='FILTERS'
+  )
+  add_storage_intelligence_configs_filter_flags(filters)
+
+
+def add_storage_intelligence_configs_filter_flags(parser):
+  """Adds the filter flags for storage intelligence-configs commands."""
+  storage_intelligence_configs_localtion_filter_group = parser.add_group(
+      category='LOCATION', mutex=True
+  )
+
+  storage_intelligence_configs_localtion_filter_group.add_argument(
+      '--exclude-locations',
+      help=(
+          'Comma separated list of'
+          ' [locations](https://cloud.google.com/storage/docs/locations#available-locations)'
+          ' to exclude in storage intelligence filter. To clear excluded'
+          ' locations, provide flag with empty list. e.g'
+          ' `--exclude-locations=""` or `--exclude-locations=` .'
+      ),
+      type=arg_parsers.ArgList(),
+      metavar='EXCLUDE_LOCATIONS',
+  )
+  storage_intelligence_configs_localtion_filter_group.add_argument(
+      '--include-locations',
+      help=(
+          'Comma separated list of'
+          ' [locations](https://cloud.google.com/storage/docs/locations#available-locations)'
+          ' to include in storage intelligence filter. To clear included'
+          ' locations, provide flag with empty list. e.g'
+          ' `--include-locations=""` or `--include-locations=` .'
+      ),
+      type=arg_parsers.ArgList(),
+      metavar='INCLUDE_LOCATIONS',
+  )
+
+  storage_intelligence_configs_bucket_filter_group = parser.add_group(
+      category='BUCKET_FILTER', mutex=True
+  )
+
+  storage_intelligence_configs_bucket_filter_group.add_argument(
+      '--include-bucket-id-regexes',
+      help=(
+          'Sets filter for bucket id regexes to include. Accepts list of bucket'
+          ' id regexes in comma separated format. If the regex contains special'
+          ' characters that may have a specific meaning in the shell,'
+          ' escape them using backslashes(\\). To clear'
+          ' bucket id regexes list, provide flag with empty list. e.g'
+          ' `--include-bucket-id-regexes=""` or'
+          ' `--include-bucket-id-regexes=` .'
+      ),
+      type=arg_parsers.ArgList(),
+      metavar='INCLUDE_BUCKET_ID_REGEXES',
+  )
+
+  storage_intelligence_configs_bucket_filter_group.add_argument(
+      '--exclude-bucket-id-regexes',
+      help=(
+          'Sets filter for bucket id regexes to exclude. Accepts list of bucket'
+          ' id regexes in comma separated format. If the regex contains special'
+          ' characters that may have a specific meaning in the shell,'
+          ' escape them using backslashes(\\). To clear bucket id'
+          ' regexes list, provide flag with an empty list. e.g'
+          ' `--exclude-bucket-id-regexes=""` or'
+          ' `--exclude-bucket-id-regexes=` .'
+      ),
+      type=arg_parsers.ArgList(),
+      metavar='EXCLUDE_BUCKET_ID_REGEXES',
+  )
+
+
 def check_if_use_gsutil_style(args):
   """Check if format output using gsutil style.
 
@@ -702,3 +1258,191 @@ def check_if_use_gsutil_style(args):
   else:
     use_gsutil_style = properties.VALUES.storage.run_by_gsutil_shim.GetBool()
   return use_gsutil_style
+
+
+def add_batch_jobs_flags(parser):
+  """Adds the flags for the batch-operations jobs create command."""
+
+  parser.add_argument(
+      '--bucket',
+      required=True,
+      help='Bucket containing the objects that the batch job will operate on.',
+      type=str,
+  )
+
+  source = parser.add_group(
+      mutex=True,
+      required=True,
+      category='SOURCE',
+      help=(
+          'Source specifying objects to perform batch operations on. '
+          'Must be one of `--manifest-location=``MANIFEST_LOCATION'
+          '` '
+          'or `--included-object-prefixes=``COMMA_SEPARATED_PREFIXES'
+          '`'
+      ),
+  )
+  source.add_argument(
+      '--manifest-location',
+      help=(
+          'An absolute path to the manifest source file in a Google Cloud'
+          ' Storage bucket. The file must be a CSV file where each row'
+          ' specifies the object details i.e. ProjectId, BucketId, and Name.'
+          ' Generation may optionally be specified. When generation is not'
+          ' specified, the live object is acted upon. Format:'
+          ' `--manifest-location=gs://bucket_name/path/manifest_name.csv`'
+      ),
+      type=str,
+  )
+  source.add_argument(
+      '--included-object-prefixes',
+      help=(
+          'A comma-separated list of object prefixes to describe the objects'
+          ' being transformed. An empty string means all objects in the bucket.'
+      ),
+      type=arg_parsers.ArgList(),
+      metavar='PREFIXES',
+  )
+  transformation = parser.add_group(
+      mutex=True,
+      required=True,
+      category='TRANSFORMATION',
+      help='Transformation to be performed on the objects.',
+  )
+  put_object_hold = transformation.add_group(
+      category='PUT_OBJECT_HOLD',
+      help='Describes options to update object hold.',
+  )
+  put_object_hold.add_argument(
+      '--put-object-temporary-hold',
+      action=arg_parsers.StoreTrueFalseAction,
+      help=(
+          'Sets or unsets object temporary holds state. When object temporary '
+          'hold is set, object cannot be deleted or replaced.'
+      ),
+  )
+  put_object_hold.add_argument(
+      '--put-object-event-based-hold',
+      action=arg_parsers.StoreTrueFalseAction,
+      help=(
+          'Sets or unsets object event based holds state. When object event '
+          'based hold is set, object cannot be deleted or replaced'
+      ),
+  )
+  delete_object = transformation.add_group(
+      category='DELETE_OBJECT',
+      help='Describes options to delete objects.',
+  )
+  delete_object.add_argument(
+      '--delete-object',
+      required=True,
+      action='store_true',
+      help=(
+          'If this flag is set, objects specified in source will be deleted.'
+          ' When versioning is enabled on the buckets, live objects in'
+          ' versioned buckets will become noncurrent and objects that were'
+          ' already noncurrent will be skipped.'
+      ),
+  )
+  delete_object.add_argument(
+      '--enable-permanent-object-deletion',
+      action='store_true',
+      help=(
+          'If this flag is set and versioning is enabled on the buckets, '
+          'both live and noncurrent objects will be permanently deleted.'
+      ),
+  )
+  transformation.add_argument(
+      '--rewrite-object',
+      help=(
+          'Rewrites object and the specified metadata. Currently only supports'
+          ' rewriting kms-key. A metadata field MUST be specified. For example,'
+          ' `--rewrite-object=kms-key=projects/PROJECT_ID/locations/LOCATION/keyRings/KEY_RING/cryptoKeys/CRYPTO_KEY`'
+          ' will rewrite the Cloud KMS key that will be used to encrypt the'
+          ' object.'
+      ),
+      type=arg_parsers.ArgDict(min_length=1),
+      default={},
+      metavar='KEY=VALUE',
+      action=arg_parsers.StoreOnceAction,
+  )
+  transformation.add_argument(
+      '--put-metadata',
+      help=(
+          'Sets object metadata. To set how content should be displayed,'
+          ' specify the the key-value pair `Content-Disposition={VALUE}.` To'
+          ' set how content is encoded (e.g. "gzip"), specify the key-value'
+          " pair `Content-Encoding={VALUE}`. To set content's language (e.g."
+          ' "en" signifies "English"), specify the key-value pair'
+          ' `Content-Language={VALUE}`. To set the type of data contained in'
+          ' the object (e.g. "text/html"), specify the key-value pair'
+          ' `Content-Type={VALUE}`. To set how caches should handle requests'
+          ' and responses, specify the key-value pair `Cache-Control={VALUE}`.'
+          ' To set custom time for Cloud Storage objects in RFC 3339 format,'
+          ' specify the key-value pair `Custom-Time={VALUE}`. To set custom'
+          ' metadata on objects, specify key-value pairs'
+          ' `{CUSTOM-KEY}:{VALUE}`. Note that all predefined keys (e.g.'
+          ' Content-Disposition) are case-insensitive. Any other key that is'
+          ' not specified above will be treated as a custom key. Multiple'
+          ' key-value pairs can be specified by separating them with commas.'
+          ' For example,'
+          ' `--put-metadata=Content-Disposition=inline,Content-Encoding=gzip`'
+      ),
+      type=arg_parsers.ArgDict(min_length=1),
+      default={},
+      metavar='KEY=VALUE',
+      action=arg_parsers.StoreOnceAction,
+  )
+  parser.add_argument(
+      '--description',
+      help='Description for the batch job.',
+      type=str,
+  )
+  logging_config = parser.add_group(
+      category='LOGGING_CONFIG',
+      help=(
+          'LOGGING CONFIG\n\nConfigure which transfer actions and action states'
+          ' are reported when logs are generated for this job. Logs can be'
+          ' viewed by running the following command:\ngcloud logging read'
+          ' "resource.type=storagebatchoperations.googleapis.com/Job"'
+      ),
+      sort_args=False,
+  )
+  logging_config.add_argument(
+      '--log-actions',
+      type=arg_parsers.ArgList(
+          choices=sorted([option.value for option in LogAction])
+      ),
+      metavar='LOG_ACTIONS',
+      help=(
+          'Define the batch job actions to report in logs.'
+          ' (e.g., --log-actions=transform).'
+      ),
+  )
+  logging_config.add_argument(
+      '--log-action-states',
+      type=arg_parsers.ArgList(
+          choices=sorted([option.value for option in LogActionState])
+      ),
+      metavar='LOG_ACTION_STATES',
+      help=(
+          'The states in which the actions specified in --log-actions are'
+          ' logged. Separate multiple states with a comma, omitting the space'
+          ' after the comma (e.g., --log-action-states=succeeded,failed).'
+      ),
+  )
+
+
+def add_batch_jobs_dry_run_flag(parser):
+  """Adds the dry run flag for the batch-operations jobs create command."""
+  parser.add_argument(
+      '--dry-run',
+      help=(
+          'If true, the job will run in dry run mode, returning the total'
+          ' object count and, if the object configuration is a prefix list,'
+          ' the bytes found from source. No transformations will be'
+          ' performed.'
+      ),
+      action='store_true',
+      hidden=True,
+  )

@@ -45,6 +45,8 @@ class IamV1(base_api.BaseApiClient):
     self.locations_workforcePools_providers_keys_operations = self.LocationsWorkforcePoolsProvidersKeysOperationsService(self)
     self.locations_workforcePools_providers_keys = self.LocationsWorkforcePoolsProvidersKeysService(self)
     self.locations_workforcePools_providers_operations = self.LocationsWorkforcePoolsProvidersOperationsService(self)
+    self.locations_workforcePools_providers_scimTenants_tokens = self.LocationsWorkforcePoolsProvidersScimTenantsTokensService(self)
+    self.locations_workforcePools_providers_scimTenants = self.LocationsWorkforcePoolsProvidersScimTenantsService(self)
     self.locations_workforcePools_providers = self.LocationsWorkforcePoolsProvidersService(self)
     self.locations_workforcePools_subjects_operations = self.LocationsWorkforcePoolsSubjectsOperationsService(self)
     self.locations_workforcePools_subjects = self.LocationsWorkforcePoolsSubjectsService(self)
@@ -564,6 +566,350 @@ class IamV1(base_api.BaseApiClient):
         request_field='',
         request_type_name='IamLocationsWorkforcePoolsProvidersOperationsGetRequest',
         response_type_name='Operation',
+        supports_download=False,
+    )
+
+  class LocationsWorkforcePoolsProvidersScimTenantsTokensService(base_api.BaseApiService):
+    """Service class for the locations_workforcePools_providers_scimTenants_tokens resource."""
+
+    _NAME = 'locations_workforcePools_providers_scimTenants_tokens'
+
+    def __init__(self, client):
+      super(IamV1.LocationsWorkforcePoolsProvidersScimTenantsTokensService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new WorkforcePoolProviderScimToken in a WorkforcePoolProviderScimTenant. You cannot reuse the name of a deleted SCIM token until 30 days after deletion.
+
+      Args:
+        request: (IamLocationsWorkforcePoolsProvidersScimTenantsTokensCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (WorkforcePoolProviderScimToken) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/locations/{locationsId}/workforcePools/{workforcePoolsId}/providers/{providersId}/scimTenants/{scimTenantsId}/tokens',
+        http_method='POST',
+        method_id='iam.locations.workforcePools.providers.scimTenants.tokens.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['workforcePoolProviderScimTokenId'],
+        relative_path='v1/{+parent}/tokens',
+        request_field='workforcePoolProviderScimToken',
+        request_type_name='IamLocationsWorkforcePoolsProvidersScimTenantsTokensCreateRequest',
+        response_type_name='WorkforcePoolProviderScimToken',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a WorkforcePoolProviderScimToken. You can undelete a scim token for 30 days. After 30 days, deletion is permanent. You cannot update deleted scim tokens. However, you can view and list them.
+
+      Args:
+        request: (IamLocationsWorkforcePoolsProvidersScimTenantsTokensDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (WorkforcePoolProviderScimToken) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/locations/{locationsId}/workforcePools/{workforcePoolsId}/providers/{providersId}/scimTenants/{scimTenantsId}/tokens/{tokensId}',
+        http_method='DELETE',
+        method_id='iam.locations.workforcePools.providers.scimTenants.tokens.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}',
+        request_field='',
+        request_type_name='IamLocationsWorkforcePoolsProvidersScimTenantsTokensDeleteRequest',
+        response_type_name='WorkforcePoolProviderScimToken',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets an individual WorkforcePoolProviderScimToken.
+
+      Args:
+        request: (IamLocationsWorkforcePoolsProvidersScimTenantsTokensGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (WorkforcePoolProviderScimToken) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/locations/{locationsId}/workforcePools/{workforcePoolsId}/providers/{providersId}/scimTenants/{scimTenantsId}/tokens/{tokensId}',
+        http_method='GET',
+        method_id='iam.locations.workforcePools.providers.scimTenants.tokens.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}',
+        request_field='',
+        request_type_name='IamLocationsWorkforcePoolsProvidersScimTenantsTokensGetRequest',
+        response_type_name='WorkforcePoolProviderScimToken',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists all non-deleted WorkforcePoolProviderScimTokenss in a WorkforcePoolProviderScimTenant. If `show_deleted` is set to `true`, then deleted SCIM tokens are also listed.
+
+      Args:
+        request: (IamLocationsWorkforcePoolsProvidersScimTenantsTokensListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListWorkforcePoolProviderScimTokensResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/locations/{locationsId}/workforcePools/{workforcePoolsId}/providers/{providersId}/scimTenants/{scimTenantsId}/tokens',
+        http_method='GET',
+        method_id='iam.locations.workforcePools.providers.scimTenants.tokens.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['pageSize', 'pageToken', 'showDeleted'],
+        relative_path='v1/{+parent}/tokens',
+        request_field='',
+        request_type_name='IamLocationsWorkforcePoolsProvidersScimTenantsTokensListRequest',
+        response_type_name='ListWorkforcePoolProviderScimTokensResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates an existing WorkforcePoolProviderScimToken.
+
+      Args:
+        request: (IamLocationsWorkforcePoolsProvidersScimTenantsTokensPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (WorkforcePoolProviderScimToken) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/locations/{locationsId}/workforcePools/{workforcePoolsId}/providers/{providersId}/scimTenants/{scimTenantsId}/tokens/{tokensId}',
+        http_method='PATCH',
+        method_id='iam.locations.workforcePools.providers.scimTenants.tokens.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1/{+name}',
+        request_field='workforcePoolProviderScimToken',
+        request_type_name='IamLocationsWorkforcePoolsProvidersScimTenantsTokensPatchRequest',
+        response_type_name='WorkforcePoolProviderScimToken',
+        supports_download=False,
+    )
+
+    def Undelete(self, request, global_params=None):
+      r"""Undeletes a WorkforcePoolProviderScimToken, as long as it was deleted fewer than 30 days ago.
+
+      Args:
+        request: (IamLocationsWorkforcePoolsProvidersScimTenantsTokensUndeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (WorkforcePoolProviderScimToken) The response message.
+      """
+      config = self.GetMethodConfig('Undelete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Undelete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/locations/{locationsId}/workforcePools/{workforcePoolsId}/providers/{providersId}/scimTenants/{scimTenantsId}/tokens/{tokensId}:undelete',
+        http_method='POST',
+        method_id='iam.locations.workforcePools.providers.scimTenants.tokens.undelete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}:undelete',
+        request_field='undeleteWorkforcePoolProviderScimTokenRequest',
+        request_type_name='IamLocationsWorkforcePoolsProvidersScimTenantsTokensUndeleteRequest',
+        response_type_name='WorkforcePoolProviderScimToken',
+        supports_download=False,
+    )
+
+  class LocationsWorkforcePoolsProvidersScimTenantsService(base_api.BaseApiService):
+    """Service class for the locations_workforcePools_providers_scimTenants resource."""
+
+    _NAME = 'locations_workforcePools_providers_scimTenants'
+
+    def __init__(self, client):
+      super(IamV1.LocationsWorkforcePoolsProvidersScimTenantsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new WorkforcePoolProviderScimTenant in a WorkforcePoolProvider. You cannot reuse the name of a deleted scim tenant until 30 days after deletion.
+
+      Args:
+        request: (IamLocationsWorkforcePoolsProvidersScimTenantsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (WorkforcePoolProviderScimTenant) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/locations/{locationsId}/workforcePools/{workforcePoolsId}/providers/{providersId}/scimTenants',
+        http_method='POST',
+        method_id='iam.locations.workforcePools.providers.scimTenants.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['workforcePoolProviderScimTenantId'],
+        relative_path='v1/{+parent}/scimTenants',
+        request_field='workforcePoolProviderScimTenant',
+        request_type_name='IamLocationsWorkforcePoolsProvidersScimTenantsCreateRequest',
+        response_type_name='WorkforcePoolProviderScimTenant',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a WorkforcePoolProviderScimTenant. You can undelete a scim tenant for 30 days. After 30 days, deletion is permanent. You cannot update deleted scim tenants. However, you can view and list them.
+
+      Args:
+        request: (IamLocationsWorkforcePoolsProvidersScimTenantsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (WorkforcePoolProviderScimTenant) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/locations/{locationsId}/workforcePools/{workforcePoolsId}/providers/{providersId}/scimTenants/{scimTenantsId}',
+        http_method='DELETE',
+        method_id='iam.locations.workforcePools.providers.scimTenants.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['hardDelete'],
+        relative_path='v1/{+name}',
+        request_field='',
+        request_type_name='IamLocationsWorkforcePoolsProvidersScimTenantsDeleteRequest',
+        response_type_name='WorkforcePoolProviderScimTenant',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets an individual WorkforcePoolProviderScimTenant.
+
+      Args:
+        request: (IamLocationsWorkforcePoolsProvidersScimTenantsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (WorkforcePoolProviderScimTenant) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/locations/{locationsId}/workforcePools/{workforcePoolsId}/providers/{providersId}/scimTenants/{scimTenantsId}',
+        http_method='GET',
+        method_id='iam.locations.workforcePools.providers.scimTenants.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}',
+        request_field='',
+        request_type_name='IamLocationsWorkforcePoolsProvidersScimTenantsGetRequest',
+        response_type_name='WorkforcePoolProviderScimTenant',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists all non-deleted WorkforcePoolProviderScimTenants in a WorkforcePoolProvider. If `show_deleted` is set to `true`, then deleted scim tenants are also listed.
+
+      Args:
+        request: (IamLocationsWorkforcePoolsProvidersScimTenantsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListWorkforcePoolProviderScimTenantsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/locations/{locationsId}/workforcePools/{workforcePoolsId}/providers/{providersId}/scimTenants',
+        http_method='GET',
+        method_id='iam.locations.workforcePools.providers.scimTenants.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['pageSize', 'pageToken', 'showDeleted'],
+        relative_path='v1/{+parent}/scimTenants',
+        request_field='',
+        request_type_name='IamLocationsWorkforcePoolsProvidersScimTenantsListRequest',
+        response_type_name='ListWorkforcePoolProviderScimTenantsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates an existing WorkforcePoolProviderScimTenant.
+
+      Args:
+        request: (IamLocationsWorkforcePoolsProvidersScimTenantsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (WorkforcePoolProviderScimTenant) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/locations/{locationsId}/workforcePools/{workforcePoolsId}/providers/{providersId}/scimTenants/{scimTenantsId}',
+        http_method='PATCH',
+        method_id='iam.locations.workforcePools.providers.scimTenants.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1/{+name}',
+        request_field='workforcePoolProviderScimTenant',
+        request_type_name='IamLocationsWorkforcePoolsProvidersScimTenantsPatchRequest',
+        response_type_name='WorkforcePoolProviderScimTenant',
+        supports_download=False,
+    )
+
+    def Undelete(self, request, global_params=None):
+      r"""Undeletes a WorkforcePoolProviderScimTenant, as long as it was deleted fewer than 30 days ago.
+
+      Args:
+        request: (IamLocationsWorkforcePoolsProvidersScimTenantsUndeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (WorkforcePoolProviderScimTenant) The response message.
+      """
+      config = self.GetMethodConfig('Undelete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Undelete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/locations/{locationsId}/workforcePools/{workforcePoolsId}/providers/{providersId}/scimTenants/{scimTenantsId}:undelete',
+        http_method='POST',
+        method_id='iam.locations.workforcePools.providers.scimTenants.undelete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}:undelete',
+        request_field='undeleteWorkforcePoolProviderScimTenantRequest',
+        request_type_name='IamLocationsWorkforcePoolsProvidersScimTenantsUndeleteRequest',
+        response_type_name='WorkforcePoolProviderScimTenant',
         supports_download=False,
     )
 
@@ -1141,7 +1487,7 @@ class IamV1(base_api.BaseApiClient):
     )
 
     def Delete(self, request, global_params=None):
-      r"""Deletes a custom Role. When you delete a custom role, the following changes occur immediately: * You cannot bind a principal to the custom role in an IAM Policy. * Existing bindings to the custom role are not changed, but they have no effect. * By default, the response from ListRoles does not include the custom role. You have 7 days to undelete the custom role. After 7 days, the following changes occur: * The custom role is permanently deleted and cannot be recovered. * If an IAM policy contains a binding to the custom role, the binding is permanently removed.
+      r"""Deletes a custom Role. When you delete a custom role, the following changes occur immediately: * You cannot bind a principal to the custom role in an IAM Policy. * Existing bindings to the custom role are not changed, but they have no effect. * By default, the response from ListRoles does not include the custom role. A deleted custom role still counts toward the [custom role limit](https://cloud.google.com/iam/help/limits) until it is permanently deleted. You have 7 days to undelete the custom role. After 7 days, the following changes occur: * The custom role is permanently deleted and cannot be recovered. * If an IAM policy contains a binding to the custom role, the binding is permanently removed. * The custom role no longer counts toward your custom role limit.
 
       Args:
         request: (IamOrganizationsRolesDeleteRequest) input message
@@ -1359,7 +1705,7 @@ class IamV1(base_api.BaseApiClient):
     )
 
     def Delete(self, request, global_params=None):
-      r"""Deletes a OauthClientCredential. Before deleting an oauth client credential, it should first be disabled.
+      r"""Deletes an OauthClientCredential. Before deleting an OauthClientCredential, it should first be disabled.
 
       Args:
         request: (IamProjectsLocationsOauthClientsCredentialsDeleteRequest) input message
@@ -1413,7 +1759,7 @@ class IamV1(base_api.BaseApiClient):
     )
 
     def List(self, request, global_params=None):
-      r"""Lists all OauthClientCredentialss in a OauthClient.
+      r"""Lists all OauthClientCredentials in an OauthClient.
 
       Args:
         request: (IamProjectsLocationsOauthClientsCredentialsListRequest) input message
@@ -1477,7 +1823,7 @@ class IamV1(base_api.BaseApiClient):
           }
 
     def Create(self, request, global_params=None):
-      r"""Creates a new OauthClient. You cannot reuse the name of a deleted oauth client until 30 days after deletion.
+      r"""Creates a new OauthClient. You cannot reuse the name of a deleted OauthClient until 30 days after deletion.
 
       Args:
         request: (IamProjectsLocationsOauthClientsCreateRequest) input message
@@ -1504,7 +1850,7 @@ class IamV1(base_api.BaseApiClient):
     )
 
     def Delete(self, request, global_params=None):
-      r"""Deletes a OauthClient. You cannot use a deleted oauth client. However, deletion does not revoke access tokens that have already been issued; they continue to grant access. Deletion does revoke refresh tokens that have already been issued; They cannot be used to renew an access token. If the oauth client is undeleted, and the refresh tokens are not expired, they are valid for token exchange again. You can undelete an oauth client for 30 days. After 30 days, deletion is permanent. You cannot update deleted oauth clients. However, you can view and list them.
+      r"""Deletes an OauthClient. You cannot use a deleted OauthClient. However, deletion does not revoke access tokens that have already been issued. They continue to grant access. Deletion does revoke refresh tokens that have already been issued. They cannot be used to renew an access token. If the OauthClient is undeleted, and the refresh tokens are not expired, they are valid for token exchange again. You can undelete an OauthClient for 30 days. After 30 days, deletion is permanent. You cannot update deleted OauthClients. However, you can view and list them.
 
       Args:
         request: (IamProjectsLocationsOauthClientsDeleteRequest) input message
@@ -1558,7 +1904,7 @@ class IamV1(base_api.BaseApiClient):
     )
 
     def List(self, request, global_params=None):
-      r"""Lists all non-deleted OauthClientss in a project. If `show_deleted` is set to `true`, then deleted oauth clients are also listed.
+      r"""Lists all non-deleted OauthClients in a project. If `show_deleted` is set to `true`, then deleted OauthClients are also listed.
 
       Args:
         request: (IamProjectsLocationsOauthClientsListRequest) input message
@@ -1612,7 +1958,7 @@ class IamV1(base_api.BaseApiClient):
     )
 
     def Undelete(self, request, global_params=None):
-      r"""Undeletes a OauthClient, as long as it was deleted fewer than 30 days ago.
+      r"""Undeletes an OauthClient, as long as it was deleted fewer than 30 days ago.
 
       Args:
         request: (IamProjectsLocationsOauthClientsUndeleteRequest) input message
@@ -1867,6 +2213,33 @@ class IamV1(base_api.BaseApiClient):
       self._upload_configs = {
           }
 
+    def AddAttestationRule(self, request, global_params=None):
+      r"""Add an AttestationRule on a WorkloadIdentityPoolManagedIdentity. The total attestation rules after addition must not exceed 50.
+
+      Args:
+        request: (IamProjectsLocationsWorkloadIdentityPoolsNamespacesManagedIdentitiesAddAttestationRuleRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('AddAttestationRule')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    AddAttestationRule.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/workloadIdentityPools/{workloadIdentityPoolsId}/namespaces/{namespacesId}/managedIdentities/{managedIdentitiesId}:addAttestationRule',
+        http_method='POST',
+        method_id='iam.projects.locations.workloadIdentityPools.namespaces.managedIdentities.addAttestationRule',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1/{+resource}:addAttestationRule',
+        request_field='addAttestationRuleRequest',
+        request_type_name='IamProjectsLocationsWorkloadIdentityPoolsNamespacesManagedIdentitiesAddAttestationRuleRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
     def Create(self, request, global_params=None):
       r"""Creates a new WorkloadIdentityPoolManagedIdentity in a WorkloadIdentityPoolNamespace.
 
@@ -1949,7 +2322,7 @@ class IamV1(base_api.BaseApiClient):
     )
 
     def GetIamPolicy(self, request, global_params=None):
-      r"""Gets IAM policies for one of WorkloadIdentityPool WorkloadIdentityPoolNamespace WorkloadIdentityPoolManagedIdentity.
+      r"""Gets the IAM policy of a WorkloadIdentityPool.
 
       Args:
         request: (IamProjectsLocationsWorkloadIdentityPoolsNamespacesManagedIdentitiesGetIamPolicyRequest) input message
@@ -1976,7 +2349,7 @@ class IamV1(base_api.BaseApiClient):
     )
 
     def List(self, request, global_params=None):
-      r"""Lists all non-deleted WorkloadIdentityPoolManagedIdentitys in a namespace. If `show_deleted` is set to `true`, then deleted managed identites are also listed.
+      r"""Lists all non-deleted WorkloadIdentityPoolManagedIdentitys in a namespace. If `show_deleted` is set to `true`, then deleted managed identities are also listed.
 
       Args:
         request: (IamProjectsLocationsWorkloadIdentityPoolsNamespacesManagedIdentitiesListRequest) input message
@@ -1999,6 +2372,33 @@ class IamV1(base_api.BaseApiClient):
         request_field='',
         request_type_name='IamProjectsLocationsWorkloadIdentityPoolsNamespacesManagedIdentitiesListRequest',
         response_type_name='ListWorkloadIdentityPoolManagedIdentitiesResponse',
+        supports_download=False,
+    )
+
+    def ListAttestationRules(self, request, global_params=None):
+      r"""List all AttestationRule on a WorkloadIdentityPoolManagedIdentity.
+
+      Args:
+        request: (IamProjectsLocationsWorkloadIdentityPoolsNamespacesManagedIdentitiesListAttestationRulesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListAttestationRulesResponse) The response message.
+      """
+      config = self.GetMethodConfig('ListAttestationRules')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ListAttestationRules.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/workloadIdentityPools/{workloadIdentityPoolsId}/namespaces/{namespacesId}/managedIdentities/{managedIdentitiesId}:listAttestationRules',
+        http_method='GET',
+        method_id='iam.projects.locations.workloadIdentityPools.namespaces.managedIdentities.listAttestationRules',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v1/{+resource}:listAttestationRules',
+        request_field='',
+        request_type_name='IamProjectsLocationsWorkloadIdentityPoolsNamespacesManagedIdentitiesListAttestationRulesRequest',
+        response_type_name='ListAttestationRulesResponse',
         supports_download=False,
     )
 
@@ -2029,8 +2429,62 @@ class IamV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def RemoveAttestationRule(self, request, global_params=None):
+      r"""Remove an AttestationRule on a WorkloadIdentityPoolManagedIdentity.
+
+      Args:
+        request: (IamProjectsLocationsWorkloadIdentityPoolsNamespacesManagedIdentitiesRemoveAttestationRuleRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('RemoveAttestationRule')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    RemoveAttestationRule.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/workloadIdentityPools/{workloadIdentityPoolsId}/namespaces/{namespacesId}/managedIdentities/{managedIdentitiesId}:removeAttestationRule',
+        http_method='POST',
+        method_id='iam.projects.locations.workloadIdentityPools.namespaces.managedIdentities.removeAttestationRule',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1/{+resource}:removeAttestationRule',
+        request_field='removeAttestationRuleRequest',
+        request_type_name='IamProjectsLocationsWorkloadIdentityPoolsNamespacesManagedIdentitiesRemoveAttestationRuleRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def SetAttestationRules(self, request, global_params=None):
+      r"""Set all AttestationRule on a WorkloadIdentityPoolManagedIdentity. A maximum of 50 AttestationRules can be set.
+
+      Args:
+        request: (IamProjectsLocationsWorkloadIdentityPoolsNamespacesManagedIdentitiesSetAttestationRulesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('SetAttestationRules')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetAttestationRules.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/workloadIdentityPools/{workloadIdentityPoolsId}/namespaces/{namespacesId}/managedIdentities/{managedIdentitiesId}:setAttestationRules',
+        http_method='POST',
+        method_id='iam.projects.locations.workloadIdentityPools.namespaces.managedIdentities.setAttestationRules',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1/{+resource}:setAttestationRules',
+        request_field='setAttestationRulesRequest',
+        request_type_name='IamProjectsLocationsWorkloadIdentityPoolsNamespacesManagedIdentitiesSetAttestationRulesRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
     def SetIamPolicy(self, request, global_params=None):
-      r"""Sets IAM policies on one of WorkloadIdentityPool WorkloadIdentityPoolNamespace WorkloadIdentityPoolManagedIdentity.
+      r"""Sets the IAM policies on a WorkloadIdentityPool.
 
       Args:
         request: (IamProjectsLocationsWorkloadIdentityPoolsNamespacesManagedIdentitiesSetIamPolicyRequest) input message
@@ -2057,7 +2511,7 @@ class IamV1(base_api.BaseApiClient):
     )
 
     def TestIamPermissions(self, request, global_params=None):
-      r"""Returns the caller's permissions on one of WorkloadIdentityPool WorkloadIdentityPoolNamespace WorkloadIdentityPoolManagedIdentity.
+      r"""Returns the caller's permissions on a WorkloadIdentityPool.
 
       Args:
         request: (IamProjectsLocationsWorkloadIdentityPoolsNamespacesManagedIdentitiesTestIamPermissionsRequest) input message
@@ -2339,6 +2793,33 @@ class IamV1(base_api.BaseApiClient):
       self._upload_configs = {
           }
 
+    def AddAttestationRule(self, request, global_params=None):
+      r"""Add an AttestationRule on a WorkloadIdentityPoolManagedIdentity. The total attestation rules after addition must not exceed 50.
+
+      Args:
+        request: (IamProjectsLocationsWorkloadIdentityPoolsNamespacesAddAttestationRuleRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('AddAttestationRule')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    AddAttestationRule.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/workloadIdentityPools/{workloadIdentityPoolsId}/namespaces/{namespacesId}:addAttestationRule',
+        http_method='POST',
+        method_id='iam.projects.locations.workloadIdentityPools.namespaces.addAttestationRule',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1/{+resource}:addAttestationRule',
+        request_field='addAttestationRuleRequest',
+        request_type_name='IamProjectsLocationsWorkloadIdentityPoolsNamespacesAddAttestationRuleRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
     def Create(self, request, global_params=None):
       r"""Creates a new WorkloadIdentityPoolNamespace in a WorkloadIdentityPool.
 
@@ -2421,7 +2902,7 @@ class IamV1(base_api.BaseApiClient):
     )
 
     def GetIamPolicy(self, request, global_params=None):
-      r"""Gets IAM policies for one of WorkloadIdentityPool WorkloadIdentityPoolNamespace WorkloadIdentityPoolManagedIdentity.
+      r"""Gets the IAM policy of a WorkloadIdentityPool.
 
       Args:
         request: (IamProjectsLocationsWorkloadIdentityPoolsNamespacesGetIamPolicyRequest) input message
@@ -2474,6 +2955,33 @@ class IamV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def ListAttestationRules(self, request, global_params=None):
+      r"""List all AttestationRule on a WorkloadIdentityPoolManagedIdentity.
+
+      Args:
+        request: (IamProjectsLocationsWorkloadIdentityPoolsNamespacesListAttestationRulesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListAttestationRulesResponse) The response message.
+      """
+      config = self.GetMethodConfig('ListAttestationRules')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ListAttestationRules.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/workloadIdentityPools/{workloadIdentityPoolsId}/namespaces/{namespacesId}:listAttestationRules',
+        http_method='GET',
+        method_id='iam.projects.locations.workloadIdentityPools.namespaces.listAttestationRules',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v1/{+resource}:listAttestationRules',
+        request_field='',
+        request_type_name='IamProjectsLocationsWorkloadIdentityPoolsNamespacesListAttestationRulesRequest',
+        response_type_name='ListAttestationRulesResponse',
+        supports_download=False,
+    )
+
     def Patch(self, request, global_params=None):
       r"""Updates an existing WorkloadIdentityPoolNamespace in a WorkloadIdentityPool.
 
@@ -2501,8 +3009,62 @@ class IamV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def RemoveAttestationRule(self, request, global_params=None):
+      r"""Remove an AttestationRule on a WorkloadIdentityPoolManagedIdentity.
+
+      Args:
+        request: (IamProjectsLocationsWorkloadIdentityPoolsNamespacesRemoveAttestationRuleRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('RemoveAttestationRule')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    RemoveAttestationRule.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/workloadIdentityPools/{workloadIdentityPoolsId}/namespaces/{namespacesId}:removeAttestationRule',
+        http_method='POST',
+        method_id='iam.projects.locations.workloadIdentityPools.namespaces.removeAttestationRule',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1/{+resource}:removeAttestationRule',
+        request_field='removeAttestationRuleRequest',
+        request_type_name='IamProjectsLocationsWorkloadIdentityPoolsNamespacesRemoveAttestationRuleRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def SetAttestationRules(self, request, global_params=None):
+      r"""Set all AttestationRule on a WorkloadIdentityPoolManagedIdentity. A maximum of 50 AttestationRules can be set.
+
+      Args:
+        request: (IamProjectsLocationsWorkloadIdentityPoolsNamespacesSetAttestationRulesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('SetAttestationRules')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetAttestationRules.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/workloadIdentityPools/{workloadIdentityPoolsId}/namespaces/{namespacesId}:setAttestationRules',
+        http_method='POST',
+        method_id='iam.projects.locations.workloadIdentityPools.namespaces.setAttestationRules',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1/{+resource}:setAttestationRules',
+        request_field='setAttestationRulesRequest',
+        request_type_name='IamProjectsLocationsWorkloadIdentityPoolsNamespacesSetAttestationRulesRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
     def SetIamPolicy(self, request, global_params=None):
-      r"""Sets IAM policies on one of WorkloadIdentityPool WorkloadIdentityPoolNamespace WorkloadIdentityPoolManagedIdentity.
+      r"""Sets the IAM policies on a WorkloadIdentityPool.
 
       Args:
         request: (IamProjectsLocationsWorkloadIdentityPoolsNamespacesSetIamPolicyRequest) input message
@@ -2529,7 +3091,7 @@ class IamV1(base_api.BaseApiClient):
     )
 
     def TestIamPermissions(self, request, global_params=None):
-      r"""Returns the caller's permissions on one of WorkloadIdentityPool WorkloadIdentityPoolNamespace WorkloadIdentityPoolManagedIdentity.
+      r"""Returns the caller's permissions on a WorkloadIdentityPool.
 
       Args:
         request: (IamProjectsLocationsWorkloadIdentityPoolsNamespacesTestIamPermissionsRequest) input message
@@ -3020,6 +3582,33 @@ class IamV1(base_api.BaseApiClient):
       self._upload_configs = {
           }
 
+    def AddAttestationRule(self, request, global_params=None):
+      r"""Add an AttestationRule on a WorkloadIdentityPoolManagedIdentity. The total attestation rules after addition must not exceed 50.
+
+      Args:
+        request: (IamProjectsLocationsWorkloadIdentityPoolsAddAttestationRuleRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('AddAttestationRule')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    AddAttestationRule.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/workloadIdentityPools/{workloadIdentityPoolsId}:addAttestationRule',
+        http_method='POST',
+        method_id='iam.projects.locations.workloadIdentityPools.addAttestationRule',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1/{+resource}:addAttestationRule',
+        request_field='addAttestationRuleRequest',
+        request_type_name='IamProjectsLocationsWorkloadIdentityPoolsAddAttestationRuleRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
     def Create(self, request, global_params=None):
       r"""Creates a new WorkloadIdentityPool. You cannot reuse the name of a deleted pool until 30 days after deletion.
 
@@ -3102,7 +3691,7 @@ class IamV1(base_api.BaseApiClient):
     )
 
     def GetIamPolicy(self, request, global_params=None):
-      r"""Gets IAM policies for one of WorkloadIdentityPool WorkloadIdentityPoolNamespace WorkloadIdentityPoolManagedIdentity.
+      r"""Gets the IAM policy of a WorkloadIdentityPool.
 
       Args:
         request: (IamProjectsLocationsWorkloadIdentityPoolsGetIamPolicyRequest) input message
@@ -3155,6 +3744,33 @@ class IamV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def ListAttestationRules(self, request, global_params=None):
+      r"""List all AttestationRule on a WorkloadIdentityPoolManagedIdentity.
+
+      Args:
+        request: (IamProjectsLocationsWorkloadIdentityPoolsListAttestationRulesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListAttestationRulesResponse) The response message.
+      """
+      config = self.GetMethodConfig('ListAttestationRules')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ListAttestationRules.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/workloadIdentityPools/{workloadIdentityPoolsId}:listAttestationRules',
+        http_method='GET',
+        method_id='iam.projects.locations.workloadIdentityPools.listAttestationRules',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v1/{+resource}:listAttestationRules',
+        request_field='',
+        request_type_name='IamProjectsLocationsWorkloadIdentityPoolsListAttestationRulesRequest',
+        response_type_name='ListAttestationRulesResponse',
+        supports_download=False,
+    )
+
     def Patch(self, request, global_params=None):
       r"""Updates an existing WorkloadIdentityPool.
 
@@ -3182,8 +3798,62 @@ class IamV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def RemoveAttestationRule(self, request, global_params=None):
+      r"""Remove an AttestationRule on a WorkloadIdentityPoolManagedIdentity.
+
+      Args:
+        request: (IamProjectsLocationsWorkloadIdentityPoolsRemoveAttestationRuleRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('RemoveAttestationRule')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    RemoveAttestationRule.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/workloadIdentityPools/{workloadIdentityPoolsId}:removeAttestationRule',
+        http_method='POST',
+        method_id='iam.projects.locations.workloadIdentityPools.removeAttestationRule',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1/{+resource}:removeAttestationRule',
+        request_field='removeAttestationRuleRequest',
+        request_type_name='IamProjectsLocationsWorkloadIdentityPoolsRemoveAttestationRuleRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def SetAttestationRules(self, request, global_params=None):
+      r"""Set all AttestationRule on a WorkloadIdentityPoolManagedIdentity. A maximum of 50 AttestationRules can be set.
+
+      Args:
+        request: (IamProjectsLocationsWorkloadIdentityPoolsSetAttestationRulesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('SetAttestationRules')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetAttestationRules.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/workloadIdentityPools/{workloadIdentityPoolsId}:setAttestationRules',
+        http_method='POST',
+        method_id='iam.projects.locations.workloadIdentityPools.setAttestationRules',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1/{+resource}:setAttestationRules',
+        request_field='setAttestationRulesRequest',
+        request_type_name='IamProjectsLocationsWorkloadIdentityPoolsSetAttestationRulesRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
     def SetIamPolicy(self, request, global_params=None):
-      r"""Sets IAM policies on one of WorkloadIdentityPool WorkloadIdentityPoolNamespace WorkloadIdentityPoolManagedIdentity.
+      r"""Sets the IAM policies on a WorkloadIdentityPool.
 
       Args:
         request: (IamProjectsLocationsWorkloadIdentityPoolsSetIamPolicyRequest) input message
@@ -3210,7 +3880,7 @@ class IamV1(base_api.BaseApiClient):
     )
 
     def TestIamPermissions(self, request, global_params=None):
-      r"""Returns the caller's permissions on one of WorkloadIdentityPool WorkloadIdentityPoolNamespace WorkloadIdentityPoolManagedIdentity.
+      r"""Returns the caller's permissions on a WorkloadIdentityPool.
 
       Args:
         request: (IamProjectsLocationsWorkloadIdentityPoolsTestIamPermissionsRequest) input message
@@ -3311,7 +3981,7 @@ class IamV1(base_api.BaseApiClient):
     )
 
     def Delete(self, request, global_params=None):
-      r"""Deletes a custom Role. When you delete a custom role, the following changes occur immediately: * You cannot bind a principal to the custom role in an IAM Policy. * Existing bindings to the custom role are not changed, but they have no effect. * By default, the response from ListRoles does not include the custom role. You have 7 days to undelete the custom role. After 7 days, the following changes occur: * The custom role is permanently deleted and cannot be recovered. * If an IAM policy contains a binding to the custom role, the binding is permanently removed.
+      r"""Deletes a custom Role. When you delete a custom role, the following changes occur immediately: * You cannot bind a principal to the custom role in an IAM Policy. * Existing bindings to the custom role are not changed, but they have no effect. * By default, the response from ListRoles does not include the custom role. A deleted custom role still counts toward the [custom role limit](https://cloud.google.com/iam/help/limits) until it is permanently deleted. You have 7 days to undelete the custom role. After 7 days, the following changes occur: * The custom role is permanently deleted and cannot be recovered. * If an IAM policy contains a binding to the custom role, the binding is permanently removed. * The custom role no longer counts toward your custom role limit.
 
       Args:
         request: (IamProjectsRolesDeleteRequest) input message
@@ -3735,33 +4405,6 @@ class IamV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
-    def Patch(self, request, global_params=None):
-      r"""Patches a ServiceAccountKey.
-
-      Args:
-        request: (IamProjectsServiceAccountsKeysPatchRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (ServiceAccountKey) The response message.
-      """
-      config = self.GetMethodConfig('Patch')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Patch.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1/projects/{projectsId}/serviceAccounts/{serviceAccountsId}/keys/{keysId}:patch',
-        http_method='POST',
-        method_id='iam.projects.serviceAccounts.keys.patch',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=[],
-        relative_path='v1/{+name}:patch',
-        request_field='patchServiceAccountKeyRequest',
-        request_type_name='IamProjectsServiceAccountsKeysPatchRequest',
-        response_type_name='ServiceAccountKey',
-        supports_download=False,
-    )
-
     def Upload(self, request, global_params=None):
       r"""Uploads the public key portion of a key pair that you manage, and associates the public key with a ServiceAccount. After you upload the public key, you can use the private key from the key pair as a service account key.
 
@@ -3935,7 +4578,7 @@ class IamV1(base_api.BaseApiClient):
     )
 
     def GetIamPolicy(self, request, global_params=None):
-      r"""Gets the IAM policy that is attached to a ServiceAccount. This IAM policy specifies which principals have access to the service account. This method does not tell you whether the service account has been granted any roles on other resources. To check whether a service account has role grants on a resource, use the `getIamPolicy` method for that resource. For example, to view the role grants for a project, call the Resource Manager API's [`projects.getIamPolicy`](https://cloud.google.com/resource-manager/reference/rest/v1/projects/getIamPolicy) method.
+      r"""Gets the IAM policy that is attached to a ServiceAccount. This IAM policy specifies which principals have access to the service account. This method does not tell you whether the service account has been granted any roles on other resources. To check whether a service account has role grants on a resource, use the `getIamPolicy` method for that resource. For example, to view the role grants for a project, call the Resource Manager API's [projects.getIamPolicy](https://cloud.google.com/resource-manager/reference/rest/v1/projects/getIamPolicy) method.
 
       Args:
         request: (IamProjectsServiceAccountsGetIamPolicyRequest) input message
@@ -4043,7 +4686,7 @@ class IamV1(base_api.BaseApiClient):
     )
 
     def SignBlob(self, request, global_params=None):
-      r"""**Note:** This method is deprecated. Use the [`signBlob`](https://cloud.google.com/iam/help/rest-credentials/v1/projects.serviceAccounts/signBlob) method in the IAM Service Account Credentials API instead. If you currently use this method, see the [migration guide](https://cloud.google.com/iam/help/credentials/migrate-api) for instructions. Signs a blob using the system-managed private key for a ServiceAccount.
+      r""" Signs a blob using the system-managed private key for a ServiceAccount.
 
       Args:
         request: (IamProjectsServiceAccountsSignBlobRequest) input message
@@ -4070,7 +4713,7 @@ class IamV1(base_api.BaseApiClient):
     )
 
     def SignJwt(self, request, global_params=None):
-      r"""**Note:** This method is deprecated. Use the [`signJwt`](https://cloud.google.com/iam/help/rest-credentials/v1/projects.serviceAccounts/signJwt) method in the IAM Service Account Credentials API instead. If you currently use this method, see the [migration guide](https://cloud.google.com/iam/help/credentials/migrate-api) for instructions. Signs a JSON Web Token (JWT) using the system-managed private key for a ServiceAccount.
+      r""" Signs a JSON Web Token (JWT) using the system-managed private key for a ServiceAccount.
 
       Args:
         request: (IamProjectsServiceAccountsSignJwtRequest) input message

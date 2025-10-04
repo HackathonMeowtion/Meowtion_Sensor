@@ -290,6 +290,14 @@ class ServiceConditionPoller(ConditionPoller):
     self._resource_fail_type = serverless_exceptions.DeploymentFailedError
 
 
+class WorkerPoolConditionPoller(ConditionPoller):
+  """A ConditionPoller for worker pools."""
+
+  def __init__(self, getter, tracker, dependencies=None, worker_pool=None):
+    super().__init__(getter, tracker, dependencies)
+    self._resource_fail_type = serverless_exceptions.DeploymentFailedError
+
+
 class RevisionNameBasedPoller(waiter.OperationPoller):
   """Poll for the revision with the given name to exist."""
 
@@ -376,6 +384,10 @@ class ExecutionConditionPoller(ConditionPoller):
 class WaitOperationPoller(waiter.CloudOperationPoller):
   """Poll for a long running operation using Wait instead of Get."""
 
+  def __init__(self, messages_module, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self._messages_module = messages_module
+
   def Poll(self, operation_ref):
     """Overrides.
 
@@ -386,6 +398,12 @@ class WaitOperationPoller(waiter.CloudOperationPoller):
       fetched operation message.
     """
     request_type = self.operation_service.GetRequestType('Wait')
+    wait_req = self._messages_module.GoogleLongrunningWaitOperationRequest(
+        timeout='10s'
+    )
     return self.operation_service.Wait(
-        request_type(name=operation_ref.RelativeName())
+        request_type(
+            name=operation_ref.RelativeName(),
+            googleLongrunningWaitOperationRequest=wait_req,
+        )
     )

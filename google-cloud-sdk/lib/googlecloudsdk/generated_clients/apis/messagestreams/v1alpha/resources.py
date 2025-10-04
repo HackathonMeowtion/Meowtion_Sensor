@@ -77,6 +77,17 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_LOCATIONS_STREAMS_RETRYPOLICIES = (
+      'projects.locations.streams.retryPolicies',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/streams/'
+              '{streamsId}/retryPolicies/{retryPoliciesId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS_REGIONS = (
       'projects.regions',
       'projects/{projectsId}/regions/{regionsId}',

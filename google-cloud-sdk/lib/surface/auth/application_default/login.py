@@ -39,6 +39,7 @@ from googlecloudsdk.core.credentials import store as c_store
 from googlecloudsdk.core.util import files
 
 
+@base.UniverseCompatible
 class Login(base.Command):
   r"""Acquire new user credentials to use for Application Default Credentials.
 
@@ -94,7 +95,11 @@ class Login(base.Command):
         help='The names of the scopes to authorize for. By default '
         '{0} scopes are used. '
         'The list of possible scopes can be found at: '
-        '[](https://developers.google.com/identity/protocols/googlescopes).'
+        '[](https://developers.google.com/identity/protocols/googlescopes). '
+        'To add scopes for applications outside of Google Cloud Platform, '
+        'such as Google Drive, [create an OAuth Client ID]'
+        '(https://support.google.com/cloud/answer/6158849) and provide it by '
+        'using the --client-id-file flag. '
         .format(', '.join(auth_util.DEFAULT_SCOPES)))
     parser.add_argument(
         '--login-config',
@@ -165,8 +170,9 @@ class Login(base.Command):
     scopes = args.scopes or auth_util.DEFAULT_SCOPES
     flow_params = dict(
         no_launch_browser=not args.launch_browser,
-        no_browser=args.no_browser,
-        remote_bootstrap=args.remote_bootstrap)
+        no_browser=not args.browser,
+        remote_bootstrap=args.remote_bootstrap,
+    )
 
     # 1. Try the 3PI web flow with --no-browser:
     #    This could be a 3PI flow initiated via --no-browser.
@@ -192,13 +198,9 @@ class Login(base.Command):
       if args.scopes:
         raise c_exc.ConflictingArgumentsException(
             '--scopes is not currently supported for third party login flows.')
-      # Redirect URI must be sdk.cloud.google for 3PI.
       creds = workforce_login_config_util.DoWorkforceHeadfulLogin(
           login_config_file,
           True,
-          auth_proxy_redirect_uri=(
-              'https://sdk.cloud.google/applicationdefaultauthcode.html'
-          ),
           **flow_params
       )
     else:
@@ -207,6 +209,12 @@ class Login(base.Command):
           auth_util.DEFAULT_CREDENTIALS_DEFAULT_CLIENT_ID)
       properties.VALUES.auth.client_secret.Set(
           auth_util.DEFAULT_CREDENTIALS_DEFAULT_CLIENT_SECRET)
+      if auth_util.CLOUD_PLATFORM_SCOPE not in scopes:
+        raise c_exc.InvalidArgumentException(
+            '--scopes',
+            '{} scope is required but not requested. Please include it in the'
+            ' --scopes flag.'.format(auth_util.CLOUD_PLATFORM_SCOPE),
+        )
       creds = auth_util.DoInstalledAppBrowserFlowGoogleAuth(
           scopes,
           client_id_file=args.client_id_file,

@@ -155,8 +155,9 @@ class AppGatewayOperationMetadata(_messages.Message):
     endTime: Output only. The time the operation finished running.
     requestedCancellation: Output only. Identifies whether the user has
       requested cancellation of the operation. Operations that have
-      successfully been cancelled have Operation.error value with a
-      google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      successfully been cancelled have google.longrunning.Operation.error
+      value with a google.rpc.Status.code of `1`, corresponding to
+      `Code.CANCELLED`.
     statusMessage: Output only. Human-readable status of the operation, if
       any.
     target: Output only. Server-defined resource path for the target of the
@@ -185,207 +186,6 @@ class ApplicationEndpoint(_messages.Message):
   port = _messages.IntegerField(2, variant=_messages.Variant.INT32)
 
 
-class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsBrowserDlpRulesCreateRequest(_messages.Message):
-  r"""A BeyondcorpOrganizationsLocationsGlobalPartnerTenantsBrowserDlpRulesCre
-  ateRequest object.
-
-  Fields:
-    googleCloudBeyondcorpPartnerservicesV1alphaBrowserDlpRule: A
-      GoogleCloudBeyondcorpPartnerservicesV1alphaBrowserDlpRule resource to be
-      passed as the request body.
-    parent: Required. The resource name of the BrowserDlpRule parent using the
-      form: `organizations/{organization_id}/locations/global/partnerTenants/{
-      partner_tenant_id}`
-    requestId: Optional. An optional request ID to identify requests. Specify
-      a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes since the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
-  """
-
-  googleCloudBeyondcorpPartnerservicesV1alphaBrowserDlpRule = _messages.MessageField('GoogleCloudBeyondcorpPartnerservicesV1alphaBrowserDlpRule', 1)
-  parent = _messages.StringField(2, required=True)
-  requestId = _messages.StringField(3)
-
-
-class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsBrowserDlpRulesDeleteRequest(_messages.Message):
-  r"""A BeyondcorpOrganizationsLocationsGlobalPartnerTenantsBrowserDlpRulesDel
-  eteRequest object.
-
-  Fields:
-    name: Required. The resource name of the BrowserDlpRule using the form: `o
-      rganizations/{organization_id}/locations/global/partnerTenants/{partner_
-      tenant_id}/browserDlpRules/{browser_dlp_rule_id}`
-    requestId: Optional. An optional request ID to identify requests. Specify
-      a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes after the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
-  """
-
-  name = _messages.StringField(1, required=True)
-  requestId = _messages.StringField(2)
-
-
-class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsBrowserDlpRulesGetIamPolicyRequest(_messages.Message):
-  r"""A BeyondcorpOrganizationsLocationsGlobalPartnerTenantsBrowserDlpRulesGet
-  IamPolicyRequest object.
-
-  Fields:
-    options_requestedPolicyVersion: Optional. The maximum policy version that
-      will be used to format the policy. Valid values are 0, 1, and 3.
-      Requests specifying an invalid value will be rejected. Requests for
-      policies with any conditional role bindings must specify version 3.
-      Policies with no conditional role bindings may specify any valid value
-      or leave the field unset. The policy in the response might use the
-      policy version that you specified, or it might use a lower policy
-      version. For example, if you specify version 3, but the policy has no
-      conditional role bindings, the response uses version 1. To learn which
-      resources support conditions in their IAM policies, see the [IAM
-      documentation](https://cloud.google.com/iam/help/conditions/resource-
-      policies).
-    resource: REQUIRED: The resource for which the policy is being requested.
-      See [Resource
-      names](https://cloud.google.com/apis/design/resource_names) for the
-      appropriate value for this field.
-  """
-
-  options_requestedPolicyVersion = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  resource = _messages.StringField(2, required=True)
-
-
-class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsBrowserDlpRulesGetRequest(_messages.Message):
-  r"""A BeyondcorpOrganizationsLocationsGlobalPartnerTenantsBrowserDlpRulesGet
-  Request object.
-
-  Fields:
-    name: Required. The resource name of the BrowserDlpRule using the form: `o
-      rganizations/{organization_id}/locations/global/partnerTenants/{partner_
-      tenant_id}/browserDlpRules/{browser_dlp_rule_id}`
-  """
-
-  name = _messages.StringField(1, required=True)
-
-
-class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsBrowserDlpRulesListRequest(_messages.Message):
-  r"""A BeyondcorpOrganizationsLocationsGlobalPartnerTenantsBrowserDlpRulesLis
-  tRequest object.
-
-  Fields:
-    parent: Required. The parent partnerTenant to which the BrowserDlpRules
-      belong. Format: `organizations/{organization_id}/locations/global/partne
-      rTenants/{partner_tenant_id}`
-  """
-
-  parent = _messages.StringField(1, required=True)
-
-
-class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsBrowserDlpRulesPatchRequest(_messages.Message):
-  r"""A BeyondcorpOrganizationsLocationsGlobalPartnerTenantsBrowserDlpRulesPat
-  chRequest object.
-
-  Fields:
-    googleCloudBeyondcorpPartnerservicesV1alphaBrowserDlpRule: A
-      GoogleCloudBeyondcorpPartnerservicesV1alphaBrowserDlpRule resource to be
-      passed as the request body.
-    name: Output only. Unique resource name. The name is ignored when creating
-      BrowserDlpRule.
-    requestId: Optional. An optional request ID to identify requests. Specify
-      a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes since the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
-    updateMask: Required. Supported fields include: rule_setting.value.*,
-      group.id/group.email.
-  """
-
-  googleCloudBeyondcorpPartnerservicesV1alphaBrowserDlpRule = _messages.MessageField('GoogleCloudBeyondcorpPartnerservicesV1alphaBrowserDlpRule', 1)
-  name = _messages.StringField(2, required=True)
-  requestId = _messages.StringField(3)
-  updateMask = _messages.StringField(4)
-
-
-class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsBrowserDlpRulesSetIamPolicyRequest(_messages.Message):
-  r"""A BeyondcorpOrganizationsLocationsGlobalPartnerTenantsBrowserDlpRulesSet
-  IamPolicyRequest object.
-
-  Fields:
-    googleIamV1SetIamPolicyRequest: A GoogleIamV1SetIamPolicyRequest resource
-      to be passed as the request body.
-    resource: REQUIRED: The resource for which the policy is being specified.
-      See [Resource
-      names](https://cloud.google.com/apis/design/resource_names) for the
-      appropriate value for this field.
-  """
-
-  googleIamV1SetIamPolicyRequest = _messages.MessageField('GoogleIamV1SetIamPolicyRequest', 1)
-  resource = _messages.StringField(2, required=True)
-
-
-class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsBrowserDlpRulesTestIamPermissionsRequest(_messages.Message):
-  r"""A BeyondcorpOrganizationsLocationsGlobalPartnerTenantsBrowserDlpRulesTes
-  tIamPermissionsRequest object.
-
-  Fields:
-    googleIamV1TestIamPermissionsRequest: A
-      GoogleIamV1TestIamPermissionsRequest resource to be passed as the
-      request body.
-    resource: REQUIRED: The resource for which the policy detail is being
-      requested. See [Resource
-      names](https://cloud.google.com/apis/design/resource_names) for the
-      appropriate value for this field.
-  """
-
-  googleIamV1TestIamPermissionsRequest = _messages.MessageField('GoogleIamV1TestIamPermissionsRequest', 1)
-  resource = _messages.StringField(2, required=True)
-
-
-class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsCreateRequest(_messages.Message):
-  r"""A BeyondcorpOrganizationsLocationsGlobalPartnerTenantsCreateRequest
-  object.
-
-  Fields:
-    googleCloudBeyondcorpPartnerservicesV1alphaPartnerTenant: A
-      GoogleCloudBeyondcorpPartnerservicesV1alphaPartnerTenant resource to be
-      passed as the request body.
-    parent: Required. The resource name of the parent organization using the
-      form: `organizations/{organization_id}/locations/global`
-    requestId: Optional. An optional request ID to identify requests. Specify
-      a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes since the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
-  """
-
-  googleCloudBeyondcorpPartnerservicesV1alphaPartnerTenant = _messages.MessageField('GoogleCloudBeyondcorpPartnerservicesV1alphaPartnerTenant', 1)
-  parent = _messages.StringField(2, required=True)
-  requestId = _messages.StringField(3)
-
-
 class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsDeleteRequest(_messages.Message):
   r"""A BeyondcorpOrganizationsLocationsGlobalPartnerTenantsDeleteRequest
   object.
@@ -407,34 +207,6 @@ class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsDeleteRequest(_message
 
   name = _messages.StringField(1, required=True)
   requestId = _messages.StringField(2)
-
-
-class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsGetIamPolicyRequest(_messages.Message):
-  r"""A
-  BeyondcorpOrganizationsLocationsGlobalPartnerTenantsGetIamPolicyRequest
-  object.
-
-  Fields:
-    options_requestedPolicyVersion: Optional. The maximum policy version that
-      will be used to format the policy. Valid values are 0, 1, and 3.
-      Requests specifying an invalid value will be rejected. Requests for
-      policies with any conditional role bindings must specify version 3.
-      Policies with no conditional role bindings may specify any valid value
-      or leave the field unset. The policy in the response might use the
-      policy version that you specified, or it might use a lower policy
-      version. For example, if you specify version 3, but the policy has no
-      conditional role bindings, the response uses version 1. To learn which
-      resources support conditions in their IAM policies, see the [IAM
-      documentation](https://cloud.google.com/iam/help/conditions/resource-
-      policies).
-    resource: REQUIRED: The resource for which the policy is being requested.
-      See [Resource
-      names](https://cloud.google.com/apis/design/resource_names) for the
-      appropriate value for this field.
-  """
-
-  options_requestedPolicyVersion = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  resource = _messages.StringField(2, required=True)
 
 
 class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsGetRequest(_messages.Message):
@@ -482,274 +254,6 @@ class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsListRequest(_messages.
   pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
   pageToken = _messages.StringField(4)
   parent = _messages.StringField(5, required=True)
-
-
-class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsPatchRequest(_messages.Message):
-  r"""A BeyondcorpOrganizationsLocationsGlobalPartnerTenantsPatchRequest
-  object.
-
-  Fields:
-    googleCloudBeyondcorpPartnerservicesV1alphaPartnerTenant: A
-      GoogleCloudBeyondcorpPartnerservicesV1alphaPartnerTenant resource to be
-      passed as the request body.
-    name: Output only. Unique resource name of the PartnerTenant. The name is
-      ignored when creating PartnerTenant.
-    requestId: Optional. An optional request ID to identify requests. Specify
-      a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes since the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
-    updateMask: Required. Field mask is used to specify the fields to be
-      overwritten in the PartnerTenant resource by the update. The fields
-      specified in the update_mask are relative to the resource, not the full
-      request. A field will be overwritten if it is in the mask. If the user
-      does not provide a mask then all fields will be overwritten. Mutable
-      fields: display_name, partner_metadata, group_information.
-  """
-
-  googleCloudBeyondcorpPartnerservicesV1alphaPartnerTenant = _messages.MessageField('GoogleCloudBeyondcorpPartnerservicesV1alphaPartnerTenant', 1)
-  name = _messages.StringField(2, required=True)
-  requestId = _messages.StringField(3)
-  updateMask = _messages.StringField(4)
-
-
-class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsProxyConfigsCreateRequest(_messages.Message):
-  r"""A BeyondcorpOrganizationsLocationsGlobalPartnerTenantsProxyConfigsCreate
-  Request object.
-
-  Fields:
-    googleCloudBeyondcorpPartnerservicesV1alphaProxyConfig: A
-      GoogleCloudBeyondcorpPartnerservicesV1alphaProxyConfig resource to be
-      passed as the request body.
-    parent: Required. The resource name of the parent PartnerTenant using the
-      form: `organizations/{organization_id}/locations/global/partnerTenants/{
-      partner_tenant_id}`
-    requestId: Optional. An optional request ID to identify requests. Specify
-      a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes since the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
-  """
-
-  googleCloudBeyondcorpPartnerservicesV1alphaProxyConfig = _messages.MessageField('GoogleCloudBeyondcorpPartnerservicesV1alphaProxyConfig', 1)
-  parent = _messages.StringField(2, required=True)
-  requestId = _messages.StringField(3)
-
-
-class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsProxyConfigsDeleteRequest(_messages.Message):
-  r"""A BeyondcorpOrganizationsLocationsGlobalPartnerTenantsProxyConfigsDelete
-  Request object.
-
-  Fields:
-    name: Required. Name of the resource.
-    requestId: Optional. An optional request ID to identify requests. Specify
-      a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes after the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
-  """
-
-  name = _messages.StringField(1, required=True)
-  requestId = _messages.StringField(2)
-
-
-class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsProxyConfigsGetIamPolicyRequest(_messages.Message):
-  r"""A BeyondcorpOrganizationsLocationsGlobalPartnerTenantsProxyConfigsGetIam
-  PolicyRequest object.
-
-  Fields:
-    options_requestedPolicyVersion: Optional. The maximum policy version that
-      will be used to format the policy. Valid values are 0, 1, and 3.
-      Requests specifying an invalid value will be rejected. Requests for
-      policies with any conditional role bindings must specify version 3.
-      Policies with no conditional role bindings may specify any valid value
-      or leave the field unset. The policy in the response might use the
-      policy version that you specified, or it might use a lower policy
-      version. For example, if you specify version 3, but the policy has no
-      conditional role bindings, the response uses version 1. To learn which
-      resources support conditions in their IAM policies, see the [IAM
-      documentation](https://cloud.google.com/iam/help/conditions/resource-
-      policies).
-    resource: REQUIRED: The resource for which the policy is being requested.
-      See [Resource
-      names](https://cloud.google.com/apis/design/resource_names) for the
-      appropriate value for this field.
-  """
-
-  options_requestedPolicyVersion = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  resource = _messages.StringField(2, required=True)
-
-
-class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsProxyConfigsGetRequest(_messages.Message):
-  r"""A
-  BeyondcorpOrganizationsLocationsGlobalPartnerTenantsProxyConfigsGetRequest
-  object.
-
-  Fields:
-    name: Required. The resource name of the ProxyConfig using the form: `orga
-      nizations/{organization_id}/locations/global/partnerTenants/{partner_ten
-      ant_id}/proxyConfigs/{proxy_config_id}`
-  """
-
-  name = _messages.StringField(1, required=True)
-
-
-class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsProxyConfigsListRequest(_messages.Message):
-  r"""A
-  BeyondcorpOrganizationsLocationsGlobalPartnerTenantsProxyConfigsListRequest
-  object.
-
-  Fields:
-    filter: Optional. A filter specifying constraints of a list operation. All
-      fields in the ProxyConfig message are supported. For example, the
-      following query will return the ProxyConfigs with displayName "test-
-      config" organizations/${ORG_ID}/locations/global/partnerTenants/${PARTNE
-      R_TENANT_ID}/proxyConfigs?filter=displayName="test-config" Nested fields
-      are also supported. The follow query will return ProxyConfigs with
-      pacUri "example.com/pac.pac" organizations/${ORG_ID}/locations/global/pa
-      rtnerTenants/${PARTNER_TENANT_ID}/proxyConfigs?filter=routingInfo.pacUri
-      ="example.com/pac.pac" For more information, please refer to
-      https://google.aip.dev/160.
-    orderBy: Optional. Specifies the ordering of results. See [Sorting
-      order](https://cloud.google.com/apis/design/design_patterns#sorting_orde
-      r) for more information.
-    pageSize: Optional. The maximum number of items to return. If not
-      specified, a default value of 50 will be used by the service. Regardless
-      of the page_size value, the response may include a partial list and a
-      caller should only rely on response's next_page_token to determine if
-      there are more instances left to be queried.
-    pageToken: Optional. The next_page_token value returned from a previous
-      ListProxyConfigsRequest, if any.
-    parent: Required. The parent organization to which the ProxyConfigs
-      belong. Format: `organizations/{organization_id}/locations/global/partne
-      rTenants/{partner_tenant_id}`
-  """
-
-  filter = _messages.StringField(1)
-  orderBy = _messages.StringField(2)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
-  parent = _messages.StringField(5, required=True)
-
-
-class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsProxyConfigsPatchRequest(_messages.Message):
-  r"""A
-  BeyondcorpOrganizationsLocationsGlobalPartnerTenantsProxyConfigsPatchRequest
-  object.
-
-  Fields:
-    googleCloudBeyondcorpPartnerservicesV1alphaProxyConfig: A
-      GoogleCloudBeyondcorpPartnerservicesV1alphaProxyConfig resource to be
-      passed as the request body.
-    name: Output only. ProxyConfig resource name.
-    requestId: Optional. An optional request ID to identify requests. Specify
-      a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes after the first
-      request. For example, consider a situation where you make an initial
-      request and the request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
-    updateMask: Required. Mutable fields include: display_name, proxy_uri,
-      routing_info, transport_info, encryption_info.
-  """
-
-  googleCloudBeyondcorpPartnerservicesV1alphaProxyConfig = _messages.MessageField('GoogleCloudBeyondcorpPartnerservicesV1alphaProxyConfig', 1)
-  name = _messages.StringField(2, required=True)
-  requestId = _messages.StringField(3)
-  updateMask = _messages.StringField(4)
-
-
-class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsProxyConfigsSetIamPolicyRequest(_messages.Message):
-  r"""A BeyondcorpOrganizationsLocationsGlobalPartnerTenantsProxyConfigsSetIam
-  PolicyRequest object.
-
-  Fields:
-    googleIamV1SetIamPolicyRequest: A GoogleIamV1SetIamPolicyRequest resource
-      to be passed as the request body.
-    resource: REQUIRED: The resource for which the policy is being specified.
-      See [Resource
-      names](https://cloud.google.com/apis/design/resource_names) for the
-      appropriate value for this field.
-  """
-
-  googleIamV1SetIamPolicyRequest = _messages.MessageField('GoogleIamV1SetIamPolicyRequest', 1)
-  resource = _messages.StringField(2, required=True)
-
-
-class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsProxyConfigsTestIamPermissionsRequest(_messages.Message):
-  r"""A BeyondcorpOrganizationsLocationsGlobalPartnerTenantsProxyConfigsTestIa
-  mPermissionsRequest object.
-
-  Fields:
-    googleIamV1TestIamPermissionsRequest: A
-      GoogleIamV1TestIamPermissionsRequest resource to be passed as the
-      request body.
-    resource: REQUIRED: The resource for which the policy detail is being
-      requested. See [Resource
-      names](https://cloud.google.com/apis/design/resource_names) for the
-      appropriate value for this field.
-  """
-
-  googleIamV1TestIamPermissionsRequest = _messages.MessageField('GoogleIamV1TestIamPermissionsRequest', 1)
-  resource = _messages.StringField(2, required=True)
-
-
-class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsSetIamPolicyRequest(_messages.Message):
-  r"""A
-  BeyondcorpOrganizationsLocationsGlobalPartnerTenantsSetIamPolicyRequest
-  object.
-
-  Fields:
-    googleIamV1SetIamPolicyRequest: A GoogleIamV1SetIamPolicyRequest resource
-      to be passed as the request body.
-    resource: REQUIRED: The resource for which the policy is being specified.
-      See [Resource
-      names](https://cloud.google.com/apis/design/resource_names) for the
-      appropriate value for this field.
-  """
-
-  googleIamV1SetIamPolicyRequest = _messages.MessageField('GoogleIamV1SetIamPolicyRequest', 1)
-  resource = _messages.StringField(2, required=True)
-
-
-class BeyondcorpOrganizationsLocationsGlobalPartnerTenantsTestIamPermissionsRequest(_messages.Message):
-  r"""A BeyondcorpOrganizationsLocationsGlobalPartnerTenantsTestIamPermissions
-  Request object.
-
-  Fields:
-    googleIamV1TestIamPermissionsRequest: A
-      GoogleIamV1TestIamPermissionsRequest resource to be passed as the
-      request body.
-    resource: REQUIRED: The resource for which the policy detail is being
-      requested. See [Resource
-      names](https://cloud.google.com/apis/design/resource_names) for the
-      appropriate value for this field.
-  """
-
-  googleIamV1TestIamPermissionsRequest = _messages.MessageField('GoogleIamV1TestIamPermissionsRequest', 1)
-  resource = _messages.StringField(2, required=True)
 
 
 class BeyondcorpOrganizationsLocationsInsightsConfiguredInsightRequest(_messages.Message):
@@ -870,17 +374,22 @@ class BeyondcorpOrganizationsLocationsInsightsListRequest(_messages.Message):
   r"""A BeyondcorpOrganizationsLocationsInsightsListRequest object.
 
   Enums:
+    AggregationValueValuesEnum: Optional. Aggregation type. The default is
+      'DAILY'.
     ViewValueValuesEnum: Required. List only metadata or full data.
 
   Fields:
+    aggregation: Optional. Aggregation type. The default is 'DAILY'.
+    endTime: Optional. Ending time for the duration for which insights are to
+      be pulled. The default is the current time.
     filter: Optional. Filter expression to restrict the insights returned.
       Supported filter fields: * `type` * `category` * `subCategory` Examples:
       * "category = application AND type = count" * "category = application
       AND subCategory = iap" * "type = status" Allowed values: * type: [count,
       latency, status, list] * category: [application, device, request,
-      security] * subCategory: [iap, webprotect] NOTE: Only equality based
-      comparison is allowed. Only `AND` conjunction is allowed. NOTE: The
-      'AND' in the filter field needs to be in capital letters only. NOTE:
+      security] * subCategory: [iap, caa, webprotect] NOTE: Only equality
+      based comparison is allowed. Only `AND` conjunction is allowed. NOTE:
+      The 'AND' in the filter field needs to be in capital letters only. NOTE:
       Just filtering on `subCategory` is not allowed. It should be passed in
       with the parent `category` too. (These expressions are based on the
       filter language described at https://google.aip.dev/160).
@@ -894,8 +403,29 @@ class BeyondcorpOrganizationsLocationsInsightsListRequest(_messages.Message):
     parent: Required. The resource name of InsightMetadata using the form:
       `organizations/{organization_id}/locations/{location}`
       `projects/{project_id}/locations/{location_id}`
+    startTime: Optional. Starting time for the duration for which insights are
+      to be pulled. The default is 7 days before the current time.
     view: Required. List only metadata or full data.
   """
+
+  class AggregationValueValuesEnum(_messages.Enum):
+    r"""Optional. Aggregation type. The default is 'DAILY'.
+
+    Values:
+      AGGREGATION_UNSPECIFIED: Unspecified.
+      HOURLY: Insight should be aggregated at hourly level.
+      DAILY: Insight should be aggregated at daily level.
+      WEEKLY: Insight should be aggregated at weekly level.
+      MONTHLY: Insight should be aggregated at monthly level.
+      CUSTOM_DATE_RANGE: Insight should be aggregated at the custom date range
+        passed in as the start and end time in the request.
+    """
+    AGGREGATION_UNSPECIFIED = 0
+    HOURLY = 1
+    DAILY = 2
+    WEEKLY = 3
+    MONTHLY = 4
+    CUSTOM_DATE_RANGE = 5
 
   class ViewValueValuesEnum(_messages.Enum):
     r"""Required. List only metadata or full data.
@@ -912,12 +442,15 @@ class BeyondcorpOrganizationsLocationsInsightsListRequest(_messages.Message):
     BASIC = 1
     FULL = 2
 
-  filter = _messages.StringField(1)
-  orderBy = _messages.StringField(2)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
-  parent = _messages.StringField(5, required=True)
-  view = _messages.EnumField('ViewValueValuesEnum', 6)
+  aggregation = _messages.EnumField('AggregationValueValuesEnum', 1)
+  endTime = _messages.StringField(2)
+  filter = _messages.StringField(3)
+  orderBy = _messages.StringField(4)
+  pageSize = _messages.IntegerField(5, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(6)
+  parent = _messages.StringField(7, required=True)
+  startTime = _messages.StringField(8)
+  view = _messages.EnumField('ViewValueValuesEnum', 9)
 
 
 class BeyondcorpOrganizationsLocationsOperationsCancelRequest(_messages.Message):
@@ -1046,7 +579,7 @@ class BeyondcorpOrganizationsLocationsSubscriptionsPatchRequest(_messages.Messag
     googleCloudBeyondcorpSaasplatformSubscriptionsV1alphaSubscription: A
       GoogleCloudBeyondcorpSaasplatformSubscriptionsV1alphaSubscription
       resource to be passed as the request body.
-    name: Required. Unique resource name of the Subscription. The name is
+    name: Identifier. Unique resource name of the Subscription. The name is
       ignored when creating a subscription.
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
@@ -1070,6 +603,28 @@ class BeyondcorpOrganizationsLocationsSubscriptionsPatchRequest(_messages.Messag
   name = _messages.StringField(2, required=True)
   requestId = _messages.StringField(3)
   updateMask = _messages.StringField(4)
+
+
+class BeyondcorpOrganizationsLocationsSubscriptionsRestartRequest(_messages.Message):
+  r"""A BeyondcorpOrganizationsLocationsSubscriptionsRestartRequest object.
+
+  Fields:
+    name: Required. Name of the resource.
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      will know to ignore the request if it has already been completed. The
+      server will guarantee that for at least 60 minutes after the first
+      request. For example, consider a situation where you make an initial
+      request and the request times out. If you make the request again with
+      the same request ID, the server can check if original operation with the
+      same request ID was received, and if so, will ignore the second request.
+      This prevents clients from accidentally creating duplicate commitments.
+      The request ID must be a valid UUID with the exception that zero UUID is
+      not supported (00000000-0000-0000-0000-000000000000).
+  """
+
+  name = _messages.StringField(1, required=True)
+  requestId = _messages.StringField(2)
 
 
 class BeyondcorpProjectsLocationsAppConnectionsCreateRequest(_messages.Message):
@@ -1787,129 +1342,6 @@ class BeyondcorpProjectsLocationsApplicationsTestIamPermissionsRequest(_messages
   resource = _messages.StringField(2, required=True)
 
 
-class BeyondcorpProjectsLocationsClientConnectorServicesGetIamPolicyRequest(_messages.Message):
-  r"""A BeyondcorpProjectsLocationsClientConnectorServicesGetIamPolicyRequest
-  object.
-
-  Fields:
-    options_requestedPolicyVersion: Optional. The maximum policy version that
-      will be used to format the policy. Valid values are 0, 1, and 3.
-      Requests specifying an invalid value will be rejected. Requests for
-      policies with any conditional role bindings must specify version 3.
-      Policies with no conditional role bindings may specify any valid value
-      or leave the field unset. The policy in the response might use the
-      policy version that you specified, or it might use a lower policy
-      version. For example, if you specify version 3, but the policy has no
-      conditional role bindings, the response uses version 1. To learn which
-      resources support conditions in their IAM policies, see the [IAM
-      documentation](https://cloud.google.com/iam/help/conditions/resource-
-      policies).
-    resource: REQUIRED: The resource for which the policy is being requested.
-      See [Resource
-      names](https://cloud.google.com/apis/design/resource_names) for the
-      appropriate value for this field.
-  """
-
-  options_requestedPolicyVersion = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  resource = _messages.StringField(2, required=True)
-
-
-class BeyondcorpProjectsLocationsClientConnectorServicesSetIamPolicyRequest(_messages.Message):
-  r"""A BeyondcorpProjectsLocationsClientConnectorServicesSetIamPolicyRequest
-  object.
-
-  Fields:
-    googleIamV1SetIamPolicyRequest: A GoogleIamV1SetIamPolicyRequest resource
-      to be passed as the request body.
-    resource: REQUIRED: The resource for which the policy is being specified.
-      See [Resource
-      names](https://cloud.google.com/apis/design/resource_names) for the
-      appropriate value for this field.
-  """
-
-  googleIamV1SetIamPolicyRequest = _messages.MessageField('GoogleIamV1SetIamPolicyRequest', 1)
-  resource = _messages.StringField(2, required=True)
-
-
-class BeyondcorpProjectsLocationsClientConnectorServicesTestIamPermissionsRequest(_messages.Message):
-  r"""A
-  BeyondcorpProjectsLocationsClientConnectorServicesTestIamPermissionsRequest
-  object.
-
-  Fields:
-    googleIamV1TestIamPermissionsRequest: A
-      GoogleIamV1TestIamPermissionsRequest resource to be passed as the
-      request body.
-    resource: REQUIRED: The resource for which the policy detail is being
-      requested. See [Resource
-      names](https://cloud.google.com/apis/design/resource_names) for the
-      appropriate value for this field.
-  """
-
-  googleIamV1TestIamPermissionsRequest = _messages.MessageField('GoogleIamV1TestIamPermissionsRequest', 1)
-  resource = _messages.StringField(2, required=True)
-
-
-class BeyondcorpProjectsLocationsClientGatewaysGetIamPolicyRequest(_messages.Message):
-  r"""A BeyondcorpProjectsLocationsClientGatewaysGetIamPolicyRequest object.
-
-  Fields:
-    options_requestedPolicyVersion: Optional. The maximum policy version that
-      will be used to format the policy. Valid values are 0, 1, and 3.
-      Requests specifying an invalid value will be rejected. Requests for
-      policies with any conditional role bindings must specify version 3.
-      Policies with no conditional role bindings may specify any valid value
-      or leave the field unset. The policy in the response might use the
-      policy version that you specified, or it might use a lower policy
-      version. For example, if you specify version 3, but the policy has no
-      conditional role bindings, the response uses version 1. To learn which
-      resources support conditions in their IAM policies, see the [IAM
-      documentation](https://cloud.google.com/iam/help/conditions/resource-
-      policies).
-    resource: REQUIRED: The resource for which the policy is being requested.
-      See [Resource
-      names](https://cloud.google.com/apis/design/resource_names) for the
-      appropriate value for this field.
-  """
-
-  options_requestedPolicyVersion = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  resource = _messages.StringField(2, required=True)
-
-
-class BeyondcorpProjectsLocationsClientGatewaysSetIamPolicyRequest(_messages.Message):
-  r"""A BeyondcorpProjectsLocationsClientGatewaysSetIamPolicyRequest object.
-
-  Fields:
-    googleIamV1SetIamPolicyRequest: A GoogleIamV1SetIamPolicyRequest resource
-      to be passed as the request body.
-    resource: REQUIRED: The resource for which the policy is being specified.
-      See [Resource
-      names](https://cloud.google.com/apis/design/resource_names) for the
-      appropriate value for this field.
-  """
-
-  googleIamV1SetIamPolicyRequest = _messages.MessageField('GoogleIamV1SetIamPolicyRequest', 1)
-  resource = _messages.StringField(2, required=True)
-
-
-class BeyondcorpProjectsLocationsClientGatewaysTestIamPermissionsRequest(_messages.Message):
-  r"""A BeyondcorpProjectsLocationsClientGatewaysTestIamPermissionsRequest
-  object.
-
-  Fields:
-    googleIamV1TestIamPermissionsRequest: A
-      GoogleIamV1TestIamPermissionsRequest resource to be passed as the
-      request body.
-    resource: REQUIRED: The resource for which the policy detail is being
-      requested. See [Resource
-      names](https://cloud.google.com/apis/design/resource_names) for the
-      appropriate value for this field.
-  """
-
-  googleIamV1TestIamPermissionsRequest = _messages.MessageField('GoogleIamV1TestIamPermissionsRequest', 1)
-  resource = _messages.StringField(2, required=True)
-
-
 class BeyondcorpProjectsLocationsConnectionsCreateRequest(_messages.Message):
   r"""A BeyondcorpProjectsLocationsConnectionsCreateRequest object.
 
@@ -2104,24 +1536,6 @@ class BeyondcorpProjectsLocationsConnectionsSetIamPolicyRequest(_messages.Messag
   """
 
   googleIamV1SetIamPolicyRequest = _messages.MessageField('GoogleIamV1SetIamPolicyRequest', 1)
-  resource = _messages.StringField(2, required=True)
-
-
-class BeyondcorpProjectsLocationsConnectionsTestIamPermissionsRequest(_messages.Message):
-  r"""A BeyondcorpProjectsLocationsConnectionsTestIamPermissionsRequest
-  object.
-
-  Fields:
-    googleIamV1TestIamPermissionsRequest: A
-      GoogleIamV1TestIamPermissionsRequest resource to be passed as the
-      request body.
-    resource: REQUIRED: The resource for which the policy detail is being
-      requested. See [Resource
-      names](https://cloud.google.com/apis/design/resource_names) for the
-      appropriate value for this field.
-  """
-
-  googleIamV1TestIamPermissionsRequest = _messages.MessageField('GoogleIamV1TestIamPermissionsRequest', 1)
   resource = _messages.StringField(2, required=True)
 
 
@@ -2323,23 +1737,6 @@ class BeyondcorpProjectsLocationsConnectorsSetIamPolicyRequest(_messages.Message
   resource = _messages.StringField(2, required=True)
 
 
-class BeyondcorpProjectsLocationsConnectorsTestIamPermissionsRequest(_messages.Message):
-  r"""A BeyondcorpProjectsLocationsConnectorsTestIamPermissionsRequest object.
-
-  Fields:
-    googleIamV1TestIamPermissionsRequest: A
-      GoogleIamV1TestIamPermissionsRequest resource to be passed as the
-      request body.
-    resource: REQUIRED: The resource for which the policy detail is being
-      requested. See [Resource
-      names](https://cloud.google.com/apis/design/resource_names) for the
-      appropriate value for this field.
-  """
-
-  googleIamV1TestIamPermissionsRequest = _messages.MessageField('GoogleIamV1TestIamPermissionsRequest', 1)
-  resource = _messages.StringField(2, required=True)
-
-
 class BeyondcorpProjectsLocationsGetRequest(_messages.Message):
   r"""A BeyondcorpProjectsLocationsGetRequest object.
 
@@ -2467,17 +1864,22 @@ class BeyondcorpProjectsLocationsInsightsListRequest(_messages.Message):
   r"""A BeyondcorpProjectsLocationsInsightsListRequest object.
 
   Enums:
+    AggregationValueValuesEnum: Optional. Aggregation type. The default is
+      'DAILY'.
     ViewValueValuesEnum: Required. List only metadata or full data.
 
   Fields:
+    aggregation: Optional. Aggregation type. The default is 'DAILY'.
+    endTime: Optional. Ending time for the duration for which insights are to
+      be pulled. The default is the current time.
     filter: Optional. Filter expression to restrict the insights returned.
       Supported filter fields: * `type` * `category` * `subCategory` Examples:
       * "category = application AND type = count" * "category = application
       AND subCategory = iap" * "type = status" Allowed values: * type: [count,
       latency, status, list] * category: [application, device, request,
-      security] * subCategory: [iap, webprotect] NOTE: Only equality based
-      comparison is allowed. Only `AND` conjunction is allowed. NOTE: The
-      'AND' in the filter field needs to be in capital letters only. NOTE:
+      security] * subCategory: [iap, caa, webprotect] NOTE: Only equality
+      based comparison is allowed. Only `AND` conjunction is allowed. NOTE:
+      The 'AND' in the filter field needs to be in capital letters only. NOTE:
       Just filtering on `subCategory` is not allowed. It should be passed in
       with the parent `category` too. (These expressions are based on the
       filter language described at https://google.aip.dev/160).
@@ -2491,8 +1893,29 @@ class BeyondcorpProjectsLocationsInsightsListRequest(_messages.Message):
     parent: Required. The resource name of InsightMetadata using the form:
       `organizations/{organization_id}/locations/{location}`
       `projects/{project_id}/locations/{location_id}`
+    startTime: Optional. Starting time for the duration for which insights are
+      to be pulled. The default is 7 days before the current time.
     view: Required. List only metadata or full data.
   """
+
+  class AggregationValueValuesEnum(_messages.Enum):
+    r"""Optional. Aggregation type. The default is 'DAILY'.
+
+    Values:
+      AGGREGATION_UNSPECIFIED: Unspecified.
+      HOURLY: Insight should be aggregated at hourly level.
+      DAILY: Insight should be aggregated at daily level.
+      WEEKLY: Insight should be aggregated at weekly level.
+      MONTHLY: Insight should be aggregated at monthly level.
+      CUSTOM_DATE_RANGE: Insight should be aggregated at the custom date range
+        passed in as the start and end time in the request.
+    """
+    AGGREGATION_UNSPECIFIED = 0
+    HOURLY = 1
+    DAILY = 2
+    WEEKLY = 3
+    MONTHLY = 4
+    CUSTOM_DATE_RANGE = 5
 
   class ViewValueValuesEnum(_messages.Enum):
     r"""Required. List only metadata or full data.
@@ -2509,18 +1932,24 @@ class BeyondcorpProjectsLocationsInsightsListRequest(_messages.Message):
     BASIC = 1
     FULL = 2
 
-  filter = _messages.StringField(1)
-  orderBy = _messages.StringField(2)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
-  parent = _messages.StringField(5, required=True)
-  view = _messages.EnumField('ViewValueValuesEnum', 6)
+  aggregation = _messages.EnumField('AggregationValueValuesEnum', 1)
+  endTime = _messages.StringField(2)
+  filter = _messages.StringField(3)
+  orderBy = _messages.StringField(4)
+  pageSize = _messages.IntegerField(5, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(6)
+  parent = _messages.StringField(7, required=True)
+  startTime = _messages.StringField(8)
+  view = _messages.EnumField('ViewValueValuesEnum', 9)
 
 
 class BeyondcorpProjectsLocationsListRequest(_messages.Message):
   r"""A BeyondcorpProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -2531,70 +1960,11 @@ class BeyondcorpProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
-
-
-class BeyondcorpProjectsLocationsNetConnectionsGetIamPolicyRequest(_messages.Message):
-  r"""A BeyondcorpProjectsLocationsNetConnectionsGetIamPolicyRequest object.
-
-  Fields:
-    options_requestedPolicyVersion: Optional. The maximum policy version that
-      will be used to format the policy. Valid values are 0, 1, and 3.
-      Requests specifying an invalid value will be rejected. Requests for
-      policies with any conditional role bindings must specify version 3.
-      Policies with no conditional role bindings may specify any valid value
-      or leave the field unset. The policy in the response might use the
-      policy version that you specified, or it might use a lower policy
-      version. For example, if you specify version 3, but the policy has no
-      conditional role bindings, the response uses version 1. To learn which
-      resources support conditions in their IAM policies, see the [IAM
-      documentation](https://cloud.google.com/iam/help/conditions/resource-
-      policies).
-    resource: REQUIRED: The resource for which the policy is being requested.
-      See [Resource
-      names](https://cloud.google.com/apis/design/resource_names) for the
-      appropriate value for this field.
-  """
-
-  options_requestedPolicyVersion = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  resource = _messages.StringField(2, required=True)
-
-
-class BeyondcorpProjectsLocationsNetConnectionsSetIamPolicyRequest(_messages.Message):
-  r"""A BeyondcorpProjectsLocationsNetConnectionsSetIamPolicyRequest object.
-
-  Fields:
-    googleIamV1SetIamPolicyRequest: A GoogleIamV1SetIamPolicyRequest resource
-      to be passed as the request body.
-    resource: REQUIRED: The resource for which the policy is being specified.
-      See [Resource
-      names](https://cloud.google.com/apis/design/resource_names) for the
-      appropriate value for this field.
-  """
-
-  googleIamV1SetIamPolicyRequest = _messages.MessageField('GoogleIamV1SetIamPolicyRequest', 1)
-  resource = _messages.StringField(2, required=True)
-
-
-class BeyondcorpProjectsLocationsNetConnectionsTestIamPermissionsRequest(_messages.Message):
-  r"""A BeyondcorpProjectsLocationsNetConnectionsTestIamPermissionsRequest
-  object.
-
-  Fields:
-    googleIamV1TestIamPermissionsRequest: A
-      GoogleIamV1TestIamPermissionsRequest resource to be passed as the
-      request body.
-    resource: REQUIRED: The resource for which the policy detail is being
-      requested. See [Resource
-      names](https://cloud.google.com/apis/design/resource_names) for the
-      appropriate value for this field.
-  """
-
-  googleIamV1TestIamPermissionsRequest = _messages.MessageField('GoogleIamV1TestIamPermissionsRequest', 1)
-  resource = _messages.StringField(2, required=True)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class BeyondcorpProjectsLocationsOperationsCancelRequest(_messages.Message):
@@ -2647,6 +2017,196 @@ class BeyondcorpProjectsLocationsOperationsListRequest(_messages.Message):
   pageToken = _messages.StringField(4)
 
 
+class BeyondcorpProjectsLocationsSecurityGatewaysApplicationsCreateRequest(_messages.Message):
+  r"""A BeyondcorpProjectsLocationsSecurityGatewaysApplicationsCreateRequest
+  object.
+
+  Fields:
+    applicationId: Optional. User-settable Application resource ID. * Must
+      start with a letter. * Must contain between 4-63 characters from
+      `/a-z-/`. * Must end with a number or letter.
+    googleCloudBeyondcorpSecuritygatewaysV1alphaApplication: A
+      GoogleCloudBeyondcorpSecuritygatewaysV1alphaApplication resource to be
+      passed as the request body.
+    parent: Required. The resource name of the parent SecurityGateway using
+      the form: `projects/{project_id}/locations/global/securityGateways/{secu
+      rity_gateway_id}`
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      will know to ignore request if it has already been completed. The server
+      will guarantee that for at least 60 minutes since the first request.
+  """
+
+  applicationId = _messages.StringField(1)
+  googleCloudBeyondcorpSecuritygatewaysV1alphaApplication = _messages.MessageField('GoogleCloudBeyondcorpSecuritygatewaysV1alphaApplication', 2)
+  parent = _messages.StringField(3, required=True)
+  requestId = _messages.StringField(4)
+
+
+class BeyondcorpProjectsLocationsSecurityGatewaysApplicationsDeleteRequest(_messages.Message):
+  r"""A BeyondcorpProjectsLocationsSecurityGatewaysApplicationsDeleteRequest
+  object.
+
+  Fields:
+    name: Required. Name of the resource.
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      will know to ignore the request if it has already been completed. The
+      server will guarantee that for at least 60 minutes after the first
+      request. For example, consider a situation where you make an initial
+      request and the request times out. If you make the request again with
+      the same request ID, the server can check if original operation with the
+      same request ID was received, and if so, will ignore the second request.
+      This prevents clients from accidentally creating duplicate commitments.
+      The request ID must be a valid UUID with the exception that zero UUID is
+      not supported (00000000-0000-0000-0000-000000000000).
+    validateOnly: Optional. If set, validates request by executing a dry-run
+      which would not alter the resource in any way.
+  """
+
+  name = _messages.StringField(1, required=True)
+  requestId = _messages.StringField(2)
+  validateOnly = _messages.BooleanField(3)
+
+
+class BeyondcorpProjectsLocationsSecurityGatewaysApplicationsGetIamPolicyRequest(_messages.Message):
+  r"""A
+  BeyondcorpProjectsLocationsSecurityGatewaysApplicationsGetIamPolicyRequest
+  object.
+
+  Fields:
+    options_requestedPolicyVersion: Optional. The maximum policy version that
+      will be used to format the policy. Valid values are 0, 1, and 3.
+      Requests specifying an invalid value will be rejected. Requests for
+      policies with any conditional role bindings must specify version 3.
+      Policies with no conditional role bindings may specify any valid value
+      or leave the field unset. The policy in the response might use the
+      policy version that you specified, or it might use a lower policy
+      version. For example, if you specify version 3, but the policy has no
+      conditional role bindings, the response uses version 1. To learn which
+      resources support conditions in their IAM policies, see the [IAM
+      documentation](https://cloud.google.com/iam/help/conditions/resource-
+      policies).
+    resource: REQUIRED: The resource for which the policy is being requested.
+      See [Resource
+      names](https://cloud.google.com/apis/design/resource_names) for the
+      appropriate value for this field.
+  """
+
+  options_requestedPolicyVersion = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  resource = _messages.StringField(2, required=True)
+
+
+class BeyondcorpProjectsLocationsSecurityGatewaysApplicationsGetRequest(_messages.Message):
+  r"""A BeyondcorpProjectsLocationsSecurityGatewaysApplicationsGetRequest
+  object.
+
+  Fields:
+    name: Required. The resource name of the Application using the form: `proj
+      ects/{project_id}/locations/global/securityGateway/{security_gateway_id}
+      /applications/{application_id}`
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class BeyondcorpProjectsLocationsSecurityGatewaysApplicationsListRequest(_messages.Message):
+  r"""A BeyondcorpProjectsLocationsSecurityGatewaysApplicationsListRequest
+  object.
+
+  Fields:
+    filter: Optional. A filter specifying constraints of a list operation. All
+      fields in the Application message are supported. For example, the
+      following query will return the Application with displayName "test-
+      application" For more information, please refer to
+      https://google.aip.dev/160.
+    orderBy: Optional. Specifies the ordering of results. See [Sorting
+      order](https://cloud.google.com/apis/design/design_patterns#sorting_orde
+      r) for more information.
+    pageSize: Optional. The maximum number of items to return. If not
+      specified, a default value of 50 will be used by the service. Regardless
+      of the page_size value, the response may include a partial list and a
+      caller should only rely on response's next_page_token to determine if
+      there are more instances left to be queried.
+    pageToken: Optional. The next_page_token value returned from a previous
+      ListApplicationsRequest, if any.
+    parent: Required. The parent location to which the resources belong. `proj
+      ects/{project_id}/locations/global/securityGateways/{security_gateway_id
+      }`
+  """
+
+  filter = _messages.StringField(1)
+  orderBy = _messages.StringField(2)
+  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(4)
+  parent = _messages.StringField(5, required=True)
+
+
+class BeyondcorpProjectsLocationsSecurityGatewaysApplicationsPatchRequest(_messages.Message):
+  r"""A BeyondcorpProjectsLocationsSecurityGatewaysApplicationsPatchRequest
+  object.
+
+  Fields:
+    googleCloudBeyondcorpSecuritygatewaysV1alphaApplication: A
+      GoogleCloudBeyondcorpSecuritygatewaysV1alphaApplication resource to be
+      passed as the request body.
+    name: Identifier. Name of the resource.
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      will know to ignore the request if it has already been completed. The
+      server will guarantee that for at least 60 minutes after the first
+      request. For example, consider a situation where you make an initial
+      request and the request timed out. If you make the request again with
+      the same request ID, the server can check if original operation with the
+      same request ID was received, and if so, will ignore the second request.
+      This prevents clients from accidentally creating duplicate commitments.
+      The request ID must be a valid UUID with the exception that zero UUID is
+      not supported (00000000-0000-0000-0000-000000000000).
+    updateMask: Optional. Mutable fields include: display_name.
+  """
+
+  googleCloudBeyondcorpSecuritygatewaysV1alphaApplication = _messages.MessageField('GoogleCloudBeyondcorpSecuritygatewaysV1alphaApplication', 1)
+  name = _messages.StringField(2, required=True)
+  requestId = _messages.StringField(3)
+  updateMask = _messages.StringField(4)
+
+
+class BeyondcorpProjectsLocationsSecurityGatewaysApplicationsSetIamPolicyRequest(_messages.Message):
+  r"""A
+  BeyondcorpProjectsLocationsSecurityGatewaysApplicationsSetIamPolicyRequest
+  object.
+
+  Fields:
+    googleIamV1SetIamPolicyRequest: A GoogleIamV1SetIamPolicyRequest resource
+      to be passed as the request body.
+    resource: REQUIRED: The resource for which the policy is being specified.
+      See [Resource
+      names](https://cloud.google.com/apis/design/resource_names) for the
+      appropriate value for this field.
+  """
+
+  googleIamV1SetIamPolicyRequest = _messages.MessageField('GoogleIamV1SetIamPolicyRequest', 1)
+  resource = _messages.StringField(2, required=True)
+
+
+class BeyondcorpProjectsLocationsSecurityGatewaysApplicationsTestIamPermissionsRequest(_messages.Message):
+  r"""A BeyondcorpProjectsLocationsSecurityGatewaysApplicationsTestIamPermissi
+  onsRequest object.
+
+  Fields:
+    googleIamV1TestIamPermissionsRequest: A
+      GoogleIamV1TestIamPermissionsRequest resource to be passed as the
+      request body.
+    resource: REQUIRED: The resource for which the policy detail is being
+      requested. See [Resource
+      names](https://cloud.google.com/apis/design/resource_names) for the
+      appropriate value for this field.
+  """
+
+  googleIamV1TestIamPermissionsRequest = _messages.MessageField('GoogleIamV1TestIamPermissionsRequest', 1)
+  resource = _messages.StringField(2, required=True)
+
+
 class BeyondcorpProjectsLocationsSecurityGatewaysCreateRequest(_messages.Message):
   r"""A BeyondcorpProjectsLocationsSecurityGatewaysCreateRequest object.
 
@@ -2658,8 +2218,9 @@ class BeyondcorpProjectsLocationsSecurityGatewaysCreateRequest(_messages.Message
       location using the form: `projects/{project_id}/locations/{location_id}`
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
-      will know to ignore request if it has already been completed. The server
-      will guarantee that for at least 60 minutes since the first request.
+      will know to ignore the request if it has already been completed. The
+      server will guarantee that for at least 60 minutes since the first
+      request.
     securityGatewayId: Optional. User-settable SecurityGateway resource ID. *
       Must start with a letter. * Must contain between 4-63 characters from
       `/a-z-/`. * Must end with a number or letter.
@@ -2696,6 +2257,32 @@ class BeyondcorpProjectsLocationsSecurityGatewaysDeleteRequest(_messages.Message
   name = _messages.StringField(1, required=True)
   requestId = _messages.StringField(2)
   validateOnly = _messages.BooleanField(3)
+
+
+class BeyondcorpProjectsLocationsSecurityGatewaysGetIamPolicyRequest(_messages.Message):
+  r"""A BeyondcorpProjectsLocationsSecurityGatewaysGetIamPolicyRequest object.
+
+  Fields:
+    options_requestedPolicyVersion: Optional. The maximum policy version that
+      will be used to format the policy. Valid values are 0, 1, and 3.
+      Requests specifying an invalid value will be rejected. Requests for
+      policies with any conditional role bindings must specify version 3.
+      Policies with no conditional role bindings may specify any valid value
+      or leave the field unset. The policy in the response might use the
+      policy version that you specified, or it might use a lower policy
+      version. For example, if you specify version 3, but the policy has no
+      conditional role bindings, the response uses version 1. To learn which
+      resources support conditions in their IAM policies, see the [IAM
+      documentation](https://cloud.google.com/iam/help/conditions/resource-
+      policies).
+    resource: REQUIRED: The resource for which the policy is being requested.
+      See [Resource
+      names](https://cloud.google.com/apis/design/resource_names) for the
+      appropriate value for this field.
+  """
+
+  options_requestedPolicyVersion = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  resource = _messages.StringField(2, required=True)
 
 
 class BeyondcorpProjectsLocationsSecurityGatewaysGetRequest(_messages.Message):
@@ -2759,14 +2346,47 @@ class BeyondcorpProjectsLocationsSecurityGatewaysPatchRequest(_messages.Message)
       This prevents clients from accidentally creating duplicate commitments.
       The request ID must be a valid UUID with the exception that zero UUID is
       not supported (00000000-0000-0000-0000-000000000000).
-    updateMask: Required. Mutable fields include: display_name,
-      gateway_regions.
+    updateMask: Optional. Mutable fields include: display_name, hubs.
   """
 
   googleCloudBeyondcorpSecuritygatewaysV1alphaSecurityGateway = _messages.MessageField('GoogleCloudBeyondcorpSecuritygatewaysV1alphaSecurityGateway', 1)
   name = _messages.StringField(2, required=True)
   requestId = _messages.StringField(3)
   updateMask = _messages.StringField(4)
+
+
+class BeyondcorpProjectsLocationsSecurityGatewaysSetIamPolicyRequest(_messages.Message):
+  r"""A BeyondcorpProjectsLocationsSecurityGatewaysSetIamPolicyRequest object.
+
+  Fields:
+    googleIamV1SetIamPolicyRequest: A GoogleIamV1SetIamPolicyRequest resource
+      to be passed as the request body.
+    resource: REQUIRED: The resource for which the policy is being specified.
+      See [Resource
+      names](https://cloud.google.com/apis/design/resource_names) for the
+      appropriate value for this field.
+  """
+
+  googleIamV1SetIamPolicyRequest = _messages.MessageField('GoogleIamV1SetIamPolicyRequest', 1)
+  resource = _messages.StringField(2, required=True)
+
+
+class BeyondcorpProjectsLocationsSecurityGatewaysTestIamPermissionsRequest(_messages.Message):
+  r"""A BeyondcorpProjectsLocationsSecurityGatewaysTestIamPermissionsRequest
+  object.
+
+  Fields:
+    googleIamV1TestIamPermissionsRequest: A
+      GoogleIamV1TestIamPermissionsRequest resource to be passed as the
+      request body.
+    resource: REQUIRED: The resource for which the policy detail is being
+      requested. See [Resource
+      names](https://cloud.google.com/apis/design/resource_names) for the
+      appropriate value for this field.
+  """
+
+  googleIamV1TestIamPermissionsRequest = _messages.MessageField('GoogleIamV1TestIamPermissionsRequest', 1)
+  resource = _messages.StringField(2, required=True)
 
 
 class CloudPubSubNotificationConfig(_messages.Message):
@@ -3253,8 +2873,9 @@ class GoogleCloudBeyondcorpAppconnectionsV1AppConnectionOperationMetadata(_messa
     endTime: Output only. The time the operation finished running.
     requestedCancellation: Output only. Identifies whether the user has
       requested cancellation of the operation. Operations that have
-      successfully been cancelled have Operation.error value with a
-      google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      successfully been cancelled have google.longrunning.Operation.error
+      value with a google.rpc.Status.code of 1, corresponding to
+      `Code.CANCELLED`.
     statusMessage: Output only. Human-readable status of the operation, if
       any.
     target: Output only. Server-defined resource path for the target of the
@@ -3434,8 +3055,9 @@ class GoogleCloudBeyondcorpAppconnectionsV1alphaAppConnectionOperationMetadata(_
     endTime: Output only. The time the operation finished running.
     requestedCancellation: Output only. Identifies whether the user has
       requested cancellation of the operation. Operations that have
-      successfully been cancelled have Operation.error value with a
-      google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      successfully been cancelled have google.longrunning.Operation.error
+      value with a google.rpc.Status.code of 1, corresponding to
+      `Code.CANCELLED`.
     statusMessage: Output only. Human-readable status of the operation, if
       any.
     target: Output only. Server-defined resource path for the target of the
@@ -3506,8 +3128,9 @@ class GoogleCloudBeyondcorpAppconnectorsV1AppConnectorOperationMetadata(_message
     endTime: Output only. The time the operation finished running.
     requestedCancellation: Output only. Identifies whether the user has
       requested cancellation of the operation. Operations that have
-      successfully been cancelled have Operation.error value with a
-      google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      successfully been cancelled have google.longrunning.Operation.error
+      value with a google.rpc.Status.code of `1`, corresponding to
+      `Code.CANCELLED`.
     statusMessage: Output only. Human-readable status of the operation, if
       any.
     target: Output only. Server-defined resource path for the target of the
@@ -3718,8 +3341,9 @@ class GoogleCloudBeyondcorpAppconnectorsV1alphaAppConnectorOperationMetadata(_me
     endTime: Output only. The time the operation finished running.
     requestedCancellation: Output only. Identifies whether the user has
       requested cancellation of the operation. Operations that have
-      successfully been cancelled have Operation.error value with a
-      google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      successfully been cancelled have google.longrunning.Operation.error
+      value with a google.rpc.Status.code of `1`, corresponding to
+      `Code.CANCELLED`.
     statusMessage: Output only. Human-readable status of the operation, if
       any.
     target: Output only. Server-defined resource path for the target of the
@@ -3976,8 +3600,9 @@ class GoogleCloudBeyondcorpAppgatewaysV1AppGatewayOperationMetadata(_messages.Me
     endTime: Output only. The time the operation finished running.
     requestedCancellation: Output only. Identifies whether the user has
       requested cancellation of the operation. Operations that have
-      successfully been cancelled have Operation.error value with a
-      google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      successfully been cancelled have google.longrunning.Operation.error
+      value with a google.rpc.Status.code of `1`, corresponding to
+      `Code.CANCELLED`.
     statusMessage: Output only. Human-readable status of the operation, if
       any.
     target: Output only. Server-defined resource path for the target of the
@@ -3994,33 +3619,6 @@ class GoogleCloudBeyondcorpAppgatewaysV1AppGatewayOperationMetadata(_messages.Me
   verb = _messages.StringField(7)
 
 
-class GoogleCloudBeyondcorpPartnerservicesV1alphaBrowserDlpRule(_messages.Message):
-  r"""Browser DLP Rule for a PartnerTenant
-
-  Fields:
-    group: Required. The group to which this Rule should be applied to.
-    name: Output only. Unique resource name. The name is ignored when creating
-      BrowserDlpRule.
-    ruleSetting: Required. The policy settings to apply.
-  """
-
-  group = _messages.MessageField('GoogleCloudBeyondcorpPartnerservicesV1alphaGroup', 1)
-  name = _messages.StringField(2)
-  ruleSetting = _messages.MessageField('GoogleCloudBeyondcorpPartnerservicesV1alphaRuleSetting', 3)
-
-
-class GoogleCloudBeyondcorpPartnerservicesV1alphaEncryptionInfo(_messages.Message):
-  r"""Message contains the JWT encryption information for the proxy server.
-
-  Fields:
-    encryptionSaEmail: Optional. Service Account for encryption key.
-    jwk: Optional. JWK in string.
-  """
-
-  encryptionSaEmail = _messages.StringField(1)
-  jwk = _messages.StringField(2)
-
-
 class GoogleCloudBeyondcorpPartnerservicesV1alphaGroup(_messages.Message):
   r"""Message to capture group information
 
@@ -4031,16 +3629,6 @@ class GoogleCloudBeyondcorpPartnerservicesV1alphaGroup(_messages.Message):
 
   email = _messages.StringField(1)
   id = _messages.StringField(2)
-
-
-class GoogleCloudBeyondcorpPartnerservicesV1alphaListBrowserDlpRulesResponse(_messages.Message):
-  r"""Message for response to listing BrowserDlpRules.
-
-  Fields:
-    browserDlpRules: The list of BrowserDlpRule objects.
-  """
-
-  browserDlpRules = _messages.MessageField('GoogleCloudBeyondcorpPartnerservicesV1alphaBrowserDlpRule', 1, repeated=True)
 
 
 class GoogleCloudBeyondcorpPartnerservicesV1alphaListPartnerTenantsResponse(_messages.Message):
@@ -4054,19 +3642,6 @@ class GoogleCloudBeyondcorpPartnerservicesV1alphaListPartnerTenantsResponse(_mes
 
   nextPageToken = _messages.StringField(1)
   partnerTenants = _messages.MessageField('GoogleCloudBeyondcorpPartnerservicesV1alphaPartnerTenant', 2, repeated=True)
-
-
-class GoogleCloudBeyondcorpPartnerservicesV1alphaListProxyConfigsResponse(_messages.Message):
-  r"""Message for response to listing ProxyConfigs.
-
-  Fields:
-    nextPageToken: A token to retrieve the next page of results, or empty if
-      there are no more results in the list.
-    proxyConfigs: The list of ProxyConfig objects.
-  """
-
-  nextPageToken = _messages.StringField(1)
-  proxyConfigs = _messages.MessageField('GoogleCloudBeyondcorpPartnerservicesV1alphaProxyConfig', 2, repeated=True)
 
 
 class GoogleCloudBeyondcorpPartnerservicesV1alphaPartnerMetadata(_messages.Message):
@@ -4133,97 +3708,6 @@ class GoogleCloudBeyondcorpPartnerservicesV1alphaPartnerTenant(_messages.Message
   name = _messages.StringField(4)
   partnerMetadata = _messages.MessageField('GoogleCloudBeyondcorpPartnerservicesV1alphaPartnerMetadata', 5)
   updateTime = _messages.StringField(6)
-
-
-class GoogleCloudBeyondcorpPartnerservicesV1alphaProxyConfig(_messages.Message):
-  r"""Proxy Configuration of a PartnerTenant.
-
-  Fields:
-    createTime: Output only. Timestamp when the resource was created.
-    displayName: Optional. An arbitrary caller-provided name for the
-      ProxyConfig. Cannot exceed 64 characters.
-    encryptionInfo: Optional. Information to encrypt JWT for the proxy server.
-    name: Output only. ProxyConfig resource name.
-    proxyUri: Required. The URI of the proxy server.
-    routingInfo: Required. Routing info to direct traffic to the proxy server.
-    transportInfo: Optional. Transport layer information to verify for the
-      proxy server.
-    updateTime: Output only. Timestamp when the resource was last modified.
-  """
-
-  createTime = _messages.StringField(1)
-  displayName = _messages.StringField(2)
-  encryptionInfo = _messages.MessageField('GoogleCloudBeyondcorpPartnerservicesV1alphaEncryptionInfo', 3)
-  name = _messages.StringField(4)
-  proxyUri = _messages.StringField(5)
-  routingInfo = _messages.MessageField('GoogleCloudBeyondcorpPartnerservicesV1alphaRoutingInfo', 6)
-  transportInfo = _messages.MessageField('GoogleCloudBeyondcorpPartnerservicesV1alphaTransportInfo', 7)
-  updateTime = _messages.StringField(8)
-
-
-class GoogleCloudBeyondcorpPartnerservicesV1alphaRoutingInfo(_messages.Message):
-  r"""Message contains the routing information to direct traffic to the proxy
-  server.
-
-  Fields:
-    pacUri: Required. Proxy Auto-Configuration (PAC) URI.
-  """
-
-  pacUri = _messages.StringField(1)
-
-
-class GoogleCloudBeyondcorpPartnerservicesV1alphaRuleSetting(_messages.Message):
-  r"""Message to capture settings for a BrowserDlpRule
-
-  Messages:
-    ValueValue: Required. The value of the Setting.
-
-  Fields:
-    type: Required. Immutable. The type of the Setting. .
-    value: Required. The value of the Setting.
-  """
-
-  @encoding.MapUnrecognizedFields('additionalProperties')
-  class ValueValue(_messages.Message):
-    r"""Required. The value of the Setting.
-
-    Messages:
-      AdditionalProperty: An additional property for a ValueValue object.
-
-    Fields:
-      additionalProperties: Properties of the object.
-    """
-
-    class AdditionalProperty(_messages.Message):
-      r"""An additional property for a ValueValue object.
-
-      Fields:
-        key: Name of the additional property.
-        value: A extra_types.JsonValue attribute.
-      """
-
-      key = _messages.StringField(1)
-      value = _messages.MessageField('extra_types.JsonValue', 2)
-
-    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
-
-  type = _messages.StringField(1)
-  value = _messages.MessageField('ValueValue', 2)
-
-
-class GoogleCloudBeyondcorpPartnerservicesV1alphaTransportInfo(_messages.Message):
-  r"""Message contains the transport layer information to verify the proxy
-  server.
-
-  Fields:
-    serverCaCertPem: Required. PEM encoded CA certificate associated with the
-      proxy server certificate.
-    sslDecryptCaCertPem: Optional. PEM encoded CA certificate associated with
-      the certificate used by proxy server for SSL decryption.
-  """
-
-  serverCaCertPem = _messages.StringField(1)
-  sslDecryptCaCertPem = _messages.StringField(2)
 
 
 class GoogleCloudBeyondcorpPartnerservicesV1mainPartnerServiceOperationMetadata(_messages.Message):
@@ -4494,6 +3978,10 @@ class GoogleCloudBeyondcorpSaasplatformSubscriptionsV1alphaListSubscriptionsResp
   subscriptions = _messages.MessageField('GoogleCloudBeyondcorpSaasplatformSubscriptionsV1alphaSubscription', 2, repeated=True)
 
 
+class GoogleCloudBeyondcorpSaasplatformSubscriptionsV1alphaRestartSubscriptionResponse(_messages.Message):
+  r"""Response message for BeyondCorp.RestartSubscription"""
+
+
 class GoogleCloudBeyondcorpSaasplatformSubscriptionsV1alphaSubscription(_messages.Message):
   r"""A BeyondCorp Subscription resource represents BeyondCorp Enterprise
   Subscription. BeyondCorp Enterprise Subscription enables BeyondCorp
@@ -4502,6 +3990,7 @@ class GoogleCloudBeyondcorpSaasplatformSubscriptionsV1alphaSubscription(_message
   Enums:
     SkuValueValuesEnum: Required. SKU of subscription.
     StateValueValuesEnum: Output only. The current state of the subscription.
+    SubscriberTypeValueValuesEnum: Output only. Type of subscriber.
     TypeValueValuesEnum: Required. Type of subscription.
 
   Fields:
@@ -4511,13 +4000,20 @@ class GoogleCloudBeyondcorpSaasplatformSubscriptionsV1alphaSubscription(_message
       billingAccounts/123456-123456-123456 Required if Subscription is of Paid
       type.
     createTime: Output only. Create time of the subscription.
-    endTime: Output only. End time of the subscription.
-    name: Required. Unique resource name of the Subscription. The name is
+    csgCustomer: Optional. Whether the subscription is being created as part
+      of the Citrix flow. If this field is set to true, the subscription
+      should have both the start_time and end_time set in the request and the
+      billing account used will be the Citrix master billing account
+      regardless of what its set to in the request. This field can only be set
+      to true in create requests.
+    endTime: Optional. End time of the subscription.
+    name: Identifier. Unique resource name of the Subscription. The name is
       ignored when creating a subscription.
     seatCount: Optional. Number of seats in the subscription.
     sku: Required. SKU of subscription.
-    startTime: Output only. Start time of the subscription.
+    startTime: Optional. Start time of the subscription.
     state: Output only. The current state of the subscription.
+    subscriberType: Output only. Type of subscriber.
     type: Required. Type of subscription.
   """
 
@@ -4545,6 +4041,18 @@ class GoogleCloudBeyondcorpSaasplatformSubscriptionsV1alphaSubscription(_message
     INACTIVE = 2
     COMPLETED = 3
 
+  class SubscriberTypeValueValuesEnum(_messages.Enum):
+    r"""Output only. Type of subscriber.
+
+    Values:
+      SUBSCRIBER_TYPE_UNSPECIFIED: Default value. This value is unused.
+      ONLINE: Represents an online subscription.
+      OFFLINE: Represents an offline subscription.
+    """
+    SUBSCRIBER_TYPE_UNSPECIFIED = 0
+    ONLINE = 1
+    OFFLINE = 2
+
   class TypeValueValuesEnum(_messages.Enum):
     r"""Required. Type of subscription.
 
@@ -4562,13 +4070,153 @@ class GoogleCloudBeyondcorpSaasplatformSubscriptionsV1alphaSubscription(_message
   autoRenewEnabled = _messages.BooleanField(1)
   billingAccount = _messages.StringField(2)
   createTime = _messages.StringField(3)
-  endTime = _messages.StringField(4)
-  name = _messages.StringField(5)
-  seatCount = _messages.IntegerField(6)
-  sku = _messages.EnumField('SkuValueValuesEnum', 7)
-  startTime = _messages.StringField(8)
-  state = _messages.EnumField('StateValueValuesEnum', 9)
-  type = _messages.EnumField('TypeValueValuesEnum', 10)
+  csgCustomer = _messages.BooleanField(4)
+  endTime = _messages.StringField(5)
+  name = _messages.StringField(6)
+  seatCount = _messages.IntegerField(7)
+  sku = _messages.EnumField('SkuValueValuesEnum', 8)
+  startTime = _messages.StringField(9)
+  state = _messages.EnumField('StateValueValuesEnum', 10)
+  subscriberType = _messages.EnumField('SubscriberTypeValueValuesEnum', 11)
+  type = _messages.EnumField('TypeValueValuesEnum', 12)
+
+
+class GoogleCloudBeyondcorpSecuritygatewaysV1SecurityGatewayOperationMetadata(_messages.Message):
+  r"""Represents the metadata of the long-running operation.
+
+  Fields:
+    apiVersion: Output only. API version used to start the operation.
+    createTime: Output only. The time the operation was created.
+    endTime: Output only. The time the operation finished running.
+    requestedCancellation: Output only. Identifies whether the user has
+      requested cancellation of the operation. Operations that have been
+      cancelled successfully have Operation.error value with a
+      google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+    statusMessage: Output only. Human-readable status of the operation, if
+      any.
+    target: Output only. Server-defined resource path for the target of the
+      operation.
+    verb: Output only. Name of the verb executed by the operation.
+  """
+
+  apiVersion = _messages.StringField(1)
+  createTime = _messages.StringField(2)
+  endTime = _messages.StringField(3)
+  requestedCancellation = _messages.BooleanField(4)
+  statusMessage = _messages.StringField(5)
+  target = _messages.StringField(6)
+  verb = _messages.StringField(7)
+
+
+class GoogleCloudBeyondcorpSecuritygatewaysV1alphaApplication(_messages.Message):
+  r"""The information about an application resource.
+
+  Fields:
+    createTime: Output only. Timestamp when the resource was created.
+    displayName: Optional. An arbitrary user-provided name for the application
+      resource. Cannot exceed 64 characters.
+    endpointMatchers: Required. Endpoint matchers associated with an
+      application. A combination of hostname and ports as endpoint matchers is
+      used to match the application. Match conditions for OR logic. An array
+      of match conditions to allow for multiple matching criteria. The rule is
+      considered a match if one of the conditions is met. The conditions can
+      be one of the following combinations (Hostname), (Hostname & Ports)
+      EXAMPLES: Hostname - ("*.example.com"), ("xyz.example.com") Hostname and
+      Ports - ("example.com" and "22"), ("example.com" and "22,33") etc
+    name: Identifier. Name of the resource.
+    updateTime: Output only. Timestamp when the resource was last modified.
+    upstreams: Optional. Which upstream resources to forward traffic to.
+  """
+
+  createTime = _messages.StringField(1)
+  displayName = _messages.StringField(2)
+  endpointMatchers = _messages.MessageField('GoogleCloudBeyondcorpSecuritygatewaysV1alphaEndpointMatcher', 3, repeated=True)
+  name = _messages.StringField(4)
+  updateTime = _messages.StringField(5)
+  upstreams = _messages.MessageField('GoogleCloudBeyondcorpSecuritygatewaysV1alphaApplicationUpstream', 6, repeated=True)
+
+
+class GoogleCloudBeyondcorpSecuritygatewaysV1alphaApplicationUpstream(_messages.Message):
+  r"""Which upstream resource to forward traffic to.
+
+  Fields:
+    egressPolicy: Optional. Routing policy information.
+    network: Network to forward traffic to.
+  """
+
+  egressPolicy = _messages.MessageField('GoogleCloudBeyondcorpSecuritygatewaysV1alphaEgressPolicy', 1)
+  network = _messages.MessageField('GoogleCloudBeyondcorpSecuritygatewaysV1alphaApplicationUpstreamNetwork', 2)
+
+
+class GoogleCloudBeyondcorpSecuritygatewaysV1alphaApplicationUpstreamNetwork(_messages.Message):
+  r"""Network to forward traffic to.
+
+  Fields:
+    name: Required. Network name is of the format:
+      `projects/{project}/global/networks/{network}
+  """
+
+  name = _messages.StringField(1)
+
+
+class GoogleCloudBeyondcorpSecuritygatewaysV1alphaEgressPolicy(_messages.Message):
+  r"""Routing policy information.
+
+  Fields:
+    regions: Required. List of the regions where the application sends
+      traffic.
+  """
+
+  regions = _messages.StringField(1, repeated=True)
+
+
+class GoogleCloudBeyondcorpSecuritygatewaysV1alphaEndpointMatcher(_messages.Message):
+  r"""EndpointMatcher contains the information of the endpoint that will match
+  the application.
+
+  Fields:
+    hostname: Required. Hostname of the application.
+    ports: Optional. Ports of the application.
+  """
+
+  hostname = _messages.StringField(1)
+  ports = _messages.IntegerField(2, repeated=True, variant=_messages.Variant.INT32)
+
+
+class GoogleCloudBeyondcorpSecuritygatewaysV1alphaHub(_messages.Message):
+  r"""The Hub message contains information pertaining to the regional data
+  path deployments.
+
+  Fields:
+    internetGateway: Optional. Internet Gateway configuration.
+  """
+
+  internetGateway = _messages.MessageField('GoogleCloudBeyondcorpSecuritygatewaysV1alphaInternetGateway', 1)
+
+
+class GoogleCloudBeyondcorpSecuritygatewaysV1alphaInternetGateway(_messages.Message):
+  r"""Represents the Internet Gateway configuration.
+
+  Fields:
+    assignedIps: Output only. List of IP addresses assigned to the Cloud NAT.
+  """
+
+  assignedIps = _messages.StringField(1, repeated=True)
+
+
+class GoogleCloudBeyondcorpSecuritygatewaysV1alphaListApplicationsResponse(_messages.Message):
+  r"""Message for response to listing Applications.
+
+  Fields:
+    applications: A list of BeyondCorp Application in the project.
+    nextPageToken: A token to retrieve the next page of results, or empty if
+      there are no more results in the list.
+    unreachable: A list of locations that could not be reached.
+  """
+
+  applications = _messages.MessageField('GoogleCloudBeyondcorpSecuritygatewaysV1alphaApplication', 1, repeated=True)
+  nextPageToken = _messages.StringField(2)
+  unreachable = _messages.StringField(3, repeated=True)
 
 
 class GoogleCloudBeyondcorpSecuritygatewaysV1alphaListSecurityGatewaysResponse(_messages.Message):
@@ -4587,18 +4235,26 @@ class GoogleCloudBeyondcorpSecuritygatewaysV1alphaListSecurityGatewaysResponse(_
 
 
 class GoogleCloudBeyondcorpSecuritygatewaysV1alphaSecurityGateway(_messages.Message):
-  r"""Information about a BeyoncCorp SecurityGateway resource.
+  r"""The information about a security gateway resource.
 
   Enums:
     StateValueValuesEnum: Output only. The operational state of the
       SecurityGateway.
 
+  Messages:
+    HubsValue: Optional. Map of Hubs that represents regional data path
+      deployment with GCP region as a key.
+
   Fields:
     createTime: Output only. Timestamp when the resource was created.
+    delegatingServiceAccount: Output only. Service account used for operations
+      that involve resources in consumer projects.
     displayName: Optional. An arbitrary user-provided name for the
       SecurityGateway. Cannot exceed 64 characters.
     externalIps: Output only. IP addresses that will be used for establishing
       connection to the endpoints.
+    hubs: Optional. Map of Hubs that represents regional data path deployment
+      with GCP region as a key.
     name: Identifier. Name of the resource.
     state: Output only. The operational state of the SecurityGateway.
     updateTime: Output only. Timestamp when the resource was last modified.
@@ -4613,8 +4269,7 @@ class GoogleCloudBeyondcorpSecuritygatewaysV1alphaSecurityGateway(_messages.Mess
       UPDATING: SecurityGateway is being updated.
       DELETING: SecurityGateway is being deleted.
       RUNNING: SecurityGateway is running.
-      DOWN: SecurityGateway is down and may be restored in the future. This
-        happens when CCFE sends ProjectState = OFF.
+      DOWN: SecurityGateway is down and may be restored in the future.
       ERROR: SecurityGateway encountered an error and is in an indeterministic
         state.
     """
@@ -4626,12 +4281,39 @@ class GoogleCloudBeyondcorpSecuritygatewaysV1alphaSecurityGateway(_messages.Mess
     DOWN = 5
     ERROR = 6
 
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class HubsValue(_messages.Message):
+    r"""Optional. Map of Hubs that represents regional data path deployment
+    with GCP region as a key.
+
+    Messages:
+      AdditionalProperty: An additional property for a HubsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type HubsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a HubsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A GoogleCloudBeyondcorpSecuritygatewaysV1alphaHub attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.MessageField('GoogleCloudBeyondcorpSecuritygatewaysV1alphaHub', 2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
   createTime = _messages.StringField(1)
-  displayName = _messages.StringField(2)
-  externalIps = _messages.StringField(3, repeated=True)
-  name = _messages.StringField(4)
-  state = _messages.EnumField('StateValueValuesEnum', 5)
-  updateTime = _messages.StringField(6)
+  delegatingServiceAccount = _messages.StringField(2)
+  displayName = _messages.StringField(3)
+  externalIps = _messages.StringField(4, repeated=True)
+  hubs = _messages.MessageField('HubsValue', 5)
+  name = _messages.StringField(6)
+  state = _messages.EnumField('StateValueValuesEnum', 7)
+  updateTime = _messages.StringField(8)
 
 
 class GoogleCloudBeyondcorpSecuritygatewaysV1alphaSecurityGatewayOperationMetadata(_messages.Message):
@@ -5559,3 +5241,29 @@ encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    BeyondcorpOrganizationsLocationsInsightsConfiguredInsightRequest, 'customGrouping_fieldFilter', 'customGrouping.fieldFilter')
+encoding.AddCustomJsonFieldMapping(
+    BeyondcorpOrganizationsLocationsInsightsConfiguredInsightRequest, 'customGrouping_groupFields', 'customGrouping.groupFields')
+encoding.AddCustomJsonFieldMapping(
+    BeyondcorpProjectsLocationsAppConnectionsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    BeyondcorpProjectsLocationsAppConnectorsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    BeyondcorpProjectsLocationsAppGatewaysGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    BeyondcorpProjectsLocationsApplicationDomainsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    BeyondcorpProjectsLocationsApplicationsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    BeyondcorpProjectsLocationsConnectionsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    BeyondcorpProjectsLocationsConnectorsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    BeyondcorpProjectsLocationsInsightsConfiguredInsightRequest, 'customGrouping_fieldFilter', 'customGrouping.fieldFilter')
+encoding.AddCustomJsonFieldMapping(
+    BeyondcorpProjectsLocationsInsightsConfiguredInsightRequest, 'customGrouping_groupFields', 'customGrouping.groupFields')
+encoding.AddCustomJsonFieldMapping(
+    BeyondcorpProjectsLocationsSecurityGatewaysGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    BeyondcorpProjectsLocationsSecurityGatewaysApplicationsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')

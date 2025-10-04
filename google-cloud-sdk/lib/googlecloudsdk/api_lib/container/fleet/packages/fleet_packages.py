@@ -15,33 +15,10 @@
 """Utilities for Package Rollouts FleetPackages API."""
 
 from apitools.base.py import list_pager
-from googlecloudsdk.api_lib.util import apis
-from googlecloudsdk.command_lib.container.fleet.packages import utils
-from googlecloudsdk.command_lib.export import util as export_util
-from googlecloudsdk.core import resources
+from googlecloudsdk.api_lib.container.fleet.packages import util
+from googlecloudsdk.api_lib.util import waiter
 
-
-def GetClientInstance(no_http=False):
-  return apis.GetClientInstance(
-      'configdelivery', utils.ApiVersion(), no_http=no_http
-  )
-
-
-def GetMessagesModule(client=None):
-  client = client or GetClientInstance()
-  return client.MESSAGES_MODULE
-
-
-def GetFleetPackageURI(resource):
-  fleet_package = resources.REGISTRY.ParseRelativeName(
-      resource.name,
-      collection='configdelivery.projects.locations.fleetPackages',
-  )
-  return fleet_package.SelfLink()
-
-
-def GetSchemaPath():
-  return export_util.GetSchemaPath('configdelivery', 'v1alpha', 'FleetPackage')
+FLEET_PACKAGE_COLLECTION = 'configdelivery.projects.locations.fleetPackages'
 
 
 def _ParentPath(project, location):
@@ -55,10 +32,15 @@ def _FullyQualifiedPath(project, location, name):
 class FleetPackagesClient(object):
   """Client for FleetPackages in Config Delivery Package Rollouts API."""
 
-  def __init__(self, client=None, messages=None):
-    self.client = client or GetClientInstance()
-    self.messages = messages or GetMessagesModule(client)
+  def __init__(self, api_version, client=None, messages=None):
+    self._api_version = api_version or util.DEFAULT_API_VERSION
+    self.client = client or util.GetClientInstance(self._api_version)
+    self.messages = messages or util.GetMessagesModule(self.client)
     self._service = self.client.projects_locations_fleetPackages
+    self.fleet_package_waiter = waiter.CloudOperationPollerNoResources(
+        operation_service=self.client.projects_locations_operations,
+        get_name_func=lambda x: x.name,
+    )
 
   def List(self, project, location, limit=None, page_size=100):
     """List FleetPackages from Package Rollouts API.
@@ -105,7 +87,11 @@ class FleetPackagesClient(object):
             parent=parent,
         )
     )
-    return self._service.Create(create_request)
+    return waiter.WaitFor(
+        self.fleet_package_waiter,
+        self._service.Create(create_request),
+        f'Creating FleetPackage {fleet_package_id}',
+    )
 
   def Delete(self, project, location, name, force=False):
     """Delete a FleetPackage resource.
@@ -125,7 +111,11 @@ class FleetPackagesClient(object):
             name=fully_qualified_path, force=force
         )
     )
-    return self._service.Delete(delete_req)
+    return waiter.WaitFor(
+        self.fleet_package_waiter,
+        self._service.Delete(delete_req),
+        f'Deleting FleetPackage {fully_qualified_path}',
+    )
 
   def Describe(self, project, location, name):
     """Describe a FleetPackage resource.
@@ -146,19 +136,24 @@ class FleetPackagesClient(object):
     )
     return self._service.Get(describe_req)
 
-  def Update(self, fleet_package, name):
+  def Update(self, fleet_package, name, update_mask=None):
     """Create FleetPackage for Package Rollouts API.
 
     Args:
       fleet_package: A parsed FleetPackage resource
       name: Fully qualified name of the FleetPackage.
+      update_mask: Field mask for the update.
 
     Returns:
       Updated FleetPackage resource.
     """
     update_request = (
         self.messages.ConfigdeliveryProjectsLocationsFleetPackagesPatchRequest(
-            fleetPackage=fleet_package, name=name, updateMask=None
+            fleetPackage=fleet_package, name=name, updateMask=update_mask
         )
     )
-    return self._service.Patch(update_request)
+    return waiter.WaitFor(
+        self.fleet_package_waiter,
+        self._service.Patch(update_request),
+        f'Updating FleetPackage {name}',
+    )

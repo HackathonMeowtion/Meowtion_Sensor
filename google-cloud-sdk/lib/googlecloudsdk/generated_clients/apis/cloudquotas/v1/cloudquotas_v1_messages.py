@@ -15,6 +15,42 @@ from apitools.base.py import encoding
 package = 'cloudquotas'
 
 
+class CloudquotasFoldersLocationsQuotaAdjusterSettingsGetQuotaAdjusterSettingsRequest(_messages.Message):
+  r"""A CloudquotasFoldersLocationsQuotaAdjusterSettingsGetQuotaAdjusterSettin
+  gsRequest object.
+
+  Fields:
+    name: Required. Name of the `quotaAdjusterSettings` configuration. Only a
+      single setting per project is supported.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class CloudquotasFoldersLocationsQuotaAdjusterSettingsUpdateQuotaAdjusterSettingsRequest(_messages.Message):
+  r"""A CloudquotasFoldersLocationsQuotaAdjusterSettingsUpdateQuotaAdjusterSet
+  tingsRequest object.
+
+  Fields:
+    name: Identifier. Name of the config would be of the format:
+      projects/PROJECT_NUMBER/locations/global/quotaAdjusterSettings
+      folders/FOLDER_NUMBER/locations/global/quotaAdjusterSettings
+      organizations/ORGANIZATION_NUMBER/locations/global/quotaAdjusterSettings
+    quotaAdjusterSettings: A QuotaAdjusterSettings resource to be passed as
+      the request body.
+    updateMask: Optional. The list of fields to update.
+    validateOnly: Optional. If set to true, checks the syntax of the request
+      but doesn't update the quota adjuster settings value. Note that although
+      a request can be valid, that doesn't guarantee that the request will be
+      fulfilled.
+  """
+
+  name = _messages.StringField(1, required=True)
+  quotaAdjusterSettings = _messages.MessageField('QuotaAdjusterSettings', 2)
+  updateMask = _messages.StringField(3)
+  validateOnly = _messages.BooleanField(4)
+
+
 class CloudquotasFoldersLocationsQuotaPreferencesCreateRequest(_messages.Message):
   r"""A CloudquotasFoldersLocationsQuotaPreferencesCreateRequest object.
 
@@ -109,9 +145,9 @@ class CloudquotasFoldersLocationsQuotaPreferencesPatchRequest(_messages.Message)
       ignored.
     ignoreSafetyChecks: The list of quota safety checks to be ignored.
     name: Required except in the CREATE requests. The resource name of the
-      quota preference. The ID component following "locations/" must be
-      "global". Example: `projects/123/locations/global/quotaPreferences/my-
-      config-for-us-east1`
+      quota preference. The path that follows `/locations` must be `/global`.
+      For example: `projects/123/locations/global/quotaPreferences/my-config-
+      for-us-east1`
     quotaPreference: A QuotaPreference resource to be passed as the request
       body.
     updateMask: Optional. Field mask is used to specify the fields to be
@@ -179,6 +215,42 @@ class CloudquotasFoldersLocationsServicesQuotaInfosListRequest(_messages.Message
   pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
   pageToken = _messages.StringField(2)
   parent = _messages.StringField(3, required=True)
+
+
+class CloudquotasOrganizationsLocationsQuotaAdjusterSettingsGetQuotaAdjusterSettingsRequest(_messages.Message):
+  r"""A CloudquotasOrganizationsLocationsQuotaAdjusterSettingsGetQuotaAdjuster
+  SettingsRequest object.
+
+  Fields:
+    name: Required. Name of the `quotaAdjusterSettings` configuration. Only a
+      single setting per project is supported.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class CloudquotasOrganizationsLocationsQuotaAdjusterSettingsUpdateQuotaAdjusterSettingsRequest(_messages.Message):
+  r"""A CloudquotasOrganizationsLocationsQuotaAdjusterSettingsUpdateQuotaAdjus
+  terSettingsRequest object.
+
+  Fields:
+    name: Identifier. Name of the config would be of the format:
+      projects/PROJECT_NUMBER/locations/global/quotaAdjusterSettings
+      folders/FOLDER_NUMBER/locations/global/quotaAdjusterSettings
+      organizations/ORGANIZATION_NUMBER/locations/global/quotaAdjusterSettings
+    quotaAdjusterSettings: A QuotaAdjusterSettings resource to be passed as
+      the request body.
+    updateMask: Optional. The list of fields to update.
+    validateOnly: Optional. If set to true, checks the syntax of the request
+      but doesn't update the quota adjuster settings value. Note that although
+      a request can be valid, that doesn't guarantee that the request will be
+      fulfilled.
+  """
+
+  name = _messages.StringField(1, required=True)
+  quotaAdjusterSettings = _messages.MessageField('QuotaAdjusterSettings', 2)
+  updateMask = _messages.StringField(3)
+  validateOnly = _messages.BooleanField(4)
 
 
 class CloudquotasOrganizationsLocationsQuotaPreferencesCreateRequest(_messages.Message):
@@ -275,9 +347,9 @@ class CloudquotasOrganizationsLocationsQuotaPreferencesPatchRequest(_messages.Me
       ignored.
     ignoreSafetyChecks: The list of quota safety checks to be ignored.
     name: Required except in the CREATE requests. The resource name of the
-      quota preference. The ID component following "locations/" must be
-      "global". Example: `projects/123/locations/global/quotaPreferences/my-
-      config-for-us-east1`
+      quota preference. The path that follows `/locations` must be `/global`.
+      For example: `projects/123/locations/global/quotaPreferences/my-config-
+      for-us-east1`
     quotaPreference: A QuotaPreference resource to be passed as the request
       body.
     updateMask: Optional. Field mask is used to specify the fields to be
@@ -345,6 +417,42 @@ class CloudquotasOrganizationsLocationsServicesQuotaInfosListRequest(_messages.M
   pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
   pageToken = _messages.StringField(2)
   parent = _messages.StringField(3, required=True)
+
+
+class CloudquotasProjectsLocationsQuotaAdjusterSettingsGetQuotaAdjusterSettingsRequest(_messages.Message):
+  r"""A CloudquotasProjectsLocationsQuotaAdjusterSettingsGetQuotaAdjusterSetti
+  ngsRequest object.
+
+  Fields:
+    name: Required. Name of the `quotaAdjusterSettings` configuration. Only a
+      single setting per project is supported.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class CloudquotasProjectsLocationsQuotaAdjusterSettingsUpdateQuotaAdjusterSettingsRequest(_messages.Message):
+  r"""A CloudquotasProjectsLocationsQuotaAdjusterSettingsUpdateQuotaAdjusterSe
+  ttingsRequest object.
+
+  Fields:
+    name: Identifier. Name of the config would be of the format:
+      projects/PROJECT_NUMBER/locations/global/quotaAdjusterSettings
+      folders/FOLDER_NUMBER/locations/global/quotaAdjusterSettings
+      organizations/ORGANIZATION_NUMBER/locations/global/quotaAdjusterSettings
+    quotaAdjusterSettings: A QuotaAdjusterSettings resource to be passed as
+      the request body.
+    updateMask: Optional. The list of fields to update.
+    validateOnly: Optional. If set to true, checks the syntax of the request
+      but doesn't update the quota adjuster settings value. Note that although
+      a request can be valid, that doesn't guarantee that the request will be
+      fulfilled.
+  """
+
+  name = _messages.StringField(1, required=True)
+  quotaAdjusterSettings = _messages.MessageField('QuotaAdjusterSettings', 2)
+  updateMask = _messages.StringField(3)
+  validateOnly = _messages.BooleanField(4)
 
 
 class CloudquotasProjectsLocationsQuotaPreferencesCreateRequest(_messages.Message):
@@ -441,9 +549,9 @@ class CloudquotasProjectsLocationsQuotaPreferencesPatchRequest(_messages.Message
       ignored.
     ignoreSafetyChecks: The list of quota safety checks to be ignored.
     name: Required except in the CREATE requests. The resource name of the
-      quota preference. The ID component following "locations/" must be
-      "global". Example: `projects/123/locations/global/quotaPreferences/my-
-      config-for-us-east1`
+      quota preference. The path that follows `/locations` must be `/global`.
+      For example: `projects/123/locations/global/quotaPreferences/my-config-
+      for-us-east1`
     quotaPreference: A QuotaPreference resource to be passed as the request
       body.
     updateMask: Optional. Field mask is used to specify the fields to be
@@ -518,40 +626,43 @@ class DimensionsInfo(_messages.Message):
   combination of dimensions.
 
   Messages:
-    DimensionsValue: The map of dimensions for this dimensions info. The key
-      of a map entry is "region", "zone" or the name of a service specific
+    DimensionsValue: The map of dimensions in key-value pairs. The key of a
+      map entry is "region", "zone", or the name of a service-specific
       dimension, and the value of a map entry is the value of the dimension.
       If a dimension does not appear in the map of dimensions, the dimensions
       info applies to all the dimension values except for those that have
-      another DimenisonInfo instance configured for the specific value.
-      Example: {"provider" : "Foo Inc"} where "provider" is a service specific
-      dimension of a quota.
+      another DimensionInfo instance configured for the specific value. For
+      example: `{"provider" : "Example Organization"}` where `provider` is a
+      service-specific quota dimension and `Example Organization` is the
+      provider name.
 
   Fields:
-    applicableLocations: The applicable regions or zones of this dimensions
-      info. The field will be set to ['global'] for quotas that are not per
-      region or per zone. Otherwise, it will be set to the list of locations
-      this dimension info is applicable to.
+    applicableLocations: The applicable regions or zones of this dimension.
+      The field is set to ['global'] for quotas that are not per region or per
+      zone. Otherwise, it will be set to the list of locations this dimension
+      info is applicable to.
     details: Quota details for the specified dimensions.
-    dimensions: The map of dimensions for this dimensions info. The key of a
-      map entry is "region", "zone" or the name of a service specific
-      dimension, and the value of a map entry is the value of the dimension.
-      If a dimension does not appear in the map of dimensions, the dimensions
-      info applies to all the dimension values except for those that have
-      another DimenisonInfo instance configured for the specific value.
-      Example: {"provider" : "Foo Inc"} where "provider" is a service specific
-      dimension of a quota.
+    dimensions: The map of dimensions in key-value pairs. The key of a map
+      entry is "region", "zone", or the name of a service-specific dimension,
+      and the value of a map entry is the value of the dimension. If a
+      dimension does not appear in the map of dimensions, the dimensions info
+      applies to all the dimension values except for those that have another
+      DimensionInfo instance configured for the specific value. For example:
+      `{"provider" : "Example Organization"}` where `provider` is a service-
+      specific quota dimension and `Example Organization` is the provider
+      name.
   """
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class DimensionsValue(_messages.Message):
-    r"""The map of dimensions for this dimensions info. The key of a map entry
-    is "region", "zone" or the name of a service specific dimension, and the
+    r"""The map of dimensions in key-value pairs. The key of a map entry is
+    "region", "zone", or the name of a service-specific dimension, and the
     value of a map entry is the value of the dimension. If a dimension does
     not appear in the map of dimensions, the dimensions info applies to all
-    the dimension values except for those that have another DimenisonInfo
-    instance configured for the specific value. Example: {"provider" : "Foo
-    Inc"} where "provider" is a service specific dimension of a quota.
+    the dimension values except for those that have another DimensionInfo
+    instance configured for the specific value. For example: `{"provider" :
+    "Example Organization"}` where `provider` is a service-specific quota
+    dimension and `Example Organization` is the provider name.
 
     Messages:
       AdditionalProperty: An additional property for a DimensionsValue object.
@@ -604,6 +715,58 @@ class ListQuotaPreferencesResponse(_messages.Message):
   nextPageToken = _messages.StringField(1)
   quotaPreferences = _messages.MessageField('QuotaPreference', 2, repeated=True)
   unreachable = _messages.StringField(3, repeated=True)
+
+
+class QuotaAdjusterSettings(_messages.Message):
+  r"""The QuotaAdjusterSettings resource defines the settings for the Quota
+  Adjuster.
+
+  Enums:
+    EnablementValueValuesEnum: Optional. The configured value of the
+      enablement at the given resource.
+
+  Fields:
+    enablement: Optional. The configured value of the enablement at the given
+      resource.
+    etag: Optional. The current ETag of the QuotaAdjusterSettings. If an ETag
+      is provided on update and does not match the current server's ETag in
+      the QuotaAdjusterSettings, the request is blocked and returns an ABORTED
+      error. See https://google.aip.dev/134#etags for more details on ETags.
+    inherited: Optional. Indicates whether the setting is inherited or
+      explicitly specified.
+    inheritedFrom: Output only. The resource container from which the setting
+      is inherited. This refers to the nearest ancestor with enablement set
+      (either ENABLED or DISABLED). The value can be an
+      organizations/{organization_id}, folders/{folder_id}, or can be
+      'default' if no ancestor exists with enablement set. The value will be
+      empty when enablement is directly set on this container.
+    name: Identifier. Name of the config would be of the format:
+      projects/PROJECT_NUMBER/locations/global/quotaAdjusterSettings
+      folders/FOLDER_NUMBER/locations/global/quotaAdjusterSettings
+      organizations/ORGANIZATION_NUMBER/locations/global/quotaAdjusterSettings
+    updateTime: Output only. The timestamp when the QuotaAdjusterSettings
+      resource was last updated.
+  """
+
+  class EnablementValueValuesEnum(_messages.Enum):
+    r"""Optional. The configured value of the enablement at the given
+    resource.
+
+    Values:
+      ENABLEMENT_UNSPECIFIED: The quota adjuster is in an unknown state.
+      ENABLED: The quota adjuster is enabled.
+      DISABLED: The quota adjuster is disabled.
+    """
+    ENABLEMENT_UNSPECIFIED = 0
+    ENABLED = 1
+    DISABLED = 2
+
+  enablement = _messages.EnumField('EnablementValueValuesEnum', 1)
+  etag = _messages.StringField(2)
+  inherited = _messages.BooleanField(3)
+  inheritedFrom = _messages.StringField(4)
+  name = _messages.StringField(5)
+  updateTime = _messages.StringField(6)
 
 
 class QuotaConfig(_messages.Message):
@@ -722,11 +885,16 @@ class QuotaIncreaseEligibility(_messages.Message):
         true.
       NO_VALID_BILLING_ACCOUNT: The container is not linked with a valid
         billing account.
+      NOT_SUPPORTED: Quota increase is not supported for the quota.
+      NOT_ENOUGH_USAGE_HISTORY: There is not enough usage history to determine
+        the eligibility.
       OTHER: Other reasons.
     """
     INELIGIBILITY_REASON_UNSPECIFIED = 0
     NO_VALID_BILLING_ACCOUNT = 1
-    OTHER = 2
+    NOT_SUPPORTED = 2
+    NOT_ENOUGH_USAGE_HISTORY = 3
+    OTHER = 4
 
   ineligibilityReason = _messages.EnumField('IneligibilityReasonValueValuesEnum', 1)
   isEligible = _messages.BooleanField(2)
@@ -752,22 +920,22 @@ class QuotaInfo(_messages.Message):
       with absolute precision. In contrast, an imprecise quota is not tracked
       with precision.
     metric: The metric of the quota. It specifies the resources consumption
-      the quota is defined for. Example: `compute.googleapis.com/cpus`
+      the quota is defined for. For example, `compute.googleapis.com/cpus`
     metricDisplayName: The display name of the quota metric
     metricUnit: The unit in which the metric value is reported, e.g., "MByte".
     name: Resource name of this QuotaInfo. The ID component following
-      "locations/" must be "global". Example: `projects/123/locations/global/s
-      ervices/compute.googleapis.com/quotaInfos/CpusPerProjectPerRegion`
+      "locations/" must be "global". For example, `projects/123/locations/glob
+      al/services/compute.googleapis.com/quotaInfos/CpusPerProjectPerRegion`
     quotaDisplayName: The display name of the quota.
-    quotaId: The id of the quota, which is unquie within the service. Example:
-      `CpusPerProjectPerRegion`
+    quotaId: The id of the quota, which is unquie within the service. For
+      example, `CpusPerProjectPerRegion`
     quotaIncreaseEligibility: Whether it is eligible to request a higher quota
       value for this quota.
     refreshInterval: The reset time interval for the quota. Refresh interval
-      applies to rate quota only. Example: "minute" for per minute, "day" for
-      per day, or "10 seconds" for every 10 seconds.
-    service: The name of the service in which the quota is defined. Example:
-      `compute.googleapis.com`
+      applies to rate quota only. For example, "minute" for per minute, "day"
+      for per day, or "10 seconds" for every 10 seconds.
+    service: The name of the service in which the quota is defined. For
+      example, `compute.googleapis.com`
     serviceRequestQuotaUri: URI to the page where users can request more quota
       for the cloud service-for example, https://console.cloud.google.com/iam-
       admin/quotas.
@@ -813,18 +981,19 @@ class QuotaPreference(_messages.Message):
   Messages:
     DimensionsValue: Immutable. The dimensions that this quota preference
       applies to. The key of the map entry is the name of a dimension, such as
-      "region", "zone", "network_id", and the value of the map entry is the
+      `region`, `zone`, `network_id`, and the value of the map entry is the
       dimension value. If a dimension is missing from the map of dimensions,
       the quota preference applies to all the dimension values except for
       those that have other quota preferences configured for the specific
-      value. NOTE: QuotaPreferences can only be applied across all values of
-      "user" and "resource" dimension. Do not set values for "user" or
-      "resource" in the dimension map. Example: {"provider", "Foo Inc"} where
-      "provider" is a service specific dimension.
+      value. Note: QuotaPreferences can only be applied across all values of
+      `user` and `resource` dimension. Do not set values for `user` or
+      `resource` in the dimension map. For example: `{"provider" : "Example
+      Organization"}` where `provider` is a service-specific quota dimension
+      and `Example Organization` is the provider name.
 
   Fields:
     contactEmail: Input only. An email address that can be used to contact the
-      the user, in case Google Cloud needs more information to make a decision
+      user, in case Google Cloud needs more information to make a decision
       before additional quota can be granted. When requesting a quota
       increase, the email address is required. When requesting a quota
       decrease, the email address is optional. For example, the email address
@@ -833,14 +1002,15 @@ class QuotaPreference(_messages.Message):
     createTime: Output only. Create time stamp
     dimensions: Immutable. The dimensions that this quota preference applies
       to. The key of the map entry is the name of a dimension, such as
-      "region", "zone", "network_id", and the value of the map entry is the
+      `region`, `zone`, `network_id`, and the value of the map entry is the
       dimension value. If a dimension is missing from the map of dimensions,
       the quota preference applies to all the dimension values except for
       those that have other quota preferences configured for the specific
-      value. NOTE: QuotaPreferences can only be applied across all values of
-      "user" and "resource" dimension. Do not set values for "user" or
-      "resource" in the dimension map. Example: {"provider", "Foo Inc"} where
-      "provider" is a service specific dimension.
+      value. Note: QuotaPreferences can only be applied across all values of
+      `user` and `resource` dimension. Do not set values for `user` or
+      `resource` in the dimension map. For example: `{"provider" : "Example
+      Organization"}` where `provider` is a service-specific quota dimension
+      and `Example Organization` is the provider name.
     etag: Optional. The current etag of the quota preference. If an etag is
       provided on update and does not match the current server's etag of the
       quota preference, the request will be blocked and an ABORTED error will
@@ -848,12 +1018,12 @@ class QuotaPreference(_messages.Message):
       etags.
     justification: The reason / justification for this quota preference.
     name: Required except in the CREATE requests. The resource name of the
-      quota preference. The ID component following "locations/" must be
-      "global". Example: `projects/123/locations/global/quotaPreferences/my-
-      config-for-us-east1`
+      quota preference. The path that follows `/locations` must be `/global`.
+      For example: `projects/123/locations/global/quotaPreferences/my-config-
+      for-us-east1`
     quotaConfig: Required. Preferred quota configuration.
     quotaId: Required. The id of the quota to which the quota preference is
-      applied. A quota name is unique in the service. Example:
+      applied. A quota name is unique in the service. For example,
       `CpusPerProjectPerRegion`
     reconciling: Output only. Is the quota preference pending Google Cloud
       approval and fulfillment.
@@ -865,14 +1035,15 @@ class QuotaPreference(_messages.Message):
   @encoding.MapUnrecognizedFields('additionalProperties')
   class DimensionsValue(_messages.Message):
     r"""Immutable. The dimensions that this quota preference applies to. The
-    key of the map entry is the name of a dimension, such as "region", "zone",
-    "network_id", and the value of the map entry is the dimension value. If a
+    key of the map entry is the name of a dimension, such as `region`, `zone`,
+    `network_id`, and the value of the map entry is the dimension value. If a
     dimension is missing from the map of dimensions, the quota preference
     applies to all the dimension values except for those that have other quota
-    preferences configured for the specific value. NOTE: QuotaPreferences can
-    only be applied across all values of "user" and "resource" dimension. Do
-    not set values for "user" or "resource" in the dimension map. Example:
-    {"provider", "Foo Inc"} where "provider" is a service specific dimension.
+    preferences configured for the specific value. Note: QuotaPreferences can
+    only be applied across all values of `user` and `resource` dimension. Do
+    not set values for `user` or `resource` in the dimension map. For example:
+    `{"provider" : "Example Organization"}` where `provider` is a service-
+    specific quota dimension and `Example Organization` is the provider name.
 
     Messages:
       AdditionalProperty: An additional property for a DimensionsValue object.

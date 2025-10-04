@@ -111,7 +111,9 @@ def _GetKmsKeyNameFromArgs(args):
   return None
 
 
-def _Args(parser):
+def _Args(
+    parser,
+):
   """Registers flags for this command."""
   resource_args.AddTopicResourceArg(parser, 'to update.')
   labels_util.AddUpdateLabelsFlags(parser)
@@ -130,7 +132,11 @@ def _Args(parser):
   flags.AddTopicMessageStoragePolicyFlags(parser, is_update=True)
 
   flags.AddSchemaSettingsFlags(parser, is_update=True)
-  flags.AddIngestionDatasourceFlags(parser, is_update=True)
+  flags.AddIngestionDatasourceFlags(
+      parser,
+      is_update=True,
+  )
+  flags.AddMessageTransformsFlags(parser, is_update=True)
 
 
 def _Run(args):
@@ -150,13 +156,9 @@ def _Run(args):
   client = topics.TopicsClient()
   topic_ref = args.CONCEPTS.topic.Parse()
 
-  message_retention_duration = getattr(
-      args, 'message_retention_duration', None
-  )
+  message_retention_duration = getattr(args, 'message_retention_duration', None)
   if message_retention_duration:
-    message_retention_duration = util.FormatDuration(
-        message_retention_duration
-    )
+    message_retention_duration = util.FormatDuration(message_retention_duration)
   clear_message_retention_duration = getattr(
       args, 'clear_message_retention_duration', None
   )
@@ -189,15 +191,90 @@ def _Run(args):
   kinesis_ingestion_consumer_arn = getattr(
       args, 'kinesis_ingestion_consumer_arn', None
   )
-  kinesis_ingestion_role_arn = getattr(
-      args, 'kinesis_ingestion_role_arn', None
-  )
+  kinesis_ingestion_role_arn = getattr(args, 'kinesis_ingestion_role_arn', None)
   kinesis_ingestion_service_account = getattr(
       args, 'kinesis_ingestion_service_account', None
   )
+  cloud_storage_ingestion_bucket = getattr(
+      args, 'cloud_storage_ingestion_bucket', None
+  )
+  cloud_storage_ingestion_input_format_list = getattr(
+      args, 'cloud_storage_ingestion_input_format', None
+  )
+  cloud_storage_ingestion_input_format = None
+  if cloud_storage_ingestion_input_format_list:
+    cloud_storage_ingestion_input_format = (
+        cloud_storage_ingestion_input_format_list[0]
+    )
+  cloud_storage_ingestion_text_delimiter = getattr(
+      args, 'cloud_storage_ingestion_text_delimiter', None
+  )
+  if cloud_storage_ingestion_text_delimiter:
+    # Interprets special characters representations (i.e., "\n") as their
+    # expected characters (i.e., newline).
+    cloud_storage_ingestion_text_delimiter = (
+        cloud_storage_ingestion_text_delimiter.encode('utf-8').decode(
+            'unicode-escape'
+        )
+    )
+  cloud_storage_ingestion_minimum_object_create_time = getattr(
+      args, 'cloud_storage_ingestion_minimum_object_create_time', None
+  )
+  cloud_storage_ingestion_match_glob = getattr(
+      args, 'cloud_storage_ingestion_match_glob', None
+  )
+  azure_event_hubs_ingestion_resource_group = getattr(
+      args, 'azure_event_hubs_ingestion_resource_group', None
+  )
+  azure_event_hubs_ingestion_namespace = getattr(
+      args, 'azure_event_hubs_ingestion_namespace', None
+  )
+  azure_event_hubs_ingestion_event_hub = getattr(
+      args, 'azure_event_hubs_ingestion_event_hub', None
+  )
+  azure_event_hubs_ingestion_client_id = getattr(
+      args, 'azure_event_hubs_ingestion_client_id', None
+  )
+  azure_event_hubs_ingestion_tenant_id = getattr(
+      args, 'azure_event_hubs_ingestion_tenant_id', None
+  )
+  azure_event_hubs_ingestion_subscription_id = getattr(
+      args, 'azure_event_hubs_ingestion_subscription_id', None
+  )
+  azure_event_hubs_ingestion_service_account = getattr(
+      args, 'azure_event_hubs_ingestion_service_account', None
+  )
+  aws_msk_ingestion_cluster_arn = getattr(
+      args, 'aws_msk_ingestion_cluster_arn', None
+  )
+  aws_msk_ingestion_topic = getattr(args, 'aws_msk_ingestion_topic', None)
+  aws_msk_ingestion_aws_role_arn = getattr(
+      args, 'aws_msk_ingestion_aws_role_arn', None
+  )
+  aws_msk_ingestion_service_account = getattr(
+      args, 'aws_msk_ingestion_service_account', None
+  )
+  confluent_cloud_ingestion_bootstrap_server = getattr(
+      args, 'confluent_cloud_ingestion_bootstrap_server', None
+  )
+  confluent_cloud_ingestion_cluster_id = getattr(
+      args, 'confluent_cloud_ingestion_cluster_id', None
+  )
+  confluent_cloud_ingestion_topic = getattr(
+      args, 'confluent_cloud_ingestion_topic', None
+  )
+  confluent_cloud_ingestion_identity_pool_id = getattr(
+      args, 'confluent_cloud_ingestion_identity_pool_id', None
+  )
+  confluent_cloud_ingestion_service_account = getattr(
+      args, 'confluent_cloud_ingestion_service_account', None
+  )
+  ingestion_log_severity = getattr(args, 'ingestion_log_severity', None)
   clear_ingestion_data_source_settings = getattr(
       args, 'clear_ingestion_data_source_settings', None
   )
+  message_transforms_file = getattr(args, 'message_transforms_file', None)
+  clear_message_transforms = getattr(args, 'clear_message_transforms', None)
 
   try:
     result = client.Patch(
@@ -218,7 +295,31 @@ def _Run(args):
         kinesis_ingestion_consumer_arn=kinesis_ingestion_consumer_arn,
         kinesis_ingestion_role_arn=kinesis_ingestion_role_arn,
         kinesis_ingestion_service_account=kinesis_ingestion_service_account,
+        cloud_storage_ingestion_bucket=cloud_storage_ingestion_bucket,
+        cloud_storage_ingestion_input_format=cloud_storage_ingestion_input_format,
+        cloud_storage_ingestion_text_delimiter=cloud_storage_ingestion_text_delimiter,
+        cloud_storage_ingestion_minimum_object_create_time=cloud_storage_ingestion_minimum_object_create_time,
+        cloud_storage_ingestion_match_glob=cloud_storage_ingestion_match_glob,
+        azure_event_hubs_ingestion_resource_group=azure_event_hubs_ingestion_resource_group,
+        azure_event_hubs_ingestion_namespace=azure_event_hubs_ingestion_namespace,
+        azure_event_hubs_ingestion_event_hub=azure_event_hubs_ingestion_event_hub,
+        azure_event_hubs_ingestion_client_id=azure_event_hubs_ingestion_client_id,
+        azure_event_hubs_ingestion_tenant_id=azure_event_hubs_ingestion_tenant_id,
+        azure_event_hubs_ingestion_subscription_id=azure_event_hubs_ingestion_subscription_id,
+        azure_event_hubs_ingestion_service_account=azure_event_hubs_ingestion_service_account,
+        aws_msk_ingestion_cluster_arn=aws_msk_ingestion_cluster_arn,
+        aws_msk_ingestion_topic=aws_msk_ingestion_topic,
+        aws_msk_ingestion_aws_role_arn=aws_msk_ingestion_aws_role_arn,
+        aws_msk_ingestion_service_account=aws_msk_ingestion_service_account,
+        confluent_cloud_ingestion_bootstrap_server=confluent_cloud_ingestion_bootstrap_server,
+        confluent_cloud_ingestion_cluster_id=confluent_cloud_ingestion_cluster_id,
+        confluent_cloud_ingestion_topic=confluent_cloud_ingestion_topic,
+        confluent_cloud_ingestion_identity_pool_id=confluent_cloud_ingestion_identity_pool_id,
+        confluent_cloud_ingestion_service_account=confluent_cloud_ingestion_service_account,
         clear_ingestion_data_source_settings=clear_ingestion_data_source_settings,
+        ingestion_log_severity=ingestion_log_severity,
+        message_transforms_file=message_transforms_file,
+        clear_message_transforms=clear_message_transforms,
     )
   except topics.NoFieldsSpecifiedError:
     operations = [
@@ -236,6 +337,7 @@ def _Run(args):
   return result
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Update(base.UpdateCommand):
   """Updates an existing Cloud Pub/Sub topic."""
@@ -245,7 +347,9 @@ class Update(base.UpdateCommand):
   @staticmethod
   def Args(parser):
     """Registers flags for this command."""
-    _Args(parser)
+    _Args(
+        parser,
+    )
 
   def Run(self, args):
     return _Run(args)
@@ -257,10 +361,11 @@ class UpdateBeta(Update):
 
   @staticmethod
   def Args(parser):
-    _Args(parser)
+    _Args(
+        parser,
+    )
 
   def Run(self, args):
-    flags.ValidateTopicArgsUseUniverseSupportedFeatures(args)
     return _Run(args)
 
 
@@ -270,4 +375,6 @@ class UpdateAlpha(UpdateBeta):
 
   @staticmethod
   def Args(parser):
-    _Args(parser)
+    _Args(
+        parser,
+    )

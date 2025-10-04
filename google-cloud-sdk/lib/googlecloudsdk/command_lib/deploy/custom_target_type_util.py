@@ -14,11 +14,33 @@
 # limitations under the License.
 """Utilities for the cloud deploy custom target type resource."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from googlecloudsdk.api_lib.clouddeploy import custom_target_type
+from googlecloudsdk.core import resources
+
+
+def CustomTargetTypeReference(name, project, region):
+  """Creates the custom target type reference base on the parameters.
+
+    Returns the shared custom target type reference.
+
+  Args:
+    name: str, custom target type ID
+    project: str,project number or ID.
+    region: str, region ID.
+
+  Returns:
+    custom target type reference.
+  """
+  return resources.REGISTRY.Parse(
+      name,
+      collection='clouddeploy.projects.locations.customTargetTypes',
+      params={
+          'projectsId': project,
+          'locationsId': region,
+          'customTargetTypesId': name,
+      },
+  )
 
 
 def PatchCustomTargetType(resource):

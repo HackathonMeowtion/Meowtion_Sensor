@@ -62,10 +62,16 @@ class GoogleAppsScriptTypeCalendarCalendarAddOnManifest(_messages.Message):
 
   Fields:
     conferenceSolution: Defines conference solutions provided by this add-on.
+      Third-party conferencing add-ons can only be built in [Apps
+      Script](https://developers.google.com/apps-script/reference/conference-
+      data).
     createSettingsUrlFunction: An endpoint to execute that creates a URL to
       the add-on's settings page.
     currentEventAccess: Defines the level of data access when an event add-on
       is triggered.
+    eventAttachmentTrigger: A configuration for a contextual trigger that
+      fires when the user clicks on the add-on attachment provider in the
+      Calendar dropdown menu.
     eventOpenTrigger: An endpoint that triggers when an event is opened to be
       viewed or edited.
     eventUpdateTrigger: An endpoint that triggers when the open event is
@@ -103,9 +109,10 @@ class GoogleAppsScriptTypeCalendarCalendarAddOnManifest(_messages.Message):
   conferenceSolution = _messages.MessageField('GoogleAppsScriptTypeCalendarConferenceSolution', 1, repeated=True)
   createSettingsUrlFunction = _messages.StringField(2)
   currentEventAccess = _messages.EnumField('CurrentEventAccessValueValuesEnum', 3)
-  eventOpenTrigger = _messages.MessageField('GoogleAppsScriptTypeCalendarCalendarExtensionPoint', 4)
-  eventUpdateTrigger = _messages.MessageField('GoogleAppsScriptTypeCalendarCalendarExtensionPoint', 5)
-  homepageTrigger = _messages.MessageField('GoogleAppsScriptTypeHomepageExtensionPoint', 6)
+  eventAttachmentTrigger = _messages.MessageField('GoogleAppsScriptTypeMenuItemExtensionPoint', 4)
+  eventOpenTrigger = _messages.MessageField('GoogleAppsScriptTypeCalendarCalendarExtensionPoint', 5)
+  eventUpdateTrigger = _messages.MessageField('GoogleAppsScriptTypeCalendarCalendarExtensionPoint', 6)
+  homepageTrigger = _messages.MessageField('GoogleAppsScriptTypeHomepageExtensionPoint', 7)
 
 
 class GoogleAppsScriptTypeCalendarCalendarExtensionPoint(_messages.Message):
@@ -120,7 +127,9 @@ class GoogleAppsScriptTypeCalendarCalendarExtensionPoint(_messages.Message):
 
 
 class GoogleAppsScriptTypeCalendarConferenceSolution(_messages.Message):
-  r"""Defines conference related values.
+  r"""Defines conference-related values. Third-party conferencing add-ons can
+  only be built in [Apps Script](https://developers.google.com/apps-
+  script/reference/conference-data).
 
   Fields:
     id: Required. IDs should be uniquely assigned across conference solutions
@@ -361,10 +370,14 @@ class GoogleAppsScriptTypeHttpOptions(_messages.Message):
   Enums:
     AuthorizationHeaderValueValuesEnum: Configuration for the token sent in
       the `HTTP` Authorization header.
+    GranularOauthPermissionSupportValueValuesEnum: Whether the add-on has
+      enabled Granular OAuth Consent.
 
   Fields:
     authorizationHeader: Configuration for the token sent in the `HTTP`
       Authorization header.
+    granularOauthPermissionSupport: Whether the add-on has enabled Granular
+      OAuth Consent.
   """
 
   class AuthorizationHeaderValueValuesEnum(_messages.Enum):
@@ -374,7 +387,7 @@ class GoogleAppsScriptTypeHttpOptions(_messages.Message):
       HTTP_AUTHORIZATION_HEADER_UNSPECIFIED: Default value, equivalent to
         `SYSTEM_ID_TOKEN`.
       SYSTEM_ID_TOKEN: Send an ID token for the project-specific Google
-        Workspace Add-on's system service account (default).
+        Workspace add-on's system service account (default).
       USER_ID_TOKEN: Send an ID token for the end user.
       NONE: Do not send an Authentication header.
     """
@@ -383,7 +396,21 @@ class GoogleAppsScriptTypeHttpOptions(_messages.Message):
     USER_ID_TOKEN = 2
     NONE = 3
 
+  class GranularOauthPermissionSupportValueValuesEnum(_messages.Enum):
+    r"""Whether the add-on has enabled Granular OAuth Consent.
+
+    Values:
+      GRANULAR_OAUTH_PERMISSION_SUPPORT_UNSPECIFIED: Default value, should not
+        be used.
+      OPT_IN: The add-on is opted in to Granular OAuth Consent.
+      OPT_OUT: The add-on is opted out of Granular OAuth Consent.
+    """
+    GRANULAR_OAUTH_PERMISSION_SUPPORT_UNSPECIFIED = 0
+    OPT_IN = 1
+    OPT_OUT = 2
+
   authorizationHeader = _messages.EnumField('AuthorizationHeaderValueValuesEnum', 1)
+  granularOauthPermissionSupport = _messages.EnumField('GranularOauthPermissionSupportValueValuesEnum', 2)
 
 
 class GoogleAppsScriptTypeLayoutProperties(_messages.Message):
@@ -478,6 +505,101 @@ class GoogleAppsScriptTypeLinkPreviewExtensionPoint(_messages.Message):
   logoUrl = _messages.StringField(3)
   patterns = _messages.MessageField('GoogleAppsScriptTypeUriPattern', 4, repeated=True)
   runFunction = _messages.StringField(5)
+
+
+class GoogleAppsScriptTypeMeetMeetAddOnManifest(_messages.Message):
+  r"""Meet add-on manifest.
+
+  Fields:
+    homepageTrigger: If present, this overrides the configuration from
+      `addOns.common.homepageTrigger`.
+    supportsCollaboration: Whether the addon supports collaboration or
+      inviting others into the addon experience.
+    termsUri: A link to the terms of service for the add-on, if any should be
+      shown.
+    web: Details for addons that enhance the Meet web client.
+  """
+
+  homepageTrigger = _messages.MessageField('GoogleAppsScriptTypeHomepageExtensionPoint', 1)
+  supportsCollaboration = _messages.BooleanField(2)
+  termsUri = _messages.StringField(3)
+  web = _messages.MessageField('GoogleAppsScriptTypeMeetWeb', 4)
+
+
+class GoogleAppsScriptTypeMeetWeb(_messages.Message):
+  r"""Details for addons that enhance the Meet web client.
+
+  Enums:
+    DisplayFlowValueValuesEnum: The display flow the add-on will follow when
+      launched.
+    OpenStateValueValuesEnum: The initial state when the addon is opened.
+
+  Fields:
+    addOnOrigins: Origins that should be added to the frame-src property of
+      the iframe containing the third party site.
+    darkModeLogoUrl: A dark mode version of the logo_url.
+    displayFlow: The display flow the add-on will follow when launched.
+    hostOrigins: Deprecated, legacy name. Origins that should be added to the
+      frame-src property of the iframe containing the third party site. Use
+      add_on_origins instead.
+    logoUrl: The URL of the logo to be displayed for the addon. If not
+      specified, the logo defaults to the logo in the common section of the
+      manifest.
+    mainStageUri: The URI for the "main stage" iframe.
+    openState: The initial state when the addon is opened.
+    sidePanelUri: The URI for the side panel iframe.
+    sidePanelUrl: The URL for the side panel iframe.
+    supportsCollaboration: Whether the addon supports collaboration or
+      inviting others into the addon experience. This field is deprecated now,
+      please use the top level field in MeetAddOnManifest.
+    supportsCollaborationHostControls: Whether the collaboration add-on
+      supports host controls.
+    supportsPopOut: Whether the addon supports popping out to a browser PiP
+      experience.
+    supportsScreenSharing: Whether the addon supports screen sharing the main
+      stage.
+  """
+
+  class DisplayFlowValueValuesEnum(_messages.Enum):
+    r"""The display flow the add-on will follow when launched.
+
+    Values:
+      DISPLAY_FLOW_UNSPECIFIED: Display flow has not been specified.
+      FOCUS: Add-on should launch in the "focus" display flow.
+      AUGMENT: Add-on should launch in the "augment" display flow.
+    """
+    DISPLAY_FLOW_UNSPECIFIED = 0
+    FOCUS = 1
+    AUGMENT = 2
+
+  class OpenStateValueValuesEnum(_messages.Enum):
+    r"""The initial state when the addon is opened.
+
+    Values:
+      STATE_UNSPECIFIED: Initial state has not been specified with the addon.
+      SIDE_PANEL_ONLY: The addon opens with only the side panel active.
+      MAIN_STAGE_ONLY: The addon opens with only the main stage active.
+      SIDE_PANEL_AND_MAIN_STAGE: The addon opens with both the side panel and
+        the main stage active.
+    """
+    STATE_UNSPECIFIED = 0
+    SIDE_PANEL_ONLY = 1
+    MAIN_STAGE_ONLY = 2
+    SIDE_PANEL_AND_MAIN_STAGE = 3
+
+  addOnOrigins = _messages.StringField(1, repeated=True)
+  darkModeLogoUrl = _messages.StringField(2)
+  displayFlow = _messages.EnumField('DisplayFlowValueValuesEnum', 3)
+  hostOrigins = _messages.StringField(4, repeated=True)
+  logoUrl = _messages.StringField(5)
+  mainStageUri = _messages.StringField(6)
+  openState = _messages.EnumField('OpenStateValueValuesEnum', 7)
+  sidePanelUri = _messages.StringField(8)
+  sidePanelUrl = _messages.StringField(9)
+  supportsCollaboration = _messages.BooleanField(10)
+  supportsCollaborationHostControls = _messages.BooleanField(11)
+  supportsPopOut = _messages.BooleanField(12)
+  supportsScreenSharing = _messages.BooleanField(13)
 
 
 class GoogleAppsScriptTypeMenuItemExtensionPoint(_messages.Message):
@@ -598,15 +720,16 @@ class GoogleAppsScriptTypeUriPattern(_messages.Message):
 
 
 class GoogleCloudGsuiteaddonsV1AddOns(_messages.Message):
-  r"""A Google Workspace Add-on configuration.
+  r"""A Google Workspace add-on configuration.
 
   Fields:
     calendar: Calendar add-on configuration.
-    common: Configuration that is common across all Google Workspace Add-ons.
+    common: Configuration that is common across all Google Workspace add-ons.
     docs: Docs add-on configuration.
     drive: Drive add-on configuration.
     gmail: Gmail add-on configuration.
     httpOptions: Options for sending requests to add-on HTTP endpoints
+    meet: Meet add-on configuration.
     sheets: Sheets add-on configuration.
     slides: Slides add-on configuration.
   """
@@ -617,8 +740,9 @@ class GoogleCloudGsuiteaddonsV1AddOns(_messages.Message):
   drive = _messages.MessageField('GoogleAppsScriptTypeDriveDriveAddOnManifest', 4)
   gmail = _messages.MessageField('GoogleAppsScriptTypeGmailGmailAddOnManifest', 5)
   httpOptions = _messages.MessageField('GoogleAppsScriptTypeHttpOptions', 6)
-  sheets = _messages.MessageField('GoogleAppsScriptTypeSheetsSheetsAddOnManifest', 7)
-  slides = _messages.MessageField('GoogleAppsScriptTypeSlidesSlidesAddOnManifest', 8)
+  meet = _messages.MessageField('GoogleAppsScriptTypeMeetMeetAddOnManifest', 7)
+  sheets = _messages.MessageField('GoogleAppsScriptTypeSheetsSheetsAddOnManifest', 8)
+  slides = _messages.MessageField('GoogleAppsScriptTypeSlidesSlidesAddOnManifest', 9)
 
 
 class GoogleCloudGsuiteaddonsV1Authorization(_messages.Message):
@@ -639,10 +763,10 @@ class GoogleCloudGsuiteaddonsV1Authorization(_messages.Message):
 
 
 class GoogleCloudGsuiteaddonsV1Deployment(_messages.Message):
-  r"""A Google Workspace Add-on deployment
+  r"""A Google Workspace add-on deployment
 
   Fields:
-    addOns: The Google Workspace Add-on configuration.
+    addOns: The Google Workspace add-on configuration.
     etag: This value is computed by the server based on the version of the
       deployment in storage, and may be sent on update and delete requests to
       ensure the client has an up-to-date value before proceeding.
@@ -824,7 +948,7 @@ class GsuiteaddonsProjectsGetAuthorizationRequest(_messages.Message):
 
   Fields:
     name: Required. Name of the project for which to get the Google Workspace
-      Add-on authorization information. Example:
+      add-on authorization information. Example:
       `projects/my_project/authorization`.
   """
 

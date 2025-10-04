@@ -98,7 +98,8 @@ def GetMigrationJobResourceSpec(resource_name='migration_job'):
       migrationJobsId=MigrationJobAttributeConfig(name=resource_name),
       locationsId=RegionAttributeConfig(),
       projectsId=concepts.DEFAULT_PROJECT_ATTRIBUTE_CONFIG,
-      disable_auto_completers=False)
+      disable_auto_completers=False,
+  )
 
 
 def GetPrivateConnectionResourceSpec(resource_name='private_connection'):
@@ -318,6 +319,70 @@ def AddOracleConnectionProfileResourceArg(parser,
       }).AddToParser(parser)
 
 
+def AddSqlServerConnectionProfileResourceArg(parser,
+                                             verb,
+                                             positional=True):
+  """Add a resource argument for a database migration sqlserver cp.
+
+  Args:
+    parser: the parser for the command.
+    verb: str, the verb to describe the resource, such as 'to update'.
+    positional: bool, if True, means that the resource is a positional rather
+      than a flag.
+  """
+  if positional:
+    name = 'connection_profile'
+  else:
+    name = '--connection-profile'
+
+  connectivity_parser = parser.add_group(mutex=True)
+  connectivity_parser.add_argument(
+      '--static-ip-connectivity',
+      action='store_true',
+      help="""use static ip connectivity""")
+
+  forward_ssh_parser = connectivity_parser.add_group()
+  forward_ssh_parser.add_argument(
+      '--forward-ssh-hostname',
+      help="""Hostname for the SSH tunnel.""",
+      required=True)
+  forward_ssh_parser.add_argument(
+      '--forward-ssh-username',
+      help="""Username for the SSH tunnel.""",
+      required=True)
+  forward_ssh_parser.add_argument(
+      '--forward-ssh-port',
+      help="""Port for the SSH tunnel, default value is 22.\
+      """,
+      default=22)
+  password_group = forward_ssh_parser.add_group(required=True, mutex=True)
+  password_group.add_argument(
+      '--forward-ssh-password', help="""\
+          SSH password.
+          """)
+  password_group.add_argument(
+      '--forward-ssh-private-key', help='SSH private key..')
+
+  resource_specs = [
+      presentation_specs.ResourcePresentationSpec(
+          name,
+          GetConnectionProfileResourceSpec(),
+          'The connection profile {}.'.format(verb),
+          required=True),
+      presentation_specs.ResourcePresentationSpec(
+          '--private-connection',
+          GetPrivateConnectionResourceSpec(),
+          'Resource ID of the private connection.',
+          flag_name_overrides={'region': ''},
+          group=connectivity_parser)
+  ]
+  concept_parsers.ConceptParser(
+      resource_specs,
+      command_level_fallthroughs={
+          '--private-connection.region': ['--region']
+      }).AddToParser(parser)
+
+
 def AddPostgresqlConnectionProfileResourceArg(parser, verb, positional=True):
   """Add a resource argument for a database migration postgresql cp.
 
@@ -358,7 +423,35 @@ def AddPostgresqlConnectionProfileResourceArg(parser, verb, positional=True):
       resource_specs,
       command_level_fallthroughs={
           '--psc-service-attachment.region': ['--region']
-      }).AddToParser(parser)
+      },
+  ).AddToParser(parser)
+
+
+def AddOnlyMigrationJobResourceArgs(parser, verb, positional=True):
+  """Add resource arguments for actions on an mj except create/update.
+
+  Args:
+    parser: argparse.ArgumentParser, the parser for the command.
+    verb: str, the verb to describe the resource, such as 'to promote'.
+    positional: bool, if True, means that the resource is a positional rather
+      than a flag.
+  """
+  if positional:
+    name = 'migration_job'
+  else:
+    name = '--migration-job'
+
+  resource_specs = [
+      presentation_specs.ResourcePresentationSpec(
+          name,
+          GetMigrationJobResourceSpec(),
+          'The migration job {}.'.format(verb),
+          required=True,
+      ),
+  ]
+  concept_parsers.ConceptParser(
+      resource_specs,
+  ).AddToParser(parser)
 
 
 def AddMigrationJobResourceArgs(parser, verb, required=False):
@@ -500,26 +593,11 @@ def AddPrivateConnectionResourceArg(parser, verb, positional=True):
   else:
     name = '--private-connection'
 
-  vpc_peering_config_parser = parser.add_group(required=True)
-
-  vpc_peering_config_parser.add_argument(
-      '--subnet',
-      help="""A free subnet for peering. (CIDR of /29).""",
-      required=True,
-  )
-
   resource_specs = [
       presentation_specs.ResourcePresentationSpec(
           name,
           GetPrivateConnectionResourceSpec(),
           'The private connection {}.'.format(verb),
-          required=True,
-      ),
-      presentation_specs.ResourcePresentationSpec(
-          '--vpc',
-          GetVpcResourceSpec(),
-          'Resource name of the private connection.',
-          group=vpc_peering_config_parser,
           required=True,
       ),
   ]

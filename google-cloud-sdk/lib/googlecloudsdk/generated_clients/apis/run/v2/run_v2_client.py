@@ -46,6 +46,8 @@ class RunV2(base_api.BaseApiClient):
     self.projects_locations_operations = self.ProjectsLocationsOperationsService(self)
     self.projects_locations_services_revisions = self.ProjectsLocationsServicesRevisionsService(self)
     self.projects_locations_services = self.ProjectsLocationsServicesService(self)
+    self.projects_locations_workerPools_revisions = self.ProjectsLocationsWorkerPoolsRevisionsService(self)
+    self.projects_locations_workerPools = self.ProjectsLocationsWorkerPoolsService(self)
     self.projects_locations = self.ProjectsLocationsService(self)
     self.projects = self.ProjectsService(self)
 
@@ -269,7 +271,7 @@ class RunV2(base_api.BaseApiClient):
     )
 
     def List(self, request, global_params=None):
-      r"""Lists Executions from a Job.
+      r"""Lists Executions from a Job. Results are sorted by creation time, descending.
 
       Args:
         request: (RunProjectsLocationsJobsExecutionsListRequest) input message
@@ -414,7 +416,7 @@ class RunV2(base_api.BaseApiClient):
     )
 
     def List(self, request, global_params=None):
-      r"""Lists Jobs.
+      r"""Lists Jobs. Results are sorted by creation time, descending.
 
       Args:
         request: (RunProjectsLocationsJobsListRequest) input message
@@ -758,7 +760,7 @@ class RunV2(base_api.BaseApiClient):
     )
 
     def List(self, request, global_params=None):
-      r"""Lists Revisions from a given Service, or from a given location.
+      r"""Lists Revisions from a given Service, or from a given location. Results are sorted by creation time, descending.
 
       Args:
         request: (RunProjectsLocationsServicesRevisionsListRequest) input message
@@ -903,7 +905,7 @@ class RunV2(base_api.BaseApiClient):
     )
 
     def List(self, request, global_params=None):
-      r"""Lists Services.
+      r"""Lists Services. Results are sorted by creation time, descending.
 
       Args:
         request: (RunProjectsLocationsServicesListRequest) input message
@@ -1010,6 +1012,323 @@ class RunV2(base_api.BaseApiClient):
         supports_download=False,
     )
 
+  class ProjectsLocationsWorkerPoolsRevisionsService(base_api.BaseApiService):
+    """Service class for the projects_locations_workerPools_revisions resource."""
+
+    _NAME = 'projects_locations_workerPools_revisions'
+
+    def __init__(self, client):
+      super(RunV2.ProjectsLocationsWorkerPoolsRevisionsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a Revision.
+
+      Args:
+        request: (RunProjectsLocationsWorkerPoolsRevisionsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/locations/{locationsId}/workerPools/{workerPoolsId}/revisions/{revisionsId}',
+        http_method='DELETE',
+        method_id='run.projects.locations.workerPools.revisions.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['etag', 'validateOnly'],
+        relative_path='v2/{+name}',
+        request_field='',
+        request_type_name='RunProjectsLocationsWorkerPoolsRevisionsDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets information about a Revision.
+
+      Args:
+        request: (RunProjectsLocationsWorkerPoolsRevisionsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudRunV2Revision) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/locations/{locationsId}/workerPools/{workerPoolsId}/revisions/{revisionsId}',
+        http_method='GET',
+        method_id='run.projects.locations.workerPools.revisions.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v2/{+name}',
+        request_field='',
+        request_type_name='RunProjectsLocationsWorkerPoolsRevisionsGetRequest',
+        response_type_name='GoogleCloudRunV2Revision',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists Revisions from a given Service, or from a given location. Results are sorted by creation time, descending.
+
+      Args:
+        request: (RunProjectsLocationsWorkerPoolsRevisionsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudRunV2ListRevisionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/locations/{locationsId}/workerPools/{workerPoolsId}/revisions',
+        http_method='GET',
+        method_id='run.projects.locations.workerPools.revisions.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['pageSize', 'pageToken', 'showDeleted'],
+        relative_path='v2/{+parent}/revisions',
+        request_field='',
+        request_type_name='RunProjectsLocationsWorkerPoolsRevisionsListRequest',
+        response_type_name='GoogleCloudRunV2ListRevisionsResponse',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsWorkerPoolsService(base_api.BaseApiService):
+    """Service class for the projects_locations_workerPools resource."""
+
+    _NAME = 'projects_locations_workerPools'
+
+    def __init__(self, client):
+      super(RunV2.ProjectsLocationsWorkerPoolsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new WorkerPool in a given project and location.
+
+      Args:
+        request: (RunProjectsLocationsWorkerPoolsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/locations/{locationsId}/workerPools',
+        http_method='POST',
+        method_id='run.projects.locations.workerPools.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['validateOnly', 'workerPoolId'],
+        relative_path='v2/{+parent}/workerPools',
+        request_field='googleCloudRunV2WorkerPool',
+        request_type_name='RunProjectsLocationsWorkerPoolsCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a WorkerPool.
+
+      Args:
+        request: (RunProjectsLocationsWorkerPoolsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/locations/{locationsId}/workerPools/{workerPoolsId}',
+        http_method='DELETE',
+        method_id='run.projects.locations.workerPools.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['etag', 'validateOnly'],
+        relative_path='v2/{+name}',
+        request_field='',
+        request_type_name='RunProjectsLocationsWorkerPoolsDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets information about a WorkerPool.
+
+      Args:
+        request: (RunProjectsLocationsWorkerPoolsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudRunV2WorkerPool) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/locations/{locationsId}/workerPools/{workerPoolsId}',
+        http_method='GET',
+        method_id='run.projects.locations.workerPools.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v2/{+name}',
+        request_field='',
+        request_type_name='RunProjectsLocationsWorkerPoolsGetRequest',
+        response_type_name='GoogleCloudRunV2WorkerPool',
+        supports_download=False,
+    )
+
+    def GetIamPolicy(self, request, global_params=None):
+      r"""Gets the IAM Access Control policy currently in effect for the given Cloud Run WorkerPool. This result does not include any inherited policies.
+
+      Args:
+        request: (RunProjectsLocationsWorkerPoolsGetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleIamV1Policy) The response message.
+      """
+      config = self.GetMethodConfig('GetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/locations/{locationsId}/workerPools/{workerPoolsId}:getIamPolicy',
+        http_method='GET',
+        method_id='run.projects.locations.workerPools.getIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=['options_requestedPolicyVersion'],
+        relative_path='v2/{+resource}:getIamPolicy',
+        request_field='',
+        request_type_name='RunProjectsLocationsWorkerPoolsGetIamPolicyRequest',
+        response_type_name='GoogleIamV1Policy',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists WorkerPools. Results are sorted by creation time, descending.
+
+      Args:
+        request: (RunProjectsLocationsWorkerPoolsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudRunV2ListWorkerPoolsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/locations/{locationsId}/workerPools',
+        http_method='GET',
+        method_id='run.projects.locations.workerPools.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['pageSize', 'pageToken', 'showDeleted'],
+        relative_path='v2/{+parent}/workerPools',
+        request_field='',
+        request_type_name='RunProjectsLocationsWorkerPoolsListRequest',
+        response_type_name='GoogleCloudRunV2ListWorkerPoolsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates a WorkerPool.
+
+      Args:
+        request: (RunProjectsLocationsWorkerPoolsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/locations/{locationsId}/workerPools/{workerPoolsId}',
+        http_method='PATCH',
+        method_id='run.projects.locations.workerPools.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['allowMissing', 'forceNewRevision', 'updateMask', 'validateOnly'],
+        relative_path='v2/{+name}',
+        request_field='googleCloudRunV2WorkerPool',
+        request_type_name='RunProjectsLocationsWorkerPoolsPatchRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def SetIamPolicy(self, request, global_params=None):
+      r"""Sets the IAM Access control policy for the specified WorkerPool. Overwrites any existing policy.
+
+      Args:
+        request: (RunProjectsLocationsWorkerPoolsSetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleIamV1Policy) The response message.
+      """
+      config = self.GetMethodConfig('SetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/locations/{locationsId}/workerPools/{workerPoolsId}:setIamPolicy',
+        http_method='POST',
+        method_id='run.projects.locations.workerPools.setIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v2/{+resource}:setIamPolicy',
+        request_field='googleIamV1SetIamPolicyRequest',
+        request_type_name='RunProjectsLocationsWorkerPoolsSetIamPolicyRequest',
+        response_type_name='GoogleIamV1Policy',
+        supports_download=False,
+    )
+
+    def TestIamPermissions(self, request, global_params=None):
+      r"""Returns permissions that a caller has on the specified Project. There are no permissions required for making this API call.
+
+      Args:
+        request: (RunProjectsLocationsWorkerPoolsTestIamPermissionsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleIamV1TestIamPermissionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('TestIamPermissions')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    TestIamPermissions.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/locations/{locationsId}/workerPools/{workerPoolsId}:testIamPermissions',
+        http_method='POST',
+        method_id='run.projects.locations.workerPools.testIamPermissions',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v2/{+resource}:testIamPermissions',
+        request_field='googleIamV1TestIamPermissionsRequest',
+        request_type_name='RunProjectsLocationsWorkerPoolsTestIamPermissionsRequest',
+        response_type_name='GoogleIamV1TestIamPermissionsResponse',
+        supports_download=False,
+    )
+
   class ProjectsLocationsService(base_api.BaseApiService):
     """Service class for the projects_locations resource."""
 
@@ -1097,6 +1416,33 @@ class RunV2(base_api.BaseApiClient):
         relative_path='v2/{+name}:exportMetadata',
         request_field='',
         request_type_name='RunProjectsLocationsExportMetadataRequest',
+        response_type_name='GoogleCloudRunV2Metadata',
+        supports_download=False,
+    )
+
+    def ExportProjectMetadata(self, request, global_params=None):
+      r"""Export generated customer metadata for a given project.
+
+      Args:
+        request: (RunProjectsLocationsExportProjectMetadataRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudRunV2Metadata) The response message.
+      """
+      config = self.GetMethodConfig('ExportProjectMetadata')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ExportProjectMetadata.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/locations/{locationsId}:exportProjectMetadata',
+        http_method='GET',
+        method_id='run.projects.locations.exportProjectMetadata',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v2/{+name}:exportProjectMetadata',
+        request_field='',
+        request_type_name='RunProjectsLocationsExportProjectMetadataRequest',
         response_type_name='GoogleCloudRunV2Metadata',
         supports_download=False,
     )

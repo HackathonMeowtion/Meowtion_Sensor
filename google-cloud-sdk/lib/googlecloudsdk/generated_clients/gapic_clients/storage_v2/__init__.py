@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,15 @@ __version__ = package_version.__version__
 from .services.storage import StorageClient
 from .services.storage import StorageAsyncClient
 
+from .types.storage import AppendObjectSpec
+from .types.storage import BidiReadHandle
+from .types.storage import BidiReadObjectError
+from .types.storage import BidiReadObjectRedirectedError
+from .types.storage import BidiReadObjectRequest
+from .types.storage import BidiReadObjectResponse
+from .types.storage import BidiReadObjectSpec
+from .types.storage import BidiWriteHandle
+from .types.storage import BidiWriteObjectRedirectedError
 from .types.storage import BidiWriteObjectRequest
 from .types.storage import BidiWriteObjectResponse
 from .types.storage import Bucket
@@ -32,48 +41,38 @@ from .types.storage import CommonObjectRequestParams
 from .types.storage import ComposeObjectRequest
 from .types.storage import ContentRange
 from .types.storage import CreateBucketRequest
-from .types.storage import CreateHmacKeyRequest
-from .types.storage import CreateHmacKeyResponse
-from .types.storage import CreateNotificationConfigRequest
 from .types.storage import CustomerEncryption
 from .types.storage import DeleteBucketRequest
-from .types.storage import DeleteHmacKeyRequest
-from .types.storage import DeleteNotificationConfigRequest
 from .types.storage import DeleteObjectRequest
 from .types.storage import GetBucketRequest
-from .types.storage import GetHmacKeyRequest
-from .types.storage import GetNotificationConfigRequest
 from .types.storage import GetObjectRequest
-from .types.storage import GetServiceAccountRequest
-from .types.storage import HmacKeyMetadata
 from .types.storage import ListBucketsRequest
 from .types.storage import ListBucketsResponse
-from .types.storage import ListHmacKeysRequest
-from .types.storage import ListHmacKeysResponse
-from .types.storage import ListNotificationConfigsRequest
-from .types.storage import ListNotificationConfigsResponse
 from .types.storage import ListObjectsRequest
 from .types.storage import ListObjectsResponse
 from .types.storage import LockBucketRetentionPolicyRequest
-from .types.storage import NotificationConfig
+from .types.storage import MoveObjectRequest
 from .types.storage import Object
 from .types.storage import ObjectAccessControl
 from .types.storage import ObjectChecksums
+from .types.storage import ObjectContexts
+from .types.storage import ObjectCustomContextPayload
+from .types.storage import ObjectRangeData
 from .types.storage import Owner
 from .types.storage import ProjectTeam
 from .types.storage import QueryWriteStatusRequest
 from .types.storage import QueryWriteStatusResponse
 from .types.storage import ReadObjectRequest
 from .types.storage import ReadObjectResponse
+from .types.storage import ReadRange
+from .types.storage import ReadRangeError
 from .types.storage import RestoreObjectRequest
 from .types.storage import RewriteObjectRequest
 from .types.storage import RewriteResponse
-from .types.storage import ServiceAccount
 from .types.storage import ServiceConstants
 from .types.storage import StartResumableWriteRequest
 from .types.storage import StartResumableWriteResponse
 from .types.storage import UpdateBucketRequest
-from .types.storage import UpdateHmacKeyRequest
 from .types.storage import UpdateObjectRequest
 from .types.storage import WriteObjectRequest
 from .types.storage import WriteObjectResponse
@@ -81,6 +80,15 @@ from .types.storage import WriteObjectSpec
 
 __all__ = (
     'StorageAsyncClient',
+'AppendObjectSpec',
+'BidiReadHandle',
+'BidiReadObjectError',
+'BidiReadObjectRedirectedError',
+'BidiReadObjectRequest',
+'BidiReadObjectResponse',
+'BidiReadObjectSpec',
+'BidiWriteHandle',
+'BidiWriteObjectRedirectedError',
 'BidiWriteObjectRequest',
 'BidiWriteObjectResponse',
 'Bucket',
@@ -92,49 +100,39 @@ __all__ = (
 'ComposeObjectRequest',
 'ContentRange',
 'CreateBucketRequest',
-'CreateHmacKeyRequest',
-'CreateHmacKeyResponse',
-'CreateNotificationConfigRequest',
 'CustomerEncryption',
 'DeleteBucketRequest',
-'DeleteHmacKeyRequest',
-'DeleteNotificationConfigRequest',
 'DeleteObjectRequest',
 'GetBucketRequest',
-'GetHmacKeyRequest',
-'GetNotificationConfigRequest',
 'GetObjectRequest',
-'GetServiceAccountRequest',
-'HmacKeyMetadata',
 'ListBucketsRequest',
 'ListBucketsResponse',
-'ListHmacKeysRequest',
-'ListHmacKeysResponse',
-'ListNotificationConfigsRequest',
-'ListNotificationConfigsResponse',
 'ListObjectsRequest',
 'ListObjectsResponse',
 'LockBucketRetentionPolicyRequest',
-'NotificationConfig',
+'MoveObjectRequest',
 'Object',
 'ObjectAccessControl',
 'ObjectChecksums',
+'ObjectContexts',
+'ObjectCustomContextPayload',
+'ObjectRangeData',
 'Owner',
 'ProjectTeam',
 'QueryWriteStatusRequest',
 'QueryWriteStatusResponse',
 'ReadObjectRequest',
 'ReadObjectResponse',
+'ReadRange',
+'ReadRangeError',
 'RestoreObjectRequest',
 'RewriteObjectRequest',
 'RewriteResponse',
-'ServiceAccount',
 'ServiceConstants',
 'StartResumableWriteRequest',
 'StartResumableWriteResponse',
 'StorageClient',
 'UpdateBucketRequest',
-'UpdateHmacKeyRequest',
 'UpdateObjectRequest',
 'WriteObjectRequest',
 'WriteObjectResponse',

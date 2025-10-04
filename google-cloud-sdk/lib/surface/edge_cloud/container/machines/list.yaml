@@ -28,9 +28,11 @@
     format: |
       table(
         name.basename():label=NAME,
+        status:label=STATUS,
         zone:label=ZONE,
         labels['/cpu']:label=CPU,
         labels['/ram_mb']:label=RAM_MB,
         version:label=VERSION,
-        hostedNode.split('/').join('/').sub('controlPlaneNodes','controlPlane/nodes').split('/').slice(:-2).join('/'):label=HOSTED_NODE_POOL
+        hostedNode.split('/').join('/').sub('controlPlaneNodes','controlPlane/nodes').split('/').slice(:-2).join('/'):label=HOSTED_NODE_POOL,
+        purpose:label=PURPOSE
       )

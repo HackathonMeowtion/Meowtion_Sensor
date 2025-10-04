@@ -18,6 +18,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import urllib.parse
+
 from apitools.base.py import list_pager
 from googlecloudsdk.api_lib.resource_manager import tags
 from googlecloudsdk.calliope import base
@@ -25,9 +27,13 @@ from googlecloudsdk.command_lib.resource_manager import endpoint_utils as endpoi
 from googlecloudsdk.command_lib.resource_manager import tag_arguments as arguments
 from googlecloudsdk.command_lib.resource_manager import tag_utils
 
+EFFECTIVE_TAG_BINDING_COLLECTION = "effectiveTagBindingCollections/"
+TAG_BINDING_COLLECTION = "tagBindingCollections/"
+
 
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA,
                     base.ReleaseTrack.GA)
+@base.DefaultUniverseOnly
 class List(base.ListCommand):
   """Lists TagBindings bound to the specified resource.
 
@@ -53,37 +59,86 @@ class List(base.ListCommand):
         parser, ("Region or zone of the resource for listing TagBindings. This "
                  "field should not be set if the resource is a global resource "
                  "like projects, folders and organizations."))
-    arguments.AddEffectiveArgToParser(parser, (
-        "Show all effective TagBindings on the resource. TagBindings applied at a higher level will be inherited to all descendants."
-    ))
+    arguments.AddEffectiveArgToParser(
+        parser,
+        ("Show all effective TagBindings on the resource. TagBindings applied "
+         "at a higher level will be inherited to all descendants."))
 
   def Run(self, args):
-    location = args.location if args.IsSpecified("location") else None
-    resource_name = tag_utils.GetCanonicalResourceName(args.parent, location,
-                                                       base.ReleaseTrack.GA)
-
     show_effective = args.IsSpecified("effective")
+    if self.ReleaseTrack() == base.ReleaseTrack.ALPHA:
+      freeform_enabled = True
+      location = args.location if args.IsSpecified("location") else "global"
+      if(show_effective):
+        collection_resource_name = (
+            f"locations/{location}/{EFFECTIVE_TAG_BINDING_COLLECTION}{args.parent}"
+        )
+      else:
+        collection_resource_name = (
+            f"locations/{location}/{TAG_BINDING_COLLECTION}{args.parent}"
+        )
+      resource_name = tag_utils.GetCanonicalResourceName(
+          collection_resource_name, location, base.ReleaseTrack.ALPHA)
+    else:
+      freeform_enabled = False
+      location = args.location if args.IsSpecified("location") else None
+      resource_name = tag_utils.GetCanonicalResourceName(args.parent, location,
+                                                         base.ReleaseTrack.GA)
+
     with endpoints.CrmEndpointOverrides(location):
       messages = tags.TagMessages()
 
-      if show_effective:
-        service = tags.EffectiveTagsService()
-        list_effective_req = messages.CloudresourcemanagerEffectiveTagsListRequest(
-            parent=resource_name)
-        return list_pager.YieldFromList(
-            service,
-            list_effective_req,
-            batch_size_attribute="pageSize",
-            batch_size=0,
-            field="effectiveTags")
+      if freeform_enabled:
+        if show_effective:
+          service = tags.EffectiveTagsCollectionService()
+          location, _, tag_binding_collection_name = resource_name.partition(
+              EFFECTIVE_TAG_BINDING_COLLECTION
+          )
+          encoded_resource_name = (
+              f"{location}{EFFECTIVE_TAG_BINDING_COLLECTION}{urllib.parse.quote(tag_binding_collection_name, safe='')}"
+          )
+          list_effective_req = (
+              messages.CloudresourcemanagerLocationsEffectiveTagBindingCollectionsGetRequest(
+                  name=encoded_resource_name
+              )
+          )
+          return service.Get(list_effective_req)
+        else:
+          service = tags.TagBindingsCollectionService()
+          location, _, tag_binding_collection_name = resource_name.partition(
+              TAG_BINDING_COLLECTION
+          )
+          encoded_resource_name = (
+              f"{location}{TAG_BINDING_COLLECTION}{urllib.parse.quote(tag_binding_collection_name, safe='')}"
+          )
+          list_req = messages.CloudresourcemanagerLocationsTagBindingCollectionsGetRequest(
+              name=encoded_resource_name
+          )
+          return service.Get(list_req)
       else:
-        service = tags.TagBindingsService()
-        list_req = messages.CloudresourcemanagerTagBindingsListRequest(
-            parent=resource_name)
-
-        return list_pager.YieldFromList(
-            service,
-            list_req,
-            batch_size_attribute="pageSize",
-            batch_size=args.page_size,
-            field="tagBindings")
+        if show_effective:
+          service = tags.EffectiveTagsService()
+          list_effective_req = (
+              messages.CloudresourcemanagerEffectiveTagsListRequest(
+                  parent=resource_name
+              )
+          )
+          return list_pager.YieldFromList(
+              service,
+              list_effective_req,
+              batch_size_attribute="pageSize",
+              batch_size=0,
+              field="effectiveTags",
+          )
+        else:
+          service = tags.TagBindingsService()
+          list_req = messages.CloudresourcemanagerTagBindingsListRequest(
+              parent=resource_name
+          )
+          return list_pager.YieldFromList(
+              service,
+              list_req,
+              batch_size_attribute="pageSize",
+              batch_size=args.page_size,
+              field="tagBindings",
+          )

@@ -9,13 +9,14 @@ import cmd
 import shlex
 from typing import List, Optional
 
-
 from absl import flags
-from pyglib import appcommands
 
-import bq_utils
+from clients import utils as bq_client_utils
 from frontend import bigquery_command
 from frontend import bq_cached_client
+from pyglib import appcommands
+
+from utils import bq_error_utils
 
 # These aren't relevant for user-facing docstrings:
 # pylint: disable=g-doc-return-or-yield
@@ -54,7 +55,7 @@ class CommandLoop(cmd.Cmd):
   def _set_prompt(self):
     client = bq_cached_client.Client().Get()
     if client.project_id:
-      path = str(client.GetReference())
+      path = str(bq_client_utils.GetReference(id_fallbacks=client))
       self.prompt = '%s> ' % (path,)
     else:
       self.prompt = self._default_prompt
@@ -132,7 +133,7 @@ class CommandLoop(cmd.Cmd):
       return True
     except BaseException as e:
       name = line.split(' ')[0]
-      bq_utils.ProcessError(e, name=name)
+      bq_error_utils.process_error(e, name=name)
       self._last_return_code = 1
     return False
 
@@ -228,6 +229,8 @@ class CommandLoop(cmd.Cmd):
 
   def postcmd(self, stop, line: str) -> bool:
     return bool(stop) or line == 'EOF'
+
+
 # pylint: enable=g-bad-name
 
 

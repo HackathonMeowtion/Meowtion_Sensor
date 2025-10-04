@@ -106,6 +106,7 @@ def ShouldUseCachedCredentials(args, scopes):
   return True
 
 
+@base.UniverseCompatible
 class Login(base.Command):
   """Authorize gcloud to access the Cloud Platform with Google user credentials.
 
@@ -286,7 +287,7 @@ class Login(base.Command):
     # No valid creds, do the web flow.
     flow_params = dict(
         no_launch_browser=not args.launch_browser,
-        no_browser=args.no_browser,
+        no_browser=not args.browser,
         remote_bootstrap=args.remote_bootstrap)
 
     # 1. Try the 3PI web flow with --no-browser:
@@ -322,7 +323,6 @@ class Login(base.Command):
             'flow.')
       creds = workforce_login_config_util.DoWorkforceHeadfulLogin(
           login_config_file,
-          auth_proxy_redirect_uri='https://sdk.cloud.google/authcode.html',
           **flow_params)
 
       account = auth_external_account.GetExternalAccountId(creds)

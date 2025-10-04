@@ -22,6 +22,7 @@ from __future__ import unicode_literals
 from googlecloudsdk.calliope import actions
 from googlecloudsdk.command_lib.compute import completers as compute_completers
 from googlecloudsdk.command_lib.compute import flags as compute_flags
+from googlecloudsdk.command_lib.util import completers
 from googlecloudsdk.core import properties
 
 _DETAILED_SOURCE_SNAPSHOT_HELP = """\
@@ -41,6 +42,10 @@ _DETAILED_SOURCE_SNAPSHOT_HELP = """\
 
 _DETAILED_SOURCE_INSTANT_SNAPSHOT_HELP = """\
       Name of the source instant snapshot used to create the disks.
+"""
+
+_DETAILED_SOURCE_INSTANT_SNAPSHOT_PROJECT_HELP = """\
+      The project containing the instant snapshot used to create the disks.
 """
 
 _SOURCE_DISK_DETAILED_HELP = """\
@@ -131,6 +136,47 @@ class SnapshotsCompleter(compute_completers.ListCommandCompleter):
         collection='compute.snapshots',
         list_command='compute snapshots list --uri',
         **kwargs)
+
+
+class SnapshotGroupsCompleter(compute_completers.ListCommandCompleter):
+
+  def __init__(self, **kwargs):
+    super(SnapshotGroupsCompleter, self).__init__(
+        collection='compute.snapshotGroups',
+        list_command='alpha compute snapshot-groups list --uri',
+        api_version='alpha',
+        **kwargs)
+
+
+class SnapshotsCompleterAlpha(completers.MultiResourceCompleter):
+
+  def __init__(self, **kwargs):
+    super(SnapshotsCompleterAlpha, self).__init__(
+        completers=[RegionSnapshotsCompleter, GlobalSnapshotsCompleter],
+        **kwargs
+    )
+
+
+class GlobalSnapshotsCompleter(compute_completers.ListCommandCompleter):
+
+  def __init__(self, **kwargs):
+    super(GlobalSnapshotsCompleter, self).__init__(
+        collection='compute.snapshots',
+        list_command='compute snapshots list --uri',
+        api_version='alpha',
+        **kwargs
+    )
+
+
+class RegionSnapshotsCompleter(compute_completers.ListCommandCompleter):
+
+  def __init__(self, **kwargs):
+    super(RegionSnapshotsCompleter, self).__init__(
+        collection='compute.regionSnapshots',
+        list_command='compute regionSnapshots list --uri',
+        api_version='alpha',
+        **kwargs
+    )
 
 
 def MakeDiskArgZonal(plural):
@@ -229,6 +275,33 @@ def AddBulkCreateArgs(parser):
                             compute_flags.REGION_PROPERTY_EXPLANATION))
 
 
+def AddBulkCreateArgsAlpha(parser):
+  """Adds bulk create specific arguments to parser."""
+  parser.add_argument(
+      '--source-consistency-group-policy',
+      help='''
+      URL of the source consistency group resource policy. The resource policy
+      is always the same region as the source disks.
+      ''',
+      # This argument is optional because we now support bulk insert from
+      # multiple source types.
+      required=False)
+
+  help_text = """Target {0} of the created disks, which currently must be the same as the source {0}. {1}"""
+  scope_parser = parser.add_mutually_exclusive_group(required=True)
+  scope_parser.add_argument(
+      '--zone',
+      completer=compute_completers.ZonesCompleter,
+      action=actions.StoreProperty(properties.VALUES.compute.zone),
+      help=help_text.format('zone', compute_flags.ZONE_PROPERTY_EXPLANATION))
+  scope_parser.add_argument(
+      '--region',
+      completer=compute_completers.RegionsCompleter,
+      action=actions.StoreProperty(properties.VALUES.compute.region),
+      help=help_text.format('region',
+                            compute_flags.REGION_PROPERTY_EXPLANATION))
+
+
 def AddProvisionedIopsFlag(parser, arg_parsers):
   return parser.add_argument(
       '--provisioned-iops',
@@ -258,8 +331,11 @@ def AddArchitectureFlag(parser, messages):
       '--architecture',
       choices=architecture_choices,
       help=(
-          'Specifies the architecture or processor type that this disk can support. For available processor types on Compute Engine, see https://cloud.google.com/compute/docs/cpu-platforms.'
-      ))
+          'Specifies the architecture or processor type that this disk can '
+          'support. For available processor types on Compute Engine, '
+          'see https://cloud.google.com/compute/docs/cpu-platforms.'
+      ),
+  )
 
 
 def AddAccessModeFlag(parser, messages):
@@ -268,7 +344,14 @@ def AddAccessModeFlag(parser, messages):
     return parser.add_argument(
         '--access-mode',
         choices=access_mode_enum_type.names(),
-        help='Specifies the access mode that the disk can support.',
+        help=(
+            'Specifies how VMs attached to the disk can access the data on the'
+            ' disk. To grant read-only access to multiple VMs attached to the'
+            ' disk, set access-mode to READ_ONLY_MANY.'
+            ' To grant read-write access'
+            ' to only one VM attached to the disk, use READ_WRITE_SINGLE.'
+            ' READ_WRITE_SINGLE is used if omitted.'
+        ),
     )
 
 
@@ -314,6 +397,54 @@ def AddPrimaryDiskProject(parser, category=None):
   )
 
 
+def AddKeepOldDiskArgs(parser):
+  """Adds keep old disk argument group to parser."""
+  group = parser.add_group()
+  group.add_argument(
+      '--keep-old-disk',
+      action='store_true',
+      help=(
+          'If true, the old disk will be kept after the conversion. '
+          'The old disk will be renamed to the original disk name with a '
+          'suffix.'
+      ),
+  )
+  group.add_argument(
+      '--target-disk-name',
+      help=(
+          'Specifies the name of the new disk, '
+          'it can only be used with --keep-old-disk.'
+          ' For details on the naming convention for this '
+          'resource, refer to: '
+          'https://cloud.google.com/compute/docs/'
+          'naming-resources'
+      ),
+  )
+
+
+def AddGuestOsFeatureArgs(parser, messages):
+  group = parser.add_group()
+  guest_os_feature_choices = [
+      messages.GuestOsFeature.TypeValueValuesEnum.GVNIC.name
+  ]
+  group.add_argument(
+      '--add-guest-os-features',
+      choices=guest_os_feature_choices,
+      help=(
+          'Specifies guest OS features to add to the disk. Refer to'
+          ' https://cloud.google.com/compute/docs/images/create-custom#guest-os-features'
+          ' for a list of available options.'
+      ),
+  )
+
+
+def AddSourceInstantSnapshotProject(parser, category=None):
+  parser.add_argument(
+      '--source-instant-snapshot-project',
+      category=category,
+      help=_DETAILED_SOURCE_INSTANT_SNAPSHOT_PROJECT_HELP,
+  )
+
 SOURCE_SNAPSHOT_ARG = compute_flags.ResourceArgument(
     resource_name='snapshot',
     completer=SnapshotsCompleter,
@@ -322,7 +453,20 @@ SOURCE_SNAPSHOT_ARG = compute_flags.ResourceArgument(
     required=False,
     global_collection='compute.snapshots',
     short_help='Source snapshot used to create the disks.',
-    detailed_help=_DETAILED_SOURCE_SNAPSHOT_HELP,)
+    detailed_help=_DETAILED_SOURCE_SNAPSHOT_HELP,
+)
+
+SOURCE_SNAPSHOT_ARG_ALPHA = compute_flags.ResourceArgument(
+    resource_name='snapshot',
+    completer=SnapshotsCompleterAlpha,
+    name='--source-snapshot',
+    plural=False,
+    required=False,
+    global_collection='compute.snapshots',
+    regional_collection='compute.regionSnapshots',
+    short_help='Source snapshot used to create the disks.',
+    detailed_help=_DETAILED_SOURCE_SNAPSHOT_HELP,
+)
 
 SOURCE_INSTANT_SNAPSHOT_ARG = compute_flags.ResourceArgument(
     resource_name='source instant snapshot',
@@ -335,6 +479,25 @@ SOURCE_INSTANT_SNAPSHOT_ARG = compute_flags.ResourceArgument(
     short_help='Name of the source instant snapshot used to create the disks.',
     detailed_help=_DETAILED_SOURCE_INSTANT_SNAPSHOT_HELP,
     scope_flags_usage=compute_flags.ScopeFlagsUsage.USE_EXISTING_SCOPE_FLAGS)
+
+SOURCE_INSTANT_SNAPSHOT_GROUP_ARG = compute_flags.ResourceArgument(
+    resource_name='source instant snapshot group',
+    name='--source-instant-snapshot-group',
+    completer=compute_completers.InstantSnapshotGroupsCompleter,
+    short_help='Source instant snapshot group used to create the disks.',
+    zonal_collection='compute.instantSnapshotGroups',
+    regional_collection='compute.regionInstantSnapshotGroups',
+    required=False,
+)
+
+SOURCE_SNAPSHOT_GROUP_ARG = compute_flags.ResourceArgument(
+    resource_name='source snapshot group',
+    name='--source-snapshot-group',
+    completer=SnapshotGroupsCompleter,
+    short_help='Source snapshot group used to create the disks.',
+    global_collection='compute.snapshotGroups',
+    required=False,
+)
 
 SOURCE_DISK_ARG = compute_flags.ResourceArgument(
     resource_name='source disk',
@@ -374,3 +537,30 @@ STORAGE_POOL_ARG = compute_flags.ResourceArgument(
     plural=False,
     required=False,
     scope_flags_usage=compute_flags.ScopeFlagsUsage.USE_EXISTING_SCOPE_FLAGS)
+
+
+def AddSourceMachineImageNameArg(parser):
+  # TODO: b/421424530 - switch to compute_flags.ResourceArgument when
+  # disks.insert goes GA. compute_flags.ResourceArgument does not support
+  # the hidden flag.
+  parser.add_argument(
+      '--source-machine-image',
+      help="""\
+        Specifies the URI of the source machine image contiaining the disk to
+        restore. Requires *--source-machine-image-disk-device-name* with the
+        disk to restores device name.
+      """,
+      hidden=True,
+  )
+
+
+def AddSourceMachineImageDiskDeviceNameArg(parser):
+  parser.add_argument(
+      '--source-machine-image-disk-device-name',
+      help="""\
+        Specifies the name of the disk to be restored from the source machine
+        image. Requires *--source-machine-image* with the URI of the source
+        machine image.
+      """,
+      hidden=True,
+  )

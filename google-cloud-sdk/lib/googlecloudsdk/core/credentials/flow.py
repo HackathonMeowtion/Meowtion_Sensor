@@ -21,23 +21,24 @@ from __future__ import unicode_literals
 
 import abc
 import contextlib
+import os
 import select
 import socket
 import sys
 import webbrowser
 import wsgiref
-from google_auth_oauthlib import flow as google_auth_flow
 
+from google_auth_oauthlib import flow as google_auth_flow
 from googlecloudsdk.core import config
 from googlecloudsdk.core import exceptions as c_exceptions
 from googlecloudsdk.core import log
+from googlecloudsdk.core import properties
 from googlecloudsdk.core import requests
 from googlecloudsdk.core.console import console_attr
 from googlecloudsdk.core.console import console_io
+from googlecloudsdk.core.universe_descriptor import universe_descriptor
 from googlecloudsdk.core.util import pkg_resources
-
 from oauthlib.oauth2.rfc6749 import errors as rfc6749_errors
-
 from requests import exceptions as requests_exceptions
 import six
 from six.moves import input  # pylint: disable=redefined-builtin
@@ -100,13 +101,31 @@ def PromptForAuthCode(message, authorize_url, client_config=None):
 
 @contextlib.contextmanager
 def HandleOauth2FlowErrors():
+  """Context manager for handling errors in the OAuth 2.0 flow."""
   try:
     yield
   except requests_exceptions.ProxyError as e:
     RaiseProxyError(e)
-  except rfc6749_errors.AccessDeniedError as e:
+  except (
+      rfc6749_errors.AccessDeniedError,
+      rfc6749_errors.InvalidGrantError,
+  ) as e:
     six.raise_from(AuthRequestRejectedError(e), e)
+  except rfc6749_errors.MissingTokenError:
+    # The real error is swallowed by the requests-oauthlib library. The
+    # exception we catch here just says "Missing access token parameter.". It's
+    # not helpful, so here we raise a new error to ask the user to run with
+    # --log-http to view the error response.
+    e = rfc6749_errors.MissingTokenError(
+        description=(
+            'Token is not returned from the token endpoint. Re-run the command'
+            ' with --log-http to view the error response.'
+        )
+    )
+    raise six.raise_from(AuthRequestFailedError(e), e)
   except ValueError as e:
+    raise six.raise_from(AuthRequestFailedError(e), e)
+  except rfc6749_errors.OAuth2Error as e:
     raise six.raise_from(AuthRequestFailedError(e), e)
 
 
@@ -319,6 +338,8 @@ class FullWebFlow(InstalledAppFlow):
     Raises:
       LocalServerTimeoutError: If the local server handling redirection timeout
         before receiving the request.
+      AuthRequestFailedError: If the user did not consent to the required
+        cloud-platform scope.
     """
     auth_url, _ = self.authorization_url(**kwargs)
 
@@ -339,12 +360,41 @@ class FullWebFlow(InstalledAppFlow):
         'http:', 'https:')
 
     # TODO(b/204953716): Remove verify=None
+    os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
     self.fetch_token(
         authorization_response=authorization_response,
         include_client_id=self.include_client_id,
         verify=None,
     )
+    del os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE']
+    self._CheckScopes()
     return self.credentials
+
+  def _CheckScopes(self):
+    """Checks requested scopes and granted scopes."""
+    orig_scope = list(self.oauth2session.scope)
+    granted_scope = self.oauth2session.token.scope.split(' ')
+    missing_scope = frozenset(orig_scope) - frozenset(granted_scope)
+
+    if 'https://www.googleapis.com/auth/cloud-platform' in missing_scope:
+      raise AuthRequestFailedError(
+          'https://www.googleapis.com/auth/cloud-platform scope is required but'
+          ' not consented. Please run the login command again and consent in'
+          ' the login page.'
+      )
+
+    if missing_scope:
+      log.status.write(
+          'You have consented to only few of the requested scopes, so'
+          ' some features may not work as expected. If you would like to give'
+          ' consent to all scopes, you can run the login command again.'
+          f' Requested scopes: {orig_scope}.\nScopes you consented for:'
+          f' {granted_scope}.\nMissing scopes: {list(missing_scope)}.'
+      )
+      # self.credentials' scope comes from self.oauth2session.scope, so here we
+      # update the oauth2session scope to the granted scope, so self.credentials
+      # will have the correct scope.
+      self.oauth2session.scope = granted_scope
 
 
 # TODO(b/206804357): Remove OOB flow from gcloud.
@@ -522,6 +572,10 @@ class NoBrowserFlow(InstalledAppFlow):
   (exchanging for the refresh/access tokens).
   """
 
+   # These _REQUIRED_VERSIONs are used in the --no-browser flows, which are
+   # used when interacting with the CLI and using a different machine.
+   # That other machine's version might be out of date.
+  _REQUIRED_GCLOUD_VERSION_FOR_TPC = '506.0.0'
   _REQUIRED_GCLOUD_VERSION_FOR_BYOID = '420.0.0'
   _REQUIRED_GCLOUD_VERSION = '372.0.0'
   _HELPER_MSG = ('You are authorizing {target} without access to a web '
@@ -554,11 +608,22 @@ class NoBrowserFlow(InstalledAppFlow):
     else:
       target = 'client libraries'
       command = 'gcloud auth application-default login'
+
+    universe_domain_property = properties.VALUES.core.universe_domain
+    if (
+        universe_domain_property is not None
+        and properties.VALUES.core.universe_domain.Get()
+        != universe_domain_property.default
+    ):
+      required_gcloud_version = self._REQUIRED_GCLOUD_VERSION_FOR_TPC
+    elif self.client_config.get('3pi'):
+      required_gcloud_version = self._REQUIRED_GCLOUD_VERSION_FOR_BYOID
+    else:
+      required_gcloud_version = self._REQUIRED_GCLOUD_VERSION
+
     helper_msg = self._HELPER_MSG.format(
         target=target,
-        version=self._REQUIRED_GCLOUD_VERSION_FOR_BYOID
-        if self.client_config.get('3pi')
-        else self._REQUIRED_GCLOUD_VERSION,
+        version=required_gcloud_version,
         command=command,
         partial_url=partial_url,
     )
@@ -817,8 +882,22 @@ class _RedirectWSGIApp(object):
     self.last_request_uri = wsgiref.util.request_uri(environ)
     query = self.last_request_uri.split('?', 1)[-1]
     query = dict(parse.parse_qsl(query))
+
     if 'code' in query:
       page = 'oauth2_landing.html'
     else:
       page = 'oauth2_landing_error.html'
-    return [pkg_resources.GetResource(__name__, page)]
+
+    page_string = pkg_resources.GetResource(__name__, page)
+    if not properties.IsDefaultUniverse():
+      # decode and replace cloud.google.com with the universe document domain
+      page_string = bytes(
+          bytes(page_string)
+          .decode('utf-8')
+          .replace(
+              'cloud.google.com',
+              universe_descriptor.GetUniverseDocumentDomain(),
+          ),
+          'utf-8',
+      )
+    return [page_string]

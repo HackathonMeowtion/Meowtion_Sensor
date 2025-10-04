@@ -69,10 +69,14 @@ BucketDisplayTitlesAndDefaults = collections.namedtuple(
         'per_object_retention',
         'retention_policy',
         'default_event_based_hold',
+        'ip_filter_config',
         'labels',
         'default_kms_key',
         'creation_time',
         'update_time',
+        'soft_delete_time',
+        'hard_delete_time',
+        'generation',
         'metageneration',
         'uniform_bucket_level_access',
         'public_access_prevention',
@@ -91,6 +95,19 @@ BucketDisplayTitlesAndDefaults = collections.namedtuple(
 # a ManagedFolderResource.
 ManagedFolderDisplayTitlesAndDefaults = collections.namedtuple(
     'ManagedFolderDisplayTitlesAndDefaults',
+    (
+        'name',
+        'bucket',
+        'create_time',
+        'metageneration',
+        'update_time',
+    ),
+)
+
+# Determines the order in which the fields should be displayed for
+# a FolderResource.
+FolderDisplayTitlesAndDefaults = collections.namedtuple(
+    'FolderDisplayTitlesAndDefaults',
     (
         'name',
         'bucket',
@@ -128,6 +145,7 @@ ObjectDisplayTitlesAndDefaults = collections.namedtuple(
         'component_count',
         'custom_time',
         'noncurrent_time',
+        'contexts',
         'custom_fields',
         'crc32c_hash',
         'md5_hash',

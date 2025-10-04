@@ -18,10 +18,7 @@ class BillingView(_messages.Message):
 
   Fields:
     reportRequests: Billing requests to be reported for
-      cloud.eventstream.v2.ResourceEvent Each request contains billing
-      operations to be reported under a service name. See go/billing-view-
-      construction for documentation on constructing billing view report
-      requests.
+      cloud.eventstream.v2.ResourceEvent
   """
 
   reportRequests = _messages.MessageField('GoogleApiServicecontrolV1ReportRequest', 1, repeated=True)
@@ -210,14 +207,14 @@ class GoogleApiServicecontrolV1Attributes(_messages.Message):
       to 128 bytes long. The value can be a string up to 256 bytes, a signed
       64-bit integer, or the Boolean values `true` and `false`. For example:
       "/instance_id": "my-instance" "/http/user_agent": ""
-      "/http/request_bytes": 300 "abc.com/myattribute": true
+      "/http/request_bytes": 300 "example.com/myattribute": true
 
   Fields:
     attributeMap: The set of attributes. Each attribute's key can be up to 128
       bytes long. The value can be a string up to 256 bytes, a signed 64-bit
       integer, or the Boolean values `true` and `false`. For example:
       "/instance_id": "my-instance" "/http/user_agent": ""
-      "/http/request_bytes": 300 "abc.com/myattribute": true
+      "/http/request_bytes": 300 "example.com/myattribute": true
     droppedAttributesCount: The number of attributes that were discarded.
       Attributes can be discarded because their keys are too long or because
       there are too many attributes. If this value is 0 then all attributes
@@ -230,7 +227,7 @@ class GoogleApiServicecontrolV1Attributes(_messages.Message):
     long. The value can be a string up to 256 bytes, a signed 64-bit integer,
     or the Boolean values `true` and `false`. For example: "/instance_id":
     "my-instance" "/http/user_agent": "" "/http/request_bytes": 300
-    "abc.com/myattribute": true
+    "example.com/myattribute": true
 
     Messages:
       AdditionalProperty: An additional property for a AttributeMapValue
@@ -271,7 +268,7 @@ class GoogleApiServicecontrolV1Distribution(_messages.Message):
       value. The buckets are defined below in `bucket_option`. There are N
       buckets. `bucket_counts[0]` is the number of samples in the underflow
       bucket. `bucket_counts[1]` to `bucket_counts[N-1]` are the numbers of
-      samples in each of the finite buckets. And `bucket_counts[N] is the
+      samples in each of the finite buckets. And `bucket_counts[N]` is the
       number of samples in the overflow bucket. See the comments of
       `bucket_option` below for more details. Any suffix of trailing zeros may
       be omitted.
@@ -363,7 +360,7 @@ class GoogleApiServicecontrolV1HttpRequest(_messages.Message):
       "websocket"
     referer: The referer URL of the request, as defined in [HTTP/1.1 Header
       Field
-      Definitions](http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html).
+      Definitions](https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html).
     remoteIp: The IP address (IPv4 or IPv6) of the client that issued the HTTP
       request. Examples: `"192.168.1.1"`, `"FE80::0202:B3FF:FE1E:8329"`.
     requestMethod: The request method. Examples: `"GET"`, `"HEAD"`, `"PUT"`,
@@ -1876,6 +1873,9 @@ class StreamProjectsLocationsListRequest(_messages.Message):
   r"""A StreamProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -1888,11 +1888,12 @@ class StreamProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  includeUnrevealedLocations = _messages.BooleanField(2)
-  name = _messages.StringField(3, required=True)
-  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(5)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  includeUnrevealedLocations = _messages.BooleanField(3)
+  name = _messages.StringField(4, required=True)
+  pageSize = _messages.IntegerField(5, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(6)
 
 
 class StreamProjectsLocationsOperationsCancelRequest(_messages.Message):

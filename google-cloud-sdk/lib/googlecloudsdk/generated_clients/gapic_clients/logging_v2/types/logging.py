@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -227,18 +227,29 @@ class ListLogEntriesRequest(proto.Message):
             retrieve log entries. Example: ``"my-project-1A"``.
         resource_names (MutableSequence[str]):
             Required. Names of one or more parent resources from which
-            to retrieve log entries:
+            to retrieve log entries. Resources may either be resource
+            containers or specific ``LogViews``. For the case of
+            resource containers, all logs ingested into that container
+            will be returned regardless of which ``LogBuckets`` they are
+            actually stored in - i.e. these queries may fan out to
+            multiple regions. In the event of region unavailability,
+            specify a specific set of ``LogViews`` that do not include
+            the unavailable region.
 
             -  ``projects/[PROJECT_ID]``
+
             -  ``organizations/[ORGANIZATION_ID]``
+
             -  ``billingAccounts/[BILLING_ACCOUNT_ID]``
+
             -  ``folders/[FOLDER_ID]``
 
-            May alternatively be one or more views:
-
             -  ``projects/[PROJECT_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]/views/[VIEW_ID]``
+
             -  ``organizations/[ORGANIZATION_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]/views/[VIEW_ID]``
+
             -  ``billingAccounts/[BILLING_ACCOUNT_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]/views/[VIEW_ID]``
+
             -  ``folders/[FOLDER_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]/views/[VIEW_ID]``
 
             Projects listed in the ``project_ids`` field are added to
@@ -255,6 +266,12 @@ class ListLogEntriesRequest(proto.Message):
             not listed in ``resource_names`` will cause the filter to
             return no results. The maximum length of a filter is 20,000
             characters.
+
+            To make queries faster, you can make the filter more
+            selective by using restrictions on [indexed fields]
+            (https://cloud.google.com/logging/docs/view/logging-query-language#indexed-fields)
+            as well as limit the time range of the query by adding range
+            restrictions on the ``timestamp`` field.
         order_by (str):
             Optional. How the results should be sorted. Presently, the
             only permitted values are ``"timestamp asc"`` (default) and
@@ -264,6 +281,12 @@ class ListLogEntriesRequest(proto.Message):
             decreasing timestamps (newest first). Entries with equal
             timestamps are returned in order of their ``insert_id``
             values.
+
+            We recommend setting the ``order_by`` field to
+            ``"timestamp desc"`` when listing recently ingested log
+            entries. If not set, the default value of
+            ``"timestamp asc"`` may take a long time to fetch matching
+            logs that are only recently ingested.
         page_size (int):
             Optional. The maximum number of results to return from this
             request. Default is 50. If the value is negative, the

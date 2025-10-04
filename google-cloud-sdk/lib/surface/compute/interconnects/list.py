@@ -27,6 +27,10 @@ from googlecloudsdk.core import properties
 from googlecloudsdk.core.resource import resource_projection_spec
 
 
+@base.UniverseCompatible
+@base.ReleaseTracks(
+    base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA, base.ReleaseTrack.GA
+)
 class List(base.ListCommand):
   """List interconnects."""
 
@@ -37,7 +41,8 @@ class List(base.ListCommand):
           name,
           location.basename(),
           operationalStatus,
-          adminEnabled
+          adminEnabled,
+          interconnectGroups.basename().join(sep="\n")
         )
     """)
 

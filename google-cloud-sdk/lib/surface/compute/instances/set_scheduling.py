@@ -28,6 +28,7 @@ from googlecloudsdk.command_lib.compute.sole_tenancy import util as sole_tenancy
 from googlecloudsdk.core.util import times
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class SetSchedulingInstances(base.SilentCommand):
   """Set scheduling options for Compute Engine virtual machines.
@@ -46,9 +47,9 @@ class SetSchedulingInstances(base.SilentCommand):
   """
   }
 
-  _support_host_error_timeout_seconds = False
+  _support_host_error_timeout_seconds = True
   _support_local_ssd_recovery_timeout = True
-  _support_max_run_duration = False
+  _support_max_run_duration = True
   _support_graceful_shutdown = False
 
   @classmethod
@@ -63,13 +64,17 @@ class SetSchedulingInstances(base.SilentCommand):
         """)
 
     flags.AddPreemptibleVmArgs(parser, is_update=True)
-    flags.AddProvisioningModelVmArgs(parser)
+    flags.AddProvisioningModelVmArgs(parser, support_flex_start=False)
     flags.AddInstanceTerminationActionVmArgs(parser, is_update=True)
     flags.AddMaintenancePolicyArgs(parser)
     sole_tenancy_flags.AddNodeAffinityFlagToParser(parser, is_update=True)
     flags.INSTANCE_ARG.AddArgument(parser)
     flags.AddMinNodeCpuArg(parser, is_update=True)
     flags.AddLocalSsdRecoveryTimeoutArgs(parser)
+    flags.AddMaxRunDurationVmArgs(parser, is_update=True)
+    flags.AddDiscardLocalSsdVmArgs(parser, is_update=True)
+    flags.AddHostErrorTimeoutSecondsArgs(parser)
+    flags.AddSkipGuestOsShutdownArgs(parser)
 
   def _Run(self, args):
     """Issues request necessary for setting scheduling options."""
@@ -144,7 +149,16 @@ class SetSchedulingInstances(base.SilentCommand):
     if args.IsSpecified('maintenance_policy'):
       scheduling_options.onHostMaintenance = (
           client.messages.Scheduling.OnHostMaintenanceValueValuesEnum(
-              args.maintenance_policy))
+              args.maintenance_policy
+          )
+      )
+
+    if hasattr(args, 'preemption_notice_duration') and args.IsSpecified(
+        'preemption_notice_duration'
+    ):
+      scheduling_options.preemptionNoticeDuration = client.messages.Duration(
+          seconds=args.preemption_notice_duration
+      )
 
     if hasattr(args, 'max_run_duration') and args.IsSpecified(
         'max_run_duration'
@@ -182,7 +196,7 @@ class SetSchedulingInstances(base.SilentCommand):
         args, 'clear_discard_local_ssds_at_termination_timestamp'
     ) and args.IsSpecified('clear_discard_local_ssds_at_termination_timestamp'):
       scheduling_options.onInstanceStopAction = None
-      cleared_fields.append('discardLocalSsdsAtTerminationTimestamp')
+      cleared_fields.append('onInstanceStopAction')
 
     if instance_utils.IsAnySpecified(args, 'node', 'node_affinity_file',
                                      'node_group'):
@@ -192,6 +206,11 @@ class SetSchedulingInstances(base.SilentCommand):
     elif args.IsSpecified('clear_node_affinities'):
       scheduling_options.nodeAffinities = []
       cleared_fields.append('nodeAffinities')
+
+    if hasattr(args, 'skip_guest_os_shutdown') and args.IsSpecified(
+        'skip_guest_os_shutdown'
+    ):
+      scheduling_options.skipGuestOsShutdown = args.skip_guest_os_shutdown
 
     with holder.client.apitools_client.IncludeFields(cleared_fields):
       request = client.messages.ComputeInstancesSetSchedulingRequest(
@@ -218,6 +237,7 @@ class SetSchedulingInstancesBeta(SetSchedulingInstances):
   _support_host_error_timeout_seconds = True
   _support_max_run_duration = True
   _support_local_ssd_recovery_timeout = True
+  _support_graceful_shutdown = True
 
   @classmethod
   def Args(cls, parser):
@@ -231,7 +251,7 @@ class SetSchedulingInstancesBeta(SetSchedulingInstances):
         """)
 
     flags.AddPreemptibleVmArgs(parser, is_update=True)
-    flags.AddProvisioningModelVmArgs(parser)
+    flags.AddProvisioningModelVmArgs(parser, support_flex_start=False)
     flags.AddInstanceTerminationActionVmArgs(parser, is_update=True)
     flags.AddMaintenancePolicyArgs(parser)
     sole_tenancy_flags.AddNodeAffinityFlagToParser(parser, is_update=True)
@@ -241,6 +261,8 @@ class SetSchedulingInstancesBeta(SetSchedulingInstances):
     flags.AddMaxRunDurationVmArgs(parser, is_update=True)
     flags.AddDiscardLocalSsdVmArgs(parser, is_update=True)
     flags.AddLocalSsdRecoveryTimeoutArgs(parser)
+    flags.AddGracefulShutdownArgs(parser)
+    flags.AddSkipGuestOsShutdownArgs(parser)
 
   def Run(self, args):
     return self._Run(args)
@@ -271,7 +293,7 @@ class SetSchedulingInstancesAlpha(SetSchedulingInstancesBeta):
         """)
 
     flags.AddPreemptibleVmArgs(parser, is_update=True)
-    flags.AddProvisioningModelVmArgs(parser)
+    flags.AddProvisioningModelVmArgs(parser, support_flex_start=False)
     flags.AddInstanceTerminationActionVmArgs(parser, is_update=True)
     # Deprecated in Alpha
     flags.AddMaintenancePolicyArgs(parser, deprecate=True)
@@ -283,3 +305,5 @@ class SetSchedulingInstancesAlpha(SetSchedulingInstancesBeta):
     flags.AddMaxRunDurationVmArgs(parser, is_update=True)
     flags.AddDiscardLocalSsdVmArgs(parser, is_update=True)
     flags.AddGracefulShutdownArgs(parser)
+    flags.AddSkipGuestOsShutdownArgs(parser)
+    flags.AddPreemptionNoticeDurationArgs(parser)

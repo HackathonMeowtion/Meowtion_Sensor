@@ -105,6 +105,9 @@ RESET_PASSWORD_WARNING = textwrap.dedent("""
     https://cloud.google.com/compute/docs/operating-systems/windows#reset""")
 
 
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.GA, base.ReleaseTrack.BETA,
+                    base.ReleaseTrack.ALPHA)
 class ResetWindowsPassword(base.UpdateCommand):
   """Reset and return a password for a Windows machine instance.
 
@@ -392,6 +395,8 @@ class ResetWindowsPassword(base.UpdateCommand):
     enc_password = self._GetEncryptedPasswordFromSerialPort(
         client, instance_ref, modulus)
     password = crypt.DecryptMessage(key, enc_password)
+    if not isinstance(password, str):
+      password = core_encoding.Decode(password)
 
     # Get External IP address.
     try:

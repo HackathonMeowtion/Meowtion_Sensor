@@ -76,7 +76,8 @@ RB_LIST_FORMAT = """
       name.segment(7):sort=1:label=NAME,
       user:sort=1:label=USER,
       group:sort=1:label=GROUP,
-      role.predefinedRole:label=ROLE
+      role.predefinedRole:label=ROLE,
+      role.customRole:label=CUSTOM_ROLE
     )
 """
 B_LIST_FORMAT = """
@@ -113,6 +114,24 @@ table(
     name.basename():label=NAME,
     name.segment(3):label=LOCATION
 )
+"""
+
+ROLLOUTSEQUENCE_LIST_FORMAT = """
+table(
+    name.basename():label=NAME,
+    name.segment(3):label=LOCATION
+)
+"""
+
+APP_OPERATOR_LIST_FORMAT = """
+    table(
+      principal:sort=1:label=PRINCIPAL,
+      overall_role:label=OVERALL_ROLE,
+      scope_rrb_role:label=SCOPE_RBAC,
+      scope_iam_role:label=SCOPE_IAM,
+      project_iam_role:label=PROJECT_IAM,
+      log_view_access:label=LOG_VIEW_ACCESS
+    )
 """
 
 
@@ -290,6 +309,11 @@ def ReleaseTrackCommandPrefix(release_track):
   return prefix + ' ' if prefix else ''
 
 
+def DefaultToAllLocations():
+  """Returns '-' to be used as a fallthrough hook in resources.yaml."""
+  return '-'
+
+
 def DefaultToGlobal():
   """Returns 'global' to be used as a fallthrough hook in resources.yaml."""
   return 'global'
@@ -366,3 +390,18 @@ def LocationFromGKEArgs(args):
           'string like projects/123/locations/us-central1-a/clusters/my-cluster'
       )
   return location
+
+
+def ResourceIdFromPath(path):
+  """Returns resource ID from resource path.
+
+  Args:
+    path: resource path, e.g., "projects/p/locations/global/scopes/my-scope"
+
+  Returns:
+    resource ID, e.g., "my-scope"
+
+  Raises ValueError if resource ID could not be found
+  """
+  idx = path.rindex('/')
+  return path[idx + 1:]

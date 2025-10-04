@@ -17,6 +17,26 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
+from googlecloudsdk.command_lib.compute import resource_manager_tags_utils
+import six
+
+
+def _CreateParams(messages, resource_manager_tags):
+  resource_manager_tags_map = (
+      resource_manager_tags_utils.GetResourceManagerTags(
+          resource_manager_tags
+      )
+  )
+  params = messages.NetworkParams
+  additional_properties = [
+      params.ResourceManagerTagsValue.AdditionalProperty(key=key, value=value)
+      for key, value in sorted(six.iteritems(resource_manager_tags_map))
+  ]
+  return params(
+      resourceManagerTags=params.ResourceManagerTagsValue(
+          additionalProperties=additional_properties
+      )
+  )
 
 
 def GetSubnetMode(network):
@@ -41,8 +61,13 @@ def AddModesForListFormat(resource):
       x_gcloud_bgp_routing_mode=GetBgpRoutingMode(resource))
 
 
-def CreateNetworkResourceFromArgs(messages, network_ref, network_args,
-                                  support_firewall_order):
+def CreateNetworkResourceFromArgs(
+    messages,
+    network_ref,
+    network_args,
+    network_profile_ref,
+    support_firewall_order,
+):
   """Creates a new network resource from flag arguments."""
 
   network = messages.Network(
@@ -98,7 +123,10 @@ def CreateNetworkResourceFromArgs(messages, network_ref, network_args,
   if hasattr(network_args, 'internal_ipv6_range'):
     network.internalIpv6Range = network_args.internal_ipv6_range
 
-  if hasattr(network_args, 'rdma'):
-    network.rdma = network_args.rdma
+  if network_profile_ref:
+    network.networkProfile = network_profile_ref.SelfLink()
+
+  if getattr(network_args, 'resource_manager_tags', None) is not None:
+    network.params = _CreateParams(messages, network_args.resource_manager_tags)
 
   return network

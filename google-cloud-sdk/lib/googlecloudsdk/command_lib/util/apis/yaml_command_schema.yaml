@@ -50,13 +50,13 @@ definitions:
     # Something to be used as the type argument for an argparse argument.
     oneOf:
     # One of the builtin Python types.
-    - enum: [str, int, long, float, bool]
+    - enum: [str, int, long, float, bool, bytes]
     # The module path to a function used as the 'type' for the argument.
     # The function takes a single parameter which is the parsed string value
     # of the argument and returns the converted parsed value.
     - $ref: "#/definitions/python_hook"
     # Support for arg_parsers.arg_list
-    - enum: [arg_list, arg_object]
+    - enum: [arg_list, arg_object, arg_json, file_type]
 
   choices:
     # A list of valid choices for an argument.
@@ -75,16 +75,17 @@ definitions:
         enum_value: {type: string}
         # The help text to show next to the choice on the man page.
         help_text: {type: string}
+        # Whether or not the choice should be hidden from help text.
+        hidden: {type: boolean}
 
   flag_spec:
     type: array
     items:
       type: object
       additionalProperties: false
-      required: [api_field]
       properties:
         api_field: {type: string}
-        arg_name: {type: string}
+        json_name: {type: string}
         help_text: {type: string}
         hidden: {type: boolean}
         # TODO(b/291130667): enable mutex for arg_object
@@ -95,6 +96,7 @@ definitions:
         # resource_pattern is a regex pattern used to verify resource strings.
         # Not available for public use yet.
         resource_pattern: {type: string}
+        type: {$ref: "#/definitions/argparse_type"}
         spec: {$ref: "#/definitions/flag_spec"}
 
   fallthrough:
@@ -329,6 +331,9 @@ definitions:
       # include '--' even if it will be a flag.
       # At least one of [api_field, arg_name] must be given.
       arg_name: {type: string}
+      # The name of the argument as it should appear in the JSON. If
+      # not given it will match the API field name.
+      json_name: {type: string}
       # The module path to a class that implements remote completion
       # for this argument.
       completer: {$ref: "#/definitions/python_hook"}
@@ -380,7 +385,7 @@ definitions:
       action:
         oneOf:
         # One of the builtin argparse actions.
-        - enum: [store, store_true, append]
+        - enum: [store, store_true, store_true_false, append]
         # The module path to a class that implements argparse's Action class.
         - $ref: "#/definitions/python_hook"
         # Mark this flag as being deprecated. All the sub elements here
@@ -453,6 +458,18 @@ definitions:
           mutex: {type: boolean}
           # Whether the group is hidden or not.
           hidden: {type: boolean}
+          # Whether the group has an arg_object flag or not in addition to the params.
+          settable: {type: boolean}
+          # Whether the group has a clearable flag or not in addition to the params.
+          clearable: {type: boolean}
+          # Api field associated with the group.
+          # Only needed when clearable or settable flags are set to true.
+          api_field: {type: string}
+          # The name of the argument group as it should appear in the CLI.
+          # Only needed when clearable or settable flags are set to true.
+          arg_name: {type: string}
+          # How the argument group should be represented in JSON.
+          json_name: {type: string}
           # The group arguments.
           params:
             type: array
@@ -466,6 +483,9 @@ properties:
 
   # Determines whether the command is visible in help text or not.
   hidden: {type: boolean}
+
+  # Determines whether the command is auto generated or not.
+  auto_generated: {type: boolean}
 
   # Determines whether the command is available in univserse or not.
   universe_compatible: {type: boolean}

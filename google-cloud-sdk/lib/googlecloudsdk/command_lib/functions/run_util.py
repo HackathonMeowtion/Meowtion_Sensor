@@ -29,38 +29,69 @@ _CLOUD_RUN_SERVICE_COLLECTION_K8S = 'run.namespaces.services'
 _CLOUD_RUN_SERVICE_COLLECTION_ONE_PLATFORM = 'run.projects.locations.services'
 
 
-def AddOrRemoveInvokerBinding(function, member, add_binding=True):
+def AddOrRemoveInvokerBinding(function, member, add_binding=True, is_gen2=True):
   """Add the IAM binding for the invoker role on the function's Cloud Run service.
 
   Args:
     function: cloudfunctions_v2_messages.Function, a GCF v2 function.
     member: str, The user to bind the Invoker role to.
     add_binding: bool, Whether to add to or remove from the IAM policy.
+    is_gen2: bool, Whether the function is a 2nd gen function. If false, the
+      function is a 1st gen function undergoing upgrade.
 
   Returns:
     A google.iam.v1.Policy
   """
-  service_ref_one_platform = resources.REGISTRY.ParseRelativeName(
-      function.serviceConfig.service, _CLOUD_RUN_SERVICE_COLLECTION_ONE_PLATFORM
-  )
+  service_ref_one_platform = _GetOnePlatformServiceRef(function, is_gen2)
 
-  run_connection_context = connection_context.RegionalConnectionContext(
-      service_ref_one_platform.locationsId,
-      global_methods.SERVERLESS_API_NAME,
-      global_methods.SERVERLESS_API_VERSION,
+  run_connection_context = _GetRunRegionalConnectionContext(
+      service_ref_one_platform.locationsId
   )
 
   with serverless_operations.Connect(run_connection_context) as operations:
-    service_ref_k8s = resources.REGISTRY.ParseRelativeName(
-        'namespaces/{}/services/{}'.format(
-            api_util.GetProject(), service_ref_one_platform.Name()
-        ),
-        _CLOUD_RUN_SERVICE_COLLECTION_K8S,
-    )
-
     return operations.AddOrRemoveIamPolicyBinding(
-        service_ref_k8s,
+        _GetK8sServiceRef(service_ref_one_platform.Name()),
         add_binding=add_binding,
         member=member,
         role=serverless_operations.ALLOW_UNAUTH_POLICY_BINDING_ROLE,
     )
+
+
+def GetService(function):
+  """Get the Cloud Run service for the given function."""
+  service_ref_one_platform = _GetOnePlatformServiceRef(function)
+
+  run_connection_context = _GetRunRegionalConnectionContext(
+      service_ref_one_platform.locationsId
+  )
+
+  with serverless_operations.Connect(run_connection_context) as operations:
+    return operations.GetService(
+        _GetK8sServiceRef(service_ref_one_platform.Name())
+    )
+
+
+def _GetRunRegionalConnectionContext(location):
+  return connection_context.RegionalConnectionContext(
+      location,
+      global_methods.SERVERLESS_API_NAME,
+      global_methods.SERVERLESS_API_VERSION,
+  )
+
+
+def _GetOnePlatformServiceRef(function, is_gen2=True):
+  service_name = (
+      function.serviceConfig.service
+      if is_gen2
+      else function.upgradeInfo.serviceConfig.service
+  )
+  return resources.REGISTRY.ParseRelativeName(
+      service_name, _CLOUD_RUN_SERVICE_COLLECTION_ONE_PLATFORM
+  )
+
+
+def _GetK8sServiceRef(service_name):
+  return resources.REGISTRY.ParseRelativeName(
+      'namespaces/{}/services/{}'.format(api_util.GetProject(), service_name),
+      _CLOUD_RUN_SERVICE_COLLECTION_K8S,
+  )

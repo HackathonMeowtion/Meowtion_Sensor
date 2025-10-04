@@ -34,18 +34,23 @@ def _DetailedHelp():
   }
 
 
-def _Run(holder, service_attachment_ref):
+def _Run(args, holder, service_attachment_arg):
   """Issues requests necessary to describe a service attachment."""
+  service_attachment_ref = service_attachment_arg.ResolveAsResource(
+      args, holder.resources, default_scope=compute_scope.ScopeEnum.REGION
+  )
   client = holder.client
   request = client.messages.ComputeServiceAttachmentsGetRequest(
       **service_attachment_ref.AsDict())
+  if args.show_nat_ips is not None:
+    request.showNatIps = args.show_nat_ips
   collection = client.apitools_client.serviceAttachments
 
   return client.MakeRequests([(collection, 'Get', request)])[0]
 
 
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA,
-                    base.ReleaseTrack.GA)
+@base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.GA)
+@base.UniverseCompatible
 class Describe(base.DescribeCommand):
   """Display details about a Google Compute Engine service attachment."""
 
@@ -56,9 +61,13 @@ class Describe(base.DescribeCommand):
   def Args(cls, parser):
     cls.SERVICE_ATTACHMENT_ARG = flags.ServiceAttachmentArgument()
     cls.SERVICE_ATTACHMENT_ARG.AddArgument(parser, operation_type='describe')
+    flags.AddShowNatIpsFlag(parser)
 
   def Run(self, args):
     holder = base_classes.ComputeApiHolder(self.ReleaseTrack())
-    service_attachment_ref = self.SERVICE_ATTACHMENT_ARG.ResolveAsResource(
-        args, holder.resources, default_scope=compute_scope.ScopeEnum.REGION)
-    return _Run(holder, service_attachment_ref)
+    return _Run(args, holder, self.SERVICE_ATTACHMENT_ARG)
+
+
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class DescribeAlpha(Describe):
+  """Display details about a Google Compute Engine service attachment."""

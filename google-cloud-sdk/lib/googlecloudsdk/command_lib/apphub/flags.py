@@ -217,7 +217,10 @@ def CreateApplicationFlags(parser, release_track=base.ReleaseTrack.ALPHA):
   )
   parser.add_argument(
       '--scope-type',
-      choices={'REGIONAL': 'Represents a regional application'},
+      choices={
+          'REGIONAL': 'Represents a regional application',
+          'GLOBAL': 'Represents a global application',
+      },
       help='Scope of the Application',
       required=True,
   )
@@ -866,3 +869,7 @@ def AddRemoveIamPolicyBindingFlags(parser):
 
 def AddSetIamPolicyFlags(parser):
   GetApplicationResourceArg().AddToParser(parser)
+
+
+def AddDescribeLocationFlags(parser):
+  GetLocationResourceArg(positional=True).AddToParser(parser)

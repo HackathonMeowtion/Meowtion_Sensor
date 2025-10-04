@@ -104,7 +104,6 @@ class BrowserAttributes(_messages.Message):
 class BrowserInfo(_messages.Message):
   r"""Browser specific fields reported by Endpoint verification Extension. See
   go/additionalattributesdesign and go/caa-webprotect-attributes-extension
-  LINT.IfChange
 
   Enums:
     BrowserManagementStateValueValuesEnum: Output only. Browser's management
@@ -116,8 +115,8 @@ class BrowserInfo(_messages.Message):
 
   Fields:
     browserManagementState: Output only. Browser's management state.
-    browserVersion: Version of the request initiating browser. Eg.
-      "91.0.4442.4".
+    browserVersion: Version of the request initiating browser. E.g.
+      `91.0.4442.4`.
     isBuiltInDnsClientEnabled: Current state of built in dns client.
     isBulkDataEntryAnalysisEnabled: Current state of bulk data analysis. Set
       to true if provider list from chrome is non-empty.
@@ -616,8 +615,8 @@ class CloudidentityGroupsMembershipsGetMembershipGraphRequest(_messages.Message)
       name](https://cloud.google.com/apis/design/resource_names) of the group
       to search transitive memberships in. Format: `groups/{group_id}`, where
       `group_id` is the unique ID assigned to the Group to which the
-      Membership belongs to. group_id can be a wildcard collection id "-".
-      When a group_id is specified, the membership graph will be constrained
+      Membership belongs to. `group_id` can be a wildcard collection id "-".
+      When a `group_id` is specified, the membership graph will be constrained
       to paths between the member (defined in the query) and the parent. If a
       wildcard collection is provided, all membership paths connected to the
       member will be returned.
@@ -755,7 +754,7 @@ class CloudidentityGroupsMembershipsSearchDirectGroupsRequest(_messages.Message)
       order_by="group_key" or order_by="group_key asc". Sort by the descending
       group key: order_by="group_key desc".
     pageSize: The default page size is 200 (max 1000).
-    pageToken: The next_page_token value returned from a previous list
+    pageToken: The `next_page_token` value returned from a previous list
       request, if any
     parent: [Resource
       name](https://cloud.google.com/apis/design/resource_names) of the group
@@ -783,7 +782,7 @@ class CloudidentityGroupsMembershipsSearchTransitiveGroupsRequest(_messages.Mess
 
   Fields:
     pageSize: The default page size is 200 (max 1000).
-    pageToken: The next_page_token value returned from a previous list
+    pageToken: The `next_page_token` value returned from a previous list
       request, if any.
     parent: [Resource
       name](https://cloud.google.com/apis/design/resource_names) of the group
@@ -802,7 +801,7 @@ class CloudidentityGroupsMembershipsSearchTransitiveGroupsRequest(_messages.Mess
       within a particular customer, e.g. `parent ==
       'customers/{customer_id}'`. The `customer_id` must begin with "C" (for
       example, 'C046psxkn'). This filtering is only supported for Admins with
-      groups read permissons on the input customer. Example query:
+      groups read permissions on the input customer. Example query:
       `member_key_id == 'member_key_id_value' && in labels && parent ==
       'customers/C046psxkn'`
   """
@@ -819,7 +818,7 @@ class CloudidentityGroupsMembershipsSearchTransitiveMembershipsRequest(_messages
 
   Fields:
     pageSize: The default page size is 200 (max 1000).
-    pageToken: The next_page_token value returned from a previous list
+    pageToken: The `next_page_token` value returned from a previous list
       request, if any.
     parent: [Resource
       name](https://cloud.google.com/apis/design/resource_names) of the group
@@ -988,6 +987,7 @@ class Device(_messages.Message):
     releaseVersion: Output only. OS release version. Example: 6.0.
     securityPatchTime: Output only. OS security patch update time on device.
     serialNumber: Serial Number of device. Example: HT82V1A01076.
+    unifiedDeviceId: Output only. Unified device id of the device.
     wifiMacAddresses: WiFi MAC addresses of device.
   """
 
@@ -1126,7 +1126,8 @@ class Device(_messages.Message):
   releaseVersion = _messages.StringField(29)
   securityPatchTime = _messages.StringField(30)
   serialNumber = _messages.StringField(31)
-  wifiMacAddresses = _messages.StringField(32, repeated=True)
+  unifiedDeviceId = _messages.StringField(32)
+  wifiMacAddresses = _messages.StringField(33, repeated=True)
 
 
 class DeviceUser(_messages.Message):
@@ -1147,6 +1148,8 @@ class DeviceUser(_messages.Message):
     languageCode: Output only. Default locale used on device, in IETF BCP-47
       format.
     lastSyncTime: Output only. Last time when user synced with policies.
+    lostModeDeviceInfo: Lost mode device info, contains location and battery
+      information.
     managementState: Output only. Management state of the user on the device.
     name: Output only. [Resource
       name](https://cloud.google.com/apis/design/resource_names) of the
@@ -1182,6 +1185,8 @@ class DeviceUser(_messages.Message):
       PENDING_APPROVAL: User is awaiting approval.
       UNENROLLED: User is unenrolled from Advanced Windows Management, but the
         Windows account is still intact.
+      LOST_MODE_PENDING: Lost mode is being activated on the device.
+      LOST_MODE_ACTIVATED: Lost mode is active for user on the device.
     """
     MANAGEMENT_STATE_UNSPECIFIED = 0
     WIPING = 1
@@ -1190,6 +1195,8 @@ class DeviceUser(_messages.Message):
     BLOCKED = 4
     PENDING_APPROVAL = 5
     UNENROLLED = 6
+    LOST_MODE_PENDING = 7
+    LOST_MODE_ACTIVATED = 8
 
   class PasswordStateValueValuesEnum(_messages.Enum):
     r"""Password state of the DeviceUser object
@@ -1208,11 +1215,12 @@ class DeviceUser(_messages.Message):
   firstSyncTime = _messages.StringField(3)
   languageCode = _messages.StringField(4)
   lastSyncTime = _messages.StringField(5)
-  managementState = _messages.EnumField('ManagementStateValueValuesEnum', 6)
-  name = _messages.StringField(7)
-  passwordState = _messages.EnumField('PasswordStateValueValuesEnum', 8)
-  userAgent = _messages.StringField(9)
-  userEmail = _messages.StringField(10)
+  lostModeDeviceInfo = _messages.MessageField('LostModeDeviceInfo', 6)
+  managementState = _messages.EnumField('ManagementStateValueValuesEnum', 7)
+  name = _messages.StringField(8)
+  passwordState = _messages.EnumField('PasswordStateValueValuesEnum', 9)
+  userAgent = _messages.StringField(10)
+  userEmail = _messages.StringField(11)
 
 
 class DynamicGroupMetadata(_messages.Message):
@@ -1471,8 +1479,8 @@ class GoogleAppsCloudidentityDevicesV1BrowserAttributes(_messages.Message):
       verification/callobklhcbilhphinckomhgkigmfocg?pli=1).
     chromeProfileId: Chrome profile ID that is exposed by the Chrome API. It
       is unique for each device.
-    lastProfileSyncTime: Timestamp in milliseconds since Epoch when the
-      profile/gcm id was last synced.
+    lastProfileSyncTime: Timestamp in milliseconds since the Unix epoch when
+      the profile/gcm id was last synced.
   """
 
   chromeBrowserInfo = _messages.MessageField('GoogleAppsCloudidentityDevicesV1BrowserInfo', 1)
@@ -1483,7 +1491,7 @@ class GoogleAppsCloudidentityDevicesV1BrowserAttributes(_messages.Message):
 class GoogleAppsCloudidentityDevicesV1BrowserInfo(_messages.Message):
   r"""Browser-specific fields reported by the [Endpoint Verification
   extension](https://chromewebstore.google.com/detail/endpoint-
-  verification/callobklhcbilhphinckomhgkigmfocg?pli=1). LINT.IfChange
+  verification/callobklhcbilhphinckomhgkigmfocg?pli=1).
 
   Enums:
     BrowserManagementStateValueValuesEnum: Output only. Browser's management
@@ -1497,7 +1505,8 @@ class GoogleAppsCloudidentityDevicesV1BrowserInfo(_messages.Message):
 
   Fields:
     browserManagementState: Output only. Browser's management state.
-    browserVersion: Version of the request initiating browser.
+    browserVersion: Version of the request initiating browser. E.g.
+      `91.0.4442.4`.
     isBuiltInDnsClientEnabled: Current state of [built-in DNS client](https://
       chromeenterprise.google/policies/#BuiltInDnsClientEnabled).
     isBulkDataEntryAnalysisEnabled: Current state of [bulk data analysis](http
@@ -1926,7 +1935,10 @@ class GoogleAppsCloudidentityDevicesV1Device(_messages.Message):
     name: Output only. [Resource
       name](https://cloud.google.com/apis/design/resource_names) of the Device
       in format: `devices/{device}`, where device is the unique id assigned to
-      the Device.
+      the Device. Important: Device API scopes require that you use domain-
+      wide delegation to access the API. For more information, see [Set up the
+      Devices API](https://cloud.google.com/identity/docs/how-to/setup-
+      devices).
     networkOperator: Output only. Mobile or network operator of device, if
       available.
     osVersion: Output only. OS version of the device. Example: Android 8.1.0.
@@ -1940,6 +1952,7 @@ class GoogleAppsCloudidentityDevicesV1Device(_messages.Message):
     releaseVersion: Output only. OS release version. Example: 6.0.
     securityPatchTime: Output only. OS security patch update time on device.
     serialNumber: Serial Number of device. Example: HT82V1A01076.
+    unifiedDeviceId: Output only. Unified device id of the device.
     wifiMacAddresses: WiFi MAC addresses of device.
   """
 
@@ -2058,7 +2071,8 @@ class GoogleAppsCloudidentityDevicesV1Device(_messages.Message):
   releaseVersion = _messages.StringField(28)
   securityPatchTime = _messages.StringField(29)
   serialNumber = _messages.StringField(30)
-  wifiMacAddresses = _messages.StringField(31, repeated=True)
+  unifiedDeviceId = _messages.StringField(31)
+  wifiMacAddresses = _messages.StringField(32, repeated=True)
 
 
 class GoogleAppsCloudidentityDevicesV1DeviceUser(_messages.Message):
@@ -2154,19 +2168,22 @@ class GoogleAppsCloudidentityDevicesV1EndpointVerificationSpecificAttributes(_me
   information) of a device.
 
   Messages:
-    AdditionalSignalsValue: Additional signals reported by Endpoint
-      Verification. It includes the following attributes: 1. Non-configurable
-      attributes: hotfixes, av_installed, av_enabled, windows_domain_name,
-      is_os_native_firewall_enabled, and is_secure_boot_enabled. 2.
+    AdditionalSignalsValue: [Additional
+      signals](https://cloud.google.com/endpoint-verification/docs/device-
+      information) reported by Endpoint Verification. It includes the
+      following attributes: * Non-configurable attributes: hotfixes,
+      av_installed, av_enabled, windows_domain_name,
+      is_os_native_firewall_enabled, and is_secure_boot_enabled. *
       [Configurable attributes](https://cloud.google.com/endpoint-
       verification/docs/collect-config-attributes): file, folder, and binary
       attributes; registry entries; and properties in a plist.
 
   Fields:
-    additionalSignals: Additional signals reported by Endpoint Verification.
-      It includes the following attributes: 1. Non-configurable attributes:
+    additionalSignals: [Additional signals](https://cloud.google.com/endpoint-
+      verification/docs/device-information) reported by Endpoint Verification.
+      It includes the following attributes: * Non-configurable attributes:
       hotfixes, av_installed, av_enabled, windows_domain_name,
-      is_os_native_firewall_enabled, and is_secure_boot_enabled. 2.
+      is_os_native_firewall_enabled, and is_secure_boot_enabled. *
       [Configurable attributes](https://cloud.google.com/endpoint-
       verification/docs/collect-config-attributes): file, folder, and binary
       attributes; registry entries; and properties in a plist.
@@ -2177,13 +2194,14 @@ class GoogleAppsCloudidentityDevicesV1EndpointVerificationSpecificAttributes(_me
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class AdditionalSignalsValue(_messages.Message):
-    r"""Additional signals reported by Endpoint Verification. It includes the
-    following attributes: 1. Non-configurable attributes: hotfixes,
-    av_installed, av_enabled, windows_domain_name,
-    is_os_native_firewall_enabled, and is_secure_boot_enabled. 2.
-    [Configurable attributes](https://cloud.google.com/endpoint-
-    verification/docs/collect-config-attributes): file, folder, and binary
-    attributes; registry entries; and properties in a plist.
+    r"""[Additional signals](https://cloud.google.com/endpoint-
+    verification/docs/device-information) reported by Endpoint Verification.
+    It includes the following attributes: * Non-configurable attributes:
+    hotfixes, av_installed, av_enabled, windows_domain_name,
+    is_os_native_firewall_enabled, and is_secure_boot_enabled. * [Configurable
+    attributes](https://cloud.google.com/endpoint-verification/docs/collect-
+    config-attributes): file, folder, and binary attributes; registry entries;
+    and properties in a plist.
 
     Messages:
       AdditionalProperty: An additional property for a AdditionalSignalsValue
@@ -2262,8 +2280,8 @@ class Group(_messages.Message):
 
   Messages:
     LabelsValue: Required. One or more label entries that apply to the Group.
-      Currently supported labels contain a key with an empty value. Google
-      Groups are the default type of group and have a label with a key of
+      Labels contain a key with an empty value. Google Groups are the default
+      type of group and have a label with a key of
       `cloudidentity.googleapis.com/groups.discussion_forum` and an empty
       value. Existing Google Groups can have an additional label with a key of
       `cloudidentity.googleapis.com/groups.security` and an empty value added
@@ -2271,7 +2289,11 @@ class Group(_messages.Message):
       removed once added.** Dynamic groups have a label with a key of
       `cloudidentity.googleapis.com/groups.dynamic`. Identity-mapped groups
       for Cloud Search have a label with a key of `system/groups/external` and
-      an empty value.
+      an empty value. Google Groups can be
+      [locked](https://support.google.com/a?p=locked-groups). To lock a group,
+      add a label with a key of `cloudidentity.googleapis.com/groups.locked`
+      and an empty value. Doing so locks the group. To unlock the group,
+      remove this label.
 
   Fields:
     additionalGroupKeys: Output only. Additional group keys associated with
@@ -2283,8 +2305,8 @@ class Group(_messages.Message):
     dynamicGroupMetadata: Dynamic group metadata like queries and status.
     groupKey: Required. The `EntityKey` of the `Group`.
     labels: Required. One or more label entries that apply to the Group.
-      Currently supported labels contain a key with an empty value. Google
-      Groups are the default type of group and have a label with a key of
+      Labels contain a key with an empty value. Google Groups are the default
+      type of group and have a label with a key of
       `cloudidentity.googleapis.com/groups.discussion_forum` and an empty
       value. Existing Google Groups can have an additional label with a key of
       `cloudidentity.googleapis.com/groups.security` and an empty value added
@@ -2292,7 +2314,11 @@ class Group(_messages.Message):
       removed once added.** Dynamic groups have a label with a key of
       `cloudidentity.googleapis.com/groups.dynamic`. Identity-mapped groups
       for Cloud Search have a label with a key of `system/groups/external` and
-      an empty value.
+      an empty value. Google Groups can be
+      [locked](https://support.google.com/a?p=locked-groups). To lock a group,
+      add a label with a key of `cloudidentity.googleapis.com/groups.locked`
+      and an empty value. Doing so locks the group. To unlock the group,
+      remove this label.
     name: Output only. The [resource
       name](https://cloud.google.com/apis/design/resource_names) of the
       `Group`. Shall be of the form `groups/{group_id}`.
@@ -2309,9 +2335,9 @@ class Group(_messages.Message):
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
-    r"""Required. One or more label entries that apply to the Group. Currently
-    supported labels contain a key with an empty value. Google Groups are the
-    default type of group and have a label with a key of
+    r"""Required. One or more label entries that apply to the Group. Labels
+    contain a key with an empty value. Google Groups are the default type of
+    group and have a label with a key of
     `cloudidentity.googleapis.com/groups.discussion_forum` and an empty value.
     Existing Google Groups can have an additional label with a key of
     `cloudidentity.googleapis.com/groups.security` and an empty value added to
@@ -2319,7 +2345,11 @@ class Group(_messages.Message):
     removed once added.** Dynamic groups have a label with a key of
     `cloudidentity.googleapis.com/groups.dynamic`. Identity-mapped groups for
     Cloud Search have a label with a key of `system/groups/external` and an
-    empty value.
+    empty value. Google Groups can be
+    [locked](https://support.google.com/a?p=locked-groups). To lock a group,
+    add a label with a key of `cloudidentity.googleapis.com/groups.locked` and
+    an empty value. Doing so locks the group. To unlock the group, remove this
+    label.
 
     Messages:
       AdditionalProperty: An additional property for a LabelsValue object.
@@ -2421,6 +2451,22 @@ class GroupRelation(_messages.Message):
   labels = _messages.MessageField('LabelsValue', 4)
   relationType = _messages.EnumField('RelationTypeValueValuesEnum', 5)
   roles = _messages.MessageField('TransitiveMembershipRole', 6, repeated=True)
+
+
+class LatLng(_messages.Message):
+  r"""An object that represents a latitude/longitude pair. This is expressed
+  as a pair of doubles to represent degrees latitude and degrees longitude.
+  Unless specified otherwise, this object must conform to the WGS84 standard.
+  Values must be within normalized ranges.
+
+  Fields:
+    latitude: The latitude in degrees. It must be in the range [-90.0, +90.0].
+    longitude: The longitude in degrees. It must be in the range [-180.0,
+      +180.0].
+  """
+
+  latitude = _messages.FloatField(1)
+  longitude = _messages.FloatField(2)
 
 
 class ListClientStatesResponse(_messages.Message):
@@ -2536,6 +2582,34 @@ class LookupSelfDeviceUsersResponse(_messages.Message):
   nextPageToken = _messages.StringField(3)
 
 
+class LostModeDeviceInfo(_messages.Message):
+  r"""Contains information about the location and battery level of a device in
+  lost mode.
+
+  Fields:
+    lostModeRecords: List of one or more last known information (location and
+      battery) of a device in lost mode.
+  """
+
+  lostModeRecords = _messages.MessageField('LostModeRecord', 1, repeated=True)
+
+
+class LostModeRecord(_messages.Message):
+  r"""Contains information about the location and battery level of a device in
+  lost mode.
+
+  Fields:
+    batteryLevel: The decrypted device location containing a int32.
+    collectionTime: Device timestamp when the event was logged
+    location: The decrypted device location containing a LatLng
+      (google3/google/type/latlng.proto).
+  """
+
+  batteryLevel = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  collectionTime = _messages.StringField(2)
+  location = _messages.MessageField('LatLng', 3)
+
+
 class MemberRelation(_messages.Message):
   r"""Message representing a transitive membership of a group.
 
@@ -2632,6 +2706,7 @@ class Membership(_messages.Message):
       SERVICE_ACCOUNT: Represents service account type.
       GROUP: Represents group type.
       SHARED_DRIVE: Represents Shared drive.
+      CBCM_BROWSER: Represents a CBCM-managed Chrome Browser type.
       OTHER: Represents other type.
     """
     TYPE_UNSPECIFIED = 0
@@ -2639,7 +2714,8 @@ class Membership(_messages.Message):
     SERVICE_ACCOUNT = 2
     GROUP = 3
     SHARED_DRIVE = 4
-    OTHER = 5
+    CBCM_BROWSER = 5
+    OTHER = 6
 
   createTime = _messages.StringField(1)
   deliverySetting = _messages.EnumField('DeliverySettingValueValuesEnum', 2)
@@ -2795,9 +2871,10 @@ class ModifyMembershipRolesRequest(_messages.Message):
       to delete a `Membership`, call MembershipsService.DeleteMembership
       instead. Must not contain `MEMBER`. Must not be set if
       `update_roles_params` is set.
-    updateRolesParams: The `MembershipRole`s to be updated. Updating roles in
-      the same request as adding or removing roles is not supported. Must not
-      be set if either `add_roles` or `remove_roles` is set.
+    updateRolesParams: (== disable_replacement_words add_roles,remove_roles
+      Updating roles in the same request as adding or removing roles is not
+      supported. Must not be set if either `add_roles` or `remove_roles` is
+      set.
   """
 
   addRoles = _messages.MessageField('MembershipRole', 1, repeated=True)
@@ -3170,3 +3247,11 @@ encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    CloudidentityGroupsLookupRequest, 'groupKey_id', 'groupKey.id')
+encoding.AddCustomJsonFieldMapping(
+    CloudidentityGroupsLookupRequest, 'groupKey_namespace', 'groupKey.namespace')
+encoding.AddCustomJsonFieldMapping(
+    CloudidentityGroupsMembershipsLookupRequest, 'memberKey_id', 'memberKey.id')
+encoding.AddCustomJsonFieldMapping(
+    CloudidentityGroupsMembershipsLookupRequest, 'memberKey_namespace', 'memberKey.namespace')

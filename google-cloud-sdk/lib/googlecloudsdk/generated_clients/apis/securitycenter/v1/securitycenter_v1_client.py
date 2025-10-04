@@ -57,6 +57,7 @@ class SecuritycenterV1(base_api.BaseApiClient):
     self.folders_sources = self.FoldersSourcesService(self)
     self.folders = self.FoldersService(self)
     self.organizations_assets = self.OrganizationsAssetsService(self)
+    self.organizations_attackPaths = self.OrganizationsAttackPathsService(self)
     self.organizations_bigQueryExports = self.OrganizationsBigQueryExportsService(self)
     self.organizations_eventThreatDetectionSettings_customModules = self.OrganizationsEventThreatDetectionSettingsCustomModulesService(self)
     self.organizations_eventThreatDetectionSettings_effectiveCustomModules = self.OrganizationsEventThreatDetectionSettingsEffectiveCustomModulesService(self)
@@ -81,6 +82,7 @@ class SecuritycenterV1(base_api.BaseApiClient):
     self.organizations_sources_findings_externalSystems = self.OrganizationsSourcesFindingsExternalSystemsService(self)
     self.organizations_sources_findings = self.OrganizationsSourcesFindingsService(self)
     self.organizations_sources = self.OrganizationsSourcesService(self)
+    self.organizations_valuedResources = self.OrganizationsValuedResourcesService(self)
     self.organizations = self.OrganizationsService(self)
     self.projects_assets = self.ProjectsAssetsService(self)
     self.projects_bigQueryExports = self.ProjectsBigQueryExportsService(self)
@@ -1711,6 +1713,43 @@ class SecuritycenterV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+  class OrganizationsAttackPathsService(base_api.BaseApiService):
+    """Service class for the organizations_attackPaths resource."""
+
+    _NAME = 'organizations_attackPaths'
+
+    def __init__(self, client):
+      super(SecuritycenterV1.OrganizationsAttackPathsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def List(self, request, global_params=None):
+      r"""Lists the attack paths for a set of simulation results or valued resources and filter.
+
+      Args:
+        request: (SecuritycenterOrganizationsAttackPathsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListAttackPathsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/organizations/{organizationsId}/attackPaths',
+        http_method='GET',
+        method_id='securitycenter.organizations.attackPaths.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v1/{+parent}/attackPaths',
+        request_field='',
+        request_type_name='SecuritycenterOrganizationsAttackPathsListRequest',
+        response_type_name='ListAttackPathsResponse',
+        supports_download=False,
+    )
+
   class OrganizationsBigQueryExportsService(base_api.BaseApiService):
     """Service class for the organizations_bigQueryExports resource."""
 
@@ -2568,7 +2607,7 @@ class SecuritycenterV1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (SecuritycenterOrganizationsOperationsCancelRequest) input message
@@ -3811,6 +3850,43 @@ class SecuritycenterV1(base_api.BaseApiClient):
         request_field='testIamPermissionsRequest',
         request_type_name='SecuritycenterOrganizationsSourcesTestIamPermissionsRequest',
         response_type_name='TestIamPermissionsResponse',
+        supports_download=False,
+    )
+
+  class OrganizationsValuedResourcesService(base_api.BaseApiService):
+    """Service class for the organizations_valuedResources resource."""
+
+    _NAME = 'organizations_valuedResources'
+
+    def __init__(self, client):
+      super(SecuritycenterV1.OrganizationsValuedResourcesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def List(self, request, global_params=None):
+      r"""Lists the valued resources for a set of simulation results and filter.
+
+      Args:
+        request: (SecuritycenterOrganizationsValuedResourcesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListValuedResourcesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/organizations/{organizationsId}/valuedResources',
+        http_method='GET',
+        method_id='securitycenter.organizations.valuedResources.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1/{+parent}/valuedResources',
+        request_field='',
+        request_type_name='SecuritycenterOrganizationsValuedResourcesListRequest',
+        response_type_name='ListValuedResourcesResponse',
         supports_download=False,
     )
 

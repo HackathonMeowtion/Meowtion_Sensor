@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*- #
-# Copyright 2017 Google LLC. All Rights Reserved.
+# Copyright 2025 Google LLC. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,13 +20,14 @@ from __future__ import unicode_literals
 
 import collections
 
-from googlecloudsdk.calliope import actions as calliope_actions
+from googlecloudsdk.calliope import actions
 from googlecloudsdk.calliope import arg_parsers
-from googlecloudsdk.command_lib.compute import completers as compute_completers
+from googlecloudsdk.calliope import base
+from googlecloudsdk.command_lib.compute import completers
 from googlecloudsdk.command_lib.compute import flags as compute_flags
 
 
-_INTERCONNECT_TYPE_CHOICES_GA = {
+INTERCONNECT_TYPE_CHOICES_GA = {
     'DEDICATED': 'Dedicated private interconnect.',
     'PARTNER': 'Partner interconnect. Only available to approved partners.',
 }
@@ -41,22 +42,43 @@ _INTERCONNECT_TYPE_CHOICES_BETA_AND_ALPHA = {
         'Partner interconnect. Only available to approved partners.',
 }
 
-_LINK_TYPE_CHOICES = {
+LINK_TYPE_CHOICES = {
     'LINK_TYPE_ETHERNET_10G_LR': '10Gbps Ethernet, LR Optics.',
-    'LINK_TYPE_ETHERNET_100G_LR': '100Gbps Ethernet, LR Optics.'
+    'LINK_TYPE_ETHERNET_100G_LR': '100Gbps Ethernet, LR Optics.',
+    'LINK_TYPE_ETHERNET_400G_LR4': '400Gbps Ethernet, LR4 Optics.',
 }
 
-_REQUESTED_FEATURES_CHOICES = {
-    'MACSEC':
+REQUESTED_FEATURES_CHOICES = {
+    'MACSEC': (
         'If specified then the interconnect is created on MACsec capable '
         'hardware ports. If not specified, the interconnect is created on '
         'non-MACsec capable ports first, if available. This parameter can only '
         'be provided during interconnect INSERT and cannot be changed using '
         'interconnect PATCH.'
+    ),
+    'CROSS_SITE_NETWORK': (
+        'If specified then the interconnect is created on Cross-Site Network '
+        'capable hardware ports. This parameter can only be provided during '
+        'interconnect INSERT and cannot be changed using interconnect PATCH.'
+    ),
+    'L2_FORWARDING': (
+        'If specified then the interconnect is created on L2 forwarding capable'
+        ' hardware ports. This parameter can only be provided during'
+        ' interconnect INSERT and cannot be changed using interconnect PATCH.'
+    ),
+}
+
+_SUBZONE_CHOICES = {
+    'a': 'Subzone a.',
+    'b': 'Subzone b.',
 }
 
 
-class InterconnectsCompleter(compute_completers.ListCommandCompleter):
+@base.UniverseCompatible
+@base.ReleaseTracks(
+    base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA, base.ReleaseTrack.GA
+)
+class InterconnectsCompleter(completers.ListCommandCompleter):
 
   def __init__(self, **kwargs):
     super(InterconnectsCompleter, self).__init__(
@@ -159,30 +181,69 @@ def GetRequestedFeature(messages, feature_arg):
     return messages.Interconnect.RequestedFeaturesValueListEntryValuesEnum(
         'IF_MACSEC'
     )
+  if feature_arg == 'CROSS_SITE_NETWORK':
+    return messages.Interconnect.RequestedFeaturesValueListEntryValuesEnum(
+        'IF_CROSS_SITE_NETWORK'
+    )
+  # TODO(b/346583638): Update the enum value to 'IF_L2_FORWARDING' once the
+  # API is ready.
+  if feature_arg == 'L2_FORWARDING':
+    return messages.Interconnect.RequestedFeaturesValueListEntryValuesEnum(
+        'IF_L2_FORWARDING'
+    )
   return None
 
 
-def AddCreateCommonArgs(parser):
-  """Adds shared flags for create command to the argparse.ArgumentParser."""
+def GetSubzone(messages, subzone_arg):
+  """Converts the subzone flag to a message enum.
+
+  Args:
+    messages: The API messages holder.
+    subzone_arg: The subzone flag value.
+
+  Returns:
+    An SubzoneValueValuesEnum of the flag value, or None if absent.
+  """
+  if subzone_arg == 'a':
+    return messages.Interconnect.SubzoneValueValuesEnum.SUBZONE_A
+  elif subzone_arg == 'b':
+    return messages.Interconnect.SubzoneValueValuesEnum.SUBZONE_B
+  return None
+
+
+def AddCreateCommonArgs(parser, required=True):
+  """Adds shared flags for create command to the argparse.ArgumentParser.
+
+  These flags are shared by the create command and the create members command
+  for interconnect groups.
+
+  Args:
+    parser: The argparse.ArgumentParser to add the flags to.
+    required: Whether the flags are required.
+  """
   AddAdminEnabled(parser)
   AddDescription(parser)
   AddCustomerName(parser)
-  AddLinkType(parser)
+  AddLinkType(parser, required=required)
   AddNocContactEmail(parser)
-  AddRequestedLinkCount(parser)
+  AddRequestedLinkCount(parser, required)
   AddRequestedFeatures(parser)
 
 
-def AddCreateGaArgs(parser):
-  """Adds GA flags for create command to the argparse.ArgumentParser."""
-  AddCreateCommonArgs(parser)
-  AddInterconnectTypeGA(parser)
+def AddCreateArgs(parser, track, required=True):
+  """Adds flags for create command to the argparse.ArgumentParser."""
+  AddCreateCommonArgs(parser, required)
+  AddSubzone(parser)
+  if track == base.ReleaseTrack.GA:
+    AddInterconnectTypeGA(parser, required)
+  else:
+    AddInterconnectTypeBetaAndAlpha(parser)
 
 
-def AddCreateAlphaBetaArgs(parser):
-  """Adds alpha / beta flags for create command to the argparse.ArgumentParser."""
-  AddCreateCommonArgs(parser)
-  AddInterconnectTypeBetaAndAlpha(parser)
+def AddCreateArgsForInterconnectGroupsCreateMembers(parser, required=True):
+  """Adds flags for interconnect groups create members command to the argparse.ArgumentParser."""
+  AddCreateCommonArgs(parser, required)
+  AddInterconnectTypeGA(parser, required)
 
 
 def AddDescription(parser):
@@ -192,15 +253,27 @@ def AddDescription(parser):
       help='An optional, textual description for the interconnect.')
 
 
-def AddInterconnectTypeGA(parser):
+def AddSubzone(parser):
+  """Adds subzone flag to the argparse.ArgumentParser."""
+  parser.add_argument(
+      '--subzone',
+      choices=_SUBZONE_CHOICES,
+      help="""\
+      Subzone in the LOCATION specified by the --location flag.
+      """,
+  )
+
+
+def AddInterconnectTypeGA(parser, required=True):
   """Adds interconnect-type flag to the argparse.ArgumentParser."""
   parser.add_argument(
       '--interconnect-type',
-      choices=_INTERCONNECT_TYPE_CHOICES_GA,
-      required=True,
+      choices=INTERCONNECT_TYPE_CHOICES_GA,
+      required=required,
       help="""\
       Type of the interconnect.
-      """)
+      """,
+  )
 
 
 def _ShouldShowDeprecatedWarning(value):
@@ -212,7 +285,7 @@ def AddInterconnectTypeBetaAndAlpha(parser):
   parser.add_argument(
       '--interconnect-type',
       choices=_INTERCONNECT_TYPE_CHOICES_BETA_AND_ALPHA,
-      action=calliope_actions.DeprecationAction(
+      action=actions.DeprecationAction(
           'interconnect-type',
           removed=False,
           show_add_help=False,
@@ -232,34 +305,36 @@ def AddRequestedFeatures(parser):
   """Adds requested-features flag to the argparse.ArgumentParser."""
   parser.add_argument(
       '--requested-features',
-      type=arg_parsers.ArgList(choices=_REQUESTED_FEATURES_CHOICES),
+      type=arg_parsers.ArgList(choices=REQUESTED_FEATURES_CHOICES),
       metavar='FEATURES',
       help="""\
       List of features requested for this interconnect.
-      """)
+      """,
+  )
 
 
-def AddLinkType(parser):
+def AddLinkType(parser, required=True):
   """Adds link-type flag to the argparse.ArgumentParser."""
-  link_types = _LINK_TYPE_CHOICES
   parser.add_argument(
       '--link-type',
-      choices=link_types,
-      required=True,
+      choices=LINK_TYPE_CHOICES,
+      required=required,
       help="""\
       Type of the link for the interconnect.
-      """)
+      """,
+  )
 
 
-def AddRequestedLinkCount(parser):
+def AddRequestedLinkCount(parser, required=True):
   """Adds requestedLinkCount flag to the argparse.ArgumentParser."""
   parser.add_argument(
       '--requested-link-count',
-      required=True,
+      required=required,
       type=int,
       help="""\
       Target number of physical links in the link bundle.
-      """)
+      """,
+  )
 
 
 def AddRequestedLinkCountForUpdate(parser):
@@ -390,3 +465,81 @@ def AddMacsecPreSharedKeyNameForRomoveKey(parser):
       The name of pre-shared key being removed from MACsec configuration of the
       interconnect.
       """)
+
+
+def AddAaiEnabled(parser):
+  """Adds enabled flag to the argparse.ArgumentParser."""
+  parser.add_argument(
+      '--enabled',
+      default=None,
+      action='store_true',
+      help="""\
+      Enable or disable application awareness on the interconnect. Application awareness enablement will fail
+      if the application awareness configuration is not specified. Use --no-enabled to disable
+      it.""",
+  )
+
+
+def AddAaiProfileDescription(parser):
+  """Adds enabled flag to the argparse.ArgumentParser."""
+  parser.add_argument(
+      '--profile-description',
+      default='',
+      required=False,
+      help="""\
+      Add profile description for application awareness.""",
+  )
+
+
+def AddAaiBandwidthPercentages(parser):
+  """Adds bandwidthPercentages flag to the argparse.ArgumentParser."""
+
+  parser.add_argument(
+      '--bandwidth-percentages',
+      type=arg_parsers.ArgDict(
+          spec={
+              'TC1': int,
+              'TC2': int,
+              'TC3': int,
+              'TC4': int,
+              'TC5': int,
+              'TC6': int,
+          },
+      ),
+      required=True,
+      help="""\
+      A list of bandwidth percentages, for configuring the bandwidth percentage policy or traffic shaping.
+
+      For configuring bandwidth percentages for the bandwidth percentage policy:
+
+      1. Each bandwidth percentage value must be an integer between 1-100.
+      2. It is required to provide a percentage value for each class.
+      3. The sum of all bandwidth percentages must be 100.
+
+      For configuring bandwidth percentages for traffic shaping:
+
+      1. Each bandwidth percentage value must be an integer between 1-100.
+      2. It is not required to provide a percentage value for each class.
+      3. The sum of all bandwidth percentages does not need to be 100.
+      """,
+  )
+
+
+def GetAaiBandwidthPercentages(messages, bandwidth_percentages_arg):
+  """Converts the bandwidth percentages argument to a dictionary of enums to ints.
+
+  Args:
+    messages: The API messages holder.
+    bandwidth_percentages_arg: The bandwidth percentages flag value.
+
+  Returns:
+    An dictionary of TrafficClassValueValuesEnum to percentage
+  """
+  result = {}
+  for traffic_class, percentage in bandwidth_percentages_arg.items():
+    result[
+        messages.InterconnectApplicationAwareInterconnectBandwidthPercentage.TrafficClassValueValuesEnum(
+            traffic_class
+        )
+    ] = percentage
+  return result

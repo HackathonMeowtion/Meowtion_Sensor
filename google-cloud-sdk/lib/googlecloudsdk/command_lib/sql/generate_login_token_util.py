@@ -43,15 +43,26 @@ def generate_login_token_from_gcloud_auth(scopes):
   cred = c_store.Load(
       allow_account_impersonation=True,
       use_google_auth=True,
-      with_access_token_cache=False)
+      cache_only_rapt=True,
+  )
+
+  cred_type = c_creds.CredentialTypeGoogleAuth.FromCredentials(cred)
+  if cred_type == c_creds.CredentialTypeGoogleAuth.USER_ACCOUNT:
+    # Make sure the credential has the required scopes before we downscope it.
+    missing_scope = frozenset(scopes) - frozenset(cred.scopes)
+    if missing_scope:
+      raise auth_exceptions.InvalidCredentialsError(
+          f'Missed the following scopes: {list(missing_scope)}. Please run'
+          ' "gcloud auth login", consent the missing scopes and try again.'
+      )
 
   cred = _downscope_credential(cred, scopes)
 
   c_store.Refresh(cred)
-  if c_creds.IsOauth2ClientCredentials(cred):
-    token = cred.access_token
-  else:
+  if c_creds.IsGoogleAuthCredentials(cred):
     token = cred.token
+  else:
+    token = cred.access_token
   if not token:
     raise auth_exceptions.InvalidCredentialsError(
         'No access token could be obtained from the current credentials.')
@@ -104,7 +115,7 @@ def _downscope_credential(creds, scopes):
   ]:
     # TODO(b/223649175): Add support for other credential types(e.g GCE).
     log.warning(
-        'This command may not working as expected '
+        'This command may not work as expected '
         'for account type {}.'.format(cred_type.key)
     )
 

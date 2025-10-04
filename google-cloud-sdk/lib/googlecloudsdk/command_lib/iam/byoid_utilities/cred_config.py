@@ -22,10 +22,10 @@ import abc
 import enum
 import json
 
+from googlecloudsdk.command_lib.auth import enterprise_certificate_config
 from googlecloudsdk.core import log
 from googlecloudsdk.core import properties
 from googlecloudsdk.core.util import files
-
 import six
 
 
@@ -35,21 +35,41 @@ class ConfigType(enum.Enum):
 
 
 class ByoidEndpoints(object):
-  """Base class for BYOID endpoints.
-  """
+  """Base class for BYOID endpoints."""
 
   def __init__(
-      self, service, enable_mtls=False, universe_domain='googleapis.com'
+      self,
+      service,
+      enable_mtls=False,
+      universe_domain='googleapis.com',
+      sts_location='',
   ):
-    self._sts_template = 'https://{service}.{mtls}{universe}'
+    # TODO: b/444042857 - Remove this check and add support for mTLS with
+    # locational STS endpoints when it is GA-ed.
+    if enable_mtls and sts_location and sts_location != 'global':
+      raise GeneratorError(
+          'mTLS is not supported with locational Security Token Service'
+          ' endpoints.'
+      )
+    self._sts_global_template = 'https://{service}.{mtls}{universe}'
+    self._sts_locational_template = (
+        'https://{service}.{sts_location}.rep.{universe}'
+    )
     self._service = service
     self._mtls = 'mtls.' if enable_mtls else ''
     self._universe_domain = universe_domain
+    self._sts_location = sts_location
 
   @property
   def _base_url(self):
-    return self._sts_template.format(
-        service=self._service, mtls=self._mtls, universe=self._universe_domain
+    if not self._sts_location or self._sts_location == 'global':
+      return self._sts_global_template.format(
+          service=self._service, mtls=self._mtls, universe=self._universe_domain
+      )
+    return self._sts_locational_template.format(
+        service=self._service,
+        sts_location=self._sts_location,
+        universe=self._universe_domain,
     )
 
 
@@ -85,15 +105,29 @@ class IamEndpoints(ByoidEndpoints):
   @property
   def impersonation_url(self):
     api = 'v1/projects/-/serviceAccounts/{}:generateAccessToken'.format(
-        self._service_account)
+        self._service_account
+    )
     return '{}/{}'.format(self._base_url, api)
+
 
 RESOURCE_TYPE = 'credential configuration file'
 
 
 def create_credential_config(args, config_type):
   """Creates the byoid credential config based on CLI arguments."""
+  # If a certificate path was provided, enable mtls by default.
+  is_cert = getattr(args, 'credential_cert_path', None) is not None
   enable_mtls = getattr(args, 'enable_mtls', False)
+
+  sts_location = getattr(args, 'sts_location', '')
+
+  # If a certificate path was provided, mtls must be enabled.
+  if is_cert:
+    if not enable_mtls and hasattr(args, 'enable_mtls'):
+      raise GeneratorError(
+          'Cannot disable mTLS when a certificate path is provided.'
+      )
+    enable_mtls = True
 
   # Take universe_domain into account.
   universe_domain_property = properties.VALUES.core.universe_domain
@@ -106,7 +140,9 @@ def create_credential_config(args, config_type):
     universe_domain = properties.VALUES.core.universe_domain.default
 
   token_endpoint_builder = StsEndpoints(
-      enable_mtls=enable_mtls, universe_domain=universe_domain
+      enable_mtls=enable_mtls,
+      universe_domain=universe_domain,
+      sts_location=sts_location,
   )
 
   try:
@@ -145,6 +181,18 @@ def create_credential_config(args, config_type):
 
     files.WriteFileContents(args.output_file, json.dumps(output, indent=2))
     log.CreatedResource(args.output_file, RESOURCE_TYPE)
+
+    # If the credential type is X.509, we need to create an additional
+    # certificate config file to store the certificate information.
+    if isinstance(generator, X509CredConfigGenerator):
+      enterprise_certificate_config.create_config(
+          enterprise_certificate_config.ConfigType.WORKLOAD,
+          cert_path=args.credential_cert_path,
+          key_path=args.credential_cert_private_key_path,
+          output_file=args.credential_cert_configuration_output_file,
+          trust_chain_path=args.credential_cert_trust_chain_path,
+      )
+
   except GeneratorError as cce:
     log.CreatedResource(args.output_file, RESOURCE_TYPE, failed=cce.message)
 
@@ -171,6 +219,13 @@ def get_generator(args, config_type):
     return AwsCredConfigGenerator()
   if args.azure:
     return AzureCredConfigGenerator(args.app_id_uri, args.audience)
+  if args.credential_cert_path:
+    return X509CredConfigGenerator(
+        args.credential_cert_path,
+        args.credential_cert_private_key_path,
+        args.credential_cert_configuration_output_file,
+        args.credential_cert_trust_chain_path,
+    )
 
 
 class CredConfigGenerator(six.with_metaclass(abc.ABCMeta, object)):
@@ -339,8 +394,9 @@ class AwsCredConfigGenerator(CredConfigGenerator):
     }
 
     if args.enable_imdsv2:
-      credential_source[
-          'imdsv2_session_token_url'] = 'http://169.254.169.254/latest/api/token'
+      credential_source['imdsv2_session_token_url'] = (
+          'http://169.254.169.254/latest/api/token'
+      )
 
     return credential_source
 
@@ -372,6 +428,46 @@ class AzureCredConfigGenerator(CredConfigGenerator):
             'subject_token_field_name': 'access_token'
         }
     }
+
+
+class X509CredConfigGenerator(CredConfigGenerator):
+  """The generator for X.509-based credential configs."""
+
+  def __init__(self,
+               certificate_path,
+               key_path,
+               cert_config_path,
+               trust_chain_path):
+    super(X509CredConfigGenerator,
+          self).__init__(ConfigType.WORKLOAD_IDENTITY_POOLS)
+
+    self.certificate_path = certificate_path
+    self.key_path = key_path
+    self.cert_config_path = cert_config_path
+    self.trust_chain_path = trust_chain_path
+
+  def get_token_type(self, subject_token_type):
+    return 'urn:ietf:params:oauth:token-type:mtls'
+
+  def get_source(self, args):
+    certificate_config = {}
+
+    if self.key_path is None:
+      raise GeneratorError(
+          '--credential-cert-private-key-path must be specified if'
+          ' --credential-cert-path '
+          + 'is provided.'
+      )
+
+    if self.cert_config_path is not None:
+      certificate_config['certificate_config_location'] = self.cert_config_path
+    else:
+      certificate_config['use_default_certificate_config'] = True
+
+    if self.trust_chain_path is not None:
+      certificate_config['trust_chain_path'] = self.trust_chain_path
+
+    return {'certificate': certificate_config}
 
 
 class GeneratorError(Exception):

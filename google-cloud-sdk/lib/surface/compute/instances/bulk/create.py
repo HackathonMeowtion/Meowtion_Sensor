@@ -21,6 +21,7 @@ from __future__ import unicode_literals
 from googlecloudsdk.api_lib.compute import base_classes
 from googlecloudsdk.api_lib.compute import filter_rewrite
 from googlecloudsdk.api_lib.compute import utils
+from googlecloudsdk.api_lib.compute.regions import utils as region_utils
 from googlecloudsdk.calliope import base
 from googlecloudsdk.calliope import exceptions
 from googlecloudsdk.command_lib.compute import scope as compute_scopes
@@ -31,12 +32,10 @@ from googlecloudsdk.core import log
 from googlecloudsdk.core import properties
 
 DETAILED_HELP = {
-    'brief':
-        """
+    'brief': """
           Create multiple Compute Engine virtual machines.
         """,
-    'DESCRIPTION':
-        """
+    'DESCRIPTION': """
         *{command}* facilitates the creation of multiple Compute Engine
         virtual machines with a single command. They offer a number of advantages
         compared to the single instance creation command. This includes the
@@ -44,8 +43,7 @@ DETAILED_HELP = {
         on resource availability, the ability to specify that the request be
         atomic or best-effort, and a faster rate of instance creation.
         """,
-    'EXAMPLES':
-        """
+    'EXAMPLES': """
         To create instances called 'example-instance-1', 'example-instance-2',
         and 'example-instance-3' in the 'us-central1-a' zone, run:
 
@@ -54,38 +52,77 @@ DETAILED_HELP = {
 }
 
 
-def _GetOperations(compute_client, project, operation_group_id):
+def _GetOperations(
+    compute_client, project, operation_group_id, holder, location, scope
+):
   """Requests operations with group id matching the given one."""
 
   errors_to_collect = []
 
   _, operation_filter = filter_rewrite.Rewriter().Rewrite(
-      expression='operationGroupId=' + operation_group_id)
+      expression='operationGroupId=' + operation_group_id
+  )
+
+  resource_parser = holder.resources
+  zones = []
+  if scope == compute_scopes.ScopeEnum.REGION:
+    region_fetcher = region_utils.RegionResourceFetcher(holder.client)
+    regions = region_fetcher.GetRegions([
+        resource_parser.Create(
+            collection='compute.regions', project=project, region=location
+        )
+    ])
+    if len(regions) != 1:
+      errors_to_collect.append(
+          exceptions.ToolException('Region count is not 1: {}'.format(location))
+      )
+      return None, errors_to_collect
+    zones += [resource_parser.Parse(zone).zone for zone in regions[0].zones]
+  else:
+    zones += [location]
 
   operations_response = compute_client.MakeRequests(
-      [(compute_client.apitools_client.globalOperations, 'AggregatedList',
-        compute_client.apitools_client.globalOperations.GetRequestType(
-            'AggregatedList')(filter=operation_filter, project=project))],
+      [
+          (
+              compute_client.apitools_client.zoneOperations,
+              'List',
+              compute_client.apitools_client.zoneOperations.GetRequestType(
+                  'List'
+              )(filter=operation_filter, project=project, zone=zone),
+          )
+          for zone in zones
+      ],
       errors_to_collect=errors_to_collect,
       log_result=False,
       always_return_operation=True,
-      no_followup=True)
+      no_followup=True,
+  )
 
   return operations_response, errors_to_collect
 
 
-def _GetResult(compute_client, request, operation_group_id):
+def _GetResult(
+    compute_client, request, operation_group_id, holder, location, scope
+):
   """Requests operations with group id and parses them as an output."""
 
-  operations_response, errors = _GetOperations(compute_client, request.project,
-                                               operation_group_id)
+  operations_response, errors = _GetOperations(
+      compute_client,
+      request.project,
+      operation_group_id,
+      holder,
+      location,
+      scope,
+  )
   if errors:
     utils.RaiseToolException(errors, error_message='Could not fetch resource:')
   result = {'operationGroupId': operation_group_id, 'instances': []}
-
   successful = [
-      op for op in operations_response if op.operationType == 'insert' and
-      str(op.status) == 'DONE' and op.error is None
+      op
+      for op in operations_response
+      if op.operationType == 'insert'
+      and str(op.status) == 'DONE'
+      and op.error is None
   ]
   num_successful = len(successful)
   num_unsuccessful = request.bulkInsertInstanceResource.count - num_successful
@@ -95,7 +132,7 @@ def _GetResult(compute_client, request, operation_group_id):
         'id': op.targetId,
         'name': op.targetLink.split('/')[-1],
         'zone': op.zone,
-        'selfLink': op.targetLink
+        'selfLink': op.targetLink,
     }
 
   instances_status = [GetInstanceStatus(op) for op in successful]
@@ -107,41 +144,24 @@ def _GetResult(compute_client, request, operation_group_id):
   return result
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Create(base.Command):
   """Create Compute Engine virtual machine instances."""
 
-  _support_nvdimm = False
-  _support_public_dns = False
-  _support_erase_vss = True
-  _support_min_node_cpu = True
-  _support_source_snapshot_csek = False
-  _support_image_csek = True
-  _support_confidential_compute = True
-  _support_post_key_revocation_action_type = True
-  _support_rsa_encrypted = True
-  _deprecate_maintenance_policy = True
-  _support_create_disk_snapshots = True
-  _support_boot_snapshot_uri = True
   _support_display_device = False
-  _support_local_ssd_size = True
   _support_secure_tags = False
-  _support_host_error_timeout_seconds = False
   _support_numa_node_count = False
-  _support_visible_core_count = True
-  _support_max_run_duration = False
-  _support_enable_target_shape = True
-  _support_confidential_compute_type = False
-  _support_confidential_compute_type_tdx = False
-  _support_no_address_in_networking = True
+  _support_snp_svsm = False
   _support_max_count_per_zone = True
-  _support_local_ssd_recovery_timeout = True
-  _support_network_queue_count = True
-  _support_performance_monitoring_unit = False
   _support_custom_hostnames = False
   _support_specific_then_x_affinity = False
   _support_watchdog_timer = False
-  _support_per_interface_stack_type = False
+  _support_graceful_shutdown = True
+  _support_flex_start = False
+  _support_source_snapshot_region = False
+  _support_skip_guest_os_shutdown = True
+  _support_preemption_notice_duration = False
 
   _log_async = False
 
@@ -150,38 +170,30 @@ class Create(base.Command):
     bulk_flags.AddCommonBulkInsertArgs(
         parser,
         base.ReleaseTrack.GA,
-        deprecate_maintenance_policy=cls._deprecate_maintenance_policy,
-        support_min_node_cpu=cls._support_min_node_cpu,
-        support_erase_vss=cls._support_erase_vss,
-        snapshot_csek=cls._support_source_snapshot_csek,
-        image_csek=cls._support_image_csek,
         support_display_device=cls._support_display_device,
-        support_local_ssd_size=cls._support_local_ssd_size,
         support_numa_node_count=cls._support_numa_node_count,
-        support_visible_core_count=cls._support_visible_core_count,
-        support_max_run_duration=cls._support_max_run_duration,
-        support_enable_target_shape=cls._support_enable_target_shape,
-        support_confidential_compute_type=cls._support_confidential_compute_type,
-        support_confidential_compute_type_tdx=cls._support_confidential_compute_type_tdx,
-        support_no_address_in_networking=cls._support_no_address_in_networking,
+        support_snp_svsm=cls._support_snp_svsm,
         support_max_count_per_zone=cls._support_max_count_per_zone,
-        support_network_queue_count=cls._support_network_queue_count,
-        support_performance_monitoring_unit=cls._support_performance_monitoring_unit,
         support_custom_hostnames=cls._support_custom_hostnames,
         support_specific_then_x_affinity=cls._support_specific_then_x_affinity,
         support_watchdog_timer=cls._support_watchdog_timer,
-        support_per_interface_stack_type=cls._support_per_interface_stack_type,
+        support_flex_start=cls._support_flex_start,
+        support_source_snapshot_region=cls._support_source_snapshot_region,
+        support_skip_guest_os_shutdown=cls._support_skip_guest_os_shutdown,
+        support_preemption_notice_duration=cls._support_preemption_notice_duration,
     )
     cls.AddSourceInstanceTemplate(parser)
 
     # Flags specific to GA release track
     instances_flags.AddLocalSsdRecoveryTimeoutArgs(parser)
+    instances_flags.AddHostErrorTimeoutSecondsArgs(parser)
 
   # LINT.IfChange(instance_template)
   @classmethod
   def AddSourceInstanceTemplate(cls, parser):
     cls.SOURCE_INSTANCE_TEMPLATE = (
-        bulk_flags.MakeBulkSourceInstanceTemplateArg())
+        bulk_flags.MakeBulkSourceInstanceTemplateArg()
+    )
     cls.SOURCE_INSTANCE_TEMPLATE.AddArgument(parser)
 
   # LINT.ThenChange(../../queued_resources/create.py:instance_template)
@@ -189,37 +201,29 @@ class Create(base.Command):
   def Collection(self):
     return 'compute.instances'
 
-  def _CreateRequests(self, args, holder, compute_client, resource_parser,
-                      project, location, scope):
+  def _CreateRequests(
+      self,
+      args,
+      holder,
+      compute_client,
+      resource_parser,
+      project,
+      location,
+      scope,
+  ):
     supported_features = bulk_util.SupportedFeatures(
-        self._support_nvdimm,
-        self._support_public_dns,
-        self._support_erase_vss,
-        self._support_min_node_cpu,
-        self._support_source_snapshot_csek,
-        self._support_image_csek,
-        self._support_confidential_compute,
-        self._support_post_key_revocation_action_type,
-        self._support_rsa_encrypted,
-        self._deprecate_maintenance_policy,
-        self._support_create_disk_snapshots,
-        self._support_boot_snapshot_uri,
         self._support_display_device,
-        self._support_local_ssd_size,
         self._support_secure_tags,
-        self._support_host_error_timeout_seconds,
         self._support_numa_node_count,
-        self._support_visible_core_count,
-        self._support_max_run_duration,
-        self._support_local_ssd_recovery_timeout,
-        self._support_enable_target_shape,
-        self._support_confidential_compute_type,
-        self._support_confidential_compute_type_tdx,
+        self._support_snp_svsm,
         self._support_max_count_per_zone,
-        self._support_performance_monitoring_unit,
         self._support_custom_hostnames,
         self._support_specific_then_x_affinity,
         self._support_watchdog_timer,
+        self._support_graceful_shutdown,
+        self._support_source_snapshot_region,
+        self._support_skip_guest_os_shutdown,
+        self._support_preemption_notice_duration,
     )
     bulk_instance_resource = bulk_util.CreateBulkInsertInstanceResource(
         args,
@@ -266,10 +270,6 @@ class Create(base.Command):
     """
     bulk_flags.ValidateBulkInsertArgs(
         args,
-        support_enable_target_shape=self._support_enable_target_shape,
-        support_max_run_duration=self._support_max_run_duration,
-        support_image_csek=self._support_image_csek,
-        support_source_snapshot_csek=self._support_source_snapshot_csek,
         support_max_count_per_zone=self._support_max_count_per_zone,
         support_custom_hostnames=self._support_custom_hostnames,
     )
@@ -289,10 +289,9 @@ class Create(base.Command):
       location = args.region
       scope = compute_scopes.ScopeEnum.REGION
 
-    instances_service, request = self._CreateRequests(args, holder,
-                                                      compute_client,
-                                                      resource_parser, project,
-                                                      location, scope)
+    instances_service, request = self._CreateRequests(
+        args, holder, compute_client, resource_parser, project, location, scope
+    )
 
     self._errors = []
     self._log_async = False
@@ -307,38 +306,49 @@ class Create(base.Command):
       except exceptions.HttpException as error:
         raise error
 
-    errors_to_collect = []
     response = compute_client.MakeRequests(
         [(instances_service, 'BulkInsert', request)],
-        errors_to_collect=errors_to_collect,
         log_result=False,
         always_return_operation=True,
-        no_followup=True)
+        no_followup=True,
+    )
 
-    self._errors = errors_to_collect
+    self._errors = []
     if response:
       operation_group_id = response[0].operationGroupId
-      result = _GetResult(compute_client, request, operation_group_id)
-      if (result.get('createdInstanceCount') is not None and
-          result.get('failedInstanceCount') is not None):
+      result = _GetResult(
+          compute_client, request, operation_group_id, holder, location, scope
+      )
+      if (
+          result.get('createdInstanceCount') is not None
+          and result.get('failedInstanceCount') is not None
+      ):
         self._status_message = 'VM instances created: {}, failed: {}.'.format(
-            result['createdInstanceCount'], result['failedInstanceCount'])
+            result['createdInstanceCount'], result['failedInstanceCount']
+        )
       return result
     return
 
   def Epilog(self, resources_were_displayed):
     del resources_were_displayed
     if self._errors:
-      log.error(self._errors[0][1])
+      for error in self._errors:
+        log.error(error[1])
     elif self._log_async:
-      log.status.Print('Bulk instance creation in progress: {}'.format(
-          self._operation_selflink))
+      log.status.Print(
+          'Bulk instance creation in progress: {}'.format(
+              self._operation_selflink
+          )
+      )
     else:
       if self._errors:
-        log.warning(self._errors[0][1])
+        for error in self._errors:
+          log.warning(error[1])
       log.status.Print(
           'Bulk create request finished with status message: [{}]'.format(
-              self._status_message))
+              self._status_message
+          )
+      )
 
 
 @base.ReleaseTracks(base.ReleaseTrack.BETA)
@@ -347,51 +357,37 @@ class CreateBeta(Create):
 
   _support_display_device = True
   _support_secure_tags = False
-  _support_host_error_timeout_seconds = True
   _support_numa_node_count = False
-  _support_visible_core_count = True
-  _support_max_run_duration = True
-  _support_enable_target_shape = True
-  _support_confidential_compute_type = True
-  _support_confidential_compute_type_tdx = True
-  _support_no_address_in_networking = True
+  _support_snp_svsm = False
   _support_max_count_per_zone = True
-  _support_local_ssd_recovery_timeout = True
-  _support_network_queue_count = True
-  _support_local_ssd_size = True
-  _support_performance_monitoring_unit = False
   _support_custom_hostnames = True
   _support_specific_then_x_affinity = True
   _support_watchdog_timer = False
-  _support_per_interface_stack_type = False
+  _support_graceful_shutdown = True
+  _support_flex_start = False
+  _support_igmp_query = False
+  _support_source_snapshot_region = False
+  _support_skip_guest_os_shutdown = True
+  _support_preemption_notice_duration = False
 
   @classmethod
   def Args(cls, parser):
     bulk_flags.AddCommonBulkInsertArgs(
         parser,
         base.ReleaseTrack.BETA,
-        deprecate_maintenance_policy=cls._deprecate_maintenance_policy,
-        support_min_node_cpu=cls._support_min_node_cpu,
-        support_erase_vss=cls._support_erase_vss,
-        snapshot_csek=cls._support_source_snapshot_csek,
-        image_csek=cls._support_image_csek,
         support_display_device=cls._support_display_device,
-        support_local_ssd_size=cls._support_local_ssd_size,
         support_numa_node_count=cls._support_numa_node_count,
-        support_visible_core_count=cls._support_visible_core_count,
-        support_max_run_duration=cls._support_max_run_duration,
-        support_enable_target_shape=cls._support_enable_target_shape,
-        support_confidential_compute_type=cls._support_confidential_compute_type,
-        support_confidential_compute_type_tdx=cls
-        ._support_confidential_compute_type_tdx,
-        support_no_address_in_networking=cls._support_no_address_in_networking,
+        support_snp_svsm=cls._support_snp_svsm,
         support_max_count_per_zone=cls._support_max_count_per_zone,
-        support_network_queue_count=cls._support_network_queue_count,
-        support_performance_monitoring_unit=cls._support_performance_monitoring_unit,
         support_custom_hostnames=cls._support_custom_hostnames,
         support_specific_then_x_affinity=cls._support_specific_then_x_affinity,
         support_watchdog_timer=cls._support_watchdog_timer,
-        support_per_interface_stack_type=cls._support_per_interface_stack_type,
+        support_graceful_shutdown=cls._support_graceful_shutdown,
+        support_flex_start=cls._support_flex_start,
+        support_igmp_query=cls._support_igmp_query,
+        support_source_snapshot_region=cls._support_source_snapshot_region,
+        support_skip_guest_os_shutdown=cls._support_skip_guest_os_shutdown,
+        support_preemption_notice_duration=cls._support_preemption_notice_duration,
     )
     cls.AddSourceInstanceTemplate(parser)
 
@@ -406,54 +402,38 @@ class CreateAlpha(Create):
 
   # LINT.IfChange(alpha_spec)
   _support_display_device = True
-  _support_local_ssd_size = True
   _support_secure_tags = True
-  _support_host_error_timeout_seconds = True
   _support_numa_node_count = True
-  _support_visible_core_count = True
-  _support_max_run_duration = True
-  _support_enable_target_shape = True
-  _support_confidential_compute_type = True
-  _support_confidential_compute_type_tdx = True
-  _support_no_address_in_networking = True
+  _support_snp_svsm = True
   _support_max_count_per_zone = True
-  _support_local_ssd_recovery_timeout = True
-  _support_network_queue_count = True
-  _support_performance_monitoring_unit = True
   _support_custom_hostnames = True
   _support_specific_then_x_affinity = True
-  _support_ipv6_only = True
   _support_watchdog_timer = True
-  _support_per_interface_stack_type = True
+  _support_igmp_query = True
+  _support_graceful_shutdown = True
+  _support_flex_start = False
+  _support_source_snapshot_region = True
+  _support_skip_guest_os_shutdown = True
+  _support_preemption_notice_duration = True
 
   @classmethod
   def Args(cls, parser):
     bulk_flags.AddCommonBulkInsertArgs(
         parser,
         base.ReleaseTrack.ALPHA,
-        deprecate_maintenance_policy=cls._deprecate_maintenance_policy,
-        support_min_node_cpu=cls._support_min_node_cpu,
-        support_erase_vss=cls._support_erase_vss,
-        snapshot_csek=cls._support_source_snapshot_csek,
-        image_csek=cls._support_image_csek,
         support_display_device=cls._support_display_device,
-        support_local_ssd_size=cls._support_local_ssd_size,
         support_numa_node_count=cls._support_numa_node_count,
-        support_visible_core_count=cls._support_visible_core_count,
-        support_max_run_duration=cls._support_max_run_duration,
-        support_enable_target_shape=cls._support_enable_target_shape,
-        support_confidential_compute_type=cls._support_confidential_compute_type,
-        support_confidential_compute_type_tdx=cls
-        ._support_confidential_compute_type_tdx,
-        support_no_address_in_networking=cls._support_no_address_in_networking,
+        support_snp_svsm=cls._support_snp_svsm,
         support_max_count_per_zone=cls._support_max_count_per_zone,
-        support_network_queue_count=cls._support_network_queue_count,
-        support_performance_monitoring_unit=cls._support_performance_monitoring_unit,
         support_custom_hostnames=cls._support_custom_hostnames,
         support_specific_then_x_affinity=cls._support_specific_then_x_affinity,
-        support_ipv6_only=cls._support_ipv6_only,
         support_watchdog_timer=cls._support_watchdog_timer,
-        support_per_interface_stack_type=cls._support_per_interface_stack_type,
+        support_igmp_query=cls._support_igmp_query,
+        support_graceful_shutdown=cls._support_graceful_shutdown,
+        support_flex_start=cls._support_flex_start,
+        support_source_snapshot_region=cls._support_source_snapshot_region,
+        support_skip_guest_os_shutdown=cls._support_skip_guest_os_shutdown,
+        support_preemption_notice_duration=cls._support_preemption_notice_duration,
     )
 
     cls.AddSourceInstanceTemplate(parser)
@@ -463,6 +443,7 @@ class CreateAlpha(Create):
     instances_flags.AddHostErrorTimeoutSecondsArgs(parser)
     instances_flags.AddMaintenanceInterval().AddToParser(parser)
     instances_flags.AddLocalSsdRecoveryTimeoutArgs(parser)
+
   # LINT.ThenChange(../../queued_resources/create.py:alpha_spec)
 
 

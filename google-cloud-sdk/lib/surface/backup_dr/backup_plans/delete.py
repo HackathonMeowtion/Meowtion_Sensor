@@ -28,12 +28,8 @@ from googlecloudsdk.core import log
 from googlecloudsdk.core.console import console_io
 
 
-@base.ReleaseTracks(
-    base.ReleaseTrack.ALPHA
-)
-
-
-@base.Hidden
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.GA)
+@base.DefaultUniverseOnly
 class Delete(base.DeleteCommand):
   """Deletes a Backup Plan."""
 
@@ -90,15 +86,10 @@ class Delete(base.DeleteCommand):
       raise exceptions.HttpException(e, util.HTTP_ERROR_FORMAT) from e
     if is_async:
       log.DeletedResource(
-          operation.name,
+          backup_plan.RelativeName(),
           kind='backup plan',
           is_async=True,
-          details=(
-              'Delete in progress for backup plan [{}] '
-              'Run the [gcloud backup-dr operations describe] command '
-              'to check the status of this operation.'
-              .format(backup_plan.RelativeName())
-          ),
+          details=util.ASYNC_OPERATION_MESSAGE.format(operation.name),
       )
       return operation
 
@@ -107,9 +98,8 @@ class Delete(base.DeleteCommand):
         operation_ref=client.GetOperationRef(operation),
         message=(
             'Deleting backup plan [{}]. '
-            '(This operation could take upto 2 minutes.)'
+            '(This operation could take up to 2 minutes.)'
             .format(backup_plan.RelativeName())
         ),
         has_result=False,
     )
-

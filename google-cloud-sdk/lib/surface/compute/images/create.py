@@ -18,6 +18,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import re
+
 from googlecloudsdk.api_lib.compute import base_classes
 from googlecloudsdk.api_lib.compute import csek_utils
 from googlecloudsdk.api_lib.compute import image_utils
@@ -27,7 +29,7 @@ from googlecloudsdk.calliope import base
 from googlecloudsdk.calliope import exceptions
 from googlecloudsdk.command_lib.compute import flags as compute_flags
 from googlecloudsdk.command_lib.compute.images import flags
-from googlecloudsdk.command_lib.compute.kms import resource_args as kms_resource_args
+from googlecloudsdk.command_lib.kms import resource_args as kms_resource_args
 from googlecloudsdk.command_lib.util.args import labels_util
 from googlecloudsdk.core import resources
 import six
@@ -132,6 +134,7 @@ def _Args(
   compute_flags.AddShieldedInstanceInitialStateKeyArg(parser)
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Create(base.CreateCommand):
   """Create Compute Engine images."""
@@ -234,7 +237,16 @@ class Create(base.CreateCommand):
           csek_keys, source_image_ref, client.apitools_client)
 
     if args.source_uri:
-      source_uri = six.text_type(resources.REGISTRY.Parse(args.source_uri))
+      # For AR URIs, resources.REGISTRY.Parse will fail. In this case,
+      # we pass the URI to the API as is.
+      # The two formats for artifact registry path are:
+      # projects/<project>/locations/<locations>/repositories/<repo>/packages/<package>/versions/<name>
+      # projects/<project>/locations/<locations>/repositories/<repo>/packages/<package>/versions/<version_id>@dirsum_sha256:<hex_value>
+      ar_uri_regex = r'projects/[^/]+/locations/[^/]+/repositories/.*'
+      if re.match(ar_uri_regex, args.source_uri):
+        source_uri = args.source_uri
+      else:
+        source_uri = six.text_type(resources.REGISTRY.Parse(args.source_uri))
       image.rawDisk = messages.Image.RawDiskValue(source=source_uri)
     elif args.source_disk:
       source_disk_ref = flags.SOURCE_DISK_ARG.ResolveAsResource(
@@ -298,6 +310,7 @@ class Create(base.CreateCommand):
                                  request)], timeout=POLL_TIMEOUT)
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.BETA)
 class CreateBeta(Create):
   """Create Compute Engine images."""
@@ -318,6 +331,7 @@ class CreateBeta(Create):
     return self._Run(args, support_user_licenses=True)
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
 class CreateAlpha(Create):
   """Create Compute Engine images."""

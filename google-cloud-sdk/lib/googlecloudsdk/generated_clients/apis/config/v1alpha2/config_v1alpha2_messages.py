@@ -436,7 +436,7 @@ class ConfigProjectsLocationsDeploymentsPatchRequest(_messages.Message):
 
   Fields:
     deployment: A Deployment resource to be passed as the request body.
-    name: Resource name of the deployment. Format:
+    name: Identifier. Resource name of the deployment. Format:
       `projects/{project}/locations/{location}/deployments/{deployment}`
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
@@ -628,6 +628,9 @@ class ConfigProjectsLocationsListRequest(_messages.Message):
   r"""A ConfigProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -638,10 +641,11 @@ class ConfigProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class ConfigProjectsLocationsOperationsCancelRequest(_messages.Message):
@@ -804,6 +808,94 @@ class ConfigProjectsLocationsPreviewsListRequest(_messages.Message):
   parent = _messages.StringField(5, required=True)
 
 
+class ConfigProjectsLocationsPreviewsResourceChangesGetRequest(_messages.Message):
+  r"""A ConfigProjectsLocationsPreviewsResourceChangesGetRequest object.
+
+  Fields:
+    name: Required. The name of the resource change to retrieve. Format: 'proj
+      ects/{project_id}/locations/{location}/previews/{preview}/resourceChange
+      s/{resource_change}'.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class ConfigProjectsLocationsPreviewsResourceChangesListRequest(_messages.Message):
+  r"""A ConfigProjectsLocationsPreviewsResourceChangesListRequest object.
+
+  Fields:
+    filter: Optional. Lists the resource changes that match the filter
+      expression. A filter expression filters the resource changes listed in
+      the response. The expression must be of the form '{field} {operator}
+      {value}' where operators: '<', '>', '<=', '>=', '!=', '=', ':' are
+      supported (colon ':' represents a HAS operator which is roughly
+      synonymous with equality). {field} can refer to a proto or JSON field,
+      or a synthetic field. Field names can be camelCase or snake_case.
+      Examples: - Filter by name: name = "projects/foo/locations/us-
+      central1/previews/dep/resourceChanges/baz
+    orderBy: Optional. Field to use to sort the list.
+    pageSize: Optional. When requesting a page of resource changes,
+      'page_size' specifies number of resource changes to return. If
+      unspecified, at most 500 will be returned. The maximum value is 1000.
+    pageToken: Optional. Token returned by previous call to
+      'ListResourceChanges' which specifies the position in the list from
+      where to continue listing the resource changes.
+    parent: Required. The parent in whose context the ResourceChanges are
+      listed. The parent value is in the format:
+      'projects/{project_id}/locations/{location}/previews/{preview}'.
+  """
+
+  filter = _messages.StringField(1)
+  orderBy = _messages.StringField(2)
+  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(4)
+  parent = _messages.StringField(5, required=True)
+
+
+class ConfigProjectsLocationsPreviewsResourceDriftsGetRequest(_messages.Message):
+  r"""A ConfigProjectsLocationsPreviewsResourceDriftsGetRequest object.
+
+  Fields:
+    name: Required. The name of the resource drift to retrieve. Format: 'proje
+      cts/{project_id}/locations/{location}/previews/{preview}/resourceDrifts/
+      {resource_drift}'.
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class ConfigProjectsLocationsPreviewsResourceDriftsListRequest(_messages.Message):
+  r"""A ConfigProjectsLocationsPreviewsResourceDriftsListRequest object.
+
+  Fields:
+    filter: Optional. Lists the resource drifts that match the filter
+      expression. A filter expression filters the resource drifts listed in
+      the response. The expression must be of the form '{field} {operator}
+      {value}' where operators: '<', '>', '<=', '>=', '!=', '=', ':' are
+      supported (colon ':' represents a HAS operator which is roughly
+      synonymous with equality). {field} can refer to a proto or JSON field,
+      or a synthetic field. Field names can be camelCase or snake_case.
+      Examples: - Filter by name: name = "projects/foo/locations/us-
+      central1/previews/dep/resourceDrifts/baz
+    orderBy: Optional. Field to use to sort the list.
+    pageSize: Optional. When requesting a page of resource drifts, 'page_size'
+      specifies number of resource drifts to return. If unspecified, at most
+      500 will be returned. The maximum value is 1000.
+    pageToken: Optional. Token returned by previous call to
+      'ListResourceDrifts' which specifies the position in the list from where
+      to continue listing the resource drifts.
+    parent: Required. The parent in whose context the ResourceDrifts are
+      listed. The parent value is in the format:
+      'projects/{project_id}/locations/{location}/previews/{preview}'.
+  """
+
+  filter = _messages.StringField(1)
+  orderBy = _messages.StringField(2)
+  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(4)
+  parent = _messages.StringField(5, required=True)
+
+
 class ConfigProjectsLocationsTerraformVersionsGetRequest(_messages.Message):
   r"""A ConfigProjectsLocationsTerraformVersionsGetRequest object.
 
@@ -827,12 +919,12 @@ class ConfigProjectsLocationsTerraformVersionsListRequest(_messages.Message):
       synonymous with equality). {field} can refer to a proto or JSON field,
       or a synthetic field. Field names can be camelCase or snake_case.
     orderBy: Optional. Field to use to sort the list.
-    pageSize: Optional. When requesting a page of resources, 'page_size'
-      specifies number of resources to return. If unspecified, at most 500
-      will be returned. The maximum value is 1000.
+    pageSize: Optional. When requesting a page of terraform versions,
+      'page_size' specifies number of terraform versions to return. If
+      unspecified, at most 500 will be returned. The maximum value is 1000.
     pageToken: Optional. Token returned by previous call to
       'ListTerraformVersions' which specifies the position in the list from
-      where to continue listing the resources.
+      where to continue listing the terraform versions.
     parent: Required. The parent in whose context the TerraformVersions are
       listed. The parent value is in the format:
       'projects/{project_id}/locations/{location}'.
@@ -872,14 +964,14 @@ class Deployment(_messages.Message):
 
   Messages:
     AnnotationsValue: Optional. Arbitrary key-value metadata storage e.g. to
-      help client tools identifiy deployments during automation. See
+      help client tools identify deployments during automation. See
       https://google.aip.dev/148#annotations for details on format and size
       limitations.
-    LabelsValue: User-defined metadata for the deployment.
+    LabelsValue: Optional. User-defined metadata for the deployment.
 
   Fields:
     annotations: Optional. Arbitrary key-value metadata storage e.g. to help
-      client tools identifiy deployments during automation. See
+      client tools identify deployments during automation. See
       https://google.aip.dev/148#annotations for details on format and size
       limitations.
     artifactsGcsBucket: Optional. User-defined location of Cloud Build logs
@@ -907,18 +999,20 @@ class Deployment(_messages.Message):
       attempt to automatically import the resource into the Terraform state
       (for supported resource types) and continue actuation. Not all resource
       types are supported, refer to documentation.
-    labels: User-defined metadata for the deployment.
+    labels: Optional. User-defined metadata for the deployment.
     latestRevision: Output only. Revision name that was most recently applied.
       Format:
       `projects/{project}/locations/{location}/deployments/{deployment}/
       revisions/{revision}`
     lockState: Output only. Current lock state of the deployment.
-    name: Resource name of the deployment. Format:
+    name: Identifier. Resource name of the deployment. Format:
       `projects/{project}/locations/{location}/deployments/{deployment}`
+    providerConfig: Optional. This field specifies the provider
+      configurations.
     quotaValidation: Optional. Input to control quota checks for resources in
       terraform configuration files. There are limited resources on which
       quota validation applies.
-    serviceAccount: Optional. User-specified Service Account (SA) credentials
+    serviceAccount: Required. User-specified Service Account (SA) credentials
       to be used when actuating resources. Format:
       `projects/{projectID}/serviceAccounts/{serviceAccount}`
     state: Output only. Current state of the deployment.
@@ -1034,7 +1128,7 @@ class Deployment(_messages.Message):
   @encoding.MapUnrecognizedFields('additionalProperties')
   class AnnotationsValue(_messages.Message):
     r"""Optional. Arbitrary key-value metadata storage e.g. to help client
-    tools identifiy deployments during automation. See
+    tools identify deployments during automation. See
     https://google.aip.dev/148#annotations for details on format and size
     limitations.
 
@@ -1061,7 +1155,7 @@ class Deployment(_messages.Message):
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
-    r"""User-defined metadata for the deployment.
+    r"""Optional. User-defined metadata for the deployment.
 
     Messages:
       AdditionalProperty: An additional property for a LabelsValue object.
@@ -1096,16 +1190,17 @@ class Deployment(_messages.Message):
   latestRevision = _messages.StringField(11)
   lockState = _messages.EnumField('LockStateValueValuesEnum', 12)
   name = _messages.StringField(13)
-  quotaValidation = _messages.EnumField('QuotaValidationValueValuesEnum', 14)
-  serviceAccount = _messages.StringField(15)
-  state = _messages.EnumField('StateValueValuesEnum', 16)
-  stateDetail = _messages.StringField(17)
-  terraformBlueprint = _messages.MessageField('TerraformBlueprint', 18)
-  tfErrors = _messages.MessageField('TerraformError', 19, repeated=True)
-  tfVersion = _messages.StringField(20)
-  tfVersionConstraint = _messages.StringField(21)
-  updateTime = _messages.StringField(22)
-  workerPool = _messages.StringField(23)
+  providerConfig = _messages.MessageField('ProviderConfig', 14)
+  quotaValidation = _messages.EnumField('QuotaValidationValueValuesEnum', 15)
+  serviceAccount = _messages.StringField(16)
+  state = _messages.EnumField('StateValueValuesEnum', 17)
+  stateDetail = _messages.StringField(18)
+  terraformBlueprint = _messages.MessageField('TerraformBlueprint', 19)
+  tfErrors = _messages.MessageField('TerraformError', 20, repeated=True)
+  tfVersion = _messages.StringField(21)
+  tfVersionConstraint = _messages.StringField(22)
+  updateTime = _messages.StringField(23)
+  workerPool = _messages.StringField(24)
 
 
 class DeploymentOperationMetadata(_messages.Message):
@@ -1321,12 +1416,46 @@ class ListPreviewsResponse(_messages.Message):
   Fields:
     nextPageToken: Token to be supplied to the next ListPreviews request via
       `page_token` to obtain the next set of results.
-    previews: List of Previewss.
+    previews: List of Previews.
     unreachable: Locations that could not be reached.
   """
 
   nextPageToken = _messages.StringField(1)
   previews = _messages.MessageField('Preview', 2, repeated=True)
+  unreachable = _messages.StringField(3, repeated=True)
+
+
+class ListResourceChangesResponse(_messages.Message):
+  r"""A response to a 'ListResourceChanges' call. Contains a list of
+  ResourceChanges.
+
+  Fields:
+    nextPageToken: A token to request the next page of resources from the
+      'ListResourceChanges' method. The value of an empty string means that
+      there are no more resources to return.
+    resourceChanges: List of ResourceChanges.
+    unreachable: Unreachable resources, if any.
+  """
+
+  nextPageToken = _messages.StringField(1)
+  resourceChanges = _messages.MessageField('ResourceChange', 2, repeated=True)
+  unreachable = _messages.StringField(3, repeated=True)
+
+
+class ListResourceDriftsResponse(_messages.Message):
+  r"""A response to a 'ListResourceDrifts' call. Contains a list of
+  ResourceDrifts.
+
+  Fields:
+    nextPageToken: A token to request the next page of resources from the
+      'ListResourceDrifts' method. The value of an empty string means that
+      there are no more resources to return.
+    resourceDrifts: List of ResourceDrifts.
+    unreachable: Unreachable resources, if any.
+  """
+
+  nextPageToken = _messages.StringField(1)
+  resourceDrifts = _messages.MessageField('ResourceDrift', 2, repeated=True)
   unreachable = _messages.StringField(3, repeated=True)
 
 
@@ -1337,7 +1466,7 @@ class ListResourcesResponse(_messages.Message):
     nextPageToken: A token to request the next page of resources from the
       'ListResources' method. The value of an empty string means that there
       are no more resources to return.
-    resources: List of Resourcess.
+    resources: List of Resources.
     unreachable: Locations that could not be reached.
   """
 
@@ -1602,8 +1731,9 @@ class OperationMetadata(_messages.Message):
     previewMetadata: Output only. Metadata about the preview operation state.
     requestedCancellation: Output only. Identifies whether the user has
       requested cancellation of the operation. Operations that have
-      successfully been cancelled have Operation.error value with a
-      google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      successfully been cancelled have google.longrunning.Operation.error
+      value with a google.rpc.Status.code of `1`, corresponding to
+      `Code.CANCELLED`.
     statusMessage: Output only. Human-readable status of the operation, if
       any.
     target: Output only. Server-defined resource path for the target of the
@@ -1712,9 +1842,17 @@ class Preview(_messages.Message):
     StateValueValuesEnum: Output only. Current state of the preview.
 
   Messages:
+    AnnotationsValue: Optional. Arbitrary key-value metadata storage e.g. to
+      help client tools identify preview during automation. See
+      https://google.aip.dev/148#annotations for details on format and size
+      limitations.
     LabelsValue: Optional. User-defined labels for the preview.
 
   Fields:
+    annotations: Optional. Arbitrary key-value metadata storage e.g. to help
+      client tools identify preview during automation. See
+      https://google.aip.dev/148#annotations for details on format and size
+      limitations.
     artifactsGcsBucket: Optional. User-defined location of Cloud Build logs,
       artifacts, and in Google Cloud Storage. Format: `gs://{bucket}/{folder}`
       A default bucket will be bootstrapped if the field is not set or empty
@@ -1744,7 +1882,9 @@ class Preview(_messages.Message):
       `projects/{project}/locations/{location}/previews/{preview}`
     previewArtifacts: Output only. Artifacts from preview.
     previewMode: Optional. Current mode of preview.
-    serviceAccount: Optional. User-specified Service Account (SA) credentials
+    providerConfig: Optional. This field specifies the provider
+      configurations.
+    serviceAccount: Required. User-specified Service Account (SA) credentials
       to be used when previewing resources. Format:
       `projects/{projectID}/serviceAccounts/{serviceAccount}`
     state: Output only. Current state of the preview.
@@ -1829,6 +1969,34 @@ class Preview(_messages.Message):
     DELETED = 7
 
   @encoding.MapUnrecognizedFields('additionalProperties')
+  class AnnotationsValue(_messages.Message):
+    r"""Optional. Arbitrary key-value metadata storage e.g. to help client
+    tools identify preview during automation. See
+    https://google.aip.dev/148#annotations for details on format and size
+    limitations.
+
+    Messages:
+      AdditionalProperty: An additional property for a AnnotationsValue
+        object.
+
+    Fields:
+      additionalProperties: Additional properties of type AnnotationsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a AnnotationsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
     r"""Optional. User-defined labels for the preview.
 
@@ -1852,25 +2020,27 @@ class Preview(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
-  artifactsGcsBucket = _messages.StringField(1)
-  build = _messages.StringField(2)
-  createTime = _messages.StringField(3)
-  deployment = _messages.StringField(4)
-  errorCode = _messages.EnumField('ErrorCodeValueValuesEnum', 5)
-  errorLogs = _messages.StringField(6)
-  errorStatus = _messages.MessageField('Status', 7)
-  labels = _messages.MessageField('LabelsValue', 8)
-  logs = _messages.StringField(9)
-  name = _messages.StringField(10)
-  previewArtifacts = _messages.MessageField('PreviewArtifacts', 11)
-  previewMode = _messages.EnumField('PreviewModeValueValuesEnum', 12)
-  serviceAccount = _messages.StringField(13)
-  state = _messages.EnumField('StateValueValuesEnum', 14)
-  terraformBlueprint = _messages.MessageField('TerraformBlueprint', 15)
-  tfErrors = _messages.MessageField('TerraformError', 16, repeated=True)
-  tfVersion = _messages.StringField(17)
-  tfVersionConstraint = _messages.StringField(18)
-  workerPool = _messages.StringField(19)
+  annotations = _messages.MessageField('AnnotationsValue', 1)
+  artifactsGcsBucket = _messages.StringField(2)
+  build = _messages.StringField(3)
+  createTime = _messages.StringField(4)
+  deployment = _messages.StringField(5)
+  errorCode = _messages.EnumField('ErrorCodeValueValuesEnum', 6)
+  errorLogs = _messages.StringField(7)
+  errorStatus = _messages.MessageField('Status', 8)
+  labels = _messages.MessageField('LabelsValue', 9)
+  logs = _messages.StringField(10)
+  name = _messages.StringField(11)
+  previewArtifacts = _messages.MessageField('PreviewArtifacts', 12)
+  previewMode = _messages.EnumField('PreviewModeValueValuesEnum', 13)
+  providerConfig = _messages.MessageField('ProviderConfig', 14)
+  serviceAccount = _messages.StringField(15)
+  state = _messages.EnumField('StateValueValuesEnum', 16)
+  terraformBlueprint = _messages.MessageField('TerraformBlueprint', 17)
+  tfErrors = _messages.MessageField('TerraformError', 18, repeated=True)
+  tfVersion = _messages.StringField(19)
+  tfVersionConstraint = _messages.StringField(20)
+  workerPool = _messages.StringField(21)
 
 
 class PreviewArtifacts(_messages.Message):
@@ -1948,6 +2118,74 @@ class PreviewResult(_messages.Message):
 
   binarySignedUri = _messages.StringField(1)
   jsonSignedUri = _messages.StringField(2)
+
+
+class PropertyChange(_messages.Message):
+  r"""A property change represents a change to a property in the state file.
+
+  Fields:
+    after: Output only. Representations of the object value after the actions.
+    afterSensitivePaths: Output only. The paths of sensitive fields in
+      `after`. Paths are relative to `path`.
+    before: Output only. Representations of the object value before the
+      actions.
+    beforeSensitivePaths: Output only. The paths of sensitive fields in
+      `before`. Paths are relative to `path`.
+    path: Output only. The path of the property change.
+  """
+
+  after = _messages.MessageField('extra_types.JsonValue', 1)
+  afterSensitivePaths = _messages.StringField(2, repeated=True)
+  before = _messages.MessageField('extra_types.JsonValue', 3)
+  beforeSensitivePaths = _messages.StringField(4, repeated=True)
+  path = _messages.StringField(5)
+
+
+class PropertyDrift(_messages.Message):
+  r"""A property drift represents a drift to a property in the state file.
+
+  Fields:
+    after: Output only. Representations of the object value after the actions.
+    afterSensitivePaths: Output only. The paths of sensitive fields in
+      `after`. Paths are relative to `path`.
+    before: Output only. Representations of the object value before the
+      actions.
+    beforeSensitivePaths: Output only. The paths of sensitive fields in
+      `before`. Paths are relative to `path`.
+    path: Output only. The path of the property drift.
+  """
+
+  after = _messages.MessageField('extra_types.JsonValue', 1)
+  afterSensitivePaths = _messages.StringField(2, repeated=True)
+  before = _messages.MessageField('extra_types.JsonValue', 3)
+  beforeSensitivePaths = _messages.StringField(4, repeated=True)
+  path = _messages.StringField(5)
+
+
+class ProviderConfig(_messages.Message):
+  r"""ProviderConfig contains the provider configurations.
+
+  Enums:
+    SourceTypeValueValuesEnum: Optional. ProviderSource specifies the source
+      type of the provider.
+
+  Fields:
+    sourceType: Optional. ProviderSource specifies the source type of the
+      provider.
+  """
+
+  class SourceTypeValueValuesEnum(_messages.Enum):
+    r"""Optional. ProviderSource specifies the source type of the provider.
+
+    Values:
+      PROVIDER_SOURCE_UNSPECIFIED: Unspecified source type, default to public
+        sources.
+      SERVICE_MAINTAINED: Service maintained provider source type.
+    """
+    PROVIDER_SOURCE_UNSPECIFIED = 0
+    SERVICE_MAINTAINED = 1
+
+  sourceType = _messages.EnumField('SourceTypeValueValuesEnum', 1)
 
 
 class Resource(_messages.Message):
@@ -2056,6 +2294,96 @@ class ResourceCAIInfo(_messages.Message):
   fullResourceName = _messages.StringField(1)
 
 
+class ResourceChange(_messages.Message):
+  r"""A resource change represents a change to a resource in the state file.
+
+  Enums:
+    IntentValueValuesEnum: Output only. The intent of the resource change.
+
+  Fields:
+    intent: Output only. The intent of the resource change.
+    name: Identifier. The name of the resource change. Format: 'projects/{proj
+      ect_id}/locations/{location}/previews/{preview}/resourceChanges/{resourc
+      e_change}'.
+    propertyChanges: Output only. The property changes of the resource change.
+    terraformInfo: Output only. Terraform info of the resource change.
+  """
+
+  class IntentValueValuesEnum(_messages.Enum):
+    r"""Output only. The intent of the resource change.
+
+    Values:
+      INTENT_UNSPECIFIED: The default value.
+      CREATE: The resource will be created.
+      UPDATE: The resource will be updated.
+      DELETE: The resource will be deleted.
+      RECREATE: The resource will be recreated.
+      UNCHANGED: The resource will be untouched.
+    """
+    INTENT_UNSPECIFIED = 0
+    CREATE = 1
+    UPDATE = 2
+    DELETE = 3
+    RECREATE = 4
+    UNCHANGED = 5
+
+  intent = _messages.EnumField('IntentValueValuesEnum', 1)
+  name = _messages.StringField(2)
+  propertyChanges = _messages.MessageField('PropertyChange', 3, repeated=True)
+  terraformInfo = _messages.MessageField('ResourceChangeTerraformInfo', 4)
+
+
+class ResourceChangeTerraformInfo(_messages.Message):
+  r"""Terraform info of a ResourceChange.
+
+  Fields:
+    actions: Output only. TF resource actions.
+    address: Output only. TF resource address that uniquely identifies the
+      resource.
+    provider: Output only. TF resource provider.
+    resourceName: Output only. TF resource name.
+    type: Output only. TF resource type.
+  """
+
+  actions = _messages.StringField(1, repeated=True)
+  address = _messages.StringField(2)
+  provider = _messages.StringField(3)
+  resourceName = _messages.StringField(4)
+  type = _messages.StringField(5)
+
+
+class ResourceDrift(_messages.Message):
+  r"""A resource drift represents a drift to a resource in the state file.
+
+  Fields:
+    name: Identifier. The name of the resource drift. Format: 'projects/{proje
+      ct_id}/locations/{location}/previews/{preview}/resourceDrifts/{resource_
+      drift}'.
+    propertyDrifts: Output only. The property drifts of the resource drift.
+    terraformInfo: Output only. Terraform info of the resource drift.
+  """
+
+  name = _messages.StringField(1)
+  propertyDrifts = _messages.MessageField('PropertyDrift', 2, repeated=True)
+  terraformInfo = _messages.MessageField('ResourceDriftTerraformInfo', 3)
+
+
+class ResourceDriftTerraformInfo(_messages.Message):
+  r"""Terraform info of a ResourceChange.
+
+  Fields:
+    address: Output only. The address of the drifted resource.
+    provider: Output only. The provider of the drifted resource.
+    resourceName: Output only. TF resource name.
+    type: Output only. The type of the drifted resource.
+  """
+
+  address = _messages.StringField(1)
+  provider = _messages.StringField(2)
+  resourceName = _messages.StringField(3)
+  type = _messages.StringField(4)
+
+
 class ResourceTerraformInfo(_messages.Message):
   r"""Terraform info of a Resource.
 
@@ -2106,6 +2434,8 @@ class Revision(_messages.Message):
     name: Revision name. Format:
       `projects/{project}/locations/{location}/deployments/{deployment}/
       revisions/{revision}`
+    providerConfig: Output only. This field specifies the provider
+      configurations.
     quotaValidation: Optional. Input to control quota checks for resources in
       terraform configuration files. There are limited resources on which
       quota validation applies.
@@ -2214,17 +2544,18 @@ class Revision(_messages.Message):
   importExistingResources = _messages.BooleanField(7)
   logs = _messages.StringField(8)
   name = _messages.StringField(9)
-  quotaValidation = _messages.EnumField('QuotaValidationValueValuesEnum', 10)
-  quotaValidationResults = _messages.StringField(11)
-  serviceAccount = _messages.StringField(12)
-  state = _messages.EnumField('StateValueValuesEnum', 13)
-  stateDetail = _messages.StringField(14)
-  terraformBlueprint = _messages.MessageField('TerraformBlueprint', 15)
-  tfErrors = _messages.MessageField('TerraformError', 16, repeated=True)
-  tfVersion = _messages.StringField(17)
-  tfVersionConstraint = _messages.StringField(18)
-  updateTime = _messages.StringField(19)
-  workerPool = _messages.StringField(20)
+  providerConfig = _messages.MessageField('ProviderConfig', 10)
+  quotaValidation = _messages.EnumField('QuotaValidationValueValuesEnum', 11)
+  quotaValidationResults = _messages.StringField(12)
+  serviceAccount = _messages.StringField(13)
+  state = _messages.EnumField('StateValueValuesEnum', 14)
+  stateDetail = _messages.StringField(15)
+  terraformBlueprint = _messages.MessageField('TerraformBlueprint', 16)
+  tfErrors = _messages.MessageField('TerraformError', 17, repeated=True)
+  tfVersion = _messages.StringField(18)
+  tfVersionConstraint = _messages.StringField(19)
+  updateTime = _messages.StringField(20)
+  workerPool = _messages.StringField(21)
 
 
 class SetIamPolicyRequest(_messages.Message):
@@ -2374,19 +2705,20 @@ class TerraformBlueprint(_messages.Message):
   describes the resources and configs to be deployed.
 
   Messages:
-    InputValuesValue: Input variable values for the Terraform blueprint.
+    InputValuesValue: Optional. Input variable values for the Terraform
+      blueprint.
 
   Fields:
-    gcsSource: Required. URI of an object in Google Cloud Storage. Format:
+    gcsSource: URI of an object in Google Cloud Storage. Format:
       `gs://{bucket}/{object}` URI may also specify an object version for
       zipped objects. Format: `gs://{bucket}/{object}#{version}`
-    gitSource: Required. URI of a public Git repo.
-    inputValues: Input variable values for the Terraform blueprint.
+    gitSource: URI of a public Git repo.
+    inputValues: Optional. Input variable values for the Terraform blueprint.
   """
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class InputValuesValue(_messages.Message):
-    r"""Input variable values for the Terraform blueprint.
+    r"""Optional. Input variable values for the Terraform blueprint.
 
     Messages:
       AdditionalProperty: An additional property for a InputValuesValue
@@ -2418,7 +2750,8 @@ class TerraformError(_messages.Message):
   r"""Errors encountered during actuation using Terraform
 
   Fields:
-    error: Original error response from underlying Google API, if available.
+    error: Output only. Original error response from underlying Google API, if
+      available.
     errorDescription: A human-readable error description.
     httpResponseCode: HTTP response code returned from Google Cloud Platform
       APIs when Terraform fails to provision the resource. If unset or 0, no
@@ -2450,7 +2783,7 @@ class TerraformVariable(_messages.Message):
   r"""A Terraform input variable.
 
   Fields:
-    inputValue: Input variable value.
+    inputValue: Optional. Input variable value.
   """
 
   inputValue = _messages.MessageField('extra_types.JsonValue', 1)
@@ -2536,3 +2869,5 @@ encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    ConfigProjectsLocationsDeploymentsGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')

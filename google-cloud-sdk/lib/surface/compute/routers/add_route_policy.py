@@ -27,20 +27,16 @@ from googlecloudsdk.command_lib.compute.routers import flags
 from googlecloudsdk.command_lib.util.apis import arg_utils
 
 
-@base.Hidden
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
-class AddRoutePolicy(base.CreateCommand):
-  """Add an empty route policy to a Compute Engine router.
-
-  *{command}* adds an empty route policy to a Compute Engine router.
-  """
+@base.UniverseCompatible
+class AddRoutePolicy(base.UpdateCommand):
+  """Add an empty route policy to a Compute Engine router."""
 
   ROUTER_ARG = None
 
   @classmethod
   def Args(cls, parser):
     AddRoutePolicy.ROUTER_ARG = flags.RouterArgument()
-    AddRoutePolicy.ROUTER_ARG.AddArgument(parser, operation_type='insert')
+    AddRoutePolicy.ROUTER_ARG.AddArgument(parser, operation_type='update')
     parser.add_argument(
         '--policy-name',
         help="""Name of the route policy to add.""",
@@ -50,8 +46,8 @@ class AddRoutePolicy(base.CreateCommand):
         '--policy-type',
         type=arg_utils.ChoiceToEnumName,
         choices={
-            'IMPORT': 'The Route Policy is an Import Policy.',
-            'EXPORT': 'The Route Policy is an Export Policy.',
+            'IMPORT': 'The route policy is an import policy.',
+            'EXPORT': 'The route policy is an export policy.',
         },
         help="""Type of the route policy to add.""",
         required=True,
@@ -120,3 +116,16 @@ class AddRoutePolicy(base.CreateCommand):
       return 'ROUTE_POLICY_TYPE_EXPORT'
     else:
       return route_type
+
+
+AddRoutePolicy.detailed_help = {
+    'DESCRIPTION': """\
+          *{command}* adds an empty route policy to a Compute Engine router.
+  """,
+    'EXAMPLES': """\
+          To add an import route policy `my-policy`  to a router `my-router` in region `us-central1`, run:
+
+              $ {command} my-router --region=us-central1 --policy-name=my-policy --policy-type=IMPORT
+
+          """,
+}

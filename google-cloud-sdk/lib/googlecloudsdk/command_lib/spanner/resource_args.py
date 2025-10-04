@@ -19,107 +19,167 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from googlecloudsdk.api_lib.util import apis
+from googlecloudsdk.calliope import exceptions
 from googlecloudsdk.calliope.concepts import concepts
 from googlecloudsdk.calliope.concepts import deps
-from googlecloudsdk.calliope import exceptions
 from googlecloudsdk.command_lib.util.apis import arg_utils
 from googlecloudsdk.command_lib.util.concepts import concept_parsers
 from googlecloudsdk.command_lib.util.concepts import presentation_specs
 from googlecloudsdk.core import properties
+
 
 _PROJECT = properties.VALUES.core.project
 _INSTANCE = properties.VALUES.spanner.instance
 
 _CREATE_BACKUP_ENCRYPTION_TYPE_MAPPER = arg_utils.ChoiceEnumMapper(
     '--encryption-type',
-    apis.GetMessagesModule('spanner',
-                           'v1').SpannerProjectsInstancesBackupsCreateRequest
-    .EncryptionConfigEncryptionTypeValueValuesEnum,
+    apis.GetMessagesModule(
+        'spanner', 'v1'
+    ).SpannerProjectsInstancesBackupsCreateRequest.EncryptionConfigEncryptionTypeValueValuesEnum,
     help_str='The encryption type of the backup.',
     required=False,
     custom_mappings={
-        'USE_DATABASE_ENCRYPTION':
-            ('use-database-encryption',
-             'Use the same encryption configuration as the database.'),
-        'GOOGLE_DEFAULT_ENCRYPTION':
-            ('google-default-encryption', 'Use Google default encryption.'),
-        'CUSTOMER_MANAGED_ENCRYPTION':
-            ('customer-managed-encryption',
-             'Use the provided Cloud KMS key for encryption. If this option is '
-             'selected, kms-key must be set.')
-    })
+        'USE_DATABASE_ENCRYPTION': (
+            'use-database-encryption',
+            'Use the same encryption configuration as the database.',
+        ),
+        'GOOGLE_DEFAULT_ENCRYPTION': (
+            'google-default-encryption',
+            'Use Google default encryption.',
+        ),
+        'CUSTOMER_MANAGED_ENCRYPTION': (
+            'customer-managed-encryption',
+            'Use the provided Cloud KMS key for encryption.'
+            + 'If this option is '
+            + 'selected, kms-key must be set.',
+        ),
+    },
+)
+
+_CREATE_BACKUP_ENCRYPTION_CONFIG_TYPE_MAPPER = arg_utils.ChoiceEnumMapper(
+    '--encryption-type',
+    apis.GetMessagesModule(
+        'spanner', 'v1'
+    ).CreateBackupEncryptionConfig.EncryptionTypeValueValuesEnum,
+    help_str='The encryption type of the backup.',
+    required=False,
+    custom_mappings={
+        'USE_DATABASE_ENCRYPTION': (
+            'use-database-encryption',
+            'Use the same encryption configuration as the database.',
+        ),
+        'GOOGLE_DEFAULT_ENCRYPTION': (
+            'google-default-encryption',
+            'Use Google default encryption.',
+        ),
+        'CUSTOMER_MANAGED_ENCRYPTION': (
+            'customer-managed-encryption',
+            (
+                'Use the provided Cloud KMS key for encryption. If this option'
+                ' is selected, kms-key must be set.'
+            ),
+        ),
+    },
+)
 
 _COPY_BACKUP_ENCRYPTION_TYPE_MAPPER = arg_utils.ChoiceEnumMapper(
     '--encryption-type',
     apis.GetMessagesModule(
-        'spanner',
-        'v1').CopyBackupEncryptionConfig.EncryptionTypeValueValuesEnum,
+        'spanner', 'v1'
+    ).CopyBackupEncryptionConfig.EncryptionTypeValueValuesEnum,
     help_str='The encryption type of the copied backup.',
     required=False,
     custom_mappings={
         'USE_CONFIG_DEFAULT_OR_BACKUP_ENCRYPTION': (
             'use-config-default-or-backup-encryption',
-            ('Use the default encryption configuration if one exists. '
-             'otherwise use the same encryption configuration as the source backup.'
-            )),
-        'GOOGLE_DEFAULT_ENCRYPTION':
-            ('google-default-encryption', 'Use Google default encryption.'),
+            (
+                'Use the default encryption configuration if one exists.'
+                ' otherwise use the same encryption configuration as the source'
+                ' backup.'
+            ),
+        ),
+        'GOOGLE_DEFAULT_ENCRYPTION': (
+            'google-default-encryption',
+            'Use Google default encryption.',
+        ),
         'CUSTOMER_MANAGED_ENCRYPTION': (
             'customer-managed-encryption',
-            ('Use the provided Cloud KMS key for encryption. If this option is '
-             'selected, kms-key must be set.'))
-    })
+            (
+                'Use the provided Cloud KMS key for encryption. If this option'
+                ' is selected, kms-key must be set.'
+            ),
+        ),
+    },
+)
 
 _RESTORE_DB_ENCRYPTION_TYPE_MAPPER = arg_utils.ChoiceEnumMapper(
     '--encryption-type',
     apis.GetMessagesModule(
-        'spanner',
-        'v1').RestoreDatabaseEncryptionConfig.EncryptionTypeValueValuesEnum,
+        'spanner', 'v1'
+    ).RestoreDatabaseEncryptionConfig.EncryptionTypeValueValuesEnum,
     help_str='The encryption type of the restored database.',
     required=False,
     custom_mappings={
-        'USE_CONFIG_DEFAULT_OR_BACKUP_ENCRYPTION':
-            ('use-config-default-or-backup-encryption',
-             'Use the default encryption configuration if one exists, '
-             'otherwise use the same encryption configuration as the backup.'),
-        'GOOGLE_DEFAULT_ENCRYPTION':
-            ('google-default-encryption', 'Use Google default encryption.'),
-        'CUSTOMER_MANAGED_ENCRYPTION':
-            ('customer-managed-encryption',
-             'Use the provided Cloud KMS key for encryption. If this option is '
-             'selected, kms-key must be set.')
-    })
+        'USE_CONFIG_DEFAULT_OR_BACKUP_ENCRYPTION': (
+            'use-config-default-or-backup-encryption',
+            (
+                'Use the default encryption configuration if one exists, '
+                'otherwise use the same encryption configuration as the backup.'
+            ),
+        ),
+        'GOOGLE_DEFAULT_ENCRYPTION': (
+            'google-default-encryption',
+            'Use Google default encryption.',
+        ),
+        'CUSTOMER_MANAGED_ENCRYPTION': (
+            'customer-managed-encryption',
+            (
+                'Use the provided Cloud KMS key for encryption. If this option'
+                ' is selected, kms-key must be set.'
+            ),
+        ),
+    },
+)
 
 _INSTANCE_TYPE_MAPPER = arg_utils.ChoiceEnumMapper(
     '--instance-type',
     apis.GetMessagesModule(
-        'spanner',
-        'v1').Instance.InstanceTypeValueValuesEnum,
+        'spanner', 'v1'
+    ).Instance.InstanceTypeValueValuesEnum,
     help_str='Specifies the type for this instance.',
     required=False,
     custom_mappings={
         'PROVISIONED': (
             'provisioned',
-            ('Provisioned instances have dedicated resources, standard usage '
-             'limits, and support.')),
+            (
+                'Provisioned instances have dedicated resources, standard usage'
+                ' limits, and support.'
+            ),
+        ),
         'FREE_INSTANCE': (
             'free-instance',
-            ('Free trial instances provide no guarantees for dedicated '
-             'resources, both node_count and processing_units should be 0. '
-             'They come with stricter usage limits and limited support.')),
-    })
+            (
+                'Free trial instances provide no guarantees for dedicated '
+                'resources, both node_count and processing_units should be 0. '
+                'They come with stricter usage limits and limited support.'
+            ),
+        ),
+    },
+)
 
 _DEFAULT_STORAGE_TYPE_MAPPER = arg_utils.ChoiceEnumMapper(
     '--default-storage-type',
-    apis.GetMessagesModule('spanner',
-                           'v1').Instance.DefaultStorageTypeValueValuesEnum,
+    apis.GetMessagesModule(
+        'spanner', 'v1'
+    ).Instance.DefaultStorageTypeValueValuesEnum,
     help_str='Specifies the default storage type for this instance.',
     required=False,
     hidden=True,
     custom_mappings={
-        'SSD': ('ssd', ('Use ssd as default storage type for this instance')),
-        'HDD': ('hdd', ('Use hdd as default storage type for this instance')),
-    })
+        'SSD': ('ssd', 'Use ssd as default storage type for this instance'),
+        'HDD': ('hdd', 'Use hdd as default storage type for this instance'),
+    },
+)
 
 _EXPIRE_BEHAVIOR_MAPPER = arg_utils.ChoiceEnumMapper(
     '--expire-behavior',
@@ -151,8 +211,8 @@ def InstanceAttributeConfig():
 def InstancePartitionAttributeConfig():
   """Get instance partition resource attribute with default value."""
   return concepts.ResourceParameterAttributeConfig(
-      name='instance-partition',
-      help_text='The Cloud Spanner instance partition for the {resource}.',
+      name='instance partition',
+      help_text='The Spanner instance partition for the {resource}.',
   )
 
 
@@ -214,7 +274,7 @@ def GetInstanceResourceSpec():
 def GetInstancePartitionResourceSpec():
   return concepts.ResourceSpec(
       'spanner.projects.instances.instancePartitions',
-      resource_name='instance-partition',
+      resource_name='instance partition',
       instancePartitionsId=InstancePartitionAttributeConfig(),
       instancesId=InstanceAttributeConfig(),
       projectsId=concepts.DEFAULT_PROJECT_ATTRIBUTE_CONFIG,
@@ -289,7 +349,7 @@ def AddInstanceResourceArg(parser, verb, positional=True):
 
 
 def AddInstancePartitionResourceArg(parser, verb, positional=True):
-  """Add a resource argument for a Cloud Spanner instance partition.
+  """Add a resource argument for a Spanner instance partition.
 
   NOTE: Must be used only if it's the only resource arg in the command.
 
@@ -303,7 +363,7 @@ def AddInstancePartitionResourceArg(parser, verb, positional=True):
   concept_parsers.ConceptParser.ForResource(
       name,
       GetInstancePartitionResourceSpec(),
-      'The Cloud Spanner instance partition {}.'.format(verb),
+      'The Spanner instance partition {}.'.format(verb),
       required=True,
   ).AddToParser(parser)
 
@@ -353,7 +413,6 @@ def AddKmsKeyResourceArg(parser, verb, positional=False):
           'Cloud KMS key(s) to be used {}.'.format(verb),
           required=False,
           prefixes=True,
-          hidden=True,
           plural=True,
           group=group,
           flag_name_overrides={
@@ -431,6 +490,18 @@ def AddCreateBackupEncryptionTypeArg(parser):
 def GetCreateBackupEncryptionType(args):
   return _CREATE_BACKUP_ENCRYPTION_TYPE_MAPPER.GetEnumForChoice(
       args.encryption_type)
+
+
+def AddCreateBackupEncryptionConfigTypeArg(parser):
+  return _CREATE_BACKUP_ENCRYPTION_CONFIG_TYPE_MAPPER.choice_arg.AddToParser(
+      parser
+  )
+
+
+def GetCreateBackupEncryptionConfigType(args):
+  return _CREATE_BACKUP_ENCRYPTION_CONFIG_TYPE_MAPPER.GetEnumForChoice(
+      args.encryption_type
+  )
 
 
 def AddCopyBackupResourceArgs(parser):
@@ -574,7 +645,8 @@ def AddDefaultStorageTypeArg(parser):
 
 def GetDefaultStorageTypeArg(args):
   return _DEFAULT_STORAGE_TYPE_MAPPER.GetEnumForChoice(
-      args.default_storage_type)
+      args.default_storage_type
+  )
 
 
 def AddExpireBehaviorArg(parser):

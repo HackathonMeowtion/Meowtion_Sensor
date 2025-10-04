@@ -36,6 +36,7 @@ in zone ``us-central1-a'':
 }
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class ListNetworkEndpoints(base.ListCommand):
   """List network endpoints in a network endpoint group."""
@@ -45,8 +46,10 @@ class ListNetworkEndpoints(base.ListCommand):
         table(
           networkEndpoint.instance,
           networkEndpoint.ipAddress,
+          networkEndpoint.ipv6Address,
           networkEndpoint.port,
-          networkEndpoint.fqdn
+          networkEndpoint.fqdn,
+          networkEndpoint.clientDestinationPort
         )"""
 
   @classmethod
@@ -114,6 +117,16 @@ class ListNetworkEndpoints(base.ListCommand):
 class BetaListNetworkEndpoints(ListNetworkEndpoints):
   """List network endpoints in a network endpoint group."""
 
+  display_info_format = """\
+      table(
+        networkEndpoint.instance,
+        networkEndpoint.ipAddress,
+        networkEndpoint.ipv6Address,
+        networkEndpoint.port,
+        networkEndpoint.fqdn,
+        networkEndpoint.clientDestinationPort
+      )"""
+
 
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
 class AlphaListNetworkEndpoints(ListNetworkEndpoints):
@@ -126,6 +139,5 @@ class AlphaListNetworkEndpoints(ListNetworkEndpoints):
         networkEndpoint.ipv6Address,
         networkEndpoint.port,
         networkEndpoint.fqdn,
-        networkEndpoint.clientPort,
         networkEndpoint.clientDestinationPort
       )"""

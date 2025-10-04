@@ -95,6 +95,17 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  BILLINGACCOUNTS_LOCATIONS_SAVEDQUERIES = (
+      'billingAccounts.locations.savedQueries',
+      '{+name}',
+      {
+          '':
+              'billingAccounts/{billingAccountsId}/locations/{locationsId}/'
+              'savedQueries/{savedQueriesId}',
+      },
+      ['name'],
+      True
+  )
   BILLINGACCOUNTS_SINKS = (
       'billingAccounts.sinks',
       '{+sinkName}',
@@ -175,6 +186,17 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  FOLDERS_LOCATIONS_LOGSCOPES = (
+      'folders.locations.logScopes',
+      '{+name}',
+      {
+          '':
+              'folders/{foldersId}/locations/{locationsId}/logScopes/'
+              '{logScopesId}',
+      },
+      ['name'],
+      True
+  )
   FOLDERS_LOCATIONS_OPERATIONS = (
       'folders.locations.operations',
       '{+name}',
@@ -182,6 +204,17 @@ class Collections(enum.Enum):
           '':
               'folders/{foldersId}/locations/{locationsId}/operations/'
               '{operationsId}',
+      },
+      ['name'],
+      True
+  )
+  FOLDERS_LOCATIONS_SAVEDQUERIES = (
+      'folders.locations.savedQueries',
+      '{+name}',
+      {
+          '':
+              'folders/{foldersId}/locations/{locationsId}/savedQueries/'
+              '{savedQueriesId}',
       },
       ['name'],
       True
@@ -309,6 +342,17 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  ORGANIZATIONS_LOCATIONS_LOGSCOPES = (
+      'organizations.locations.logScopes',
+      '{+name}',
+      {
+          '':
+              'organizations/{organizationsId}/locations/{locationsId}/'
+              'logScopes/{logScopesId}',
+      },
+      ['name'],
+      True
+  )
   ORGANIZATIONS_LOCATIONS_OPERATIONS = (
       'organizations.locations.operations',
       '{+name}',
@@ -316,6 +360,17 @@ class Collections(enum.Enum):
           '':
               'organizations/{organizationsId}/locations/{locationsId}/'
               'operations/{operationsId}',
+      },
+      ['name'],
+      True
+  )
+  ORGANIZATIONS_LOCATIONS_SAVEDQUERIES = (
+      'organizations.locations.savedQueries',
+      '{+name}',
+      {
+          '':
+              'organizations/{organizationsId}/locations/{locationsId}/'
+              'savedQueries/{savedQueriesId}',
       },
       ['name'],
       True
@@ -390,6 +445,17 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_LOCATIONS_LOGSCOPES = (
+      'projects.locations.logScopes',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/logScopes/'
+              '{logScopesId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS_LOCATIONS_OPERATIONS = (
       'projects.locations.operations',
       '{+name}',
@@ -397,6 +463,17 @@ class Collections(enum.Enum):
           '':
               'projects/{projectsId}/locations/{locationsId}/operations/'
               '{operationsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_SAVEDQUERIES = (
+      'projects.locations.savedQueries',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/savedQueries/'
+              '{savedQueriesId}',
       },
       ['name'],
       True

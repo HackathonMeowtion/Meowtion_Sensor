@@ -39,9 +39,22 @@ class HubCommand(object):
     return self._client
 
   @property
+  def hubclient_v2(self):
+    """The HubClient for the current release track."""
+    # Build the client lazily, but only once.
+    if not hasattr(self, '_client_v2'):
+      self._client_v2 = client.HubV2Client(self.ReleaseTrack())
+    return self._client_v2
+
+  @property
   def messages(self):
     """Convenience property for hubclient.messages."""
     return self.hubclient.messages
+
+  @property
+  def messages_v2(self):
+    """Convenience property for hubclient_v2.messages."""
+    return self.hubclient_v2.messages
 
   @staticmethod
   def Project(number=False):
@@ -79,6 +92,23 @@ class HubCommand(object):
         HubCommand.Project(use_number), name, location=location)
 
   @staticmethod
+  def MembershipFeatureResourceName(
+      membership_name,
+      feature_name,
+      project=None,
+      location='global',
+      use_number=False,
+  ):
+    """Builds the full MembershipFeature name, using the core project property if no project is specified.."""
+    project = project or HubCommand.Project(use_number)
+    return util.MembershipFeatureResourceName(
+        project,
+        membership_name,
+        feature_name,
+        location=location,
+    )
+
+  @staticmethod
   def WorkspaceResourceName(name, location='global', use_number=False):
     """Builds a full Workspace name, using the core project property."""
     return util.WorkspaceResourceName(
@@ -90,9 +120,6 @@ class HubCommand(object):
     return util.ScopeResourceName(
         HubCommand.Project(use_number), name, location=location)
 
-  # TODO(b/177098463): All Hub LROs _should_ watch for warnings, but they don't.
-  # Once all tests are updated to handle the extra "Expect Get Op", remove the
-  # option for warnings=False.
   def WaitForHubOp(self, poller, op, message=None, warnings=True, **kwargs):
     """Helper wrapping waiter.WaitFor() with additional warning handling."""
     op_ref = self.hubclient.OperationRef(op)

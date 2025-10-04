@@ -23,6 +23,7 @@ from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.workstations import flags as workstations_flags
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(
     base.ReleaseTrack.GA, base.ReleaseTrack.BETA, base.ReleaseTrack.ALPHA
 )
@@ -63,7 +64,8 @@ class Create(base.CreateCommand):
     workstations_flags.AddNetworkTags(parser)
     workstations_flags.AddPoolSize(parser)
     workstations_flags.AddDisablePublicIpAddresses(parser)
-    workstations_flags.AddDisableSSHToVM(parser)
+    workstations_flags.AddDeprecatedDisableSSHToVM(parser)
+    workstations_flags.AddEnableSSHToVM(parser, True)
     workstations_flags.AddDisableTcpConnections(parser)
     workstations_flags.AddShieldedSecureBoot(parser)
     workstations_flags.AddShieldedVtpm(parser)
@@ -71,10 +73,8 @@ class Create(base.CreateCommand):
     workstations_flags.AddEnableAuditAgent(parser)
     workstations_flags.AddEnableConfidentialCompute(parser)
     workstations_flags.AddEnableNestedVirtualization(parser)
+    workstations_flags.AddGrantWorkstationAdminRoleOnCreate(parser)
     workstations_flags.AddBootDiskSize(parser)
-    workstations_flags.AddPdDiskType(parser)
-    workstations_flags.AddPdDiskSize(parser)
-    workstations_flags.AddPdReclaimPolicy(parser)
     workstations_flags.AddContainerImageField(parser)
     workstations_flags.AddContainerCommandField(parser)
     workstations_flags.AddContainerArgsField(parser)
@@ -86,11 +86,22 @@ class Create(base.CreateCommand):
     workstations_flags.AddReplicaZones(parser)
     workstations_flags.AddEphemeralDirectory(parser)
     workstations_flags.AddAcceleratorFields(parser)
-    if (cls.ReleaseTrack() != base.ReleaseTrack.GA):
+    workstations_flags.AddVmTags(parser)
+    workstations_flags.AddAllowedPortsFlag(parser)
+    workstations_flags.AddMaxUsableWorkstationsCount(parser)
+    workstations_flags.AddNoPersistentStorageOrPd(parser)
+    if cls.ReleaseTrack() != base.ReleaseTrack.GA:
+      workstations_flags.AddAllowUnauthenticatedCorsPreflightRequestsFlag(
+          parser
+      )
       workstations_flags.AddBoostConfigs(parser)
+      workstations_flags.AddDisableLocalhostReplacementFlag(parser)
+      workstations_flags.AddReservationAffinity(parser)
 
   def Collection(self):
-    return 'workstations.projects.locations.workstationClusters.workstationConfigs'
+    return (
+        'workstations.projects.locations.workstationClusters.workstationConfigs'
+    )
 
   def Run(self, args):
     client = configs.Configs(self.ReleaseTrack())

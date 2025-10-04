@@ -648,10 +648,11 @@ def IsGcrRepository(function):
 def _AddGcrDeprecationWarning():
   """Adds warning on deprecation of Container Registry."""
   log.warning(
-      'Effective May 15, 2023, Container Registry (used by default '
-      'by Cloud Functions 1st gen for storing build artifacts) is deprecated:'
-      ' https://cloud.google.com/artifact-registry/docs/transition/tr'
-      'ansition-from-gcr. Artifact Registry is the recommended '
-      'successor that you can use by adding the '
-      "'--docker-registry=artifact-registry' flag.\n"
+      'Due to the general transition from Container Registry to Artifact'
+      ' Registry, `--docker-registry=container-registry` will no longer be'
+      ' available as an option when deploying a function.'
+      ' All container image storage and management will automatically'
+      ' transition to Artifact Registry.'
+      ' For more information, please visit:'
+      ' https://cloud.google.com/artifact-registry/docs/transition/transition-from-gcr'
   )

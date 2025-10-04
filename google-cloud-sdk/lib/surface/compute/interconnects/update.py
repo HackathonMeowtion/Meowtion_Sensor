@@ -41,6 +41,7 @@ def _ArgsCommon(cls, parser, support_labels=False):
     labels_util.AddUpdateLabelsFlags(parser)
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Update(base.UpdateCommand):
   """Update a Compute Engine interconnect.
@@ -83,12 +84,14 @@ class Update(base.UpdateCommand):
         noc_contact_email=args.noc_contact_email,
         location=None,
         labels=labels,
-        label_fingerprint=label_fingerprint)
+        label_fingerprint=label_fingerprint,
+    )
 
   def Run(self, args):
     self._DoRun(args)
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
 class UpdateLabels(Update):
   """Update a Compute Engine interconnect.

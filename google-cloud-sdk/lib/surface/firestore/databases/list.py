@@ -23,6 +23,7 @@ from googlecloudsdk.calliope import base
 from googlecloudsdk.core import properties
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(
     base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA, base.ReleaseTrack.GA
 )
@@ -31,11 +32,27 @@ class ListAlpha(base.ListCommand):
 
   ## EXAMPLES
 
-  To list all Firestore databases.
+  To list all active Firestore databases.
 
       $ {command}
+
+  To list all Firestore databases including deleted databases.
+
+      $ {command} --show-deleted
   """
 
-  def Run(self, args):
+  @staticmethod
+  def Args(parser):
+    parser.add_argument(
+        '--show-deleted',
+        help='Show the deleted databases.',
+        action='store_true',
+        default=False,
+    )
+
+  def ListDatabases(self, show_deleted):
     project = properties.VALUES.core.project.Get(required=True)
-    return databases.ListDatabases(project)
+    return databases.ListDatabases(project, show_deleted)
+
+  def Run(self, args):
+    return self.ListDatabases(args.show_deleted)

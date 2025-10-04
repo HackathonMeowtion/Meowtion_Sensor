@@ -340,7 +340,7 @@ class OsconfigV1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (OsconfigProjectsLocationsOsPolicyAssignmentsOperationsCancelRequest) input message
@@ -422,7 +422,7 @@ class OsconfigV1(base_api.BaseApiClient):
         method_id='osconfig.projects.locations.osPolicyAssignments.create',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['osPolicyAssignmentId'],
+        query_params=['osPolicyAssignmentId', 'requestId'],
         relative_path='v1/{+parent}/osPolicyAssignments',
         request_field='oSPolicyAssignment',
         request_type_name='OsconfigProjectsLocationsOsPolicyAssignmentsCreateRequest',
@@ -449,7 +449,7 @@ class OsconfigV1(base_api.BaseApiClient):
         method_id='osconfig.projects.locations.osPolicyAssignments.delete',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=[],
+        query_params=['requestId'],
         relative_path='v1/{+name}',
         request_field='',
         request_type_name='OsconfigProjectsLocationsOsPolicyAssignmentsDeleteRequest',
@@ -557,7 +557,7 @@ class OsconfigV1(base_api.BaseApiClient):
         method_id='osconfig.projects.locations.osPolicyAssignments.patch',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['updateMask'],
+        query_params=['allowMissing', 'requestId', 'updateMask'],
         relative_path='v1/{+name}',
         request_field='oSPolicyAssignment',
         request_type_name='OsconfigProjectsLocationsOsPolicyAssignmentsPatchRequest',

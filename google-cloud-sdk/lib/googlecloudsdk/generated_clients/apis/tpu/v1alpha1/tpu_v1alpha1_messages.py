@@ -324,6 +324,7 @@ class Node(_messages.Message):
       HIDING: TPU node is currently hiding.
       HIDDEN: TPU node has been hidden.
       UNHIDING: TPU node is currently unhiding.
+      UNKNOWN: TPU node has unknown state after a failed repair.
     """
     STATE_UNSPECIFIED = 0
     CREATING = 1
@@ -340,6 +341,7 @@ class Node(_messages.Message):
     HIDING = 12
     HIDDEN = 13
     UNHIDING = 14
+    UNKNOWN = 15
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
@@ -763,6 +765,9 @@ class TpuProjectsLocationsListRequest(_messages.Message):
   r"""A TpuProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -773,10 +778,11 @@ class TpuProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class TpuProjectsLocationsNodesCreateRequest(_messages.Message):

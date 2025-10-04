@@ -1,5 +1,4 @@
 - release_tracks: [GA]
-  hidden: true
   help_text:
     brief: |
       Create an Artifact Registry rule.
@@ -23,8 +22,8 @@
         The Artifact Registry rule to create.
     params:
     - arg_name: action
+      required: true
       api_field: googleDevtoolsArtifactregistryV1Rule.action
-      default: ALLOW
       help_text: |
         The action the rule would make, can only be DENY or ALLOW.
       choices:

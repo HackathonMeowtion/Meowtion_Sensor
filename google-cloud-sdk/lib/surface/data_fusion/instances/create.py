@@ -23,6 +23,7 @@ from googlecloudsdk.api_lib.data_fusion import datafusion as df
 from googlecloudsdk.api_lib.util import waiter
 from googlecloudsdk.calliope import arg_parsers
 from googlecloudsdk.calliope import base
+from googlecloudsdk.command_lib.data_fusion import maintenance_utils
 from googlecloudsdk.command_lib.data_fusion import operation_poller
 from googlecloudsdk.command_lib.data_fusion import resource_args
 from googlecloudsdk.command_lib.util.apis import arg_utils
@@ -32,6 +33,7 @@ from googlecloudsdk.core import log
 _EDITIONS = ['basic', 'enterprise', 'developer']
 
 
+@base.DefaultUniverseOnly
 class Create(base.Command):
   # pylint:disable=line-too-long
   r"""Create and initialize a Cloud Data Fusion instance.
@@ -43,10 +45,10 @@ class Create(base.Command):
 
   ## EXAMPLES
 
-  To create instance 'my-instance' in project 'my-project', location in
-  'my-location', and zone in 'my-zone' run:
+  To create instance `my-instance` in project `my-project`, location in
+  `my-location`, and zone in `my-zone` run:
 
-    $ {command} --project=my-project --location=my-location my-instance --zone=my-zone
+    $ {command} my-instance --project=my-project --location=my-location --zone=my-zone
   """
 
   @staticmethod
@@ -90,6 +92,8 @@ class Create(base.Command):
         '--enable_rbac',
         action='store_true',
         help='Enable granular role-based access control for this Data Fusion instance.')
+    maintenance_utils.CreateArgumentsGroup(parser)
+    resource_args.GetTagsArg().AddToParser(parser)
 
   def Run(self, args):
     datafusion = df.Datafusion()
@@ -129,9 +133,16 @@ class Create(base.Command):
         enableStackdriverMonitoring=enable_stackdriver_monitoring,
         enableRbac=enable_rbac,
         options=encoding.DictToAdditionalPropertyMessage(
-            options, datafusion.messages.Instance.OptionsValue, True),
+            options, datafusion.messages.Instance.OptionsValue, True
+        ),
         labels=encoding.DictToAdditionalPropertyMessage(
-            labels, datafusion.messages.Instance.LabelsValue, True))
+            labels, datafusion.messages.Instance.LabelsValue, True
+        ),
+        tags=resource_args.GetTagsFromArgs(
+            args, datafusion.messages.Instance.TagsValue
+        ),
+    )
+    maintenance_utils.SetMaintenanceWindow(args, instance)
 
     req = datafusion.messages.DatafusionProjectsLocationsInstancesCreateRequest(
         instance=instance,

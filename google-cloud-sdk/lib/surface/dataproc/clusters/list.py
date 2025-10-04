@@ -15,12 +15,8 @@
 
 """List cluster command."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
+from typing import Any, Dict
 from apitools.base.py import list_pager
-
 from googlecloudsdk.api_lib.dataproc import constants
 from googlecloudsdk.api_lib.dataproc import dataproc as dp
 from googlecloudsdk.api_lib.dataproc import util
@@ -29,6 +25,31 @@ from googlecloudsdk.command_lib.dataproc import flags
 from googlecloudsdk.core import properties
 
 
+def _HasScheduledDelete(cluster: Dict[str, Any]) -> str:
+  if 'config' in cluster and 'lifecycleConfig' in cluster['config']:
+    lifecycle_config = cluster['config']['lifecycleConfig']
+    if (
+        'idleDeleteTtl' in lifecycle_config
+        or 'autoDeleteTtl' in lifecycle_config
+        or 'autoDeleteTime' in lifecycle_config
+    ):
+      return 'enabled'
+  return ''
+
+
+def _HasScheduledStop(cluster: Dict[str, Any]) -> str:
+  if 'config' in cluster and 'lifecycleConfig' in cluster['config']:
+    lifecycle_config = cluster['config']['lifecycleConfig']
+    if (
+        'idleStopTtl' in lifecycle_config
+        or 'autoStopTtl' in lifecycle_config
+        or 'autoStopTime' in lifecycle_config
+    ):
+      return 'enabled'
+  return ''
+
+
+@base.UniverseCompatible
 class List(base.ListCommand):
   """View a list of clusters in a project.
 
@@ -88,9 +109,14 @@ class List(base.ListCommand):
                 gkeClusterConfig.namespacedGkeDeploymentTarget.targetGkeCluster,
                 gceClusterConfig.zoneUri
               ).scope('locations').segment(0):label=ZONE,
-            config.lifecycleConfig.yesno(yes=enabled, no=''):label=SCHEDULED_DELETE
+            has_scheduled_delete():label=SCHEDULED_DELETE,
+            has_scheduled_stop():label=SCHEDULED_STOP
           )
     """)
+    parser.display_info.AddTransforms({
+        'has_scheduled_delete': _HasScheduledDelete,
+        'has_scheduled_stop': _HasScheduledStop,
+    })
 
   def Run(self, args):
     dataproc = dp.Dataproc(self.ReleaseTrack())
@@ -106,7 +132,8 @@ class List(base.ListCommand):
         limit=args.limit,
         field='clusters',
         batch_size=args.page_size,
-        batch_size_attribute='pageSize')
+        batch_size_attribute='pageSize',
+    )
 
   @staticmethod
   def GetRequest(messages, project, region, args):
@@ -118,4 +145,5 @@ class List(base.ListCommand):
       args.filter = None
 
     return messages.DataprocProjectsRegionsClustersListRequest(
-        projectId=project, region=region, filter=backend_filter)
+        projectId=project, region=region, filter=backend_filter
+    )

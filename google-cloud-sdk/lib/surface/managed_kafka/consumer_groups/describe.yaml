@@ -1,11 +1,10 @@
-release_tracks: [ALPHA]
-hidden: true
+release_tracks: [GA, ALPHA, BETA]
 
 help_text:
   brief: |
-    Describe an Apache Kafka for BigQuery consumer group.
+    Describe a Managed Service for Apache Kafka consumer group.
   description: |
-    Describe an Apache Kafka for BigQuery consumer group.
+    Describe a Managed Service for Apache Kafka consumer group.
 
   examples: |
     To describe a consumer group in a cluster named mycluster located in us-central1,

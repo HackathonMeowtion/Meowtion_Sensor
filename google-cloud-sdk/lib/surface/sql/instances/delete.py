@@ -21,7 +21,6 @@ from __future__ import unicode_literals
 from apitools.base.py import exceptions
 
 from googlecloudsdk.api_lib.sql import api_util
-from googlecloudsdk.api_lib.sql import exceptions as sql_exceptions
 from googlecloudsdk.api_lib.sql import operations
 from googlecloudsdk.api_lib.sql import validate
 from googlecloudsdk.calliope import base
@@ -32,6 +31,7 @@ from googlecloudsdk.core.console import console_io
 import six
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA, base.ReleaseTrack.BETA,
                     base.ReleaseTrack.ALPHA)
 class Delete(base.Command):
@@ -51,10 +51,11 @@ class Delete(base.Command):
         'instance',
         completer=flags.InstanceCompleter,
         help='Cloud SQL instance ID.')
-    flags.AddSkipFinalBackup(parser)
-    flags.AddFinalbackupRetentionDays(parser)
+    flags.AddEnableFinalBackup(parser)
     flags.AddFinalbackupDescription(parser)
-    flags.AddFinalBackupExpiryTimeArgument(parser)
+    expiration = parser.add_mutually_exclusive_group(required=False)
+    flags.AddFinalBackupExpiryTimeArgument(expiration)
+    flags.AddFinalbackupRetentionDays(expiration)
 
   def Run(self, args):
     """Deletes a Cloud SQL instance.
@@ -67,13 +68,6 @@ class Delete(base.Command):
       A dict object representing the operations resource describing the delete
       operation if the delete was successful.
     """
-    if args.IsSpecified('final_backup_expiry_time') and args.IsSpecified(
-        'final_backup_retention_days'
-    ):
-      raise sql_exceptions.ArgumentError(
-          '`--final-backup-expiry-time` and `--final-backup-retention-days`'
-          ' both cannot be specified. Only one of them can be provided.'
-      )
     client = api_util.SqlClient(api_util.API_VERSION_DEFAULT)
     sql_client = client.sql_client
     sql_messages = client.sql_messages
@@ -83,26 +77,64 @@ class Delete(base.Command):
     instance_ref = client.resource_parser.Parse(
         args.instance,
         params={'project': properties.VALUES.core.project.GetOrFail},
-        collection='sql.instances')
+        collection='sql.instances',
+    )
 
-    if not console_io.PromptContinue(
-        'All of the instance data will be lost when the instance is deleted.'):
+    try:
+      instance_resource = sql_client.instances.Get(
+          sql_messages.SqlInstancesGetRequest(
+              project=instance_ref.project, instance=instance_ref.instance
+          )
+      )
+    except exceptions.HttpError as error:
+      instance_resource = None
+      # We do not want to raise an error here to be consistent with the
+      # previous behavior. The Get and Delete have different IAM auth
+      # permissions. GET requires READ, and DELETE requires WRITE.
+      log.debug(
+          'Ignoring the error to get instance resource : %s',
+          six.text_type(error),
+      )
+
+    if (
+        instance_resource is not None
+        and instance_resource.settings.retainBackupsOnDelete
+    ):
+      prompt = (
+          'All of the instance data will be lost except the existing backups'
+          ' when the instance is deleted.'
+      )
+    else:
+      # TODO(b/361801536): Update the message to a link that points to public
+      # doc about how to retain the automated and ondemand backups.
+      # As the feature is not yet public, we do not have a link right now.
+      prompt = (
+          'All of the instance data will be lost when the instance is deleted.'
+      )
+
+    if not console_io.PromptContinue(prompt):
       return None
 
     expiry_time = None
-    retention_days = args.final_backup_retention_days
+    if (
+        args.final_backup_retention_days is not None
+        and args.final_backup_retention_days > 0
+    ):
+      retention_days = args.final_backup_retention_days
+    else:
+      retention_days = None
+
     if args.final_backup_expiry_time is not None:
       expiry_time = args.final_backup_expiry_time.strftime(
           '%Y-%m-%dT%H:%M:%S.%fZ'
       )
-      retention_days = None
 
     try:
       result = sql_client.instances.Delete(
           sql_messages.SqlInstancesDeleteRequest(
               instance=instance_ref.instance,
               project=instance_ref.project,
-              skipFinalBackup=args.skip_final_backup,
+              enableFinalBackup=args.enable_final_backup,
               finalBackupTtlDays=retention_days,
               finalBackupDescription=args.final_backup_description,
               finalBackupExpiryTime=expiry_time,

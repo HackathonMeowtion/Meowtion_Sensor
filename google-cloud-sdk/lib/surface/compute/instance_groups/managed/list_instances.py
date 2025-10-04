@@ -31,6 +31,7 @@ from googlecloudsdk.command_lib.compute import scope as compute_scope
 from googlecloudsdk.command_lib.compute.instance_groups import flags as instance_groups_flags
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class ListInstances(base.ListCommand):
   """List Compute Engine instances present in managed instance group."""
@@ -139,6 +140,18 @@ ListInstancesBeta.detailed_help = ListInstances.detailed_help
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
 class ListInstancesAlpha(ListInstances):
   """List Compute Engine instances present in managed instance group."""
+
+  def Run(self, args):
+    managed_instances = super().Run(args)
+    # if uri and format is not provided by the user, then change the output to
+    # hide dynamic fields if they are not present in fetched instances
+    if not args.uri and not args.IsSpecified('format'):
+      args.format = (
+          instance_groups_flags.GetListInstancesOutputWithDynamicFields(
+              managed_instances, base.ReleaseTrack.ALPHA
+          )
+      )
+    return managed_instances
 
   @staticmethod
   def Args(parser):

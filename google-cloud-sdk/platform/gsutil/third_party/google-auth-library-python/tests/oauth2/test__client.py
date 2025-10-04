@@ -13,18 +13,18 @@
 # limitations under the License.
 
 import datetime
+import http.client as http_client
 import json
 import os
+import urllib
 
 import mock
 import pytest  # type: ignore
-import six
-from six.moves import http_client
-from six.moves import urllib
 
 from google.auth import _helpers
 from google.auth import crypt
 from google.auth import exceptions
+from google.auth import iam
 from google.auth import jwt
 from google.auth import transport
 from google.oauth2 import _client
@@ -44,6 +44,13 @@ SCOPES_AS_LIST = [
 SCOPES_AS_STRING = (
     "https://www.googleapis.com/auth/pubsub"
     " https://www.googleapis.com/auth/logging.write"
+)
+
+ACCESS_TOKEN_REQUEST_METRICS_HEADER_VALUE = (
+    "gl-python/3.7 auth/1.1 auth-request-type/at cred-type/sa"
+)
+ID_TOKEN_REQUEST_METRICS_HEADER_VALUE = (
+    "gl-python/3.7 auth/1.1 auth-request-type/it cred-type/sa"
 )
 
 
@@ -187,8 +194,8 @@ def test__token_endpoint_request_internal_failure_error():
         _client._token_endpoint_request(
             request, "http://example.com", {"error_description": "internal_failure"}
         )
-    # request should be called once and then with 3 retries
-    assert request.call_count == 4
+    # request with 2 retries
+    assert request.call_count == 3
 
     request = make_request(
         {"error": "internal_failure"}, status=http_client.BAD_REQUEST
@@ -198,8 +205,8 @@ def test__token_endpoint_request_internal_failure_error():
         _client._token_endpoint_request(
             request, "http://example.com", {"error": "internal_failure"}
         )
-    # request should be called once and then with 3 retries
-    assert request.call_count == 4
+    # request with 2 retries
+    assert request.call_count == 3
 
 
 def test__token_endpoint_request_internal_failure_and_retry_failure_error():
@@ -266,7 +273,7 @@ def verify_request_params(request, params):
     request_body = request.call_args[1]["body"].decode("utf-8")
     request_params = urllib.parse.parse_qs(request_body)
 
-    for key, value in six.iteritems(params):
+    for key, value in params.items():
         assert request_params[key][0] == value
 
 
@@ -312,7 +319,12 @@ def test_call_iam_generate_id_token_endpoint():
     request = make_request({"token": id_token})
 
     token, expiry = _client.call_iam_generate_id_token_endpoint(
-        request, "fake_email", "fake_audience", "fake_access_token"
+        request,
+        iam._IAM_IDTOKEN_ENDPOINT,
+        "fake_email",
+        "fake_audience",
+        "fake_access_token",
+        "googleapis.com",
     )
 
     assert (
@@ -345,7 +357,12 @@ def test_call_iam_generate_id_token_endpoint_no_id_token():
 
     with pytest.raises(exceptions.RefreshError) as excinfo:
         _client.call_iam_generate_id_token_endpoint(
-            request, "fake_email", "fake_audience", "fake_access_token"
+            request,
+            iam._IAM_IDTOKEN_ENDPOINT,
+            "fake_email",
+            "fake_audience",
+            "fake_access_token",
+            "googleapis.com",
         )
     assert excinfo.match("No ID token in response")
 
@@ -483,47 +500,83 @@ def test_refresh_grant_no_access_token():
     assert not excinfo.value.retryable
 
 
+@mock.patch(
+    "google.auth.metrics.token_request_access_token_sa_assertion",
+    return_value=ACCESS_TOKEN_REQUEST_METRICS_HEADER_VALUE,
+)
 @mock.patch("google.oauth2._client._parse_expiry", return_value=None)
 @mock.patch.object(_client, "_token_endpoint_request", autospec=True)
-def test_jwt_grant_retry_default(mock_token_endpoint_request, mock_expiry):
+def test_jwt_grant_retry_default(
+    mock_token_endpoint_request, mock_expiry, mock_metrics_header_value
+):
     _client.jwt_grant(mock.Mock(), mock.Mock(), mock.Mock())
     mock_token_endpoint_request.assert_called_with(
-        mock.ANY, mock.ANY, mock.ANY, can_retry=True
+        mock.ANY,
+        mock.ANY,
+        mock.ANY,
+        can_retry=True,
+        headers={"x-goog-api-client": ACCESS_TOKEN_REQUEST_METRICS_HEADER_VALUE},
     )
 
 
 @pytest.mark.parametrize("can_retry", [True, False])
+@mock.patch(
+    "google.auth.metrics.token_request_access_token_sa_assertion",
+    return_value=ACCESS_TOKEN_REQUEST_METRICS_HEADER_VALUE,
+)
 @mock.patch("google.oauth2._client._parse_expiry", return_value=None)
 @mock.patch.object(_client, "_token_endpoint_request", autospec=True)
 def test_jwt_grant_retry_with_retry(
-    mock_token_endpoint_request, mock_expiry, can_retry
+    mock_token_endpoint_request, mock_expiry, mock_metrics_header_value, can_retry
 ):
     _client.jwt_grant(mock.Mock(), mock.Mock(), mock.Mock(), can_retry=can_retry)
     mock_token_endpoint_request.assert_called_with(
-        mock.ANY, mock.ANY, mock.ANY, can_retry=can_retry
+        mock.ANY,
+        mock.ANY,
+        mock.ANY,
+        can_retry=can_retry,
+        headers={"x-goog-api-client": ACCESS_TOKEN_REQUEST_METRICS_HEADER_VALUE},
     )
 
 
+@mock.patch(
+    "google.auth.metrics.token_request_id_token_sa_assertion",
+    return_value=ID_TOKEN_REQUEST_METRICS_HEADER_VALUE,
+)
 @mock.patch("google.auth.jwt.decode", return_value={"exp": 0})
 @mock.patch.object(_client, "_token_endpoint_request", autospec=True)
-def test_id_token_jwt_grant_retry_default(mock_token_endpoint_request, mock_jwt_decode):
+def test_id_token_jwt_grant_retry_default(
+    mock_token_endpoint_request, mock_jwt_decode, mock_metrics_header_value
+):
     _client.id_token_jwt_grant(mock.Mock(), mock.Mock(), mock.Mock())
     mock_token_endpoint_request.assert_called_with(
-        mock.ANY, mock.ANY, mock.ANY, can_retry=True
+        mock.ANY,
+        mock.ANY,
+        mock.ANY,
+        can_retry=True,
+        headers={"x-goog-api-client": ID_TOKEN_REQUEST_METRICS_HEADER_VALUE},
     )
 
 
 @pytest.mark.parametrize("can_retry", [True, False])
+@mock.patch(
+    "google.auth.metrics.token_request_id_token_sa_assertion",
+    return_value=ID_TOKEN_REQUEST_METRICS_HEADER_VALUE,
+)
 @mock.patch("google.auth.jwt.decode", return_value={"exp": 0})
 @mock.patch.object(_client, "_token_endpoint_request", autospec=True)
 def test_id_token_jwt_grant_retry_with_retry(
-    mock_token_endpoint_request, mock_jwt_decode, can_retry
+    mock_token_endpoint_request, mock_jwt_decode, mock_metrics_header_value, can_retry
 ):
     _client.id_token_jwt_grant(
         mock.Mock(), mock.Mock(), mock.Mock(), can_retry=can_retry
     )
     mock_token_endpoint_request.assert_called_with(
-        mock.ANY, mock.ANY, mock.ANY, can_retry=can_retry
+        mock.ANY,
+        mock.ANY,
+        mock.ANY,
+        can_retry=can_retry,
+        headers={"x-goog-api-client": ID_TOKEN_REQUEST_METRICS_HEADER_VALUE},
     )
 
 
@@ -574,6 +627,6 @@ def test__token_endpoint_request_no_throw_with_retry(can_retry):
     )
 
     if can_retry:
-        assert mock_request.call_count == 4
+        assert mock_request.call_count == 3
     else:
         assert mock_request.call_count == 1

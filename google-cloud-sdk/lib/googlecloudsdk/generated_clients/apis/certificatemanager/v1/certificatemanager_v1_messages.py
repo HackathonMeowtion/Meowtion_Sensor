@@ -39,7 +39,7 @@ class AuthorizationAttemptInfo(_messages.Message):
     details: Output only. Human readable explanation for reaching the state.
       Provided to help address the configuration issues. Not guaranteed to be
       stable. For programmatic access use FailureReason enum.
-    domain: Domain name of the authorization attempt.
+    domain: Output only. Domain name of the authorization attempt.
     failureReason: Output only. Reason for failure of the authorization
       attempt for the domain.
     state: Output only. State of the domain for managed certificate issuance.
@@ -95,51 +95,64 @@ class Certificate(_messages.Message):
   r"""Defines TLS certificate.
 
   Enums:
-    ScopeValueValuesEnum: Immutable. The scope of the certificate.
+    ScopeValueValuesEnum: Optional. Immutable. The scope of the certificate.
 
   Messages:
-    LabelsValue: Set of labels associated with a Certificate.
+    LabelsValue: Optional. Set of labels associated with a Certificate.
+    TagsValue: Optional. Input only. Immutable. Tag keys/values directly bound
+      to this resource. For example: "123/environment": "production",
+      "123/costCenter": "marketing"
 
   Fields:
     createTime: Output only. The creation timestamp of a Certificate.
-    description: One or more paragraphs of text description of a certificate.
+    description: Optional. One or more paragraphs of text description of a
+      certificate.
     expireTime: Output only. The expiry timestamp of a Certificate.
-    labels: Set of labels associated with a Certificate.
+    labels: Optional. Set of labels associated with a Certificate.
     managed: If set, contains configuration and state of a managed
       certificate.
-    name: A user-defined name of the certificate. Certificate names must be
-      unique globally and match pattern
+    name: Identifier. A user-defined name of the certificate. Certificate
+      names must be unique globally and match pattern
       `projects/*/locations/*/certificates/*`.
     pemCertificate: Output only. The PEM-encoded certificate chain.
     sanDnsnames: Output only. The list of Subject Alternative Names of dnsName
       type defined in the certificate (see RFC 5280 4.2.1.6). Managed
       certificates that haven't been provisioned yet have this field populated
       with a value of the managed.domains field.
-    scope: Immutable. The scope of the certificate.
+    scope: Optional. Immutable. The scope of the certificate.
     selfManaged: If set, defines data of a self-managed certificate.
+    tags: Optional. Input only. Immutable. Tag keys/values directly bound to
+      this resource. For example: "123/environment": "production",
+      "123/costCenter": "marketing"
     updateTime: Output only. The last update timestamp of a Certificate.
+    usedBy: Output only. The list of resources that use this Certificate.
   """
 
   class ScopeValueValuesEnum(_messages.Enum):
-    r"""Immutable. The scope of the certificate.
+    r"""Optional. Immutable. The scope of the certificate.
 
     Values:
-      DEFAULT: Certificates with default scope are served from core Google
-        data centers. If unsure, choose this option.
-      EDGE_CACHE: Certificates with scope EDGE_CACHE are special-purposed
-        certificates, served from Edge Points of Presence. See
-        https://cloud.google.com/vpc/docs/edge-locations.
-      ALL_REGIONS: Certificates with ALL_REGIONS scope are served from all
-        Google Cloud regions. See
+      DEFAULT: Use the DEFAULT scope if you plan to use the certificate with
+        global external Application Load Balancer, global external proxy
+        Network Load Balancer, or any of the regional Google Cloud services.
+      EDGE_CACHE: Use the EDGE_CACHE scope if you plan to use the certificate
+        with Media CDN. The certificates are served from Edge Points of
+        Presence. See https://cloud.google.com/vpc/docs/edge-locations.
+      ALL_REGIONS: Use the ALL_REGIONS scope if you plan to use the
+        certificate with cross-region internal Application Load Balancer. The
+        certificates are served from all Google Cloud regions. See
         https://cloud.google.com/compute/docs/regions-zones.
+      CLIENT_AUTH: Associated with certificates used as client certificates in
+        Backend mTLS.
     """
     DEFAULT = 0
     EDGE_CACHE = 1
     ALL_REGIONS = 2
+    CLIENT_AUTH = 3
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
-    r"""Set of labels associated with a Certificate.
+    r"""Optional. Set of labels associated with a Certificate.
 
     Messages:
       AdditionalProperty: An additional property for a LabelsValue object.
@@ -161,6 +174,32 @@ class Certificate(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class TagsValue(_messages.Message):
+    r"""Optional. Input only. Immutable. Tag keys/values directly bound to
+    this resource. For example: "123/environment": "production",
+    "123/costCenter": "marketing"
+
+    Messages:
+      AdditionalProperty: An additional property for a TagsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type TagsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a TagsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
   createTime = _messages.StringField(1)
   description = _messages.StringField(2)
   expireTime = _messages.StringField(3)
@@ -171,7 +210,9 @@ class Certificate(_messages.Message):
   sanDnsnames = _messages.StringField(8, repeated=True)
   scope = _messages.EnumField('ScopeValueValuesEnum', 9)
   selfManaged = _messages.MessageField('SelfManagedCertificate', 10)
-  updateTime = _messages.StringField(11)
+  tags = _messages.MessageField('TagsValue', 11)
+  updateTime = _messages.StringField(12)
+  usedBy = _messages.MessageField('UsedBy', 13, repeated=True)
 
 
 class CertificateAuthorityConfig(_messages.Message):
@@ -207,7 +248,11 @@ class CertificateIssuanceConfig(_messages.Message):
       generating the private key.
 
   Messages:
-    LabelsValue: Set of labels associated with a CertificateIssuanceConfig.
+    LabelsValue: Optional. Set of labels associated with a
+      CertificateIssuanceConfig.
+    TagsValue: Optional. Input only. Immutable. Tag keys/values directly bound
+      to this resource. For example: "123/environment": "production",
+      "123/costCenter": "marketing"
 
   Fields:
     certificateAuthorityConfig: Required. The CA that issues the workload
@@ -215,18 +260,22 @@ class CertificateIssuanceConfig(_messages.Message):
       service, etc.
     createTime: Output only. The creation timestamp of a
       CertificateIssuanceConfig.
-    description: One or more paragraphs of text description of a
+    description: Optional. One or more paragraphs of text description of a
       CertificateIssuanceConfig.
     keyAlgorithm: Required. The key algorithm to use when generating the
       private key.
-    labels: Set of labels associated with a CertificateIssuanceConfig.
+    labels: Optional. Set of labels associated with a
+      CertificateIssuanceConfig.
     lifetime: Required. Workload certificate lifetime requested.
-    name: A user-defined name of the certificate issuance config.
+    name: Identifier. A user-defined name of the certificate issuance config.
       CertificateIssuanceConfig names must be unique globally and match
       pattern `projects/*/locations/*/certificateIssuanceConfigs/*`.
     rotationWindowPercentage: Required. Specifies the percentage of elapsed
       time of the certificate lifetime to wait before renewing the
       certificate. Must be a number between 1-99, inclusive.
+    tags: Optional. Input only. Immutable. Tag keys/values directly bound to
+      this resource. For example: "123/environment": "production",
+      "123/costCenter": "marketing"
     updateTime: Output only. The last update timestamp of a
       CertificateIssuanceConfig.
   """
@@ -245,7 +294,7 @@ class CertificateIssuanceConfig(_messages.Message):
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
-    r"""Set of labels associated with a CertificateIssuanceConfig.
+    r"""Optional. Set of labels associated with a CertificateIssuanceConfig.
 
     Messages:
       AdditionalProperty: An additional property for a LabelsValue object.
@@ -256,6 +305,32 @@ class CertificateIssuanceConfig(_messages.Message):
 
     class AdditionalProperty(_messages.Message):
       r"""An additional property for a LabelsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class TagsValue(_messages.Message):
+    r"""Optional. Input only. Immutable. Tag keys/values directly bound to
+    this resource. For example: "123/environment": "production",
+    "123/costCenter": "marketing"
+
+    Messages:
+      AdditionalProperty: An additional property for a TagsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type TagsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a TagsValue object.
 
       Fields:
         key: Name of the additional property.
@@ -275,32 +350,39 @@ class CertificateIssuanceConfig(_messages.Message):
   lifetime = _messages.StringField(6)
   name = _messages.StringField(7)
   rotationWindowPercentage = _messages.IntegerField(8, variant=_messages.Variant.INT32)
-  updateTime = _messages.StringField(9)
+  tags = _messages.MessageField('TagsValue', 9)
+  updateTime = _messages.StringField(10)
 
 
 class CertificateMap(_messages.Message):
   r"""Defines a collection of certificate configurations.
 
   Messages:
-    LabelsValue: Set of labels associated with a Certificate Map.
+    LabelsValue: Optional. Set of labels associated with a Certificate Map.
+    TagsValue: Optional. Input only. Immutable. Tag keys/values directly bound
+      to this resource. For example: "123/environment": "production",
+      "123/costCenter": "marketing"
 
   Fields:
     createTime: Output only. The creation timestamp of a Certificate Map.
-    description: One or more paragraphs of text description of a certificate
-      map.
+    description: Optional. One or more paragraphs of text description of a
+      certificate map.
     gclbTargets: Output only. A list of GCLB targets that use this Certificate
       Map. A Target Proxy is only present on this list if it's attached to a
       Forwarding Rule.
-    labels: Set of labels associated with a Certificate Map.
-    name: A user-defined name of the Certificate Map. Certificate Map names
-      must be unique globally and match pattern
+    labels: Optional. Set of labels associated with a Certificate Map.
+    name: Identifier. A user-defined name of the Certificate Map. Certificate
+      Map names must be unique globally and match pattern
       `projects/*/locations/*/certificateMaps/*`.
+    tags: Optional. Input only. Immutable. Tag keys/values directly bound to
+      this resource. For example: "123/environment": "production",
+      "123/costCenter": "marketing"
     updateTime: Output only. The update timestamp of a Certificate Map.
   """
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
-    r"""Set of labels associated with a Certificate Map.
+    r"""Optional. Set of labels associated with a Certificate Map.
 
     Messages:
       AdditionalProperty: An additional property for a LabelsValue object.
@@ -322,12 +404,39 @@ class CertificateMap(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class TagsValue(_messages.Message):
+    r"""Optional. Input only. Immutable. Tag keys/values directly bound to
+    this resource. For example: "123/environment": "production",
+    "123/costCenter": "marketing"
+
+    Messages:
+      AdditionalProperty: An additional property for a TagsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type TagsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a TagsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
   createTime = _messages.StringField(1)
   description = _messages.StringField(2)
   gclbTargets = _messages.MessageField('GclbTarget', 3, repeated=True)
   labels = _messages.MessageField('LabelsValue', 4)
   name = _messages.StringField(5)
-  updateTime = _messages.StringField(6)
+  tags = _messages.MessageField('TagsValue', 6)
+  updateTime = _messages.StringField(7)
 
 
 class CertificateMapEntry(_messages.Message):
@@ -340,25 +449,26 @@ class CertificateMapEntry(_messages.Message):
       Entry.
 
   Messages:
-    LabelsValue: Set of labels associated with a Certificate Map Entry.
+    LabelsValue: Optional. Set of labels associated with a Certificate Map
+      Entry.
 
   Fields:
-    certificates: A set of Certificates defines for the given `hostname`.
-      There can be defined up to four certificates in each Certificate Map
-      Entry. Each certificate must match pattern
+    certificates: Optional. A set of Certificates defines for the given
+      `hostname`. There can be defined up to four certificates in each
+      Certificate Map Entry. Each certificate must match pattern
       `projects/*/locations/*/certificates/*`.
     createTime: Output only. The creation timestamp of a Certificate Map
       Entry.
-    description: One or more paragraphs of text description of a certificate
-      map entry.
+    description: Optional. One or more paragraphs of text description of a
+      certificate map entry.
     hostname: A Hostname (FQDN, e.g. `example.com`) or a wildcard hostname
       expression (`*.example.com`) for a set of hostnames with common suffix.
       Used as Server Name Indication (SNI) for selecting a proper certificate.
-    labels: Set of labels associated with a Certificate Map Entry.
+    labels: Optional. Set of labels associated with a Certificate Map Entry.
     matcher: A predefined matcher for particular cases, other than SNI
       selection.
-    name: A user-defined name of the Certificate Map Entry. Certificate Map
-      Entry names must be unique globally and match pattern
+    name: Identifier. A user-defined name of the Certificate Map Entry.
+      Certificate Map Entry names must be unique globally and match pattern
       `projects/*/locations/*/certificateMaps/*/certificateMapEntries/*`.
     state: Output only. A serving state of this Certificate Map Entry.
     updateTime: Output only. The update timestamp of a Certificate Map Entry.
@@ -390,7 +500,7 @@ class CertificateMapEntry(_messages.Message):
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
-    r"""Set of labels associated with a Certificate Map Entry.
+    r"""Optional. Set of labels associated with a Certificate Map Entry.
 
     Messages:
       AdditionalProperty: An additional property for a LabelsValue object.
@@ -475,12 +585,15 @@ class CertificatemanagerProjectsLocationsCertificateIssuanceConfigsListRequest(_
   object.
 
   Fields:
-    filter: Filter expression to restrict the Certificates Configs returned.
-    orderBy: A list of Certificate Config field names used to specify the
-      order of the returned results. The default sorting order is ascending.
-      To specify descending order for a field, add a suffix `" desc"`.
-    pageSize: Maximum number of certificate configs to return per call.
-    pageToken: The value returned by the last
+    filter: Optional. Filter expression to restrict the Certificates Configs
+      returned.
+    orderBy: Optional. A list of Certificate Config field names used to
+      specify the order of the returned results. The default sorting order is
+      ascending. To specify descending order for a field, add a suffix `"
+      desc"`.
+    pageSize: Optional. Maximum number of certificate configs to return per
+      call.
+    pageToken: Optional. The value returned by the last
       `ListCertificateIssuanceConfigsResponse`. Indicates that this is a
       continuation of a prior `ListCertificateIssuanceConfigs` call, and that
       the system should return the next page of data.
@@ -493,6 +606,27 @@ class CertificatemanagerProjectsLocationsCertificateIssuanceConfigsListRequest(_
   pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
   pageToken = _messages.StringField(4)
   parent = _messages.StringField(5, required=True)
+
+
+class CertificatemanagerProjectsLocationsCertificateIssuanceConfigsPatchRequest(_messages.Message):
+  r"""A
+  CertificatemanagerProjectsLocationsCertificateIssuanceConfigsPatchRequest
+  object.
+
+  Fields:
+    certificateIssuanceConfig: A CertificateIssuanceConfig resource to be
+      passed as the request body.
+    name: Identifier. A user-defined name of the certificate issuance config.
+      CertificateIssuanceConfig names must be unique globally and match
+      pattern `projects/*/locations/*/certificateIssuanceConfigs/*`.
+    updateMask: Required. The update mask applies to the resource. For the
+      `FieldMask` definition, see https://developers.google.com/protocol-
+      buffers/docs/reference/google.protobuf#fieldmask.
+  """
+
+  certificateIssuanceConfig = _messages.MessageField('CertificateIssuanceConfig', 1)
+  name = _messages.StringField(2, required=True)
+  updateMask = _messages.StringField(3)
 
 
 class CertificatemanagerProjectsLocationsCertificateMapsCertificateMapEntriesCreateRequest(_messages.Message):
@@ -544,16 +678,17 @@ class CertificatemanagerProjectsLocationsCertificateMapsCertificateMapEntriesLis
   sListRequest object.
 
   Fields:
-    filter: Filter expression to restrict the returned Certificate Map
-      Entries.
-    orderBy: A list of Certificate Map Entry field names used to specify the
-      order of the returned results. The default sorting order is ascending.
-      To specify descending order for a field, add a suffix `" desc"`.
-    pageSize: Maximum number of certificate map entries to return. The service
-      may return fewer than this value. If unspecified, at most 50 certificate
-      map entries will be returned. The maximum value is 1000; values above
-      1000 will be coerced to 1000.
-    pageToken: The value returned by the last
+    filter: Optional. Filter expression to restrict the returned Certificate
+      Map Entries.
+    orderBy: Optional. A list of Certificate Map Entry field names used to
+      specify the order of the returned results. The default sorting order is
+      ascending. To specify descending order for a field, add a suffix `"
+      desc"`.
+    pageSize: Optional. Maximum number of certificate map entries to return.
+      The service may return fewer than this value. If unspecified, at most 50
+      certificate map entries will be returned. The maximum value is 1000;
+      values above 1000 will be coerced to 1000.
+    pageToken: Optional. The value returned by the last
       `ListCertificateMapEntriesResponse`. Indicates that this is a
       continuation of a prior `ListCertificateMapEntries` call, and that the
       system should return the next page of data.
@@ -576,8 +711,8 @@ class CertificatemanagerProjectsLocationsCertificateMapsCertificateMapEntriesPat
   Fields:
     certificateMapEntry: A CertificateMapEntry resource to be passed as the
       request body.
-    name: A user-defined name of the Certificate Map Entry. Certificate Map
-      Entry names must be unique globally and match pattern
+    name: Identifier. A user-defined name of the Certificate Map Entry.
+      Certificate Map Entry names must be unique globally and match pattern
       `projects/*/locations/*/certificateMaps/*/certificateMapEntries/*`.
     updateMask: Required. The update mask applies to the resource. For the
       `FieldMask` definition, see https://developers.google.com/protocol-
@@ -633,14 +768,17 @@ class CertificatemanagerProjectsLocationsCertificateMapsListRequest(_messages.Me
   r"""A CertificatemanagerProjectsLocationsCertificateMapsListRequest object.
 
   Fields:
-    filter: Filter expression to restrict the Certificates Maps returned.
-    orderBy: A list of Certificate Map field names used to specify the order
-      of the returned results. The default sorting order is ascending. To
-      specify descending order for a field, add a suffix `" desc"`.
-    pageSize: Maximum number of certificate maps to return per call.
-    pageToken: The value returned by the last `ListCertificateMapsResponse`.
-      Indicates that this is a continuation of a prior `ListCertificateMaps`
-      call, and that the system should return the next page of data.
+    filter: Optional. Filter expression to restrict the Certificates Maps
+      returned.
+    orderBy: Optional. A list of Certificate Map field names used to specify
+      the order of the returned results. The default sorting order is
+      ascending. To specify descending order for a field, add a suffix `"
+      desc"`.
+    pageSize: Optional. Maximum number of certificate maps to return per call.
+    pageToken: Optional. The value returned by the last
+      `ListCertificateMapsResponse`. Indicates that this is a continuation of
+      a prior `ListCertificateMaps` call, and that the system should return
+      the next page of data.
     parent: Required. The project and location from which the certificate maps
       should be listed, specified in the format `projects/*/locations/*`.
   """
@@ -658,8 +796,8 @@ class CertificatemanagerProjectsLocationsCertificateMapsPatchRequest(_messages.M
   Fields:
     certificateMap: A CertificateMap resource to be passed as the request
       body.
-    name: A user-defined name of the Certificate Map. Certificate Map names
-      must be unique globally and match pattern
+    name: Identifier. A user-defined name of the Certificate Map. Certificate
+      Map names must be unique globally and match pattern
       `projects/*/locations/*/certificateMaps/*`.
     updateMask: Required. The update mask applies to the resource. For the
       `FieldMask` definition, see https://developers.google.com/protocol-
@@ -712,14 +850,15 @@ class CertificatemanagerProjectsLocationsCertificatesListRequest(_messages.Messa
   r"""A CertificatemanagerProjectsLocationsCertificatesListRequest object.
 
   Fields:
-    filter: Filter expression to restrict the Certificates returned.
-    orderBy: A list of Certificate field names used to specify the order of
-      the returned results. The default sorting order is ascending. To specify
-      descending order for a field, add a suffix `" desc"`.
-    pageSize: Maximum number of certificates to return per call.
-    pageToken: The value returned by the last `ListCertificatesResponse`.
-      Indicates that this is a continuation of a prior `ListCertificates`
-      call, and that the system should return the next page of data.
+    filter: Optional. Filter expression to restrict the Certificates returned.
+    orderBy: Optional. A list of Certificate field names used to specify the
+      order of the returned results. The default sorting order is ascending.
+      To specify descending order for a field, add a suffix `" desc"`.
+    pageSize: Optional. Maximum number of certificates to return per call.
+    pageToken: Optional. The value returned by the last
+      `ListCertificatesResponse`. Indicates that this is a continuation of a
+      prior `ListCertificates` call, and that the system should return the
+      next page of data.
     parent: Required. The project and location from which the certificate
       should be listed, specified in the format `projects/*/locations/*`.
   """
@@ -736,8 +875,8 @@ class CertificatemanagerProjectsLocationsCertificatesPatchRequest(_messages.Mess
 
   Fields:
     certificate: A Certificate resource to be passed as the request body.
-    name: A user-defined name of the certificate. Certificate names must be
-      unique globally and match pattern
+    name: Identifier. A user-defined name of the certificate. Certificate
+      names must be unique globally and match pattern
       `projects/*/locations/*/certificates/*`.
     updateMask: Required. The update mask applies to the resource. For the
       `FieldMask` definition, see https://developers.google.com/protocol-
@@ -795,14 +934,18 @@ class CertificatemanagerProjectsLocationsDnsAuthorizationsListRequest(_messages.
   object.
 
   Fields:
-    filter: Filter expression to restrict the Dns Authorizations returned.
-    orderBy: A list of Dns Authorization field names used to specify the order
-      of the returned results. The default sorting order is ascending. To
-      specify descending order for a field, add a suffix `" desc"`.
-    pageSize: Maximum number of dns authorizations to return per call.
-    pageToken: The value returned by the last `ListDnsAuthorizationsResponse`.
-      Indicates that this is a continuation of a prior `ListDnsAuthorizations`
-      call, and that the system should return the next page of data.
+    filter: Optional. Filter expression to restrict the Dns Authorizations
+      returned.
+    orderBy: Optional. A list of Dns Authorization field names used to specify
+      the order of the returned results. The default sorting order is
+      ascending. To specify descending order for a field, add a suffix `"
+      desc"`.
+    pageSize: Optional. Maximum number of dns authorizations to return per
+      call.
+    pageToken: Optional. The value returned by the last
+      `ListDnsAuthorizationsResponse`. Indicates that this is a continuation
+      of a prior `ListDnsAuthorizations` call, and that the system should
+      return the next page of data.
     parent: Required. The project and location from which the dns
       authorizations should be listed, specified in the format
       `projects/*/locations/*`.
@@ -822,8 +965,8 @@ class CertificatemanagerProjectsLocationsDnsAuthorizationsPatchRequest(_messages
   Fields:
     dnsAuthorization: A DnsAuthorization resource to be passed as the request
       body.
-    name: A user-defined name of the dns authorization. DnsAuthorization names
-      must be unique globally and match pattern
+    name: Identifier. A user-defined name of the dns authorization.
+      DnsAuthorization names must be unique globally and match pattern
       `projects/*/locations/*/dnsAuthorizations/*`.
     updateMask: Required. The update mask applies to the resource. For the
       `FieldMask` definition, see https://developers.google.com/protocol-
@@ -849,6 +992,9 @@ class CertificatemanagerProjectsLocationsListRequest(_messages.Message):
   r"""A CertificatemanagerProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -859,10 +1005,11 @@ class CertificatemanagerProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class CertificatemanagerProjectsLocationsOperationsCancelRequest(_messages.Message):
@@ -934,9 +1081,9 @@ class CertificatemanagerProjectsLocationsTrustConfigsDeleteRequest(_messages.Mes
   r"""A CertificatemanagerProjectsLocationsTrustConfigsDeleteRequest object.
 
   Fields:
-    etag: The current etag of the TrustConfig. If an etag is provided and does
-      not match the current etag of the resource, deletion will be blocked and
-      an ABORTED error will be returned.
+    etag: Optional. The current etag of the TrustConfig. If an etag is
+      provided and does not match the current etag of the resource, deletion
+      will be blocked and an ABORTED error will be returned.
     name: Required. A name of the TrustConfig to delete. Must be in the format
       `projects/*/locations/*/trustConfigs/*`.
   """
@@ -960,14 +1107,15 @@ class CertificatemanagerProjectsLocationsTrustConfigsListRequest(_messages.Messa
   r"""A CertificatemanagerProjectsLocationsTrustConfigsListRequest object.
 
   Fields:
-    filter: Filter expression to restrict the TrustConfigs returned.
-    orderBy: A list of TrustConfig field names used to specify the order of
-      the returned results. The default sorting order is ascending. To specify
-      descending order for a field, add a suffix `" desc"`.
-    pageSize: Maximum number of TrustConfigs to return per call.
-    pageToken: The value returned by the last `ListTrustConfigsResponse`.
-      Indicates that this is a continuation of a prior `ListTrustConfigs`
-      call, and that the system should return the next page of data.
+    filter: Optional. Filter expression to restrict the TrustConfigs returned.
+    orderBy: Optional. A list of TrustConfig field names used to specify the
+      order of the returned results. The default sorting order is ascending.
+      To specify descending order for a field, add a suffix `" desc"`.
+    pageSize: Optional. Maximum number of TrustConfigs to return per call.
+    pageToken: Optional. The value returned by the last
+      `ListTrustConfigsResponse`. Indicates that this is a continuation of a
+      prior `ListTrustConfigs` call, and that the system should return the
+      next page of data.
     parent: Required. The project and location from which the TrustConfigs
       should be listed, specified in the format `projects/*/locations/*`.
   """
@@ -983,8 +1131,8 @@ class CertificatemanagerProjectsLocationsTrustConfigsPatchRequest(_messages.Mess
   r"""A CertificatemanagerProjectsLocationsTrustConfigsPatchRequest object.
 
   Fields:
-    name: A user-defined name of the trust config. TrustConfig names must be
-      unique globally and match pattern
+    name: Identifier. A user-defined name of the trust config. TrustConfig
+      names must be unique globally and match pattern
       `projects/*/locations/*/trustConfigs/*`.
     trustConfig: A TrustConfig resource to be passed as the request body.
     updateMask: Required. The update mask applies to the resource. For the
@@ -1002,16 +1150,20 @@ class DnsAuthorization(_messages.Message):
   authorization for certificate issuance.
 
   Enums:
-    TypeValueValuesEnum: Immutable. Type of DnsAuthorization. If unset during
-      resource creation the following default will be used: - in location
-      global: FIXED_RECORD.
+    TypeValueValuesEnum: Optional. Immutable. Type of DnsAuthorization. If
+      unset during resource creation the following default will be used: - in
+      location `global`: FIXED_RECORD, - in other locations:
+      PER_PROJECT_RECORD.
 
   Messages:
-    LabelsValue: Set of labels associated with a DnsAuthorization.
+    LabelsValue: Optional. Set of labels associated with a DnsAuthorization.
+    TagsValue: Optional. Input only. Immutable. Tag keys/values directly bound
+      to this resource. For example: "123/environment": "production",
+      "123/costCenter": "marketing"
 
   Fields:
     createTime: Output only. The creation timestamp of a DnsAuthorization.
-    description: One or more paragraphs of text description of a
+    description: Optional. One or more paragraphs of text description of a
       DnsAuthorization.
     dnsResourceRecord: Output only. DNS Resource Record that needs to be added
       to DNS configuration.
@@ -1019,19 +1171,23 @@ class DnsAuthorization(_messages.Message):
       DnsAuthorization resource covers a single domain and its wildcard, e.g.
       authorization for `example.com` can be used to issue certificates for
       `example.com` and `*.example.com`.
-    labels: Set of labels associated with a DnsAuthorization.
-    name: A user-defined name of the dns authorization. DnsAuthorization names
-      must be unique globally and match pattern
+    labels: Optional. Set of labels associated with a DnsAuthorization.
+    name: Identifier. A user-defined name of the dns authorization.
+      DnsAuthorization names must be unique globally and match pattern
       `projects/*/locations/*/dnsAuthorizations/*`.
-    type: Immutable. Type of DnsAuthorization. If unset during resource
-      creation the following default will be used: - in location global:
-      FIXED_RECORD.
+    tags: Optional. Input only. Immutable. Tag keys/values directly bound to
+      this resource. For example: "123/environment": "production",
+      "123/costCenter": "marketing"
+    type: Optional. Immutable. Type of DnsAuthorization. If unset during
+      resource creation the following default will be used: - in location
+      `global`: FIXED_RECORD, - in other locations: PER_PROJECT_RECORD.
     updateTime: Output only. The last update timestamp of a DnsAuthorization.
   """
 
   class TypeValueValuesEnum(_messages.Enum):
-    r"""Immutable. Type of DnsAuthorization. If unset during resource creation
-    the following default will be used: - in location global: FIXED_RECORD.
+    r"""Optional. Immutable. Type of DnsAuthorization. If unset during
+    resource creation the following default will be used: - in location
+    `global`: FIXED_RECORD, - in other locations: PER_PROJECT_RECORD.
 
     Values:
       TYPE_UNSPECIFIED: Type is unspecified.
@@ -1047,7 +1203,7 @@ class DnsAuthorization(_messages.Message):
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
-    r"""Set of labels associated with a DnsAuthorization.
+    r"""Optional. Set of labels associated with a DnsAuthorization.
 
     Messages:
       AdditionalProperty: An additional property for a LabelsValue object.
@@ -1069,14 +1225,41 @@ class DnsAuthorization(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class TagsValue(_messages.Message):
+    r"""Optional. Input only. Immutable. Tag keys/values directly bound to
+    this resource. For example: "123/environment": "production",
+    "123/costCenter": "marketing"
+
+    Messages:
+      AdditionalProperty: An additional property for a TagsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type TagsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a TagsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
   createTime = _messages.StringField(1)
   description = _messages.StringField(2)
   dnsResourceRecord = _messages.MessageField('DnsResourceRecord', 3)
   domain = _messages.StringField(4)
   labels = _messages.MessageField('LabelsValue', 5)
   name = _messages.StringField(6)
-  type = _messages.EnumField('TypeValueValuesEnum', 7)
-  updateTime = _messages.StringField(8)
+  tags = _messages.MessageField('TagsValue', 7)
+  type = _messages.EnumField('TypeValueValuesEnum', 8)
+  updateTime = _messages.StringField(9)
 
 
 class DnsResourceRecord(_messages.Message):
@@ -1371,12 +1554,12 @@ class ManagedCertificate(_messages.Message):
     authorizationAttemptInfo: Output only. Detailed state of the latest
       authorization attempt for each domain specified for managed certificate
       resource.
-    dnsAuthorizations: Immutable. Authorizations that will be used for
-      performing domain authorization.
-    domains: Immutable. The domains for which a managed SSL certificate will
-      be generated. Wildcard domains are only supported with DNS challenge
-      resolution.
-    issuanceConfig: Immutable. The resource name for a
+    dnsAuthorizations: Optional. Immutable. Authorizations that will be used
+      for performing domain authorization.
+    domains: Optional. Immutable. The domains for which a managed SSL
+      certificate will be generated. Wildcard domains are only supported with
+      DNS challenge resolution.
+    issuanceConfig: Optional. Immutable. The resource name for a
       CertificateIssuanceConfig used to configure private PKI certificates in
       the format `projects/*/locations/*/certificateIssuanceConfigs/*`. If
       this field is not set, the certificates will instead be publicly signed
@@ -1532,8 +1715,8 @@ class OperationMetadata(_messages.Message):
     endTime: The time the operation finished running.
     requestedCancellation: Identifies whether the user has requested
       cancellation of the operation. Operations that have successfully been
-      cancelled have Operation.error value with a google.rpc.Status.code of 1,
-      corresponding to `Code.CANCELLED`.
+      cancelled have google.longrunning.Operation.error value with a
+      google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
     statusMessage: Human-readable status of the operation, if any.
     target: Server-defined resource path for the target of the operation.
     verb: Name of the verb executed by the operation.
@@ -1586,10 +1769,10 @@ class SelfManagedCertificate(_messages.Message):
   remains the user's responsibility.
 
   Fields:
-    pemCertificate: Input only. The PEM-encoded certificate chain. Leaf
-      certificate comes first, followed by intermediate ones if any.
-    pemPrivateKey: Input only. The PEM-encoded private key of the leaf
-      certificate.
+    pemCertificate: Optional. Input only. The PEM-encoded certificate chain.
+      Leaf certificate comes first, followed by intermediate ones if any.
+    pemPrivateKey: Optional. Input only. The PEM-encoded private key of the
+      leaf certificate.
   """
 
   pemCertificate = _messages.StringField(1)
@@ -1725,7 +1908,10 @@ class TrustConfig(_messages.Message):
   r"""Defines a trust config.
 
   Messages:
-    LabelsValue: Set of labels associated with a TrustConfig.
+    LabelsValue: Optional. Set of labels associated with a TrustConfig.
+    TagsValue: Optional. Input only. Immutable. Tag keys/values directly bound
+      to this resource. For example: "123/environment": "production",
+      "123/costCenter": "marketing"
 
   Fields:
     allowlistedCertificates: Optional. A certificate matching an allowlisted
@@ -1733,24 +1919,28 @@ class TrustConfig(_messages.Message):
       parseable, proof of private key possession is established, and
       constraints on the certificate's SAN field are met.
     createTime: Output only. The creation timestamp of a TrustConfig.
-    description: One or more paragraphs of text description of a TrustConfig.
+    description: Optional. One or more paragraphs of text description of a
+      TrustConfig.
     etag: This checksum is computed by the server based on the value of other
       fields, and may be sent on update and delete requests to ensure the
       client has an up-to-date value before proceeding.
-    labels: Set of labels associated with a TrustConfig.
-    name: A user-defined name of the trust config. TrustConfig names must be
-      unique globally and match pattern
+    labels: Optional. Set of labels associated with a TrustConfig.
+    name: Identifier. A user-defined name of the trust config. TrustConfig
+      names must be unique globally and match pattern
       `projects/*/locations/*/trustConfigs/*`.
-    trustStores: Set of trust stores to perform validation against. This field
-      is supported when TrustConfig is configured with Load Balancers,
-      currently not supported for SPIFFE certificate validation. Only one
-      TrustStore specified is currently allowed.
+    tags: Optional. Input only. Immutable. Tag keys/values directly bound to
+      this resource. For example: "123/environment": "production",
+      "123/costCenter": "marketing"
+    trustStores: Optional. Set of trust stores to perform validation against.
+      This field is supported when TrustConfig is configured with Load
+      Balancers, currently not supported for SPIFFE certificate validation.
+      Only one TrustStore specified is currently allowed.
     updateTime: Output only. The last update timestamp of a TrustConfig.
   """
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
-    r"""Set of labels associated with a TrustConfig.
+    r"""Optional. Set of labels associated with a TrustConfig.
 
     Messages:
       AdditionalProperty: An additional property for a LabelsValue object.
@@ -1772,29 +1962,70 @@ class TrustConfig(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class TagsValue(_messages.Message):
+    r"""Optional. Input only. Immutable. Tag keys/values directly bound to
+    this resource. For example: "123/environment": "production",
+    "123/costCenter": "marketing"
+
+    Messages:
+      AdditionalProperty: An additional property for a TagsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type TagsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a TagsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
   allowlistedCertificates = _messages.MessageField('AllowlistedCertificate', 1, repeated=True)
   createTime = _messages.StringField(2)
   description = _messages.StringField(3)
   etag = _messages.StringField(4)
   labels = _messages.MessageField('LabelsValue', 5)
   name = _messages.StringField(6)
-  trustStores = _messages.MessageField('TrustStore', 7, repeated=True)
-  updateTime = _messages.StringField(8)
+  tags = _messages.MessageField('TagsValue', 7)
+  trustStores = _messages.MessageField('TrustStore', 8, repeated=True)
+  updateTime = _messages.StringField(9)
 
 
 class TrustStore(_messages.Message):
   r"""Defines a trust store.
 
   Fields:
-    intermediateCas: Set of intermediate CA certificates used for the path
-      building phase of chain validation. The field is currently not supported
-      if TrustConfig is used for the workload certificate feature.
-    trustAnchors: List of Trust Anchors to be used while performing validation
-      against a given TrustStore.
+    intermediateCas: Optional. Set of intermediate CA certificates used for
+      the path building phase of chain validation. The field is currently not
+      supported if TrustConfig is used for the workload certificate feature.
+    trustAnchors: Optional. List of Trust Anchors to be used while performing
+      validation against a given TrustStore.
   """
 
   intermediateCas = _messages.MessageField('IntermediateCA', 1, repeated=True)
   trustAnchors = _messages.MessageField('TrustAnchor', 2, repeated=True)
+
+
+class UsedBy(_messages.Message):
+  r"""Defines a resource that uses the certificate.
+
+  Fields:
+    name: Output only. Full name of the resource
+      https://google.aip.dev/122#full-resource-names, e.g. `//certificatemanag
+      er.googleapis.com/projects/*/locations/*/certificateMaps/*/certificateMa
+      pEntries/*` or
+      `//compute.googleapis.com/projects/*/locations/*/targetHttpsProxies/*`.
+  """
+
+  name = _messages.StringField(1)
 
 
 encoding.AddCustomJsonFieldMapping(

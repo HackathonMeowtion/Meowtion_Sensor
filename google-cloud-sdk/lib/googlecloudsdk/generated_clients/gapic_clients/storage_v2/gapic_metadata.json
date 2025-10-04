@@ -10,6 +10,11 @@
         "grpc": {
           "libraryClient": "StorageClient",
           "rpcs": {
+            "BidiReadObject": {
+              "methods": [
+                "bidi_read_object"
+              ]
+            },
             "BidiWriteObject": {
               "methods": [
                 "bidi_write_object"
@@ -30,29 +35,9 @@
                 "create_bucket"
               ]
             },
-            "CreateHmacKey": {
-              "methods": [
-                "create_hmac_key"
-              ]
-            },
-            "CreateNotificationConfig": {
-              "methods": [
-                "create_notification_config"
-              ]
-            },
             "DeleteBucket": {
               "methods": [
                 "delete_bucket"
-              ]
-            },
-            "DeleteHmacKey": {
-              "methods": [
-                "delete_hmac_key"
-              ]
-            },
-            "DeleteNotificationConfig": {
-              "methods": [
-                "delete_notification_config"
               ]
             },
             "DeleteObject": {
@@ -65,19 +50,9 @@
                 "get_bucket"
               ]
             },
-            "GetHmacKey": {
-              "methods": [
-                "get_hmac_key"
-              ]
-            },
             "GetIamPolicy": {
               "methods": [
                 "get_iam_policy"
-              ]
-            },
-            "GetNotificationConfig": {
-              "methods": [
-                "get_notification_config"
               ]
             },
             "GetObject": {
@@ -85,24 +60,9 @@
                 "get_object"
               ]
             },
-            "GetServiceAccount": {
-              "methods": [
-                "get_service_account"
-              ]
-            },
             "ListBuckets": {
               "methods": [
                 "list_buckets"
-              ]
-            },
-            "ListHmacKeys": {
-              "methods": [
-                "list_hmac_keys"
-              ]
-            },
-            "ListNotificationConfigs": {
-              "methods": [
-                "list_notification_configs"
               ]
             },
             "ListObjects": {
@@ -113,6 +73,11 @@
             "LockBucketRetentionPolicy": {
               "methods": [
                 "lock_bucket_retention_policy"
+              ]
+            },
+            "MoveObject": {
+              "methods": [
+                "move_object"
               ]
             },
             "QueryWriteStatus": {
@@ -153,11 +118,6 @@
             "UpdateBucket": {
               "methods": [
                 "update_bucket"
-              ]
-            },
-            "UpdateHmacKey": {
-              "methods": [
-                "update_hmac_key"
               ]
             },
             "UpdateObject": {
@@ -175,6 +135,11 @@
         "grpc-async": {
           "libraryClient": "StorageAsyncClient",
           "rpcs": {
+            "BidiReadObject": {
+              "methods": [
+                "bidi_read_object"
+              ]
+            },
             "BidiWriteObject": {
               "methods": [
                 "bidi_write_object"
@@ -195,29 +160,9 @@
                 "create_bucket"
               ]
             },
-            "CreateHmacKey": {
-              "methods": [
-                "create_hmac_key"
-              ]
-            },
-            "CreateNotificationConfig": {
-              "methods": [
-                "create_notification_config"
-              ]
-            },
             "DeleteBucket": {
               "methods": [
                 "delete_bucket"
-              ]
-            },
-            "DeleteHmacKey": {
-              "methods": [
-                "delete_hmac_key"
-              ]
-            },
-            "DeleteNotificationConfig": {
-              "methods": [
-                "delete_notification_config"
               ]
             },
             "DeleteObject": {
@@ -230,19 +175,9 @@
                 "get_bucket"
               ]
             },
-            "GetHmacKey": {
-              "methods": [
-                "get_hmac_key"
-              ]
-            },
             "GetIamPolicy": {
               "methods": [
                 "get_iam_policy"
-              ]
-            },
-            "GetNotificationConfig": {
-              "methods": [
-                "get_notification_config"
               ]
             },
             "GetObject": {
@@ -250,24 +185,9 @@
                 "get_object"
               ]
             },
-            "GetServiceAccount": {
-              "methods": [
-                "get_service_account"
-              ]
-            },
             "ListBuckets": {
               "methods": [
                 "list_buckets"
-              ]
-            },
-            "ListHmacKeys": {
-              "methods": [
-                "list_hmac_keys"
-              ]
-            },
-            "ListNotificationConfigs": {
-              "methods": [
-                "list_notification_configs"
               ]
             },
             "ListObjects": {
@@ -278,6 +198,11 @@
             "LockBucketRetentionPolicy": {
               "methods": [
                 "lock_bucket_retention_policy"
+              ]
+            },
+            "MoveObject": {
+              "methods": [
+                "move_object"
               ]
             },
             "QueryWriteStatus": {
@@ -318,11 +243,6 @@
             "UpdateBucket": {
               "methods": [
                 "update_bucket"
-              ]
-            },
-            "UpdateHmacKey": {
-              "methods": [
-                "update_hmac_key"
               ]
             },
             "UpdateObject": {
@@ -340,6 +260,11 @@
         "rest": {
           "libraryClient": "StorageClient",
           "rpcs": {
+            "BidiReadObject": {
+              "methods": [
+                "bidi_read_object"
+              ]
+            },
             "BidiWriteObject": {
               "methods": [
                 "bidi_write_object"
@@ -360,29 +285,9 @@
                 "create_bucket"
               ]
             },
-            "CreateHmacKey": {
-              "methods": [
-                "create_hmac_key"
-              ]
-            },
-            "CreateNotificationConfig": {
-              "methods": [
-                "create_notification_config"
-              ]
-            },
             "DeleteBucket": {
               "methods": [
                 "delete_bucket"
-              ]
-            },
-            "DeleteHmacKey": {
-              "methods": [
-                "delete_hmac_key"
-              ]
-            },
-            "DeleteNotificationConfig": {
-              "methods": [
-                "delete_notification_config"
               ]
             },
             "DeleteObject": {
@@ -395,19 +300,9 @@
                 "get_bucket"
               ]
             },
-            "GetHmacKey": {
-              "methods": [
-                "get_hmac_key"
-              ]
-            },
             "GetIamPolicy": {
               "methods": [
                 "get_iam_policy"
-              ]
-            },
-            "GetNotificationConfig": {
-              "methods": [
-                "get_notification_config"
               ]
             },
             "GetObject": {
@@ -415,24 +310,9 @@
                 "get_object"
               ]
             },
-            "GetServiceAccount": {
-              "methods": [
-                "get_service_account"
-              ]
-            },
             "ListBuckets": {
               "methods": [
                 "list_buckets"
-              ]
-            },
-            "ListHmacKeys": {
-              "methods": [
-                "list_hmac_keys"
-              ]
-            },
-            "ListNotificationConfigs": {
-              "methods": [
-                "list_notification_configs"
               ]
             },
             "ListObjects": {
@@ -443,6 +323,11 @@
             "LockBucketRetentionPolicy": {
               "methods": [
                 "lock_bucket_retention_policy"
+              ]
+            },
+            "MoveObject": {
+              "methods": [
+                "move_object"
               ]
             },
             "QueryWriteStatus": {
@@ -483,11 +368,6 @@
             "UpdateBucket": {
               "methods": [
                 "update_bucket"
-              ]
-            },
-            "UpdateHmacKey": {
-              "methods": [
-                "update_hmac_key"
               ]
             },
             "UpdateObject": {

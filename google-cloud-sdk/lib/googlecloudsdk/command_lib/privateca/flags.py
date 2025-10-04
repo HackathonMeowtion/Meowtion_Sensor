@@ -22,6 +22,7 @@ import collections
 import ipaddress
 import re
 
+import frozendict
 from googlecloudsdk.api_lib.privateca import base as privateca_base
 from googlecloudsdk.api_lib.util import messages as messages_util
 from googlecloudsdk.calliope import arg_parsers
@@ -37,7 +38,7 @@ import six
 
 _NAME_CONSTRAINT_CRITICAL = 'critical'
 
-_NAME_CONSTRAINT_MAPPINGS = {
+_NAME_CONSTRAINT_MAPPINGS = frozendict.frozendict({
     'name_permitted_ip': 'permittedIpRanges',
     'name_excluded_ip': 'excludedIpRanges',
     'name_permitted_email': 'permittedEmailAddresses',
@@ -46,9 +47,14 @@ _NAME_CONSTRAINT_MAPPINGS = {
     'name_excluded_uri': 'excludedUris',
     'name_permitted_dns': 'permittedDnsNames',
     'name_excluded_dns': 'excludedDnsNames',
-}
+})
 
 _HIDDEN_KNOWN_EXTENSIONS = frozenset(['name-constraints'])
+
+_USER_DEFINED_ACCESS_URLS_MAPPINGS = frozendict.frozendict({
+    'custom_aia_urls': 'aiaIssuingCertificateUrls',
+    'custom_cdp_urls': 'crlAccessUrls',
+})
 
 _EMAIL_SAN_REGEX = re.compile('^[^@]+@[^@]+$')
 # Any number of labels (any character that is not a dot) concatenated by dots
@@ -217,10 +223,19 @@ def _AddSubjectAlternativeNameFlags(parser):
   ).AddToParser(parser)
 
 
-def _AddSubjectFlag(parser, required):
+def _AddSubjectFileFlag(parser):
+  base.Argument(
+      '--subject-file',
+      metavar='SUBJECT_FILE',
+      help='A yaml file containing the RDN sequence for the Subject field.',
+      hidden=True,
+      type=arg_parsers.YAMLFileContents(),
+  ).AddToParser(parser)
+
+
+def _AddSubjectFlag(parser):
   base.Argument(
       '--subject',
-      required=required,
       metavar='SUBJECT',
       help=(
           'X.501 name of the certificate subject. Example: --subject '
@@ -237,7 +252,12 @@ def AddSubjectFlags(parser, subject_required=False):
     parser: The parser to add the flags to.
     subject_required: Whether the subject flag should be required.
   """
-  _AddSubjectFlag(parser, subject_required)
+  subject_group = parser.add_group(
+      mutex=True,
+      required=subject_required,
+  )
+  _AddSubjectFlag(subject_group)
+  _AddSubjectFileFlag(subject_group)
   _AddSubjectAlternativeNameFlags(parser)
 
 
@@ -575,6 +595,34 @@ def AddIdentityConstraintsFlags(parser, require_passthrough_flags=True):
   ).AddToParser(parser)
 
 
+def AddUserDefinedAccessUrlsFlags(parser):
+  """Adds flags for specifying user defined access URLs, such as CDP and AIA.
+
+  Args:
+    parser: The parser to add the flags to.
+  """
+  base.Argument(
+      '--custom-aia-urls',
+      help=(
+          'One or more comma-separated URLs that will be added to the Authority'
+          ' Information Access extension in the issued certificate.'
+          ' These URLs are where the issuer CA certificate is located.'
+      ),
+      metavar='CUSTOM_AIA_URLS',
+      type=arg_parsers.ArgList(element_type=_StripVal),
+  ).AddToParser(parser)
+  base.Argument(
+      '--custom-cdp-urls',
+      help=(
+          'One or more comma-separated URLs that will be added to the CRL'
+          ' Distribution Points (CDP) extension in the issued certificate.'
+          ' These URLs are where CRL information is located.'
+      ),
+      metavar='CUSTOM_CDP_URLS',
+      type=arg_parsers.ArgList(element_type=_StripVal),
+  ).AddToParser(parser)
+
+
 def GetKnownExtensionMapping():
   enum_type = privateca_base.GetMessagesModule(
       'v1'
@@ -646,12 +694,8 @@ def AddExtensionConstraintsFlags(parser):
           'from the certificate request into the signed certificate.'
       ),
       type=arg_parsers.ArgList(
-          choices=known_extensions,
-          visible_choices=[
-              ext
-              for ext in known_extensions.keys()
-              if ext not in _HIDDEN_KNOWN_EXTENSIONS
-          ],
+          choices=known_extensions.keys(),
+          hidden_choices=_HIDDEN_KNOWN_EXTENSIONS,
       ),
       metavar='KNOWN_EXTENSIONS',
   ).AddToParser(copy_group)
@@ -743,12 +787,8 @@ def AddExtensionConstraintsFlagsForUpdate(parser):
           'from the certificate request into the signed certificate.'
       ),
       type=arg_parsers.ArgList(
-          choices=known_extensions,
-          visible_choices=[
-              ext
-              for ext in known_extensions.keys()
-              if ext not in _HIDDEN_KNOWN_EXTENSIONS
-          ],
+          choices=known_extensions.keys(),
+          hidden_choices=_HIDDEN_KNOWN_EXTENSIONS,
       ),
       metavar='KNOWN_EXTENSIONS',
   ).AddToParser(known_group)
@@ -991,7 +1031,7 @@ def ValidateIdentityConstraints(
     raise privateca_exceptions.UserAbortException('Aborted by user.')
 
 
-def ValidateSubjectConfig(subject_config, is_ca):
+def ValidateSubjectConfig(subject_config):
   """Validates a SubjectConfig object."""
   san_names = []
   if subject_config.subjectAltName:
@@ -1001,8 +1041,10 @@ def ValidateSubjectConfig(subject_config, is_ca):
         subject_config.subjectAltName.ipAddresses,
         subject_config.subjectAltName.uris,
     ]
-  if not subject_config.subject.commonName and all(
-      [not elem for elem in san_names]
+  if (
+      not subject_config.subject.commonName
+      and all([not elem for elem in san_names])
+      and not subject_config.subject.rdnSequence
   ):
     raise exceptions.InvalidArgumentException(
         '--subject',
@@ -1010,20 +1052,12 @@ def ValidateSubjectConfig(subject_config, is_ca):
         ' subject alternative name.',
     )
 
-  if is_ca and not subject_config.subject.organization:
-    raise exceptions.InvalidArgumentException(
-        '--subject',
-        'An organization must be provided for a certificate authority'
-        ' certificate.',
-    )
 
-
-def ParseSubjectFlags(args, is_ca):
+def ParseSubjectFlags(args):
   """Parses subject flags into a subject config.
 
   Args:
     args: The parser that contains all the flag values
-    is_ca: Whether to parse this subject as a CA or not.
 
   Returns:
     A subject config representing the parsed flags.
@@ -1035,10 +1069,12 @@ def ParseSubjectFlags(args, is_ca):
 
   if args.IsSpecified('subject'):
     subject_config.subject = ParseSubject(args)
+  elif args.IsSpecified('subject_file'):
+    subject_config.subject = ParseSubjectFile(args)
   if SanFlagsAreSpecified(args):
     subject_config.subjectAltName = ParseSanFlags(args)
 
-  ValidateSubjectConfig(subject_config, is_ca=is_ca)
+  ValidateSubjectConfig(subject_config)
 
   return subject_config
 
@@ -1065,6 +1101,22 @@ def ParseIssuancePolicy(args):
   except (messages_util.DecodeError, AttributeError):
     raise exceptions.InvalidArgumentException(
         '--issuance-policy', 'Unrecognized field in the Issuance Policy.'
+    )
+
+
+def ParseSubjectFile(args):
+  """Parses an a Subject from a file to a proto message from the args."""
+  try:
+    return messages_util.DictToMessageWithErrorCheck(
+        args.subject_file,
+        privateca_base.GetMessagesModule('v1').Subject,
+    )
+
+  # TODO(b/77547931): Catch `AttributeError` until upstream library takes the
+  # fix.
+  except (messages_util.DecodeError, AttributeError):
+    raise exceptions.InvalidArgumentException(
+        '--subject-file', 'Unrecognized field in the Subject.'
     )
 
 
@@ -1395,3 +1447,24 @@ def X509ConfigFlagsAreSpecified(args):
           'is_ca_cert',
       ]
   ])
+
+
+def ParseUserDefinedAccessUrls(args, messages):
+  """Parses the user defined access URLs into a UserDefinedAccessUrls message.
+
+  Args:
+    args: The parsed argument values
+    messages: PrivateCA's messages modules
+
+  Returns:
+    A UserDefinedAccessUrls message object
+  """
+  user_defined_access_urls = {}
+  for url_arg, url_field in _USER_DEFINED_ACCESS_URLS_MAPPINGS.items():
+    if args.IsKnownAndSpecified(url_arg):
+      user_defined_access_urls[url_field] = getattr(args, url_arg)
+  if not user_defined_access_urls:
+    return None
+  return messages_util.DictToMessageWithErrorCheck(
+      user_defined_access_urls, message_type=messages.UserDefinedAccessUrls
+  )

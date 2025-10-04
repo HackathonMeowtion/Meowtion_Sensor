@@ -32,6 +32,7 @@ def _CommonArgs(parser, release_track):
   )
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Create(base.CreateCommand):
   """Create a Cloud NetApp Storage Pool."""
@@ -68,11 +69,32 @@ class Create(base.CreateCommand):
     labels = labels_util.ParseCreateArgs(
         args, client.messages.StoragePool.LabelsValue)
     capacity_in_gib = args.capacity >> 30
-
-    allow_auto_tiering = None
+    zone = args.zone
+    replica_zone = args.replica_zone
+    if args.total_throughput is not None:
+      total_throughput_mibps = args.total_throughput >> 20
+    else:
+      total_throughput_mibps = None
+    hot_tier_size_gib = None
+    qos_type = None
+    if args.qos_type is not None:
+      qos_type = storagepools_flags.GetStoragePoolQosTypeArg(
+          client.messages
+      ).GetEnumForChoice(args.qos_type)
+    enable_hot_tier_auto_resize = None
+    unified_pool = None
+    storage_pool_type = None
     if (self._RELEASE_TRACK == base.ReleaseTrack.ALPHA or
         self._RELEASE_TRACK == base.ReleaseTrack.BETA):
-      allow_auto_tiering = args.allow_auto_tiering
+      if args.hot_tier_size is not None:
+        hot_tier_size_gib = args.hot_tier_size >> 30
+      enable_hot_tier_auto_resize = args.enable_hot_tier_auto_resize
+      if args.unified_pool is not None:
+        unified_pool = args.unified_pool
+      if args.type is not None:
+        storage_pool_type = storagepools_flags.GetStoragePoolTypeEnumFromArg(
+            args.type, client.messages
+        )
 
     storage_pool = client.ParseStoragePoolConfig(
         name=storagepool_ref.RelativeName(),
@@ -83,8 +105,18 @@ class Create(base.CreateCommand):
         enable_ldap=args.enable_ldap,
         capacity=capacity_in_gib,
         description=args.description,
-        allow_auto_tiering=allow_auto_tiering,
+        allow_auto_tiering=args.allow_auto_tiering,
+        zone=zone,
+        replica_zone=replica_zone,
+        custom_performance_enabled=args.custom_performance_enabled,
+        total_throughput=total_throughput_mibps,
+        total_iops=args.total_iops,
+        hot_tier_size=hot_tier_size_gib,
+        enable_hot_tier_auto_resize=enable_hot_tier_auto_resize,
         labels=labels,
+        unified_pool=unified_pool,
+        qos_type=qos_type,
+        storage_pool_type=storage_pool_type,
     )
     result = client.CreateStoragePool(
         storagepool_ref, args.async_, storage_pool

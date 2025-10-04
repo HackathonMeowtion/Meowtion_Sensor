@@ -47,6 +47,8 @@ class AcceleratorConfig(_messages.Message):
         Workstations.
       NVIDIA_TESLA_P4_VWS: Accelerator type is NVIDIA Tesla P4 Virtual
         Workstations.
+      NVIDIA_H100_80GB: Accelerator type is NVIDIA H100 80GB.
+      NVIDIA_H100_MEGA_80GB: Accelerator type is NVIDIA H100 Mega 80GB.
       TPU_V2: (Coming soon) Accelerator type is TPU V2.
       TPU_V3: (Coming soon) Accelerator type is TPU V3.
     """
@@ -62,8 +64,10 @@ class AcceleratorConfig(_messages.Message):
     NVIDIA_TESLA_T4_VWS = 9
     NVIDIA_TESLA_P100_VWS = 10
     NVIDIA_TESLA_P4_VWS = 11
-    TPU_V2 = 12
-    TPU_V3 = 13
+    NVIDIA_H100_80GB = 12
+    NVIDIA_H100_MEGA_80GB = 13
+    TPU_V2 = 14
+    TPU_V3 = 15
 
   coreCount = _messages.IntegerField(1)
   type = _messages.EnumField('TypeValueValuesEnum', 2)
@@ -199,7 +203,7 @@ class DiagnoseInstanceRequest(_messages.Message):
   Fields:
     diagnosticConfig: Required. Defines flags that are used to run the
       diagnostic tool
-    timeoutMinutes: Optional. Maxmium amount of time in minutes before the
+    timeoutMinutes: Optional. Maximum amount of time in minutes before the
       operation times out.
   """
 
@@ -213,7 +217,7 @@ class DiagnoseRuntimeRequest(_messages.Message):
   Fields:
     diagnosticConfig: Required. Defines flags that are used to run the
       diagnostic tool
-    timeoutMinutes: Optional. Maxmium amount of time in minutes before the
+    timeoutMinutes: Optional. Maximum amount of time in minutes before the
       operation times out.
   """
 
@@ -840,7 +844,7 @@ class Instance(_messages.Message):
     labels: Labels to apply to this instance. These can be later modified by
       the setLabels method.
     machineType: Required. The [Compute Engine machine
-      type](https://cloud.google.com/compute/docs/machine-types) of this
+      type](https://cloud.google.com/compute/docs/machine-resource) of this
       instance.
     metadata: Custom metadata to apply to this instance. For example, to
       specify a Cloud Storage bucket for automatic backup, you can use the
@@ -888,9 +892,9 @@ class Instance(_messages.Message):
     state: Output only. The state of this instance.
     subnet: The name of the subnet that this instance is in. Format:
       `projects/{project_id}/regions/{region}/subnetworks/{subnetwork_id}`
-    tags: Optional. The Compute Engine tags to add to runtime (see [Tagging
-      instances](https://cloud.google.com/compute/docs/label-or-tag-
-      resources#tags)).
+    tags: Optional. The Compute Engine network tags to add to runtime (see
+      [Add network tags](https://cloud.google.com/vpc/docs/add-remove-network-
+      tags)).
     updateTime: Output only. Instance update time.
     upgradeHistory: The upgrade history of this instance.
     vmImage: Use a Compute Engine VM image to start the notebook instance.
@@ -2122,6 +2126,9 @@ class NotebooksProjectsLocationsListRequest(_messages.Message):
   r"""A NotebooksProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -2132,10 +2139,11 @@ class NotebooksProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class NotebooksProjectsLocationsOperationsCancelRequest(_messages.Message):
@@ -2651,8 +2659,8 @@ class OperationMetadata(_messages.Message):
     endpoint: API endpoint name of this operation.
     requestedCancellation: Identifies whether the user has requested
       cancellation of the operation. Operations that have successfully been
-      cancelled have Operation.error value with a google.rpc.Status.code of 1,
-      corresponding to `Code.CANCELLED`.
+      cancelled have google.longrunning.Operation.error value with a
+      google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
     statusMessage: Human-readable status of the operation, if any.
     target: Server-defined resource path for the target of the operation.
     verb: Name of the verb executed by the operation.
@@ -3381,13 +3389,15 @@ class Schedule(_messages.Message):
       STATE_UNSPECIFIED: Unspecified state.
       ENABLED: The job is executing normally.
       PAUSED: The job is paused by the user. It will not execute. A user can
-        intentionally pause the job using PauseJobRequest.
+        intentionally pause the job using [Cloud
+        Scheduler](https://cloud.google.com/scheduler/docs/creating#pause).
       DISABLED: The job is disabled by the system due to error. The user
         cannot directly set a job to be disabled.
-      UPDATE_FAILED: The job state resulting from a failed
-        CloudScheduler.UpdateJob operation. To recover a job from this state,
-        retry CloudScheduler.UpdateJob until a successful response is
-        received.
+      UPDATE_FAILED: The job state resulting from a failed [CloudScheduler.Upd
+        ateJob](https://cloud.google.com/scheduler/docs/creating#edit)
+        operation. To recover a job from this state, retry [CloudScheduler.Upd
+        ateJob](https://cloud.google.com/scheduler/docs/creating#edit) until a
+        successful response is received.
       INITIALIZING: The schedule resource is being created.
       DELETING: The schedule resource is being deleted.
     """
@@ -3500,6 +3510,8 @@ class SetInstanceAcceleratorRequest(_messages.Message):
         Workstations.
       NVIDIA_TESLA_P4_VWS: Accelerator type is NVIDIA Tesla P4 Virtual
         Workstations.
+      NVIDIA_H100_80GB: Accelerator type is NVIDIA H100 80GB.
+      NVIDIA_H100_MEGA_80GB: Accelerator type is NVIDIA H100 Mega 80GB.
       TPU_V2: (Coming soon) Accelerator type is TPU V2.
       TPU_V3: (Coming soon) Accelerator type is TPU V3.
     """
@@ -3515,8 +3527,10 @@ class SetInstanceAcceleratorRequest(_messages.Message):
     NVIDIA_TESLA_T4_VWS = 9
     NVIDIA_TESLA_P100_VWS = 10
     NVIDIA_TESLA_P4_VWS = 11
-    TPU_V2 = 12
-    TPU_V3 = 13
+    NVIDIA_H100_80GB = 12
+    NVIDIA_H100_MEGA_80GB = 13
+    TPU_V2 = 14
+    TPU_V3 = 15
 
   coreCount = _messages.IntegerField(1)
   type = _messages.EnumField('TypeValueValuesEnum', 2)
@@ -3567,7 +3581,7 @@ class SetInstanceMachineTypeRequest(_messages.Message):
 
   Fields:
     machineType: Required. The [Compute Engine machine
-      type](https://cloud.google.com/compute/docs/machine-types).
+      type](https://cloud.google.com/compute/docs/machine-resource).
   """
 
   machineType = _messages.StringField(1)
@@ -4168,9 +4182,9 @@ class VirtualMachineConfig(_messages.Message):
       `https://www.googleapis.com/compute/v1/projects/[project_id]/regions/us-
       east1/subnetworks/sub0` * `projects/[project_id]/regions/us-
       east1/subnetworks/sub0`
-    tags: Optional. The Compute Engine tags to add to runtime (see [Tagging
-      instances](https://cloud.google.com/compute/docs/label-or-tag-
-      resources#tags)).
+    tags: Optional. The Compute Engine network tags to add to runtime (see
+      [Add network tags](https://cloud.google.com/vpc/docs/add-remove-network-
+      tags)).
     zone: Output only. The zone where the virtual machine is located. If using
       regional request, the notebooks service will pick a location in the
       corresponding runtime region. On a get request, zone will always be
@@ -4315,3 +4329,7 @@ encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    NotebooksProjectsLocationsInstancesGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    NotebooksProjectsLocationsRuntimesGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')

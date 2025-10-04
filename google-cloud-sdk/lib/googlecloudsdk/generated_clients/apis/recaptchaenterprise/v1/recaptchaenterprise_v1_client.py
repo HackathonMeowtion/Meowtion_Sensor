@@ -293,6 +293,33 @@ class RecaptchaenterpriseV1(base_api.BaseApiClient):
       self._upload_configs = {
           }
 
+    def AddIpOverride(self, request, global_params=None):
+      r"""Adds an IP override to a key. The following restrictions hold: * The maximum number of IP overrides per key is 1000. * For any conflict (such as IP already exists or IP part of an existing IP range), an error is returned.
+
+      Args:
+        request: (RecaptchaenterpriseProjectsKeysAddIpOverrideRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudRecaptchaenterpriseV1AddIpOverrideResponse) The response message.
+      """
+      config = self.GetMethodConfig('AddIpOverride')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    AddIpOverride.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/keys/{keysId}:addIpOverride',
+        http_method='POST',
+        method_id='recaptchaenterprise.projects.keys.addIpOverride',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}:addIpOverride',
+        request_field='googleCloudRecaptchaenterpriseV1AddIpOverrideRequest',
+        request_type_name='RecaptchaenterpriseProjectsKeysAddIpOverrideRequest',
+        response_type_name='GoogleCloudRecaptchaenterpriseV1AddIpOverrideResponse',
+        supports_download=False,
+    )
+
     def Create(self, request, global_params=None):
       r"""Creates a new reCAPTCHA Enterprise key.
 
@@ -401,6 +428,33 @@ class RecaptchaenterpriseV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def GetPolicy(self, request, global_params=None):
+      r"""Get the policy for a key.
+
+      Args:
+        request: (RecaptchaenterpriseProjectsKeysGetPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+
+      Returns:
+        (GoogleCloudRecaptchaenterpriseV1Policy) The response message.
+      """
+      config = self.GetMethodConfig('GetPolicy')
+      return self._RunMethod(config, request, global_params=global_params)
+
+    GetPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/keys/{keysId}/policy',
+        http_method='GET',
+        method_id='recaptchaenterprise.projects.keys.getPolicy',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}',
+        request_field='',
+        request_type_name='RecaptchaenterpriseProjectsKeysGetPolicyRequest',
+        response_type_name='GoogleCloudRecaptchaenterpriseV1Policy',
+        supports_download=False,
+    )
+
     def List(self, request, global_params=None):
       r"""Returns the list of all keys that belong to a project.
 
@@ -425,6 +479,33 @@ class RecaptchaenterpriseV1(base_api.BaseApiClient):
         request_field='',
         request_type_name='RecaptchaenterpriseProjectsKeysListRequest',
         response_type_name='GoogleCloudRecaptchaenterpriseV1ListKeysResponse',
+        supports_download=False,
+    )
+
+    def ListIpOverrides(self, request, global_params=None):
+      r"""Lists all IP overrides for a key.
+
+      Args:
+        request: (RecaptchaenterpriseProjectsKeysListIpOverridesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudRecaptchaenterpriseV1ListIpOverridesResponse) The response message.
+      """
+      config = self.GetMethodConfig('ListIpOverrides')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ListIpOverrides.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/keys/{keysId}:listIpOverrides',
+        http_method='GET',
+        method_id='recaptchaenterprise.projects.keys.listIpOverrides',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['pageSize', 'pageToken'],
+        relative_path='v1/{+parent}:listIpOverrides',
+        request_field='',
+        request_type_name='RecaptchaenterpriseProjectsKeysListIpOverridesRequest',
+        response_type_name='GoogleCloudRecaptchaenterpriseV1ListIpOverridesResponse',
         supports_download=False,
     )
 
@@ -482,6 +563,33 @@ class RecaptchaenterpriseV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def RemoveIpOverride(self, request, global_params=None):
+      r"""Removes an IP override from a key. The following restrictions hold: * If the IP isn't found in an existing IP override, a `NOT_FOUND` error is returned. * If the IP is found in an existing IP override, but the override type does not match, a `NOT_FOUND` error is returned.
+
+      Args:
+        request: (RecaptchaenterpriseProjectsKeysRemoveIpOverrideRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudRecaptchaenterpriseV1RemoveIpOverrideResponse) The response message.
+      """
+      config = self.GetMethodConfig('RemoveIpOverride')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    RemoveIpOverride.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/keys/{keysId}:removeIpOverride',
+        http_method='POST',
+        method_id='recaptchaenterprise.projects.keys.removeIpOverride',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}:removeIpOverride',
+        request_field='googleCloudRecaptchaenterpriseV1RemoveIpOverrideRequest',
+        request_type_name='RecaptchaenterpriseProjectsKeysRemoveIpOverrideRequest',
+        response_type_name='GoogleCloudRecaptchaenterpriseV1RemoveIpOverrideResponse',
+        supports_download=False,
+    )
+
     def RetrieveLegacySecretKey(self, request, global_params=None):
       r"""Returns the secret key related to the specified public key. You must use the legacy secret key only in a 3rd party integration with legacy reCAPTCHA.
 
@@ -506,6 +614,34 @@ class RecaptchaenterpriseV1(base_api.BaseApiClient):
         request_field='',
         request_type_name='RecaptchaenterpriseProjectsKeysRetrieveLegacySecretKeyRequest',
         response_type_name='GoogleCloudRecaptchaenterpriseV1RetrieveLegacySecretKeyResponse',
+        supports_download=False,
+    )
+
+    def UpdatePolicy(self, request, global_params=None):
+      r"""Updates the policy for a key.
+
+      Args:
+        request: (RecaptchaenterpriseProjectsKeysUpdatePolicyRequest) input
+          message
+        global_params: (StandardQueryParameters, default: None) global arguments
+
+      Returns:
+        (GoogleCloudRecaptchaenterpriseV1Policy) The response message.
+      """
+      config = self.GetMethodConfig('UpdatePolicy')
+      return self._RunMethod(config, request, global_params=global_params)
+
+    UpdatePolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/keys/{keysId}/policy',
+        http_method='PATCH',
+        method_id='recaptchaenterprise.projects.keys.updatePolicy',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1/{+name}',
+        request_field='googleCloudRecaptchaenterpriseV1Policy',
+        request_type_name='RecaptchaenterpriseProjectsKeysUpdatePolicyRequest',
+        response_type_name='GoogleCloudRecaptchaenterpriseV1Policy',
         supports_download=False,
     )
 

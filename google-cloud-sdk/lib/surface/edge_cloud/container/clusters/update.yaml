@@ -17,9 +17,17 @@
     GA:
       api_version: v1
     modify_request_hooks:
+    - googlecloudsdk.command_lib.edge_cloud.container.container_runtime:UpdateContainerRuntimeclass
+    - googlecloudsdk.command_lib.edge_cloud.container.cluster_isolation:UpdateClusterIsolation
     - googlecloudsdk.command_lib.edge_cloud.container.maintenance_policy:AddMaintenanceExclusionWindow
     - googlecloudsdk.command_lib.edge_cloud.container.maintenance_policy:RemoveMaintenanceExclusionWindow
     - googlecloudsdk.command_lib.edge_cloud.container.maintenance_policy:ClearMaintenanceWindow
+    - googlecloudsdk.command_lib.edge_cloud.container.max_unavailable:ClearMaxUnavailable
+    - googlecloudsdk.command_lib.edge_cloud.container.kms:UseGoogleManagedKey
+    - googlecloudsdk.command_lib.edge_cloud.container.kms:UpdateKmsKey
+    - googlecloudsdk.command_lib.edge_cloud.container.kms:UseGoogleManagedZoneKey
+    - googlecloudsdk.command_lib.edge_cloud.container.kms:UpdateZoneKmsKey
+    - googlecloudsdk.command_lib.edge_cloud.container.robin:HandleEnableRobinCNSUpdate
 
   arguments:
     resource:
@@ -58,28 +66,23 @@
                 recurrence rule for how the cluster maintenance window recurs. They go
                 on for the span of time between the start and the end time. E.g. FREQ=WEEKLY;BYDAY=SU.
         - arg_name: remove-maintenance-exclusion-window
-          release_tracks: [ALPHA]
           help_text: |
             Name of the maintenance exclusion to remove.
         - group:
-            release_tracks: [ALPHA]
             help_text: Add a maintenance exclusion window (all flags must be specified to add a valid maintenance exclusion window). There can be a maximum of 3 exclusion windows set at a given time. A maintenance exclusion window cannot be added in the absence of a maintenance window.
             mutex: false
             params:
             - arg_name: add-maintenance-exclusion-name
-              release_tracks: [ALPHA]
               repeated: false
               help_text: |
                 Unique name (per cluster) of the maintenance exclusion window that can be used to remove it.
             - arg_name: add-maintenance-exclusion-start
-              release_tracks: [ALPHA]
               repeated: false
               help_text: |
                 Start time of the maintenance exclusion window (can occur in the past) in the RFC 3339
                 (https://www.ietf.org/rfc/rfc3339.txt) format. E.g.
                 "2021-01-01T00:00:00Z" or "2021-01-01T00:00:00-05:00".
             - arg_name: add-maintenance-exclusion-end
-              release_tracks: [ALPHA]
               repeated: false
               help_text: |
                 End time of the maintenance exclusion window in the RFC 3339
@@ -99,12 +102,68 @@
       api_field: cluster.survivabilityConfig.offlineRebootTtl
       required: false
       help_text: |
-        Limits how long machines in this cluster can reboot offline (without connection to
-        google), specified as a duration relative to the machine's most-recent
-        connection to google. The parameter should be a ISO 8601 duration
-        string, for example, "1dT1h2m3s".
+        Specifies the maximum duration a node can reboot offline (without connection to Google) and
+        then rejoin its cluster to resume its designated workloads. This duration is relative to the
+        machine's most recent connection to Google. The maximum allowed duration is 7 days. If left
+        unspecified, the default 0 means not allowed. The parameter should be an ISO 8601 duration
+        string, for example, "P1DT1H2M3S".
+    - group:
+        release_tracks: [ALPHA]
+        mutex: true
+        params:
+        - arg_name: clear-max-unavailable-worker-nodes
+          action: store_true
+          help_text: |
+            Clear the worker node upgrade parallelism, which will default to the upgrade stage size.
+        - arg_name: max-unavailable-worker-nodes
+          api_field: cluster.upgradeSettings.maxUnavailableWorkerNodes
+          help_text: |
+            Set the worker node upgrade parallelism. The value must be between 1 and the worker node
+            upgrade stage size, inclusively. If unset, the worker node upgrade parallelism defaults
+            to the upgrade stage size. This value does not affect the control plane node upgrade
+            parallelism.
+    - group:
+        mutex: true
+        params:
+        - arg_name: use-google-managed-key
+          action: store_true
+          help_text: |
+            If set, use Google managed key for the cluster control plane nodes encryption.
+        - arg_name: control-plane-kms-key
+          repeated: false
+          help_text: |
+            If set, use the specified KMS key for the cluster control plane nodes encryption.
+    - group:
+        mutex: true
+        params:
+        - arg_name: use-google-managed-zone-key
+          action: store_true
+          help_text: |
+            If set, use Google managed key for zone storage encryption.
+        - arg_name: zone-storage-kms-key
+          repeated: false
+          help_text: |
+            If set, use the specified KMS key for zone storage encryption.
+    - arg_name: container-default-runtime-class
+      repeated: false
+      help_text: |
+        If set, use the specified default container runtime class for the cluster.
+    - arg_name: enable-robin-cns
       release_tracks: [ALPHA]
       hidden: true
+      action: store_true
+      help_text: |
+        If set, Robin CNS will be enabled on the cluster.
+
+        WARNING:
+        Enabling Robin CNS is irreversible. Once enabled, it cannot be disabled.
+        Enabling Robin CNS will take over all unused local Persistent Volumes (PVs)
+        in the cluster. Any data on these PVs will be permanently lost.
+    - arg_name: enable-cluster-isolation
+      release_tracks: [ALPHA]
+      repeated: false
+      help_text: |
+        If set to true, the cluster will be created in a secure cluster isolation mode.
 
   response:
     modify_response_hooks:

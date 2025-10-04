@@ -235,9 +235,10 @@ def AddHistoryServerClusterResourceArg(parser):
   ).AddToParser(parser)
 
 
-def AddZoneFlag(parser, short_flags=True):
-  """Add zone flag."""
-  parser.add_argument(
+def AddZoneAndExcludedZonesFlags(parser, short_flags=True):
+  """Add zone and excluded zones flag."""
+  zone_and_excluded_zones_group = parser.add_argument_group(mutex=True)
+  zone_and_excluded_zones_group.add_argument(
       '--zone',
       *(['-z'] if short_flags else []),
       help="""
@@ -245,7 +246,19 @@ def AddZoneFlag(parser, short_flags=True):
             and --region is set to a value other than `global`, the server will
             pick a zone in the region.
             """,
-      action=actions.StoreProperty(properties.VALUES.compute.zone))
+      action=actions.StoreProperty(properties.VALUES.compute.zone)
+  )
+  zone_and_excluded_zones_group.add_argument(
+      '--auto-zone-exclude-zones',
+      type=arg_parsers.ArgList(),
+      default=[],
+      metavar='ZONE',
+      hidden=True,
+      help="""
+            A comma-separated list of compute zones (e.g. us-central1-a) to
+            exclude when picking the zone for the cluster.
+            """,
+  )
 
 
 def AddVersionFlag(parser):
@@ -793,8 +806,8 @@ def ProjectGcsObjectsAccessBoundary(project):
   Returns:
     A JSON formatted access boundary suitable for creating a downscoped token.
   """
-  cab_resource = '//cloudresourcemanager.googleapis.com/projects/{}'.format(
-      project)
+  universe_domain = properties.VALUES.core.universe_domain.Get()
+  cab_resource = f'//cloudresourcemanager.{universe_domain}/projects/{project}'
   access_boundary = {
       'access_boundary': {
           'accessBoundaryRules': [{

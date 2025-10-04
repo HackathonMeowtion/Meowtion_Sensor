@@ -21,19 +21,23 @@ from googlecloudsdk.command_lib.container.fleet.packages import flags
 _DETAILED_HELP = {
     'DESCRIPTION': '{description}',
     'EXAMPLES': """ \
-        To view release ``v1.0.0'' of ``cert-manager'' in ``us-central1'', run:
+        To view release `v1.0.0` of `cert-manager` in `us-central1`, run:
 
           $ {command} v1.0.0 --location=us-central1 --resource-bundle=cert-manager
         """,
 }
 
+_VARIANT_STORAGE_STRATEGY_LABEL_KEY = 'configdelivery-variant-storage-strategy'
+_VARIANT_STORAGE_STRATEGY_LABEL_VALUE_NESTED = 'nested'
 
-@base.Hidden
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.GA)
 class Describe(base.DescribeCommand):
   """Describe Package Rollouts Release."""
 
   detailed_help = _DETAILED_HELP
+  _api_version = 'v1'
 
   @staticmethod
   def Args(parser):
@@ -43,10 +47,27 @@ class Describe(base.DescribeCommand):
 
   def Run(self, args):
     """Run the describe command."""
-    client = apis.ReleasesClient()
-    return client.Describe(
+    client = apis.ReleasesClient(self._api_version)
+    release = client.Describe(
         release=args.release,
         project=flags.GetProject(args),
         location=flags.GetLocation(args),
         resource_bundle=args.resource_bundle,
     )
+    return release
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.BETA)
+class DescribeBeta(Describe):
+  """Describe Package Rollouts Release."""
+
+  _api_version = 'v1beta'
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class DescribeAlpha(Describe):
+  """Describe Package Rollouts Release."""
+
+  _api_version = 'v1alpha'

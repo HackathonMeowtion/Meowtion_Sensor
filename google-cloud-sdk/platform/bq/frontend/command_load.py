@@ -9,17 +9,17 @@ import datetime
 import time
 from typing import Optional
 
-
-
 from absl import flags
 
+import bq_flags
+from clients import client_job
 from clients import utils as bq_client_utils
 from frontend import bigquery_command
 from frontend import bq_cached_client
 from frontend import flags as frontend_flags
 from frontend import utils as frontend_utils
-
-FLAGS = flags.FLAGS
+from frontend import utils_flags
+from frontend import utils_formatting
 
 # These aren't relevant for user-facing docstrings:
 # pylint: disable=g-doc-return-or-yield
@@ -72,6 +72,13 @@ class Load(bigquery_command.BigqueryCmd):
         'replace',
         False,
         'If true existing data is erased when new data is loaded.',
+        flag_values=fv,
+    )
+    flags.DEFINE_boolean(
+        'replace_data',
+        False,
+        'If true, erase existing contents but not other table metadata like'
+        ' schema before loading new data.',
         flag_values=fv,
     )
     flags.DEFINE_string(
@@ -168,6 +175,13 @@ class Load(bigquery_command.BigqueryCmd):
         'null_marker',
         None,
         'An optional custom string that will represent a NULL value'
+        'in CSV import data.',
+        flag_values=fv,
+    )
+    flags.DEFINE_list(
+        'null_markers',
+        [],
+        'An optional list of custom strings that will represent a NULL value'
         'in CSV import data.',
         flag_values=fv,
     )
@@ -292,7 +306,7 @@ class Load(bigquery_command.BigqueryCmd):
         'file_set_spec_type',
         None,
         ['FILE_SYSTEM_MATCH', 'NEW_LINE_DELIMITED_MANIFEST'],
-        '[Experimental] Specifies how to discover files given source URIs. '
+        'Specifies how to discover files given source URIs. '
         'Options include: '
         '\n FILE_SYSTEM_MATCH: expand source URIs by listing files from the '
         'underlying object store. This is the default behavior.'
@@ -367,6 +381,18 @@ class Load(bigquery_command.BigqueryCmd):
         'newline-delimited GeoJSON.',
         flag_values=fv,
     )
+    flags.DEFINE_enum(
+        'column_name_character_map',
+        None,
+        ['STRICT', 'V1', 'V2'],
+        'Indicates the character map used for column names: '
+        '\n STRICT: The latest character map and reject invalid column names.'
+        '\n V1: Supports alphanumeric + underscore and name must start with a '
+        'letter or underscore. Invalid column names will be normalized.'
+        '\n V2: Supports flexible column name. Invalid column names will be '
+        'normalized.',
+        flag_values=fv,
+    )
     flags.DEFINE_string(
         'session_id',
         None,
@@ -381,6 +407,59 @@ class Load(bigquery_command.BigqueryCmd):
         'destination BigLake managed table, without reading file content and '
         'writing them to new files.',
         flag_values=fv,
+    )
+    flags.DEFINE_string(
+        'time_zone',
+        None,
+        'Default time zone that will apply when parsing timestamp values that'
+        ' have no specific time zone. For example, "America/Los_Angeles".',
+        flag_values=fv,
+    )
+    flags.DEFINE_string(
+        'date_format',
+        None,
+        'Format elements that define how the DATE values are formatted in the'
+        ' input files. For example, "MM/DD/YYYY".',
+        flag_values=fv,
+    )
+    flags.DEFINE_string(
+        'datetime_format',
+        None,
+        'Format elements that define how the DATETIME values are formatted in'
+        ' the input files. For example, "MM/DD/YYYY HH24:MI:SS.FF3".',
+        flag_values=fv,
+    )
+    flags.DEFINE_string(
+        'time_format',
+        None,
+        'Format elements that define how the TIME values are formatted in the'
+        ' input files. For example, "HH24:MI:SS.FF3".',
+        flag_values=fv,
+    )
+    flags.DEFINE_string(
+        'timestamp_format',
+        None,
+        'Format elements that define how the TIMESTAMP values are formatted in'
+        ' the input files. For example, "MM/DD/YYYY HH24:MI:SS.FF3".',
+        flag_values=fv,
+    )
+    flags.DEFINE_enum(
+        'source_column_match',
+        None,
+        ['POSITION', 'NAME'],
+        'Controls the strategy used to match loaded columns to the schema.'
+        ' Options include:'
+        '\n POSITION: matches by position. This option assumes that the columns'
+        ' are ordered the same way as the schema.'
+        '\n NAME: matches by name. This option reads the header row as column'
+        ' names and reorders columns to match the field names in the schema.',
+        flag_values=fv,
+    )
+    self.parquet_map_target_type_flag = (
+        frontend_flags.define_parquet_map_target_type(flag_values=fv)
+    )
+    self.reservation_id_for_a_job_flag = (
+        frontend_flags.define_reservation_id_for_a_job(flag_values=fv)
     )
     self._ProcessCommandRc(fv)
 
@@ -434,21 +513,23 @@ class Load(bigquery_command.BigqueryCmd):
     default_dataset_id = ''
     if self.session_id:
       default_dataset_id = '_SESSION'
-    table_reference = client.GetTableReference(
-        destination_table, default_dataset_id
+    table_reference = bq_client_utils.GetTableReference(
+        id_fallbacks=client,
+        identifier=destination_table,
+        default_dataset_id=default_dataset_id,
     )
     opts = {
         'encoding': self.encoding,
         'skip_leading_rows': self.skip_leading_rows,
         'allow_quoted_newlines': self.allow_quoted_newlines,
-        'job_id': frontend_utils.GetJobIdFromFlags(),
+        'job_id': utils_flags.get_job_id_from_flags(),
         'source_format': self.source_format,
         'projection_fields': self.projection_fields,
     }
     if self.max_bad_records:
       opts['max_bad_records'] = self.max_bad_records
-    if FLAGS.location:
-      opts['location'] = FLAGS.location
+    if bq_flags.LOCATION.value:
+      opts['location'] = bq_flags.LOCATION.value
     if self.session_id:
       opts['connection_properties'] = [
           {'key': 'session_id', 'value': self.session_id}
@@ -457,6 +538,8 @@ class Load(bigquery_command.BigqueryCmd):
       opts['copy_files_only'] = self.copy_files_only
     if self.replace:
       opts['write_disposition'] = 'WRITE_TRUNCATE'
+    elif self.replace_data:
+      opts['write_disposition'] = 'WRITE_TRUNCATE_DATA'
     if self.field_delimiter is not None:
       opts['field_delimiter'] = frontend_utils.NormalizeFieldDelimiter(
           self.field_delimiter
@@ -477,6 +560,8 @@ class Load(bigquery_command.BigqueryCmd):
       opts['schema_update_options'] = self.schema_update_option
     if self.null_marker:
       opts['null_marker'] = self.null_marker
+    if self.null_markers is not None:
+      opts['null_markers'] = self.null_markers
     time_partitioning = frontend_utils.ParseTimePartitioning(
         self.time_partitioning_type,
         self.time_partitioning_expiration,
@@ -515,11 +600,25 @@ class Load(bigquery_command.BigqueryCmd):
       opts['hive_partitioning_options'] = hive_partitioning_options
     if self.json_extension is not None:
       opts['json_extension'] = self.json_extension
+    if self.column_name_character_map is not None:
+      opts['column_name_character_map'] = self.column_name_character_map
     opts['decimal_target_types'] = self.decimal_target_types
     if self.file_set_spec_type is not None:
       opts['file_set_spec_type'] = frontend_utils.ParseFileSetSpecType(
           self.file_set_spec_type
       )
+    if self.time_zone is not None:
+      opts['time_zone'] = self.time_zone
+    if self.date_format is not None:
+      opts['date_format'] = self.date_format
+    if self.datetime_format is not None:
+      opts['datetime_format'] = self.datetime_format
+    if self.time_format is not None:
+      opts['time_format'] = self.time_format
+    if self.timestamp_format is not None:
+      opts['timestamp_format'] = self.timestamp_format
+    if self.source_column_match is not None:
+      opts['source_column_match'] = self.source_column_match
     if opts['source_format'] == 'THRIFT':
       thrift_options = {}
       if self.thrift_schema_idl_root_dir is not None:
@@ -550,10 +649,18 @@ class Load(bigquery_command.BigqueryCmd):
         parquet_options['enable_list_inference'] = (
             self.parquet_enable_list_inference
         )
+      if self.parquet_map_target_type_flag.value is not None:
+        parquet_options['mapTargetType'] = (
+            self.parquet_map_target_type_flag.value
+        )
       if parquet_options:
         opts['parquet_options'] = parquet_options
-    job = client.Load(table_reference, source, schema=schema, **opts)
-    if FLAGS.sync:
-      frontend_utils.PrintJobMessages(bq_client_utils.FormatJobInfo(job))
+    if self.reservation_id_for_a_job_flag.present:
+      opts['reservation_id'] = self.reservation_id_for_a_job_flag.value
+    job = client_job.Load(
+        client, table_reference, source, schema=schema, **opts
+    )
+    if bq_flags.SYNCHRONOUS_MODE.value:
+      frontend_utils.PrintJobMessages(utils_formatting.format_job_info(job))
     else:
       self.PrintJobStartInfo(job)

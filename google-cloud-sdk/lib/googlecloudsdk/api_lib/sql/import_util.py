@@ -14,10 +14,6 @@
 # limitations under the License.
 """Common command-agnostic utility functions for sql import commands."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 
 def ParseBakType(sql_messages, bak_type):
   if bak_type is None:
@@ -30,7 +26,14 @@ def ParseBakType(sql_messages, bak_type):
 
 
 def SqlImportContext(
-    sql_messages, uri, database=None, user=None, parallel=False, threads=None
+    sql_messages,
+    uri,
+    database=None,
+    user=None,
+    parallel=False,
+    threads=None,
+    clean=False,
+    if_exists=False,
 ):
   """Generates the ImportContext for the given args, for importing from SQL.
 
@@ -43,11 +46,27 @@ def SqlImportContext(
       '--parallel' flag.
     threads: The number of threads to use; the output of the '--threads' flag.
       Only applicable for parallel import.
+    clean: Clean (DROP) database objects before recreating them. Corresponds to
+      the --clean flag on pg_restore. Only applies if --parallel is set.
+      PostgreSQL only.
+    if_exists: Include SQL statement (IF EXISTS) with each
+      DROP statement produced by --clean; Corresponds to the --if-exists  flag
+      on pg_restore. Only applies if --parallel is set. PostgreSQL only.
 
   Returns:
     ImportContext, for use in InstancesImportRequest.importContext.
   """
   if parallel:
+    postgres_import_options = None
+    if clean or if_exists:
+      postgres_import_options = (
+          sql_messages.ImportContext.SqlImportOptionsValue
+          .PostgresImportOptionsValue(
+              clean=clean,
+              ifExists=if_exists,
+          )
+      )
+
     return sql_messages.ImportContext(
         kind='sql#importContext',
         uri=uri,
@@ -55,7 +74,9 @@ def SqlImportContext(
         fileType=sql_messages.ImportContext.FileTypeValueValuesEnum.SQL,
         importUser=user,
         sqlImportOptions=sql_messages.ImportContext.SqlImportOptionsValue(
-            parallel=parallel, threads=threads
+            parallel=parallel,
+            threads=threads,
+            postgresImportOptions=postgres_import_options,
         ),
     )
   else:
@@ -123,6 +144,7 @@ def BakImportContext(
     cert_path,
     pvk_path,
     pvk_password,
+    keep_encrypted,
     striped,
     no_recovery,
     recovery_only,
@@ -142,6 +164,7 @@ def BakImportContext(
       `--pvk-path` flag.
     pvk_password: The private key password used for encrypted .bak; the output
       of the `--pvk-password` or `--prompt-for-pvk-password` flag.
+    keep_encrypted: Whether or not to decrypt the imported encrypted BAK file.
     striped: Whether or not the import is striped.
     no_recovery: Whether the import executes with NORECOVERY keyword.
     recovery_only: Whether the import skip download and bring database online.
@@ -157,7 +180,12 @@ def BakImportContext(
     bak_import_options = sql_messages.ImportContext.BakImportOptionsValue(
         encryptionOptions=sql_messages.ImportContext.BakImportOptionsValue
         .EncryptionOptionsValue(
-            certPath=cert_path, pvkPath=pvk_path, pvkPassword=pvk_password))
+            certPath=cert_path,
+            pvkPath=pvk_path,
+            pvkPassword=pvk_password,
+        ))
+    if keep_encrypted:
+      bak_import_options.encryptionOptions.keepEncrypted = keep_encrypted
   else:
     bak_import_options = sql_messages.ImportContext.BakImportOptionsValue()
 
@@ -177,3 +205,38 @@ def BakImportContext(
       database=database,
       fileType=sql_messages.ImportContext.FileTypeValueValuesEnum.BAK,
       bakImportOptions=bak_import_options)
+
+
+def TdeImportContext(
+    sql_messages,
+    certificate,
+    cert_path,
+    pvk_path,
+    pvk_password,
+):
+  """Generates the ImportContext for the given args, for importing from TDE.
+
+  Args:
+    sql_messages: module, The messages module that should be used.
+    certificate: The certificate name; the output of the
+      `--certificate` flag.
+    cert_path: The certificate path in Google Cloud Storage; the output of the
+      `--cert-path` flag.
+    pvk_path: The private key path in Google Cloud Storage; the output of the
+      `--pvk-path` flag.
+    pvk_password: The password that encrypts the private key; the output
+      of the `--pvk-password` or `--prompt-for-pvk-password` flag.
+
+  Returns:
+    ImportContext, for use in InstancesImportRequest.importContext.
+  """
+  tde_import_options = sql_messages.ImportContext.TdeImportOptionsValue(
+      name=certificate,
+      certificatePath=cert_path,
+      privateKeyPath=pvk_path,
+      privateKeyPassword=pvk_password)
+
+  return sql_messages.ImportContext(
+      kind='sql#importContext',
+      fileType=sql_messages.ImportContext.FileTypeValueValuesEnum.TDE,
+      tdeImportOptions=tde_import_options)

@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from googlecloudsdk.api_lib.iam import util
+from googlecloudsdk.api_lib.util import apis
 from googlecloudsdk.calliope import arg_parsers
 from googlecloudsdk.calliope import exceptions as gcloud_exceptions
 from googlecloudsdk.command_lib.iam import iam_util
@@ -43,7 +44,8 @@ def UpdateRequestWithConditionFromFile(ref, args, request):
     condition_message = messages.Expr(
         description=args.condition_from_file.get('description'),
         title=args.condition_from_file.get('title'),
-        expression=args.condition_from_file.get('expression'))
+        expression=args.condition_from_file.get('expression'),
+    )
     request.condition = condition_message
   return request
 
@@ -53,7 +55,8 @@ def _ConditionFileFormatException(filename):
       'condition-from-file',
       '{filename} must be a path to a YAML or JSON file containing the '
       'condition. `expression` and `title` are required keys. `description` is '
-      'optional.'.format(filename=filename))
+      'optional.'.format(filename=filename),
+  )
 
 
 def ParseConditionFromFile(condition_from_file):
@@ -61,36 +64,51 @@ def ParseConditionFromFile(condition_from_file):
 
   condition = arg_parsers.FileContents()(condition_from_file)
   condition_dict = iam_util.ParseYamlOrJsonCondition(
-      condition, _ConditionFileFormatException(condition_from_file))
+      condition, _ConditionFileFormatException(condition_from_file)
+  )
   return condition_dict
 
 
 def EnableIamAccountConfirmation(response, args):
   del response
-  if args.command_path[len(args.command_path) -
-                       3:] == [u'iam', u'service-accounts', u'enable']:
-    log.status.Print('Enabled service account [{}].'.format(
-        args.service_account))
+  if args.command_path[len(args.command_path) - 3 :] == [
+      'iam',
+      'service-accounts',
+      'enable',
+  ]:
+    log.status.Print(
+        'Enabled service account [{}].'.format(args.service_account)
+    )
 
 
 def DisableIamAccountConfirmation(response, args):
   del response
-  if args.command_path[len(args.command_path) -
-                       3:] == [u'iam', u'service-accounts', u'disable']:
-    log.status.Print('Disabled service account [{}].'.format(
-        args.service_account))
+  if args.command_path[len(args.command_path) - 3 :] == [
+      'iam',
+      'service-accounts',
+      'disable',
+  ]:
+    log.status.Print(
+        'Disabled service account [{}].'.format(args.service_account)
+    )
 
 
 def EnableIamKeyConfirmation(response, args):
   del response  # Unused.
-  log.status.Print('Enabled key [{0}] for service account [{1}].'.format(
-      args.iam_key, args.iam_account))
+  log.status.Print(
+      'Enabled key [{0}] for service account [{1}].'.format(
+          args.iam_key, args.iam_account
+      )
+  )
 
 
 def DisableIamKeyConfirmation(response, args):
   del response  # Unused.
-  log.status.Print('Disabled key [{0}] for service account [{1}].'.format(
-      args.iam_key, args.iam_account))
+  log.status.Print(
+      'Disabled key [{0}] for service account [{1}].'.format(
+          args.iam_key, args.iam_account
+      )
+  )
 
 
 def SetServiceAccountResource(ref, unused_args, request):
@@ -108,7 +126,8 @@ def ValidateUpdateFieldMask(ref, unused_args, request):
   if not request.patchServiceAccountRequest.updateMask:
     update_fields = ['--display-name', '--description']
     raise gcloud_exceptions.OneOfArgumentsRequiredException(
-        update_fields, 'Specify at least one field to update.')
+        update_fields, 'Specify at least one field to update.'
+    )
   return request
 
 
@@ -118,8 +137,9 @@ def UseMaxRequestedPolicyVersion(api_field):
   def Process(ref, args, request):
     del ref, args  # Unused.
 
-    arg_utils.SetFieldInMessage(request, api_field,
-                                iam_util.MAX_LIBRARY_IAM_SUPPORTED_VERSION)
+    arg_utils.SetFieldInMessage(
+        request, api_field, iam_util.MAX_LIBRARY_IAM_SUPPORTED_VERSION
+    )
     return request
 
   return Process
@@ -149,7 +169,8 @@ def CreateFullServiceAccountNameFromId(account_id):
   if not account_id.isdigit():
     raise gcloud_exceptions.InvalidArgumentException(
         'account_id',
-        'Account unique ID should be a number. Please double check your input and try again.'
+        'Account unique ID should be a number. Please double check your input'
+        ' and try again.',
     )
   return 'projects/-/serviceAccounts/' + account_id
 
@@ -171,12 +192,215 @@ def GeneratePublicKeyDataFromFile(path):
   except arg_parsers.ArgumentTypeError as e:
     raise gcloud_exceptions.InvalidArgumentException(
         'public_key_file',
-        '{}. Please double check your input and try again.'.format(e))
+        '{}. Please double check your input and try again.'.format(e),
+    )
   return public_key_data.encode('utf-8')
+
+
+def AddCreateExtraAndExtendedAttributesConfigToRequest(ref, args, request):
+  """Add ExtraAttributesOAuth2Client and ExtendedAttributesOAuth2Client fields to create workforcePoolProvider requests."""
+
+  del ref
+  messages = apis.GetMessagesModule('iam', 'v1')
+  SetExtraAttributesOauth2ClientFields(request, args, messages)
+  SetExtendedAttributesOauth2ClientFields(request, args, messages)
+  return request
+
+
+def AddClearableExtraAttributesConfigToRequest(ref, args, request):
+  """Add ExtraAttributesOAuth2Client fields to update workforcePoolProvider requests."""
+  del ref
+  messages = apis.GetMessagesModule('iam', 'v1')
+  if (
+      args.clear_extra_attributes_config is not None
+      and args.clear_extra_attributes_config
+  ):
+    arg_utils.SetFieldInMessage(
+        request,
+        'workforcePoolProvider.extraAttributesOauth2Client',
+        None,
+    )
+  else:
+    SetExtraAttributesOauth2ClientFields(request, args, messages)
+
+  return request
+
+
+def AddClearableExtendedAttributesConfigToRequest(ref, args, request):
+  """Add ExtraAttributesOAuth2Client fields to update workforcePoolProvider requests."""
+  del ref
+  messages = apis.GetMessagesModule('iam', 'v1')
+  if (
+      args.clear_extended_attributes_config is not None
+      and args.clear_extended_attributes_config
+  ):
+    arg_utils.SetFieldInMessage(
+        request,
+        'workforcePoolProvider.extendedAttributesOauth2Client',
+        None,
+    )
+  else:
+    SetExtendedAttributesOauth2ClientFields(request, args, messages)
+
+  return request
+
+
+def SetExtraAttributesOauth2ClientFields(request, args, messages):
+  """Set ExtraAttributesOauth2Client fields in the request."""
+  if args.extra_attributes_type is not None:
+    response_type = (
+        messages.GoogleIamAdminV1WorkforcePoolProviderExtraAttributesOAuth2Client.AttributesTypeValueValuesEnum
+    )
+    if 'azure-ad-groups-mail' in args.extra_attributes_type:
+      arg_utils.SetFieldInMessage(
+          request,
+          'workforcePoolProvider.extraAttributesOauth2Client.attributesType',
+          response_type.AZURE_AD_GROUPS_MAIL,
+      )
+    elif 'azure-ad-groups-id' in args.extra_attributes_type:
+      arg_utils.SetFieldInMessage(
+          request,
+          'workforcePoolProvider.extraAttributesOauth2Client.attributesType',
+          response_type.AZURE_AD_GROUPS_ID,
+      )
+    elif 'azure-ad-groups-display-name' in args.extra_attributes_type:
+      arg_utils.SetFieldInMessage(
+          request,
+          'workforcePoolProvider.extraAttributesOauth2Client.attributesType',
+          response_type.AZURE_AD_GROUPS_DISPLAY_NAME,
+      )
+  if args.extra_attributes_client_id is not None:
+    arg_utils.SetFieldInMessage(
+        request,
+        'workforcePoolProvider.extraAttributesOauth2Client.clientId',
+        args.extra_attributes_client_id,
+    )
+  if args.extra_attributes_client_secret_value is not None:
+    arg_utils.SetFieldInMessage(
+        request,
+        'workforcePoolProvider.extraAttributesOauth2Client.clientSecret.value.plainText',
+        args.extra_attributes_client_secret_value,
+    )
+  if args.extra_attributes_issuer_uri is not None:
+    arg_utils.SetFieldInMessage(
+        request,
+        'workforcePoolProvider.extraAttributesOauth2Client.issuerUri',
+        args.extra_attributes_issuer_uri,
+    )
+  if args.extra_attributes_filter is not None:
+    arg_utils.SetFieldInMessage(
+        request,
+        'workforcePoolProvider.extraAttributesOauth2Client.queryParameters.filter',
+        args.extra_attributes_filter,
+    )
+
+
+def SetExtendedAttributesOauth2ClientFields(request, args, messages):
+  """Set ExtendedAttributesOauth2Client fields in the request."""
+  if args.extended_attributes_type is not None:
+    response_type = (
+        messages.GoogleIamAdminV1WorkforcePoolProviderExtraAttributesOAuth2Client.AttributesTypeValueValuesEnum
+    )
+    if 'azure-ad-groups-id' in args.extended_attributes_type:
+      arg_utils.SetFieldInMessage(
+          request,
+          'workforcePoolProvider.extendedAttributesOauth2Client.attributesType',
+          response_type.AZURE_AD_GROUPS_ID,
+      )
+  if args.extended_attributes_client_id is not None:
+    arg_utils.SetFieldInMessage(
+        request,
+        'workforcePoolProvider.extendedAttributesOauth2Client.clientId',
+        args.extended_attributes_client_id,
+    )
+  if args.extended_attributes_client_secret_value is not None:
+    arg_utils.SetFieldInMessage(
+        request,
+        'workforcePoolProvider.extendedAttributesOauth2Client.clientSecret.value.plainText',
+        args.extended_attributes_client_secret_value,
+    )
+  if args.extended_attributes_issuer_uri is not None:
+    arg_utils.SetFieldInMessage(
+        request,
+        'workforcePoolProvider.extendedAttributesOauth2Client.issuerUri',
+        args.extended_attributes_issuer_uri,
+    )
+  if args.extended_attributes_filter is not None:
+    arg_utils.SetFieldInMessage(
+        request,
+        'workforcePoolProvider.extendedAttributesOauth2Client.queryParameters.filter',
+        args.extended_attributes_filter,
+    )
+
+
+def AddExtraAttributesConfigFieldMask(unused_ref, args, request):
+  """Adds ExtraAttributesOauth2Client specific fieldmask entries to the update workforcePoolProvider request."""
+  mask_fields = []
+  if request.updateMask:
+    mask_fields = request.updateMask.split(',')
+  if (
+      args.clear_extra_attributes_config is not None
+      and args.clear_extra_attributes_config
+  ):
+    mask_fields.append('extraAttributesOauth2Client')
+  if args.extra_attributes_type is not None:
+    mask_fields.append('extraAttributesOauth2Client.attributesType')
+  if args.extra_attributes_client_id is not None:
+    mask_fields.append('extraAttributesOauth2Client.clientId')
+  if args.extra_attributes_client_secret_value is not None:
+    mask_fields.append(
+        'extraAttributesOauth2Client.clientSecret.value.plainText'
+    )
+  if args.extra_attributes_issuer_uri is not None:
+    mask_fields.append('extraAttributesOauth2Client.issuerUri')
+  if args.extra_attributes_filter is not None:
+    mask_fields.append('extraAttributesOauth2Client.queryParameters.filter')
+  if mask_fields:
+    request.updateMask = ','.join(mask_fields)
+  return request
+
+
+def AddExtendedAttributesConfigFieldMask(unused_ref, args, request):
+  """Adds ExtendedAttributesOauth2Client specific fieldmask entries to the update workforcePoolProvider request."""
+  mask_fields = []
+  if request.updateMask:
+    mask_fields = request.updateMask.split(',')
+  if (
+      args.clear_extended_attributes_config is not None
+      and args.clear_extended_attributes_config
+  ):
+    mask_fields.append('extendedAttributesOauth2Client')
+  if args.extended_attributes_type is not None:
+    mask_fields.append('extendedAttributesOauth2Client.attributesType')
+  if args.extended_attributes_client_id is not None:
+    mask_fields.append('extendedAttributesOauth2Client.clientId')
+  if args.extended_attributes_client_secret_value is not None:
+    mask_fields.append(
+        'extendedAttributesOauth2Client.clientSecret.value.plainText'
+    )
+  if args.extended_attributes_issuer_uri is not None:
+    mask_fields.append('extendedAttributesOauth2Client.issuerUri')
+  if args.extended_attributes_filter is not None:
+    mask_fields.append('extendedAttributesOauth2Client.queryParameters.filter')
+  if mask_fields:
+    request.updateMask = ','.join(mask_fields)
+  return request
 
 
 def ClearFlag(args):
   """Clear the value for a flag."""
   del args
   return None
+
+
+def ModifyHardDeleteFlagInRequest(ref, args, request):
+  """Remove the flag from the request when it is not specified."""
+  del ref
+  if not args.hard_delete:
+    arg_utils.SetFieldInMessage(
+        request,
+        'hardDelete',
+        None,
+    )
+  return request
 

@@ -59,6 +59,20 @@ class Collections(enum.Enum):
       ['project', 'backendService'],
       True
   )
+  CROSSSITENETWORKS = (
+      'crossSiteNetworks',
+      'projects/{project}/global/crossSiteNetworks/{crossSiteNetwork}',
+      {},
+      ['project', 'crossSiteNetwork'],
+      True
+  )
+  DISKSETTINGS = (
+      'diskSettings',
+      'projects/{project}/zones/{zone}/diskSettings',
+      {},
+      ['project', 'zone'],
+      True
+  )
   DISKTYPES = (
       'diskTypes',
       'projects/{project}/zones/{zone}/diskTypes/{diskType}',
@@ -237,12 +251,27 @@ class Collections(enum.Enum):
       ['project', 'zone', 'instantSnapshot'],
       True
   )
+  INTERCONNECTATTACHMENTGROUPS = (
+      'interconnectAttachmentGroups',
+      'projects/{project}/global/interconnectAttachmentGroups/'
+      '{interconnectAttachmentGroup}',
+      {},
+      ['project', 'interconnectAttachmentGroup'],
+      True
+  )
   INTERCONNECTATTACHMENTS = (
       'interconnectAttachments',
       'projects/{project}/regions/{region}/interconnectAttachments/'
       '{interconnectAttachment}',
       {},
       ['project', 'region', 'interconnectAttachment'],
+      True
+  )
+  INTERCONNECTGROUPS = (
+      'interconnectGroups',
+      'projects/{project}/global/interconnectGroups/{interconnectGroup}',
+      {},
+      ['project', 'interconnectGroup'],
       True
   )
   INTERCONNECTLOCATIONS = (
@@ -326,6 +355,13 @@ class Collections(enum.Enum):
       ['project', 'firewallPolicy'],
       True
   )
+  NETWORKPROFILES = (
+      'networkProfiles',
+      'projects/{project}/global/networkProfiles/{networkProfile}',
+      {},
+      ['project', 'networkProfile'],
+      True
+  )
   NETWORKS = (
       'networks',
       'projects/{project}/global/networks/{network}',
@@ -373,6 +409,16 @@ class Collections(enum.Enum):
       'projects/{project}/regions/{region}/packetMirrorings/{packetMirroring}',
       {},
       ['project', 'region', 'packetMirroring'],
+      True
+  )
+  PREVIEWFEATURES = (
+      'previewFeatures',
+      'projects/{project}/global/previewFeatures/{previewFeature}',
+      {
+          '':
+              'projects/{project}/global/previewFeatures/{previewFeature}',
+      },
+      ['project', 'previewFeature'],
       True
   )
   PROJECTS = (
@@ -426,6 +472,21 @@ class Collections(enum.Enum):
       ['project', 'region', 'commitment'],
       True
   )
+  REGIONCOMPOSITEHEALTHCHECKS = (
+      'regionCompositeHealthChecks',
+      'projects/{project}/regions/{region}/compositeHealthChecks/'
+      '{compositeHealthCheck}',
+      {},
+      ['project', 'region', 'compositeHealthCheck'],
+      True
+  )
+  REGIONDISKSETTINGS = (
+      'regionDiskSettings',
+      'projects/{project}/regions/{region}/diskSettings',
+      {},
+      ['project', 'region'],
+      True
+  )
   REGIONDISKTYPES = (
       'regionDiskTypes',
       'projects/{project}/regions/{region}/diskTypes/{diskType}',
@@ -453,6 +514,21 @@ class Collections(enum.Enum):
       'projects/{project}/regions/{region}/healthChecks/{healthCheck}',
       {},
       ['project', 'region', 'healthCheck'],
+      True
+  )
+  REGIONHEALTHSOURCES = (
+      'regionHealthSources',
+      'projects/{project}/regions/{region}/healthSources/{healthSource}',
+      {},
+      ['project', 'region', 'healthSource'],
+      True
+  )
+  REGIONINSTANCEGROUPMANAGERRESIZEREQUESTS = (
+      'regionInstanceGroupManagerResizeRequests',
+      'projects/{project}/regions/{region}/instanceGroupManagers/'
+      '{instanceGroupManager}/resizeRequests/{resizeRequest}',
+      {},
+      ['project', 'region', 'instanceGroupManager', 'resizeRequest'],
       True
   )
   REGIONINSTANCEGROUPMANAGERS = (
@@ -485,6 +561,13 @@ class Collections(enum.Enum):
       ['project', 'region', 'instantSnapshot'],
       True
   )
+  REGIONMULTIMIGS = (
+      'regionMultiMigs',
+      'projects/{project}/regions/{region}/multiMigs/{multiMig}',
+      {},
+      ['project', 'region', 'multiMig'],
+      True
+  )
   REGIONNETWORKENDPOINTGROUPS = (
       'regionNetworkEndpointGroups',
       'projects/{project}/regions/{region}/networkEndpointGroups/'
@@ -498,6 +581,13 @@ class Collections(enum.Enum):
       'projects/{project}/regions/{region}/firewallPolicies/{firewallPolicy}',
       {},
       ['project', 'region', 'firewallPolicy'],
+      True
+  )
+  REGIONNETWORKPOLICIES = (
+      'regionNetworkPolicies',
+      'projects/{project}/regions/{region}/networkPolicies/{networkPolicy}',
+      {},
+      ['project', 'region', 'networkPolicy'],
       True
   )
   REGIONNOTIFICATIONENDPOINTS = (
@@ -528,6 +618,20 @@ class Collections(enum.Enum):
       'securityPolicyRules/{securityPolicyRule}',
       {},
       ['project', 'region', 'securityPolicy', 'securityPolicyRule'],
+      True
+  )
+  REGIONSNAPSHOTSETTINGS = (
+      'regionSnapshotSettings',
+      'projects/{project}/regions/{region}/snapshotSettings',
+      {},
+      ['project', 'region'],
+      True
+  )
+  REGIONSNAPSHOTS = (
+      'regionSnapshots',
+      'projects/{project}/regions/{region}/snapshots/{snapshot}',
+      {},
+      ['project', 'region', 'snapshot'],
       True
   )
   REGIONSSLCERTIFICATES = (
@@ -579,6 +683,22 @@ class Collections(enum.Enum):
       'projects/{project}/regions/{region}',
       {},
       ['project', 'region'],
+      True
+  )
+  RESERVATIONBLOCKS = (
+      'reservationBlocks',
+      'projects/{project}/zones/{zone}/reservations/{reservation}/'
+      'reservationBlocks/{reservationBlock}',
+      {},
+      ['project', 'zone', 'reservation', 'reservationBlock'],
+      True
+  )
+  RESERVATIONSUBBLOCKS = (
+      'reservationSubBlocks',
+      'projects/{project}/zones/{zone}/{parentName}/reservationSubBlocks/'
+      '{reservationSubBlock}',
+      {},
+      ['project', 'zone', 'parentName', 'reservationSubBlock'],
       True
   )
   RESERVATIONS = (
@@ -759,6 +879,14 @@ class Collections(enum.Enum):
       ['project', 'region', 'vpnTunnel'],
       True
   )
+  WIREGROUPS = (
+      'wireGroups',
+      'projects/{project}/global/crossSiteNetworks/{crossSiteNetwork}/'
+      'wireGroups/{wireGroup}',
+      {},
+      ['project', 'crossSiteNetwork', 'wireGroup'],
+      True
+  )
   ZONEOPERATIONS = (
       'zoneOperations',
       'projects/{project}/zones/{zone}/operations/{operation}',
@@ -769,7 +897,10 @@ class Collections(enum.Enum):
   ZONES = (
       'zones',
       'projects/{project}/zones/{zone}',
-      {},
+      {
+          '':
+              'projects/{project}/zones/{zone}',
+      },
       ['project', 'zone'],
       True
   )

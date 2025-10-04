@@ -21,6 +21,7 @@ from __future__ import unicode_literals
 from googlecloudsdk.calliope import base
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.BETA)
 class Sessions(base.Group):
   """Create and manage Dataproc sessions.
@@ -47,8 +48,4 @@ class Sessions(base.Group):
   Terminate an active session:
 
     $ {command} terminate SESSION_ID
-
-  Enable Personal Auth on an active session:
-
-    $ {command} enable-personal-auth-session SESSION_ID
   """

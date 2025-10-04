@@ -22,9 +22,15 @@ from googlecloudsdk.command_lib.run import platforms
 from surface.run.services import describe
 
 
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.ReleaseTracks(
+    base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA, base.ReleaseTrack.GA
+)
 class MultiRegionDescribe(describe.Describe):
-  """Describes multi-region service."""
+  """Command to describe a multi-region service."""
+
+  @staticmethod
+  def Args(parser):
+    describe.Describe.CommonArgs(parser, is_multi_region=True)
 
   def _ConnectionContext(self, args):
     return connection_context.GetConnectionContext(

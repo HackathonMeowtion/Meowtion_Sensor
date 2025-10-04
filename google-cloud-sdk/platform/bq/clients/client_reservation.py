@@ -1,26 +1,31 @@
 #!/usr/bin/env python
-"""Bigquery Client library for reservations requests."""
+"""The BigQuery CLI reservation client library."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from typing import Any, Dict, NamedTuple, Optional
+from typing import Any, Dict, NamedTuple, Optional, Set, Tuple
 
-
+from googleapiclient import discovery
 
 from clients import utils as bq_client_utils
+from frontend import utils as frontend_utils
 from utils import bq_error
+from utils import bq_id_utils
 
 
 def GetBodyForCreateReservation(
-    api_version: str,
+    api_version: str,  # pylint: disable=unused-argument Cleanup is error prone.
     slots: int,
     ignore_idle_slots: bool,
     edition,
     target_job_concurrency: Optional[int],
     multi_region_auxiliary: Optional[bool],
     autoscale_max_slots: Optional[int] = None,
+    max_slots: Optional[int] = None,
+    scaling_mode: Optional[str] = None,
+    reservation_group_name: Optional[str] = None,
 ) -> Dict[str, Any]:
   """Return the request body for CreateReservation.
 
@@ -34,13 +39,16 @@ def GetBodyForCreateReservation(
     multi_region_auxiliary: Whether this reservation is for the auxiliary
       region.
     autoscale_max_slots: Number of slots to be scaled when needed.
+    max_slots: The overall max slots for the reservation.
+    scaling_mode: The scaling mode for the reservation.
+    reservation_group_name: The reservation group name which the reservation
+      belongs to.
 
   Returns:
     Reservation object that was created.
 
   Raises:
-    bq_error.BigqueryError: if autoscale_max_slots is used with other
-      version.
+    bq_error.BigqueryError: if requirements for parameters are not met.
   """
   reservation = {}
   reservation['slot_capacity'] = slots
@@ -54,9 +62,28 @@ def GetBodyForCreateReservation(
     reservation['autoscale'] = {}
     reservation['autoscale']['max_slots'] = autoscale_max_slots
 
-
   if edition is not None:
     reservation['edition'] = edition
+
+  if frontend_utils.ValidateAtMostOneSelected(max_slots, autoscale_max_slots):
+    raise bq_error.BigqueryError(
+        'max_slots and autoscale_max_slots cannot be set at the same time.'
+    )
+  # make sure max_slots and scaling_mode are set at the same time.
+  if (max_slots is not None and scaling_mode is None) or (
+      max_slots is None and scaling_mode is not None
+  ):
+    raise bq_error.BigqueryError(
+        'max_slots and scaling_mode must be set at the same time.'
+    )
+
+  if max_slots is not None:
+    reservation['max_slots'] = max_slots
+  if scaling_mode is not None:
+    reservation['scaling_mode'] = scaling_mode
+
+  if reservation_group_name is not None:
+    reservation['reservation_group'] = reservation_group_name
 
   return reservation
 
@@ -71,6 +98,9 @@ def CreateReservation(
     target_job_concurrency: Optional[int],
     multi_region_auxiliary: Optional[bool],
     autoscale_max_slots: Optional[int] = None,
+    max_slots: Optional[int] = None,
+    scaling_mode: Optional[str] = None,
+    reservation_group_name: Optional[str] = None,
 ) -> Dict[str, Any]:
   """Create a reservation with the given reservation reference.
 
@@ -86,6 +116,10 @@ def CreateReservation(
     multi_region_auxiliary: Whether this reservation is for the auxiliary
       region.
     autoscale_max_slots: Number of slots to be scaled when needed.
+    max_slots: The overall max slots for the reservation.
+    scaling_mode: The scaling mode for the reservation.
+    reservation_group_name: The reservation group name which the reservation
+      belongs to.
 
   Returns:
     Reservation object that was created.
@@ -102,22 +136,32 @@ def CreateReservation(
       target_job_concurrency,
       multi_region_auxiliary,
       autoscale_max_slots,
+      max_slots,
+      scaling_mode,
+      reservation_group_name,
   )
   parent = 'projects/%s/locations/%s' % (
       reference.projectId,
       reference.location,
   )
-  return client.projects().locations().reservations().create(
-      parent=parent, body=reservation,
-      reservationId=reference.reservationId).execute()
+  return (
+      client.projects()
+      .locations()
+      .reservations()
+      .create(
+          parent=parent, body=reservation, reservationId=reference.reservationId
+      )
+      .execute()
+  )
 
 
 def ListReservations(
-    client,
-    reference,
-    page_size,
-    page_token
-):
+    client: ...,
+    reference: ...,
+    page_size: int,
+    page_token: Optional[str],
+    reservation_group: Optional[str] = None,
+) -> Any:
   """List reservations in the project and location for the given reference.
 
   Arguments:
@@ -125,6 +169,8 @@ def ListReservations(
     reference: Reservation reference containing project and location.
     page_size: Number of results to show.
     page_token: Token to retrieve the next page of results.
+    reservation_group: When specified, only list reservations in the given
+      reservation group.
 
   Returns:
     Reservation object that was created.
@@ -133,14 +179,29 @@ def ListReservations(
       reference.projectId,
       reference.location,
   )
-  return client.projects().locations().reservations().list(
-      parent=parent, pageSize=page_size, pageToken=page_token).execute()
+  if reservation_group is not None:
+    return (
+        client.projects()
+        .locations()
+        .reservations()
+        .list(
+            parent=parent,
+            pageSize=page_size,
+            pageToken=page_token,
+            filter='reservation_group=%s' % reservation_group,
+        )
+        .execute()
+    )
+  return (
+      client.projects()
+      .locations()
+      .reservations()
+      .list(parent=parent, pageSize=page_size, pageToken=page_token)
+      .execute()
+  )
 
 
-def ListBiReservations(
-    client,
-    reference
-):
+def ListBiReservations(client, reference):
   """List BI reservations in the project and location for the given reference.
 
   Arguments:
@@ -154,15 +215,13 @@ def ListBiReservations(
       reference.projectId,
       reference.location,
   )
-  response = client.projects().locations().getBiReservation(
-      name=parent).execute()
+  response = (
+      client.projects().locations().getBiReservation(name=parent).execute()
+  )
   return response
 
 
-def GetReservation(
-    client,
-    reference
-):
+def GetReservation(client, reference):
   """Gets a reservation with the given reservation reference.
 
   Arguments:
@@ -172,8 +231,13 @@ def GetReservation(
   Returns:
     Reservation object corresponding to the given id.
   """
-  return client.projects().locations().reservations().get(
-      name=reference.path()).execute()
+  return (
+      client.projects()
+      .locations()
+      .reservations()
+      .get(name=reference.path())
+      .execute()
+  )
 
 
 def DeleteReservation(
@@ -191,11 +255,7 @@ def DeleteReservation(
   ).execute()
 
 
-def UpdateBiReservation(
-    client,
-    reference,
-    reservation_size: str
-):
+def UpdateBiReservation(client, reference, reservation_size: str):
   """Updates a BI reservation with the given reservation reference.
 
   Arguments:
@@ -210,11 +270,14 @@ def UpdateBiReservation(
     ValueError: if reservation_size is malformed.
   """
 
-  if (reservation_size.upper().endswith('GB') and
-      reservation_size[:-2].isdigit()):
+  if (
+      reservation_size.upper().endswith('GB')
+      and reservation_size[:-2].isdigit()
+  ):
     reservation_digits = reservation_size[:-2]
-  elif (reservation_size.upper().endswith('G') and
-        reservation_size[:-1].isdigit()):
+  elif (
+      reservation_size.upper().endswith('G') and reservation_size[:-1].isdigit()
+  ):
     reservation_digits = reservation_size[:-1]
   elif reservation_size.isdigit():
     reservation_digits = reservation_size
@@ -229,20 +292,32 @@ def UpdateBiReservation(
   update_mask = ''
   bi_reservation['size'] = reservation_size
   update_mask += 'size,'
-  return client.projects().locations().updateBiReservation(
-      name=reference.path(), updateMask=update_mask,
-      body=bi_reservation).execute()
+  return (
+      client.projects()
+      .locations()
+      .updateBiReservation(
+          name=reference.path(), updateMask=update_mask, body=bi_reservation
+      )
+      .execute()
+  )
 
 
 
 
 def GetParamsForUpdateReservation(
-    api_version: str,
-    slots,
-    ignore_idle_slots,
+    client: ...,
+    reference: ...,
+    api_version: str,  # pylint: disable=unused-argument Cleanup is error prone.
+    slots: int,
+    ignore_idle_slots: bool,
     target_job_concurrency: Optional[int],
-    autoscale_max_slots,
-):
+    autoscale_max_slots: Optional[int] = None,
+    max_slots: Optional[int] = None,
+    scaling_mode: Optional[str] = None,
+    labels_to_set: Optional[Dict[str, str]] = None,
+    label_keys_to_remove: Optional[Set[str]] = None,
+    reservation_group_name: Optional[str] = None,
+) -> Tuple[Dict[str, Any], str]:
   """Return the request body and update mask for UpdateReservation.
 
   Arguments:
@@ -252,13 +327,16 @@ def GetParamsForUpdateReservation(
       other reservations.
     target_job_concurrency: Job concurrency target.
     autoscale_max_slots: Number of slots to be scaled when needed.
+    max_slots: The overall max slots for the reservation.
+    scaling_mode: The scaling mode for the reservation.
+    reservation_group_name: The reservation group name that the reservation
+      belongs to.
 
   Returns:
     Reservation object that was updated.
 
   Raises:
-    bq_error.BigqueryError: if autoscale_max_slots is used with other
-      version.
+    bq_error.BigqueryError: if parameters are incompatible.
   """
   reservation = {}
   update_mask = ''
@@ -283,6 +361,56 @@ def GetParamsForUpdateReservation(
       # Disable autoscale.
       update_mask += 'autoscale,'
 
+  if label_keys_to_remove is not None or labels_to_set is not None:
+    lookup_reservation = GetReservation(client, reference)
+    if 'labels' in lookup_reservation:
+      reservation['labels'] = lookup_reservation['labels']
+    else:
+      reservation['labels'] = {}
+    update_mask += 'labels,'
+
+  if label_keys_to_remove is not None:
+    for key in label_keys_to_remove:
+      if key in reservation['labels']:
+        del reservation['labels'][key]
+
+  if labels_to_set is not None:
+    for key, value in labels_to_set.items():
+      reservation['labels'][key] = value
+
+  if frontend_utils.ValidateAtMostOneSelectedAllowsDefault(
+      max_slots, autoscale_max_slots
+  ):
+    raise bq_error.BigqueryError(
+        'max_slots and autoscale_max_slots cannot be set at the same time.'
+    )
+
+  # Not we don't need to perform the following check for creation,
+  # because there we check the co-existence of max_slots and scaling_mode, so
+  # we just need to make sure max_slots and autoscale_max_slots doesn't occur
+  # at the same time.
+  if (scaling_mode is not None and autoscale_max_slots is not None) and (
+      scaling_mode != 'SCALING_MODE_UNSPECIFIED' and autoscale_max_slots != 0
+  ):
+    raise bq_error.BigqueryError(
+        'scaling_mode and autoscale_max_slots cannot be set at the same time.'
+    )
+
+  # Note: for update we don't require max_slots and scaling_mode being changed
+  # set at the same time.
+  # Although backend should make sure them to work together.
+
+  if max_slots is not None:
+    reservation['max_slots'] = max_slots
+    update_mask += 'max_slots,'
+  if scaling_mode is not None:
+    reservation['scaling_mode'] = scaling_mode
+    update_mask += 'scaling_mode,'
+
+  if reservation_group_name is not None:
+    reservation['reservation_group'] = reservation_group_name
+    update_mask += 'reservation_group,'
+
   return reservation, update_mask
 
 
@@ -293,7 +421,12 @@ def UpdateReservation(
     slots,
     ignore_idle_slots,
     target_job_concurrency: Optional[int],
-    autoscale_max_slots,
+    autoscale_max_slots: Optional[int] = None,
+    max_slots: Optional[int] = None,
+    scaling_mode: Optional[str] = None,
+    labels_to_set: Optional[Dict[str, str]] = None,
+    label_keys_to_remove: Optional[Set[str]] = None,
+    reservation_group_name: Optional[str] = None,
 ):
   """Updates a reservation with the given reservation reference.
 
@@ -306,6 +439,10 @@ def UpdateReservation(
       other reservations.
     target_job_concurrency: Job concurrency target.
     autoscale_max_slots: Number of slots to be scaled when needed.
+    max_slots: The overall max slots for the reservation.
+    scaling_mode: The scaling mode for the reservation.
+    reservation_group_name: The reservation group name that the reservation
+      belongs to.
 
   Returns:
     Reservation object that was updated.
@@ -315,15 +452,26 @@ def UpdateReservation(
       version.
   """
   reservation, update_mask = GetParamsForUpdateReservation(
+      client,
+      reference,
       api_version,
       slots,
       ignore_idle_slots,
       target_job_concurrency,
       autoscale_max_slots,
+      max_slots,
+      scaling_mode,
+      labels_to_set,
+      label_keys_to_remove,
+      reservation_group_name,
   )
-  return client.projects().locations().reservations().patch(
-      name=reference.path(), updateMask=update_mask,
-      body=reservation).execute()
+  return (
+      client.projects()
+      .locations()
+      .reservations()
+      .patch(name=reference.path(), updateMask=update_mask, body=reservation)
+      .execute()
+  )
 
 
 def CreateCapacityCommitment(
@@ -344,8 +492,7 @@ def CreateCapacityCommitment(
     slots: Number of slots in this commitment.
     plan: Commitment plan for this capacity commitment.
     renewal_plan: Renewal plan for this capacity commitment.
-    multi_region_auxiliary: Whether this commitment is for the auxiliary
-      region.
+    multi_region_auxiliary: Whether this commitment is for the auxiliary region.
 
   Returns:
     Capacity commitment object that was created.
@@ -362,8 +509,19 @@ def CreateCapacityCommitment(
       reference.projectId,
       reference.location,
   )
-  request = client.projects().locations().capacityCommitments().create(
-      parent=parent, body=capacity_commitment)
+  capacity_commitment_id = None
+  if reference.capacityCommitmentId and reference.capacityCommitmentId != ' ':
+    capacity_commitment_id = reference.capacityCommitmentId
+  request = (
+      client.projects()
+      .locations()
+      .capacityCommitments()
+      .create(
+          parent=parent,
+          body=capacity_commitment,
+          capacityCommitmentId=capacity_commitment_id,
+      )
+  )
   return request.execute()
 
 
@@ -383,14 +541,16 @@ def ListCapacityCommitments(client, reference, page_size, page_token):
       reference.projectId,
       reference.location,
   )
-  return client.projects().locations().capacityCommitments().list(
-      parent=parent, pageSize=page_size, pageToken=page_token).execute()
+  return (
+      client.projects()
+      .locations()
+      .capacityCommitments()
+      .list(parent=parent, pageSize=page_size, pageToken=page_token)
+      .execute()
+  )
 
 
-def GetCapacityCommitment(
-    client,
-    reference
-):
+def GetCapacityCommitment(client, reference):
   """Gets a capacity commitment with the given capacity commitment reference.
 
   Arguments:
@@ -400,15 +560,16 @@ def GetCapacityCommitment(
   Returns:
     Capacity commitment object corresponding to the given id.
   """
-  return client.projects().locations().capacityCommitments().get(
-      name=reference.path()).execute()
+  return (
+      client.projects()
+      .locations()
+      .capacityCommitments()
+      .get(name=reference.path())
+      .execute()
+  )
 
 
-def DeleteCapacityCommitment(
-    client,
-    reference,
-    force=None
-):
+def DeleteCapacityCommitment(client, reference, force=None):
   """Deletes a capacity commitment with the given capacity commitment reference.
 
   Arguments:
@@ -417,15 +578,11 @@ def DeleteCapacityCommitment(
     force: Force delete capacity commitment, ignoring commitment end time.
   """
   client.projects().locations().capacityCommitments().delete(
-      name=reference.path(), force=force).execute()
+      name=reference.path(), force=force
+  ).execute()
 
 
-def UpdateCapacityCommitment(
-    client,
-    reference,
-    plan,
-    renewal_plan
-):
+def UpdateCapacityCommitment(client, reference, plan, renewal_plan):
   """Updates a capacity commitment with the given reference.
 
   Arguments:
@@ -451,10 +608,17 @@ def UpdateCapacityCommitment(
     capacity_commitment['renewal_plan'] = renewal_plan
     update_mask.append('renewal_plan')
 
-  return client.projects().locations().capacityCommitments().patch(
-      name=reference.path(),
-      updateMask=','.join(update_mask),
-      body=capacity_commitment).execute()
+  return (
+      client.projects()
+      .locations()
+      .capacityCommitments()
+      .patch(
+          name=reference.path(),
+          updateMask=','.join(update_mask),
+          body=capacity_commitment,
+      )
+      .execute()
+  )
 
 
 def SplitCapacityCommitment(
@@ -478,18 +642,20 @@ def SplitCapacityCommitment(
   if slots is None:
     raise bq_error.BigqueryError('Please specify slots for the split.')
   body = {'slotCount': slots}
-  response = client.projects().locations().capacityCommitments().split(
-      name=reference.path(), body=body).execute()
+  response = (
+      client.projects()
+      .locations()
+      .capacityCommitments()
+      .split(name=reference.path(), body=body)
+      .execute()
+  )
   if 'first' not in response or 'second' not in response:
     raise bq_error.BigqueryError('internal error')
   return [response['first'], response['second']]
 
 
 def MergeCapacityCommitments(
-    client,
-    project_id,
-    location,
-    capacity_commitment_ids
+    client, project_id, location, capacity_commitment_ids
 ):
   """Merges capacity commitments into one.
 
@@ -511,20 +677,21 @@ def MergeCapacityCommitments(
     raise bq_error.BigqueryError('location must be specified.')
   if capacity_commitment_ids is None or len(capacity_commitment_ids) < 2:
     raise bq_error.BigqueryError(
-        'at least 2 capacity commitments must be specified.')
+        'at least 2 capacity commitments must be specified.'
+    )
   parent = 'projects/%s/locations/%s' % (project_id, location)
   body = {'capacityCommitmentIds': capacity_commitment_ids}
-  return client.projects().locations().capacityCommitments().merge(
-      parent=parent, body=body).execute()
+  return (
+      client.projects()
+      .locations()
+      .capacityCommitments()
+      .merge(parent=parent, body=body)
+      .execute()
+  )
 
 
 def CreateReservationAssignment(
-    client,
-    reference,
-    job_type,
-    priority,
-    assignee_type,
-    assignee_id
+    client, reference, job_type, priority, assignee_type, assignee_id
 ):
   """Creates a reservation assignment for a given project/folder/organization.
 
@@ -560,14 +727,17 @@ def CreateReservationAssignment(
       assignee_type.lower(),
       assignee_id,
   )
-  return client.projects().locations().reservations().assignments().create(
-      parent=reference.path(), body=reservation_assignment).execute()
+  return (
+      client.projects()
+      .locations()
+      .reservations()
+      .assignments()
+      .create(parent=reference.path(), body=reservation_assignment)
+      .execute()
+  )
 
 
-def DeleteReservationAssignment(
-    client,
-    reference
-):
+def DeleteReservationAssignment(client, reference):
   """Deletes given reservation assignment.
 
   Arguments:
@@ -575,7 +745,8 @@ def DeleteReservationAssignment(
     reference: Reference to the reservation assignment.
   """
   client.projects().locations().reservations().assignments().delete(
-      name=reference.path()).execute()
+      name=reference.path()
+  ).execute()
 
 
 def MoveReservationAssignment(
@@ -596,18 +767,21 @@ def MoveReservationAssignment(
       id_fallbacks=id_fallbacks,
       identifier=destination_reservation_id,
       default_location=default_location,
-      check_reservation_project=False)
+      check_reservation_project=False,
+  )
   body = {'destinationId': destination_reservation_reference.path()}
 
-  return client.projects().locations().reservations().assignments().move(
-      name=reference.path(), body=body).execute()
+  return (
+      client.projects()
+      .locations()
+      .reservations()
+      .assignments()
+      .move(name=reference.path(), body=body)
+      .execute()
+  )
 
 
-def UpdateReservationAssignment(
-    client,
-    reference,
-    priority
-):
+def UpdateReservationAssignment(client, reference, priority):
   """Updates reservation assignment.
 
   Arguments:
@@ -629,18 +803,21 @@ def UpdateReservationAssignment(
     reservation_assignment['priority'] = priority
     update_mask += 'priority,'
 
-  return client.projects().locations().reservations().assignments().patch(
-      name=reference.path(),
-      updateMask=update_mask,
-      body=reservation_assignment).execute()
+  return (
+      client.projects()
+      .locations()
+      .reservations()
+      .assignments()
+      .patch(
+          name=reference.path(),
+          updateMask=update_mask,
+          body=reservation_assignment,
+      )
+      .execute()
+  )
 
 
-def ListReservationAssignments(
-    client,
-    reference,
-    page_size,
-    page_token
-):
+def ListReservationAssignments(client, reference, page_size, page_token):
   """Lists reservation assignments for given project and location.
 
   Arguments:
@@ -652,19 +829,21 @@ def ListReservationAssignments(
   Returns:
     ReservationAssignment object that was created.
   """
-  return client.projects().locations().reservations().assignments().list(
-      parent=reference.path(), pageSize=page_size,
-      pageToken=page_token).execute()
+  return (
+      client.projects()
+      .locations()
+      .reservations()
+      .assignments()
+      .list(parent=reference.path(), pageSize=page_size, pageToken=page_token)
+      .execute()
+  )
 
 
 
 
 def SearchAllReservationAssignments(
-    client,
-    location: str,
-    job_type: str,
-    assignee_type: str,
-    assignee_id: str) -> Dict[str, Any]:
+    client, location: str, job_type: str, assignee_type: str, assignee_id: str
+) -> Dict[str, Any]:
   """Searches reservations assignments for given assignee.
 
   Arguments:
@@ -696,10 +875,150 @@ def SearchAllReservationAssignments(
   query = 'assignee=%s' % assignee
   parent = 'projects/-/locations/%s' % location
 
-  response = client.projects().locations().searchAllAssignments(
-      parent=parent, query=query).execute()
+  response = (
+      client.projects()
+      .locations()
+      .searchAllAssignments(parent=parent, query=query)
+      .execute()
+  )
   if 'assignments' in response:
     for assignment in response['assignments']:
       if assignment['jobType'] == job_type:
         return assignment
   raise bq_error.BigqueryError('Reservation assignment not found')
+
+
+def CreateReservationGroup(
+    reservation_group_client: discovery.Resource,
+    reference: bq_id_utils.ApiClientHelper.ReservationGroupReference,
+) -> Dict[str, Any]:
+  """Creates a reservation group with the given reservation group reference.
+
+  Arguments:
+    reservation_group_client: The client used to make the request.
+    reference: Reservation group to create.
+
+  Returns:
+    Reservation group object that was created.
+
+  Raises:
+    bq_error.BigqueryError: if reservation group cannot be created.
+  """
+
+  parent = 'projects/%s/locations/%s' % (
+      reference.projectId,
+      reference.location,
+  )
+  reservation_group = {}
+  return (
+      reservation_group_client.projects()
+      .locations()
+      .reservationGroups()
+      .create(
+          parent=parent,
+          body=reservation_group,
+          reservationGroupId=reference.reservationGroupId,
+      )
+      .execute()
+  )
+
+
+def ListReservationGroups(
+    reservation_group_client: discovery.Resource,
+    reference: bq_id_utils.ApiClientHelper.ReservationGroupReference,
+    page_size: int,
+    page_token: str,
+) -> ...:
+  """Lists reservation groups in the project and location for the given reference.
+
+  Arguments:
+    reservation_group_client: The client used to make the request.
+    reference: Reservation group reference containing project and location.
+    page_size: Number of results to show.
+    page_token: Token to retrieve the next page of results.
+
+  Returns:
+    Reservation group object that was created.
+  """
+  parent = 'projects/%s/locations/%s' % (
+      reference.projectId,
+      reference.location,
+  )
+  return (
+      reservation_group_client.projects()
+      .locations()
+      .reservationGroups()
+      .list(parent=parent, pageSize=page_size, pageToken=page_token)
+      .execute()
+  )
+
+
+def GetReservationGroup(
+    reservation_group_client: discovery.Resource,
+    reference: bq_id_utils.ApiClientHelper.ReservationGroupReference,
+) -> ...:
+  """Gets a reservation group with the given reservation group reference.
+
+  Arguments:
+    reservation_group_client: The client used to make the request.
+    reference: Reservation group to get.
+
+  Returns:
+    Reservation group object corresponding to the given id.
+  """
+  return (
+      reservation_group_client.projects()
+      .locations()
+      .reservationGroups()
+      .get(name=reference.path())
+      .execute()
+  )
+
+
+def DeleteReservationGroup(
+    reservation_group_client: discovery.Resource,
+    reference: bq_id_utils.ApiClientHelper.ReservationGroupReference,
+) -> ...:
+  """Deletes a reservation group with the given reservation group reference.
+
+  Arguments:
+    reservation_group_client: The client used to make the request.
+    reference: Reservation group to delete.
+  """
+  reservation_group_client.projects().locations().reservationGroups().delete(
+      name=reference.path()
+  ).execute()
+
+
+
+
+def GetReservationIAMPolicy(
+    apiclient: discovery.Resource,
+    reference: bq_id_utils.ApiClientHelper.ReservationReference,
+) -> ...:
+  """Gets IAM policy for the given reservation resource.
+
+  Arguments:
+    apiclient: the apiclient used to make the request.
+    reference: the ReservationReference for the reservation resource.
+
+  Returns:
+    The IAM policy attached to the given reservation resource.
+
+  Raises:
+    BigqueryTypeError: if reference is not a ReservationReference.
+  """
+  bq_id_utils.typecheck(
+      reference,
+      bq_id_utils.ApiClientHelper.ReservationReference,
+      method='GetReservationIAMPolicy',
+  )
+  return (
+      apiclient.projects()
+      .locations()
+      .reservations()
+      .getIamPolicy(resource=reference.path())
+      .execute()
+  )
+
+

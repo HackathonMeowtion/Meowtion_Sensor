@@ -18,6 +18,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import argparse
+
 from googlecloudsdk.calliope import arg_parsers
 from googlecloudsdk.calliope import base
 
@@ -65,6 +67,23 @@ def AddDescriptionArgToParser(parser):
             "Must not exceed 256 characters."))
 
 
+def AddAllowedValuesRegexArgToParser(parser: argparse.ArgumentParser) -> None:
+  """Adds argument for the Regex of allowed TagValues under a TagKey.
+
+  Args:
+    parser: ArgumentInterceptor, An argparse parser.
+  """
+  parser.add_argument(
+      "--allowed-values-regex",
+      metavar="ALLOWED_VALUES_REGEX",
+      type=str,
+      help=(
+          "User-assigned regex of allowed short names of TagValues under a"
+          " TagKey."
+      ),
+  )
+
+
 def AddPurposeArgToParser(parser):
   """Adds argument for the TagKey's purpose to the parser.
 
@@ -74,10 +93,13 @@ def AddPurposeArgToParser(parser):
   parser.add_argument(
       "--purpose",
       metavar="PURPOSE",
-      choices=["GCE_FIREWALL"],
-      help=("Purpose specifier of the TagKey that can only be set on creation. "
-            "Specifying this field adds additional validation from the policy "
-            "system that corresponds to the purpose."))
+      choices=["GCE_FIREWALL", "DATA_GOVERNANCE"],
+      help=(
+          "Purpose specifier of the TagKey that can only be set on creation. "
+          "Specifying this field adds additional validation from the policy "
+          "system that corresponds to the purpose."
+      ),
+  )
 
 
 def AddPurposeDataArgToParser(parser):
@@ -89,12 +111,15 @@ def AddPurposeDataArgToParser(parser):
   parser.add_argument(
       "--purpose-data",
       type=arg_parsers.ArgDict(
-          spec={"network": str},
+          spec={"network": str, "organization": str},
           max_length=1,
       ),
-      help=("Purpose data of the TagKey that can only be set on creation. "
-            "This data is validated by the policy system that corresponds"
-            " to the purpose."))
+      help=(
+          "Purpose data of the TagKey that can only be set on creation. "
+          "This data is validated by the policy system that corresponds"
+          " to the purpose."
+      ),
+  )
 
 
 def AddAsyncArgToParser(parser):
@@ -186,4 +211,62 @@ def AddEffectiveArgToParser(parser, message):
     message: String, help text for flag.
   """
   parser.add_argument(
-      "--effective", action="store_true", required=False, help=message)
+      "--effective", action="store_true", required=False, help=message
+  )
+
+
+def UpdateTagGroup(parser):
+  """Adds flags for the specifying tags to update for a resource."""
+  group = parser.add_group(
+      mutex=True, help="Tags to update for a resource.", required=True
+  )
+  subgroup = group.add_group(
+      mutex=False, help="Tags to add/remove for a resource."
+  )
+  group.add_argument(
+      "--clear-tags",
+      action="store_true",
+      required=False,
+      help="Clear all tags on the resource.",
+  )
+  group.add_argument(
+      "--replace-tags",
+      type=arg_parsers.ArgObject(key_type=str, value_type=str),
+      required=False,
+      metavar="REPLACE_TAGS",
+      action=arg_parsers.UpdateAction,
+      help=(
+          "Replace all existing tags on the resource with the specified"
+          " key-value pairs."
+      ),
+  )
+  subgroup.add_argument(
+      "--remove-tags",
+      type=arg_parsers.ArgList(min_length=1),
+      metavar="REMOVE_TAGS",
+      required=False,
+      help="Remove the specified tags from the resource.",
+  )
+  subgroup.add_argument(
+      "--update-tags",
+      metavar="UPDATE_TAGS",
+      required=False,
+      type=arg_parsers.ArgObject(key_type=str, value_type=str),
+      action=arg_parsers.UpdateAction,
+      help="Add/update tags to the resource.",
+  )
+
+
+def AddUpdateResourceNameArgToParser(parser, required=True, message=""):
+  """Adds argument for the UpdateTagBindings resource name to the parser.
+
+  Args:
+    parser: ArgumentInterceptor, An argparse parser.
+    required: Boolean, to enforce --parent as a required flag.
+    message: String, replacement help text for flag.
+  """
+  parser.add_argument(
+      "--resource-name",
+      metavar="RESOURCE_NAME",
+      required=required,
+      help=message if message else ("Name of the resource."))

@@ -119,6 +119,86 @@ def _Run(args, legacy_output=False):
       args, 'kinesis_ingestion_service_account', None
   )
 
+  cloud_storage_ingestion_bucket = getattr(
+      args, 'cloud_storage_ingestion_bucket', None
+  )
+  cloud_storage_ingestion_input_format_list = getattr(
+      args, 'cloud_storage_ingestion_input_format', None
+  )
+  cloud_storage_ingestion_input_format = None
+  if cloud_storage_ingestion_input_format_list:
+    cloud_storage_ingestion_input_format = (
+        cloud_storage_ingestion_input_format_list[0]
+    )
+  cloud_storage_ingestion_text_delimiter = getattr(
+      args, 'cloud_storage_ingestion_text_delimiter', None
+  )
+  if cloud_storage_ingestion_text_delimiter:
+    # Interprets special characters representations (i.e., "\n") as their
+    # expected characters (i.e., newline).
+    cloud_storage_ingestion_text_delimiter = (
+        cloud_storage_ingestion_text_delimiter.encode('utf-8').decode(
+            'unicode-escape'
+        )
+    )
+  cloud_storage_ingestion_minimum_object_create_time = getattr(
+      args, 'cloud_storage_ingestion_minimum_object_create_time', None
+  )
+  cloud_storage_ingestion_match_glob = getattr(
+      args, 'cloud_storage_ingestion_match_glob', None
+  )
+
+  azure_event_hubs_ingestion_resource_group = getattr(
+      args, 'azure_event_hubs_ingestion_resource_group', None
+  )
+  azure_event_hubs_ingestion_namespace = getattr(
+      args, 'azure_event_hubs_ingestion_namespace', None
+  )
+  azure_event_hubs_ingestion_event_hub = getattr(
+      args, 'azure_event_hubs_ingestion_event_hub', None
+  )
+  azure_event_hubs_ingestion_client_id = getattr(
+      args, 'azure_event_hubs_ingestion_client_id', None
+  )
+  azure_event_hubs_ingestion_tenant_id = getattr(
+      args, 'azure_event_hubs_ingestion_tenant_id', None
+  )
+  azure_event_hubs_ingestion_subscription_id = getattr(
+      args, 'azure_event_hubs_ingestion_subscription_id', None
+  )
+  azure_event_hubs_ingestion_service_account = getattr(
+      args, 'azure_event_hubs_ingestion_service_account', None
+  )
+  aws_msk_ingestion_cluster_arn = getattr(
+      args, 'aws_msk_ingestion_cluster_arn', None
+  )
+  aws_msk_ingestion_topic = getattr(args, 'aws_msk_ingestion_topic', None)
+  aws_msk_ingestion_aws_role_arn = getattr(
+      args, 'aws_msk_ingestion_aws_role_arn', None
+  )
+  aws_msk_ingestion_service_account = getattr(
+      args, 'aws_msk_ingestion_service_account', None
+  )
+  confluent_cloud_ingestion_bootstrap_server = getattr(
+      args, 'confluent_cloud_ingestion_bootstrap_server', None
+  )
+  confluent_cloud_ingestion_cluster_id = getattr(
+      args, 'confluent_cloud_ingestion_cluster_id', None
+  )
+  confluent_cloud_ingestion_topic = getattr(
+      args, 'confluent_cloud_ingestion_topic', None
+  )
+  confluent_cloud_ingestion_identity_pool_id = getattr(
+      args, 'confluent_cloud_ingestion_identity_pool_id', None
+  )
+  confluent_cloud_ingestion_service_account = getattr(
+      args, 'confluent_cloud_ingestion_service_account', None
+  )
+  ingestion_log_severity = getattr(args, 'ingestion_log_severity', None)
+  message_transforms_file = getattr(args, 'message_transforms_file', None)
+
+  tags = flags.GetTagsMessage(args, client.messages.Topic.TagsValue)
+
   failed = []
   for topic_ref in args.CONCEPTS.topic.Parse():
     try:
@@ -137,6 +217,30 @@ def _Run(args, legacy_output=False):
           kinesis_ingestion_consumer_arn=kinesis_ingestion_consumer_arn,
           kinesis_ingestion_role_arn=kinesis_ingestion_role_arn,
           kinesis_ingestion_service_account=kinesis_ingestion_service_account,
+          cloud_storage_ingestion_bucket=cloud_storage_ingestion_bucket,
+          cloud_storage_ingestion_input_format=cloud_storage_ingestion_input_format,
+          cloud_storage_ingestion_text_delimiter=cloud_storage_ingestion_text_delimiter,
+          cloud_storage_ingestion_minimum_object_create_time=cloud_storage_ingestion_minimum_object_create_time,
+          cloud_storage_ingestion_match_glob=cloud_storage_ingestion_match_glob,
+          azure_event_hubs_ingestion_resource_group=azure_event_hubs_ingestion_resource_group,
+          azure_event_hubs_ingestion_namespace=azure_event_hubs_ingestion_namespace,
+          azure_event_hubs_ingestion_event_hub=azure_event_hubs_ingestion_event_hub,
+          azure_event_hubs_ingestion_client_id=azure_event_hubs_ingestion_client_id,
+          azure_event_hubs_ingestion_tenant_id=azure_event_hubs_ingestion_tenant_id,
+          azure_event_hubs_ingestion_subscription_id=azure_event_hubs_ingestion_subscription_id,
+          azure_event_hubs_ingestion_service_account=azure_event_hubs_ingestion_service_account,
+          aws_msk_ingestion_cluster_arn=aws_msk_ingestion_cluster_arn,
+          aws_msk_ingestion_topic=aws_msk_ingestion_topic,
+          aws_msk_ingestion_aws_role_arn=aws_msk_ingestion_aws_role_arn,
+          aws_msk_ingestion_service_account=aws_msk_ingestion_service_account,
+          confluent_cloud_ingestion_bootstrap_server=confluent_cloud_ingestion_bootstrap_server,
+          confluent_cloud_ingestion_cluster_id=confluent_cloud_ingestion_cluster_id,
+          confluent_cloud_ingestion_topic=confluent_cloud_ingestion_topic,
+          confluent_cloud_ingestion_identity_pool_id=confluent_cloud_ingestion_identity_pool_id,
+          confluent_cloud_ingestion_service_account=confluent_cloud_ingestion_service_account,
+          ingestion_log_severity=ingestion_log_severity,
+          message_transforms_file=message_transforms_file,
+          tags=tags,
       )
     except api_ex.HttpError as error:
       exc = exceptions.HttpException(error)
@@ -157,7 +261,9 @@ def _Run(args, legacy_output=False):
     raise util.RequestsFailedError(failed, 'create')
 
 
-def _Args(parser):
+def _Args(
+    parser,
+):
   """Custom args implementation.
 
   Args:
@@ -169,14 +275,19 @@ def _Args(parser):
   )
   # This group should not be hidden
   flags.AddSchemaSettingsFlags(parser, is_update=False)
-  flags.AddIngestionDatasourceFlags(parser, is_update=False)
+  flags.AddIngestionDatasourceFlags(
+      parser,
+      is_update=False,
+  )
 
   labels_util.AddCreateLabelsFlags(parser)
   flags.AddTopicMessageRetentionFlags(parser, is_update=False)
 
   flags.AddTopicMessageStoragePolicyFlags(parser, is_update=False)
+  flags.AddMessageTransformsFlags(parser)
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Create(base.CreateCommand):
   """Creates one or more Cloud Pub/Sub topics."""
@@ -188,7 +299,9 @@ class Create(base.CreateCommand):
 
   @staticmethod
   def Args(parser):
-    _Args(parser)
+    _Args(
+        parser,
+    )
 
   def Run(self, args):
     return _Run(args)
@@ -200,11 +313,12 @@ class CreateBeta(Create):
 
   @staticmethod
   def Args(parser):
-    _Args(parser)
+    _Args(
+        parser,
+    )
 
   def Run(self, args):
     legacy_output = properties.VALUES.pubsub.legacy_output.GetBool()
-    flags.ValidateTopicArgsUseUniverseSupportedFeatures(args)
     return _Run(args, legacy_output=legacy_output)
 
 
@@ -214,4 +328,5 @@ class CreateAlpha(CreateBeta):
 
   @staticmethod
   def Args(parser):
-    _Args(parser)
+    super(CreateAlpha, CreateAlpha).Args(parser)
+    flags.AddTagsFlag(parser)

@@ -25,11 +25,17 @@ from googlecloudsdk.api_lib.util import waiter
 from googlecloudsdk.calliope import base
 from googlecloudsdk.core import log
 from googlecloudsdk.core import resources
+from googlecloudsdk.generated_clients.apis.netapp.v1beta1 import netapp_v1beta1_messages
+
+
+EstablishVolumePeeringRequest = (
+    netapp_v1beta1_messages.EstablishVolumePeeringRequest
+)
+Volume = netapp_v1beta1_messages.Volume
 
 
 class VolumesClient(object):
-  """Wrapper for working with Storage Pool in the Cloud NetApp Files API Client.
-  """
+  """Wrapper for working with volumes in the Cloud NetApp Files API Client."""
 
   def __init__(self, release_track=base.ReleaseTrack.ALPHA):
     self.release_track = release_track
@@ -40,8 +46,11 @@ class VolumesClient(object):
     elif self.release_track == base.ReleaseTrack.GA:
       self._adapter = VolumesAdapter()
     else:
-      raise ValueError('[{}] is not a valid API version.'.format(
-          util.VERSION_MAP[release_track]))
+      raise ValueError(
+          '[{}] is not a valid API version.'.format(
+              util.VERSION_MAP[release_track]
+          )
+      )
 
   @property
   def client(self):
@@ -65,8 +74,11 @@ class VolumesClient(object):
     """
     return waiter.WaitFor(
         waiter.CloudOperationPollerNoResources(
-            self.client.projects_locations_operations), operation_ref,
-        'Waiting for [{0}] to finish'.format(operation_ref.Name()))
+            self.client.projects_locations_operations
+        ),
+        operation_ref,
+        'Waiting for [{0}] to finish'.format(operation_ref.Name()),
+    )
 
   def ListVolumes(self, location_ref, limit=None):
     """Make API calls to List active Cloud NetApp Volumes.
@@ -80,7 +92,8 @@ class VolumesClient(object):
       Generator that yields the Cloud NetApp Volumes.
     """
     request = self.messages.NetappProjectsLocationsVolumesListRequest(
-        parent=location_ref)
+        parent=location_ref
+    )
     # Check for unreachable locations.
     response = self.client.projects_locations_volumes.List(request)
     for location in response.unreachable:
@@ -131,7 +144,11 @@ class VolumesClient(object):
       large_capacity=None,
       multiple_endpoints=None,
       tiering_policy=None,
+      hybrid_replication_parameters=None,
+      throughput_mibps=None,
+      cache_parameters=None,
       labels=None,
+      block_devices=None,
   ):
     """Parses the command line arguments for Create Volume into a config."""
     return self._adapter.ParseVolumeConfig(
@@ -156,19 +173,25 @@ class VolumesClient(object):
         large_capacity=large_capacity,
         multiple_endpoints=multiple_endpoints,
         tiering_policy=tiering_policy,
+        hybrid_replication_parameters=hybrid_replication_parameters,
+        throughput_mibps=throughput_mibps,
+        cache_parameters=cache_parameters,
         labels=labels,
+        block_devices=block_devices,
     )
 
   def GetVolume(self, volume_ref):
     """Get Cloud NetApp Volume information."""
     request = self.messages.NetappProjectsLocationsVolumesGetRequest(
-        name=volume_ref.RelativeName())
+        name=volume_ref.RelativeName()
+    )
     return self.client.projects_locations_volumes.Get(request)
 
   def DeleteVolume(self, volume_ref, async_, force):
     """Deletes an existing Cloud NetApp Volume."""
     request = self.messages.NetappProjectsLocationsVolumesDeleteRequest(
-        name=volume_ref.RelativeName(), force=force)
+        name=volume_ref.RelativeName(), force=force
+    )
     return self._DeleteVolume(async_, request)
 
   def _DeleteVolume(self, async_, request):
@@ -176,7 +199,8 @@ class VolumesClient(object):
     if async_:
       return delete_op
     operation_ref = resources.REGISTRY.ParseRelativeName(
-        delete_op.name, collection=constants.OPERATIONS_COLLECTION)
+        delete_op.name, collection=constants.OPERATIONS_COLLECTION
+    )
     return self.WaitForOperation(operation_ref)
 
   def RevertVolume(self, volume_ref, snapshot_id, async_):
@@ -184,12 +208,35 @@ class VolumesClient(object):
     request = self.messages.NetappProjectsLocationsVolumesRevertRequest(
         name=volume_ref.RelativeName(),
         revertVolumeRequest=self.messages.RevertVolumeRequest(
-            snapshotId=snapshot_id))
+            snapshotId=snapshot_id
+        ),
+    )
     revert_op = self.client.projects_locations_volumes.Revert(request)
     if async_:
       return revert_op
     operation_ref = resources.REGISTRY.ParseRelativeName(
         revert_op.name, collection=constants.OPERATIONS_COLLECTION
+    )
+    return self.WaitForOperation(operation_ref)
+
+  def RestoreVolume(
+      self, volume_ref, backup, file_list, restore_destination_path, async_
+  ):
+    """Restores specific files from a backup to a volume."""
+    request = self.messages.NetappProjectsLocationsVolumesRestoreRequest(
+        name=volume_ref.RelativeName(),
+        restoreBackupFilesRequest=self.messages.RestoreBackupFilesRequest(
+            backup=backup,
+            fileList=file_list,
+            restoreDestinationPath=restore_destination_path,
+        ),
+    )
+
+    restore_op = self.client.projects_locations_volumes.Restore(request)
+    if async_:
+      return restore_op
+    operation_ref = resources.REGISTRY.ParseRelativeName(
+        restore_op.name, collection=constants.OPERATIONS_COLLECTION
     )
     return self.WaitForOperation(operation_ref)
 
@@ -214,7 +261,12 @@ class VolumesClient(object):
       backup=None,
       restricted_actions=None,
       backup_config=None,
+      large_capacity=None,
+      multiple_endpoints=None,
       tiering_policy=None,
+      cache_parameters=None,
+      throughput_mibps=None,
+      block_devices=None,
   ):
     """Parses updates into a volume config."""
     return self._adapter.ParseUpdatedVolumeConfig(
@@ -237,7 +289,13 @@ class VolumesClient(object):
         backup=backup,
         restricted_actions=restricted_actions,
         backup_config=backup_config,
-        tiering_policy=tiering_policy)
+        large_capacity=large_capacity,
+        multiple_endpoints=multiple_endpoints,
+        tiering_policy=tiering_policy,
+        cache_parameters=cache_parameters,
+        throughput_mibps=throughput_mibps,
+        block_devices=block_devices,
+    )
 
   def UpdateVolume(self, volume_ref, volume_config, update_mask, async_):
     """Updates a Cloud NetApp Volume.
@@ -251,12 +309,71 @@ class VolumesClient(object):
     Returns:
       an Operation or Volume message.
     """
-    update_op = self._adapter.UpdateVolume(volume_ref, volume_config,
-                                           update_mask)
+    update_op = self._adapter.UpdateVolume(
+        volume_ref, volume_config, update_mask
+    )
     if async_:
       return update_op
     operation_ref = resources.REGISTRY.ParseRelativeName(
-        update_op.name, collection=constants.OPERATIONS_COLLECTION)
+        update_op.name, collection=constants.OPERATIONS_COLLECTION
+    )
+    return self.WaitForOperation(operation_ref)
+
+  def ParseEstablishVolumePeeringRequestConfig(
+      self,
+      peer_cluster_name: str,
+      peer_svm_name: str,
+      peer_volume_name: str,
+      peer_ip_addresses=None,
+  ) -> EstablishVolumePeeringRequest:
+    """Parses the command line arguments for EstablishPeering into a config.
+
+    Args:
+      peer_cluster_name: The name of the peer cluster.
+      peer_svm_name: The name of the peer SVM.
+      peer_volume_name: The name of the peer volume.
+      peer_ip_addresses: The list of peer IP addresses.
+
+    Returns:
+      An EstablishVolumePeeringRequest message.
+    """
+    return self.messages.EstablishVolumePeeringRequest(
+        peerClusterName=peer_cluster_name,
+        peerSvmName=peer_svm_name,
+        peerVolumeName=peer_volume_name,
+        peerIpAddresses=peer_ip_addresses if peer_ip_addresses else [],
+    )
+
+  def EstablishPeering(
+      self,
+      volume_ref: Volume,
+      establish_volume_peering_request_config: EstablishVolumePeeringRequest,
+      async_: bool,
+  ):
+    """Establish peering between GCNV volume and an onprem ONTAP volume.
+
+    Args:
+      volume_ref: The reference to the volume.
+      establish_volume_peering_request_config: The config for the peering
+        request.
+      async_: If true, the call will return immediately, otherwise wait for
+        operation to complete.
+
+    Returns:
+      An EstablishVolumePeering operation.
+    """
+    request = self.messages.NetappProjectsLocationsVolumesEstablishPeeringRequest(
+        name=volume_ref.RelativeName(),
+        establishVolumePeeringRequest=establish_volume_peering_request_config,
+    )
+    establish_peering_op = (
+        self.client.projects_locations_volumes.EstablishPeering(request)
+    )
+    if async_:
+      return establish_peering_op
+    operation_ref = resources.REGISTRY.ParseRelativeName(
+        establish_peering_op.name, collection=constants.OPERATIONS_COLLECTION
+    )
     return self.WaitForOperation(operation_ref)
 
 
@@ -277,7 +394,6 @@ class VolumesAdapter(object):
 
     Returns:
       Volume message populated with Export Policy values.
-
     """
     if not export_policy:
       return
@@ -288,9 +404,9 @@ class VolumesAdapter(object):
         if key == 'allowed-clients':
           simple_export_policy_rule.allowedClients = val
         if key == 'access-type':
-          simple_export_policy_rule.accessType = (
-              self.messages.SimpleExportPolicyRule.AccessTypeValueValuesEnum
-              .lookup_by_name(val))
+          simple_export_policy_rule.accessType = self.messages.SimpleExportPolicyRule.AccessTypeValueValuesEnum.lookup_by_name(
+              val
+          )
         if key == 'has-root-access':
           simple_export_policy_rule.hasRootAccess = val
         if key == 'kerberos-5-read-only':
@@ -312,6 +428,24 @@ class VolumesAdapter(object):
       export_policy_config.rules.append(simple_export_policy_rule)
     volume.exportPolicy = export_policy_config
 
+  def ParseBlockDevices(self, volume, block_devices):
+    """Parses Block Devices for Volume into a config."""
+
+    volume.blockDevices = []  # clear volume block devices
+    if block_devices is None:
+      return
+    for block_device_args in block_devices:
+      block_device_message = self.messages.BlockDevice()
+      if 'name' in block_device_args:
+        block_device_message.name = block_device_args['name']
+      for host_group in block_device_args.get('host-groups', []):
+        block_device_message.hostGroups.append(host_group)
+      if 'os-type' in block_device_args:
+        block_device_message.osType = block_device_args['os-type']
+      if 'size-gib' in block_device_args:
+        block_device_message.sizeGib = block_device_args['size-gib']
+      volume.blockDevices.append(block_device_message)
+
   def ParseProtocols(self, volume, protocols):
     """Parses Protocols from a list of Protocol Enums into the given volume.
 
@@ -321,7 +455,6 @@ class VolumesAdapter(object):
 
     Returns:
       Volume message populated with protocol values.
-
     """
     protocols_config = []
     for protocol in protocols:
@@ -402,7 +535,11 @@ class VolumesAdapter(object):
       large_capacity=None,
       multiple_endpoints=None,
       tiering_policy=None,
+      hybrid_replication_parameters=None,
+      throughput_mibps=None,
+      cache_parameters=None,
       labels=None,
+      block_devices=None,
   ):
     """Parses the command line arguments for Create Volume into a config.
 
@@ -428,7 +565,12 @@ class VolumesAdapter(object):
       large_capacity: Bool on whether to use large capacity for Volume
       multiple_endpoints: Bool on whether to use multiple endpoints for Volume
       tiering_policy: the tiering policy for the volume.
+      hybrid_replication_parameters: the hybrid replication parameters for the
+        volume.
+      throughput_mibps: throughput of the Volume (in MiB/s).
+      cache_parameters: the cache parameters for the volume.
       labels: the parsed labels value.
+      block_devices: the block devices for the volume.
 
     Returns:
       the configuration that will be used as the request body for creating a
@@ -459,6 +601,7 @@ class VolumesAdapter(object):
       restore_parameters = None
     volume.restoreParameters = restore_parameters
     volume.restrictedActions = restricted_actions
+    volume.throughputMibps = throughput_mibps
     if backup_config is not None:
       self.ParseBackupConfig(volume, backup_config)
     if large_capacity is not None:
@@ -467,6 +610,18 @@ class VolumesAdapter(object):
       volume.multipleEndpoints = multiple_endpoints
     if tiering_policy is not None:
       self.ParseTieringPolicy(volume, tiering_policy)
+    if hybrid_replication_parameters is not None:
+      self.ParseHybridReplicationParameters(
+          volume, hybrid_replication_parameters, self.release_track
+      )
+    if (
+        self.release_track == base.ReleaseTrack.ALPHA
+        or self.release_track == base.ReleaseTrack.BETA
+    ):
+      if block_devices is not None:
+        self.ParseBlockDevices(volume, block_devices)
+    if cache_parameters is not None:
+      self.ParseCacheParameters(volume, cache_parameters)
     return volume
 
   def ParseUpdatedVolumeConfig(
@@ -494,6 +649,9 @@ class VolumesAdapter(object):
       large_capacity=None,
       multiple_endpoints=None,
       tiering_policy=None,
+      cache_parameters=None,
+      throughput_mibps=None,
+      block_devices=None,
   ):
     """Parse update information into an updated Volume message."""
     if description is not None:
@@ -538,6 +696,15 @@ class VolumesAdapter(object):
       volume_config.multipleEndpoints = multiple_endpoints
     if tiering_policy is not None:
       self.ParseTieringPolicy(volume_config, tiering_policy)
+    if cache_parameters is not None:
+      self.ParseCacheParameters(volume_config, cache_parameters)
+    if throughput_mibps is not None:
+      volume_config.throughputMibps = throughput_mibps
+    if block_devices is not None and self.release_track in [
+        base.ReleaseTrack.ALPHA,
+        base.ReleaseTrack.BETA,
+    ]:
+      self.ParseBlockDevices(volume_config, block_devices)
     return volume_config
 
   def ParseBackupConfig(self, volume, backup_config):
@@ -549,15 +716,14 @@ class VolumesAdapter(object):
 
     Returns:
       Volume message populated with Backup Config values.
-
     """
     backup_config_message = self.messages.BackupConfig()
     # Iterate through backup_config.
     for backup_policy in backup_config.get('backup-policies', []):
       backup_config_message.backupPolicies.append(backup_policy)
     backup_config_message.backupVault = backup_config.get('backup-vault', '')
-    backup_config_message.scheduledBackupEnabled = (
-        backup_config.get('enable-scheduled-backups', None)
+    backup_config_message.scheduledBackupEnabled = backup_config.get(
+        'enable-scheduled-backups', None
     )
     volume.backupConfig = backup_config_message
 
@@ -585,7 +751,122 @@ class VolumesAdapter(object):
     tiering_policy_message.coolingThresholdDays = tiering_policy.get(
         'cooling-threshold-days'
     )
+    if (
+        self.release_track == base.ReleaseTrack.BETA
+        or self.release_track == base.ReleaseTrack.ALPHA
+    ):
+      tiering_policy_message.hotTierBypassModeEnabled = tiering_policy.get(
+          'enable-hot-tier-bypass-mode'
+      )
     volume.tieringPolicy = tiering_policy_message
+
+  def ParseHybridReplicationParameters(
+      self,
+      volume,
+      hybrid_replication_parameters,
+      release_track=base.ReleaseTrack.GA,
+  ):
+    """Parses Hybrid Replication Parameters for Volume into a config.
+
+    Args:
+      volume: The Cloud NetApp Volume message object.
+      hybrid_replication_parameters: The hybrid replication params message
+        object.
+      release_track: The release track of the command.
+
+    Returns:
+      Volume message populated with Hybrid Replication Parameters
+    """
+    del release_track
+    hybrid_replication_parameters_message = (
+        self.messages.HybridReplicationParameters()
+    )
+    hybrid_replication_parameters_message.replication = (
+        hybrid_replication_parameters.get('replication')
+    )
+    hybrid_replication_parameters_message.peerVolumeName = (
+        hybrid_replication_parameters.get('peer-volume-name')
+    )
+    hybrid_replication_parameters_message.peerClusterName = (
+        hybrid_replication_parameters.get('peer-cluster-name')
+    )
+    hybrid_replication_parameters_message.peerSvmName = (
+        hybrid_replication_parameters.get('peer-svm-name')
+    )
+    for ip_address in hybrid_replication_parameters.get(
+        'peer-ip-addresses', []
+    ):
+      hybrid_replication_parameters_message.peerIpAddresses.append(ip_address)
+    hybrid_replication_parameters_message.clusterLocation = (
+        hybrid_replication_parameters.get('cluster-location')
+    )
+    hybrid_replication_parameters_message.description = (
+        hybrid_replication_parameters.get('description')
+    )
+    hybrid_replication_parameters_message.labels = self.messages.HybridReplicationParameters.LabelsValue(
+        additionalProperties=[
+            self.messages.HybridReplicationParameters.LabelsValue.AdditionalProperty(
+                key=key_value_pair.split(':')[0],
+                value=key_value_pair.split(':')[1],
+            )
+            for key_value_pair in hybrid_replication_parameters.get(
+                'labels', []
+            )
+        ]
+    )
+    hybrid_replication_parameters_message.replicationSchedule = (
+        hybrid_replication_parameters.get('replication-schedule')
+    )
+    hybrid_replication_parameters_message.hybridReplicationType = (
+        hybrid_replication_parameters.get('hybrid-replication-type')
+    )
+    hybrid_replication_parameters_message.largeVolumeConstituentCount = (
+        hybrid_replication_parameters.get('large-volume-constituent-count')
+    )
+
+    volume.hybridReplicationParameters = hybrid_replication_parameters_message
+
+  def ParseCacheParameters(self, volume, cache_parameters):
+    """Parses Cache Parameters for Volume into a config.
+
+    Args:
+      volume: The Cloud NetApp Volume message object.
+      cache_parameters: The cache params message object.
+
+    Returns:
+      Volume message populated with Cache Parameters
+    """
+    cache_parameters_message = self.messages.CacheParameters()
+    cache_parameters_message.peerVolumeName = cache_parameters.get(
+        'peer-volume-name'
+    )
+    cache_parameters_message.peerClusterName = cache_parameters.get(
+        'peer-cluster-name'
+    )
+    cache_parameters_message.peerSvmName = cache_parameters.get('peer-svm-name')
+    for ip_address in cache_parameters.get('peer-ip-addresses', []):
+      cache_parameters_message.peerIpAddresses.append(ip_address)
+    cache_parameters_message.enableGlobalFileLock = cache_parameters.get(
+        'enable-global-file-lock'
+    )
+    cache_config_message = self.messages.CacheConfig()
+    for config in cache_parameters.get('cache-config', []):
+      # TODO: b/433897931 - Add atime-scrub-enabled and atime-scrub-days
+      # back for AGA
+      # if 'atime-scrub-enabled' in config:
+      #   cache_config_message.atimeScrubEnabled = (
+      #       config['atime-scrub-enabled'].lower() == 'true'
+      #   )
+      # if 'atime-scrub-minutes' in config:
+      #   cache_config_message.atimeScrubMinutes = int(
+      #       config['atime-scrub-minutes']
+      #   )
+      if 'cifs-change-notify-enabled' in config:
+        cache_config_message.cifsChangeNotifyEnabled = (
+            config['cifs-change-notify-enabled'].lower() == 'true'
+        )
+    cache_parameters_message.cacheConfig = cache_config_message
+    volume.cacheParameters = cache_parameters_message
 
 
 class BetaVolumesAdapter(VolumesAdapter):
@@ -606,4 +887,3 @@ class AlphaVolumesAdapter(BetaVolumesAdapter):
     self.release_track = base.ReleaseTrack.ALPHA
     self.client = util.GetClientInstance(release_track=self.release_track)
     self.messages = util.GetMessagesModule(release_track=self.release_track)
-

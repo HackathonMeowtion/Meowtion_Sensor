@@ -14,10 +14,6 @@
 # limitations under the License.
 """Common flags for the consumers subcommand group."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 import re
 
 from googlecloudsdk.api_lib.services import services_util
@@ -95,6 +91,48 @@ def available_service_flag(suffix='to act on', flag_name='service'):
       help='The name of the service(s) {0}.'.format(suffix))
 
 
+# TODO(b/321801975) Link public documentation about consumer policy format
+# after public preview.
+def consumer_policy_file_flag():
+  return base.Argument(
+      '--consumer-policy-file',
+      required=True,
+      help=(
+          'Path to the file that contains the consumer policy in the YAML'
+          ' format.'
+      ),
+  )
+
+
+def bypass_dependency_check():
+  return base.Argument(
+      '--bypass-dependency-check',
+      action='store_true',
+      help=(
+          ' This flag controls dependency management within the consumer'
+          ' policy. If false, dependencies are enforced. When adding a new'
+          ' service, it verifies that all the services dependencies'
+          ' are already present in the policy. When removing a service, the'
+          ' system will ensure that no other services in the policy depend on'
+          ' it. If the policy lacks any required dependencies, the update will'
+          ' not succeed, and an error will be returned.'
+      ),
+  )
+
+
+def bypass_api_usage_check():
+  return base.Argument(
+      '--bypass-api-usage-check',
+      action='store_true',
+      help=(
+          ' If true, the system will bypass usage checks for services'
+          ' that are being removed. If false, the system will check if'
+          ' the service to be removed was used in the last 30 days or enabled'
+          ' in the last 3 days. If so, an error will be returned.'
+      ),
+  )
+
+
 def _create_key_resource_arg(help_txt, api_version, required=True):
   return presentation_specs.ResourcePresentationSpec(
       'key', _get_key_resource_spec(api_version), help_txt, required=required
@@ -164,6 +202,17 @@ def key_id_flag(parser, suffix='to act on'):
   ).AddToParser(parser)
 
 
+def service_account_flag(parser):
+  base.Argument(
+      '--service-account',
+      help=(
+          'The email of the service account the key is bound to. If this field'
+          ' is specified, the key is a service account bound key and auth'
+          ' enabled.'
+      ),
+  ).AddToParser(parser)
+
+
 def add_key_undelete_args(parser):
   """Adds args for api-keys undelete command."""
   undelete_set_group = parser.add_mutually_exclusive_group(required=True)
@@ -173,15 +222,67 @@ def add_key_undelete_args(parser):
   _key_string_flag(undelete_set_group)
 
 
-def validate_only_args(parser):
+def skip_dependency_flag(parser):
+  base.Argument(
+      '--skip-dependency',
+      action='store_true',
+      help=(
+          'If set, the dependencies of the service to be enabled will not be'
+          ' enabled.'
+      ),
+  ).AddToParser(parser)
+
+
+def validate_only_args(parser, suffix='to act on'):
   base.Argument(
       '--validate-only',
       action='store_true',
       help=(
-          'If set, the action will be validated and result will be preview but'
-          ' not exceuted.'
+          "Validate the {} action, but don't actually perform it".format(suffix)
       ),
   ).AddToParser(parser)
+
+
+def _bypass_dependency_service_check_flag(parser):
+  base.Argument(
+      '--bypass-dependency-service-check',
+      action='store_true',
+      help=(
+          'If specified, the disable call will bypass the check for'
+          ' dependencies and the dependencies will remain enabled.'
+      ),
+  ).AddToParser(parser)
+
+
+def bypass_api_usage_check_flag(parser):
+  base.Argument(
+      '--bypass-api-usage-check',
+      action='store_true',
+      help=(
+          'If specified, the system will bypass usage checks for services that'
+          ' are being removed. Otherwise, the system will check if the service'
+          ' to be removed was used in the last 30 days or enabled in the last 3'
+          ' days. If so, the system will return an error.'
+      ),
+  ).AddToParser(parser)
+
+
+def _disable_dependency_services_flag(parser):
+  base.Argument(
+      '--disable-dependency-services',
+      action='store_true',
+      help=(
+          ' If specified, the disable call will proceed disabling the service'
+          ' and all the enabled services depend on the service to be disabled'
+      ),
+  ).AddToParser(parser)
+
+
+def add_dependency_check_args(parser):
+  """Adds resource args for command."""
+  dependent_check_group = parser.add_mutually_exclusive_group(required=False)
+  _disable_dependency_services_flag(dependent_check_group)
+  _bypass_dependency_service_check_flag(dependent_check_group)
 
 
 def add_resource_args(parser):

@@ -54,22 +54,30 @@ class AllocationPolicy(_messages.Message):
   compute resources should be allocated for the Job.
 
   Messages:
-    LabelsValue: Labels applied to all VM instances and other resources
-      created by AllocationPolicy. Labels could be user provided or system
-      generated. You can assign up to 64 labels. [Google Compute Engine label
-      restrictions](https://cloud.google.com/compute/docs/labeling-
-      resources#restrictions) apply. Label names that start with "goog-" or
-      "google-" are reserved.
+    LabelsValue: Custom labels to apply to the job and all the Compute Engine
+      resources that both are created by this allocation policy and support
+      labels. Use labels to group and describe the resources they are applied
+      to. Batch automatically applies predefined labels and supports multiple
+      `labels` fields for each job, which each let you apply custom labels to
+      various resources. Label names that start with "goog-" or "google-" are
+      reserved for predefined labels. For more information about labels with
+      Batch, see [Organize resources using
+      labels](https://cloud.google.com/batch/docs/organize-resources-using-
+      labels).
 
   Fields:
     instances: Describe instances that can be created by this
       AllocationPolicy. Only instances[0] is supported now.
-    labels: Labels applied to all VM instances and other resources created by
-      AllocationPolicy. Labels could be user provided or system generated. You
-      can assign up to 64 labels. [Google Compute Engine label
-      restrictions](https://cloud.google.com/compute/docs/labeling-
-      resources#restrictions) apply. Label names that start with "goog-" or
-      "google-" are reserved.
+    labels: Custom labels to apply to the job and all the Compute Engine
+      resources that both are created by this allocation policy and support
+      labels. Use labels to group and describe the resources they are applied
+      to. Batch automatically applies predefined labels and supports multiple
+      `labels` fields for each job, which each let you apply custom labels to
+      various resources. Label names that start with "goog-" or "google-" are
+      reserved for predefined labels. For more information about labels with
+      Batch, see [Organize resources using
+      labels](https://cloud.google.com/batch/docs/organize-resources-using-
+      labels).
     location: Location where compute resources should be allocated for the
       Job.
     network: The network policy. If you define an instance template in the
@@ -93,12 +101,16 @@ class AllocationPolicy(_messages.Message):
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
-    r"""Labels applied to all VM instances and other resources created by
-    AllocationPolicy. Labels could be user provided or system generated. You
-    can assign up to 64 labels. [Google Compute Engine label
-    restrictions](https://cloud.google.com/compute/docs/labeling-
-    resources#restrictions) apply. Label names that start with "goog-" or
-    "google-" are reserved.
+    r"""Custom labels to apply to the job and all the Compute Engine resources
+    that both are created by this allocation policy and support labels. Use
+    labels to group and describe the resources they are applied to. Batch
+    automatically applies predefined labels and supports multiple `labels`
+    fields for each job, which each let you apply custom labels to various
+    resources. Label names that start with "goog-" or "google-" are reserved
+    for predefined labels. For more information about labels with Batch, see
+    [Organize resources using
+    labels](https://cloud.google.com/batch/docs/organize-resources-using-
+    labels).
 
     Messages:
       AdditionalProperty: An additional property for a LabelsValue object.
@@ -148,7 +160,8 @@ class AttachedDisk(_messages.Message):
 
 
 class Barrier(_messages.Message):
-  r"""Barrier runnable blocks until all tasks in a taskgroup reach it.
+  r"""A barrier runnable automatically blocks the execution of subsequent
+  runnables until all the tasks in the task group reach the barrier.
 
   Fields:
     name: Barriers are identified by their index in runnable list. Names are
@@ -166,6 +179,19 @@ class BatchProjectsLocationsGetRequest(_messages.Message):
   """
 
   name = _messages.StringField(1, required=True)
+
+
+class BatchProjectsLocationsJobsCancelRequest(_messages.Message):
+  r"""A BatchProjectsLocationsJobsCancelRequest object.
+
+  Fields:
+    cancelJobRequest: A CancelJobRequest resource to be passed as the request
+      body.
+    name: Required. Job name.
+  """
+
+  cancelJobRequest = _messages.MessageField('CancelJobRequest', 1)
+  name = _messages.StringField(2, required=True)
 
 
 class BatchProjectsLocationsJobsCreateRequest(_messages.Message):
@@ -287,6 +313,9 @@ class BatchProjectsLocationsListRequest(_messages.Message):
   r"""A BatchProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -297,10 +326,11 @@ class BatchProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class BatchProjectsLocationsOperationsCancelRequest(_messages.Message):
@@ -352,6 +382,26 @@ class BatchProjectsLocationsOperationsListRequest(_messages.Message):
   pageToken = _messages.StringField(4)
 
 
+class CancelJobRequest(_messages.Message):
+  r"""CancelJob Request.
+
+  Fields:
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      will know to ignore the request if it has already been completed. The
+      server will guarantee that for at least 60 minutes after the first
+      request. For example, consider a situation where you make an initial
+      request and the request times out. If you make the request again with
+      the same request ID, the server can check if original operation with the
+      same request ID was received, and if so, will ignore the second request.
+      This prevents clients from accidentally creating duplicate commitments.
+      The request ID must be a valid UUID with the exception that zero UUID is
+      not supported (00000000-0000-0000-0000-000000000000).
+  """
+
+  requestId = _messages.StringField(1)
+
+
 class CancelOperationRequest(_messages.Message):
   r"""The request message for Operations.CancelOperation."""
 
@@ -361,8 +411,8 @@ class CloudLoggingOption(_messages.Message):
   generated by Batch job.
 
   Fields:
-    useGenericTaskMonitoredResource: Optional. Set this flag to true to change
-      the [monitored resource
+    useGenericTaskMonitoredResource: Optional. Set this field to `true` to
+      change the [monitored resource
       type](https://cloud.google.com/monitoring/api/resources) for Cloud
       Logging logs generated by this Batch job from the [`batch.googleapis.com
       /Job`](https://cloud.google.com/monitoring/api/resources#tag_batch.googl
@@ -425,9 +475,10 @@ class Container(_messages.Message):
       container will be blocked, containers that are with
       block_external_network as true can still communicate with each other,
       network cannot be specified in the `container.options` field.
-    commands: Overrides the `CMD` specified in the container. If there is an
-      ENTRYPOINT (either in the container image or with the entrypoint field
-      below) then commands are appended as arguments to the ENTRYPOINT.
+    commands: Required for some container images. Overrides the `CMD`
+      specified in the container. If there is an `ENTRYPOINT` (either in the
+      container image or with the `entrypoint` field below) then these
+      commands are appended as arguments to the `ENTRYPOINT`.
     enableImageStreaming: Optional. If set to true, this container runnable
       uses Image streaming. Use Image streaming to allow the runnable to
       initialize without waiting for the entire container image to download,
@@ -441,10 +492,13 @@ class Container(_messages.Message):
       the [`image-streaming` sample on
       GitHub](https://github.com/GoogleCloudPlatform/batch-
       samples/tree/main/api-samples/image-streaming).
-    entrypoint: Overrides the `ENTRYPOINT` specified in the container.
-    imageUri: The URI to pull the container image from.
-    options: Arbitrary additional options to include in the "docker run"
-      command when running this container, e.g. "--network host".
+    entrypoint: Required for some container images. Overrides the `ENTRYPOINT`
+      specified in the container.
+    imageUri: Required. The URI to pull the container image from.
+    options: Required for some container images. Arbitrary additional options
+      to include in the `docker run` command when running this container-for
+      example, `--network host`. For the `--volume` option, use the `volumes`
+      field for the container.
     password: Required if the container image is from a private Docker
       registry. The password to login to the Docker registry that contains the
       image. For security, it is strongly recommended to specify an encrypted
@@ -469,15 +523,15 @@ class Container(_messages.Message):
       Secret Manager with Batch](https://cloud.google.com/batch/docs/create-
       run-job-secret-manager).
     volumes: Volumes to mount (bind mount) from the host machine files or
-      directories into the container, formatted to match docker run's --volume
-      option, e.g. /foo:/bar, or /foo:/bar:ro If the `TaskSpec.Volumes` field
-      is specified but this field is not, Batch will mount each volume from
-      the host machine to the container with the same mount path by default.
-      In this case, the default mount option for containers will be read-only
-      (ro) for existing persistent disks and read-write (rw) for other volume
-      types, regardless of the original mount options specified in
-      `TaskSpec.Volumes`. If you need different mount settings, you can
-      explicitly configure them in this field.
+      directories into the container, formatted to match `--volume` option for
+      the `docker run` command-for example, `/foo:/bar` or `/foo:/bar:ro`. If
+      the `TaskSpec.Volumes` field is specified but this field is not, Batch
+      will mount each volume from the host machine to the container with the
+      same mount path by default. In this case, the default mount option for
+      containers will be read-only (`ro`) for existing persistent disks and
+      read-write (`rw`) for other volume types, regardless of the original
+      mount options specified in `TaskSpec.Volumes`. If you need different
+      mount settings, you can explicitly configure them in this field.
   """
 
   blockExternalNetwork = _messages.BooleanField(1)
@@ -511,9 +565,8 @@ class Disk(_messages.Message):
       projects/{project}/global/images/{image_version} You can also use Batch
       customized image in short names. The following image values are
       supported for a boot disk: * `batch-debian`: use Batch Debian images. *
-      `batch-centos`: use Batch CentOS images. * `batch-cos`: use Batch
-      Container-Optimized images. * `batch-hpc-centos`: use Batch HPC CentOS
-      images. * `batch-hpc-rocky`: use Batch HPC Rocky Linux images.
+      `batch-cos`: use Batch Container-Optimized images. * `batch-hpc-rocky`:
+      use Batch HPC Rocky Linux images.
     sizeGb: Disk size in GB. **Non-Boot Disk**: If the `type` specifies a
       persistent disk, this field is ignored if `data_source` is set as
       `image` or `snapshot`. If the `type` specifies a local SSD, this field
@@ -531,7 +584,9 @@ class Disk(_messages.Message):
       supported as boot disk now.
     type: Disk type as shown in `gcloud compute disk-types list`. For example,
       local SSD uses type "local-ssd". Persistent disks and boot disks use
-      "pd-balanced", "pd-extreme", "pd-ssd" or "pd-standard".
+      "pd-balanced", "pd-extreme", "pd-ssd" or "pd-standard". If not
+      specified, "pd-standard" will be used as the default type for non-boot
+      disks, "pd-balanced" will be used as the default type for boot disks.
   """
 
   diskInterface = _messages.StringField(1)
@@ -657,9 +712,10 @@ class InstancePolicy(_messages.Message):
       https://cloud.google.com/compute/docs/instances/specify-min-cpu-
       platform.
     provisioningModel: The provisioning model.
-    reservation: Optional. If specified, VMs will consume only the specified
-      reservation. If not specified (default), VMs will consume any applicable
-      reservation.
+    reservation: Optional. If not specified (default), VMs will consume any
+      applicable reservation. If "NO_RESERVATION" is specified, VMs will not
+      consume any reservation. Otherwise, if specified, VMs will consume only
+      the specified reservation.
   """
 
   class ProvisioningModelValueValuesEnum(_messages.Enum):
@@ -674,11 +730,14 @@ class InstancePolicy(_messages.Message):
         by this field) is the older model, and has been migrated to use the
         SPOT model as the underlying technology. This old model will still be
         supported.
+      RESERVATION_BOUND: Bound to the lifecycle of the reservation in which it
+        is provisioned.
     """
     PROVISIONING_MODEL_UNSPECIFIED = 0
     STANDARD = 1
     SPOT = 2
     PREEMPTIBLE = 3
+    RESERVATION_BOUND = 4
 
   accelerators = _messages.MessageField('Accelerator', 1, repeated=True)
   bootDisk = _messages.MessageField('Disk', 2)
@@ -696,24 +755,43 @@ class InstancePolicyOrTemplate(_messages.Message):
   resources such as GPUs and extra disks.
 
   Fields:
-    installGpuDrivers: Set this field true if users want Batch to help fetch
+    blockProjectSshKeys: Optional. Set this field to `true` if you want Batch
+      to block project-level SSH keys from accessing this job's VMs.
+      Alternatively, you can configure the job to specify a VM instance
+      template that blocks project-level SSH keys. In either case, Batch
+      blocks project-level SSH keys while creating the VMs for this job. Batch
+      allows project-level SSH keys for a job's VMs only if all the following
+      are true: + This field is undefined or set to `false`. + The job's VM
+      instance template (if any) doesn't block project-level SSH keys.
+      Notably, you can override this behavior by manually updating a VM to
+      block or allow project-level SSH keys. For more information about
+      blocking project-level SSH keys, see the Compute Engine documentation:
+      https://cloud.google.com/compute/docs/connect/restrict-ssh-keys#block-
+      keys
+    installGpuDrivers: Set this field true if you want Batch to help fetch
       drivers from a third party location and install them for GPUs specified
-      in policy.accelerators or instance_template on their behalf. Default is
-      false. For Container-Optimized Image cases, Batch will install the
+      in `policy.accelerators` or `instance_template` on your behalf. Default
+      is false. For Container-Optimized Image cases, Batch will install the
       accelerator driver following milestones of
       https://cloud.google.com/container-optimized-os/docs/release-notes. For
       non Container-Optimized Image cases, following
       https://github.com/GoogleCloudPlatform/compute-gpu-
       installation/blob/main/linux/install_gpu_driver.py.
+    installOpsAgent: Optional. Set this field true if you want Batch to
+      install Ops Agent on your behalf. Default is false.
     instanceTemplate: Name of an instance template used to create VMs. Named
-      the field as 'instance_template' instead of 'template' to avoid c++
-      keyword conflict.
+      the field as 'instance_template' instead of 'template' to avoid C++
+      keyword conflict. Batch only supports global instance templates from the
+      same project as the job. You can specify the global instance template as
+      a full or partial URL.
     policy: InstancePolicy.
   """
 
-  installGpuDrivers = _messages.BooleanField(1)
-  instanceTemplate = _messages.StringField(2)
-  policy = _messages.MessageField('InstancePolicy', 3)
+  blockProjectSshKeys = _messages.BooleanField(1)
+  installGpuDrivers = _messages.BooleanField(2)
+  installOpsAgent = _messages.BooleanField(3)
+  instanceTemplate = _messages.StringField(4)
+  policy = _messages.MessageField('InstancePolicy', 5)
 
 
 class InstanceStatus(_messages.Message):
@@ -741,11 +819,14 @@ class InstanceStatus(_messages.Message):
         by this field) is the older model, and has been migrated to use the
         SPOT model as the underlying technology. This old model will still be
         supported.
+      RESERVATION_BOUND: Bound to the lifecycle of the reservation in which it
+        is provisioned.
     """
     PROVISIONING_MODEL_UNSPECIFIED = 0
     STANDARD = 1
     SPOT = 2
     PREEMPTIBLE = 3
+    RESERVATION_BOUND = 4
 
   bootDisk = _messages.MessageField('Disk', 1)
   machineType = _messages.StringField(2)
@@ -757,25 +838,31 @@ class Job(_messages.Message):
   r"""The Cloud Batch Job description.
 
   Messages:
-    LabelsValue: Labels for the Job. Labels could be user provided or system
-      generated. For example, "labels": { "department": "finance",
-      "environment": "test" } You can assign up to 64 labels. [Google Compute
-      Engine label
-      restrictions](https://cloud.google.com/compute/docs/labeling-
-      resources#restrictions) apply. Label names that start with "goog-" or
-      "google-" are reserved.
+    LabelsValue: Custom labels to apply to the job and any Cloud Logging [LogE
+      ntry](https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntr
+      y) that it generates. Use labels to group and describe the resources
+      they are applied to. Batch automatically applies predefined labels and
+      supports multiple `labels` fields for each job, which each let you apply
+      custom labels to various resources. Label names that start with "goog-"
+      or "google-" are reserved for predefined labels. For more information
+      about labels with Batch, see [Organize resources using
+      labels](https://cloud.google.com/batch/docs/organize-resources-using-
+      labels).
 
   Fields:
     allocationPolicy: Compute resource allocation for all TaskGroups in the
       Job.
     createTime: Output only. When the Job was created.
-    labels: Labels for the Job. Labels could be user provided or system
-      generated. For example, "labels": { "department": "finance",
-      "environment": "test" } You can assign up to 64 labels. [Google Compute
-      Engine label
-      restrictions](https://cloud.google.com/compute/docs/labeling-
-      resources#restrictions) apply. Label names that start with "goog-" or
-      "google-" are reserved.
+    labels: Custom labels to apply to the job and any Cloud Logging [LogEntry]
+      (https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry)
+      that it generates. Use labels to group and describe the resources they
+      are applied to. Batch automatically applies predefined labels and
+      supports multiple `labels` fields for each job, which each let you apply
+      custom labels to various resources. Label names that start with "goog-"
+      or "google-" are reserved for predefined labels. For more information
+      about labels with Batch, see [Organize resources using
+      labels](https://cloud.google.com/batch/docs/organize-resources-using-
+      labels).
     logsPolicy: Log preservation policy for the Job.
     name: Output only. Job name. For example: "projects/123456/locations/us-
       central1/jobs/job01".
@@ -793,12 +880,16 @@ class Job(_messages.Message):
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
-    r"""Labels for the Job. Labels could be user provided or system generated.
-    For example, "labels": { "department": "finance", "environment": "test" }
-    You can assign up to 64 labels. [Google Compute Engine label
-    restrictions](https://cloud.google.com/compute/docs/labeling-
-    resources#restrictions) apply. Label names that start with "goog-" or
-    "google-" are reserved.
+    r"""Custom labels to apply to the job and any Cloud Logging [LogEntry](htt
+    ps://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry) that it
+    generates. Use labels to group and describe the resources they are applied
+    to. Batch automatically applies predefined labels and supports multiple
+    `labels` fields for each job, which each let you apply custom labels to
+    various resources. Label names that start with "goog-" or "google-" are
+    reserved for predefined labels. For more information about labels with
+    Batch, see [Organize resources using
+    labels](https://cloud.google.com/batch/docs/organize-resources-using-
+    labels).
 
     Messages:
       AdditionalProperty: An additional property for a LabelsValue object.
@@ -839,11 +930,15 @@ class JobNotification(_messages.Message):
   Fields:
     message: The attribute requirements of messages to be sent to this Pub/Sub
       topic. Without this field, no message will be sent.
-    pubsubTopic: The Pub/Sub topic where notifications like the job state
-      changes will be published. The topic must exist in the same project as
-      the job and billings will be charged to this project. If not specified,
-      no Pub/Sub messages will be sent. Topic format:
-      `projects/{project}/topics/{topic}`.
+    pubsubTopic: The Pub/Sub topic where notifications for the job, like state
+      changes, will be published. If undefined, no Pub/Sub notifications are
+      sent for this job. Specify the topic using the following format:
+      `projects/{project}/topics/{topic}`. Notably, if you want to specify a
+      Pub/Sub topic that is in a different project than the job, your
+      administrator must grant your project's Batch service agent permission
+      to publish to that topic. For more information about configuring Pub/Sub
+      notifications for a job, see https://cloud.google.com/batch/docs/enable-
+      notifications.
   """
 
   message = _messages.MessageField('Message', 1)
@@ -885,6 +980,10 @@ class JobStatus(_messages.Message):
       DELETION_IN_PROGRESS: The Job will be deleted, but has not been deleted
         yet. Typically this is because resources used by the Job are still
         being cleaned up.
+      CANCELLATION_IN_PROGRESS: The Job cancellation is in progress, this is
+        because the resources used by the Job are still being cleaned up.
+      CANCELLED: The Job has been cancelled, the task executions were stopped
+        and the resources were cleaned up.
     """
     STATE_UNSPECIFIED = 0
     QUEUED = 1
@@ -893,6 +992,8 @@ class JobStatus(_messages.Message):
     SUCCEEDED = 4
     FAILED = 5
     DELETION_IN_PROGRESS = 6
+    CANCELLATION_IN_PROGRESS = 7
+    CANCELLED = 8
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class TaskGroupsValue(_messages.Message):
@@ -1135,29 +1236,37 @@ class LocationPolicy(_messages.Message):
 
 
 class LogsPolicy(_messages.Message):
-  r"""LogsPolicy describes how outputs from a Job's Tasks (stdout/stderr) will
-  be preserved.
+  r"""LogsPolicy describes if and how a job's logs are preserved. Logs include
+  information that is automatically written by the Batch service agent and any
+  information that you configured the job's runnables to write to the `stdout`
+  or `stderr` streams.
 
   Enums:
-    DestinationValueValuesEnum: Where logs should be saved.
+    DestinationValueValuesEnum: If and where logs should be saved.
 
   Fields:
-    cloudLoggingOption: Optional. Additional settings for Cloud Logging. It
-      will only take effect when the destination of `LogsPolicy` is set to
-      `CLOUD_LOGGING`.
-    destination: Where logs should be saved.
-    logsPath: The path to which logs are saved when the destination = PATH.
-      This can be a local file path on the VM, or under the mount point of a
-      Persistent Disk or Filestore, or a Cloud Storage path.
+    cloudLoggingOption: Optional. When `destination` is set to
+      `CLOUD_LOGGING`, you can optionally set this field to configure
+      additional settings for Cloud Logging.
+    destination: If and where logs should be saved.
+    logsPath: When `destination` is set to `PATH`, you must set this field to
+      the path where you want logs to be saved. This path can point to a local
+      directory on the VM or (if congifured) a directory under the mount path
+      of any Cloud Storage bucket, network file system (NFS), or writable
+      persistent disk that is mounted to the job. For example, if the job has
+      a bucket with `mountPath` set to `/mnt/disks/my-bucket`, you can write
+      logs to the root directory of the `remotePath` of that bucket by setting
+      this field to `/mnt/disks/my-bucket/`.
   """
 
   class DestinationValueValuesEnum(_messages.Enum):
-    r"""Where logs should be saved.
+    r"""If and where logs should be saved.
 
     Values:
-      DESTINATION_UNSPECIFIED: Logs are not preserved.
-      CLOUD_LOGGING: Logs are streamed to Cloud Logging.
-      PATH: Logs are saved to a file path.
+      DESTINATION_UNSPECIFIED: (Default) Logs are not preserved.
+      CLOUD_LOGGING: Logs are streamed to Cloud Logging. Optionally, you can
+        configure additional settings in the `cloudLoggingOption` field.
+      PATH: Logs are saved to the file path specified in the `logsPath` field.
     """
     DESTINATION_UNSPECIFIED = 0
     CLOUD_LOGGING = 1
@@ -1204,6 +1313,10 @@ class Message(_messages.Message):
       DELETION_IN_PROGRESS: The Job will be deleted, but has not been deleted
         yet. Typically this is because resources used by the Job are still
         being cleaned up.
+      CANCELLATION_IN_PROGRESS: The Job cancellation is in progress, this is
+        because the resources used by the Job are still being cleaned up.
+      CANCELLED: The Job has been cancelled, the task executions were stopped
+        and the resources were cleaned up.
     """
     STATE_UNSPECIFIED = 0
     QUEUED = 1
@@ -1212,6 +1325,8 @@ class Message(_messages.Message):
     SUCCEEDED = 4
     FAILED = 5
     DELETION_IN_PROGRESS = 6
+    CANCELLATION_IN_PROGRESS = 7
+    CANCELLED = 8
 
   class NewTaskStateValueValuesEnum(_messages.Enum):
     r"""The new task state.
@@ -1418,8 +1533,9 @@ class OperationMetadata(_messages.Message):
     endTime: Output only. The time the operation finished running.
     requestedCancellation: Output only. Identifies whether the user has
       requested cancellation of the operation. Operations that have
-      successfully been cancelled have Operation.error value with a
-      google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      successfully been cancelled have google.longrunning.Operation.error
+      value with a google.rpc.Status.code of 1, corresponding to
+      `Code.CANCELLED`.
     statusMessage: Output only. Human-readable status of the operation, if
       any.
     target: Output only. Server-defined resource path for the target of the
@@ -1471,10 +1587,17 @@ class Runnable(_messages.Message):
       override the Task's overall max_run_duration. If the max_run_duration
       has expired then no further Runnables will execute, not even always_run
       Runnables.
-    background: This flag allows a Runnable to continue running in the
-      background while the Task executes subsequent Runnables. This is useful
-      to provide services to other Runnables (or to provide debugging support
-      tools like SSH servers).
+    background: Normally, a runnable that doesn't exit causes its task to
+      fail. However, you can set this field to `true` to configure a
+      background runnable. Background runnables are allowed continue running
+      in the background while the task executes subsequent runnables. For
+      example, background runnables are useful for providing services to other
+      runnables or providing debugging-support tools like SSH servers.
+      Specifically, background runnables are killed automatically (if they
+      have not already exited) a short time after all foreground runnables
+      have completed. Even though this is likely to result in a non-zero exit
+      status for the background runnable, these automatic kills are not
+      treated as task failures.
     barrier: Barrier runnable.
     container: Container runnable.
     displayName: Optional. DisplayName is an optional field that can be
@@ -1484,8 +1607,10 @@ class Runnable(_messages.Message):
       outputs.
     environment: Environment variables for this Runnable (overrides variables
       set for the whole Task or TaskGroup).
-    ignoreExitStatus: Normally, a non-zero exit status causes the Task to
-      fail. This flag allows execution of other Runnables to continue instead.
+    ignoreExitStatus: Normally, a runnable that returns a non-zero exit status
+      fails and causes the task to fail. However, you can set this field to
+      `true` to allow the task to continue executing its other runnables even
+      if this runnable fails.
     labels: Labels for this Runnable.
     script: Script runnable.
     timeout: Timeout for this Runnable.
@@ -1531,19 +1656,21 @@ class Script(_messages.Message):
   r"""Script runnable.
 
   Fields:
-    path: Script file path on the host VM. To specify an interpreter, please
-      add a `#!`(also known as [shebang
-      line](https://en.wikipedia.org/wiki/Shebang_(Unix))) as the first line
-      of the file.(For example, to execute the script using bash,
-      `#!/bin/bash` should be the first line of the file. To execute the
-      script using`Python3`, `#!/usr/bin/env python3` should be the first line
-      of the file.) Otherwise, the file will by default be executed by
-      `/bin/sh`.
-    text: Shell script text. To specify an interpreter, please add a `#!\n` at
-      the beginning of the text.(For example, to execute the script using
-      bash, `#!/bin/bash\n` should be added. To execute the script
-      using`Python3`, `#!/usr/bin/env python3\n` should be added.) Otherwise,
-      the script will by default be executed by `/bin/sh`.
+    path: The path to a script file that is accessible from the host VM(s).
+      Unless the script file supports the default `#!/bin/sh` shell
+      interpreter, you must specify an interpreter by including a [shebang
+      line](https://en.wikipedia.org/wiki/Shebang_(Unix) as the first line of
+      the file. For example, to execute the script using bash, include
+      `#!/bin/bash` as the first line of the file. Alternatively, to execute
+      the script using Python3, include `#!/usr/bin/env python3` as the first
+      line of the file.
+    text: The text for a script. Unless the script text supports the default
+      `#!/bin/sh` shell interpreter, you must specify an interpreter by
+      including a [shebang line](https://en.wikipedia.org/wiki/Shebang_(Unix)
+      at the beginning of the text. For example, to execute the script using
+      bash, include `#!/bin/bash\n` at the beginning of the text.
+      Alternatively, to execute the script using Python3, include
+      `#!/usr/bin/env python3\n` at the beginning of the text.
   """
 
   path = _messages.StringField(1)
@@ -1677,21 +1804,24 @@ class Status(_messages.Message):
 
 
 class StatusEvent(_messages.Message):
-  r"""Status event
+  r"""Status event.
 
   Enums:
-    TaskStateValueValuesEnum: Task State
+    TaskStateValueValuesEnum: Task State. This field is only defined for task-
+      level status events.
 
   Fields:
     description: Description of the event.
     eventTime: The time this event occurred.
-    taskExecution: Task Execution
-    taskState: Task State
+    taskExecution: Task Execution. This field is only defined for task-level
+      status events where the task fails.
+    taskState: Task State. This field is only defined for task-level status
+      events.
     type: Type of the event.
   """
 
   class TaskStateValueValuesEnum(_messages.Enum):
-    r"""Task State
+    r"""Task State. This field is only defined for task-level status events.
 
     Values:
       STATE_UNSPECIFIED: Unknown state.
@@ -1736,8 +1866,15 @@ class TaskExecution(_messages.Message):
   procedures, based on StatusEvent types.
 
   Fields:
-    exitCode: When task is completed as the status of FAILED or SUCCEEDED,
-      exit code is for one task execution result, default is 0 as success.
+    exitCode: The exit code of a finished task. If the task succeeded, the
+      exit code will be 0. If the task failed but not due to the following
+      reasons, the exit code will be 50000. Otherwise, it can be from
+      different sources: * Batch known failures:
+      https://cloud.google.com/batch/docs/troubleshooting#reserved-exit-codes.
+      * Batch runnable execution failures; you can rely on Batch logs to
+      further diagnose: https://cloud.google.com/batch/docs/analyze-job-using-
+      logs. If there are multiple runnables failures, Batch only exposes the
+      first error.
   """
 
   exitCode = _messages.IntegerField(1, variant=_messages.Variant.INT32)
@@ -1874,18 +2011,23 @@ class TaskSpec(_messages.Message):
       code, retry the task with max_retry_count.
     maxRetryCount: Maximum number of retries on failures. The default, 0,
       which means never retry. The valid value range is [0, 10].
-    maxRunDuration: Maximum duration the task should run. The task will be
-      killed and marked as FAILED if over this limit. The valid value range
-      for max_run_duration in seconds is [0, 315576000000.999999999],
-    runnables: The sequence of scripts or containers to run for this Task.
-      Each Task using this TaskSpec executes its list of runnables in order.
-      The Task succeeds if all of its runnables either exit with a zero status
-      or any that exit with a non-zero status have the ignore_exit_status
-      flag. Background runnables are killed automatically (if they have not
-      already exited) a short time after all foreground runnables have
-      completed. Even though this is likely to result in a non-zero exit
-      status for the background runnable, these automatic kills are not
-      treated as Task failures.
+    maxRunDuration: Maximum duration the task should run before being
+      automatically retried (if enabled) or automatically failed. Format the
+      value of this field as a time limit in seconds followed by `s`-for
+      example, `3600s` for 1 hour. The field accepts any value between 0 and
+      the maximum listed for the `Duration` field type at
+      https://protobuf.dev/reference/protobuf/google.protobuf/#duration;
+      however, the actual maximum run time for a job will be limited to the
+      maximum run time for a job listed at
+      https://cloud.google.com/batch/quotas#max-job-duration.
+    runnables: Required. The sequence of one or more runnables (executable
+      scripts, executable containers, and/or barriers) for each task in this
+      task group to run. Each task runs this list of runnables in order. For a
+      task to succeed, all of its script and container runnables each must
+      meet at least one of the following conditions: + The runnable exited
+      with a zero status. + The runnable didn't finish, but you enabled its
+      `background` subfield. + The runnable exited with a non-zero status, but
+      you enabled its `ignore_exit_status` subfield.
     volumes: Volumes to mount before running Tasks using this TaskSpec.
   """
 
@@ -1925,18 +2067,18 @@ class TaskSpec(_messages.Message):
 
 
 class TaskStatus(_messages.Message):
-  r"""Status of a task
+  r"""Status of a task.
 
   Enums:
-    StateValueValuesEnum: Task state
+    StateValueValuesEnum: Task state.
 
   Fields:
-    state: Task state
+    state: Task state.
     statusEvents: Detailed info about why the state is reached.
   """
 
   class StateValueValuesEnum(_messages.Enum):
-    r"""Task state
+    r"""Task state.
 
     Values:
       STATE_UNSPECIFIED: Unknown state.
@@ -1969,16 +2111,16 @@ class Volume(_messages.Message):
       defined by the given instance template in
       job.allocation_policy.instances[0].instance_template.
     gcs: A Google Cloud Storage (GCS) volume.
-    mountOptions: For Google Cloud Storage (GCS), mount options are the
-      options supported by the gcsfuse tool
-      (https://github.com/GoogleCloudPlatform/gcsfuse). For existing
-      persistent disks, mount options provided by the mount command
-      (https://man7.org/linux/man-pages/man8/mount.8.html) except writing are
-      supported. This is due to restrictions of multi-writer mode
-      (https://cloud.google.com/compute/docs/disks/sharing-disks-between-vms).
-      For other attached disks and Network File System (NFS), mount options
-      are these supported by the mount command (https://man7.org/linux/man-
-      pages/man8/mount.8.html).
+    mountOptions: Mount options vary based on the type of storage volume: *
+      For a Cloud Storage bucket, all the mount options provided by the
+      [`gcsfuse` tool](https://cloud.google.com/storage/docs/gcsfuse-cli) are
+      supported. * For an existing persistent disk, all mount options provided
+      by the [`mount` command](https://man7.org/linux/man-
+      pages/man8/mount.8.html) except writing are supported. This is due to
+      restrictions of [multi-writer
+      mode](https://cloud.google.com/compute/docs/disks/sharing-disks-between-
+      vms). * For any other disk or a Network File System (NFS), all the mount
+      options provided by the `mount` command are supported.
     mountPath: The mount path for the volume, e.g. /mnt/disks/share.
     nfs: A Network File System (NFS) volume. For example, a Filestore file
       share.

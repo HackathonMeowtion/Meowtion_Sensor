@@ -18,6 +18,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import os
+import dotenv
 from googlecloudsdk.calliope import arg_parsers
 from googlecloudsdk.calliope import base
 from googlecloudsdk.core import yaml
@@ -126,6 +128,67 @@ def AddMapSetFlag(
   ).AddToParser(group)
 
 
+class ArgDictWithYAMLOrEnv(object):
+  """Interpret a YAML or .env file as a dict."""
+
+  def __init__(self, key_type=None, value_type=None):
+    """Initialize an ArgDictFile.
+
+    Args:
+      key_type: (str)->str, A function to apply to each of the dict keys.
+      value_type: (str)->str, A function to apply to each of the dict values.
+    """
+    self.key_type = key_type
+    self.value_type = value_type
+
+  def __call__(self, file_path):
+    """Interpret a YAML or .env file as a dict.Try to parse the file as a .env file first, if it fails, try to parse it as a YAML file.
+
+    Args:
+      file_path: The path to the file to parse.
+
+    Returns:
+      A dict with the parsed values.
+    """
+    map_dict = {}
+
+    if not os.path.exists(file_path):
+      raise arg_parsers.ArgumentTypeError(
+          'File [{}] does not exist.'.format(file_path)
+      )
+
+    if file_path.endswith('.env'):
+      map_file_dict = dotenv.dotenv_values(dotenv_path=file_path)
+      if not map_file_dict:
+        raise arg_parsers.ArgumentTypeError(
+            'Invalid .env file [{}], expected map-like data.'.format(file_path)
+        )
+    else:
+      map_file_dict = yaml.load_path(file_path)
+      if not yaml.dict_like(map_file_dict):
+        raise arg_parsers.ArgumentTypeError(
+            'Invalid YAML/JSON data in [{}], expected map-like data.'.format(
+                file_path
+            )
+        )
+
+    for key, value in map_file_dict.items():
+      if self.key_type:
+        try:
+          key = self.key_type(key)
+        except ValueError:
+          raise arg_parsers.ArgumentTypeError('Invalid key [{0}]'.format(key))
+      if self.value_type:
+        try:
+          value = self.value_type(value)
+        except ValueError:
+          raise arg_parsers.ArgumentTypeError(
+              'Invalid value [{0}]'.format(value)
+          )
+      map_dict[key] = value
+    return map_dict
+
+
 class ArgDictFile(object):
   """Interpret a YAML file as a dict."""
 
@@ -163,6 +226,20 @@ class ArgDictFile(object):
           )
       map_dict[key] = value
     return map_dict
+
+
+def AddMapSetFileFlagWithYAMLOrEnv(
+    group, flag_name, long_name, key_type, value_type
+):
+  group.add_argument(
+      '--{}-file'.format(flag_name),
+      metavar='FILE_PATH',
+      type=ArgDictWithYAMLOrEnv(key_type=key_type, value_type=value_type),
+      help=(
+          'Path to a local YAML file with definitions for all {0}. All '
+          'existing {0} will be removed before the new {0} are added.'
+      ).format(long_name),
+  )
 
 
 def AddMapSetFileFlag(group, flag_name, long_name, key_type, value_type):

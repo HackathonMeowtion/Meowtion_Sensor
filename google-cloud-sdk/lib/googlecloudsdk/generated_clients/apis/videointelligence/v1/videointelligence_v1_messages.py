@@ -135,7 +135,7 @@ class GoogleCloudVideointelligenceV1DetectedLandmark(_messages.Message):
     confidence: The confidence score of the detected landmark. Range [0, 1].
     name: The name of this landmark, for example, left_hand, right_shoulder.
     point: The 2D point of the detected landmark using the normalized image
-      coordindate system. The normalized coordinates have the range from 0 to
+      coordinate system. The normalized coordinates have the range from 0 to
       1.
   """
 
@@ -217,6 +217,33 @@ class GoogleCloudVideointelligenceV1ExplicitContentFrame(_messages.Message):
 
   pornographyLikelihood = _messages.EnumField('PornographyLikelihoodValueValuesEnum', 1)
   timeOffset = _messages.StringField(2)
+
+
+class GoogleCloudVideointelligenceV1ExportToOutputUriStatus(_messages.Message):
+  r"""Status of exporting annotation response to user specified `output_uri`.
+
+  Enums:
+    StateValueValuesEnum: Output only. State of the `output_uri` export.
+
+  Fields:
+    state: Output only. State of the `output_uri` export.
+    status: Output only. Only set if state is FAILED.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. State of the `output_uri` export.
+
+    Values:
+      STATE_UNSPECIFIED: Default value.
+      SUCCEEDED: Export succeeded.
+      FAILED: Export failed.
+    """
+    STATE_UNSPECIFIED = 0
+    SUCCEEDED = 1
+    FAILED = 2
+
+  state = _messages.EnumField('StateValueValuesEnum', 1)
+  status = _messages.MessageField('GoogleRpcStatus', 2)
 
 
 class GoogleCloudVideointelligenceV1FaceAnnotation(_messages.Message):
@@ -433,8 +460,8 @@ class GoogleCloudVideointelligenceV1NormalizedBoundingPoly(_messages.Message):
   is horizontal it might look like: 0----1 | | 3----2 When it's clockwise
   rotated 180 degrees around the top-left corner it becomes: 2----3 | | 1----0
   and the vertex order will still be (0, 1, 2, 3). Note that values can be
-  less than 0, or greater than 1 due to trignometric calculations for location
-  of the box.
+  less than 0, or greater than 1 due to trigonometric calculations for
+  location of the box.
 
   Fields:
     vertices: Normalized vertices of the bounding polygon.
@@ -770,6 +797,8 @@ class GoogleCloudVideointelligenceV1VideoAnnotationProgress(_messages.Message):
       request contains more than one feature.
 
   Fields:
+    exportStatus: Status of exporting annotation response to user specified
+      `output_uri`. Only set if `output_uri` is set in the request.
     feature: Specifies which feature is being tracked if the request contains
       more than one feature.
     inputUri: Video file location in [Cloud
@@ -809,12 +838,13 @@ class GoogleCloudVideointelligenceV1VideoAnnotationProgress(_messages.Message):
     LOGO_RECOGNITION = 8
     PERSON_DETECTION = 9
 
-  feature = _messages.EnumField('FeatureValueValuesEnum', 1)
-  inputUri = _messages.StringField(2)
-  progressPercent = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  segment = _messages.MessageField('GoogleCloudVideointelligenceV1VideoSegment', 4)
-  startTime = _messages.StringField(5)
-  updateTime = _messages.StringField(6)
+  exportStatus = _messages.MessageField('GoogleCloudVideointelligenceV1ExportToOutputUriStatus', 1)
+  feature = _messages.EnumField('FeatureValueValuesEnum', 2)
+  inputUri = _messages.StringField(3)
+  progressPercent = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  segment = _messages.MessageField('GoogleCloudVideointelligenceV1VideoSegment', 5)
+  startTime = _messages.StringField(6)
+  updateTime = _messages.StringField(7)
 
 
 class GoogleCloudVideointelligenceV1VideoAnnotationResults(_messages.Message):
@@ -1010,7 +1040,7 @@ class GoogleCloudVideointelligenceV1beta2DetectedLandmark(_messages.Message):
     confidence: The confidence score of the detected landmark. Range [0, 1].
     name: The name of this landmark, for example, left_hand, right_shoulder.
     point: The 2D point of the detected landmark using the normalized image
-      coordindate system. The normalized coordinates have the range from 0 to
+      coordinate system. The normalized coordinates have the range from 0 to
       1.
   """
 
@@ -1081,6 +1111,33 @@ class GoogleCloudVideointelligenceV1beta2ExplicitContentFrame(_messages.Message)
 
   pornographyLikelihood = _messages.EnumField('PornographyLikelihoodValueValuesEnum', 1)
   timeOffset = _messages.StringField(2)
+
+
+class GoogleCloudVideointelligenceV1beta2ExportToOutputUriStatus(_messages.Message):
+  r"""Status of exporting annotation response to user specified `output_uri`.
+
+  Enums:
+    StateValueValuesEnum: Output only. State of the `output_uri` export.
+
+  Fields:
+    state: Output only. State of the `output_uri` export.
+    status: Output only. Only set if state is FAILED.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. State of the `output_uri` export.
+
+    Values:
+      STATE_UNSPECIFIED: Default value.
+      SUCCEEDED: Export succeeded.
+      FAILED: Export failed.
+    """
+    STATE_UNSPECIFIED = 0
+    SUCCEEDED = 1
+    FAILED = 2
+
+  state = _messages.EnumField('StateValueValuesEnum', 1)
+  status = _messages.MessageField('GoogleRpcStatus', 2)
 
 
 class GoogleCloudVideointelligenceV1beta2FaceAnnotation(_messages.Message):
@@ -1225,8 +1282,8 @@ class GoogleCloudVideointelligenceV1beta2NormalizedBoundingPoly(_messages.Messag
   is horizontal it might look like: 0----1 | | 3----2 When it's clockwise
   rotated 180 degrees around the top-left corner it becomes: 2----3 | | 1----0
   and the vertex order will still be (0, 1, 2, 3). Note that values can be
-  less than 0, or greater than 1 due to trignometric calculations for location
-  of the box.
+  less than 0, or greater than 1 due to trigonometric calculations for
+  location of the box.
 
   Fields:
     vertices: Normalized vertices of the bounding polygon.
@@ -1431,6 +1488,8 @@ class GoogleCloudVideointelligenceV1beta2VideoAnnotationProgress(_messages.Messa
       request contains more than one feature.
 
   Fields:
+    exportStatus: Status of exporting annotation response to user specified
+      `output_uri`. Only set if `output_uri` is set in the request.
     feature: Specifies which feature is being tracked if the request contains
       more than one feature.
     inputUri: Video file location in [Cloud
@@ -1470,12 +1529,13 @@ class GoogleCloudVideointelligenceV1beta2VideoAnnotationProgress(_messages.Messa
     LOGO_RECOGNITION = 8
     PERSON_DETECTION = 9
 
-  feature = _messages.EnumField('FeatureValueValuesEnum', 1)
-  inputUri = _messages.StringField(2)
-  progressPercent = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  segment = _messages.MessageField('GoogleCloudVideointelligenceV1beta2VideoSegment', 4)
-  startTime = _messages.StringField(5)
-  updateTime = _messages.StringField(6)
+  exportStatus = _messages.MessageField('GoogleCloudVideointelligenceV1beta2ExportToOutputUriStatus', 1)
+  feature = _messages.EnumField('FeatureValueValuesEnum', 2)
+  inputUri = _messages.StringField(3)
+  progressPercent = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  segment = _messages.MessageField('GoogleCloudVideointelligenceV1beta2VideoSegment', 5)
+  startTime = _messages.StringField(6)
+  updateTime = _messages.StringField(7)
 
 
 class GoogleCloudVideointelligenceV1beta2VideoAnnotationResults(_messages.Message):
@@ -1643,7 +1703,7 @@ class GoogleCloudVideointelligenceV1p1beta1DetectedLandmark(_messages.Message):
     confidence: The confidence score of the detected landmark. Range [0, 1].
     name: The name of this landmark, for example, left_hand, right_shoulder.
     point: The 2D point of the detected landmark using the normalized image
-      coordindate system. The normalized coordinates have the range from 0 to
+      coordinate system. The normalized coordinates have the range from 0 to
       1.
   """
 
@@ -1714,6 +1774,33 @@ class GoogleCloudVideointelligenceV1p1beta1ExplicitContentFrame(_messages.Messag
 
   pornographyLikelihood = _messages.EnumField('PornographyLikelihoodValueValuesEnum', 1)
   timeOffset = _messages.StringField(2)
+
+
+class GoogleCloudVideointelligenceV1p1beta1ExportToOutputUriStatus(_messages.Message):
+  r"""Status of exporting annotation response to user specified `output_uri`.
+
+  Enums:
+    StateValueValuesEnum: Output only. State of the `output_uri` export.
+
+  Fields:
+    state: Output only. State of the `output_uri` export.
+    status: Output only. Only set if state is FAILED.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. State of the `output_uri` export.
+
+    Values:
+      STATE_UNSPECIFIED: Default value.
+      SUCCEEDED: Export succeeded.
+      FAILED: Export failed.
+    """
+    STATE_UNSPECIFIED = 0
+    SUCCEEDED = 1
+    FAILED = 2
+
+  state = _messages.EnumField('StateValueValuesEnum', 1)
+  status = _messages.MessageField('GoogleRpcStatus', 2)
 
 
 class GoogleCloudVideointelligenceV1p1beta1FaceAnnotation(_messages.Message):
@@ -1858,8 +1945,8 @@ class GoogleCloudVideointelligenceV1p1beta1NormalizedBoundingPoly(_messages.Mess
   is horizontal it might look like: 0----1 | | 3----2 When it's clockwise
   rotated 180 degrees around the top-left corner it becomes: 2----3 | | 1----0
   and the vertex order will still be (0, 1, 2, 3). Note that values can be
-  less than 0, or greater than 1 due to trignometric calculations for location
-  of the box.
+  less than 0, or greater than 1 due to trigonometric calculations for
+  location of the box.
 
   Fields:
     vertices: Normalized vertices of the bounding polygon.
@@ -2064,6 +2151,8 @@ class GoogleCloudVideointelligenceV1p1beta1VideoAnnotationProgress(_messages.Mes
       request contains more than one feature.
 
   Fields:
+    exportStatus: Status of exporting annotation response to user specified
+      `output_uri`. Only set if `output_uri` is set in the request.
     feature: Specifies which feature is being tracked if the request contains
       more than one feature.
     inputUri: Video file location in [Cloud
@@ -2103,12 +2192,13 @@ class GoogleCloudVideointelligenceV1p1beta1VideoAnnotationProgress(_messages.Mes
     LOGO_RECOGNITION = 8
     PERSON_DETECTION = 9
 
-  feature = _messages.EnumField('FeatureValueValuesEnum', 1)
-  inputUri = _messages.StringField(2)
-  progressPercent = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  segment = _messages.MessageField('GoogleCloudVideointelligenceV1p1beta1VideoSegment', 4)
-  startTime = _messages.StringField(5)
-  updateTime = _messages.StringField(6)
+  exportStatus = _messages.MessageField('GoogleCloudVideointelligenceV1p1beta1ExportToOutputUriStatus', 1)
+  feature = _messages.EnumField('FeatureValueValuesEnum', 2)
+  inputUri = _messages.StringField(3)
+  progressPercent = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  segment = _messages.MessageField('GoogleCloudVideointelligenceV1p1beta1VideoSegment', 5)
+  startTime = _messages.StringField(6)
+  updateTime = _messages.StringField(7)
 
 
 class GoogleCloudVideointelligenceV1p1beta1VideoAnnotationResults(_messages.Message):
@@ -2276,7 +2366,7 @@ class GoogleCloudVideointelligenceV1p2beta1DetectedLandmark(_messages.Message):
     confidence: The confidence score of the detected landmark. Range [0, 1].
     name: The name of this landmark, for example, left_hand, right_shoulder.
     point: The 2D point of the detected landmark using the normalized image
-      coordindate system. The normalized coordinates have the range from 0 to
+      coordinate system. The normalized coordinates have the range from 0 to
       1.
   """
 
@@ -2347,6 +2437,33 @@ class GoogleCloudVideointelligenceV1p2beta1ExplicitContentFrame(_messages.Messag
 
   pornographyLikelihood = _messages.EnumField('PornographyLikelihoodValueValuesEnum', 1)
   timeOffset = _messages.StringField(2)
+
+
+class GoogleCloudVideointelligenceV1p2beta1ExportToOutputUriStatus(_messages.Message):
+  r"""Status of exporting annotation response to user specified `output_uri`.
+
+  Enums:
+    StateValueValuesEnum: Output only. State of the `output_uri` export.
+
+  Fields:
+    state: Output only. State of the `output_uri` export.
+    status: Output only. Only set if state is FAILED.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. State of the `output_uri` export.
+
+    Values:
+      STATE_UNSPECIFIED: Default value.
+      SUCCEEDED: Export succeeded.
+      FAILED: Export failed.
+    """
+    STATE_UNSPECIFIED = 0
+    SUCCEEDED = 1
+    FAILED = 2
+
+  state = _messages.EnumField('StateValueValuesEnum', 1)
+  status = _messages.MessageField('GoogleRpcStatus', 2)
 
 
 class GoogleCloudVideointelligenceV1p2beta1FaceAnnotation(_messages.Message):
@@ -2491,8 +2608,8 @@ class GoogleCloudVideointelligenceV1p2beta1NormalizedBoundingPoly(_messages.Mess
   is horizontal it might look like: 0----1 | | 3----2 When it's clockwise
   rotated 180 degrees around the top-left corner it becomes: 2----3 | | 1----0
   and the vertex order will still be (0, 1, 2, 3). Note that values can be
-  less than 0, or greater than 1 due to trignometric calculations for location
-  of the box.
+  less than 0, or greater than 1 due to trigonometric calculations for
+  location of the box.
 
   Fields:
     vertices: Normalized vertices of the bounding polygon.
@@ -2697,6 +2814,8 @@ class GoogleCloudVideointelligenceV1p2beta1VideoAnnotationProgress(_messages.Mes
       request contains more than one feature.
 
   Fields:
+    exportStatus: Status of exporting annotation response to user specified
+      `output_uri`. Only set if `output_uri` is set in the request.
     feature: Specifies which feature is being tracked if the request contains
       more than one feature.
     inputUri: Video file location in [Cloud
@@ -2736,12 +2855,13 @@ class GoogleCloudVideointelligenceV1p2beta1VideoAnnotationProgress(_messages.Mes
     LOGO_RECOGNITION = 8
     PERSON_DETECTION = 9
 
-  feature = _messages.EnumField('FeatureValueValuesEnum', 1)
-  inputUri = _messages.StringField(2)
-  progressPercent = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  segment = _messages.MessageField('GoogleCloudVideointelligenceV1p2beta1VideoSegment', 4)
-  startTime = _messages.StringField(5)
-  updateTime = _messages.StringField(6)
+  exportStatus = _messages.MessageField('GoogleCloudVideointelligenceV1p2beta1ExportToOutputUriStatus', 1)
+  feature = _messages.EnumField('FeatureValueValuesEnum', 2)
+  inputUri = _messages.StringField(3)
+  progressPercent = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  segment = _messages.MessageField('GoogleCloudVideointelligenceV1p2beta1VideoSegment', 5)
+  startTime = _messages.StringField(6)
+  updateTime = _messages.StringField(7)
 
 
 class GoogleCloudVideointelligenceV1p2beta1VideoAnnotationResults(_messages.Message):
@@ -2954,7 +3074,7 @@ class GoogleCloudVideointelligenceV1p3beta1DetectedLandmark(_messages.Message):
     confidence: The confidence score of the detected landmark. Range [0, 1].
     name: The name of this landmark, for example, left_hand, right_shoulder.
     point: The 2D point of the detected landmark using the normalized image
-      coordindate system. The normalized coordinates have the range from 0 to
+      coordinate system. The normalized coordinates have the range from 0 to
       1.
   """
 
@@ -3025,6 +3145,33 @@ class GoogleCloudVideointelligenceV1p3beta1ExplicitContentFrame(_messages.Messag
 
   pornographyLikelihood = _messages.EnumField('PornographyLikelihoodValueValuesEnum', 1)
   timeOffset = _messages.StringField(2)
+
+
+class GoogleCloudVideointelligenceV1p3beta1ExportToOutputUriStatus(_messages.Message):
+  r"""Status of exporting annotation response to user specified `output_uri`.
+
+  Enums:
+    StateValueValuesEnum: Output only. State of the `output_uri` export.
+
+  Fields:
+    state: Output only. State of the `output_uri` export.
+    status: Output only. Only set if state is FAILED.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. State of the `output_uri` export.
+
+    Values:
+      STATE_UNSPECIFIED: Default value.
+      SUCCEEDED: Export succeeded.
+      FAILED: Export failed.
+    """
+    STATE_UNSPECIFIED = 0
+    SUCCEEDED = 1
+    FAILED = 2
+
+  state = _messages.EnumField('StateValueValuesEnum', 1)
+  status = _messages.MessageField('GoogleRpcStatus', 2)
 
 
 class GoogleCloudVideointelligenceV1p3beta1FaceAnnotation(_messages.Message):
@@ -3169,8 +3316,8 @@ class GoogleCloudVideointelligenceV1p3beta1NormalizedBoundingPoly(_messages.Mess
   is horizontal it might look like: 0----1 | | 3----2 When it's clockwise
   rotated 180 degrees around the top-left corner it becomes: 2----3 | | 1----0
   and the vertex order will still be (0, 1, 2, 3). Note that values can be
-  less than 0, or greater than 1 due to trignometric calculations for location
-  of the box.
+  less than 0, or greater than 1 due to trigonometric calculations for
+  location of the box.
 
   Fields:
     vertices: Normalized vertices of the bounding polygon.
@@ -3428,6 +3575,8 @@ class GoogleCloudVideointelligenceV1p3beta1VideoAnnotationProgress(_messages.Mes
       request contains more than one feature.
 
   Fields:
+    exportStatus: Status of exporting annotation response to user specified
+      `output_uri`. Only set if `output_uri` is set in the request.
     feature: Specifies which feature is being tracked if the request contains
       more than one feature.
     inputUri: Video file location in [Cloud
@@ -3469,12 +3618,13 @@ class GoogleCloudVideointelligenceV1p3beta1VideoAnnotationProgress(_messages.Mes
     CELEBRITY_RECOGNITION = 9
     PERSON_DETECTION = 10
 
-  feature = _messages.EnumField('FeatureValueValuesEnum', 1)
-  inputUri = _messages.StringField(2)
-  progressPercent = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  segment = _messages.MessageField('GoogleCloudVideointelligenceV1p3beta1VideoSegment', 4)
-  startTime = _messages.StringField(5)
-  updateTime = _messages.StringField(6)
+  exportStatus = _messages.MessageField('GoogleCloudVideointelligenceV1p3beta1ExportToOutputUriStatus', 1)
+  feature = _messages.EnumField('FeatureValueValuesEnum', 2)
+  inputUri = _messages.StringField(3)
+  progressPercent = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  segment = _messages.MessageField('GoogleCloudVideointelligenceV1p3beta1VideoSegment', 5)
+  startTime = _messages.StringField(6)
+  updateTime = _messages.StringField(7)
 
 
 class GoogleCloudVideointelligenceV1p3beta1VideoAnnotationResults(_messages.Message):

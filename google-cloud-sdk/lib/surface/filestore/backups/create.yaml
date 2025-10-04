@@ -75,6 +75,19 @@
           spec:
           - api_field: key
           - api_field: value
+    - api_field: backup.tags.additionalProperties
+      arg_name: tags
+      release_tracks: [BETA, GA]
+      required: false
+      metavar: KEY=VALUE
+      help_text: |
+        List of tag KEY=VALUE pairs to add.
+      type:
+        arg_dict:
+          flatten: true
+          spec:
+          - api_field: key
+          - api_field: value
 
   async:
     collection: file.projects.locations.operations

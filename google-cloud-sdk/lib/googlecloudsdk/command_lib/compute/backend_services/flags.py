@@ -18,11 +18,15 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from typing import Any
+
 from googlecloudsdk.calliope import arg_parsers
+from googlecloudsdk.calliope import parser_arguments
 from googlecloudsdk.command_lib.compute import completers as compute_completers
 from googlecloudsdk.command_lib.compute import exceptions as compute_exceptions
 from googlecloudsdk.command_lib.compute import flags as compute_flags
 from googlecloudsdk.command_lib.compute import scope as compute_scope
+from googlecloudsdk.command_lib.network_security import completers as network_security_completers
 from googlecloudsdk.command_lib.network_services import completers as network_services_completers
 from googlecloudsdk.command_lib.util import completers
 from googlecloudsdk.command_lib.util.apis import arg_utils
@@ -285,6 +289,58 @@ def AddIpAddressSelectionPolicy(parser):
   )
 
 
+def AddExternalMigration(parser: parser_arguments.ArgumentInterceptor):
+  """Add flags related to Gfe2 to Gfe3 canary migration.
+
+  Args:
+    parser: The argparse parser to add the flags to.
+  """
+  group = parser.add_mutually_exclusive_group()
+  group.add_argument(
+      '--external-managed-migration-state',
+      choices=['PREPARE', 'TEST_BY_PERCENTAGE', 'TEST_ALL_TRAFFIC'],
+      type=lambda x: x.replace('-', '_').upper(),
+      default=None,
+      help="""\
+      Specifies the migration state. Possible values are PREPARE,
+      TEST_BY_PERCENTAGE, and TEST_ALL_TRAFFIC.
+
+      To begin the migration from EXTERNAL to EXTERNAL_MANAGED, the state must
+      be changed to PREPARE. The state must be changed to TEST_ALL_TRAFFIC
+      before the loadBalancingScheme can be changed to EXTERNAL_MANAGED.
+      Optionally, the TEST_BY_PERCENTAGE state can be used to migrate traffic
+      by percentage using the --external-managed-migration-testing-percentage
+      flag.
+    """,
+  )
+  group.add_argument(
+      '--clear-external-managed-migration-state',
+      required=False,
+      action='store_true',
+      default=None,
+      help='Clears current state of external managed migration.',
+  )
+  parser.add_argument(
+      '--external-managed-migration-testing-percentage',
+      type=arg_parsers.BoundedFloat(lower_bound=0.0, upper_bound=100.0),
+      help="""\
+      Determines the fraction of requests that should be processed by
+      the Global external Application Load Balancer.
+
+      The value of this field must be in the range [0, 100].
+    """,
+  )
+  parser.add_argument(
+      '--load-balancing-scheme',
+      choices=['EXTERNAL', 'EXTERNAL_MANAGED'],
+      help="""\
+      Only for the Global external Application Load Balancer migration.
+
+      The value of this field must be EXTERNAL or EXTERNAL_MANAGED.
+    """,
+  )
+
+
 def AddLocalityLbPolicy(parser):
   """Add flags related to lb algorithm used within the scope of the locality.
 
@@ -294,14 +350,22 @@ def AddLocalityLbPolicy(parser):
   parser.add_argument(
       '--locality-lb-policy',
       choices=[
-          'INVALID_LB_POLICY', 'ROUND_ROBIN', 'LEAST_REQUEST', 'RING_HASH',
-          'RANDOM', 'ORIGINAL_DESTINATION', 'MAGLEV', 'WEIGHTED_MAGLEV'
+          'INVALID_LB_POLICY',
+          'ROUND_ROBIN',
+          'LEAST_REQUEST',
+          'RING_HASH',
+          'RANDOM',
+          'ORIGINAL_DESTINATION',
+          'MAGLEV',
+          'WEIGHTED_MAGLEV',
+          'WEIGHTED_ROUND_ROBIN',
       ],
       type=lambda x: x.replace('-', '_').upper(),
       default=None,
       help="""\
       The load balancing algorithm used within the scope of the locality.
-      """)
+      """,
+  )
 
 
 def AddConnectionTrackingPolicy(parser):
@@ -351,6 +415,68 @@ def AddConnectionTrackingPolicy(parser):
       help="""\
       Enable or disable strong session affinity.
       This is only available for loadbalancingScheme EXTERNAL.
+      """)
+
+
+def AddZonalAffinity(parser):
+  """Add flags related to zonal affinity.
+
+  Args:
+    parser: The parser that parses args from user input.
+  """
+  parser.add_argument(
+      '--zonal-affinity-spillover',
+      choices=[
+          'ZONAL_AFFINITY_DISABLED',
+          'ZONAL_AFFINITY_STAY_WITHIN_ZONE',
+          'ZONAL_AFFINITY_SPILL_CROSS_ZONE',
+      ],
+      type=lambda x: x.replace('-', '_').upper(),
+      help="""\
+      Specifies whether zonal affinity is enabled or not. For further details,
+      refer to [Zonal affinity options](https://cloud.google.com/load-balancing/docs/internal/zonal-affinity#zonal_affinity_options).
+
+      Can only be set if load balancing scheme is INTERNAL,
+
+      The possible values are:
+
+       ZONAL_AFFINITY_DISABLED
+         Default Value. Zonal Affinity is disabled. The load balancer
+         distributes new connections to all healthy backend VMs across all
+         zones.
+
+       ZONAL_AFFINITY_STAY_WITHIN_ZONE
+         Zonal Affinity is enabled. The load balancer distributes new
+         connections to all healthy backend VMs in the client VM's zone only.
+         If there are no healthy backend VMs in the client VM's zone, the load
+         balancer distributes new connections to all backend VMs in the client
+         VM's zone.
+
+       ZONAL_AFFINITY_SPILL_CROSS_ZONE
+         Zonal Affinity is enabled. The load balancer distributes new
+         connections to all healthy backend VMs in the client VM's zone only.
+         If there aren't enough healthy backend VMs in the client VM's zone,
+         the load balancer distributes some new connections to backend VMs in
+         zones other than the client VM's zone. This distribution depends on a
+         configurable spillover ratio that determines when traffic starts
+         spilling over to backend VMs in other zones.
+      """,
+  )
+  parser.add_argument(
+      '--zonal-affinity-spillover-ratio',
+      type=arg_parsers.BoundedFloat(lower_bound=0.0, upper_bound=1.0),
+      help="""\
+      The value of the field can range from 0.0 to 1.0, inclusive. If not
+      specified, a default value of 0.0 is used.
+
+      This ratio indicates the threshold value for keeping traffic in the client
+      VM's zone. If the proportion of healthy backend VMs in a zone falls below
+      the configured spillover ratio, some new connections from the client VM
+      are distributed to healthy backend VMs in zones other than the client VM's
+      zone.
+
+      For further details, refer to [How ZONAL_AFFINITY_SPILL_CROSS_ZONE and
+      spillover ratio work](https://cloud.google.com/load-balancing/docs/internal/zonal-affinity#zonal-affinity-spillover-ratio).
       """)
 
 
@@ -412,10 +538,12 @@ def AddEnableCdn(parser):
       action=arg_parsers.StoreTrueFalseAction,
       help="""\
       Enable or disable Cloud CDN for the backend service. Only available for
-      backend services with --load-balancing-scheme=EXTERNAL that use a
-      --protocol of HTTP, HTTPS, or HTTP2. Cloud CDN caches HTTP responses at
-      the edge of Google's network. Cloud CDN is disabled by default.
-      """)
+      backend services with --load-balancing-scheme=EXTERNAL or EXTERNAL_MANAGED
+      that use a --protocol of HTTP, HTTPS, HTTP2 or H2C. Cloud CDN caches HTTP
+      responses at the edge of Google's network. Cloud CDN is disabled by
+      default.
+      """,
+  )
 
 
 def AddCacheKeyIncludeProtocol(parser, default):
@@ -712,17 +840,19 @@ def AddIap(parser, help=None):  # pylint: disable=redefined-builtin
       help=help or 'Specifies a list of settings for IAP service.')
 
 
-def AddSessionAffinity(parser,
-                       target_pools=False,
-                       hidden=False,
-                       support_client_only=False):
+def AddSessionAffinity(
+    parser,
+    support_stateful_affinity=False,
+    target_pools=False,
+    hidden=False,
+):
   """Adds session affinity flag to the argparse.
 
   Args:
     parser: An argparse.ArgumentParser instance.
+    support_stateful_affinity: Whether STRONG_COOKIE_AFFINITY is a valid choice.
     target_pools: Indicates if the backend pool is target pool.
     hidden: if hidden=True, retains help but does not display it.
-    support_client_only: Indicates if CLIENT_IP_NO_DESTINATION is valid choice.
   """
   choices = {
       'CLIENT_IP':
@@ -739,64 +869,77 @@ def AddSessionAffinity(parser,
   if not target_pools:
     choices.update({
         'GENERATED_COOKIE': (
-            '(Applicable if `--load-balancing-scheme` is '
-            '`INTERNAL_MANAGED`, `INTERNAL_SELF_MANAGED`, `EXTERNAL_MANAGED`, '
-            'or `EXTERNAL`) '
-            ' If the `--load-balancing-scheme` is `EXTERNAL` or '
-            '`EXTERNAL_MANAGED`, routes requests to backend VMs or endpoints '
-            ' in a NEG, based on the contents of the `GCLB` cookie set by the '
-            ' load balancer. Only applicable when `--protocol` is HTTP, HTTPS, '
-            ' or HTTP2. If the `--load-balancing-scheme` is `INTERNAL_MANAGED` '
-            ' or `INTERNAL_SELF_MANAGED`, routes requests to backend VMs or '
-            ' endpoints in a NEG, based on the contents of the `GCILB` cookie '
-            ' set by the proxy. (If no cookie is present, the proxy '
-            ' chooses a backend VM or endpoint and sends a `Set-Cookie` '
-            ' response for future requests.) If the `--load-balancing-scheme` '
-            ' is `INTERNAL_SELF_MANAGED`, routes requests to backend VMs or '
-            ' endpoints in a NEG, based on the contents of a cookie set by '
-            ' Traffic Director. This session affinity is only valid if the '
-            ' load balancing locality policy is either `RING_HASH` or '
-            ' `MAGLEV`.'),
-        'CLIENT_IP_PROTO':
-            ('(Applicable if `--load-balancing-scheme` is `INTERNAL`) '
-             'Connections from the same client IP with the same IP '
-             'protocol will go to the same backend VM while that VM remains'
-             ' healthy.'),
+            '(Applicable if `--load-balancing-scheme` is `INTERNAL_MANAGED`,'
+            ' `INTERNAL_SELF_MANAGED`, `EXTERNAL_MANAGED`, or `EXTERNAL`) If'
+            ' the `--load-balancing-scheme` is `EXTERNAL` or'
+            ' `EXTERNAL_MANAGED`, routes requests to backend VMs or endpoints'
+            ' in a NEG, based on the contents of the `GCLB` cookie set by the'
+            ' load balancer. Only applicable when `--protocol` is HTTP,'
+            ' HTTPS,HTTP2 or H2C. If the `--load-balancing-scheme` is'
+            ' `INTERNAL_MANAGED` or `INTERNAL_SELF_MANAGED`, routes requests to'
+            ' backend VMs or endpoints in a NEG, based on the contents of the'
+            ' `GCILB` cookie set by the proxy. (If no cookie is present, the'
+            ' proxy chooses a backend VM or endpoint and sends a `Set-Cookie`'
+            ' response for future requests.) If the `--load-balancing-scheme`'
+            ' is `INTERNAL_SELF_MANAGED`, routes requests to backend VMs or'
+            ' endpoints in a NEG, based on the contents of a cookie set by'
+            ' Traffic Director. This session affinity is only valid if the load'
+            ' balancing locality policy is either `RING_HASH` or `MAGLEV`.'
+        ),
+        'CLIENT_IP_PROTO': (
+            '(Applicable if `--load-balancing-scheme` is `INTERNAL`) '
+            'Connections from the same client IP with the same IP '
+            'protocol will go to the same backend VM while that VM remains '
+            'healthy.'
+        ),
         'CLIENT_IP_PORT_PROTO': (
             '(Applicable if `--load-balancing-scheme` is `INTERNAL`) '
             'Connections from the same client IP with the same IP protocol and '
             'port will go to the same backend VM while that VM remains '
-            'healthy.'),
+            'healthy.'
+        ),
         'HTTP_COOKIE': (
             '(Applicable if `--load-balancing-scheme` is `INTERNAL_MANAGED`, '
             '`EXTERNAL_MANAGED` or `INTERNAL_SELF_MANAGED`) Route requests to '
-            ' backend VMs or '
-            ' endpoints in a NEG, based on an HTTP cookie named in the '
-            ' `HTTP_COOKIE` flag (with the optional `--affinity-cookie-ttl` '
-            ' flag). If the client has not provided the cookie, '
-            ' the proxy generates the cookie and returns it to the client in a '
-            ' `Set-Cookie` header. This session affinity is only valid if the '
-            ' load balancing locality policy is either `RING_HASH` or `MAGLEV` '
-            ' and the backend service\'s consistent hash specifies the HTTP '
-            ' cookie.'),
-        'HEADER_FIELD':
-            ('(Applicable if `--load-balancing-scheme` is `INTERNAL_MANAGED`, '
-             '`EXTERNAL_MANAGED`, or `INTERNAL_SELF_MANAGED`) Route requests '
-             ' to backend VMs or '
-             ' endpoints in a NEG based on the value of the HTTP header named '
-             ' in the `--custom-request-header` flag. This session '
-             ' affinity is only valid if the load balancing locality policy '
-             ' is either `RING_HASH` or `MAGLEV` and the backend service\'s '
-             ' consistent hash specifies the name of the HTTP header.'),
+            'backend VMs or endpoints in a NEG, based on an HTTP cookie '
+            'in the `--affinity-cookie-name` flag (with the optional '
+            '`--affinity-cookie-ttl` flag). If the client has not provided '
+            'the cookie, the proxy generates the cookie and returns it to the '
+            'client in a `Set-Cookie` header. This session affinity is only '
+            'valid if the load balancing locality policy is either '
+            "`RING_HASH` or `MAGLEV` and the backend service's consistent "
+            'hash specifies the HTTP cookie.'
+        ),
+        'HEADER_FIELD': (
+            '(Applicable if `--load-balancing-scheme` is `INTERNAL_MANAGED`, '
+            '`EXTERNAL_MANAGED`, or `INTERNAL_SELF_MANAGED`) Route requests '
+            'to backend VMs or endpoints in a NEG based on the value of the '
+            'HTTP header named in the `--custom-request-header` flag. This '
+            'session affinity is only valid if the load balancing locality '
+            "policy is either `RING_HASH` or `MAGLEV` and the backend service's"
+            ' consistent hash specifies the name of the HTTP header.'
+        ),
+        'CLIENT_IP_NO_DESTINATION': (
+            "Directs a particular client's request to the same backend VM "
+            "based on a hash created on the client's IP address only. This "
+            'is used in L4 ILB as Next-Hop scenarios. It differs from the '
+            'Client-IP option in that Client-IP uses a hash based on both '
+            "client-IP's address and destination address."
+        ),
     })
-    if support_client_only:
+    if support_stateful_affinity:
       choices.update({
-          'CLIENT_IP_NO_DESTINATION':
-              ('Directs a particular client\'s request to the same backend VM '
-               'based on a hash created on the client\'s IP address only. This '
-               'is used in L4 ILB as Next-Hop scenarios. It differs from the '
-               'Client-IP option in that Client-IP uses a hash based on both '
-               'client-IP\'s address and destination address.')
+          'STRONG_COOKIE_AFFINITY': (
+              '(Applicable if `--load-balancing-scheme` is `INTERNAL_MANAGED` '
+              'or `EXTERNAL_MANAGED`) '
+              'Strong cookie-based affinity, based on an HTTP cookie named in '
+              'the `--affinity-cookie-name` flag (with the optional '
+              '`--affinity-cookie-ttl` flag). Connections bearing the same '
+              'cookie will be served by the same backend VM while that VM '
+              'remains healthy, as long as the cookie has not expired. If '
+              'the `--affinity-cookie-ttl` flag is set to 0, the cookie will '
+              'be treated as a session cookie.'
+          ),
       })
   help_str = 'The type of session affinity to use. Supports both TCP and UDP.'
   parser.add_argument(
@@ -809,19 +952,57 @@ def AddSessionAffinity(parser,
       help=help_str)
 
 
-def AddAffinityCookieTtl(parser, hidden=False):
-  """Adds affinity cookie Ttl flag to the argparse."""
-  affinity_cookie_ttl_help = """\
-      If session-affinity is set to "generated_cookie", this flag sets
-      the TTL, in seconds, of the resulting cookie.  A setting of 0
-      indicates that the cookie should be transient.
-      See $ gcloud topic datetimes for information on duration formats.
-      """
+def AddAffinityCookie(parser, support_stateful_affinity=False, hidden=False):
+  """Adds affinity cookie flags to the argparse."""
+  if support_stateful_affinity:
+    affinity_cookie_name_help = """\
+        If `--session-affinity` is set to `HTTP_COOKIE` or
+        `STRONG_COOKIE_AFFINITY`, this flag sets the name of the cookie.
+        """
+    affinity_cookie_ttl_help = """\
+        If `--session-affinity` is set to `GENERATED_COOKIE`, `HTTP_COOKIE`, or
+        `STRONG_COOKIE_AFFINITY`, this flag sets the TTL, in seconds, of the
+        resulting cookie.  A setting of 0 indicates that the cookie should be
+        a session cookie.  See $ gcloud topic datetimes for information on
+        duration formats.
+        """
+    affinity_cookie_path_help = """\
+        If `--session-affinity` is set to `HTTP_COOKIE` or
+        `STRONG_COOKIE_AFFINITY`, this flag sets the path of the cookie.
+        """
+  else:
+    affinity_cookie_name_help = """\
+        If `--session-affinity` is set to `HTTP_COOKIE`, this flag sets the name
+        of the cookie.
+        """
+    affinity_cookie_ttl_help = """\
+        If `--session-affinity` is set to `GENERATED_COOKIE` or `HTTP_COOKIE`,
+        this flag sets the TTL, in seconds, of the resulting cookie.  A setting
+        of 0 indicates that the cookie should be a session cookie.  See
+        $ gcloud topic datetimes for information on duration formats.
+        """
+    affinity_cookie_path_help = """\
+        If `--session-affinity` is set to `HTTP_COOKIE`, this flag sets the path
+        of the cookie.
+        """
+
+  parser.add_argument(
+      '--affinity-cookie-name',
+      help=affinity_cookie_name_help,
+      hidden=hidden,
+  )
+
   parser.add_argument(
       '--affinity-cookie-ttl',
       type=arg_parsers.Duration(),
       default=None,  # Tri-valued, None => don't include property.
       help=affinity_cookie_ttl_help,
+      hidden=hidden,
+  )
+
+  parser.add_argument(
+      '--affinity-cookie-path',
+      help=affinity_cookie_path_help,
       hidden=hidden,
   )
 
@@ -844,14 +1025,14 @@ def AddTimeout(parser, default='30s'):
       external passthrough Network Load Balancers (``global'' not set and
       ``load-balancing-scheme'' set to EXTERNAL), ``timeout'' is ignored.
 
-      If the ``protocol'' is HTTP, HTTPS, or HTTP2, ``timeout'' is a
+      If the ``protocol'' is HTTP, HTTPS, HTTP2 or H2C, ``timeout'' is a
       request/response timeout for HTTP(S) traffic, meaning the amount
       of time that the load balancer waits for a backend to return a
       full response to a request. If WebSockets traffic is supported, the
       ``timeout'' parameter sets the maximum amount of time that a
       WebSocket can be open (idle or not).
 
-      For example, for HTTP, HTTPS, or HTTP2 traffic, specifying a ``timeout''
+      For example, for HTTP, HTTPS, HTTP2 or H2C traffic, specifying a ``timeout''
       of 10s means that backends have 10 seconds to respond to the load
       balancer's requests. The load balancer retries the HTTP GET request one
       time if the backend closes the connection or times out before sending
@@ -863,7 +1044,8 @@ def AddTimeout(parser, default='30s'):
       If the ``protocol'' is SSL or TCP, ``timeout'' is an idle timeout.
 
       The full range of timeout values allowed is 1 - 2,147,483,647 seconds.
-      """)
+      """,
+  )
 
 
 def AddPortName(parser):
@@ -896,19 +1078,16 @@ def AddPortName(parser):
       """)
 
 
-def AddProtocol(parser, default='HTTP', support_unspecified_protocol=False):
+def AddProtocol(parser, default='HTTP'):
   """Adds --protocol flag to the argparse.
 
   Args:
     parser: An argparse.ArgumentParser instance.
     default: The default protocol if this flag is unspecified.
-    support_unspecified_protocol: Indicates if UNSPECIFIED is a valid protocol.
   """
-  ilb_protocols = ('TCP, UDP, UNSPECIFIED'
-                   if support_unspecified_protocol else 'TCP, UDP')
-  td_protocols = ('HTTP, HTTPS, HTTP2, GRPC')
-  netlb_protocols = ('TCP, UDP, UNSPECIFIED'
-                     if support_unspecified_protocol else 'TCP, UDP')
+  ilb_protocols = 'TCP, UDP, UNSPECIFIED'
+  td_protocols = 'HTTP, HTTPS, HTTP2, GRPC, H2C'
+  netlb_protocols = 'TCP, UDP, UNSPECIFIED'
   parser.add_argument(
       '--protocol',
       default=default,
@@ -923,20 +1102,33 @@ def AddProtocol(parser, default='HTTP', support_unspecified_protocol=False):
       Director), the protocol must be one of: {1}.
 
       If the `load-balancing-scheme` is `INTERNAL_MANAGED` (Internal Application
-      Load Balancer), the protocol must be one of: HTTP, HTTPS, HTTP2.
+      Load Balancer), the protocol must be one of: HTTP, HTTPS, HTTP2, H2C.
+
+      If the `load-balancing-scheme` is `INTERNAL_MANAGED` (Internal proxy
+      Network Load Balancer), the protocol must be only TCP.
 
       If the `load-balancing-scheme` is `EXTERNAL` and `region` is not set
-      (Classic Application Load Balancer and global external proxy Network
-      Load Balancer), the protocol must be one of: HTTP, HTTPS, HTTP2, SSL, TCP.
+      (Classic Application Load Balancer and Classic proxy Network Load
+      Balancer), the protocol must be one of: HTTP, HTTPS, HTTP2, TCP, SSL.
 
       If the `load-balancing-scheme` is `EXTERNAL` and `region` is set
       (External passthrough Network Load Balancer), the protocol must be one
       of: {2}.
 
-      If the `load-balancing-scheme` is `EXTERNAL_MANAGED` (Envoy based
-      Global and regional external Application Load Balancers), the protocol
-      must be one of: HTTP, HTTPS, HTTP2.
-      """.format(ilb_protocols, td_protocols, netlb_protocols))
+      If the `load-balancing-scheme` is `EXTERNAL_MANAGED`
+      (Global external Application Load Balancer and regional external
+      Application Load Balancer), the protocol must be
+      one of: HTTP, HTTPS, HTTP2, H2C.
+
+      If the `load-balancing-scheme` is `EXTERNAL_MANAGED`
+      (Global external proxy Network Load Balancer), the protocol
+      must be one of: TCP, SSL.
+
+      If the `load-balancing-scheme` is `EXTERNAL_MANAGED`
+      (Regional external proxy Network Load Balancer), the protocol
+      must be only TCP.
+      """.format(ilb_protocols, td_protocols, netlb_protocols),
+  )
 
 
 def AddConnectionDrainOnFailover(parser, default):
@@ -1082,3 +1274,135 @@ def AddInstanceGroupAndNetworkEndpointGroupArgs(parser,
 
 def AddNetwork(parser):
   NETWORK_ARG.AddArgument(parser)
+
+
+def AddBackendServiceTlsSettings(
+    parser: Any, add_clear_argument: bool = False
+) -> None:
+  """Adds a --tls-settings flag to the given parser."""
+  group = parser.add_mutually_exclusive_group()
+  help_text = """\
+  Configuration for Backend Authenticated TLS and mTLS. May only be specified
+  when the backend protocol is SSL, HTTPS or HTTP2.
+
+  Example:
+    $ {command} --tls-settings='sni=example.com,authenticationConfig=${AUTH_CONFIG_NAME}'"""
+  group.add_argument(
+      '--tls-settings',
+      type=arg_parsers.ArgDict(
+          spec={
+              'sni': str,
+              'authenticationConfig': str,
+          },
+          required_keys=['authenticationConfig'],
+      ),
+      completer=network_security_completers.BackendAuthenticationConfigsCompleter(),
+      default=None,
+      help=help_text,
+  )
+
+  if add_clear_argument:
+    group.add_argument(
+        '--no-tls-settings',
+        required=False,
+        action='store_true',
+        default=None,
+        help='Clears currently set backend service TLS settings.',
+    )
+
+
+def AddBackendServiceCustomMetrics(parser, add_clear_argument=False):
+  """Adds a --custom-metrics flag to the given parser."""
+  group = parser.add_mutually_exclusive_group()
+  help_text = """\
+  List of custom metrics that are used for
+  WEIGHTED_ROUND_ROBIN locality load balancing policy.
+
+  Example:
+
+    $ {command} --custom-metrics='name=my-signal,dryRun=true'
+    $ {command} --custom-metrics='name=my-signal,dryRun=true' --custom-metrics='name=my-signal2'
+    $ {command} --custom-metrics='[{"name" : "my-signal", "dryRun" : true}, {"name" : "my-signal2"}]'"""
+  group.add_argument(
+      '--custom-metrics',
+      metavar='CUSTOM_METRICS',
+      type=arg_parsers.ArgObject(
+          spec={
+              'name': str,
+              'dryRun': bool,
+          },
+          required_keys=['name'],
+          repeated=True,
+      ),
+      action=arg_parsers.FlattenAction(),
+      help=help_text,
+  )
+  help_text_file = """\
+  File path to json file with custom metrics that are used for
+  WEIGHTED_ROUND_ROBIN locality load balancing policy.
+
+  Example:
+
+    $ {command} --custom-metrics-file='customMetric.json'"""
+  group.add_argument(
+      '--custom-metrics-file',
+      metavar='CUSTOM_METRICS',
+      type=arg_parsers.ArgObject(
+          spec={
+              'name': str,
+              'dryRun': bool,
+          },
+          required_keys=['name'],
+          repeated=True,
+      ),
+      action=arg_parsers.FlattenAction(),
+      help=help_text_file,
+  )
+  if add_clear_argument:
+    group.add_argument(
+        '--clear-custom-metrics',
+        required=False,
+        action='store_true',
+        default=None,
+        help='Clears current list of CUSTOM_METRICS.',
+    )
+
+
+def AddIpPortDynamicForwarding(parser):
+  """Adds the logging optional argument to the argparse."""
+  parser.add_argument(
+      '--ip-port-dynamic-forwarding',
+      required=False,
+      action='store_true',
+      default=None,
+      help="""\
+      Enables Dynamic Forwarding in IpPort selection mode.
+      """,
+  )
+
+
+def AddAllowMultinetwork(parser):
+  parser.add_argument(
+      '--allow-multinetwork',
+      action=arg_parsers.StoreTrueFalseAction,
+      help="""\
+      Allow or disallow backend services to be discovered across networks in
+      multi-network meshes. Only available for backend services with
+      --load-balancing-scheme=INTERNAL_SELF_MANAGED. This is disabled by
+      default.
+      """,
+  )
+
+
+def AddResourceManagerTags(parser):
+  """Add support for --resource-manager-tags flag."""
+  return parser.add_argument(
+      '--resource-manager-tags',
+      type=arg_parsers.ArgDict(),
+      metavar='KEY=VALUE',
+      help="""\
+      A comma-separated list of Resource Manager tags
+      to apply to the backend service.
+      """,
+  )
+

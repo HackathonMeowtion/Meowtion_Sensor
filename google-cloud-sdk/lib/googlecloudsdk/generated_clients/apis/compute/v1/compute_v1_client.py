@@ -44,6 +44,7 @@ class ComputeV1(base_api.BaseApiClient):
     self.autoscalers = self.AutoscalersService(self)
     self.backendBuckets = self.BackendBucketsService(self)
     self.backendServices = self.BackendServicesService(self)
+    self.crossSiteNetworks = self.CrossSiteNetworksService(self)
     self.diskTypes = self.DiskTypesService(self)
     self.disks = self.DisksService(self)
     self.externalVpnGateways = self.ExternalVpnGatewaysService(self)
@@ -68,7 +69,9 @@ class ComputeV1(base_api.BaseApiClient):
     self.instanceTemplates = self.InstanceTemplatesService(self)
     self.instances = self.InstancesService(self)
     self.instantSnapshots = self.InstantSnapshotsService(self)
+    self.interconnectAttachmentGroups = self.InterconnectAttachmentGroupsService(self)
     self.interconnectAttachments = self.InterconnectAttachmentsService(self)
+    self.interconnectGroups = self.InterconnectGroupsService(self)
     self.interconnectLocations = self.InterconnectLocationsService(self)
     self.interconnectRemoteLocations = self.InterconnectRemoteLocationsService(self)
     self.interconnects = self.InterconnectsService(self)
@@ -80,11 +83,14 @@ class ComputeV1(base_api.BaseApiClient):
     self.networkEdgeSecurityServices = self.NetworkEdgeSecurityServicesService(self)
     self.networkEndpointGroups = self.NetworkEndpointGroupsService(self)
     self.networkFirewallPolicies = self.NetworkFirewallPoliciesService(self)
+    self.networkProfiles = self.NetworkProfilesService(self)
     self.networks = self.NetworksService(self)
     self.nodeGroups = self.NodeGroupsService(self)
     self.nodeTemplates = self.NodeTemplatesService(self)
     self.nodeTypes = self.NodeTypesService(self)
+    self.organizationSecurityPolicies = self.OrganizationSecurityPoliciesService(self)
     self.packetMirrorings = self.PacketMirroringsService(self)
+    self.previewFeatures = self.PreviewFeaturesService(self)
     self.projects = self.ProjectsService(self)
     self.publicAdvertisedPrefixes = self.PublicAdvertisedPrefixesService(self)
     self.publicDelegatedPrefixes = self.PublicDelegatedPrefixesService(self)
@@ -113,6 +119,8 @@ class ComputeV1(base_api.BaseApiClient):
     self.regionUrlMaps = self.RegionUrlMapsService(self)
     self.regionZones = self.RegionZonesService(self)
     self.regions = self.RegionsService(self)
+    self.reservationBlocks = self.ReservationBlocksService(self)
+    self.reservationSubBlocks = self.ReservationSubBlocksService(self)
     self.reservations = self.ReservationsService(self)
     self.resourcePolicies = self.ResourcePoliciesService(self)
     self.routers = self.RoutersService(self)
@@ -137,6 +145,7 @@ class ComputeV1(base_api.BaseApiClient):
     self.urlMaps = self.UrlMapsService(self)
     self.vpnGateways = self.VpnGatewaysService(self)
     self.vpnTunnels = self.VpnTunnelsService(self)
+    self.wireGroups = self.WireGroupsService(self)
     self.zoneOperations = self.ZoneOperationsService(self)
     self.zones = self.ZonesService(self)
 
@@ -417,6 +426,32 @@ class ComputeV1(base_api.BaseApiClient):
         request_field='regionSetLabelsRequest',
         request_type_name='ComputeAddressesSetLabelsRequest',
         response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def TestIamPermissions(self, request, global_params=None):
+      r"""Returns permissions that a caller has on the specified resource.
+
+      Args:
+        request: (ComputeAddressesTestIamPermissionsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (TestPermissionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('TestIamPermissions')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    TestIamPermissions.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.addresses.testIamPermissions',
+        ordered_params=['project', 'region', 'resource'],
+        path_params=['project', 'region', 'resource'],
+        query_params=[],
+        relative_path='projects/{project}/regions/{region}/addresses/{resource}/testIamPermissions',
+        request_field='testPermissionsRequest',
+        request_type_name='ComputeAddressesTestIamPermissionsRequest',
+        response_type_name='TestPermissionsResponse',
         supports_download=False,
     )
 
@@ -1074,6 +1109,32 @@ class ComputeV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def GetEffectiveSecurityPolicies(self, request, global_params=None):
+      r"""Returns effective security policies applied to this backend service.
+
+      Args:
+        request: (ComputeBackendServicesGetEffectiveSecurityPoliciesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ComputeBackendServicesGetEffectiveSecurityPoliciesResponse) The response message.
+      """
+      config = self.GetMethodConfig('GetEffectiveSecurityPolicies')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetEffectiveSecurityPolicies.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.backendServices.getEffectiveSecurityPolicies',
+        ordered_params=['project', 'backendService'],
+        path_params=['backendService', 'project'],
+        query_params=[],
+        relative_path='projects/{project}/global/backendServices/{backendService}/getEffectiveSecurityPolicies',
+        request_field='',
+        request_type_name='ComputeBackendServicesGetEffectiveSecurityPoliciesRequest',
+        response_type_name='ComputeBackendServicesGetEffectiveSecurityPoliciesResponse',
+        supports_download=False,
+    )
+
     def GetHealth(self, request, global_params=None):
       r"""Gets the most recent health check results for this BackendService. Example request body: { "group": "/zones/us-east1-b/instanceGroups/lb-backend-example" }.
 
@@ -1179,7 +1240,7 @@ class ComputeV1(base_api.BaseApiClient):
     )
 
     def ListUsable(self, request, global_params=None):
-      r"""Retrieves an aggregated list of all usable backend services in the specified project.
+      r"""Retrieves a list of all usable backend services in the specified project.
 
       Args:
         request: (ComputeBackendServicesListUsableRequest) input message
@@ -1360,6 +1421,146 @@ class ComputeV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+  class CrossSiteNetworksService(base_api.BaseApiService):
+    """Service class for the crossSiteNetworks resource."""
+
+    _NAME = 'crossSiteNetworks'
+
+    def __init__(self, client):
+      super(ComputeV1.CrossSiteNetworksService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes the specified cross-site network in the given scope.
+
+      Args:
+        request: (ComputeCrossSiteNetworksDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='DELETE',
+        method_id='compute.crossSiteNetworks.delete',
+        ordered_params=['project', 'crossSiteNetwork'],
+        path_params=['crossSiteNetwork', 'project'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/global/crossSiteNetworks/{crossSiteNetwork}',
+        request_field='',
+        request_type_name='ComputeCrossSiteNetworksDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Returns the specified cross-site network in the given scope.
+
+      Args:
+        request: (ComputeCrossSiteNetworksGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (CrossSiteNetwork) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.crossSiteNetworks.get',
+        ordered_params=['project', 'crossSiteNetwork'],
+        path_params=['crossSiteNetwork', 'project'],
+        query_params=[],
+        relative_path='projects/{project}/global/crossSiteNetworks/{crossSiteNetwork}',
+        request_field='',
+        request_type_name='ComputeCrossSiteNetworksGetRequest',
+        response_type_name='CrossSiteNetwork',
+        supports_download=False,
+    )
+
+    def Insert(self, request, global_params=None):
+      r"""Creates a cross-site network in the specified project in the given scope using the parameters that are included in the request.
+
+      Args:
+        request: (ComputeCrossSiteNetworksInsertRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Insert')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Insert.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.crossSiteNetworks.insert',
+        ordered_params=['project'],
+        path_params=['project'],
+        query_params=['requestId', 'validateOnly'],
+        relative_path='projects/{project}/global/crossSiteNetworks',
+        request_field='crossSiteNetwork',
+        request_type_name='ComputeCrossSiteNetworksInsertRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists the cross-site networks for a project in the given scope.
+
+      Args:
+        request: (ComputeCrossSiteNetworksListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (CrossSiteNetworkList) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.crossSiteNetworks.list',
+        ordered_params=['project'],
+        path_params=['project'],
+        query_params=['filter', 'maxResults', 'orderBy', 'pageToken', 'returnPartialSuccess'],
+        relative_path='projects/{project}/global/crossSiteNetworks',
+        request_field='',
+        request_type_name='ComputeCrossSiteNetworksListRequest',
+        response_type_name='CrossSiteNetworkList',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates the specified cross-site network with the data included in the request. This method supports PATCH semantics and uses the JSON merge patch format and processing rules.
+
+      Args:
+        request: (ComputeCrossSiteNetworksPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='PATCH',
+        method_id='compute.crossSiteNetworks.patch',
+        ordered_params=['project', 'crossSiteNetwork'],
+        path_params=['crossSiteNetwork', 'project'],
+        query_params=['requestId', 'updateMask', 'validateOnly'],
+        relative_path='projects/{project}/global/crossSiteNetworks/{crossSiteNetwork}',
+        request_field='crossSiteNetworkResource',
+        request_type_name='ComputeCrossSiteNetworksPatchRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
   class DiskTypesService(base_api.BaseApiService):
     """Service class for the diskTypes resource."""
 
@@ -1532,6 +1733,32 @@ class ComputeV1(base_api.BaseApiClient):
         relative_path='projects/{project}/zones/{zone}/disks/bulkInsert',
         request_field='bulkInsertDiskResource',
         request_type_name='ComputeDisksBulkInsertRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def BulkSetLabels(self, request, global_params=None):
+      r"""Sets the labels on many disks at once. To learn more about labels, read the Labeling Resources documentation.
+
+      Args:
+        request: (ComputeDisksBulkSetLabelsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('BulkSetLabels')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    BulkSetLabels.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.disks.bulkSetLabels',
+        ordered_params=['project', 'zone'],
+        path_params=['project', 'zone'],
+        query_params=['requestId', 'resource'],
+        relative_path='projects/{project}/zones/{zone}/disks/bulkSetLabels',
+        request_field='bulkZoneSetLabelsRequest',
+        request_type_name='ComputeDisksBulkSetLabelsRequest',
         response_type_name='Operation',
         supports_download=False,
     )
@@ -3117,6 +3344,32 @@ class ComputeV1(base_api.BaseApiClient):
         request_field='globalSetLabelsRequest',
         request_type_name='ComputeGlobalAddressesSetLabelsRequest',
         response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def TestIamPermissions(self, request, global_params=None):
+      r"""Returns permissions that a caller has on the specified resource.
+
+      Args:
+        request: (ComputeGlobalAddressesTestIamPermissionsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (TestPermissionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('TestIamPermissions')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    TestIamPermissions.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.globalAddresses.testIamPermissions',
+        ordered_params=['project', 'resource'],
+        path_params=['project', 'resource'],
+        query_params=[],
+        relative_path='projects/{project}/global/addresses/{resource}/testIamPermissions',
+        request_field='testPermissionsRequest',
+        request_type_name='ComputeGlobalAddressesTestIamPermissionsRequest',
+        response_type_name='TestPermissionsResponse',
         supports_download=False,
     )
 
@@ -5320,6 +5573,32 @@ class ComputeV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def ResumeInstances(self, request, global_params=None):
+      r"""Flags the specified instances in the managed instance group to be resumed. This method increases the targetSize and decreases the targetSuspendedSize of the managed instance group by the number of instances that you resume. The resumeInstances operation is marked DONE if the resumeInstances request is successful. The underlying actions take additional time. You must separately verify the status of the RESUMING action with the listmanagedinstances method. In this request, you can only specify instances that are suspended. For example, if an instance was previously suspended using the suspendInstances method, it can be resumed using the resumeInstances method. If a health check is attached to the managed instance group, the specified instances will be verified as healthy after they are resumed. You can specify a maximum of 1000 instances with this method per request.
+
+      Args:
+        request: (ComputeInstanceGroupManagersResumeInstancesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('ResumeInstances')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ResumeInstances.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.instanceGroupManagers.resumeInstances',
+        ordered_params=['project', 'zone', 'instanceGroupManager'],
+        path_params=['instanceGroupManager', 'project', 'zone'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/resumeInstances',
+        request_field='instanceGroupManagersResumeInstancesRequest',
+        request_type_name='ComputeInstanceGroupManagersResumeInstancesRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
     def SetInstanceTemplate(self, request, global_params=None):
       r"""Specifies the instance template to use when creating new instances in this group. The templates for existing instances in the group do not change unless you run recreateInstances, run applyUpdatesToInstances, or set the group's updatePolicy.type to PROACTIVE.
 
@@ -5368,6 +5647,84 @@ class ComputeV1(base_api.BaseApiClient):
         relative_path='projects/{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/setTargetPools',
         request_field='instanceGroupManagersSetTargetPoolsRequest',
         request_type_name='ComputeInstanceGroupManagersSetTargetPoolsRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def StartInstances(self, request, global_params=None):
+      r"""Flags the specified instances in the managed instance group to be started. This method increases the targetSize and decreases the targetStoppedSize of the managed instance group by the number of instances that you start. The startInstances operation is marked DONE if the startInstances request is successful. The underlying actions take additional time. You must separately verify the status of the STARTING action with the listmanagedinstances method. In this request, you can only specify instances that are stopped. For example, if an instance was previously stopped using the stopInstances method, it can be started using the startInstances method. If a health check is attached to the managed instance group, the specified instances will be verified as healthy after they are started. You can specify a maximum of 1000 instances with this method per request.
+
+      Args:
+        request: (ComputeInstanceGroupManagersStartInstancesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('StartInstances')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    StartInstances.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.instanceGroupManagers.startInstances',
+        ordered_params=['project', 'zone', 'instanceGroupManager'],
+        path_params=['instanceGroupManager', 'project', 'zone'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/startInstances',
+        request_field='instanceGroupManagersStartInstancesRequest',
+        request_type_name='ComputeInstanceGroupManagersStartInstancesRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def StopInstances(self, request, global_params=None):
+      r"""Flags the specified instances in the managed instance group to be immediately stopped. You can only specify instances that are running in this request. This method reduces the targetSize and increases the targetStoppedSize of the managed instance group by the number of instances that you stop. The stopInstances operation is marked DONE if the stopInstances request is successful. The underlying actions take additional time. You must separately verify the status of the STOPPING action with the listmanagedinstances method. If the standbyPolicy.initialDelaySec field is set, the group delays stopping the instances until initialDelaySec have passed from instance.creationTimestamp (that is, when the instance was created). This delay gives your application time to set itself up and initialize on the instance. If more than initialDelaySec seconds have passed since instance.creationTimestamp when this method is called, there will be zero delay. If the group is part of a backend service that has enabled connection draining, it can take up to 60 seconds after the connection draining duration has elapsed before the VM instance is stopped. Stopped instances can be started using the startInstances method. You can specify a maximum of 1000 instances with this method per request.
+
+      Args:
+        request: (ComputeInstanceGroupManagersStopInstancesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('StopInstances')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    StopInstances.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.instanceGroupManagers.stopInstances',
+        ordered_params=['project', 'zone', 'instanceGroupManager'],
+        path_params=['instanceGroupManager', 'project', 'zone'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/stopInstances',
+        request_field='instanceGroupManagersStopInstancesRequest',
+        request_type_name='ComputeInstanceGroupManagersStopInstancesRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def SuspendInstances(self, request, global_params=None):
+      r"""Flags the specified instances in the managed instance group to be immediately suspended. You can only specify instances that are running in this request. This method reduces the targetSize and increases the targetSuspendedSize of the managed instance group by the number of instances that you suspend. The suspendInstances operation is marked DONE if the suspendInstances request is successful. The underlying actions take additional time. You must separately verify the status of the SUSPENDING action with the listmanagedinstances method. If the standbyPolicy.initialDelaySec field is set, the group delays suspension of the instances until initialDelaySec have passed from instance.creationTimestamp (that is, when the instance was created). This delay gives your application time to set itself up and initialize on the instance. If more than initialDelaySec seconds have passed since instance.creationTimestamp when this method is called, there will be zero delay. If the group is part of a backend service that has enabled connection draining, it can take up to 60 seconds after the connection draining duration has elapsed before the VM instance is suspended. Suspended instances can be resumed using the resumeInstances method. You can specify a maximum of 1000 instances with this method per request.
+
+      Args:
+        request: (ComputeInstanceGroupManagersSuspendInstancesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('SuspendInstances')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SuspendInstances.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.instanceGroupManagers.suspendInstances',
+        ordered_params=['project', 'zone', 'instanceGroupManager'],
+        path_params=['instanceGroupManager', 'project', 'zone'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/zones/{zone}/instanceGroupManagers/{instanceGroupManager}/suspendInstances',
+        request_field='instanceGroupManagersSuspendInstancesRequest',
+        request_type_name='ComputeInstanceGroupManagersSuspendInstancesRequest',
         response_type_name='Operation',
         supports_download=False,
     )
@@ -5639,6 +5996,32 @@ class ComputeV1(base_api.BaseApiClient):
         request_field='instanceGroupsSetNamedPortsRequest',
         request_type_name='ComputeInstanceGroupsSetNamedPortsRequest',
         response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def TestIamPermissions(self, request, global_params=None):
+      r"""Returns permissions that a caller has on the specified resource.
+
+      Args:
+        request: (ComputeInstanceGroupsTestIamPermissionsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (TestPermissionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('TestIamPermissions')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    TestIamPermissions.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.instanceGroups.testIamPermissions',
+        ordered_params=['project', 'zone', 'resource'],
+        path_params=['project', 'resource', 'zone'],
+        query_params=[],
+        relative_path='projects/{project}/zones/{zone}/instanceGroups/{resource}/testIamPermissions',
+        request_field='testPermissionsRequest',
+        request_type_name='ComputeInstanceGroupsTestIamPermissionsRequest',
+        response_type_name='TestPermissionsResponse',
         supports_download=False,
     )
 
@@ -5958,6 +6341,32 @@ class ComputeV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def AddNetworkInterface(self, request, global_params=None):
+      r"""Adds one dynamic network interface to an active instance.
+
+      Args:
+        request: (ComputeInstancesAddNetworkInterfaceRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('AddNetworkInterface')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    AddNetworkInterface.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.instances.addNetworkInterface',
+        ordered_params=['project', 'zone', 'instance'],
+        path_params=['instance', 'project', 'zone'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/zones/{zone}/instances/{instance}/addNetworkInterface',
+        request_field='networkInterface',
+        request_type_name='ComputeInstancesAddNetworkInterfaceRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
     def AddResourcePolicies(self, request, global_params=None):
       r"""Adds existing resource policies to an instance. You can only add one policy right now which will be applied to this instance for scheduling live migrations.
 
@@ -6110,6 +6519,32 @@ class ComputeV1(base_api.BaseApiClient):
         relative_path='projects/{project}/zones/{zone}/instances/{instance}/deleteAccessConfig',
         request_field='',
         request_type_name='ComputeInstancesDeleteAccessConfigRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def DeleteNetworkInterface(self, request, global_params=None):
+      r"""Deletes one dynamic network interface from an active instance. InstancesDeleteNetworkInterfaceRequest indicates: - instance from which to delete, using project+zone+resource_id fields; - dynamic network interface to be deleted, using network_interface_name field;.
+
+      Args:
+        request: (ComputeInstancesDeleteNetworkInterfaceRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('DeleteNetworkInterface')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    DeleteNetworkInterface.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.instances.deleteNetworkInterface',
+        ordered_params=['project', 'zone', 'instance', 'networkInterfaceName'],
+        path_params=['instance', 'project', 'zone'],
+        query_params=['networkInterfaceName', 'requestId'],
+        relative_path='projects/{project}/zones/{zone}/instances/{instance}/deleteNetworkInterface',
+        request_field='',
+        request_type_name='ComputeInstancesDeleteNetworkInterfaceRequest',
         response_type_name='Operation',
         supports_download=False,
     )
@@ -6448,6 +6883,32 @@ class ComputeV1(base_api.BaseApiClient):
         relative_path='projects/{project}/zones/{zone}/instances/{instance}/removeResourcePolicies',
         request_field='instancesRemoveResourcePoliciesRequest',
         request_type_name='ComputeInstancesRemoveResourcePoliciesRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def ReportHostAsFaulty(self, request, global_params=None):
+      r"""Mark the host as faulty and try to restart the instance on a new host.
+
+      Args:
+        request: (ComputeInstancesReportHostAsFaultyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('ReportHostAsFaulty')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ReportHostAsFaulty.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.instances.reportHostAsFaulty',
+        ordered_params=['project', 'zone', 'instance'],
+        path_params=['instance', 'project', 'zone'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/zones/{zone}/instances/{instance}/reportHostAsFaulty',
+        request_field='instancesReportHostAsFaultyRequest',
+        request_type_name='ComputeInstancesReportHostAsFaultyRequest',
         response_type_name='Operation',
         supports_download=False,
     )
@@ -7424,6 +7885,250 @@ class ComputeV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+  class InterconnectAttachmentGroupsService(base_api.BaseApiService):
+    """Service class for the interconnectAttachmentGroups resource."""
+
+    _NAME = 'interconnectAttachmentGroups'
+
+    def __init__(self, client):
+      super(ComputeV1.InterconnectAttachmentGroupsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes the specified InterconnectAttachmentGroup in the given scope.
+
+      Args:
+        request: (ComputeInterconnectAttachmentGroupsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='DELETE',
+        method_id='compute.interconnectAttachmentGroups.delete',
+        ordered_params=['project', 'interconnectAttachmentGroup'],
+        path_params=['interconnectAttachmentGroup', 'project'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/global/interconnectAttachmentGroups/{interconnectAttachmentGroup}',
+        request_field='',
+        request_type_name='ComputeInterconnectAttachmentGroupsDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Returns the specified InterconnectAttachmentGroup resource in the given scope.
+
+      Args:
+        request: (ComputeInterconnectAttachmentGroupsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (InterconnectAttachmentGroup) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.interconnectAttachmentGroups.get',
+        ordered_params=['project', 'interconnectAttachmentGroup'],
+        path_params=['interconnectAttachmentGroup', 'project'],
+        query_params=[],
+        relative_path='projects/{project}/global/interconnectAttachmentGroups/{interconnectAttachmentGroup}',
+        request_field='',
+        request_type_name='ComputeInterconnectAttachmentGroupsGetRequest',
+        response_type_name='InterconnectAttachmentGroup',
+        supports_download=False,
+    )
+
+    def GetIamPolicy(self, request, global_params=None):
+      r"""Gets the access control policy for a resource. May be empty if no such policy or resource exists.
+
+      Args:
+        request: (ComputeInterconnectAttachmentGroupsGetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Policy) The response message.
+      """
+      config = self.GetMethodConfig('GetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.interconnectAttachmentGroups.getIamPolicy',
+        ordered_params=['project', 'resource'],
+        path_params=['project', 'resource'],
+        query_params=['optionsRequestedPolicyVersion'],
+        relative_path='projects/{project}/global/interconnectAttachmentGroups/{resource}/getIamPolicy',
+        request_field='',
+        request_type_name='ComputeInterconnectAttachmentGroupsGetIamPolicyRequest',
+        response_type_name='Policy',
+        supports_download=False,
+    )
+
+    def GetOperationalStatus(self, request, global_params=None):
+      r"""Returns the InterconnectAttachmentStatuses for the specified InterconnectAttachmentGroup resource.
+
+      Args:
+        request: (ComputeInterconnectAttachmentGroupsGetOperationalStatusRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (InterconnectAttachmentGroupsGetOperationalStatusResponse) The response message.
+      """
+      config = self.GetMethodConfig('GetOperationalStatus')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetOperationalStatus.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.interconnectAttachmentGroups.getOperationalStatus',
+        ordered_params=['project', 'interconnectAttachmentGroup'],
+        path_params=['interconnectAttachmentGroup', 'project'],
+        query_params=[],
+        relative_path='projects/{project}/global/interconnectAttachmentGroups/{interconnectAttachmentGroup}/getOperationalStatus',
+        request_field='',
+        request_type_name='ComputeInterconnectAttachmentGroupsGetOperationalStatusRequest',
+        response_type_name='InterconnectAttachmentGroupsGetOperationalStatusResponse',
+        supports_download=False,
+    )
+
+    def Insert(self, request, global_params=None):
+      r"""Creates a InterconnectAttachmentGroup in the specified project in the given scope using the parameters that are included in the request.
+
+      Args:
+        request: (ComputeInterconnectAttachmentGroupsInsertRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Insert')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Insert.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.interconnectAttachmentGroups.insert',
+        ordered_params=['project'],
+        path_params=['project'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/global/interconnectAttachmentGroups',
+        request_field='interconnectAttachmentGroup',
+        request_type_name='ComputeInterconnectAttachmentGroupsInsertRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists the InterconnectAttachmentGroups for a project in the given scope.
+
+      Args:
+        request: (ComputeInterconnectAttachmentGroupsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (InterconnectAttachmentGroupsListResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.interconnectAttachmentGroups.list',
+        ordered_params=['project'],
+        path_params=['project'],
+        query_params=['filter', 'maxResults', 'orderBy', 'pageToken', 'returnPartialSuccess'],
+        relative_path='projects/{project}/global/interconnectAttachmentGroups',
+        request_field='',
+        request_type_name='ComputeInterconnectAttachmentGroupsListRequest',
+        response_type_name='InterconnectAttachmentGroupsListResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Patches the specified InterconnectAttachmentGroup resource with the data included in the request. This method supports PATCH semantics and uses JSON merge patch format and processing rules.
+
+      Args:
+        request: (ComputeInterconnectAttachmentGroupsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='PATCH',
+        method_id='compute.interconnectAttachmentGroups.patch',
+        ordered_params=['project', 'interconnectAttachmentGroup'],
+        path_params=['interconnectAttachmentGroup', 'project'],
+        query_params=['requestId', 'updateMask'],
+        relative_path='projects/{project}/global/interconnectAttachmentGroups/{interconnectAttachmentGroup}',
+        request_field='interconnectAttachmentGroupResource',
+        request_type_name='ComputeInterconnectAttachmentGroupsPatchRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def SetIamPolicy(self, request, global_params=None):
+      r"""Sets the access control policy on the specified resource. Replaces any existing policy.
+
+      Args:
+        request: (ComputeInterconnectAttachmentGroupsSetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Policy) The response message.
+      """
+      config = self.GetMethodConfig('SetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.interconnectAttachmentGroups.setIamPolicy',
+        ordered_params=['project', 'resource'],
+        path_params=['project', 'resource'],
+        query_params=[],
+        relative_path='projects/{project}/global/interconnectAttachmentGroups/{resource}/setIamPolicy',
+        request_field='globalSetPolicyRequest',
+        request_type_name='ComputeInterconnectAttachmentGroupsSetIamPolicyRequest',
+        response_type_name='Policy',
+        supports_download=False,
+    )
+
+    def TestIamPermissions(self, request, global_params=None):
+      r"""Returns permissions that a caller has on the specified resource.
+
+      Args:
+        request: (ComputeInterconnectAttachmentGroupsTestIamPermissionsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (TestPermissionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('TestIamPermissions')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    TestIamPermissions.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.interconnectAttachmentGroups.testIamPermissions',
+        ordered_params=['project', 'resource'],
+        path_params=['project', 'resource'],
+        query_params=[],
+        relative_path='projects/{project}/global/interconnectAttachmentGroups/{resource}/testIamPermissions',
+        request_field='testPermissionsRequest',
+        request_type_name='ComputeInterconnectAttachmentGroupsTestIamPermissionsRequest',
+        response_type_name='TestPermissionsResponse',
+        supports_download=False,
+    )
+
   class InterconnectAttachmentsService(base_api.BaseApiService):
     """Service class for the interconnectAttachments resource."""
 
@@ -7613,6 +8318,276 @@ class ComputeV1(base_api.BaseApiClient):
         request_field='regionSetLabelsRequest',
         request_type_name='ComputeInterconnectAttachmentsSetLabelsRequest',
         response_type_name='Operation',
+        supports_download=False,
+    )
+
+  class InterconnectGroupsService(base_api.BaseApiService):
+    """Service class for the interconnectGroups resource."""
+
+    _NAME = 'interconnectGroups'
+
+    def __init__(self, client):
+      super(ComputeV1.InterconnectGroupsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def CreateMembers(self, request, global_params=None):
+      r"""Create Interconnects with redundancy by creating them in a specified interconnect group.
+
+      Args:
+        request: (ComputeInterconnectGroupsCreateMembersRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('CreateMembers')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    CreateMembers.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.interconnectGroups.createMembers',
+        ordered_params=['project', 'interconnectGroup'],
+        path_params=['interconnectGroup', 'project'],
+        query_params=[],
+        relative_path='projects/{project}/global/interconnectGroups/{interconnectGroup}/createMembers',
+        request_field='interconnectGroupsCreateMembersRequest',
+        request_type_name='ComputeInterconnectGroupsCreateMembersRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes the specified InterconnectGroup in the given scope.
+
+      Args:
+        request: (ComputeInterconnectGroupsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='DELETE',
+        method_id='compute.interconnectGroups.delete',
+        ordered_params=['project', 'interconnectGroup'],
+        path_params=['interconnectGroup', 'project'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/global/interconnectGroups/{interconnectGroup}',
+        request_field='',
+        request_type_name='ComputeInterconnectGroupsDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Returns the specified InterconnectGroup resource in the given scope.
+
+      Args:
+        request: (ComputeInterconnectGroupsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (InterconnectGroup) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.interconnectGroups.get',
+        ordered_params=['project', 'interconnectGroup'],
+        path_params=['interconnectGroup', 'project'],
+        query_params=[],
+        relative_path='projects/{project}/global/interconnectGroups/{interconnectGroup}',
+        request_field='',
+        request_type_name='ComputeInterconnectGroupsGetRequest',
+        response_type_name='InterconnectGroup',
+        supports_download=False,
+    )
+
+    def GetIamPolicy(self, request, global_params=None):
+      r"""Gets the access control policy for a resource. May be empty if no such policy or resource exists.
+
+      Args:
+        request: (ComputeInterconnectGroupsGetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Policy) The response message.
+      """
+      config = self.GetMethodConfig('GetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.interconnectGroups.getIamPolicy',
+        ordered_params=['project', 'resource'],
+        path_params=['project', 'resource'],
+        query_params=['optionsRequestedPolicyVersion'],
+        relative_path='projects/{project}/global/interconnectGroups/{resource}/getIamPolicy',
+        request_field='',
+        request_type_name='ComputeInterconnectGroupsGetIamPolicyRequest',
+        response_type_name='Policy',
+        supports_download=False,
+    )
+
+    def GetOperationalStatus(self, request, global_params=None):
+      r"""Returns the interconnectStatuses for the specified InterconnectGroup.
+
+      Args:
+        request: (ComputeInterconnectGroupsGetOperationalStatusRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (InterconnectGroupsGetOperationalStatusResponse) The response message.
+      """
+      config = self.GetMethodConfig('GetOperationalStatus')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetOperationalStatus.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.interconnectGroups.getOperationalStatus',
+        ordered_params=['project', 'interconnectGroup'],
+        path_params=['interconnectGroup', 'project'],
+        query_params=[],
+        relative_path='projects/{project}/global/interconnectGroups/{interconnectGroup}/getOperationalStatus',
+        request_field='',
+        request_type_name='ComputeInterconnectGroupsGetOperationalStatusRequest',
+        response_type_name='InterconnectGroupsGetOperationalStatusResponse',
+        supports_download=False,
+    )
+
+    def Insert(self, request, global_params=None):
+      r"""Creates a InterconnectGroup in the specified project in the given scope using the parameters that are included in the request.
+
+      Args:
+        request: (ComputeInterconnectGroupsInsertRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Insert')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Insert.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.interconnectGroups.insert',
+        ordered_params=['project'],
+        path_params=['project'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/global/interconnectGroups',
+        request_field='interconnectGroup',
+        request_type_name='ComputeInterconnectGroupsInsertRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists the InterconnectGroups for a project in the given scope.
+
+      Args:
+        request: (ComputeInterconnectGroupsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (InterconnectGroupsListResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.interconnectGroups.list',
+        ordered_params=['project'],
+        path_params=['project'],
+        query_params=['filter', 'maxResults', 'orderBy', 'pageToken', 'returnPartialSuccess'],
+        relative_path='projects/{project}/global/interconnectGroups',
+        request_field='',
+        request_type_name='ComputeInterconnectGroupsListRequest',
+        response_type_name='InterconnectGroupsListResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Patches the specified InterconnectGroup resource with the data included in the request. This method supports PATCH semantics and uses JSON merge patch format and processing rules.
+
+      Args:
+        request: (ComputeInterconnectGroupsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='PATCH',
+        method_id='compute.interconnectGroups.patch',
+        ordered_params=['project', 'interconnectGroup'],
+        path_params=['interconnectGroup', 'project'],
+        query_params=['requestId', 'updateMask'],
+        relative_path='projects/{project}/global/interconnectGroups/{interconnectGroup}',
+        request_field='interconnectGroupResource',
+        request_type_name='ComputeInterconnectGroupsPatchRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def SetIamPolicy(self, request, global_params=None):
+      r"""Sets the access control policy on the specified resource. Replaces any existing policy.
+
+      Args:
+        request: (ComputeInterconnectGroupsSetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Policy) The response message.
+      """
+      config = self.GetMethodConfig('SetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.interconnectGroups.setIamPolicy',
+        ordered_params=['project', 'resource'],
+        path_params=['project', 'resource'],
+        query_params=[],
+        relative_path='projects/{project}/global/interconnectGroups/{resource}/setIamPolicy',
+        request_field='globalSetPolicyRequest',
+        request_type_name='ComputeInterconnectGroupsSetIamPolicyRequest',
+        response_type_name='Policy',
+        supports_download=False,
+    )
+
+    def TestIamPermissions(self, request, global_params=None):
+      r"""Returns permissions that a caller has on the specified resource.
+
+      Args:
+        request: (ComputeInterconnectGroupsTestIamPermissionsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (TestPermissionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('TestIamPermissions')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    TestIamPermissions.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.interconnectGroups.testIamPermissions',
+        ordered_params=['project', 'resource'],
+        path_params=['project', 'resource'],
+        query_params=[],
+        relative_path='projects/{project}/global/interconnectGroups/{resource}/testIamPermissions',
+        request_field='testPermissionsRequest',
+        request_type_name='ComputeInterconnectGroupsTestIamPermissionsRequest',
+        response_type_name='TestPermissionsResponse',
         supports_download=False,
     )
 
@@ -8212,6 +9187,32 @@ class ComputeV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def Update(self, request, global_params=None):
+      r"""Updates a License resource in the specified project. *Caution* This resource is intended for use only by third-party partners who are creating Cloud Marketplace images. .
+
+      Args:
+        request: (ComputeLicensesUpdateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Update')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Update.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='PATCH',
+        method_id='compute.licenses.update',
+        ordered_params=['project', 'license'],
+        path_params=['license', 'project'],
+        query_params=['requestId', 'updateMask'],
+        relative_path='projects/{project}/global/licenses/{license}',
+        request_field='licenseResource',
+        request_type_name='ComputeLicensesUpdateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
   class MachineImagesService(base_api.BaseApiService):
     """Service class for the machineImages resource."""
 
@@ -8375,6 +9376,32 @@ class ComputeV1(base_api.BaseApiClient):
         request_field='globalSetPolicyRequest',
         request_type_name='ComputeMachineImagesSetIamPolicyRequest',
         response_type_name='Policy',
+        supports_download=False,
+    )
+
+    def SetLabels(self, request, global_params=None):
+      r"""Sets the labels on a machine image. To learn more about labels, read the Labeling Resources documentation.
+
+      Args:
+        request: (ComputeMachineImagesSetLabelsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('SetLabels')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetLabels.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.machineImages.setLabels',
+        ordered_params=['project', 'resource'],
+        path_params=['project', 'resource'],
+        query_params=[],
+        relative_path='projects/{project}/global/machineImages/{resource}/setLabels',
+        request_field='globalSetLabelsRequest',
+        request_type_name='ComputeMachineImagesSetLabelsRequest',
+        response_type_name='Operation',
         supports_download=False,
     )
 
@@ -9156,6 +10183,32 @@ class ComputeV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def AddPacketMirroringRule(self, request, global_params=None):
+      r"""Inserts a packet mirroring rule into a firewall policy.
+
+      Args:
+        request: (ComputeNetworkFirewallPoliciesAddPacketMirroringRuleRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('AddPacketMirroringRule')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    AddPacketMirroringRule.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.networkFirewallPolicies.addPacketMirroringRule',
+        ordered_params=['project', 'firewallPolicy'],
+        path_params=['firewallPolicy', 'project'],
+        query_params=['maxPriority', 'minPriority', 'requestId'],
+        relative_path='projects/{project}/global/firewallPolicies/{firewallPolicy}/addPacketMirroringRule',
+        request_field='firewallPolicyRule',
+        request_type_name='ComputeNetworkFirewallPoliciesAddPacketMirroringRuleRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
     def AddRule(self, request, global_params=None):
       r"""Inserts a rule into a firewall policy.
 
@@ -9179,6 +10232,32 @@ class ComputeV1(base_api.BaseApiClient):
         request_field='firewallPolicyRule',
         request_type_name='ComputeNetworkFirewallPoliciesAddRuleRequest',
         response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def AggregatedList(self, request, global_params=None):
+      r"""Retrieves an aggregated list of network firewall policies, listing network firewall policies from all applicable scopes (global and regional) and grouping the results per scope. To prevent failure, Google recommends that you set the `returnPartialSuccess` parameter to `true`.
+
+      Args:
+        request: (ComputeNetworkFirewallPoliciesAggregatedListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (NetworkFirewallPolicyAggregatedList) The response message.
+      """
+      config = self.GetMethodConfig('AggregatedList')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    AggregatedList.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.networkFirewallPolicies.aggregatedList',
+        ordered_params=['project'],
+        path_params=['project'],
+        query_params=['filter', 'includeAllScopes', 'maxResults', 'orderBy', 'pageToken', 'returnPartialSuccess', 'serviceProjectNumber'],
+        relative_path='projects/{project}/aggregated/firewallPolicies',
+        request_field='',
+        request_type_name='ComputeNetworkFirewallPoliciesAggregatedListRequest',
+        response_type_name='NetworkFirewallPolicyAggregatedList',
         supports_download=False,
     )
 
@@ -9312,6 +10391,32 @@ class ComputeV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def GetPacketMirroringRule(self, request, global_params=None):
+      r"""Gets a packet mirroring rule of the specified priority.
+
+      Args:
+        request: (ComputeNetworkFirewallPoliciesGetPacketMirroringRuleRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (FirewallPolicyRule) The response message.
+      """
+      config = self.GetMethodConfig('GetPacketMirroringRule')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetPacketMirroringRule.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.networkFirewallPolicies.getPacketMirroringRule',
+        ordered_params=['project', 'firewallPolicy'],
+        path_params=['firewallPolicy', 'project'],
+        query_params=['priority'],
+        relative_path='projects/{project}/global/firewallPolicies/{firewallPolicy}/getPacketMirroringRule',
+        request_field='',
+        request_type_name='ComputeNetworkFirewallPoliciesGetPacketMirroringRuleRequest',
+        response_type_name='FirewallPolicyRule',
+        supports_download=False,
+    )
+
     def GetRule(self, request, global_params=None):
       r"""Gets a rule of the specified priority.
 
@@ -9416,6 +10521,32 @@ class ComputeV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def PatchPacketMirroringRule(self, request, global_params=None):
+      r"""Patches a packet mirroring rule of the specified priority.
+
+      Args:
+        request: (ComputeNetworkFirewallPoliciesPatchPacketMirroringRuleRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('PatchPacketMirroringRule')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    PatchPacketMirroringRule.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.networkFirewallPolicies.patchPacketMirroringRule',
+        ordered_params=['project', 'firewallPolicy'],
+        path_params=['firewallPolicy', 'project'],
+        query_params=['priority', 'requestId'],
+        relative_path='projects/{project}/global/firewallPolicies/{firewallPolicy}/patchPacketMirroringRule',
+        request_field='firewallPolicyRule',
+        request_type_name='ComputeNetworkFirewallPoliciesPatchPacketMirroringRuleRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
     def PatchRule(self, request, global_params=None):
       r"""Patches a rule of the specified priority.
 
@@ -9464,6 +10595,32 @@ class ComputeV1(base_api.BaseApiClient):
         relative_path='projects/{project}/global/firewallPolicies/{firewallPolicy}/removeAssociation',
         request_field='',
         request_type_name='ComputeNetworkFirewallPoliciesRemoveAssociationRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def RemovePacketMirroringRule(self, request, global_params=None):
+      r"""Deletes a packet mirroring rule of the specified priority.
+
+      Args:
+        request: (ComputeNetworkFirewallPoliciesRemovePacketMirroringRuleRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('RemovePacketMirroringRule')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    RemovePacketMirroringRule.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.networkFirewallPolicies.removePacketMirroringRule',
+        ordered_params=['project', 'firewallPolicy'],
+        path_params=['firewallPolicy', 'project'],
+        query_params=['priority', 'requestId'],
+        relative_path='projects/{project}/global/firewallPolicies/{firewallPolicy}/removePacketMirroringRule',
+        request_field='',
+        request_type_name='ComputeNetworkFirewallPoliciesRemovePacketMirroringRuleRequest',
         response_type_name='Operation',
         supports_download=False,
     )
@@ -9543,6 +10700,68 @@ class ComputeV1(base_api.BaseApiClient):
         request_field='testPermissionsRequest',
         request_type_name='ComputeNetworkFirewallPoliciesTestIamPermissionsRequest',
         response_type_name='TestPermissionsResponse',
+        supports_download=False,
+    )
+
+  class NetworkProfilesService(base_api.BaseApiService):
+    """Service class for the networkProfiles resource."""
+
+    _NAME = 'networkProfiles'
+
+    def __init__(self, client):
+      super(ComputeV1.NetworkProfilesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Get(self, request, global_params=None):
+      r"""Returns the specified network profile.
+
+      Args:
+        request: (ComputeNetworkProfilesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (NetworkProfile) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.networkProfiles.get',
+        ordered_params=['project', 'networkProfile'],
+        path_params=['networkProfile', 'project'],
+        query_params=[],
+        relative_path='projects/{project}/global/networkProfiles/{networkProfile}',
+        request_field='',
+        request_type_name='ComputeNetworkProfilesGetRequest',
+        response_type_name='NetworkProfile',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Retrieves a list of network profiles available to the specified project.
+
+      Args:
+        request: (ComputeNetworkProfilesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (NetworkProfilesListResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.networkProfiles.list',
+        ordered_params=['project'],
+        path_params=['project'],
+        query_params=['filter', 'maxResults', 'orderBy', 'pageToken', 'returnPartialSuccess'],
+        relative_path='projects/{project}/global/networkProfiles',
+        request_field='',
+        request_type_name='ComputeNetworkProfilesListRequest',
+        response_type_name='NetworkProfilesListResponse',
         supports_download=False,
     )
 
@@ -9739,7 +10958,7 @@ class ComputeV1(base_api.BaseApiClient):
     )
 
     def Patch(self, request, global_params=None):
-      r"""Patches the specified network with the data included in the request. Only the following fields can be modified: routingConfig.routingMode.
+      r"""Patches the specified network with the data included in the request. Only routingConfig can be modified.
 
       Args:
         request: (ComputeNetworksPatchRequest) input message
@@ -9786,6 +11005,32 @@ class ComputeV1(base_api.BaseApiClient):
         relative_path='projects/{project}/global/networks/{network}/removePeering',
         request_field='networksRemovePeeringRequest',
         request_type_name='ComputeNetworksRemovePeeringRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def RequestRemovePeering(self, request, global_params=None):
+      r"""Requests to remove a peering from the specified network. Applicable only for PeeringConnection with update_strategy=CONSENSUS.
+
+      Args:
+        request: (ComputeNetworksRequestRemovePeeringRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('RequestRemovePeering')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    RequestRemovePeering.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.networks.requestRemovePeering',
+        ordered_params=['project', 'network'],
+        path_params=['network', 'project'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/global/networks/{network}/requestRemovePeering',
+        request_field='networksRequestRemovePeeringRequest',
+        request_type_name='ComputeNetworksRequestRemovePeeringRequest',
         response_type_name='Operation',
         supports_download=False,
     )
@@ -10548,6 +11793,432 @@ class ComputeV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+  class OrganizationSecurityPoliciesService(base_api.BaseApiService):
+    """Service class for the organizationSecurityPolicies resource."""
+
+    _NAME = 'organizationSecurityPolicies'
+
+    def __init__(self, client):
+      super(ComputeV1.OrganizationSecurityPoliciesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def AddAssociation(self, request, global_params=None):
+      r"""Inserts an association for the specified security policy. This has billing implications. Projects in the hierarchy with effective hierarchical security policies will be automatically enrolled into Cloud Armor Enterprise if not already enrolled. Use of this API to modify firewall policies is deprecated. Use firewallPolicies.addAssociation instead if possible.
+
+      Args:
+        request: (ComputeOrganizationSecurityPoliciesAddAssociationRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('AddAssociation')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    AddAssociation.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.organizationSecurityPolicies.addAssociation',
+        ordered_params=['securityPolicy'],
+        path_params=['securityPolicy'],
+        query_params=['replaceExistingAssociation', 'requestId'],
+        relative_path='locations/global/securityPolicies/{securityPolicy}/addAssociation',
+        request_field='securityPolicyAssociation',
+        request_type_name='ComputeOrganizationSecurityPoliciesAddAssociationRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def AddRule(self, request, global_params=None):
+      r"""Inserts a rule into a security policy.
+
+      Args:
+        request: (ComputeOrganizationSecurityPoliciesAddRuleRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('AddRule')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    AddRule.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.organizationSecurityPolicies.addRule',
+        ordered_params=['securityPolicy'],
+        path_params=['securityPolicy'],
+        query_params=['requestId'],
+        relative_path='locations/global/securityPolicies/{securityPolicy}/addRule',
+        request_field='securityPolicyRule',
+        request_type_name='ComputeOrganizationSecurityPoliciesAddRuleRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def CopyRules(self, request, global_params=None):
+      r"""Copies rules to the specified security policy. Use of this API to modify firewall policies is deprecated. Use firewallPolicies.copyRules instead.
+
+      Args:
+        request: (ComputeOrganizationSecurityPoliciesCopyRulesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('CopyRules')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    CopyRules.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.organizationSecurityPolicies.copyRules',
+        ordered_params=['securityPolicy'],
+        path_params=['securityPolicy'],
+        query_params=['requestId', 'sourceSecurityPolicy'],
+        relative_path='locations/global/securityPolicies/{securityPolicy}/copyRules',
+        request_field='',
+        request_type_name='ComputeOrganizationSecurityPoliciesCopyRulesRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes the specified policy. Use of this API to remove firewall policies is deprecated. Use firewallPolicies.delete instead.
+
+      Args:
+        request: (ComputeOrganizationSecurityPoliciesDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='DELETE',
+        method_id='compute.organizationSecurityPolicies.delete',
+        ordered_params=['securityPolicy'],
+        path_params=['securityPolicy'],
+        query_params=['requestId'],
+        relative_path='locations/global/securityPolicies/{securityPolicy}',
+        request_field='',
+        request_type_name='ComputeOrganizationSecurityPoliciesDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""List all of the ordered rules present in a single specified policy. Use of this API to read firewall policies is deprecated. Use firewallPolicies.get instead.
+
+      Args:
+        request: (ComputeOrganizationSecurityPoliciesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (SecurityPolicy) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.organizationSecurityPolicies.get',
+        ordered_params=['securityPolicy'],
+        path_params=['securityPolicy'],
+        query_params=[],
+        relative_path='locations/global/securityPolicies/{securityPolicy}',
+        request_field='',
+        request_type_name='ComputeOrganizationSecurityPoliciesGetRequest',
+        response_type_name='SecurityPolicy',
+        supports_download=False,
+    )
+
+    def GetAssociation(self, request, global_params=None):
+      r"""Gets an association with the specified name. Use of this API to read firewall policies is deprecated. Use firewallPolicies.getAssociation instead if possible.
+
+      Args:
+        request: (ComputeOrganizationSecurityPoliciesGetAssociationRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (SecurityPolicyAssociation) The response message.
+      """
+      config = self.GetMethodConfig('GetAssociation')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetAssociation.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.organizationSecurityPolicies.getAssociation',
+        ordered_params=['securityPolicy'],
+        path_params=['securityPolicy'],
+        query_params=['name'],
+        relative_path='locations/global/securityPolicies/{securityPolicy}/getAssociation',
+        request_field='',
+        request_type_name='ComputeOrganizationSecurityPoliciesGetAssociationRequest',
+        response_type_name='SecurityPolicyAssociation',
+        supports_download=False,
+    )
+
+    def GetRule(self, request, global_params=None):
+      r"""Gets a rule at the specified priority. Use of this API to read firewall policies is deprecated. Use firewallPolicies.getRule instead.
+
+      Args:
+        request: (ComputeOrganizationSecurityPoliciesGetRuleRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (SecurityPolicyRule) The response message.
+      """
+      config = self.GetMethodConfig('GetRule')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetRule.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.organizationSecurityPolicies.getRule',
+        ordered_params=['securityPolicy'],
+        path_params=['securityPolicy'],
+        query_params=['priority'],
+        relative_path='locations/global/securityPolicies/{securityPolicy}/getRule',
+        request_field='',
+        request_type_name='ComputeOrganizationSecurityPoliciesGetRuleRequest',
+        response_type_name='SecurityPolicyRule',
+        supports_download=False,
+    )
+
+    def Insert(self, request, global_params=None):
+      r"""Creates a new policy in the specified project using the data included in the request. Use of this API to insert firewall policies is deprecated. Use firewallPolicies.insert instead.
+
+      Args:
+        request: (ComputeOrganizationSecurityPoliciesInsertRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Insert')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Insert.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.organizationSecurityPolicies.insert',
+        ordered_params=[],
+        path_params=[],
+        query_params=['parentId', 'requestId'],
+        relative_path='locations/global/securityPolicies',
+        request_field='securityPolicy',
+        request_type_name='ComputeOrganizationSecurityPoliciesInsertRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""List all the policies that have been configured for the specified project. Use of this API to read firewall policies is deprecated. Use firewallPolicies.list instead.
+
+      Args:
+        request: (ComputeOrganizationSecurityPoliciesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (SecurityPolicyList) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.organizationSecurityPolicies.list',
+        ordered_params=[],
+        path_params=[],
+        query_params=['filter', 'maxResults', 'orderBy', 'pageToken', 'parentId', 'returnPartialSuccess'],
+        relative_path='locations/global/securityPolicies',
+        request_field='',
+        request_type_name='ComputeOrganizationSecurityPoliciesListRequest',
+        response_type_name='SecurityPolicyList',
+        supports_download=False,
+    )
+
+    def ListAssociations(self, request, global_params=None):
+      r"""Lists associations of a specified target, i.e., organization or folder. Use of this API to read firewall policies is deprecated. Use firewallPolicies.listAssociations instead if possible.
+
+      Args:
+        request: (ComputeOrganizationSecurityPoliciesListAssociationsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (OrganizationSecurityPoliciesListAssociationsResponse) The response message.
+      """
+      config = self.GetMethodConfig('ListAssociations')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ListAssociations.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.organizationSecurityPolicies.listAssociations',
+        ordered_params=[],
+        path_params=[],
+        query_params=['targetResource'],
+        relative_path='locations/global/securityPolicies/listAssociations',
+        request_field='',
+        request_type_name='ComputeOrganizationSecurityPoliciesListAssociationsRequest',
+        response_type_name='OrganizationSecurityPoliciesListAssociationsResponse',
+        supports_download=False,
+    )
+
+    def ListPreconfiguredExpressionSets(self, request, global_params=None):
+      r"""Gets the current list of preconfigured Web Application Firewall (WAF) expressions.
+
+      Args:
+        request: (ComputeOrganizationSecurityPoliciesListPreconfiguredExpressionSetsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (SecurityPoliciesListPreconfiguredExpressionSetsResponse) The response message.
+      """
+      config = self.GetMethodConfig('ListPreconfiguredExpressionSets')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ListPreconfiguredExpressionSets.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.organizationSecurityPolicies.listPreconfiguredExpressionSets',
+        ordered_params=[],
+        path_params=[],
+        query_params=['filter', 'maxResults', 'orderBy', 'pageToken', 'parentId', 'returnPartialSuccess'],
+        relative_path='locations/global/securityPolicies/listPreconfiguredExpressionSets',
+        request_field='',
+        request_type_name='ComputeOrganizationSecurityPoliciesListPreconfiguredExpressionSetsRequest',
+        response_type_name='SecurityPoliciesListPreconfiguredExpressionSetsResponse',
+        supports_download=False,
+    )
+
+    def Move(self, request, global_params=None):
+      r"""Moves the specified security policy. Use of this API to modify firewall policies is deprecated. Use firewallPolicies.move instead.
+
+      Args:
+        request: (ComputeOrganizationSecurityPoliciesMoveRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Move')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Move.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.organizationSecurityPolicies.move',
+        ordered_params=['securityPolicy'],
+        path_params=['securityPolicy'],
+        query_params=['parentId', 'requestId'],
+        relative_path='locations/global/securityPolicies/{securityPolicy}/move',
+        request_field='',
+        request_type_name='ComputeOrganizationSecurityPoliciesMoveRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Patches the specified policy with the data included in the request. Use of this API to modify firewall policies is deprecated. Use firewallPolicies.patch instead.
+
+      Args:
+        request: (ComputeOrganizationSecurityPoliciesPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='PATCH',
+        method_id='compute.organizationSecurityPolicies.patch',
+        ordered_params=['securityPolicy'],
+        path_params=['securityPolicy'],
+        query_params=['requestId'],
+        relative_path='locations/global/securityPolicies/{securityPolicy}',
+        request_field='securityPolicyResource',
+        request_type_name='ComputeOrganizationSecurityPoliciesPatchRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def PatchRule(self, request, global_params=None):
+      r"""Patches a rule at the specified priority. Use of this API to modify firewall policies is deprecated. Use firewallPolicies.patchRule instead.
+
+      Args:
+        request: (ComputeOrganizationSecurityPoliciesPatchRuleRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('PatchRule')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    PatchRule.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.organizationSecurityPolicies.patchRule',
+        ordered_params=['securityPolicy'],
+        path_params=['securityPolicy'],
+        query_params=['priority', 'requestId'],
+        relative_path='locations/global/securityPolicies/{securityPolicy}/patchRule',
+        request_field='securityPolicyRule',
+        request_type_name='ComputeOrganizationSecurityPoliciesPatchRuleRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def RemoveAssociation(self, request, global_params=None):
+      r"""Removes an association for the specified security policy. Use of this API to modify firewall policies is deprecated. Use firewallPolicies.removeAssociation instead if possible.
+
+      Args:
+        request: (ComputeOrganizationSecurityPoliciesRemoveAssociationRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('RemoveAssociation')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    RemoveAssociation.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.organizationSecurityPolicies.removeAssociation',
+        ordered_params=['securityPolicy'],
+        path_params=['securityPolicy'],
+        query_params=['name', 'requestId'],
+        relative_path='locations/global/securityPolicies/{securityPolicy}/removeAssociation',
+        request_field='',
+        request_type_name='ComputeOrganizationSecurityPoliciesRemoveAssociationRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def RemoveRule(self, request, global_params=None):
+      r"""Deletes a rule at the specified priority.
+
+      Args:
+        request: (ComputeOrganizationSecurityPoliciesRemoveRuleRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('RemoveRule')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    RemoveRule.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.organizationSecurityPolicies.removeRule',
+        ordered_params=['securityPolicy'],
+        path_params=['securityPolicy'],
+        query_params=['priority', 'requestId'],
+        relative_path='locations/global/securityPolicies/{securityPolicy}/removeRule',
+        request_field='',
+        request_type_name='ComputeOrganizationSecurityPoliciesRemoveRuleRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
   class PacketMirroringsService(base_api.BaseApiService):
     """Service class for the packetMirrorings resource."""
 
@@ -10737,6 +12408,94 @@ class ComputeV1(base_api.BaseApiClient):
         request_field='testPermissionsRequest',
         request_type_name='ComputePacketMirroringsTestIamPermissionsRequest',
         response_type_name='TestPermissionsResponse',
+        supports_download=False,
+    )
+
+  class PreviewFeaturesService(base_api.BaseApiService):
+    """Service class for the previewFeatures resource."""
+
+    _NAME = 'previewFeatures'
+
+    def __init__(self, client):
+      super(ComputeV1.PreviewFeaturesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Get(self, request, global_params=None):
+      r"""Returns the details of the given PreviewFeature.
+
+      Args:
+        request: (ComputePreviewFeaturesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (PreviewFeature) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.previewFeatures.get',
+        ordered_params=['project', 'previewFeature'],
+        path_params=['previewFeature', 'project'],
+        query_params=[],
+        relative_path='projects/{project}/global/previewFeatures/{previewFeature}',
+        request_field='',
+        request_type_name='ComputePreviewFeaturesGetRequest',
+        response_type_name='PreviewFeature',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Returns the details of the given PreviewFeature.
+
+      Args:
+        request: (ComputePreviewFeaturesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (PreviewFeatureList) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.previewFeatures.list',
+        ordered_params=['project'],
+        path_params=['project'],
+        query_params=['filter', 'maxResults', 'orderBy', 'pageToken', 'returnPartialSuccess'],
+        relative_path='projects/{project}/global/previewFeatures',
+        request_field='',
+        request_type_name='ComputePreviewFeaturesListRequest',
+        response_type_name='PreviewFeatureList',
+        supports_download=False,
+    )
+
+    def Update(self, request, global_params=None):
+      r"""Patches the given PreviewFeature. This method is used to enable or disable a PreviewFeature.
+
+      Args:
+        request: (ComputePreviewFeaturesUpdateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Update')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Update.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='PATCH',
+        method_id='compute.previewFeatures.update',
+        ordered_params=['project', 'previewFeature'],
+        path_params=['previewFeature', 'project'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/global/previewFeatures/{previewFeature}',
+        request_field='previewFeatureResource',
+        request_type_name='ComputePreviewFeaturesUpdateRequest',
+        response_type_name='Operation',
         supports_download=False,
     )
 
@@ -10959,7 +12718,7 @@ class ComputeV1(base_api.BaseApiClient):
     )
 
     def MoveDisk(self, request, global_params=None):
-      r"""Moves a persistent disk from one zone to another.
+      r"""Starting September 29, 2025, you can't use the moveDisk API on new projects. To move a disk to a different region or zone, follow the steps in [Change the location of a disk](https://{$universe.dns_names.final_documentation_domain}/compute/docs/disks/migrate-to-hyperdisk#migrate-to-hd). Projects that already use the moveDisk API can continue usage until September 29, 2026. Starting November 1, 2025, API responses will include a warning message in the response body about the upcoming deprecation. You can skip the message to continue using the service without interruption.
 
       Args:
         request: (ComputeProjectsMoveDiskRequest) input message
@@ -11857,7 +13616,7 @@ class ComputeV1(base_api.BaseApiClient):
     )
 
     def ListUsable(self, request, global_params=None):
-      r"""Retrieves an aggregated list of all usable backend services in the specified project in the given region.
+      r"""Retrieves a list of all usable backend services in the specified project in the given region.
 
       Args:
         request: (ComputeRegionBackendServicesListUsableRequest) input message
@@ -12127,7 +13886,7 @@ class ComputeV1(base_api.BaseApiClient):
     )
 
     def Update(self, request, global_params=None):
-      r"""Updates the specified commitment with the data included in the request. Update is performed only on selected fields included as part of update-mask. Only the following fields can be modified: auto_renew.
+      r"""Updates the specified commitment with the data included in the request. Update is performed only on selected fields included as part of update-mask. Only the following fields can be updated: auto_renew and plan.
 
       Args:
         request: (ComputeRegionCommitmentsUpdateRequest) input message
@@ -13398,6 +15157,32 @@ class ComputeV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def ResumeInstances(self, request, global_params=None):
+      r"""Flags the specified instances in the managed instance group to be resumed. This method increases the targetSize and decreases the targetSuspendedSize of the managed instance group by the number of instances that you resume. The resumeInstances operation is marked DONE if the resumeInstances request is successful. The underlying actions take additional time. You must separately verify the status of the RESUMING action with the listmanagedinstances method. In this request, you can only specify instances that are suspended. For example, if an instance was previously suspended using the suspendInstances method, it can be resumed using the resumeInstances method. If a health check is attached to the managed instance group, the specified instances will be verified as healthy after they are resumed. You can specify a maximum of 1000 instances with this method per request.
+
+      Args:
+        request: (ComputeRegionInstanceGroupManagersResumeInstancesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('ResumeInstances')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ResumeInstances.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.regionInstanceGroupManagers.resumeInstances',
+        ordered_params=['project', 'region', 'instanceGroupManager'],
+        path_params=['instanceGroupManager', 'project', 'region'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/regions/{region}/instanceGroupManagers/{instanceGroupManager}/resumeInstances',
+        request_field='regionInstanceGroupManagersResumeInstancesRequest',
+        request_type_name='ComputeRegionInstanceGroupManagersResumeInstancesRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
     def SetInstanceTemplate(self, request, global_params=None):
       r"""Sets the instance template to use when creating new instances or recreating instances in this group. Existing instances are not affected.
 
@@ -13446,6 +15231,84 @@ class ComputeV1(base_api.BaseApiClient):
         relative_path='projects/{project}/regions/{region}/instanceGroupManagers/{instanceGroupManager}/setTargetPools',
         request_field='regionInstanceGroupManagersSetTargetPoolsRequest',
         request_type_name='ComputeRegionInstanceGroupManagersSetTargetPoolsRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def StartInstances(self, request, global_params=None):
+      r"""Flags the specified instances in the managed instance group to be started. This method increases the targetSize and decreases the targetStoppedSize of the managed instance group by the number of instances that you start. The startInstances operation is marked DONE if the startInstances request is successful. The underlying actions take additional time. You must separately verify the status of the STARTING action with the listmanagedinstances method. In this request, you can only specify instances that are stopped. For example, if an instance was previously stopped using the stopInstances method, it can be started using the startInstances method. If a health check is attached to the managed instance group, the specified instances will be verified as healthy after they are started. You can specify a maximum of 1000 instances with this method per request.
+
+      Args:
+        request: (ComputeRegionInstanceGroupManagersStartInstancesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('StartInstances')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    StartInstances.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.regionInstanceGroupManagers.startInstances',
+        ordered_params=['project', 'region', 'instanceGroupManager'],
+        path_params=['instanceGroupManager', 'project', 'region'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/regions/{region}/instanceGroupManagers/{instanceGroupManager}/startInstances',
+        request_field='regionInstanceGroupManagersStartInstancesRequest',
+        request_type_name='ComputeRegionInstanceGroupManagersStartInstancesRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def StopInstances(self, request, global_params=None):
+      r"""Flags the specified instances in the managed instance group to be immediately stopped. You can only specify instances that are running in this request. This method reduces the targetSize and increases the targetStoppedSize of the managed instance group by the number of instances that you stop. The stopInstances operation is marked DONE if the stopInstances request is successful. The underlying actions take additional time. You must separately verify the status of the STOPPING action with the listmanagedinstances method. If the standbyPolicy.initialDelaySec field is set, the group delays stopping the instances until initialDelaySec have passed from instance.creationTimestamp (that is, when the instance was created). This delay gives your application time to set itself up and initialize on the instance. If more than initialDelaySec seconds have passed since instance.creationTimestamp when this method is called, there will be zero delay. If the group is part of a backend service that has enabled connection draining, it can take up to 60 seconds after the connection draining duration has elapsed before the VM instance is stopped. Stopped instances can be started using the startInstances method. You can specify a maximum of 1000 instances with this method per request.
+
+      Args:
+        request: (ComputeRegionInstanceGroupManagersStopInstancesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('StopInstances')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    StopInstances.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.regionInstanceGroupManagers.stopInstances',
+        ordered_params=['project', 'region', 'instanceGroupManager'],
+        path_params=['instanceGroupManager', 'project', 'region'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/regions/{region}/instanceGroupManagers/{instanceGroupManager}/stopInstances',
+        request_field='regionInstanceGroupManagersStopInstancesRequest',
+        request_type_name='ComputeRegionInstanceGroupManagersStopInstancesRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def SuspendInstances(self, request, global_params=None):
+      r"""Flags the specified instances in the managed instance group to be immediately suspended. You can only specify instances that are running in this request. This method reduces the targetSize and increases the targetSuspendedSize of the managed instance group by the number of instances that you suspend. The suspendInstances operation is marked DONE if the suspendInstances request is successful. The underlying actions take additional time. You must separately verify the status of the SUSPENDING action with the listmanagedinstances method. If the standbyPolicy.initialDelaySec field is set, the group delays suspension of the instances until initialDelaySec have passed from instance.creationTimestamp (that is, when the instance was created). This delay gives your application time to set itself up and initialize on the instance. If more than initialDelaySec seconds have passed since instance.creationTimestamp when this method is called, there will be zero delay. If the group is part of a backend service that has enabled connection draining, it can take up to 60 seconds after the connection draining duration has elapsed before the VM instance is suspended. Suspended instances can be resumed using the resumeInstances method. You can specify a maximum of 1000 instances with this method per request.
+
+      Args:
+        request: (ComputeRegionInstanceGroupManagersSuspendInstancesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('SuspendInstances')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SuspendInstances.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.regionInstanceGroupManagers.suspendInstances',
+        ordered_params=['project', 'region', 'instanceGroupManager'],
+        path_params=['instanceGroupManager', 'project', 'region'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/regions/{region}/instanceGroupManagers/{instanceGroupManager}/suspendInstances',
+        request_field='regionInstanceGroupManagersSuspendInstancesRequest',
+        request_type_name='ComputeRegionInstanceGroupManagersSuspendInstancesRequest',
         response_type_name='Operation',
         supports_download=False,
     )
@@ -13587,6 +15450,32 @@ class ComputeV1(base_api.BaseApiClient):
         request_field='regionInstanceGroupsSetNamedPortsRequest',
         request_type_name='ComputeRegionInstanceGroupsSetNamedPortsRequest',
         response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def TestIamPermissions(self, request, global_params=None):
+      r"""Returns permissions that a caller has on the specified resource.
+
+      Args:
+        request: (ComputeRegionInstanceGroupsTestIamPermissionsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (TestPermissionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('TestIamPermissions')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    TestIamPermissions.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.regionInstanceGroups.testIamPermissions',
+        ordered_params=['project', 'region', 'resource'],
+        path_params=['project', 'region', 'resource'],
+        query_params=[],
+        relative_path='projects/{project}/regions/{region}/instanceGroups/{resource}/testIamPermissions',
+        request_field='testPermissionsRequest',
+        request_type_name='ComputeRegionInstanceGroupsTestIamPermissionsRequest',
+        response_type_name='TestPermissionsResponse',
         supports_download=False,
     )
 
@@ -15074,6 +16963,32 @@ class ComputeV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def SetLabels(self, request, global_params=None):
+      r"""Sets the labels on a security policy. To learn more about labels, read the Labeling Resources documentation.
+
+      Args:
+        request: (ComputeRegionSecurityPoliciesSetLabelsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('SetLabels')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetLabels.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.regionSecurityPolicies.setLabels',
+        ordered_params=['project', 'region', 'resource'],
+        path_params=['project', 'region', 'resource'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/regions/{region}/securityPolicies/{resource}/setLabels',
+        request_field='regionSetLabelsRequest',
+        request_type_name='ComputeRegionSecurityPoliciesSetLabelsRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
   class RegionSslCertificatesService(base_api.BaseApiService):
     """Service class for the regionSslCertificates resource."""
 
@@ -16039,7 +17954,7 @@ class ComputeV1(base_api.BaseApiClient):
           }
 
     def Get(self, request, global_params=None):
-      r"""Returns the specified Region resource. To decrease latency for this method, you can optionally omit any unneeded information from the response by using a field mask. This practice is especially recommended for unused quota information (the `quotas` field). To exclude one or more fields, set your request's `fields` query parameter to only include the fields you need. For example, to only include the `id` and `selfLink` fields, add the query parameter `?fields=id,selfLink` to your request.
+      r"""Returns the specified Region resource. To decrease latency for this method, you can optionally omit any unneeded information from the response by using a field mask. This practice is especially recommended for unused quota information (the `quotas` field). To exclude one or more fields, set your request's `fields` query parameter to only include the fields you need. For example, to only include the `id` and `selfLink` fields, add the query parameter `?fields=id,selfLink` to your request. This method fails if the quota information is unavailable for the region and if the organization policy constraint compute.requireBasicQuotaInResponse is enforced. This constraint, when enforced, disables the fail-open behaviour when quota information (the `items.quotas` field) is unavailable for the region. It is recommended to use the default setting for the constraint unless your application requires the fail-closed behaviour for this method.
 
       Args:
         request: (ComputeRegionsGetRequest) input message
@@ -16065,7 +17980,7 @@ class ComputeV1(base_api.BaseApiClient):
     )
 
     def List(self, request, global_params=None):
-      r"""Retrieves the list of region resources available to the specified project. To decrease latency for this method, you can optionally omit any unneeded information from the response by using a field mask. This practice is especially recommended for unused quota information (the `items.quotas` field). To exclude one or more fields, set your request's `fields` query parameter to only include the fields you need. For example, to only include the `id` and `selfLink` fields, add the query parameter `?fields=id,selfLink` to your request.
+      r"""Retrieves the list of region resources available to the specified project. To decrease latency for this method, you can optionally omit any unneeded information from the response by using a field mask. This practice is especially recommended for unused quota information (the `items.quotas` field). To exclude one or more fields, set your request's `fields` query parameter to only include the fields you need. For example, to only include the `id` and `selfLink` fields, add the query parameter `?fields=id,selfLink` to your request. This method fails if the quota information is unavailable for the region and if the organization policy constraint compute.requireBasicQuotaInResponse is enforced. This constraint, when enforced, disables the fail-open behaviour when quota information (the `items.quotas` field) is unavailable for the region. It is recommended to use the default setting for the constraint unless your application requires the fail-closed behaviour for this method.
 
       Args:
         request: (ComputeRegionsListRequest) input message
@@ -16087,6 +18002,208 @@ class ComputeV1(base_api.BaseApiClient):
         request_field='',
         request_type_name='ComputeRegionsListRequest',
         response_type_name='RegionList',
+        supports_download=False,
+    )
+
+  class ReservationBlocksService(base_api.BaseApiService):
+    """Service class for the reservationBlocks resource."""
+
+    _NAME = 'reservationBlocks'
+
+    def __init__(self, client):
+      super(ComputeV1.ReservationBlocksService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Get(self, request, global_params=None):
+      r"""Retrieves information about the specified reservation block.
+
+      Args:
+        request: (ComputeReservationBlocksGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ReservationBlocksGetResponse) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.reservationBlocks.get',
+        ordered_params=['project', 'zone', 'reservation', 'reservationBlock'],
+        path_params=['project', 'reservation', 'reservationBlock', 'zone'],
+        query_params=['view'],
+        relative_path='projects/{project}/zones/{zone}/reservations/{reservation}/reservationBlocks/{reservationBlock}',
+        request_field='',
+        request_type_name='ComputeReservationBlocksGetRequest',
+        response_type_name='ReservationBlocksGetResponse',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Retrieves a list of reservation blocks under a single reservation.
+
+      Args:
+        request: (ComputeReservationBlocksListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ReservationBlocksListResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.reservationBlocks.list',
+        ordered_params=['project', 'zone', 'reservation'],
+        path_params=['project', 'reservation', 'zone'],
+        query_params=['filter', 'maxResults', 'orderBy', 'pageToken', 'returnPartialSuccess'],
+        relative_path='projects/{project}/zones/{zone}/reservations/{reservation}/reservationBlocks',
+        request_field='',
+        request_type_name='ComputeReservationBlocksListRequest',
+        response_type_name='ReservationBlocksListResponse',
+        supports_download=False,
+    )
+
+    def PerformMaintenance(self, request, global_params=None):
+      r"""Allows customers to perform maintenance on a reservation block.
+
+      Args:
+        request: (ComputeReservationBlocksPerformMaintenanceRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('PerformMaintenance')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    PerformMaintenance.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.reservationBlocks.performMaintenance',
+        ordered_params=['project', 'zone', 'reservation', 'reservationBlock'],
+        path_params=['project', 'reservation', 'reservationBlock', 'zone'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/zones/{zone}/reservations/{reservation}/reservationBlocks/{reservationBlock}/performMaintenance',
+        request_field='reservationsBlocksPerformMaintenanceRequest',
+        request_type_name='ComputeReservationBlocksPerformMaintenanceRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+  class ReservationSubBlocksService(base_api.BaseApiService):
+    """Service class for the reservationSubBlocks resource."""
+
+    _NAME = 'reservationSubBlocks'
+
+    def __init__(self, client):
+      super(ComputeV1.ReservationSubBlocksService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Get(self, request, global_params=None):
+      r"""Retrieves information about the specified reservation subBlock.
+
+      Args:
+        request: (ComputeReservationSubBlocksGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ReservationSubBlocksGetResponse) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.reservationSubBlocks.get',
+        ordered_params=['project', 'zone', 'parentName', 'reservationSubBlock'],
+        path_params=['parentName', 'project', 'reservationSubBlock', 'zone'],
+        query_params=[],
+        relative_path='projects/{project}/zones/{zone}/{parentName}/reservationSubBlocks/{reservationSubBlock}',
+        request_field='',
+        request_type_name='ComputeReservationSubBlocksGetRequest',
+        response_type_name='ReservationSubBlocksGetResponse',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Retrieves a list of reservation subBlocks under a single reservation.
+
+      Args:
+        request: (ComputeReservationSubBlocksListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ReservationSubBlocksListResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.reservationSubBlocks.list',
+        ordered_params=['project', 'zone', 'parentName'],
+        path_params=['parentName', 'project', 'zone'],
+        query_params=['filter', 'maxResults', 'orderBy', 'pageToken', 'returnPartialSuccess'],
+        relative_path='projects/{project}/zones/{zone}/{parentName}/reservationSubBlocks',
+        request_field='',
+        request_type_name='ComputeReservationSubBlocksListRequest',
+        response_type_name='ReservationSubBlocksListResponse',
+        supports_download=False,
+    )
+
+    def PerformMaintenance(self, request, global_params=None):
+      r"""Allows customers to perform maintenance on a reservation subBlock.
+
+      Args:
+        request: (ComputeReservationSubBlocksPerformMaintenanceRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('PerformMaintenance')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    PerformMaintenance.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.reservationSubBlocks.performMaintenance',
+        ordered_params=['project', 'zone', 'parentName', 'reservationSubBlock'],
+        path_params=['parentName', 'project', 'reservationSubBlock', 'zone'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/zones/{zone}/{parentName}/reservationSubBlocks/{reservationSubBlock}/performMaintenance',
+        request_field='',
+        request_type_name='ComputeReservationSubBlocksPerformMaintenanceRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def ReportFaulty(self, request, global_params=None):
+      r"""Allows customers to report a faulty subBlock.
+
+      Args:
+        request: (ComputeReservationSubBlocksReportFaultyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('ReportFaulty')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ReportFaulty.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.reservationSubBlocks.reportFaulty',
+        ordered_params=['project', 'zone', 'parentName', 'reservationSubBlock'],
+        path_params=['parentName', 'project', 'reservationSubBlock', 'zone'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/zones/{zone}/{parentName}/reservationSubBlocks/{reservationSubBlock}/reportFaulty',
+        request_field='reservationSubBlocksReportFaultyRequest',
+        request_type_name='ComputeReservationSubBlocksReportFaultyRequest',
+        response_type_name='Operation',
         supports_download=False,
     )
 
@@ -16253,6 +18370,32 @@ class ComputeV1(base_api.BaseApiClient):
         request_field='',
         request_type_name='ComputeReservationsListRequest',
         response_type_name='ReservationList',
+        supports_download=False,
+    )
+
+    def PerformMaintenance(self, request, global_params=None):
+      r"""Perform maintenance on an extended reservation.
+
+      Args:
+        request: (ComputeReservationsPerformMaintenanceRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('PerformMaintenance')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    PerformMaintenance.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.reservations.performMaintenance',
+        ordered_params=['project', 'zone', 'reservation'],
+        path_params=['project', 'reservation', 'zone'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/zones/{zone}/reservations/{reservation}/performMaintenance',
+        request_field='reservationsPerformMaintenanceRequest',
+        request_type_name='ComputeReservationsPerformMaintenanceRequest',
+        response_type_name='Operation',
         supports_download=False,
     )
 
@@ -16666,6 +18809,32 @@ class ComputeV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def DeleteRoutePolicy(self, request, global_params=None):
+      r"""Deletes Route Policy.
+
+      Args:
+        request: (ComputeRoutersDeleteRoutePolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('DeleteRoutePolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    DeleteRoutePolicy.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.routers.deleteRoutePolicy',
+        ordered_params=['project', 'region', 'router'],
+        path_params=['project', 'region', 'router'],
+        query_params=['policy', 'requestId'],
+        relative_path='projects/{project}/regions/{region}/routers/{router}/deleteRoutePolicy',
+        request_field='',
+        request_type_name='ComputeRoutersDeleteRoutePolicyRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
     def Get(self, request, global_params=None):
       r"""Returns the specified Router resource.
 
@@ -16741,6 +18910,32 @@ class ComputeV1(base_api.BaseApiClient):
         request_field='',
         request_type_name='ComputeRoutersGetNatMappingInfoRequest',
         response_type_name='VmEndpointNatMappingsList',
+        supports_download=False,
+    )
+
+    def GetRoutePolicy(self, request, global_params=None):
+      r"""Returns specified Route Policy.
+
+      Args:
+        request: (ComputeRoutersGetRoutePolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (RoutersGetRoutePolicyResponse) The response message.
+      """
+      config = self.GetMethodConfig('GetRoutePolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetRoutePolicy.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.routers.getRoutePolicy',
+        ordered_params=['project', 'region', 'router'],
+        path_params=['project', 'region', 'router'],
+        query_params=['policy'],
+        relative_path='projects/{project}/regions/{region}/routers/{router}/getRoutePolicy',
+        request_field='',
+        request_type_name='ComputeRoutersGetRoutePolicyRequest',
+        response_type_name='RoutersGetRoutePolicyResponse',
         supports_download=False,
     )
 
@@ -16822,6 +19017,58 @@ class ComputeV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def ListBgpRoutes(self, request, global_params=None):
+      r"""Retrieves a list of router bgp routes available to the specified project.
+
+      Args:
+        request: (ComputeRoutersListBgpRoutesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (RoutersListBgpRoutes) The response message.
+      """
+      config = self.GetMethodConfig('ListBgpRoutes')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ListBgpRoutes.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.routers.listBgpRoutes',
+        ordered_params=['project', 'region', 'router'],
+        path_params=['project', 'region', 'router'],
+        query_params=['addressFamily', 'destinationPrefix', 'filter', 'maxResults', 'orderBy', 'pageToken', 'peer', 'policyApplied', 'returnPartialSuccess', 'routeType'],
+        relative_path='projects/{project}/regions/{region}/routers/{router}/listBgpRoutes',
+        request_field='',
+        request_type_name='ComputeRoutersListBgpRoutesRequest',
+        response_type_name='RoutersListBgpRoutes',
+        supports_download=False,
+    )
+
+    def ListRoutePolicies(self, request, global_params=None):
+      r"""Retrieves a list of router route policy subresources available to the specified project.
+
+      Args:
+        request: (ComputeRoutersListRoutePoliciesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (RoutersListRoutePolicies) The response message.
+      """
+      config = self.GetMethodConfig('ListRoutePolicies')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ListRoutePolicies.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.routers.listRoutePolicies',
+        ordered_params=['project', 'region', 'router'],
+        path_params=['project', 'region', 'router'],
+        query_params=['filter', 'maxResults', 'orderBy', 'pageToken', 'returnPartialSuccess'],
+        relative_path='projects/{project}/regions/{region}/routers/{router}/listRoutePolicies',
+        request_field='',
+        request_type_name='ComputeRoutersListRoutePoliciesRequest',
+        response_type_name='RoutersListRoutePolicies',
+        supports_download=False,
+    )
+
     def Patch(self, request, global_params=None):
       r"""Patches the specified Router resource with the data included in the request. This method supports PATCH semantics and uses JSON merge patch format and processing rules.
 
@@ -16844,6 +19091,32 @@ class ComputeV1(base_api.BaseApiClient):
         relative_path='projects/{project}/regions/{region}/routers/{router}',
         request_field='routerResource',
         request_type_name='ComputeRoutersPatchRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def PatchRoutePolicy(self, request, global_params=None):
+      r"""Patches Route Policy.
+
+      Args:
+        request: (ComputeRoutersPatchRoutePolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('PatchRoutePolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    PatchRoutePolicy.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.routers.patchRoutePolicy',
+        ordered_params=['project', 'region', 'router'],
+        path_params=['project', 'region', 'router'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/regions/{region}/routers/{router}/patchRoutePolicy',
+        request_field='routePolicy',
+        request_type_name='ComputeRoutersPatchRoutePolicyRequest',
         response_type_name='Operation',
         supports_download=False,
     )
@@ -16896,6 +19169,32 @@ class ComputeV1(base_api.BaseApiClient):
         relative_path='projects/{project}/regions/{region}/routers/{router}',
         request_field='routerResource',
         request_type_name='ComputeRoutersUpdateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def UpdateRoutePolicy(self, request, global_params=None):
+      r"""Updates or creates new Route Policy.
+
+      Args:
+        request: (ComputeRoutersUpdateRoutePolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('UpdateRoutePolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    UpdateRoutePolicy.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.routers.updateRoutePolicy',
+        ordered_params=['project', 'region', 'router'],
+        path_params=['project', 'region', 'router'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/regions/{region}/routers/{router}/updateRoutePolicy',
+        request_field='routePolicy',
+        request_type_name='ComputeRoutersUpdateRoutePolicyRequest',
         response_type_name='Operation',
         supports_download=False,
     )
@@ -17416,7 +19715,7 @@ class ComputeV1(base_api.BaseApiClient):
         method_id='compute.serviceAttachments.get',
         ordered_params=['project', 'region', 'serviceAttachment'],
         path_params=['project', 'region', 'serviceAttachment'],
-        query_params=[],
+        query_params=['showNatIps'],
         relative_path='projects/{project}/regions/{region}/serviceAttachments/{serviceAttachment}',
         request_field='',
         request_type_name='ComputeServiceAttachmentsGetRequest',
@@ -18525,7 +20824,7 @@ class ComputeV1(base_api.BaseApiClient):
     )
 
     def Update(self, request, global_params=None):
-      r"""Updates the specified storagePool with the data included in the request. The update is performed only on selected fields included as part of update-mask. Only the following fields can be modified: size_tb and provisioned_iops.
+      r"""Updates the specified storagePool with the data included in the request. The update is performed only on selected fields included as part of update-mask. Only the following fields can be modified: pool_provisioned_capacity_gb, pool_provisioned_iops and pool_provisioned_throughput.
 
       Args:
         request: (ComputeStoragePoolsUpdateRequest) input message
@@ -18656,7 +20955,7 @@ class ComputeV1(base_api.BaseApiClient):
         method_id='compute.subnetworks.get',
         ordered_params=['project', 'region', 'subnetwork'],
         path_params=['project', 'region', 'subnetwork'],
-        query_params=[],
+        query_params=['views'],
         relative_path='projects/{project}/regions/{region}/subnetworks/{subnetwork}',
         request_field='',
         request_type_name='ComputeSubnetworksGetRequest',
@@ -18734,7 +21033,7 @@ class ComputeV1(base_api.BaseApiClient):
         method_id='compute.subnetworks.list',
         ordered_params=['project', 'region'],
         path_params=['project', 'region'],
-        query_params=['filter', 'maxResults', 'orderBy', 'pageToken', 'returnPartialSuccess'],
+        query_params=['filter', 'maxResults', 'orderBy', 'pageToken', 'returnPartialSuccess', 'views'],
         relative_path='projects/{project}/regions/{region}/subnetworks',
         request_field='',
         request_type_name='ComputeSubnetworksListRequest',
@@ -18760,7 +21059,7 @@ class ComputeV1(base_api.BaseApiClient):
         method_id='compute.subnetworks.listUsable',
         ordered_params=['project'],
         path_params=['project'],
-        query_params=['filter', 'maxResults', 'orderBy', 'pageToken', 'returnPartialSuccess'],
+        query_params=['filter', 'maxResults', 'orderBy', 'pageToken', 'returnPartialSuccess', 'serviceProject'],
         relative_path='projects/{project}/aggregated/subnetworks/listUsable',
         request_field='',
         request_type_name='ComputeSubnetworksListUsableRequest',
@@ -19666,6 +21965,32 @@ class ComputeV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def TestIamPermissions(self, request, global_params=None):
+      r"""Returns permissions that a caller has on the specified resource.
+
+      Args:
+        request: (ComputeTargetInstancesTestIamPermissionsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (TestPermissionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('TestIamPermissions')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    TestIamPermissions.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.targetInstances.testIamPermissions',
+        ordered_params=['project', 'zone', 'resource'],
+        path_params=['project', 'resource', 'zone'],
+        query_params=[],
+        relative_path='projects/{project}/zones/{zone}/targetInstances/{resource}/testIamPermissions',
+        request_field='testPermissionsRequest',
+        request_type_name='ComputeTargetInstancesTestIamPermissionsRequest',
+        response_type_name='TestPermissionsResponse',
+        supports_download=False,
+    )
+
   class TargetPoolsService(base_api.BaseApiService):
     """Service class for the targetPools resource."""
 
@@ -19985,6 +22310,32 @@ class ComputeV1(base_api.BaseApiClient):
         request_field='securityPolicyReference',
         request_type_name='ComputeTargetPoolsSetSecurityPolicyRequest',
         response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def TestIamPermissions(self, request, global_params=None):
+      r"""Returns permissions that a caller has on the specified resource.
+
+      Args:
+        request: (ComputeTargetPoolsTestIamPermissionsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (TestPermissionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('TestIamPermissions')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    TestIamPermissions.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.targetPools.testIamPermissions',
+        ordered_params=['project', 'region', 'resource'],
+        path_params=['project', 'region', 'resource'],
+        query_params=[],
+        relative_path='projects/{project}/regions/{region}/targetPools/{resource}/testIamPermissions',
+        request_field='testPermissionsRequest',
+        request_type_name='ComputeTargetPoolsTestIamPermissionsRequest',
+        response_type_name='TestPermissionsResponse',
         supports_download=False,
     )
 
@@ -21214,6 +23565,146 @@ class ComputeV1(base_api.BaseApiClient):
         relative_path='projects/{project}/regions/{region}/vpnTunnels/{resource}/setLabels',
         request_field='regionSetLabelsRequest',
         request_type_name='ComputeVpnTunnelsSetLabelsRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+  class WireGroupsService(base_api.BaseApiService):
+    """Service class for the wireGroups resource."""
+
+    _NAME = 'wireGroups'
+
+    def __init__(self, client):
+      super(ComputeV1.WireGroupsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes the specified wire group in the given scope.
+
+      Args:
+        request: (ComputeWireGroupsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='DELETE',
+        method_id='compute.wireGroups.delete',
+        ordered_params=['project', 'crossSiteNetwork', 'wireGroup'],
+        path_params=['crossSiteNetwork', 'project', 'wireGroup'],
+        query_params=['requestId'],
+        relative_path='projects/{project}/global/crossSiteNetworks/{crossSiteNetwork}/wireGroups/{wireGroup}',
+        request_field='',
+        request_type_name='ComputeWireGroupsDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets the specified wire group resource in the given scope.
+
+      Args:
+        request: (ComputeWireGroupsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (WireGroup) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.wireGroups.get',
+        ordered_params=['project', 'crossSiteNetwork', 'wireGroup'],
+        path_params=['crossSiteNetwork', 'project', 'wireGroup'],
+        query_params=[],
+        relative_path='projects/{project}/global/crossSiteNetworks/{crossSiteNetwork}/wireGroups/{wireGroup}',
+        request_field='',
+        request_type_name='ComputeWireGroupsGetRequest',
+        response_type_name='WireGroup',
+        supports_download=False,
+    )
+
+    def Insert(self, request, global_params=None):
+      r"""Creates a wire group in the specified project in the given scope using the parameters that are included in the request.
+
+      Args:
+        request: (ComputeWireGroupsInsertRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Insert')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Insert.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='compute.wireGroups.insert',
+        ordered_params=['project', 'crossSiteNetwork'],
+        path_params=['crossSiteNetwork', 'project'],
+        query_params=['requestId', 'validateOnly'],
+        relative_path='projects/{project}/global/crossSiteNetworks/{crossSiteNetwork}/wireGroups',
+        request_field='wireGroup',
+        request_type_name='ComputeWireGroupsInsertRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists the wire groups for a project in the given scope.
+
+      Args:
+        request: (ComputeWireGroupsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (WireGroupList) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='compute.wireGroups.list',
+        ordered_params=['project', 'crossSiteNetwork'],
+        path_params=['crossSiteNetwork', 'project'],
+        query_params=['filter', 'maxResults', 'orderBy', 'pageToken', 'returnPartialSuccess'],
+        relative_path='projects/{project}/global/crossSiteNetworks/{crossSiteNetwork}/wireGroups',
+        request_field='',
+        request_type_name='ComputeWireGroupsListRequest',
+        response_type_name='WireGroupList',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates the specified wire group resource with the data included in the request. This method supports PATCH semantics and uses JSON merge patch format and processing rules.
+
+      Args:
+        request: (ComputeWireGroupsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='PATCH',
+        method_id='compute.wireGroups.patch',
+        ordered_params=['project', 'crossSiteNetwork', 'wireGroup'],
+        path_params=['crossSiteNetwork', 'project', 'wireGroup'],
+        query_params=['requestId', 'updateMask', 'validateOnly'],
+        relative_path='projects/{project}/global/crossSiteNetworks/{crossSiteNetwork}/wireGroups/{wireGroup}',
+        request_field='wireGroupResource',
+        request_type_name='ComputeWireGroupsPatchRequest',
         response_type_name='Operation',
         supports_download=False,
     )

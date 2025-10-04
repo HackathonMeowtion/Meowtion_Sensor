@@ -14,11 +14,9 @@
 # limitations under the License.
 """Implementation of gcloud dataflow yaml run command."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 from googlecloudsdk.api_lib.dataflow import apis
+from googlecloudsdk.api_lib.storage import storage_api
+from googlecloudsdk.api_lib.storage import storage_util
 from googlecloudsdk.calliope import arg_parsers
 from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.dataflow import dataflow_util
@@ -27,21 +25,18 @@ from googlecloudsdk.core import yaml
 from googlecloudsdk.core.util import files
 
 
-YAML_TEMPLATE_GCS_LOCATION = (
-    'gs://dataflow-templates-{}/latest/flex/Yaml_Template'
-)
-
-
-@base.ReleaseTracks(base.ReleaseTrack.BETA)
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.GA, base.ReleaseTrack.BETA)
 class Run(base.Command):
   """Runs a job from the specified path."""
 
   detailed_help = {
       'DESCRIPTION': (
-          'Runs a job from the specified yaml description or gcs path.'
+          'Runs a job from the specified YAML description or '
+          'Cloud Storage path.'
       ),
       'EXAMPLES': """\
-          To run a job from yaml, run:
+          To run a job from YAML, run:
 
             $ {command} my-job --yaml-pipeline-file=gs://yaml-path --region=europe-west1
           """,
@@ -55,28 +50,30 @@ class Run(base.Command):
       parser: argparse.ArgumentParser to register arguments with.
     """
     parser.add_argument(
-        'job_name',
-        metavar='JOB_NAME',
-        help='Unique name to assign to the job.')
+        'job_name', metavar='JOB_NAME', help='Unique name to assign to the job.'
+    )
 
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
         '--yaml-pipeline-file',
         help=(
-            'Path of a file defining the yaml pipeline to run. '
+            'Path of a file defining the YAML pipeline to run. '
             "(Must be a local file or a URL beginning with 'gs://'.)"
         ),
     )
 
     group.add_argument(
-        '--yaml-pipeline', help='Inline definition of the yaml pipeline to run.'
+        '--yaml-pipeline', help='Inline definition of the YAML pipeline to run.'
     )
 
     parser.add_argument(
         '--region',
         metavar='REGION_ID',
-        help=('Region ID of the job\'s regional endpoint. ' +
-              dataflow_util.DEFAULT_REGION_MESSAGE))
+        help=(
+            "Region ID of the job's regional endpoint. "
+            + dataflow_util.DEFAULT_REGION_MESSAGE
+        ),
+    )
 
     parser.add_argument(
         '--pipeline-options',
@@ -84,6 +81,36 @@ class Run(base.Command):
         type=arg_parsers.ArgDict(),
         action=arg_parsers.UpdateAction,
         help='Pipeline options to pass to the job.',
+    )
+
+    parser.add_argument(
+        '--jinja-variables',
+        metavar='JSON_OBJECT',
+        help='Jinja2 variables to be used in reifying the yaml.',
+    )
+
+    parser.add_argument(
+        '--template-file-gcs-location',
+        help=('Google Cloud Storage location of the YAML template to run. '
+              "(Must be a URL beginning with 'gs://'.)"),
+        type=arg_parsers.RegexpValidator(r'^gs://.*',
+                                         'Must begin with \'gs://\''),
+    )
+
+    parser.add_argument(
+        '--network',
+        help=(
+            'Compute Engine network for launching worker instances to run '
+            'the pipeline.  If not set, the default network is used.'
+        ),
+    )
+
+    parser.add_argument(
+        '--subnetwork',
+        help=(
+            'Compute Engine subnetwork for launching worker instances to '
+            'run the pipeline.  If not set, the default subnetwork is used.'
+        ),
     )
 
   def Run(self, args):
@@ -99,28 +126,38 @@ class Run(base.Command):
 
     # These are required and mutually exclusive due to the grouping above.
     if args.yaml_pipeline_file:
-      if args.yaml_pipeline_file.startswith('gs://'):
-        # TODO(b/320740846): We could consider always downloading this to do
-        # validation.
+      yaml_contents = _try_get_yaml_contents(args.yaml_pipeline_file)
+      if yaml_contents is None:
         parameters['yaml_pipeline_file'] = args.yaml_pipeline_file
       else:
-        parameters['yaml_pipeline'] = files.ReadFileContents(
-            args.yaml_pipeline_file
-        )
+        parameters['yaml_pipeline'] = yaml_contents
+
     else:
       parameters['yaml_pipeline'] = args.yaml_pipeline
 
-    if 'yaml_pipeline' in parameters:
+    if args.jinja_variables:
+      parameters['jinja_variables'] = args.jinja_variables
+
+    if 'yaml_pipeline' in parameters and 'jinja-variables' not in parameters:
       _validate_yaml(parameters['yaml_pipeline'])
 
-    region_id = dataflow_util.GetRegion(args)
+    region_id = _get_region_from_yaml_or_default(
+        parameters.get('yaml_pipeline'), args
+    )
+
+    gcs_location = (
+        args.template_file_gcs_location
+        or apis.Templates.YAML_TEMPLATE_GCS_LOCATION.format(region_id)
+    )
 
     arguments = apis.TemplateArguments(
         project_id=properties.VALUES.core.project.Get(required=True),
         region_id=region_id,
         job_name=args.job_name,
-        gcs_location=YAML_TEMPLATE_GCS_LOCATION.format(region_id),
+        gcs_location=gcs_location,
         parameters=parameters,
+        network=args.network,
+        subnetwork=args.subnetwork,
     )
     return apis.Templates.CreateJobFromFlexTemplate(arguments)
 
@@ -132,3 +169,59 @@ def _validate_yaml(yaml_pipeline):
     _ = yaml.load(yaml_pipeline)
   except Exception as exn:
     raise ValueError('yaml_pipeline must be a valid yaml.') from exn
+
+
+def _get_region_from_yaml_or_default(yaml_pipeline, args):
+  """Gets the region from yaml pipeline or args, or falls back to default."""
+  region = args.region
+  options_region = None
+  try:
+    pipeline_data = yaml.load(yaml_pipeline)
+    if not pipeline_data:
+      return dataflow_util.GetRegion(args)
+    if 'options' in pipeline_data and 'region' in pipeline_data['options']:
+      options_region = pipeline_data['options']['region']
+      if '{' in options_region or '}' in options_region:
+        raise yaml.YAMLParseError(
+            'yaml pipeline contains unparsable region: {0}. Found curly braces '
+            'in region. Falling back to default region.'.format(options_region)
+        )
+  except yaml.YAMLParseError as exn:
+    if not region:
+      print(
+          'Failed to get region from yaml pipeline: {0}. If using jinja '
+          'variables, parsing may fail. Falling back to default '
+          'region.'.format(exn)
+      )
+
+  if options_region:
+    if region and region != options_region:
+      raise ValueError(
+          'Region specified in yaml pipeline options ({0}) does not match'
+          ' region specified in command line ({1})'.format(
+              options_region, region
+          )
+      )
+    return options_region
+
+  return dataflow_util.GetRegion(args)
+
+
+def _try_get_yaml_contents(yaml_pipeline_file):
+  """Reads yaml contents from the specified file if it is accessable."""
+  if not yaml_pipeline_file.startswith('gs://'):
+    return files.ReadFileContents(yaml_pipeline_file)
+
+  storage_client = storage_api.StorageClient()
+  obj_ref = storage_util.ObjectReference.FromUrl(yaml_pipeline_file)
+  try:
+    return storage_client.ReadObject(obj_ref).read().decode('utf-8')
+  except Exception as e:  # pylint: disable=broad-exception-caught
+    print(
+        'Unable to read file {0} due to incorrect file path or insufficient'
+        ' read permissions. Will not be able to validate the yaml pipeline or'
+        ' determine the region from the yaml pipeline'
+        ' options. Error: {1}'.format(yaml_pipeline_file, e)
+    )
+
+  return None

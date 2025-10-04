@@ -27,6 +27,15 @@ from googlecloudsdk.core import exceptions
 import six
 
 
+REDEPLOY_GPU_MESSAGE = (
+    'You could deploy using GPUs without zonal redundancy instead.'
+)
+REDEPLOY_GPU_WITH_FLAG_MESSAGE = (
+    'You could deploy with --no-gpu-zonal-redundancy flag attached to your'
+    ' command.\n'
+)
+
+
 class SelfDocumentingError(exceptions.Error):
   """An error that uses its own docstring as its message if no message given.
 
@@ -47,12 +56,9 @@ class BucketAccessError(exceptions.Error):
 class CancellationFailedError(exceptions.Error):
   """Indicates failure to cancel."""
 
-  pass
-
 
 class DeletionFailedError(exceptions.Error):
   """Indicates failure to delete."""
-  pass
 
 
 class ConfigurationError(exceptions.Error):
@@ -164,6 +170,12 @@ class HttpError(exceptions_util.HttpException):
           '{0}: {{field_violations.{0}}}'.format(k)
           for k in self.payload.field_violations.keys()
       ])
+      # Replace the deploy with NZR message with gcloud flag.
+      for k in self.payload.field_violations.keys():
+        if REDEPLOY_GPU_MESSAGE in self.payload.field_violations[k]:
+          self.payload.field_violations[k] = self.payload.field_violations[
+              k
+          ].replace(REDEPLOY_GPU_MESSAGE, REDEPLOY_GPU_WITH_FLAG_MESSAGE)
 
 
 class FieldMismatchError(exceptions.Error):
@@ -178,7 +190,8 @@ class FieldMismatchError(exceptions.Error):
 # prefix added by that.
 VALIDATION_ERROR_MSG_REGEX = re.compile(
     r'^.*(?:\n.*)*Expected type .+? for field (.+?), found (.+?) \(type .+?\)',
-    re.MULTILINE)
+    re.MULTILINE,
+)
 
 
 def MaybeRaiseCustomFieldMismatch(error, help_text=''):
@@ -202,10 +215,12 @@ def MaybeRaiseCustomFieldMismatch(error, help_text=''):
       raise FieldMismatchError(
           'Error decoding the "port" field. Only integer ports are supported '
           'by gcloud. Please change your port from "{}" to an integer value to '
-          'be compatible with gcloud.'.format(regex_match.group(2)))
+          'be compatible with gcloud.'.format(regex_match.group(2))
+      )
     elif regex_match.group(1) == 'value':
-      raise FieldMismatchError('{0}\n{1}'.format(
-          six.text_type(error), help_text))
+      raise FieldMismatchError(
+          '{0}\n{1}'.format(six.text_type(error), help_text)
+      )
   raise error
 
 
@@ -289,11 +304,12 @@ class KubernetesExceptionParser(object):
       return []
 
 
-class InvalidRuntimeLanguage(exceptions.Error):
-  def __init__(self, invalid_runtime):
-    super(InvalidRuntimeLanguage, self).__init__(
-        f'Runtime language [{invalid_runtime}] is not supported'
-    )
+class BaseImageError(exceptions.Error):
+  """An error was encountered when parsing the base image."""
+
+
+class ServiceAccountError(exceptions.Error):
+  """Indicates error due to service account misconfiguration."""
 
 
 class RequiredImageArgumentException(c_exceptions.RequiredArgumentException):

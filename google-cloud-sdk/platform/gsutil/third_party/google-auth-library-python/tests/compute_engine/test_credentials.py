@@ -43,13 +43,41 @@ SAMPLE_ID_TOKEN = (
     b"bsxbLa6Fp0SYeYwO8ifEnkRvasVpc1WTQqfRB2JCj5pTBDzJpIpFCMmnQ"
 )
 
+ACCESS_TOKEN_REQUEST_METRICS_HEADER_VALUE = (
+    "gl-python/3.7 auth/1.1 auth-request-type/at cred-type/mds"
+)
+ID_TOKEN_REQUEST_METRICS_HEADER_VALUE = (
+    "gl-python/3.7 auth/1.1 auth-request-type/it cred-type/mds"
+)
+
+FAKE_SERVICE_ACCOUNT_EMAIL = "foo@bar.com"
+FAKE_QUOTA_PROJECT_ID = "fake-quota-project"
+FAKE_SCOPES = ["scope1", "scope2"]
+FAKE_DEFAULT_SCOPES = ["scope3", "scope4"]
+FAKE_UNIVERSE_DOMAIN = "fake-universe-domain"
+
 
 class TestCredentials(object):
     credentials = None
+    credentials_with_all_fields = None
 
     @pytest.fixture(autouse=True)
     def credentials_fixture(self):
         self.credentials = credentials.Credentials()
+        self.credentials_with_all_fields = credentials.Credentials(
+            service_account_email=FAKE_SERVICE_ACCOUNT_EMAIL,
+            quota_project_id=FAKE_QUOTA_PROJECT_ID,
+            scopes=FAKE_SCOPES,
+            default_scopes=FAKE_DEFAULT_SCOPES,
+            universe_domain=FAKE_UNIVERSE_DOMAIN,
+        )
+
+    def test_get_cred_info(self):
+        assert self.credentials.get_cred_info() == {
+            "credential_source": "metadata server",
+            "credential_type": "VM credentials",
+            "principal": "default",
+        }
 
     def test_default_state(self):
         assert not self.credentials.valid
@@ -61,6 +89,9 @@ class TestCredentials(object):
         assert self.credentials.service_account_email == "default"
         # No quota project
         assert not self.credentials._quota_project_id
+        # Universe domain is the default and not cached
+        assert self.credentials._universe_domain == "googleapis.com"
+        assert not self.credentials._universe_domain_cached
 
     @mock.patch(
         "google.auth._helpers.utcnow",
@@ -97,11 +128,15 @@ class TestCredentials(object):
         assert self.credentials.valid
 
     @mock.patch(
+        "google.auth.metrics.token_request_access_token_mds",
+        return_value=ACCESS_TOKEN_REQUEST_METRICS_HEADER_VALUE,
+    )
+    @mock.patch(
         "google.auth._helpers.utcnow",
         return_value=datetime.datetime.min + _helpers.REFRESH_THRESHOLD,
     )
     @mock.patch("google.auth.compute_engine._metadata.get", autospec=True)
-    def test_refresh_success_with_scopes(self, get, utcnow):
+    def test_refresh_success_with_scopes(self, get, utcnow, mock_metrics_header_value):
         get.side_effect = [
             {
                 # First request is for sevice account info.
@@ -133,7 +168,10 @@ class TestCredentials(object):
         assert self.credentials.valid
 
         kwargs = get.call_args[1]
-        assert kwargs == {"params": {"scopes": "three,four"}}
+        assert kwargs["params"] == {"scopes": "three,four"}
+        assert kwargs["headers"] == {
+            "x-goog-api-client": ACCESS_TOKEN_REQUEST_METRICS_HEADER_VALUE
+        }
 
     @mock.patch("google.auth.compute_engine._metadata.get", autospec=True)
     def test_refresh_error(self, get):
@@ -173,17 +211,74 @@ class TestCredentials(object):
         assert self.credentials.valid
 
     def test_with_quota_project(self):
-        quota_project_creds = self.credentials.with_quota_project("project-foo")
+        creds = self.credentials_with_all_fields.with_quota_project("project-foo")
 
-        assert quota_project_creds._quota_project_id == "project-foo"
+        assert creds._quota_project_id == "project-foo"
+        assert creds._service_account_email == FAKE_SERVICE_ACCOUNT_EMAIL
+        assert creds._scopes == FAKE_SCOPES
+        assert creds._default_scopes == FAKE_DEFAULT_SCOPES
+        assert creds.universe_domain == FAKE_UNIVERSE_DOMAIN
+        assert creds._universe_domain_cached
 
     def test_with_scopes(self):
-        assert self.credentials._scopes is None
-
         scopes = ["one", "two"]
-        self.credentials = self.credentials.with_scopes(scopes)
+        creds = self.credentials_with_all_fields.with_scopes(scopes)
 
-        assert self.credentials._scopes == scopes
+        assert creds._scopes == scopes
+        assert creds._quota_project_id == FAKE_QUOTA_PROJECT_ID
+        assert creds._service_account_email == FAKE_SERVICE_ACCOUNT_EMAIL
+        assert creds._default_scopes is None
+        assert creds.universe_domain == FAKE_UNIVERSE_DOMAIN
+        assert creds._universe_domain_cached
+
+    def test_with_universe_domain(self):
+        creds = self.credentials_with_all_fields.with_universe_domain("universe_domain")
+
+        assert creds._scopes == FAKE_SCOPES
+        assert creds._quota_project_id == FAKE_QUOTA_PROJECT_ID
+        assert creds._service_account_email == FAKE_SERVICE_ACCOUNT_EMAIL
+        assert creds._default_scopes == FAKE_DEFAULT_SCOPES
+        assert creds.universe_domain == "universe_domain"
+        assert creds._universe_domain_cached
+
+    def test_token_usage_metrics(self):
+        self.credentials.token = "token"
+        self.credentials.expiry = None
+
+        headers = {}
+        self.credentials.before_request(mock.Mock(), None, None, headers)
+        assert headers["authorization"] == "Bearer token"
+        assert headers["x-goog-api-client"] == "cred-type/mds"
+
+    @mock.patch(
+        "google.auth.compute_engine._metadata.get_universe_domain",
+        return_value="fake_universe_domain",
+    )
+    def test_universe_domain(self, get_universe_domain):
+        # Check the default state
+        assert not self.credentials._universe_domain_cached
+        assert self.credentials._universe_domain == "googleapis.com"
+
+        # calling the universe_domain property should trigger a call to
+        # get_universe_domain to fetch the value. The value should be cached.
+        assert self.credentials.universe_domain == "fake_universe_domain"
+        assert self.credentials._universe_domain == "fake_universe_domain"
+        assert self.credentials._universe_domain_cached
+        get_universe_domain.assert_called_once()
+
+        # calling the universe_domain property the second time should use the
+        # cached value instead of calling get_universe_domain
+        assert self.credentials.universe_domain == "fake_universe_domain"
+        get_universe_domain.assert_called_once()
+
+    @mock.patch("google.auth.compute_engine._metadata.get_universe_domain")
+    def test_user_provided_universe_domain(self, get_universe_domain):
+        assert self.credentials_with_all_fields.universe_domain == FAKE_UNIVERSE_DOMAIN
+        assert self.credentials_with_all_fields._universe_domain_cached
+
+        # Since user provided universe_domain, we will not call the universe
+        # domain endpoint.
+        get_universe_domain.assert_not_called()
 
 
 class TestIDTokenCredentials(object):
@@ -392,6 +487,16 @@ class TestIDTokenCredentials(object):
             },
         )
 
+        # mock information about universe_domain
+        responses.add(
+            responses.GET,
+            "http://metadata.google.internal/computeMetadata/v1/universe/"
+            "universe-domain",
+            status=200,
+            content_type="application/json",
+            json={},
+        )
+
         # mock token for credentials
         responses.add(
             responses.GET,
@@ -411,7 +516,7 @@ class TestIDTokenCredentials(object):
         responses.add(
             responses.POST,
             "https://iamcredentials.googleapis.com/v1/projects/-/"
-            "serviceAccounts/service-account@example.com:signBlob?alt=json",
+            "serviceAccounts/service-account@example.com:signBlob",
             status=200,
             content_type="application/json",
             json={"keyId": "some-key-id", "signedBlob": signature},
@@ -502,8 +607,8 @@ class TestIDTokenCredentials(object):
             token_uri="http://xyz.com",
         )
         assert self.credentials._token_uri == "http://xyz.com"
-        creds_with_token_uri = self.credentials.with_token_uri("http://abc.com")
-        assert creds_with_token_uri._token_uri == "http://abc.com"
+        creds_with_token_uri = self.credentials.with_token_uri("http://example.com")
+        assert creds_with_token_uri._token_uri == "http://example.com"
 
     @mock.patch(
         "google.auth._helpers.utcnow",
@@ -525,7 +630,7 @@ class TestIDTokenCredentials(object):
         )
         assert self.credentials._token_uri is None
         with pytest.raises(ValueError):
-            self.credentials.with_token_uri("http://abc.com")
+            self.credentials.with_token_uri("http://example.com")
 
     @responses.activate
     def test_with_quota_project_integration(self):
@@ -564,12 +669,22 @@ class TestIDTokenCredentials(object):
             },
         )
 
+        # stubby response about universe_domain
+        responses.add(
+            responses.GET,
+            "http://metadata.google.internal/computeMetadata/v1/universe/"
+            "universe-domain",
+            status=200,
+            content_type="application/json",
+            json={},
+        )
+
         # mock sign blob endpoint
         signature = base64.b64encode(b"some-signature").decode("utf-8")
         responses.add(
             responses.POST,
             "https://iamcredentials.googleapis.com/v1/projects/-/"
-            "serviceAccounts/service-account@example.com:signBlob?alt=json",
+            "serviceAccounts/service-account@example.com:signBlob",
             status=200,
             content_type="application/json",
             json={"keyId": "some-key-id", "signedBlob": signature},
@@ -724,10 +839,16 @@ class TestIDTokenCredentials(object):
         assert signature == b"signature"
 
     @mock.patch(
+        "google.auth.metrics.token_request_id_token_mds",
+        return_value=ID_TOKEN_REQUEST_METRICS_HEADER_VALUE,
+    )
+    @mock.patch(
         "google.auth.compute_engine._metadata.get_service_account_info", autospec=True
     )
     @mock.patch("google.auth.compute_engine._metadata.get", autospec=True)
-    def test_get_id_token_from_metadata(self, get, get_service_account_info):
+    def test_get_id_token_from_metadata(
+        self, get, get_service_account_info, mock_metrics_header_value
+    ):
         get.return_value = SAMPLE_ID_TOKEN
         get_service_account_info.return_value = {"email": "foo@example.com"}
 
@@ -736,8 +857,12 @@ class TestIDTokenCredentials(object):
         )
         cred.refresh(request=mock.Mock())
 
+        assert get.call_args.kwargs["headers"] == {
+            "x-goog-api-client": ID_TOKEN_REQUEST_METRICS_HEADER_VALUE
+        }
+
         assert cred.token == SAMPLE_ID_TOKEN
-        assert cred.expiry == datetime.datetime.fromtimestamp(SAMPLE_ID_TOKEN_EXP)
+        assert cred.expiry == datetime.datetime.utcfromtimestamp(SAMPLE_ID_TOKEN_EXP)
         assert cred._use_metadata_identity_endpoint
         assert cred._signer is None
         assert cred._token_uri is None

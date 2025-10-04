@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -79,12 +79,12 @@ class TypeCode(proto.Enum):
             [struct_type.fields[i]][google.spanner.v1.StructType.fields].
         NUMERIC (10):
             Encoded as ``string``, in decimal format or scientific
-            notation format. Decimal format: \ ``[+-]Digits[.[Digits]]``
-            or \ ``[+-][Digits].Digits``
+            notation format. Decimal format: ``[+-]Digits[.[Digits]]``
+            or ``[+-][Digits].Digits``
 
             Scientific notation:
-            \ ``[+-]Digits[.[Digits]][ExponentIndicator[+-]Digits]`` or
-            \ ``[+-][Digits].Digits[ExponentIndicator[+-]Digits]``
+            ``[+-]Digits[.[Digits]][ExponentIndicator[+-]Digits]`` or
+            ``[+-][Digits].Digits[ExponentIndicator[+-]Digits]``
             (ExponentIndicator is ``"e"`` or ``"E"``)
         JSON (11):
             Encoded as a JSON-formatted ``string`` as described in RFC
@@ -102,6 +102,15 @@ class TypeCode(proto.Enum):
             4648, section 4.
         ENUM (14):
             Encoded as ``string``, in decimal format.
+        INTERVAL (16):
+            Encoded as ``string``, in ``ISO8601`` duration format -
+            ``P[n]Y[n]M[n]DT[n]H[n]M[n[.fraction]]S`` where ``n`` is an
+            integer. For example, ``P1Y2M3DT4H5M6.5S`` represents time
+            duration of 1 year, 2 months, 3 days, 4 hours, 5 minutes,
+            and 6.5 seconds.
+        UUID (17):
+            Encoded as ``string``, in lower-case hexa-decimal format, as
+            described in RFC 9562, section 4.
     """
     TYPE_CODE_UNSPECIFIED = 0
     BOOL = 1
@@ -118,6 +127,8 @@ class TypeCode(proto.Enum):
     JSON = 11
     PROTO = 13
     ENUM = 14
+    INTERVAL = 16
+    UUID = 17
 
 
 class TypeAnnotationCode(proto.Enum):
@@ -148,10 +159,17 @@ class TypeAnnotationCode(proto.Enum):
             PostgreSQL JSONB values. Currently this annotation is always
             needed for [JSON][google.spanner.v1.TypeCode.JSON] when a
             client interacts with PostgreSQL-enabled Spanner databases.
+        PG_OID (4):
+            PostgreSQL compatible OID type. This
+            annotation can be used by a client interacting
+            with PostgreSQL-enabled Spanner database to
+            specify that a value should be treated using the
+            semantics of the OID type.
     """
     TYPE_ANNOTATION_CODE_UNSPECIFIED = 0
     PG_NUMERIC = 2
     PG_JSONB = 3
+    PG_OID = 4
 
 
 class Type(proto.Message):

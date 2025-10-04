@@ -63,6 +63,9 @@ _BUCKET_DISPLAY_TITLES_AND_DEFAULTS = base.BucketDisplayTitlesAndDefaults(
     default_event_based_hold=base.FieldDisplayTitleAndDefault(
         title='Default Event-Based Hold', default=None
     ),
+    ip_filter_config=base.FieldDisplayTitleAndDefault(
+        title='IP Filter Configuration', default=None
+    ),
     labels=base.FieldDisplayTitleAndDefault(title='Labels', default=None),
     default_kms_key=base.FieldDisplayTitleAndDefault(
         title='Default KMS Key', default=shim_format_util.NONE_STRING
@@ -72,6 +75,15 @@ _BUCKET_DISPLAY_TITLES_AND_DEFAULTS = base.BucketDisplayTitlesAndDefaults(
     ),
     update_time=base.FieldDisplayTitleAndDefault(
         title='Time Updated', default=None
+    ),
+    soft_delete_time=base.FieldDisplayTitleAndDefault(
+        title='Soft Delete Time', default=None
+    ),
+    hard_delete_time=base.FieldDisplayTitleAndDefault(
+        title='Hard Delete Time', default=None
+    ),
+    generation=base.FieldDisplayTitleAndDefault(
+        title='Generation', default=None
     ),
     metageneration=base.FieldDisplayTitleAndDefault(
         title='Metageneration', default=None
@@ -161,6 +173,9 @@ _OBJECT_DISPLAY_TITLES_AND_DEFAULTS = base.ObjectDisplayTitlesAndDefaults(
     noncurrent_time=base.FieldDisplayTitleAndDefault(
         title='Noncurrent Time', default=None
     ),
+    contexts=base.FieldDisplayTitleAndDefault(
+        title='Contexts', default=None
+    ),
     custom_fields=base.FieldDisplayTitleAndDefault(
         title='Additional Properties', default=None
     ),
@@ -189,6 +204,14 @@ _OBJECT_DISPLAY_TITLES_AND_DEFAULTS = base.ObjectDisplayTitlesAndDefaults(
 )
 
 
+def replace_bucket_ip_filter_config_with_mode_field(bucket_resource):
+  """Converts IpFilter object to IpFilter.mode only."""
+  ip_filter_object = getattr(bucket_resource, 'ip_filter_config', None)
+  if not ip_filter_object:
+    return
+  bucket_resource.ip_filter_config = ip_filter_object['mode']
+
+
 class GcloudFullResourceFormatter(base.FullResourceFormatter):
   """Format a resource as per Gcloud Storage style for ls -L output."""
 
@@ -196,6 +219,7 @@ class GcloudFullResourceFormatter(base.FullResourceFormatter):
     """See super class."""
     shim_format_util.replace_autoclass_value_with_prefixed_time(bucket_resource)
     shim_format_util.replace_bucket_values_with_present_string(bucket_resource)
+    replace_bucket_ip_filter_config_with_mode_field(bucket_resource)
     return base.get_formatted_string(
         bucket_resource, _BUCKET_DISPLAY_TITLES_AND_DEFAULTS
     )

@@ -30,6 +30,7 @@ def _CommonArgs(parser, release_track):
   volumes_flags.AddVolumeCreateArgs(parser, release_track=release_track)
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Create(base.CreateCommand):
   """Create a Cloud NetApp Volume."""
@@ -101,6 +102,16 @@ class Create(base.CreateCommand):
     labels = labels_util.ParseCreateArgs(
         args, client.messages.Volume.LabelsValue
     )
+    large_capacity = args.large_capacity
+    throughput_mibps = args.throughput_mibps
+    multiple_endpoints = args.multiple_endpoints
+    cache_parameters = args.cache_parameters
+    block_devices = []
+    if (
+        self._RELEASE_TRACK == base.ReleaseTrack.ALPHA
+        or self._RELEASE_TRACK == base.ReleaseTrack.BETA
+    ):
+      block_devices = args.block_devices
     if (self._RELEASE_TRACK == base.ReleaseTrack.BETA or
         self._RELEASE_TRACK == base.ReleaseTrack.GA):
       backup_config = args.backup_config
@@ -108,15 +119,6 @@ class Create(base.CreateCommand):
     else:
       backup_config = None
       source_backup = None
-    if (self._RELEASE_TRACK == base.ReleaseTrack.ALPHA or
-        self._RELEASE_TRACK == base.ReleaseTrack.BETA):
-      large_capacity = args.large_capacity
-      multiple_endpoints = args.multiple_endpoints
-      tiering_policy = args.tiering_policy
-    else:
-      large_capacity = None
-      multiple_endpoints = None
-      tiering_policy = None
 
     volume = client.ParseVolumeConfig(
         name=volume_ref.RelativeName(),
@@ -140,7 +142,12 @@ class Create(base.CreateCommand):
         backup_config=backup_config,
         large_capacity=large_capacity,
         multiple_endpoints=multiple_endpoints,
-        tiering_policy=tiering_policy)
+        tiering_policy=args.tiering_policy,
+        hybrid_replication_parameters=args.hybrid_replication_parameters,
+        throughput_mibps=throughput_mibps,
+        cache_parameters=cache_parameters,
+        block_devices=block_devices,
+    )
     result = client.CreateVolume(volume_ref, args.async_, volume)
     if args.async_:
       command = 'gcloud {} netapp volumes list'.format(
@@ -171,4 +178,3 @@ class CreateAlpha(CreateBeta):
   @staticmethod
   def Args(parser):
     _CommonArgs(parser, CreateAlpha._RELEASE_TRACK)
-

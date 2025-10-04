@@ -17,8 +17,15 @@ package = 'cloudidentity'
 class AddIdpCredentialOperationMetadata(_messages.Message):
   r"""LRO response metadata for
   InboundSamlSsoProfilesService.AddIdpCredential.
+
+  Fields:
+    state: State of this Operation Will be "awaiting-multi-party-approval"
+      when the operation is deferred due to the target customer having enabled
+      [Multi-party approval for sensitive
+      actions](https://support.google.com/a/answer/13790448).
   """
 
+  state = _messages.StringField(1)
 
 
 class AddIdpCredentialRequest(_messages.Message):
@@ -133,18 +140,20 @@ class BlockDeviceUserResponse(_messages.Message):
 
 
 class BrowserAttributes(_messages.Message):
-  r"""Contains information about browser profiles reported by the Endpoint
-  Verification extension.
+  r"""Contains information about browser profiles reported by the [Endpoint
+  Verification extension](https://chromewebstore.google.com/detail/endpoint-
+  verification/callobklhcbilhphinckomhgkigmfocg?pli=1).
 
   Fields:
     chromeBrowserInfo: Represents the current state of the [Chrome browser
       attributes](https://cloud.google.com/access-context-
-      manager/docs/browser-attributes) sent by the Endpoint Verification
-      extension.
+      manager/docs/browser-attributes) sent by the [Endpoint Verification
+      extension](https://chromewebstore.google.com/detail/endpoint-
+      verification/callobklhcbilhphinckomhgkigmfocg?pli=1).
     chromeProfileId: Chrome profile ID that is exposed by the Chrome API. It
       is unique for each device.
-    lastProfileSyncTime: Timestamp in milliseconds since Epoch when the
-      profile/gcm id was last synced.
+    lastProfileSyncTime: Timestamp in milliseconds since the Unix epoch when
+      the profile/gcm id was last synced.
   """
 
   chromeBrowserInfo = _messages.MessageField('BrowserInfo', 1)
@@ -153,8 +162,9 @@ class BrowserAttributes(_messages.Message):
 
 
 class BrowserInfo(_messages.Message):
-  r"""Browser-specific fields reported by the Endpoint Verification extension.
-  LINT.IfChange
+  r"""Browser-specific fields reported by the [Endpoint Verification
+  extension](https://chromewebstore.google.com/detail/endpoint-
+  verification/callobklhcbilhphinckomhgkigmfocg?pli=1).
 
   Enums:
     BrowserManagementStateValueValuesEnum: Output only. Browser's management
@@ -168,7 +178,8 @@ class BrowserInfo(_messages.Message):
 
   Fields:
     browserManagementState: Output only. Browser's management state.
-    browserVersion: Version of the request initiating browser.
+    browserVersion: Version of the request initiating browser. E.g.
+      `91.0.4442.4`.
     isBuiltInDnsClientEnabled: Current state of [built-in DNS client](https://
       chromeenterprise.google/policies/#BuiltInDnsClientEnabled).
     isBulkDataEntryAnalysisEnabled: Current state of [bulk data analysis](http
@@ -1173,7 +1184,7 @@ class CloudidentityGroupsMembershipsGetMembershipGraphRequest(_messages.Message)
       to search transitive memberships in. Format: `groups/{group_id}`, where
       `group_id` is the unique ID assigned to the Group to which the
       Membership belongs to. group_id can be a wildcard collection id "-".
-      When a group_id is specified, the membership graph will be constrained
+      When `group_id` is specified, the membership graph will be constrained
       to paths between the member (defined in the query) and the parent. If a
       wildcard collection is provided, all membership paths connected to the
       member will be returned.
@@ -1294,7 +1305,7 @@ class CloudidentityGroupsMembershipsSearchDirectGroupsRequest(_messages.Message)
       group key: order_by="group_key desc".
     pageSize: The default page size is 200 (max 1000).
     pageToken: The next_page_token value returned from a previous list
-      request, if any
+      request, if any.
     parent: [Resource
       name](https://cloud.google.com/apis/design/resource_names) of the group
       to search transitive memberships in. Format: groups/{group_id}, where
@@ -1321,7 +1332,7 @@ class CloudidentityGroupsMembershipsSearchTransitiveGroupsRequest(_messages.Mess
 
   Fields:
     pageSize: The default page size is 200 (max 1000).
-    pageToken: The next_page_token value returned from a previous list
+    pageToken: The `next_page_token` value returned from a previous list
       request, if any.
     parent: [Resource
       name](https://cloud.google.com/apis/design/resource_names) of the group
@@ -1339,7 +1350,7 @@ class CloudidentityGroupsMembershipsSearchTransitiveGroupsRequest(_messages.Mess
       within a particular customer, e.g. `parent ==
       'customers/{customer_id}'`. The `customer_id` must begin with "C" (for
       example, 'C046psxkn'). This filtering is only supported for Admins with
-      groups read permissons on the input customer. Example query:
+      groups read permissions on the input customer. Example query:
       `member_key_id == 'member_key_id_value' && in labels && parent ==
       'customers/C046psxkn'`
   """
@@ -1461,6 +1472,78 @@ class CloudidentityGroupsUpdateSecuritySettingsRequest(_messages.Message):
 
   name = _messages.StringField(1, required=True)
   securitySettings = _messages.MessageField('SecuritySettings', 2)
+  updateMask = _messages.StringField(3)
+
+
+class CloudidentityInboundOidcSsoProfilesDeleteRequest(_messages.Message):
+  r"""A CloudidentityInboundOidcSsoProfilesDeleteRequest object.
+
+  Fields:
+    name: Required. The [resource
+      name](https://cloud.google.com/apis/design/resource_names) of the
+      InboundOidcSsoProfile to delete. Format:
+      `inboundOidcSsoProfiles/{sso_profile_id}`
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class CloudidentityInboundOidcSsoProfilesGetRequest(_messages.Message):
+  r"""A CloudidentityInboundOidcSsoProfilesGetRequest object.
+
+  Fields:
+    name: Required. The [resource
+      name](https://cloud.google.com/apis/design/resource_names) of the
+      InboundOidcSsoProfile to get. Format:
+      `inboundOidcSsoProfiles/{sso_profile_id}`
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class CloudidentityInboundOidcSsoProfilesListRequest(_messages.Message):
+  r"""A CloudidentityInboundOidcSsoProfilesListRequest object.
+
+  Fields:
+    filter: A [Common Expression Language](https://github.com/google/cel-spec)
+      expression to filter the results. The only supported filter is filtering
+      by customer. For example: `customer=="customers/C0123abc"`. Omitting the
+      filter or specifying a filter of `customer=="customers/my_customer"`
+      will return the profiles for the customer that the caller (authenticated
+      user) belongs to. Specifying a filter of `customer==""` will return the
+      global shared OIDC profiles.
+    pageSize: The maximum number of InboundOidcSsoProfiles to return. The
+      service may return fewer than this value. If omitted (or defaulted to
+      zero) the server will use a sensible default. This default may change
+      over time. The maximum allowed value is 100. Requests with page_size
+      greater than that will be silently interpreted as having this maximum
+      value.
+    pageToken: A page token, received from a previous
+      `ListInboundOidcSsoProfiles` call. Provide this to retrieve the
+      subsequent page. When paginating, all other parameters provided to
+      `ListInboundOidcSsoProfiles` must match the call that provided the page
+      token.
+  """
+
+  filter = _messages.StringField(1)
+  pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(3)
+
+
+class CloudidentityInboundOidcSsoProfilesPatchRequest(_messages.Message):
+  r"""A CloudidentityInboundOidcSsoProfilesPatchRequest object.
+
+  Fields:
+    inboundOidcSsoProfile: A InboundOidcSsoProfile resource to be passed as
+      the request body.
+    name: Output only. [Resource
+      name](https://cloud.google.com/apis/design/resource_names) of the OIDC
+      SSO profile.
+    updateMask: Required. The list of fields to be updated.
+  """
+
+  inboundOidcSsoProfile = _messages.MessageField('InboundOidcSsoProfile', 1)
+  name = _messages.StringField(2, required=True)
   updateMask = _messages.StringField(3)
 
 
@@ -1726,6 +1809,51 @@ class CloudidentityOrgUnitsMembershipsMoveRequest(_messages.Message):
   name = _messages.StringField(2, required=True)
 
 
+class CloudidentityPoliciesGetRequest(_messages.Message):
+  r"""A CloudidentityPoliciesGetRequest object.
+
+  Fields:
+    name: Required. The name of the policy to retrieve. Format:
+      "policies/{policy}".
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
+class CloudidentityPoliciesListRequest(_messages.Message):
+  r"""A CloudidentityPoliciesListRequest object.
+
+  Fields:
+    filter: Optional. A CEL expression for filtering the results. Policies can
+      be filtered by application with this expression:
+      setting.type.matches('^settings/gmail\\..*$') Policies can be filtered
+      by setting type with this expression:
+      setting.type.matches('^.*\\.service_status$') A maximum of one of the
+      above setting.type clauses can be used. Policies can be filtered by
+      customer with this expression: customer == "customers/{customer}" Where
+      `customer` is the `id` from the [Admin SDK `Customer`
+      resource](https://developers.google.com/admin-
+      sdk/directory/reference/rest/v1/customers). You may use
+      `customers/my_customer` to specify your own organization. When no
+      customer is mentioned it will be default to customers/my_customer. A
+      maximum of one customer clause can be used. The above clauses can only
+      be combined together in a single filter expression with the `&&`
+      operator.
+    pageSize: Optional. The maximum number of results to return. The service
+      can return fewer than this number. If omitted or set to 0, the default
+      is 50 results per page. The maximum allowed value is 100. `page_size`
+      values greater than 100 default to 100.
+    pageToken: Optional. The pagination token received from a prior call to
+      PoliciesService.ListPolicies to retrieve the next page of results. When
+      paginating, all other parameters provided to `ListPoliciesRequest` must
+      match the call that provided the page token.
+  """
+
+  filter = _messages.StringField(1)
+  pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(3)
+
+
 class CreateDeviceRequest(_messages.Message):
   r"""Request message for creating a Company Owned device.
 
@@ -1748,11 +1876,32 @@ class CreateDeviceRequest(_messages.Message):
   device = _messages.MessageField('Device', 2)
 
 
+class CreateInboundOidcSsoProfileOperationMetadata(_messages.Message):
+  r"""LRO response metadata for
+  InboundOidcSsoProfilesService.CreateInboundOidcSsoProfile.
+
+  Fields:
+    state: State of this Operation Will be "awaiting-multi-party-approval"
+      when the operation is deferred due to the target customer having enabled
+      [Multi-party approval for sensitive
+      actions](https://support.google.com/a/answer/13790448).
+  """
+
+  state = _messages.StringField(1)
+
+
 class CreateInboundSamlSsoProfileOperationMetadata(_messages.Message):
   r"""LRO response metadata for
   InboundSamlSsoProfilesService.CreateInboundSamlSsoProfile.
+
+  Fields:
+    state: State of this Operation Will be "awaiting-multi-party-approval"
+      when the operation is deferred due to the target customer having enabled
+      [Multi-party approval for sensitive
+      actions](https://support.google.com/a/answer/13790448).
   """
 
+  state = _messages.StringField(1)
 
 
 class CreateInboundSsoAssignmentOperationMetadata(_messages.Message):
@@ -1783,6 +1932,13 @@ class DeleteIdpCredentialOperationMetadata(_messages.Message):
 
 
 
+class DeleteInboundOidcSsoProfileOperationMetadata(_messages.Message):
+  r"""LRO response metadata for
+  InboundOidcSsoProfilesService.DeleteInboundOidcSsoProfile.
+  """
+
+
+
 class DeleteInboundSamlSsoProfileOperationMetadata(_messages.Message):
   r"""LRO response metadata for
   InboundSamlSsoProfilesService.DeleteInboundSamlSsoProfile.
@@ -1800,7 +1956,10 @@ class DeleteInboundSsoAssignmentOperationMetadata(_messages.Message):
 class Device(_messages.Message):
   r"""A Device within the Cloud Identity Devices API. Represents a Device
   known to Google Cloud, independent of the device ownership, type, and
-  whether it is assigned or in use by a user.
+  whether it is assigned or in use by a user. Important: Device API scopes
+  require that you use domain-wide delegation to access the API. For more
+  information, see [Set up the Devices
+  API](https://cloud.google.com/identity/docs/how-to/setup-devices).
 
   Enums:
     ClientTypesValueListEntryValuesEnum:
@@ -1861,6 +2020,7 @@ class Device(_messages.Message):
     releaseVersion: Output only. OS release version. Example: 6.0.
     securityPatchTime: Output only. OS security patch update time on device.
     serialNumber: Serial Number of device. Example: HT82V1A01076.
+    unifiedDeviceId: Output only. Unified device id of the device.
     wifiMacAddresses: WiFi MAC addresses of device.
   """
 
@@ -1999,7 +2159,8 @@ class Device(_messages.Message):
   releaseVersion = _messages.StringField(29)
   securityPatchTime = _messages.StringField(30)
   serialNumber = _messages.StringField(31)
-  wifiMacAddresses = _messages.StringField(32, repeated=True)
+  unifiedDeviceId = _messages.StringField(32)
+  wifiMacAddresses = _messages.StringField(33, repeated=True)
 
 
 class DeviceUser(_messages.Message):
@@ -2187,18 +2348,25 @@ class EndpointVerificationSpecificAttributes(_messages.Message):
   information) of a device.
 
   Messages:
-    AdditionalSignalsValue: Additional signals reported by Endpoint
-      Verification. It includes the following attributes: 1. Non-configurable
-      attributes: hotfixes, av_installed, av_enabled, windows_domain_name,
-      is_os_native_firewall_enabled, and is_secure_boot_enabled. 2.
-      Configurable attributes: file_config, registry_config, and plist_config.
+    AdditionalSignalsValue: [Additional
+      signals](https://cloud.google.com/endpoint-verification/docs/device-
+      information) reported by Endpoint Verification. It includes the
+      following attributes: * Non-configurable attributes: hotfixes,
+      av_installed, av_enabled, windows_domain_name,
+      is_os_native_firewall_enabled, and is_secure_boot_enabled. *
+      [Configurable attributes](https://cloud.google.com/endpoint-
+      verification/docs/collect-config-attributes): file, folder, and binary
+      attributes; registry entries; and properties in a plist.
 
   Fields:
-    additionalSignals: Additional signals reported by Endpoint Verification.
-      It includes the following attributes: 1. Non-configurable attributes:
+    additionalSignals: [Additional signals](https://cloud.google.com/endpoint-
+      verification/docs/device-information) reported by Endpoint Verification.
+      It includes the following attributes: * Non-configurable attributes:
       hotfixes, av_installed, av_enabled, windows_domain_name,
-      is_os_native_firewall_enabled, and is_secure_boot_enabled. 2.
-      Configurable attributes: file_config, registry_config, and plist_config.
+      is_os_native_firewall_enabled, and is_secure_boot_enabled. *
+      [Configurable attributes](https://cloud.google.com/endpoint-
+      verification/docs/collect-config-attributes): file, folder, and binary
+      attributes; registry entries; and properties in a plist.
     browserAttributes: Details of browser profiles reported by Endpoint
       Verification.
     certificateAttributes: Details of certificates.
@@ -2206,11 +2374,14 @@ class EndpointVerificationSpecificAttributes(_messages.Message):
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class AdditionalSignalsValue(_messages.Message):
-    r"""Additional signals reported by Endpoint Verification. It includes the
-    following attributes: 1. Non-configurable attributes: hotfixes,
-    av_installed, av_enabled, windows_domain_name,
-    is_os_native_firewall_enabled, and is_secure_boot_enabled. 2. Configurable
-    attributes: file_config, registry_config, and plist_config.
+    r"""[Additional signals](https://cloud.google.com/endpoint-
+    verification/docs/device-information) reported by Endpoint Verification.
+    It includes the following attributes: * Non-configurable attributes:
+    hotfixes, av_installed, av_enabled, windows_domain_name,
+    is_os_native_firewall_enabled, and is_secure_boot_enabled. * [Configurable
+    attributes](https://cloud.google.com/endpoint-verification/docs/collect-
+    config-attributes): file, folder, and binary attributes; registry entries;
+    and properties in a plist.
 
     Messages:
       AdditionalProperty: An additional property for a AdditionalSignalsValue
@@ -2376,8 +2547,8 @@ class GoogleAppsCloudidentityDevicesV1BrowserAttributes(_messages.Message):
       verification/callobklhcbilhphinckomhgkigmfocg?pli=1).
     chromeProfileId: Chrome profile ID that is exposed by the Chrome API. It
       is unique for each device.
-    lastProfileSyncTime: Timestamp in milliseconds since Epoch when the
-      profile/gcm id was last synced.
+    lastProfileSyncTime: Timestamp in milliseconds since the Unix epoch when
+      the profile/gcm id was last synced.
   """
 
   chromeBrowserInfo = _messages.MessageField('GoogleAppsCloudidentityDevicesV1BrowserInfo', 1)
@@ -2388,7 +2559,7 @@ class GoogleAppsCloudidentityDevicesV1BrowserAttributes(_messages.Message):
 class GoogleAppsCloudidentityDevicesV1BrowserInfo(_messages.Message):
   r"""Browser-specific fields reported by the [Endpoint Verification
   extension](https://chromewebstore.google.com/detail/endpoint-
-  verification/callobklhcbilhphinckomhgkigmfocg?pli=1). LINT.IfChange
+  verification/callobklhcbilhphinckomhgkigmfocg?pli=1).
 
   Enums:
     BrowserManagementStateValueValuesEnum: Output only. Browser's management
@@ -2402,7 +2573,8 @@ class GoogleAppsCloudidentityDevicesV1BrowserInfo(_messages.Message):
 
   Fields:
     browserManagementState: Output only. Browser's management state.
-    browserVersion: Version of the request initiating browser.
+    browserVersion: Version of the request initiating browser. E.g.
+      `91.0.4442.4`.
     isBuiltInDnsClientEnabled: Current state of [built-in DNS client](https://
       chromeenterprise.google/policies/#BuiltInDnsClientEnabled).
     isBulkDataEntryAnalysisEnabled: Current state of [bulk data analysis](http
@@ -2831,7 +3003,10 @@ class GoogleAppsCloudidentityDevicesV1Device(_messages.Message):
     name: Output only. [Resource
       name](https://cloud.google.com/apis/design/resource_names) of the Device
       in format: `devices/{device}`, where device is the unique id assigned to
-      the Device.
+      the Device. Important: Device API scopes require that you use domain-
+      wide delegation to access the API. For more information, see [Set up the
+      Devices API](https://cloud.google.com/identity/docs/how-to/setup-
+      devices).
     networkOperator: Output only. Mobile or network operator of device, if
       available.
     osVersion: Output only. OS version of the device. Example: Android 8.1.0.
@@ -2845,6 +3020,7 @@ class GoogleAppsCloudidentityDevicesV1Device(_messages.Message):
     releaseVersion: Output only. OS release version. Example: 6.0.
     securityPatchTime: Output only. OS security patch update time on device.
     serialNumber: Serial Number of device. Example: HT82V1A01076.
+    unifiedDeviceId: Output only. Unified device id of the device.
     wifiMacAddresses: WiFi MAC addresses of device.
   """
 
@@ -2963,7 +3139,8 @@ class GoogleAppsCloudidentityDevicesV1Device(_messages.Message):
   releaseVersion = _messages.StringField(28)
   securityPatchTime = _messages.StringField(29)
   serialNumber = _messages.StringField(30)
-  wifiMacAddresses = _messages.StringField(31, repeated=True)
+  unifiedDeviceId = _messages.StringField(31)
+  wifiMacAddresses = _messages.StringField(32, repeated=True)
 
 
 class GoogleAppsCloudidentityDevicesV1DeviceUser(_messages.Message):
@@ -3059,19 +3236,22 @@ class GoogleAppsCloudidentityDevicesV1EndpointVerificationSpecificAttributes(_me
   information) of a device.
 
   Messages:
-    AdditionalSignalsValue: Additional signals reported by Endpoint
-      Verification. It includes the following attributes: 1. Non-configurable
-      attributes: hotfixes, av_installed, av_enabled, windows_domain_name,
-      is_os_native_firewall_enabled, and is_secure_boot_enabled. 2.
+    AdditionalSignalsValue: [Additional
+      signals](https://cloud.google.com/endpoint-verification/docs/device-
+      information) reported by Endpoint Verification. It includes the
+      following attributes: * Non-configurable attributes: hotfixes,
+      av_installed, av_enabled, windows_domain_name,
+      is_os_native_firewall_enabled, and is_secure_boot_enabled. *
       [Configurable attributes](https://cloud.google.com/endpoint-
       verification/docs/collect-config-attributes): file, folder, and binary
       attributes; registry entries; and properties in a plist.
 
   Fields:
-    additionalSignals: Additional signals reported by Endpoint Verification.
-      It includes the following attributes: 1. Non-configurable attributes:
+    additionalSignals: [Additional signals](https://cloud.google.com/endpoint-
+      verification/docs/device-information) reported by Endpoint Verification.
+      It includes the following attributes: * Non-configurable attributes:
       hotfixes, av_installed, av_enabled, windows_domain_name,
-      is_os_native_firewall_enabled, and is_secure_boot_enabled. 2.
+      is_os_native_firewall_enabled, and is_secure_boot_enabled. *
       [Configurable attributes](https://cloud.google.com/endpoint-
       verification/docs/collect-config-attributes): file, folder, and binary
       attributes; registry entries; and properties in a plist.
@@ -3082,13 +3262,14 @@ class GoogleAppsCloudidentityDevicesV1EndpointVerificationSpecificAttributes(_me
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class AdditionalSignalsValue(_messages.Message):
-    r"""Additional signals reported by Endpoint Verification. It includes the
-    following attributes: 1. Non-configurable attributes: hotfixes,
-    av_installed, av_enabled, windows_domain_name,
-    is_os_native_firewall_enabled, and is_secure_boot_enabled. 2.
-    [Configurable attributes](https://cloud.google.com/endpoint-
-    verification/docs/collect-config-attributes): file, folder, and binary
-    attributes; registry entries; and properties in a plist.
+    r"""[Additional signals](https://cloud.google.com/endpoint-
+    verification/docs/device-information) reported by Endpoint Verification.
+    It includes the following attributes: * Non-configurable attributes:
+    hotfixes, av_installed, av_enabled, windows_domain_name,
+    is_os_native_firewall_enabled, and is_secure_boot_enabled. * [Configurable
+    attributes](https://cloud.google.com/endpoint-verification/docs/collect-
+    config-attributes): file, folder, and binary attributes; registry entries;
+    and properties in a plist.
 
     Messages:
       AdditionalProperty: An additional property for a AdditionalSignalsValue
@@ -3168,8 +3349,8 @@ class Group(_messages.Message):
 
   Messages:
     LabelsValue: Required. One or more label entries that apply to the Group.
-      Currently supported labels contain a key with an empty value. Google
-      Groups are the default type of group and have a label with a key of
+      Labels contain a key with an empty value. Google Groups are the default
+      type of group and have a label with a key of
       `cloudidentity.googleapis.com/groups.discussion_forum` and an empty
       value. Existing Google Groups can have an additional label with a key of
       `cloudidentity.googleapis.com/groups.security` and an empty value added
@@ -3177,7 +3358,11 @@ class Group(_messages.Message):
       removed once added.** Dynamic groups have a label with a key of
       `cloudidentity.googleapis.com/groups.dynamic`. Identity-mapped groups
       for Cloud Search have a label with a key of `system/groups/external` and
-      an empty value.
+      an empty value. Google Groups can be
+      [locked](https://support.google.com/a?p=locked-groups). To lock a group,
+      add a label with a key of `cloudidentity.googleapis.com/groups.locked`
+      and an empty value. Doing so locks the group. To unlock the group,
+      remove this label.
 
   Fields:
     additionalGroupKeys: Output only. Additional group keys associated with
@@ -3190,8 +3375,8 @@ class Group(_messages.Message):
       status.
     groupKey: Required. The `EntityKey` of the `Group`.
     labels: Required. One or more label entries that apply to the Group.
-      Currently supported labels contain a key with an empty value. Google
-      Groups are the default type of group and have a label with a key of
+      Labels contain a key with an empty value. Google Groups are the default
+      type of group and have a label with a key of
       `cloudidentity.googleapis.com/groups.discussion_forum` and an empty
       value. Existing Google Groups can have an additional label with a key of
       `cloudidentity.googleapis.com/groups.security` and an empty value added
@@ -3199,7 +3384,11 @@ class Group(_messages.Message):
       removed once added.** Dynamic groups have a label with a key of
       `cloudidentity.googleapis.com/groups.dynamic`. Identity-mapped groups
       for Cloud Search have a label with a key of `system/groups/external` and
-      an empty value.
+      an empty value. Google Groups can be
+      [locked](https://support.google.com/a?p=locked-groups). To lock a group,
+      add a label with a key of `cloudidentity.googleapis.com/groups.locked`
+      and an empty value. Doing so locks the group. To unlock the group,
+      remove this label.
     name: Output only. The [resource
       name](https://cloud.google.com/apis/design/resource_names) of the
       `Group`. Shall be of the form `groups/{group_id}`.
@@ -3216,9 +3405,9 @@ class Group(_messages.Message):
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
-    r"""Required. One or more label entries that apply to the Group. Currently
-    supported labels contain a key with an empty value. Google Groups are the
-    default type of group and have a label with a key of
+    r"""Required. One or more label entries that apply to the Group. Labels
+    contain a key with an empty value. Google Groups are the default type of
+    group and have a label with a key of
     `cloudidentity.googleapis.com/groups.discussion_forum` and an empty value.
     Existing Google Groups can have an additional label with a key of
     `cloudidentity.googleapis.com/groups.security` and an empty value added to
@@ -3226,7 +3415,11 @@ class Group(_messages.Message):
     removed once added.** Dynamic groups have a label with a key of
     `cloudidentity.googleapis.com/groups.dynamic`. Identity-mapped groups for
     Cloud Search have a label with a key of `system/groups/external` and an
-    empty value.
+    empty value. Google Groups can be
+    [locked](https://support.google.com/a?p=locked-groups). To lock a group,
+    add a label with a key of `cloudidentity.googleapis.com/groups.locked` and
+    an empty value. Doing so locks the group. To unlock the group, remove this
+    label.
 
     Messages:
       AdditionalProperty: An additional property for a LabelsValue object.
@@ -3348,6 +3541,29 @@ class IdpCredential(_messages.Message):
   updateTime = _messages.StringField(4)
 
 
+class InboundOidcSsoProfile(_messages.Message):
+  r"""An [OIDC](https://openid.net/developers/how-connect-works/) federation
+  between a Google enterprise customer and an OIDC identity provider.
+
+  Fields:
+    customer: Immutable. The customer. For example: `customers/C0123abc`.
+    displayName: Human-readable name of the OIDC SSO profile.
+    idpConfig: OIDC identity provider configuration.
+    name: Output only. [Resource
+      name](https://cloud.google.com/apis/design/resource_names) of the OIDC
+      SSO profile.
+    rpConfig: OIDC relying party (RP) configuration for this OIDC SSO profile.
+      These are the RP details provided by Google that should be configured on
+      the corresponding identity provider.
+  """
+
+  customer = _messages.StringField(1)
+  displayName = _messages.StringField(2)
+  idpConfig = _messages.MessageField('OidcIdpConfig', 3)
+  name = _messages.StringField(4)
+  rpConfig = _messages.MessageField('OidcRpConfig', 5)
+
+
 class InboundSamlSsoProfile(_messages.Message):
   r"""A [SAML 2.0](https://www.oasis-open.org/standards#samlv2.0) federation
   between a Google enterprise customer and a SAML identity provider.
@@ -3382,6 +3598,8 @@ class InboundSsoAssignment(_messages.Message):
     name: Output only. [Resource
       name](https://cloud.google.com/apis/design/resource_names) of the
       Inbound SSO Assignment.
+    oidcSsoInfo: OpenID Connect SSO details. Must be set if and only if
+      `sso_mode` is set to `OIDC_SSO`.
     rank: Must be zero (which is the default value so it can be omitted) for
       assignments with `target_org_unit` set and must be greater-than-or-
       equal-to one for assignments with `target_group` set.
@@ -3404,6 +3622,8 @@ class InboundSsoAssignment(_messages.Message):
       SSO_OFF: Disable SSO for the targeted users.
       SAML_SSO: Use an external SAML Identity Provider for SSO for the
         targeted users.
+      OIDC_SSO: Use an external OIDC Identity Provider for SSO for the
+        targeted users.
       DOMAIN_WIDE_SAML_IF_ENABLED: Use the domain-wide SAML Identity Provider
         for the targeted users if one is configured; otherwise, this is
         equivalent to `SSO_OFF`. Note that this will also be equivalent to
@@ -3414,16 +3634,18 @@ class InboundSsoAssignment(_messages.Message):
     SSO_MODE_UNSPECIFIED = 0
     SSO_OFF = 1
     SAML_SSO = 2
-    DOMAIN_WIDE_SAML_IF_ENABLED = 3
+    OIDC_SSO = 3
+    DOMAIN_WIDE_SAML_IF_ENABLED = 4
 
   customer = _messages.StringField(1)
   name = _messages.StringField(2)
-  rank = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  samlSsoInfo = _messages.MessageField('SamlSsoInfo', 4)
-  signInBehavior = _messages.MessageField('SignInBehavior', 5)
-  ssoMode = _messages.EnumField('SsoModeValueValuesEnum', 6)
-  targetGroup = _messages.StringField(7)
-  targetOrgUnit = _messages.StringField(8)
+  oidcSsoInfo = _messages.MessageField('OidcSsoInfo', 3)
+  rank = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  samlSsoInfo = _messages.MessageField('SamlSsoInfo', 5)
+  signInBehavior = _messages.MessageField('SignInBehavior', 6)
+  ssoMode = _messages.EnumField('SsoModeValueValuesEnum', 7)
+  targetGroup = _messages.StringField(8)
+  targetOrgUnit = _messages.StringField(9)
 
 
 class IsInvitableUserResponse(_messages.Message):
@@ -3503,6 +3725,20 @@ class ListIdpCredentialsResponse(_messages.Message):
   nextPageToken = _messages.StringField(2)
 
 
+class ListInboundOidcSsoProfilesResponse(_messages.Message):
+  r"""Response of the InboundOidcSsoProfilesService.ListInboundOidcSsoProfiles
+  method.
+
+  Fields:
+    inboundOidcSsoProfiles: List of InboundOidcSsoProfiles.
+    nextPageToken: A token, which can be sent as `page_token` to retrieve the
+      next page. If this field is omitted, there are no subsequent pages.
+  """
+
+  inboundOidcSsoProfiles = _messages.MessageField('InboundOidcSsoProfile', 1, repeated=True)
+  nextPageToken = _messages.StringField(2)
+
+
 class ListInboundSamlSsoProfilesResponse(_messages.Message):
   r"""Response of the InboundSamlSsoProfilesService.ListInboundSamlSsoProfiles
   method.
@@ -3555,6 +3791,19 @@ class ListOrgMembershipsResponse(_messages.Message):
 
   nextPageToken = _messages.StringField(1)
   orgMemberships = _messages.MessageField('OrgMembership', 2, repeated=True)
+
+
+class ListPoliciesResponse(_messages.Message):
+  r"""The response message for PoliciesService.ListPolicies.
+
+  Fields:
+    nextPageToken: The pagination token to retrieve the next page of results.
+      If this field is empty, there are no subsequent pages.
+    policies: The results
+  """
+
+  nextPageToken = _messages.StringField(1)
+  policies = _messages.MessageField('Policy', 2, repeated=True)
 
 
 class ListUserInvitationsResponse(_messages.Message):
@@ -3741,6 +3990,7 @@ class Membership(_messages.Message):
       SERVICE_ACCOUNT: Represents service account type.
       GROUP: Represents group type.
       SHARED_DRIVE: Represents Shared drive.
+      CBCM_BROWSER: Represents a CBCM-managed Chrome Browser type.
       OTHER: Represents other type.
     """
     TYPE_UNSPECIFIED = 0
@@ -3748,7 +3998,8 @@ class Membership(_messages.Message):
     SERVICE_ACCOUNT = 2
     GROUP = 3
     SHARED_DRIVE = 4
-    OTHER = 5
+    CBCM_BROWSER = 5
+    OTHER = 6
 
   createTime = _messages.StringField(1)
   deliverySetting = _messages.EnumField('DeliverySettingValueValuesEnum', 2)
@@ -3766,8 +4017,8 @@ class MembershipAdjacencyList(_messages.Message):
   Fields:
     edges: Each edge contains information about the member that belongs to
       this group. Note: Fields returned here will help identify the specific
-      Membership resource (e.g name, preferred_member_key and role), but may
-      not be a comprehensive list of all fields.
+      Membership resource (e.g `name`, `preferred_member_key` and `role`), but
+      may not be a comprehensive list of all fields.
     group: Resource name of the group that the members belong to.
   """
 
@@ -3940,6 +4191,51 @@ class MoveOrgMembershipRequest(_messages.Message):
   destinationOrgUnit = _messages.StringField(2)
 
 
+class OidcIdpConfig(_messages.Message):
+  r"""OIDC IDP (identity provider) configuration.
+
+  Fields:
+    changePasswordUri: The **Change Password URL** of the identity provider.
+      Users will be sent to this URL when changing their passwords at
+      `myaccount.google.com`. This takes precedence over the change password
+      URL configured at customer-level. Must use `HTTPS`.
+    issuerUri: Required. The Issuer identifier for the IdP. Must be a URL. The
+      discovery URL will be derived from this as described in Section 4 of
+      [the OIDC specification](https://openid.net/specs/openid-connect-
+      discovery-1_0.html).
+  """
+
+  changePasswordUri = _messages.StringField(1)
+  issuerUri = _messages.StringField(2)
+
+
+class OidcRpConfig(_messages.Message):
+  r"""OIDC RP (relying party) configuration.
+
+  Fields:
+    clientId: OAuth2 client ID for OIDC.
+    clientSecret: Input only. OAuth2 client secret for OIDC.
+    redirectUris: Output only. The URL(s) that this client may use in
+      authentication requests.
+  """
+
+  clientId = _messages.StringField(1)
+  clientSecret = _messages.StringField(2)
+  redirectUris = _messages.StringField(3, repeated=True)
+
+
+class OidcSsoInfo(_messages.Message):
+  r"""Details that are applicable when `sso_mode` is set to `OIDC_SSO`.
+
+  Fields:
+    inboundOidcSsoProfile: Required. Name of the `InboundOidcSsoProfile` to
+      use. Must be of the form
+      `inboundOidcSsoProfiles/{inbound_oidc_sso_profile}`.
+  """
+
+  inboundOidcSsoProfile = _messages.StringField(1)
+
+
 class Operation(_messages.Message):
   r"""This resource represents a long-running operation that is the result of
   a network API call.
@@ -4096,8 +4392,86 @@ class OrgMembership(_messages.Message):
   type = _messages.EnumField('TypeValueValuesEnum', 4)
 
 
+class Policy(_messages.Message):
+  r"""A Policy resource binds an instance of a single Setting with the scope
+  of a PolicyQuery. The Setting instance will be applied to all entities that
+  satisfy the query.
+
+  Enums:
+    TypeValueValuesEnum: Output only. The type of the policy.
+
+  Fields:
+    customer: Immutable. Customer that the Policy belongs to. The value is in
+      the format 'customers/{customerId}'. The `customerId` must begin with
+      "C" To find your customer ID in Admin Console see
+      https://support.google.com/a/answer/10070793.
+    name: Output only. Identifier. The [resource
+      name](https://cloud.google.com/apis/design/resource_names) of the
+      Policy. Format: policies/{policy}.
+    policyQuery: Required. The PolicyQuery the Setting applies to.
+    setting: Required. The Setting configured by this Policy.
+    type: Output only. The type of the policy.
+  """
+
+  class TypeValueValuesEnum(_messages.Enum):
+    r"""Output only. The type of the policy.
+
+    Values:
+      POLICY_TYPE_UNSPECIFIED: Unspecified policy type.
+      SYSTEM: Policy type denoting the system-configured policies.
+      ADMIN: Policy type denoting the admin-configurable policies.
+    """
+    POLICY_TYPE_UNSPECIFIED = 0
+    SYSTEM = 1
+    ADMIN = 2
+
+  customer = _messages.StringField(1)
+  name = _messages.StringField(2)
+  policyQuery = _messages.MessageField('PolicyQuery', 3)
+  setting = _messages.MessageField('Setting', 4)
+  type = _messages.EnumField('TypeValueValuesEnum', 5)
+
+
+class PolicyQuery(_messages.Message):
+  r"""PolicyQuery
+
+  Fields:
+    group: Immutable. The group that the query applies to. This field is only
+      set if there is a single value for group that satisfies all clauses of
+      the query. If no group applies, this will be the empty string.
+    orgUnit: Required. Immutable. Non-empty default. The OrgUnit the query
+      applies to. This field is only set if there is a single value for
+      org_unit that satisfies all clauses of the query.
+    query: Immutable. The CEL query that defines which entities the Policy
+      applies to (ex. a User entity). For details about CEL see
+      https://opensource.google.com/projects/cel. The OrgUnits the Policy
+      applies to are represented by a clause like so:
+      entity.org_units.exists(org_unit, org_unit.org_unit_id ==
+      orgUnitId('{orgUnitId}')) The Group the Policy applies to are
+      represented by a clause like so: entity.groups.exists(group,
+      group.group_id == groupId('{groupId}')) The Licenses the Policy applies
+      to are represented by a clause like so: entity.licenses.exists(license,
+      license in ['/product/{productId}/sku/{skuId}']) The above clauses can
+      be present in any combination, and used in conjunction with the &&, ||
+      and ! operators. The org_unit and group fields below are helper fields
+      that contain the corresponding value(s) as the query to make the query
+      easier to use.
+    sortOrder: Output only. The decimal sort order of this PolicyQuery. The
+      value is relative to all other policies with the same setting type for
+      the customer. (There are no duplicates within this set).
+  """
+
+  group = _messages.StringField(1)
+  orgUnit = _messages.StringField(2)
+  query = _messages.StringField(3)
+  sortOrder = _messages.FloatField(4)
+
+
 class PosixGroup(_messages.Message):
   r"""POSIX Group definition to represent a group in a POSIX compliant system.
+  Caution: POSIX groups are deprecated. As of September 26, 2024, you can no
+  longer create new POSIX groups. For more information, see
+  https://cloud.google.com/identity/docs/deprecations/posix-groups
 
   Fields:
     gid: GID of the POSIX group.
@@ -4289,6 +4663,45 @@ class SendUserInvitationRequest(_messages.Message):
 
 
 
+class Setting(_messages.Message):
+  r"""Setting
+
+  Messages:
+    ValueValue: Required. The value of the Setting.
+
+  Fields:
+    type: Required. Immutable. The type of the Setting. .
+    value: Required. The value of the Setting.
+  """
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class ValueValue(_messages.Message):
+    r"""Required. The value of the Setting.
+
+    Messages:
+      AdditionalProperty: An additional property for a ValueValue object.
+
+    Fields:
+      additionalProperties: Properties of the object.
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a ValueValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A extra_types.JsonValue attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.MessageField('extra_types.JsonValue', 2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  type = _messages.StringField(1)
+  value = _messages.MessageField('ValueValue', 2)
+
+
 class SignInBehavior(_messages.Message):
   r"""Controls sign-in behavior.
 
@@ -4441,11 +4854,32 @@ class TransitiveMembershipRole(_messages.Message):
   role = _messages.StringField(1)
 
 
+class UpdateInboundOidcSsoProfileOperationMetadata(_messages.Message):
+  r"""LRO response metadata for
+  InboundOidcSsoProfilesService.UpdateInboundOidcSsoProfile.
+
+  Fields:
+    state: State of this Operation Will be "awaiting-multi-party-approval"
+      when the operation is deferred due to the target customer having enabled
+      [Multi-party approval for sensitive
+      actions](https://support.google.com/a/answer/13790448).
+  """
+
+  state = _messages.StringField(1)
+
+
 class UpdateInboundSamlSsoProfileOperationMetadata(_messages.Message):
   r"""LRO response metadata for
   InboundSamlSsoProfilesService.UpdateInboundSamlSsoProfile.
+
+  Fields:
+    state: State of this Operation Will be "awaiting-multi-party-approval"
+      when the operation is deferred due to the target customer having enabled
+      [Multi-party approval for sensitive
+      actions](https://support.google.com/a/answer/13790448).
   """
 
+  state = _messages.StringField(1)
 
 
 class UpdateInboundSsoAssignmentOperationMetadata(_messages.Message):
@@ -4578,3 +5012,11 @@ encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    CloudidentityGroupsLookupRequest, 'groupKey_id', 'groupKey.id')
+encoding.AddCustomJsonFieldMapping(
+    CloudidentityGroupsLookupRequest, 'groupKey_namespace', 'groupKey.namespace')
+encoding.AddCustomJsonFieldMapping(
+    CloudidentityGroupsMembershipsLookupRequest, 'memberKey_id', 'memberKey.id')
+encoding.AddCustomJsonFieldMapping(
+    CloudidentityGroupsMembershipsLookupRequest, 'memberKey_namespace', 'memberKey.namespace')

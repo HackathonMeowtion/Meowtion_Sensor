@@ -20,9 +20,12 @@ from __future__ import unicode_literals
 
 from googlecloudsdk.api_lib.compute import base_classes
 from googlecloudsdk.api_lib.compute.vpn_gateways import vpn_gateways_utils
+from googlecloudsdk.calliope import arg_parsers
 from googlecloudsdk.calliope import base
+from googlecloudsdk.command_lib.compute import resource_manager_tags_utils
 from googlecloudsdk.command_lib.compute.networks import flags as network_flags
 from googlecloudsdk.command_lib.compute.vpn_gateways import flags
+
 
 _VPN_GATEWAY_ARG = flags.GetVpnGatewayArgument()
 _NETWORK_ARG = network_flags.NetworkArgumentForOtherResource("""\
@@ -31,6 +34,7 @@ _NETWORK_ARG = network_flags.NetworkArgumentForOtherResource("""\
 
 
 @base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.UniverseCompatible
 class Create(base.CreateCommand):
   """Create a new Compute Engine Highly Available VPN gateway.
 
@@ -43,16 +47,13 @@ class Create(base.CreateCommand):
   A VPN Gateway can reference one or more VPN tunnels that connect it to
   external VPN gateways or Cloud VPN Gateways.
   """
-  detailed_help = {
-      'EXAMPLES':
-          """\
+
+  detailed_help = {'EXAMPLES': """\
           To create a VPN gateway, run:
 
               $ {command} my-vpn-gateway --region=us-central1 --network=default
-          """
-  }
-
-  _ipv6_only_vpn_enabled = False
+          """}
+  _support_tagging_at_creation = False
 
   @classmethod
   def Args(cls, parser):
@@ -60,9 +61,18 @@ class Create(base.CreateCommand):
     parser.display_info.AddFormat(flags.DEFAULT_LIST_FORMAT)
     _NETWORK_ARG.AddArgument(parser)
     _VPN_GATEWAY_ARG.AddArgument(parser, operation_type='create')
+    if cls._support_tagging_at_creation:
+      parser.add_argument(
+          '--resource-manager-tags',
+          type=arg_parsers.ArgDict(),
+          metavar='KEY=VALUE',
+          help="""\
+            A comma-separated list of Resource Manager tags to apply to the VPN gateway.
+        """,
+      )
     flags.GetDescriptionFlag().AddToParser(parser)
     flags.GetInterconnectAttachmentsFlag().AddToParser(parser)
-    flags.GetStackType(cls._ipv6_only_vpn_enabled).AddToParser(parser)
+    flags.GetStackType().AddToParser(parser)
     flags.GetGatewayIpVersion().AddToParser(parser)
     parser.display_info.AddCacheUpdater(flags.VpnGatewaysCompleter)
 
@@ -70,8 +80,10 @@ class Create(base.CreateCommand):
     """Issues the request to create a new VPN gateway."""
     holder = base_classes.ComputeApiHolder(self.ReleaseTrack())
     helper = vpn_gateways_utils.VpnGatewayHelper(holder)
+    messages = holder.client.messages
     vpn_gateway_ref = _VPN_GATEWAY_ARG.ResolveAsResource(args, holder.resources)
     network_ref = _NETWORK_ARG.ResolveAsResource(args, holder.resources)
+    params = None
     vpn_interfaces_with_interconnect_attachments = None
     if args.interconnect_attachments is not None:
       vpn_interfaces_with_interconnect_attachments = (
@@ -82,6 +94,11 @@ class Create(base.CreateCommand):
               vpn_gateway_ref.project,
           )
       )
+    if self._support_tagging_at_creation:
+      if args.resource_manager_tags is not None:
+        params = self._CreateVpnGatewayParams(
+            messages, args.resource_manager_tags
+        )
     vpn_gateway_to_insert = helper.GetVpnGatewayForInsert(
         name=vpn_gateway_ref.Name(),
         description=args.description,
@@ -89,10 +106,14 @@ class Create(base.CreateCommand):
         vpn_interfaces_with_interconnect_attachments=vpn_interfaces_with_interconnect_attachments,
         stack_type=args.stack_type,
         gateway_ip_version=args.gateway_ip_version,
+        support_tagging_at_creation=self._support_tagging_at_creation,
+        params=params,
     )
+
     operation_ref = helper.Create(vpn_gateway_ref, vpn_gateway_to_insert)
-    return helper.WaitForOperation(vpn_gateway_ref, operation_ref,
-                                   'Creating VPN Gateway')
+    return helper.WaitForOperation(
+        vpn_gateway_ref, operation_ref, 'Creating VPN Gateway'
+    )
 
   def _mapInterconnectAttachments(self, args, resources, region, project):
     """Returns dict {interfaceId : interconnectAttachmentUrl} based on initial order of names in input interconnectAttachmentName and region and project of VPN Gateway.
@@ -104,15 +125,38 @@ class Create(base.CreateCommand):
       project: VPN Gateway project.
     """
     attachment_refs = args.interconnect_attachments
-    result = {
-        0:
-            flags.GetInterconnectAttachmentRef(resources, attachment_refs[0],
-                                               region, project).SelfLink(),
-        1:
-            flags.GetInterconnectAttachmentRef(resources, attachment_refs[1],
-                                               region, project).SelfLink()
-    }
-    return result
+    if len(attachment_refs) == 1:
+      return {
+          0: flags.GetInterconnectAttachmentRef(
+              resources, attachment_refs[0], region, project
+          ).SelfLink()
+      }
+    else:
+      return {
+          0: flags.GetInterconnectAttachmentRef(
+              resources, attachment_refs[0], region, project
+          ).SelfLink(),
+          1: flags.GetInterconnectAttachmentRef(
+              resources, attachment_refs[1], region, project
+          ).SelfLink(),
+      }
+
+  def _CreateVpnGatewayParams(self, messages, resource_manager_tags):
+    resource_manager_tags_map = (
+        resource_manager_tags_utils.GetResourceManagerTags(
+            resource_manager_tags
+        )
+    )
+    params = messages.VpnGatewayParams
+    additional_properties = [
+        params.ResourceManagerTagsValue.AdditionalProperty(key=key, value=value)
+        for key, value in sorted(resource_manager_tags_map.items())
+    ]
+    return params(
+        resourceManagerTags=params.ResourceManagerTagsValue(
+            additionalProperties=additional_properties
+        )
+    )
 
   def Run(self, args):
     """See base.CreateCommand."""
@@ -137,7 +181,7 @@ class CreateBeta(Create):
   INSTANCE_ARG = None
 
   _support_outer_vpn_ipv6 = True
-  _ipv6_only_vpn_enabled = True
+  _support_tagging_at_creation = False
 
   @classmethod
   def Args(cls, parser):
@@ -165,8 +209,7 @@ class CreateAlpha(Create):
 
   ROUTER_ARG = None
   INSTANCE_ARG = None
-
-  _ipv6_only_vpn_enabled = True
+  _support_tagging_at_creation = True
 
   @classmethod
   def Args(cls, parser):

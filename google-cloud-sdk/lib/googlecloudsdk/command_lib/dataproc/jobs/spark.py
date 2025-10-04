@@ -92,7 +92,6 @@ class SparkBase(job_base.JobBase):
   @staticmethod
   def ConfigureJob(messages, job, files_by_type, logging_config, args):
     """Populates the sparkJob member of the given job."""
-
     spark_job = messages.SparkJob(
         args=args.job_args or [],
         archiveUris=files_by_type['archives'],
@@ -100,13 +99,16 @@ class SparkBase(job_base.JobBase):
         jarFileUris=files_by_type['jars'],
         mainClass=args.main_class,
         mainJarFileUri=files_by_type['main_jar'],
-        loggingConfig=logging_config)
+        loggingConfig=logging_config,
+    )
 
     job_properties = job_util.BuildJobProperties(
-        args.properties, args.properties_file)
+        args.properties, args.properties_file
+    )
     if job_properties:
-    # Sort properties to ensure tests comparing messages not fail on ordering.
+      # Sort properties to ensure tests comparing messages not fail on ordering.
       spark_job.properties = encoding.DictToAdditionalPropertyMessage(
-          job_properties, messages.SparkJob.PropertiesValue, sort_items=True)
+          job_properties, messages.SparkJob.PropertiesValue, sort_items=True
+      )
 
     job.sparkJob = spark_job

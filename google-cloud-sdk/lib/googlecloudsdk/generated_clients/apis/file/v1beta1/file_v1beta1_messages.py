@@ -18,12 +18,22 @@ class Backup(_messages.Message):
   r"""A Filestore backup.
 
   Enums:
+    FileSystemProtocolValueValuesEnum: Output only. The file system protocol
+      of the source Filestore instance that this backup is created from.
     SourceInstanceTierValueValuesEnum: Output only. The service tier of the
       source Filestore instance that this backup is created from.
     StateValueValuesEnum: Output only. The backup state.
 
   Messages:
     LabelsValue: Resource labels to represent user provided metadata.
+    TagsValue: Optional. Input only. Immutable. Tag key-value pairs bound to
+      this resource. Each key must be a namespaced name and each value a short
+      name. Example: "123456789012/environment" : "production",
+      "123456789013/costCenter" : "marketing" See the documentation for more
+      information: - Namespaced name: https://cloud.google.com/resource-
+      manager/docs/tags/tags-creating-and-managing#retrieving_tag_key - Short
+      name: https://cloud.google.com/resource-manager/docs/tags/tags-creating-
+      and-managing#retrieving_tag_value
 
   Fields:
     capacityGb: Output only. Capacity of the source file share when the backup
@@ -33,6 +43,8 @@ class Backup(_messages.Message):
       Requests with longer descriptions will be rejected.
     downloadBytes: Output only. Amount of bytes that will be downloaded if the
       backup is restored
+    fileSystemProtocol: Output only. The file system protocol of the source
+      Filestore instance that this backup is created from.
     kmsKeyName: Immutable. KMS key name used for data encryption.
     labels: Resource labels to represent user provided metadata.
     name: Output only. The resource name of the backup, in the format
@@ -51,7 +63,29 @@ class Backup(_messages.Message):
     storageBytes: Output only. The size of the storage used by the backup. As
       backups share storage, this number is expected to change with backup
       creation/deletion.
+    tags: Optional. Input only. Immutable. Tag key-value pairs bound to this
+      resource. Each key must be a namespaced name and each value a short
+      name. Example: "123456789012/environment" : "production",
+      "123456789013/costCenter" : "marketing" See the documentation for more
+      information: - Namespaced name: https://cloud.google.com/resource-
+      manager/docs/tags/tags-creating-and-managing#retrieving_tag_key - Short
+      name: https://cloud.google.com/resource-manager/docs/tags/tags-creating-
+      and-managing#retrieving_tag_value
   """
+
+  class FileSystemProtocolValueValuesEnum(_messages.Enum):
+    r"""Output only. The file system protocol of the source Filestore instance
+    that this backup is created from.
+
+    Values:
+      FILE_PROTOCOL_UNSPECIFIED: FILE_PROTOCOL_UNSPECIFIED serves a "not set"
+        default value when a FileProtocol is a separate field in a message.
+      NFS_V3: NFS 3.0.
+      NFS_V4_1: NFS 4.1.
+    """
+    FILE_PROTOCOL_UNSPECIFIED = 0
+    NFS_V3 = 1
+    NFS_V4_1 = 2
 
   class SourceInstanceTierValueValuesEnum(_messages.Enum):
     r"""Output only. The service tier of the source Filestore instance that
@@ -131,20 +165,53 @@ class Backup(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class TagsValue(_messages.Message):
+    r"""Optional. Input only. Immutable. Tag key-value pairs bound to this
+    resource. Each key must be a namespaced name and each value a short name.
+    Example: "123456789012/environment" : "production",
+    "123456789013/costCenter" : "marketing" See the documentation for more
+    information: - Namespaced name: https://cloud.google.com/resource-
+    manager/docs/tags/tags-creating-and-managing#retrieving_tag_key - Short
+    name: https://cloud.google.com/resource-manager/docs/tags/tags-creating-
+    and-managing#retrieving_tag_value
+
+    Messages:
+      AdditionalProperty: An additional property for a TagsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type TagsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a TagsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
   capacityGb = _messages.IntegerField(1)
   createTime = _messages.StringField(2)
   description = _messages.StringField(3)
   downloadBytes = _messages.IntegerField(4)
-  kmsKeyName = _messages.StringField(5)
-  labels = _messages.MessageField('LabelsValue', 6)
-  name = _messages.StringField(7)
-  satisfiesPzi = _messages.BooleanField(8)
-  satisfiesPzs = _messages.BooleanField(9)
-  sourceFileShare = _messages.StringField(10)
-  sourceInstance = _messages.StringField(11)
-  sourceInstanceTier = _messages.EnumField('SourceInstanceTierValueValuesEnum', 12)
-  state = _messages.EnumField('StateValueValuesEnum', 13)
-  storageBytes = _messages.IntegerField(14)
+  fileSystemProtocol = _messages.EnumField('FileSystemProtocolValueValuesEnum', 5)
+  kmsKeyName = _messages.StringField(6)
+  labels = _messages.MessageField('LabelsValue', 7)
+  name = _messages.StringField(8)
+  satisfiesPzi = _messages.BooleanField(9)
+  satisfiesPzs = _messages.BooleanField(10)
+  sourceFileShare = _messages.StringField(11)
+  sourceInstance = _messages.StringField(12)
+  sourceInstanceTier = _messages.EnumField('SourceInstanceTierValueValuesEnum', 13)
+  state = _messages.EnumField('StateValueValuesEnum', 14)
+  storageBytes = _messages.IntegerField(15)
+  tags = _messages.MessageField('TagsValue', 16)
 
 
 class CancelOperationRequest(_messages.Message):
@@ -213,14 +280,16 @@ class DenyMaintenancePeriod(_messages.Message):
 
 
 class DirectoryServicesConfig(_messages.Message):
-  r"""Directory Services configuration for Kerberos-based authentication.
+  r"""Directory Services configuration.
 
   Fields:
+    ldap: Configuration for LDAP servers.
     managedActiveDirectory: Configuration for Managed Service for Microsoft
       Active Directory.
   """
 
-  managedActiveDirectory = _messages.MessageField('ManagedActiveDirectoryConfig', 1)
+  ldap = _messages.MessageField('LdapConfig', 1)
+  managedActiveDirectory = _messages.MessageField('ManagedActiveDirectoryConfig', 2)
 
 
 class Empty(_messages.Message):
@@ -402,12 +471,27 @@ class FileProjectsLocationsInstancesPatchRequest(_messages.Message):
     updateMask: Required. Mask of fields to update. At least one path must be
       supplied in this field. The elements of the repeated paths field may
       only include these fields: * "description" * "directory_services" *
-      "file_shares" * "labels"
+      "file_shares" * "labels" * "performance_config" *
+      "deletion_protection_enabled" * "deletion_protection_reason"
   """
 
   instance = _messages.MessageField('Instance', 1)
   name = _messages.StringField(2, required=True)
   updateMask = _messages.StringField(3)
+
+
+class FileProjectsLocationsInstancesPauseReplicaRequest(_messages.Message):
+  r"""A FileProjectsLocationsInstancesPauseReplicaRequest object.
+
+  Fields:
+    name: Required. The resource name of the instance, in the format
+      `projects/{project_id}/locations/{location_id}/instances/{instance_id}`.
+    pauseReplicaRequest: A PauseReplicaRequest resource to be passed as the
+      request body.
+  """
+
+  name = _messages.StringField(1, required=True)
+  pauseReplicaRequest = _messages.MessageField('PauseReplicaRequest', 2)
 
 
 class FileProjectsLocationsInstancesPromoteReplicaRequest(_messages.Message):
@@ -436,6 +520,20 @@ class FileProjectsLocationsInstancesRestoreRequest(_messages.Message):
 
   name = _messages.StringField(1, required=True)
   restoreInstanceRequest = _messages.MessageField('RestoreInstanceRequest', 2)
+
+
+class FileProjectsLocationsInstancesResumeReplicaRequest(_messages.Message):
+  r"""A FileProjectsLocationsInstancesResumeReplicaRequest object.
+
+  Fields:
+    name: Required. The resource name of the instance, in the format
+      `projects/{project_id}/locations/{location_id}/instances/{instance_id}`.
+    resumeReplicaRequest: A ResumeReplicaRequest resource to be passed as the
+      request body.
+  """
+
+  name = _messages.StringField(1, required=True)
+  resumeReplicaRequest = _messages.MessageField('ResumeReplicaRequest', 2)
 
 
 class FileProjectsLocationsInstancesRevertRequest(_messages.Message):
@@ -590,6 +688,8 @@ class FileProjectsLocationsInstancesSnapshotsListRequest(_messages.Message):
     parent: Required. The instance for which to retrieve snapshot information,
       in the format
       `projects/{project_id}/locations/{location}/instances/{instance_id}`.
+    returnPartialSuccess: Optional. If true, allow partial responses for
+      multi-regional Aggregated List requests.
   """
 
   filter = _messages.StringField(1)
@@ -597,6 +697,7 @@ class FileProjectsLocationsInstancesSnapshotsListRequest(_messages.Message):
   pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
   pageToken = _messages.StringField(4)
   parent = _messages.StringField(5, required=True)
+  returnPartialSuccess = _messages.BooleanField(6)
 
 
 class FileProjectsLocationsInstancesSnapshotsPatchRequest(_messages.Message):
@@ -620,11 +721,12 @@ class FileProjectsLocationsListRequest(_messages.Message):
   r"""A FileProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
-    includeUnrevealedLocations: If true, the returned list will include
-      locations which are not yet revealed.
     name: The resource that owns the locations collection, if applicable.
     pageSize: The maximum number of results to return. If not set, the service
       selects a default.
@@ -632,8 +734,8 @@ class FileProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  includeUnrevealedLocations = _messages.BooleanField(2)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
   name = _messages.StringField(3, required=True)
   pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
   pageToken = _messages.StringField(5)
@@ -711,6 +813,16 @@ class FileShareConfig(_messages.Message):
   sourceBackup = _messages.StringField(4)
 
 
+class FixedIOPS(_messages.Message):
+  r"""Fixed IOPS (input/output operations per second) parameters.
+
+  Fields:
+    maxIops: Required. Maximum IOPS.
+  """
+
+  maxIops = _messages.IntegerField(1)
+
+
 class GoogleCloudSaasacceleratorManagementProvidersV1Instance(_messages.Message):
   r"""Instance represents the interface for SLM services to actuate the state
   of control plane resources. Example Instance in JSON, where consumer-
@@ -764,6 +876,14 @@ class GoogleCloudSaasacceleratorManagementProvidersV1Instance(_messages.Message)
       service consumers do not recognize. This is a required field for tenants
       onboarding to Maintenance Window notifications (go/slm-rollout-
       maintenance-policies#prerequisites).
+    consumerProjectNumber: Optional. The consumer_project_number associated
+      with this Apigee instance. This field is added specifically to support
+      Apigee integration with SLM Rollout and UMM. It represents the numerical
+      project ID of the GCP project that consumes this Apigee instance. It is
+      used for SLM rollout notifications and UMM integration, enabling proper
+      mapping to customer projects and log delivery for Apigee instances. This
+      field complements consumer_project_id and may be used for specific
+      Apigee scenarios where the numerical ID is required.
     createTime: Output only. Timestamp when the resource was created.
     instanceType: Optional. The instance_type of this instance of format: proj
       ects/{project_number}/locations/{location_id}/instanceTypes/{instance_ty
@@ -1010,22 +1130,23 @@ class GoogleCloudSaasacceleratorManagementProvidersV1Instance(_messages.Message)
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
   consumerDefinedName = _messages.StringField(1)
-  createTime = _messages.StringField(2)
-  instanceType = _messages.StringField(3)
-  labels = _messages.MessageField('LabelsValue', 4)
-  maintenancePolicyNames = _messages.MessageField('MaintenancePolicyNamesValue', 5)
-  maintenanceSchedules = _messages.MessageField('MaintenanceSchedulesValue', 6)
-  maintenanceSettings = _messages.MessageField('GoogleCloudSaasacceleratorManagementProvidersV1MaintenanceSettings', 7)
-  name = _messages.StringField(8)
-  notificationParameters = _messages.MessageField('NotificationParametersValue', 9)
-  producerMetadata = _messages.MessageField('ProducerMetadataValue', 10)
-  provisionedResources = _messages.MessageField('GoogleCloudSaasacceleratorManagementProvidersV1ProvisionedResource', 11, repeated=True)
-  slmInstanceTemplate = _messages.StringField(12)
-  sloMetadata = _messages.MessageField('GoogleCloudSaasacceleratorManagementProvidersV1SloMetadata', 13)
-  softwareVersions = _messages.MessageField('SoftwareVersionsValue', 14)
-  state = _messages.EnumField('StateValueValuesEnum', 15)
-  tenantProjectId = _messages.StringField(16)
-  updateTime = _messages.StringField(17)
+  consumerProjectNumber = _messages.StringField(2)
+  createTime = _messages.StringField(3)
+  instanceType = _messages.StringField(4)
+  labels = _messages.MessageField('LabelsValue', 5)
+  maintenancePolicyNames = _messages.MessageField('MaintenancePolicyNamesValue', 6)
+  maintenanceSchedules = _messages.MessageField('MaintenanceSchedulesValue', 7)
+  maintenanceSettings = _messages.MessageField('GoogleCloudSaasacceleratorManagementProvidersV1MaintenanceSettings', 8)
+  name = _messages.StringField(9)
+  notificationParameters = _messages.MessageField('NotificationParametersValue', 10)
+  producerMetadata = _messages.MessageField('ProducerMetadataValue', 11)
+  provisionedResources = _messages.MessageField('GoogleCloudSaasacceleratorManagementProvidersV1ProvisionedResource', 12, repeated=True)
+  slmInstanceTemplate = _messages.StringField(13)
+  sloMetadata = _messages.MessageField('GoogleCloudSaasacceleratorManagementProvidersV1SloMetadata', 14)
+  softwareVersions = _messages.MessageField('SoftwareVersionsValue', 15)
+  state = _messages.EnumField('StateValueValuesEnum', 16)
+  tenantProjectId = _messages.StringField(17)
+  updateTime = _messages.StringField(18)
 
 
 class GoogleCloudSaasacceleratorManagementProvidersV1MaintenanceSchedule(_messages.Message):
@@ -1275,10 +1396,23 @@ class GoogleCloudSaasacceleratorManagementProvidersV1SloMetadata(_messages.Messa
   tier = _messages.StringField(3)
 
 
+class IOPSPerTB(_messages.Message):
+  r"""IOPS per TB. Filestore defines TB as 1024^4 bytes (TiB).
+
+  Fields:
+    maxIopsPerTb: Required. Maximum IOPS per TiB.
+  """
+
+  maxIopsPerTb = _messages.IntegerField(1)
+
+
 class Instance(_messages.Message):
   r"""A Filestore instance.
 
   Enums:
+    BackendTypeValueValuesEnum: Optional. Immutable. Designates the backend
+      type of this instance. Intended to be used by internal tests and allowed
+      customers.
     ProtocolValueValuesEnum: Immutable. The protocol indicates the access
       protocol for all shares in the instance. This field is immutable and it
       cannot be changed after the instance has been created. Default value:
@@ -1289,17 +1423,33 @@ class Instance(_messages.Message):
 
   Messages:
     LabelsValue: Resource labels to represent user provided metadata.
+    TagsValue: Optional. Input only. Immutable. Tag key-value pairs bound to
+      this resource. Each key must be a namespaced name and each value a short
+      name. Example: "123456789012/environment" : "production",
+      "123456789013/costCenter" : "marketing" See the documentation for more
+      information: - Namespaced name: https://cloud.google.com/resource-
+      manager/docs/tags/tags-creating-and-managing#retrieving_tag_key - Short
+      name: https://cloud.google.com/resource-manager/docs/tags/tags-creating-
+      and-managing#retrieving_tag_value
 
   Fields:
+    backendType: Optional. Immutable. Designates the backend type of this
+      instance. Intended to be used by internal tests and allowed customers.
     capacityGb: The storage capacity of the instance in gigabytes (GB = 1024^3
       bytes). This capacity can be increased up to `max_capacity_gb` GB in
       multipliers of `capacity_step_size_gb` GB.
     capacityStepSizeGb: Output only. The increase/decrease capacity step size.
     createTime: Output only. The time when the instance was created.
+    customPerformanceSupported: Output only. Indicates whether this instance
+      supports configuring its performance. If true, the user can configure
+      the instance's performance by using the 'performance_config' field.
+    deletionProtectionEnabled: Optional. Indicates whether the instance is
+      protected against deletion.
+    deletionProtectionReason: Optional. The reason for enabling deletion
+      protection.
     description: The description of the instance (2048 characters or less).
-    directoryServices: Optional. Directory Services configuration for
-      Kerberos-based authentication. Should only be set if protocol is
-      "NFS_V4_1".
+    directoryServices: Optional. Directory Services configuration. Should only
+      be set if protocol is "NFS_V4_1".
     etag: Server-specified ETag for the instance resource to prevent
       simultaneous updates from overwriting each other.
     fileShares: File system shares on the instance. For this version, only a
@@ -1308,6 +1458,7 @@ class Instance(_messages.Message):
     labels: Resource labels to represent user provided metadata.
     maxCapacityGb: Output only. The max capacity of the instance.
     maxShareCount: The max number of shares allowed.
+    minCapacityGb: Output only. The min capacity of the instance.
     multiShareEnabled: Indicates whether this instance uses a multi-share
       configuration with which it can have more than one file-share or none at
       all. File-shares are added, updated and removed through the separate
@@ -1316,9 +1467,12 @@ class Instance(_messages.Message):
       `projects/{project_id}/locations/{location_id}/instances/{instance_id}`.
     networks: VPC networks to which the instance is connected. For this
       version, only a single network is supported.
+    performanceConfig: Optional. Used to configure performance.
+    performanceLimits: Output only. Used for getting performance limits.
     protocol: Immutable. The protocol indicates the access protocol for all
       shares in the instance. This field is immutable and it cannot be changed
       after the instance has been created. Default value: `NFS_V3`.
+    replication: Optional. Replication configuration.
     satisfiesPzi: Output only. Reserved for future use.
     satisfiesPzs: Output only. Reserved for future use.
     state: Output only. The instance state.
@@ -1326,8 +1480,29 @@ class Instance(_messages.Message):
       state, if available.
     suspensionReasons: Output only. Field indicates all the reasons the
       instance is in "SUSPENDED" state.
+    tags: Optional. Input only. Immutable. Tag key-value pairs bound to this
+      resource. Each key must be a namespaced name and each value a short
+      name. Example: "123456789012/environment" : "production",
+      "123456789013/costCenter" : "marketing" See the documentation for more
+      information: - Namespaced name: https://cloud.google.com/resource-
+      manager/docs/tags/tags-creating-and-managing#retrieving_tag_key - Short
+      name: https://cloud.google.com/resource-manager/docs/tags/tags-creating-
+      and-managing#retrieving_tag_value
     tier: The service tier of the instance.
   """
+
+  class BackendTypeValueValuesEnum(_messages.Enum):
+    r"""Optional. Immutable. Designates the backend type of this instance.
+    Intended to be used by internal tests and allowed customers.
+
+    Values:
+      BACKEND_TYPE_UNSPECIFIED: Backend type not set.
+      COMPUTE_BASED_BACKEND: Instance is backed by Compute.
+      FILESTORE_BACKEND: Instance is backed by Filestore.
+    """
+    BACKEND_TYPE_UNSPECIFIED = 0
+    COMPUTE_BASED_BACKEND = 1
+    FILESTORE_BACKEND = 2
 
   class ProtocolValueValuesEnum(_messages.Enum):
     r"""Immutable. The protocol indicates the access protocol for all shares
@@ -1446,27 +1621,94 @@ class Instance(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
-  capacityGb = _messages.IntegerField(1)
-  capacityStepSizeGb = _messages.IntegerField(2)
-  createTime = _messages.StringField(3)
-  description = _messages.StringField(4)
-  directoryServices = _messages.MessageField('DirectoryServicesConfig', 5)
-  etag = _messages.StringField(6)
-  fileShares = _messages.MessageField('FileShareConfig', 7, repeated=True)
-  kmsKeyName = _messages.StringField(8)
-  labels = _messages.MessageField('LabelsValue', 9)
-  maxCapacityGb = _messages.IntegerField(10)
-  maxShareCount = _messages.IntegerField(11)
-  multiShareEnabled = _messages.BooleanField(12)
-  name = _messages.StringField(13)
-  networks = _messages.MessageField('NetworkConfig', 14, repeated=True)
-  protocol = _messages.EnumField('ProtocolValueValuesEnum', 15)
-  satisfiesPzi = _messages.BooleanField(16)
-  satisfiesPzs = _messages.BooleanField(17)
-  state = _messages.EnumField('StateValueValuesEnum', 18)
-  statusMessage = _messages.StringField(19)
-  suspensionReasons = _messages.EnumField('SuspensionReasonsValueListEntryValuesEnum', 20, repeated=True)
-  tier = _messages.EnumField('TierValueValuesEnum', 21)
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class TagsValue(_messages.Message):
+    r"""Optional. Input only. Immutable. Tag key-value pairs bound to this
+    resource. Each key must be a namespaced name and each value a short name.
+    Example: "123456789012/environment" : "production",
+    "123456789013/costCenter" : "marketing" See the documentation for more
+    information: - Namespaced name: https://cloud.google.com/resource-
+    manager/docs/tags/tags-creating-and-managing#retrieving_tag_key - Short
+    name: https://cloud.google.com/resource-manager/docs/tags/tags-creating-
+    and-managing#retrieving_tag_value
+
+    Messages:
+      AdditionalProperty: An additional property for a TagsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type TagsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a TagsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  backendType = _messages.EnumField('BackendTypeValueValuesEnum', 1)
+  capacityGb = _messages.IntegerField(2)
+  capacityStepSizeGb = _messages.IntegerField(3)
+  createTime = _messages.StringField(4)
+  customPerformanceSupported = _messages.BooleanField(5)
+  deletionProtectionEnabled = _messages.BooleanField(6)
+  deletionProtectionReason = _messages.StringField(7)
+  description = _messages.StringField(8)
+  directoryServices = _messages.MessageField('DirectoryServicesConfig', 9)
+  etag = _messages.StringField(10)
+  fileShares = _messages.MessageField('FileShareConfig', 11, repeated=True)
+  kmsKeyName = _messages.StringField(12)
+  labels = _messages.MessageField('LabelsValue', 13)
+  maxCapacityGb = _messages.IntegerField(14)
+  maxShareCount = _messages.IntegerField(15)
+  minCapacityGb = _messages.IntegerField(16)
+  multiShareEnabled = _messages.BooleanField(17)
+  name = _messages.StringField(18)
+  networks = _messages.MessageField('NetworkConfig', 19, repeated=True)
+  performanceConfig = _messages.MessageField('PerformanceConfig', 20)
+  performanceLimits = _messages.MessageField('PerformanceLimits', 21)
+  protocol = _messages.EnumField('ProtocolValueValuesEnum', 22)
+  replication = _messages.MessageField('Replication', 23)
+  satisfiesPzi = _messages.BooleanField(24)
+  satisfiesPzs = _messages.BooleanField(25)
+  state = _messages.EnumField('StateValueValuesEnum', 26)
+  statusMessage = _messages.StringField(27)
+  suspensionReasons = _messages.EnumField('SuspensionReasonsValueListEntryValuesEnum', 28, repeated=True)
+  tags = _messages.MessageField('TagsValue', 29)
+  tier = _messages.EnumField('TierValueValuesEnum', 30)
+
+
+class LdapConfig(_messages.Message):
+  r"""LdapConfig contains all the parameters for connecting to LDAP servers.
+
+  Fields:
+    domain: Required. The LDAP domain name in the format of `my-domain.com`.
+    groupsOu: Optional. The groups Organizational Unit (OU) is optional. This
+      parameter is a hint to allow faster lookup in the LDAP namespace. In
+      case that this parameter is not provided, Filestore instance will query
+      the whole LDAP namespace.
+    servers: Required. The servers names are used for specifying the LDAP
+      servers names. The LDAP servers names can come with two formats: 1. DNS
+      name, for example: `ldap.example1.com`, `ldap.example2.com`. 2. IP
+      address, for example: `10.0.0.1`, `10.0.0.2`, `10.0.0.3`. All servers
+      names must be in the same format: either all DNS names or all IP
+      addresses.
+    usersOu: Optional. The users Organizational Unit (OU) is optional. This
+      parameter is a hint to allow faster lookup in the LDAP namespace. In
+      case that this parameter is not provided, Filestore instance will query
+      the whole LDAP namespace.
+  """
+
+  domain = _messages.StringField(1)
+  groupsOu = _messages.StringField(2)
+  servers = _messages.StringField(3, repeated=True)
+  usersOu = _messages.StringField(4)
 
 
 class ListBackupsResponse(_messages.Message):
@@ -1481,7 +1723,7 @@ class ListBackupsResponse(_messages.Message):
       locations.
     nextPageToken: The token you can use to retrieve the next page of results.
       Not returned if there are no more results in the list.
-    unreachable: Locations that could not be reached.
+    unreachable: Unordered list. Locations that could not be reached.
   """
 
   backups = _messages.MessageField('Backup', 1, repeated=True)
@@ -1501,7 +1743,7 @@ class ListInstancesResponse(_messages.Message):
       locations.
     nextPageToken: The token you can use to retrieve the next page of results.
       Not returned if there are no more results in the list.
-    unreachable: Locations that could not be reached.
+    unreachable: Unordered list. Locations that could not be reached.
   """
 
   instances = _messages.MessageField('Instance', 1, repeated=True)
@@ -1542,7 +1784,7 @@ class ListSharesResponse(_messages.Message):
     nextPageToken: The token you can use to retrieve the next page of results.
       Not returned if there are no more results in the list.
     shares: A list of shares in the project for the specified instance.
-    unreachable: Locations that could not be reached.
+    unreachable: Unordered list. Locations that could not be reached.
   """
 
   nextPageToken = _messages.StringField(1)
@@ -1557,10 +1799,12 @@ class ListSnapshotsResponse(_messages.Message):
     nextPageToken: The token you can use to retrieve the next page of results.
       Not returned if there are no more results in the list.
     snapshots: A list of snapshots in the project for the specified instance.
+    unreachable: Unordered list. Locations that could not be reached.
   """
 
   nextPageToken = _messages.StringField(1)
   snapshots = _messages.MessageField('Snapshot', 2, repeated=True)
+  unreachable = _messages.StringField(3, repeated=True)
 
 
 class Location(_messages.Message):
@@ -1735,13 +1979,13 @@ class MaintenanceWindow(_messages.Message):
 
 class ManagedActiveDirectoryConfig(_messages.Message):
   r"""ManagedActiveDirectoryConfig contains all the parameters for connecting
-  to Managed Active Directory.
+  to Managed Service for Microsoft Active Directory (Managed Microsoft AD).
 
   Fields:
-    computer: Required. The computer name is used as a prefix to the mount
-      remote target. Example: if the computer is `my-computer`, the mount
-      command will look like: `$mount -o vers=4.1,sec=krb5 my-
-      computer.filestore.: `.
+    computer: Required. The computer name is used as a prefix in the command
+      to mount the remote target. For example: if the computer is `my-
+      computer`, the mount command will look like: `$mount -o
+      vers=4.1,sec=krb5 my-computer.filestore.: `.
     domain: Required. The domain resource name, in the format
       `projects/{project_id}/locations/global/domains/{domain}`.
   """
@@ -1769,6 +2013,8 @@ class NetworkConfig(_messages.Message):
     network: The name of the Google Compute Engine [VPC
       network](https://cloud.google.com/vpc/docs/vpc) to which the instance is
       connected.
+    pscConfig: Optional. Private Service Connect configuration. Should only be
+      set when connect_mode is PRIVATE_SERVICE_CONNECT.
     reservedIpRange: Optional, reserved_ip_range can have one of the following
       two types of values. * CIDR range value when using DIRECT_PEERING
       connect mode. * [Allocated IP address
@@ -1797,10 +2043,14 @@ class NetworkConfig(_messages.Message):
       PRIVATE_SERVICE_ACCESS: Connect to your Filestore instance using Private
         Service Access. Private services access provides an IP address range
         for multiple Google Cloud services, including Filestore.
+      PRIVATE_SERVICE_CONNECT: Connect to your Filestore instance using
+        Private Service Connect. A connection policy must exist in the region
+        for the VPC network and the google-cloud-filestore service class.
     """
     CONNECT_MODE_UNSPECIFIED = 0
     DIRECT_PEERING = 1
     PRIVATE_SERVICE_ACCESS = 2
+    PRIVATE_SERVICE_CONNECT = 3
 
   class ModesValueListEntryValuesEnum(_messages.Enum):
     r"""ModesValueListEntryValuesEnum enum type.
@@ -1816,7 +2066,8 @@ class NetworkConfig(_messages.Message):
   ipAddresses = _messages.StringField(2, repeated=True)
   modes = _messages.EnumField('ModesValueListEntryValuesEnum', 3, repeated=True)
   network = _messages.StringField(4)
-  reservedIpRange = _messages.StringField(5)
+  pscConfig = _messages.MessageField('PscConfig', 5)
+  reservedIpRange = _messages.StringField(6)
 
 
 class NfsExportOptions(_messages.Message):
@@ -1849,6 +2100,10 @@ class NfsExportOptions(_messages.Message):
       file share. Overlapping IP ranges are not allowed, both within and
       across NfsExportOptions. An error will be returned. The limit is 64 IP
       ranges/addresses for each FileShareConfig among all NfsExportOptions.
+    network: Optional. The source VPC network for ip_ranges. Required for
+      instances using Private Service Connect, optional otherwise. If
+      provided, must be the same network specified in the
+      `NetworkConfig.network` field.
     securityFlavors: The security flavors allowed for mount operations. The
       default is AUTH_SYS.
     squashMode: Either NO_ROOT_SQUASH, for allowing root access on the
@@ -1908,8 +2163,9 @@ class NfsExportOptions(_messages.Message):
   anonGid = _messages.IntegerField(2)
   anonUid = _messages.IntegerField(3)
   ipRanges = _messages.StringField(4, repeated=True)
-  securityFlavors = _messages.EnumField('SecurityFlavorsValueListEntryValuesEnum', 5, repeated=True)
-  squashMode = _messages.EnumField('SquashModeValueValuesEnum', 6)
+  network = _messages.StringField(5)
+  securityFlavors = _messages.EnumField('SecurityFlavorsValueListEntryValuesEnum', 6, repeated=True)
+  squashMode = _messages.EnumField('SquashModeValueValuesEnum', 7)
 
 
 class Operation(_messages.Message):
@@ -2027,8 +2283,8 @@ class OperationMetadata(_messages.Message):
     apiVersion: Output only. API version used to start the operation.
     cancelRequested: Output only. Identifies whether the user has requested
       cancellation of the operation. Operations that have been cancelled
-      successfully have Operation.error value with a google.rpc.Status.code of
-      1, corresponding to `Code.CANCELLED`.
+      successfully have google.longrunning.Operation.error value with a
+      google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
     createTime: Output only. The time the operation was created.
     endTime: Output only. The time the operation finished running.
     statusDetail: Output only. Human-readable status of the operation, if any.
@@ -2046,10 +2302,184 @@ class OperationMetadata(_messages.Message):
   verb = _messages.StringField(7)
 
 
-class PromoteReplicaRequest(_messages.Message):
-  r"""PromoteReplicaRequest promotes a Filestore standby instance (replica).
+class PauseReplicaRequest(_messages.Message):
+  r"""PauseReplicaRequest pauses a Filestore standby instance (replica)."""
+
+
+class PerformanceConfig(_messages.Message):
+  r"""Used for setting the performance configuration. If the user doesn't
+  specify PerformanceConfig, automatically provision the default performance
+  settings as described in
+  https://cloud.google.com/filestore/docs/performance. Larger instances will
+  be linearly set to more IOPS. If the instance's capacity is increased or
+  decreased, its performance will be automatically adjusted upwards or
+  downwards accordingly (respectively).
+
+  Fields:
+    fixedIops: Choose a fixed provisioned IOPS value for the instance, which
+      will remain constant regardless of instance capacity. Value must be a
+      multiple of 1000. If the chosen value is outside the supported range for
+      the instance's capacity during instance creation, instance creation will
+      fail with an `InvalidArgument` error. Similarly, if an instance capacity
+      update would result in a value outside the supported range, the update
+      will fail with an `InvalidArgument` error.
+    iopsPerTb: Provision IOPS dynamically based on the capacity of the
+      instance. Provisioned IOPS will be calculated by multiplying the
+      capacity of the instance in TiB by the `iops_per_tb` value. For example,
+      for a 2 TiB instance with an `iops_per_tb` value of 17000 the
+      provisioned IOPS will be 34000. If the calculated value is outside the
+      supported range for the instance's capacity during instance creation,
+      instance creation will fail with an `InvalidArgument` error. Similarly,
+      if an instance capacity update would result in a value outside the
+      supported range, the update will fail with an `InvalidArgument` error.
   """
 
+  fixedIops = _messages.MessageField('FixedIOPS', 1)
+  iopsPerTb = _messages.MessageField('IOPSPerTB', 2)
+
+
+class PerformanceLimits(_messages.Message):
+  r"""The enforced performance limits, calculated from the instance's
+  performance configuration.
+
+  Fields:
+    maxIops: Output only. The max IOPS.
+    maxReadIops: Output only. The max read IOPS.
+    maxReadThroughputBps: Output only. The max read throughput in bytes per
+      second.
+    maxWriteIops: Output only. The max write IOPS.
+    maxWriteThroughputBps: Output only. The max write throughput in bytes per
+      second.
+  """
+
+  maxIops = _messages.IntegerField(1)
+  maxReadIops = _messages.IntegerField(2)
+  maxReadThroughputBps = _messages.IntegerField(3)
+  maxWriteIops = _messages.IntegerField(4)
+  maxWriteThroughputBps = _messages.IntegerField(5)
+
+
+class PromoteReplicaRequest(_messages.Message):
+  r"""PromoteReplicaRequest promotes a Filestore standby instance (replica).
+
+  Fields:
+    peerInstance: Optional. The resource name of the peer instance to promote,
+      in the format
+      `projects/{project_id}/locations/{location_id}/instances/{instance_id}`.
+      The peer instance is required if the operation is called on an active
+      instance.
+  """
+
+  peerInstance = _messages.StringField(1)
+
+
+class PscConfig(_messages.Message):
+  r"""Private Service Connect configuration.
+
+  Fields:
+    endpointProject: Consumer service project in which the Private Service
+      Connect endpoint would be set up. This is optional, and only relevant in
+      case the network is a shared VPC. If this is not specified, the endpoint
+      would be setup in the VPC host project.
+  """
+
+  endpointProject = _messages.StringField(1)
+
+
+class ReplicaConfig(_messages.Message):
+  r"""Replica configuration for the instance.
+
+  Enums:
+    StateValueValuesEnum: Output only. The replica state.
+    StateReasonsValueListEntryValuesEnum:
+
+  Fields:
+    lastActiveSyncTime: Output only. The timestamp of the latest replication
+      snapshot taken on the active instance and is already replicated safely.
+    peerInstance: The peer instance.
+    state: Output only. The replica state.
+    stateReasons: Output only. Additional information about the replication
+      state, if available.
+    stateUpdateTime: Output only. The time when the replica state was updated.
+  """
+
+  class StateReasonsValueListEntryValuesEnum(_messages.Enum):
+    r"""StateReasonsValueListEntryValuesEnum enum type.
+
+    Values:
+      STATE_REASON_UNSPECIFIED: Reason not specified.
+      PEER_INSTANCE_UNREACHABLE: The peer instance is unreachable.
+      REMOVE_FAILED: The remove replica peer instance operation failed.
+      PAUSE_FAILED: The pause replica operation failed.
+      RESUME_FAILED: The resume replica operation failed.
+    """
+    STATE_REASON_UNSPECIFIED = 0
+    PEER_INSTANCE_UNREACHABLE = 1
+    REMOVE_FAILED = 2
+    PAUSE_FAILED = 3
+    RESUME_FAILED = 4
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. The replica state.
+
+    Values:
+      STATE_UNSPECIFIED: State not set.
+      CREATING: The replica is being created.
+      READY: The replica is ready.
+      REMOVING: The replica is being removed.
+      FAILED: The replica is experiencing an issue and might be unusable. You
+        can get further details from the `stateReasons` field of the
+        `ReplicaConfig` object.
+      PROMOTING: The replica is being promoted.
+      PAUSING: The replica is being paused.
+      PAUSED: The replica is paused.
+      RESUMING: The replica is being resumed.
+    """
+    STATE_UNSPECIFIED = 0
+    CREATING = 1
+    READY = 2
+    REMOVING = 3
+    FAILED = 4
+    PROMOTING = 5
+    PAUSING = 6
+    PAUSED = 7
+    RESUMING = 8
+
+  lastActiveSyncTime = _messages.StringField(1)
+  peerInstance = _messages.StringField(2)
+  state = _messages.EnumField('StateValueValuesEnum', 3)
+  stateReasons = _messages.EnumField('StateReasonsValueListEntryValuesEnum', 4, repeated=True)
+  stateUpdateTime = _messages.StringField(5)
+
+
+class Replication(_messages.Message):
+  r"""Replication specifications.
+
+  Enums:
+    RoleValueValuesEnum: Output only. The replication role.
+
+  Fields:
+    replicas: Replication configuration for the replica instance associated
+      with this instance. Only a single replica is supported.
+    role: Output only. The replication role.
+  """
+
+  class RoleValueValuesEnum(_messages.Enum):
+    r"""Output only. The replication role.
+
+    Values:
+      ROLE_UNSPECIFIED: Role not set.
+      ACTIVE: The instance is the `ACTIVE` replication member, functions as
+        the replication source instance.
+      STANDBY: The instance is the `STANDBY` replication member, functions as
+        the replication destination instance.
+    """
+    ROLE_UNSPECIFIED = 0
+    ACTIVE = 1
+    STANDBY = 2
+
+  replicas = _messages.MessageField('ReplicaConfig', 1, repeated=True)
+  role = _messages.EnumField('RoleValueValuesEnum', 2)
 
 
 class RestoreInstanceRequest(_messages.Message):
@@ -2068,6 +2498,10 @@ class RestoreInstanceRequest(_messages.Message):
   fileShare = _messages.StringField(1)
   sourceBackup = _messages.StringField(2)
   sourceSnapshot = _messages.StringField(3)
+
+
+class ResumeReplicaRequest(_messages.Message):
+  r"""ResumeReplicaRequest resumes a Filestore standby instance (replica)."""
 
 
 class RevertInstanceRequest(_messages.Message):
@@ -2213,6 +2647,14 @@ class Snapshot(_messages.Message):
 
   Messages:
     LabelsValue: Resource labels to represent user provided metadata.
+    TagsValue: Optional. Input only. Immutable. Tag key-value pairs bound to
+      this resource. Each key must be a namespaced name and each value a short
+      name. Example: "123456789012/environment" : "production",
+      "123456789013/costCenter" : "marketing" See the documentation for more
+      information: - Namespaced name: https://cloud.google.com/resource-
+      manager/docs/tags/tags-creating-and-managing#retrieving_tag_key - Short
+      name: https://cloud.google.com/resource-manager/docs/tags/tags-creating-
+      and-managing#retrieving_tag_value
 
   Fields:
     createTime: Output only. The time when the snapshot was created.
@@ -2225,6 +2667,14 @@ class Snapshot(_messages.Message):
       cts/{project_id}/locations/{location_id}/instances/{instance_id}/snapsho
       ts/{snapshot_id}`.
     state: Output only. The snapshot state.
+    tags: Optional. Input only. Immutable. Tag key-value pairs bound to this
+      resource. Each key must be a namespaced name and each value a short
+      name. Example: "123456789012/environment" : "production",
+      "123456789013/costCenter" : "marketing" See the documentation for more
+      information: - Namespaced name: https://cloud.google.com/resource-
+      manager/docs/tags/tags-creating-and-managing#retrieving_tag_key - Short
+      name: https://cloud.google.com/resource-manager/docs/tags/tags-creating-
+      and-managing#retrieving_tag_value
   """
 
   class StateValueValuesEnum(_messages.Enum):
@@ -2265,12 +2715,44 @@ class Snapshot(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class TagsValue(_messages.Message):
+    r"""Optional. Input only. Immutable. Tag key-value pairs bound to this
+    resource. Each key must be a namespaced name and each value a short name.
+    Example: "123456789012/environment" : "production",
+    "123456789013/costCenter" : "marketing" See the documentation for more
+    information: - Namespaced name: https://cloud.google.com/resource-
+    manager/docs/tags/tags-creating-and-managing#retrieving_tag_key - Short
+    name: https://cloud.google.com/resource-manager/docs/tags/tags-creating-
+    and-managing#retrieving_tag_value
+
+    Messages:
+      AdditionalProperty: An additional property for a TagsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type TagsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a TagsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
   createTime = _messages.StringField(1)
   description = _messages.StringField(2)
   filesystemUsedBytes = _messages.IntegerField(3)
   labels = _messages.MessageField('LabelsValue', 4)
   name = _messages.StringField(5)
   state = _messages.EnumField('StateValueValuesEnum', 6)
+  tags = _messages.MessageField('TagsValue', 7)
 
 
 class StandardQueryParameters(_messages.Message):
@@ -2393,13 +2875,16 @@ class TimeOfDay(_messages.Message):
   seconds. Related types are google.type.Date and `google.protobuf.Timestamp`.
 
   Fields:
-    hours: Hours of day in 24 hour format. Should be from 0 to 23. An API may
-      choose to allow the value "24:00:00" for scenarios like business closing
-      time.
-    minutes: Minutes of hour of day. Must be from 0 to 59.
-    nanos: Fractions of seconds in nanoseconds. Must be from 0 to 999,999,999.
-    seconds: Seconds of minutes of the time. Must normally be from 0 to 59. An
-      API may allow the value 60 if it allows leap-seconds.
+    hours: Hours of a day in 24 hour format. Must be greater than or equal to
+      0 and typically must be less than or equal to 23. An API may choose to
+      allow the value "24:00:00" for scenarios like business closing time.
+    minutes: Minutes of an hour. Must be greater than or equal to 0 and less
+      than or equal to 59.
+    nanos: Fractions of seconds, in nanoseconds. Must be greater than or equal
+      to 0 and less than or equal to 999,999,999.
+    seconds: Seconds of a minute. Must be greater than or equal to 0 and
+      typically must be less than or equal to 59. An API may allow the value
+      60 if it allows leap-seconds.
   """
 
   hours = _messages.IntegerField(1, variant=_messages.Variant.INT32)

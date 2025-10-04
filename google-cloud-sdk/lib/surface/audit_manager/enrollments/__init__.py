@@ -21,8 +21,15 @@ from __future__ import unicode_literals
 from googlecloudsdk.calliope import base
 
 
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.GA)
 class Enrollments(base.Group):
   """Command group for Audit Manager Enrollments."""
 
   category = base.SECURITY_CATEGORY
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class EnrollmentsAlpha(Enrollments):
+  """Command group for Audit Manager Enrollments."""

@@ -60,17 +60,6 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
-  ORGANIZATIONS_LOCATIONS_MIRRORINGENDPOINTGROUPS = (
-      'organizations.locations.mirroringEndpointGroups',
-      '{+name}',
-      {
-          '':
-              'organizations/{organizationsId}/locations/{locationsId}/'
-              'mirroringEndpointGroups/{mirroringEndpointGroupsId}',
-      },
-      ['name'],
-      True
-  )
   ORGANIZATIONS_LOCATIONS_OPERATIONS = (
       'organizations.locations.operations',
       '{+name}',
@@ -143,6 +132,28 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_LOCATIONS_AUTHZPOLICIES = (
+      'projects.locations.authzPolicies',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/authzPolicies/'
+              '{authzPoliciesId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_BACKENDAUTHENTICATIONCONFIGS = (
+      'projects.locations.backendAuthenticationConfigs',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'backendAuthenticationConfigs/{backendAuthenticationConfigsId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS_LOCATIONS_CLIENTTLSPOLICIES = (
       'projects.locations.clientTlsPolicies',
       '{+name}',
@@ -150,6 +161,17 @@ class Collections(enum.Enum):
           '':
               'projects/{projectsId}/locations/{locationsId}/'
               'clientTlsPolicies/{clientTlsPoliciesId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_DNSTHREATDETECTORS = (
+      'projects.locations.dnsThreatDetectors',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'dnsThreatDetectors/{dnsThreatDetectorsId}',
       },
       ['name'],
       True
@@ -199,6 +221,51 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_LOCATIONS_INTERCEPTDEPLOYMENTGROUPS = (
+      'projects.locations.interceptDeploymentGroups',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'interceptDeploymentGroups/{interceptDeploymentGroupsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_INTERCEPTDEPLOYMENTS = (
+      'projects.locations.interceptDeployments',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'interceptDeployments/{interceptDeploymentsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_INTERCEPTENDPOINTGROUPASSOCIATIONS = (
+      'projects.locations.interceptEndpointGroupAssociations',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'interceptEndpointGroupAssociations/'
+              '{interceptEndpointGroupAssociationsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_INTERCEPTENDPOINTGROUPS = (
+      'projects.locations.interceptEndpointGroups',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'interceptEndpointGroups/{interceptEndpointGroupsId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS_LOCATIONS_MIRRORINGDEPLOYMENTGROUPS = (
       'projects.locations.mirroringDeploymentGroups',
       '{+name}',
@@ -229,6 +296,28 @@ class Collections(enum.Enum):
               'projects/{projectsId}/locations/{locationsId}/'
               'mirroringEndpointGroupAssociations/'
               '{mirroringEndpointGroupAssociationsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_MIRRORINGENDPOINTGROUPS = (
+      'projects.locations.mirroringEndpointGroups',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'mirroringEndpointGroups/{mirroringEndpointGroupsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_MIRRORINGENDPOINTS = (
+      'projects.locations.mirroringEndpoints',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'mirroringEndpoints/{mirroringEndpointsId}',
       },
       ['name'],
       True
@@ -277,6 +366,28 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_LOCATIONS_SACATTACHMENTS = (
+      'projects.locations.sacAttachments',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/sacAttachments/'
+              '{sacAttachmentsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_SACREALMS = (
+      'projects.locations.sacRealms',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/sacRealms/'
+              '{sacRealmsId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS_LOCATIONS_SECURITYPROFILEGROUPS = (
       'projects.locations.securityProfileGroups',
       '{+name}',
@@ -321,28 +432,6 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
-  PROJECTS_LOCATIONS_SSEGATEWAYS = (
-      'projects.locations.sseGateways',
-      '{+name}',
-      {
-          '':
-              'projects/{projectsId}/locations/{locationsId}/sseGateways/'
-              '{sseGatewaysId}',
-      },
-      ['name'],
-      True
-  )
-  PROJECTS_LOCATIONS_SSEREALMS = (
-      'projects.locations.sseRealms',
-      '{+name}',
-      {
-          '':
-              'projects/{projectsId}/locations/{locationsId}/sseRealms/'
-              '{sseRealmsId}',
-      },
-      ['name'],
-      True
-  )
   PROJECTS_LOCATIONS_TLSINSPECTIONPOLICIES = (
       'projects.locations.tlsInspectionPolicies',
       '{+name}',
@@ -350,6 +439,48 @@ class Collections(enum.Enum):
           '':
               'projects/{projectsId}/locations/{locationsId}/'
               'tlsInspectionPolicies/{tlsInspectionPoliciesId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_ULLMIRRORINGCOLLECTORS = (
+      'projects.locations.ullMirroringCollectors',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'ullMirroringCollectors/{ullMirroringCollectorsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_ULLMIRRORINGENGINES = (
+      'projects.locations.ullMirroringEngines',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'ullMirroringEngines/{ullMirroringEnginesId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_ULLMIRRORINGINFRAS = (
+      'projects.locations.ullMirroringInfras',
+      'projects/{projectsId}/locations/{locationsId}/ullMirroringInfras/'
+      '{ullMirroringInfrasId}',
+      {},
+      ['projectsId', 'locationsId', 'ullMirroringInfrasId'],
+      True
+  )
+  PROJECTS_LOCATIONS_ULLMIRRORINGINFRAS_ULLMIRROREDNETWORKS = (
+      'projects.locations.ullMirroringInfras.ullMirroredNetworks',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'ullMirroringInfras/{ullMirroringInfrasId}/ullMirroredNetworks/'
+              '{ullMirroredNetworksId}',
       },
       ['name'],
       True

@@ -28,6 +28,7 @@ from googlecloudsdk.command_lib.bigtable import arguments
 from googlecloudsdk.core import log
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class UpdateAppProfile(base.CreateCommand):
   """Update a Bigtable app profile."""
@@ -51,6 +52,14 @@ class UpdateAppProfile(base.CreateCommand):
           To update the request priority for an app profile to PRIORITY_LOW, run:
 
             $ {command} my-app-profile-id --instance=my-instance-id --priority=PRIORITY_LOW
+
+          To update an app profile to enable row-affinity routing, run:
+
+            $ {command} my-app-profile-id --instance=my-instance-id --route-any --row-affinity
+
+          To update an app profile to enable Data Boost which bills usage to the host project, run:
+
+            $ {command} my-app-profile-id --instance=my-instance-id --data-boost --data-boost-compute-billing-owner=HOST_PAYS
 
           """),
   }
@@ -90,7 +99,10 @@ class UpdateAppProfile(base.CreateCommand):
         multi_cluster=args.route_any,
         restrict_to=args.restrict_to,
         transactional_writes=args.transactional_writes,
+        row_affinity=args.row_affinity,
         priority=args.priority,
+        data_boost=args.data_boost,
+        data_boost_compute_billing_owner=args.data_boost_compute_billing_owner,
         force=args.force,
     )
 
@@ -159,6 +171,10 @@ class UpdateAppProfileBeta(UpdateAppProfile):
 
             $ {command} my-app-profile-id --instance=my-instance-id --data-boost --data-boost-compute-billing-owner=HOST_PAYS
 
+          To update an app profile to enable row-affinity routing, run:
+
+            $ {command} my-app-profile-id --instance=my-instance-id --route-any --row-affinity
+
           """),
   }
 
@@ -169,7 +185,7 @@ class UpdateAppProfileBeta(UpdateAppProfile):
         arguments.ArgAdder(parser)
         .AddDescription('app profile', required=False)
         .AddAppProfileRouting(required=False)
-        .AddIsolation(allow_data_boost=True)
+        .AddIsolation()
         .AddForce('update')
         .AddAsync()
     )
@@ -197,6 +213,7 @@ class UpdateAppProfileBeta(UpdateAppProfile):
         multi_cluster=args.route_any,
         restrict_to=args.restrict_to,
         transactional_writes=args.transactional_writes,
+        row_affinity=args.row_affinity,
         priority=args.priority,
         data_boost=args.data_boost,
         data_boost_compute_billing_owner=args.data_boost_compute_billing_owner,
@@ -216,10 +233,8 @@ class UpdateAppProfileAlpha(UpdateAppProfileBeta):
         .AddDescription('app profile', required=False)
         .AddAppProfileRouting(
             required=False,
-            allow_failover_radius=True,
-            allow_row_affinity=True,
         )
-        .AddIsolation(allow_data_boost=True)
+        .AddIsolation()
         .AddForce('update')
         .AddAsync()
     )
@@ -246,7 +261,6 @@ class UpdateAppProfileAlpha(UpdateAppProfileBeta):
         description=args.description,
         multi_cluster=args.route_any,
         restrict_to=args.restrict_to,
-        failover_radius=args.failover_radius,
         transactional_writes=args.transactional_writes,
         row_affinity=args.row_affinity,
         priority=args.priority,

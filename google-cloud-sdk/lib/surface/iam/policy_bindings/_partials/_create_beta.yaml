@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*- #
-# Copyright 2024 Google LLC. All Rights Reserved.
+# Copyright 2025 Google LLC. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 # AUTOGEN_CLI_VERSION: HEAD
 - release_tracks:
   - BETA
-  hidden: true
+  auto_generated: true
   help_text:
     brief: Create PolicyBinding instance.
     description: |
@@ -32,18 +32,21 @@
   arguments:
     params:
     - help_text: |-
-        Identifier. The resource name of the policy binding. The binding parent is
-        the closest CRM resource (i.e., Project, Folder or Organization) to the
-        binding target.
+        Identifier. The name of the policy binding, in the format
+        `{binding_parent/locations/{location}/policyBindings/{policy_binding_id}`.
+        The binding parent is the closest Resource Manager resource (project,
+        folder, or organization) to the binding target.
 
         Format:
-          `projects/{project_id}/locations/{location}/policyBindings/{policy_binding_id}`
-          `projects/{project_number}/locations/{location}/policyBindings/{policy_binding_id}`
-          `folders/{folder_id}/locations/{location}/policyBindings/{policy_binding_id}`
-          `organizations/{organization_id}/locations/{location}/policyBindings/{policy_binding_id}`
+
+        * `projects/{project_id}/locations/{location}/policyBindings/{policy_binding_id}`
+        * `projects/{project_number}/locations/{location}/policyBindings/{policy_binding_id}`
+        * `folders/{folder_id}/locations/{location}/policyBindings/{policy_binding_id}`
+        * `organizations/{organization_id}/locations/{location}/policyBindings/{policy_binding_id}`
       is_positional: true
+      is_primary_resource: true
       request_id_field: policyBindingId
-      resource_spec: !REF googlecloudsdk.command_lib.iam.v3beta_resources:folder_or_organization_or_project_location_policy_binding
+      resource_spec: !REF googlecloudsdk.command_lib.iam.v3beta_resources:folders_or_organizations_or_projects_locations_policy_bindings
       required: true
     - arg_name: etag
       api_field: googleIamV3betaPolicyBinding.etag
@@ -64,12 +67,13 @@
       required: false
       repeated: true
       help_text: |-
-        User defined annotations. See https://google.aip.dev/148#annotations for
+        User-defined annotations. See https://google.aip.dev/148#annotations for
         more details such as format and size limitations
       spec:
       - api_field: key
       - api_field: value
     - group:
+        api_field: googleIamV3betaPolicyBinding.target
         required: true
         help_text: |-
           Target is the full resource name of the resource to which the policy will
@@ -85,44 +89,71 @@
               required: false
               repeated: false
               help_text: |-
-                Full Resource Name used for principal access boundary policy bindings
+                Full Resource Name used for principal access boundary policy bindings.
+                The principal set must be directly parented by the policy binding's
+                parent or same as the parent if the target is a
+                project/folder/organization.
+
                 Examples:
-                Organization:
-                "//cloudresourcemanager.googleapis.com/organizations/ORGANIZATION_ID"
-                Folder:
-                "//cloudresourcemanager.googleapis.com/folders/FOLDER_ID"
-                Project:
-                "//cloudresourcemanager.googleapis.com/projects/PROJECT_NUMBER"
-                "//cloudresourcemanager.googleapis.com/projects/PROJECT_ID"
-                Workload Identity Pool:
-                "//iam.googleapis.com/projects/PROJECT_NUMBER/locations/LOCATION/workloadIdentityPools/WORKLOAD_POOL_ID"
-                Workforce Identity:
-                "//iam.googleapis.com/locations/global/workforcePools/WORKFORCE_POOL_ID"
-                Workspace Identity:
-                "//iam.googleapis.com/locations/global/workspace/WORKSPACE_ID"
+                * For binding's parented by an organization:
+                  * Organization:
+                  `//cloudresourcemanager.googleapis.com/organizations/ORGANIZATION_ID`
+                  * Workforce Identity:
+                  `//iam.googleapis.com/locations/global/workforcePools/WORKFORCE_POOL_ID`
+                  * Workspace Identity:
+                  `//iam.googleapis.com/locations/global/workspace/WORKSPACE_ID`
+                * For binding's parented by a folder:
+                  * Folder:
+                  `//cloudresourcemanager.googleapis.com/folders/FOLDER_ID`
+                * For binding's parented by a project:
+                  * Project:
+                    * `//cloudresourcemanager.googleapis.com/projects/PROJECT_NUMBER`
+                    * `//cloudresourcemanager.googleapis.com/projects/PROJECT_ID`
+                  * Workload Identity Pool:
+                  `//iam.googleapis.com/projects/PROJECT_NUMBER/locations/LOCATION/workloadIdentityPools/WORKLOAD_POOL_ID`
+            - arg_name: target-resource
+              api_field: googleIamV3betaPolicyBinding.target.resource
+              required: false
+              repeated: false
+              hidden: true
+              help_text: |-
+                Full Resource Name used for access policy bindings
+                Examples:
+
+                * Organization:
+                `//cloudresourcemanager.googleapis.com/organizations/ORGANIZATION_ID`
+                * Folder: `//cloudresourcemanager.googleapis.com/folders/FOLDER_ID`
+                * Project:
+                    * `//cloudresourcemanager.googleapis.com/projects/PROJECT_NUMBER`
+                    * `//cloudresourcemanager.googleapis.com/projects/PROJECT_ID`
     - arg_name: policy-kind
       api_field: googleIamV3betaPolicyBinding.policyKind
       required: false
       help_text: |-
-        The kind of the policy to attach in this binding:
+        The kind of the policy to attach in this binding. This field must be one of
+        the following:
 
-        +  When the policy is empty, this field must be set.
-        +  When the policy is set, this field
-           + can be left empty and will be set to the policy kind, or
-           + must set to the input policy kind
+        - Left empty (will be automatically set to the policy kind)
+        - The input policy kind
       choices:
       - arg_value: principal-access-boundary
         enum_value: PRINCIPAL_ACCESS_BOUNDARY
         help_text: |-
           Principal access boundary policy kind
+      - arg_value: access
+        enum_value: ACCESS
+        help_text: |-
+          Access policy kind. Keep behind visibility label until Access Policy
+          launch.
     - arg_name: policy
       api_field: googleIamV3betaPolicyBinding.policy
       required: true
       repeated: false
       help_text: |-
         The resource name of the policy to be bound. The binding parent and policy
-        must belong to the same Organization (or Project).
+        must belong to the same organization.
     - group:
+        api_field: googleIamV3betaPolicyBinding.condition
         required: false
         help_text: |-
           Represents a textual expression in the Common Expression Language (CEL)

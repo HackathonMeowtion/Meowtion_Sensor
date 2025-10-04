@@ -26,6 +26,7 @@ from googlecloudsdk.command_lib.storage import storage_url
 from googlecloudsdk.core import log
 
 
+@base.UniverseCompatible
 class Create(base.Command):
   """Create managed folders."""
 
@@ -51,10 +52,10 @@ class Create(base.Command):
     urls = []
     for url_string in args.url:
       url = storage_url.storage_url_from_string(url_string)
-      errors_util.raise_error_if_not_gcs_managed_folder(args.command_path, url)
+      errors_util.raise_error_if_not_gcs_folder_type(args.command_path, url)
       urls.append(url)
 
     for url in urls:
       client = api_factory.get_api(url.scheme)
       log.status.Print('Creating {}...'.format(url))
-      client.create_managed_folder(url.bucket_name, url.object_name)
+      client.create_managed_folder(url.bucket_name, url.resource_name)

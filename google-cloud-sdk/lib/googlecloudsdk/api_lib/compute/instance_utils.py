@@ -29,6 +29,7 @@ from googlecloudsdk.api_lib.compute import utils
 from googlecloudsdk.api_lib.compute import zone_utils
 from googlecloudsdk.calliope import exceptions as calliope_exceptions
 from googlecloudsdk.command_lib.compute import flags as compute_flags
+from googlecloudsdk.command_lib.compute import resource_manager_tags_utils
 from googlecloudsdk.command_lib.compute import scope as compute_scopes
 from googlecloudsdk.command_lib.compute.instances import flags
 from googlecloudsdk.command_lib.compute.sole_tenancy import util as sole_tenancy_util
@@ -261,6 +262,8 @@ def CreateSchedulingMessage(
     availability_domain=None,
     graceful_shutdown=None,
     discard_local_ssds_at_termination_timestamp=None,
+    skip_guest_os_shutdown=None,
+    preemption_notice_duration=None,
 ):
   """Create scheduling message for VM."""
   # Note: We always specify automaticRestart=False for preemptible VMs. This
@@ -323,11 +326,13 @@ def CreateSchedulingMessage(
     scheduling.locationHint = location_hint
 
   if maintenance_freeze_duration:
-    scheduling.maintenanceFreezeDurationHours = maintenance_freeze_duration // 3600
+    scheduling.maintenanceFreezeDurationHours = (
+        maintenance_freeze_duration // 3600)
 
   if maintenance_interval:
-    scheduling.maintenanceInterval = messages.Scheduling.MaintenanceIntervalValueValuesEnum(
-        maintenance_interval)
+    scheduling.maintenanceInterval = (
+        messages.Scheduling.MaintenanceIntervalValueValuesEnum(
+            maintenance_interval))
 
   if host_error_timeout_seconds:
     scheduling.hostErrorTimeoutSeconds = host_error_timeout_seconds
@@ -335,9 +340,17 @@ def CreateSchedulingMessage(
   if availability_domain:
     scheduling.availabilityDomain = availability_domain
 
-  if discard_local_ssds_at_termination_timestamp:
+  if discard_local_ssds_at_termination_timestamp is not None:
     scheduling.onInstanceStopAction = messages.SchedulingOnInstanceStopAction(
         discardLocalSsd=discard_local_ssds_at_termination_timestamp
+    )
+
+  if skip_guest_os_shutdown is not None:
+    scheduling.skipGuestOsShutdown = skip_guest_os_shutdown
+
+  if preemption_notice_duration is not None:
+    scheduling.preemptionNoticeDuration = messages.Duration(
+        seconds=preemption_notice_duration
     )
 
   return scheduling
@@ -366,9 +379,82 @@ def CreateShieldedInstanceIntegrityPolicyMessage(messages,
   return shielded_instance_integrity_policy
 
 
+def ValidateSvsmConfig(svsm_args, support_snp_svsm):
+  """Validates flags specifying SVSM config.
+
+  Args:
+    svsm_args: The flags specifying SVSM config.
+    support_snp_svsm: Whether SVSM is supported.
+
+  Returns:
+    Nothing. Function acts as a validator, and will raise an exception from
+      within the function if needed.
+
+  Raises:
+    calliope_exceptions.RequiredArgumentException when the flags are not
+      specified or are not valid.
+  """
+
+  if not svsm_args or not support_snp_svsm:
+    return
+
+  tpm_choices = ['EPHEMERAL', 'NO_CC_TPM']
+  snp_irq_choices = ['RESTRICTED', 'UNRESTRICTED']
+
+  tpm = svsm_args.get('tpm', None)
+  snp_irq = svsm_args.get('snp-irq', None)
+  if tpm and tpm not in tpm_choices:
+    raise calliope_exceptions.InvalidArgumentException(
+        '--svsm-config',
+        f'Unexpected confidential TPM type: [{tpm}]. Legal values are '
+        f'[{", ".join(tpm_choices)}].',
+    )
+  if snp_irq and snp_irq not in snp_irq_choices:
+    raise calliope_exceptions.InvalidArgumentException(
+        '--svsm-config',
+        f'Unexpected SEV SNP IRQ mode: [{snp_irq}]. Legal values are '
+        f'[{", ".join(snp_irq_choices)}].',
+    )
+
+
+def CreateConfidentialParavisorConfigMessage(args, messages, support_snp_svsm):
+  """Create confidentialParavisorConfig message for VM."""
+  if (
+      not hasattr(args, 'svsm_config') or not args.IsSpecified('svsm_config')
+      or not support_snp_svsm
+  ):
+    return None
+  ValidateSvsmConfig(args.svsm_config, support_snp_svsm)
+  tpm = (
+      args.svsm_config.get('tpm', 'CONFIDENTIAL_TPM_TYPE_UNSPECIFIED')
+      if args.svsm_config
+      else 'CONFIDENTIAL_TPM_TYPE_UNSPECIFIED'
+  )
+  snp_irq = (
+      args.svsm_config.get('snp-irq', 'SEV_SNP_IRQ_MODE_UNSPECIFIED')
+      if args.svsm_config
+      else 'SEV_SNP_IRQ_MODE_UNSPECIFIED'
+  )
+  confidential_tpm_type = (
+      messages.ConfidentialParavisorConfig.ConfidentialTpmTypeValueValuesEnum(
+          tpm
+      )
+  )
+  sev_snp_irq_mode = (
+      messages.ConfidentialParavisorConfig.SevSnpIrqModeValueValuesEnum(
+          snp_irq
+      )
+  )
+  return messages.ConfidentialParavisorConfig(
+      confidentialTpmType=confidential_tpm_type,
+      sevSnpIrqMode=sev_snp_irq_mode,
+  )
+
+
 def CreateConfidentialInstanceMessage(messages, args,
                                       support_confidential_compute_type,
-                                      support_confidential_compute_type_tdx):
+                                      support_confidential_compute_type_tdx,
+                                      support_snp_svsm):
   """Create confidentialInstanceConfig message for VM."""
   confidential_instance_config_msg = None
   enable_confidential_compute = None
@@ -395,9 +481,27 @@ def CreateConfidentialInstanceMessage(messages, args,
       enable_confidential_compute = None
       confidential_instance_type = None
 
-  if confidential_instance_type is not None:
+  confidential_paravisor_config_msg = CreateConfidentialParavisorConfigMessage(
+      args, messages, support_snp_svsm
+  )
+  if (
+      confidential_instance_type is not None
+      and confidential_paravisor_config_msg is not None
+  ):
     confidential_instance_config_msg = messages.ConfidentialInstanceConfig(
-        confidentialInstanceType=confidential_instance_type)
+        confidentialInstanceType=confidential_instance_type,
+        confidentialParavisorConfig=confidential_paravisor_config_msg,
+    )
+  elif confidential_instance_type is not None:
+    confidential_instance_config_msg = messages.ConfidentialInstanceConfig(
+        confidentialInstanceType=confidential_instance_type
+    )
+  elif confidential_paravisor_config_msg is not None:
+    raise calliope_exceptions.InvalidArgumentException(
+        '--confidential-compute-type',
+        'Confidential compute type must be specified when using '
+        '--svsm-config.',
+    )
   elif enable_confidential_compute is not None:
     confidential_instance_config_msg = messages.ConfidentialInstanceConfig(
         enableConfidentialCompute=enable_confidential_compute
@@ -406,14 +510,17 @@ def CreateConfidentialInstanceMessage(messages, args,
   return confidential_instance_config_msg
 
 
-def CreateAdvancedMachineFeaturesMessage(messages,
-                                         enable_nested_virtualization=None,
-                                         threads_per_core=None,
-                                         numa_node_count=None,
-                                         visible_core_count=None,
-                                         enable_uefi_networking=None,
-                                         performance_monitoring_unit=None,
-                                         enable_watchdog_timer=None):
+def CreateAdvancedMachineFeaturesMessage(
+    messages,
+    enable_nested_virtualization=None,
+    threads_per_core=None,
+    numa_node_count=None,
+    visible_core_count=None,
+    enable_uefi_networking=None,
+    performance_monitoring_unit=None,
+    enable_watchdog_timer=None,
+    turbo_mode=None,
+):
   """Create AdvancedMachineFeatures message for an Instance."""
   # Start with an empty AdvancedMachineFeatures and optionally add on
   # the features we have like CreateSchedulingMessage does. This lets us
@@ -442,6 +549,9 @@ def CreateAdvancedMachineFeaturesMessage(messages,
 
   if enable_watchdog_timer is not None:
     features.enableWatchdogTimer = enable_watchdog_timer
+
+  if turbo_mode is not None:
+    features.turboMode = turbo_mode
 
   return features
 
@@ -504,29 +614,40 @@ def ParseDiskResourceFromAttachedDisk(resources, attached_disk):
   """
   try:
     disk = resources.Parse(
-        attached_disk.source, collection='compute.regionDisks')
+        attached_disk.source, collection='compute.regionDisks'
+    )
     if disk:
       return disk
-  except (cloud_resources.WrongResourceCollectionException,
-          cloud_resources.RequiredFieldOmittedException):
+  except (
+      cloud_resources.WrongResourceCollectionException,
+      cloud_resources.RequiredFieldOmittedException,
+  ):
     pass
 
   try:
     disk = resources.Parse(attached_disk.source, collection='compute.disks')
     if disk:
       return disk
-  except (cloud_resources.WrongResourceCollectionException,
-          cloud_resources.RequiredFieldOmittedException):
+  except (
+      cloud_resources.WrongResourceCollectionException,
+      cloud_resources.RequiredFieldOmittedException,
+  ):
     pass
 
-  raise cloud_resources.InvalidResourceException('Unable to parse [{}]'.format(
-      attached_disk.source))
+  raise cloud_resources.InvalidResourceException(
+      "Unable to parse disk's source: [{0}] of device name: [{1}], try using"
+      ' `--device-name` instead.'.format(
+          attached_disk.source,
+          attached_disk.deviceName,
+      )
+  )
 
 
 def GetDiskDeviceName(disk, name, container_mount_disk):
   """Helper method to get device-name for a disk message."""
-  if (container_mount_disk and filter(
-      bool, [d.get('name', name) == name for d in container_mount_disk])):
+  if container_mount_disk and filter(
+      bool, [d.get('name', name) == name for d in container_mount_disk]
+  ):
     # device-name must be the same as name if it is being mounted to a
     # container.
     if not disk.get('device-name'):
@@ -612,10 +733,12 @@ def GetScheduling(
     support_node_affinity=False,
     support_min_node_cpu=True,
     support_node_project=False,
-    support_host_error_timeout_seconds=False,
+    support_host_error_timeout_seconds=True,
     support_max_run_duration=False,
     support_local_ssd_recovery_timeout=False,
     support_graceful_shutdown=False,
+    support_skip_guest_os_shutdown=False,
+    support_preemption_notice_duration=False,
 ):
   """Generate a Scheduling Message or None based on specified args."""
   node_affinities = None
@@ -690,6 +813,18 @@ def GetScheduling(
   ):
     availability_domain = args.availability_domain
 
+  skip_guest_os_shutdown = None
+  if support_skip_guest_os_shutdown and args.IsKnownAndSpecified(
+      'skip_guest_os_shutdown'
+  ):
+    skip_guest_os_shutdown = args.skip_guest_os_shutdown
+
+  preemption_notice_duration = None
+  if support_preemption_notice_duration and hasattr(
+      args, 'preemption_notice_duration'
+  ):
+    preemption_notice_duration = args.preemption_notice_duration
+
   if (
       skip_defaults
       and not IsAnySpecified(
@@ -708,6 +843,7 @@ def GetScheduling(
       and not maintenance_interval
       and not local_ssd_recovery_timeout
       and not graceful_shutdown
+      and not preemption_notice_duration
   ):
     return None
 
@@ -730,6 +866,8 @@ def GetScheduling(
       availability_domain=availability_domain,
       graceful_shutdown=graceful_shutdown,
       discard_local_ssds_at_termination_timestamp=discard_local_ssds_at_termination_timestamp,
+      skip_guest_os_shutdown=skip_guest_os_shutdown,
+      preemption_notice_duration=preemption_notice_duration,
   )
 
 
@@ -907,8 +1045,17 @@ def ParseAcceleratorType(accelerator_type_name, resource_parser, project,
   return accelerator_type
 
 
-def ResolveSnapshotURI(user_project, snapshot, resource_parser):
+def ResolveSnapshotURI(user_project, snapshot, resource_parser, region=None):
+  """Returns snapshot URI based on location scope."""
   if user_project and snapshot and resource_parser:
+    if region:
+      snapshot_ref = resource_parser.Parse(
+          snapshot,
+          collection='compute.regionSnapshots',
+          params={'project': user_project, 'region': region},
+      )
+      return snapshot_ref.SelfLink()
+
     snapshot_ref = resource_parser.Parse(
         snapshot,
         collection='compute.snapshots',
@@ -1007,6 +1154,49 @@ def ExtractGracefulShutdownFromArgs(args, support_graceful_shutdown=False):
         graceful_shutdown['maxDuration'] = args.graceful_shutdown_max_duration
 
   return graceful_shutdown
+
+
+def CreateParams(args, client):
+  """Create a Params message for the instance."""
+
+  params = client.messages.InstanceParams()
+
+  if args.IsKnownAndSpecified('resource_manager_tags'):
+    ret_resource_manager_tags = (
+        resource_manager_tags_utils.GetResourceManagerTags(
+            args.resource_manager_tags
+        )
+    )
+    if ret_resource_manager_tags is not None:
+      resource_manager_tags_value = (
+          client.messages.InstanceParams.ResourceManagerTagsValue
+      )
+      params.resourceManagerTags = resource_manager_tags_value(
+          additionalProperties=[
+              resource_manager_tags_value.AdditionalProperty(
+                  key=key, value=value
+              )
+              for key, value in sorted(six.iteritems(ret_resource_manager_tags))
+          ]
+      )
+
+  if args.IsKnownAndSpecified('request_valid_for_duration'):
+    if (
+        not hasattr(args, 'provisioning_model')
+        or not args.IsSpecified('provisioning_model')
+        or args.provisioning_model != 'FLEX_START'
+    ):
+      raise calliope_exceptions.InvalidArgumentException(
+          '--request_valid_for_duration',
+          '[--request_valid_for_duration] is only supported for FLEX_START'
+          ' provisioning model.',
+      )
+
+    params.requestValidForDuration = client.messages.Duration(
+        seconds=args.request_valid_for_duration
+    )
+
+  return params
 
 
 _RESERVATION_AFFINITY_KEY = 'compute.googleapis.com/reservation-name'

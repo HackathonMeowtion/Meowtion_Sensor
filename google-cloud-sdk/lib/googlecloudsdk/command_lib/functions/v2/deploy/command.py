@@ -39,6 +39,7 @@ from googlecloudsdk.command_lib.functions import flags
 from googlecloudsdk.command_lib.functions import labels_util
 from googlecloudsdk.command_lib.functions import run_util
 from googlecloudsdk.command_lib.functions import secrets_config
+from googlecloudsdk.command_lib.functions import service_account_util
 from googlecloudsdk.command_lib.functions import source_util
 from googlecloudsdk.command_lib.functions.v2 import deploy_util
 from googlecloudsdk.command_lib.projects import util as projects_util
@@ -51,6 +52,7 @@ from googlecloudsdk.core import resources
 from googlecloudsdk.core.console import console_io
 from googlecloudsdk.core.console import progress_tracker
 from googlecloudsdk.core.util import files as file_utils
+from googlecloudsdk.core.util import retry
 
 _SIGNED_URL_UPLOAD_ERROR_MESSSAGE = (
     'There was a problem uploading the source code to a signed Cloud Storage '
@@ -417,6 +419,13 @@ def _GetServiceConfig(
   if secret_volumes != old_secret_volumes:
     updated_fields.add('service_config.secret_volumes')
 
+  binary_authorization_policy = None
+  if args.IsKnownAndSpecified('clear_binary_authorization'):
+    updated_fields.add('service_config.binary_authorization_policy')
+  elif args.IsKnownAndSpecified('binary_authorization'):
+    binary_authorization_policy = args.binary_authorization
+    updated_fields.add('service_config.binary_authorization_policy')
+
   service_updated_fields = frozenset.union(
       vpc_updated_fields, ingress_updated_fields, updated_fields
   )
@@ -454,6 +463,7 @@ def _GetServiceConfig(
           ),
           maxInstanceRequestConcurrency=concurrency,
           availableCpu=_ValidateK8sCpuStr(cpu),
+          binaryAuthorizationPolicy=binary_authorization_policy,
       ),
       service_updated_fields,
   )
@@ -814,10 +824,9 @@ def _GetBuildConfig(
   if args.build_worker_pool is not None or args.clear_build_worker_pool:
     updated_fields.add('build_config.worker_pool')
 
-  service_account = None
-  if args.IsKnownAndSpecified('build_service_account'):
+  service_account = args.build_service_account
+  if service_account is not None or args.clear_build_service_account:
     updated_fields.add('build_config.service_account')
-    service_account = args.build_service_account
   messages = client.MESSAGES_MODULE
 
   automatic_update_policy = None
@@ -1045,7 +1054,6 @@ def _SetDockerRepositoryConfig(
     args: parser_extensions.Namespace,
     function: api_types.Function,
     existing_function: Optional[api_types.Function],
-    function_ref: resources.Resource,
 ) -> FrozenSet[str]:
   """Sets user-provided docker repository field on the function.
 
@@ -1055,7 +1063,6 @@ def _SetDockerRepositoryConfig(
       GCF function.
     existing_function: `cloudfunctions_v2_messages.Function | None`,
       pre-existing function.
-    function_ref: resource reference.
 
   Returns:
     A set of update mask fields.
@@ -1066,10 +1073,6 @@ def _SetDockerRepositoryConfig(
       if existing_function
       else None
   )
-  if args.IsSpecified('docker_repository'):
-    cmek_util.ValidateDockerRepositoryForFunction(
-        args.docker_repository, function_ref
-    )
   if args.IsSpecified('docker_repository') or args.IsSpecified(
       'clear_docker_repository'
   ):
@@ -1182,6 +1185,15 @@ def _UpdateAndWait(
     log.status.Print('Nothing to update.')
 
 
+@retry.RetryOnException(max_retrials=3, sleep_ms=2000)
+def _GetFunctionWithRetry(client, function_ref):
+  """Retrieves a function with retry."""
+  try:
+    return client.GetFunction(function_ref.RelativeName())
+  except apitools_exceptions.HttpError as error:
+    raise exceptions.FunctionsError('Function not found after retries, ', error)
+
+
 def Run(
     args: parser_extensions.Namespace, release_track: calliope_base.ReleaseTrack
 ) -> api_types.Function:
@@ -1227,6 +1239,15 @@ def Run(
         "Function already exists in 1st gen, can't change the environment.",
     )
   runtime = args.runtime or existing_function.buildConfig.runtime
+  if runtime and runtime not in gen2_runtimes:
+    raise exceptions.InvalidArgumentException(
+        '--runtime',
+        (
+            f'{runtime} is not a supported runtime on GCF 2nd gen. '
+            'Use `gcloud functions runtimes list` to get a '
+            'list of available runtimes'
+        ),
+    )
   if runtime in gen2_runtimes and gen2_runtimes[runtime]['warnings']:
     for w in gen2_runtimes[runtime]['warnings']:
       log.warning(w)
@@ -1273,7 +1294,7 @@ def Run(
       args, function, existing_function, function_ref
   )
   docker_repository_updated_fields = _SetDockerRepositoryConfig(
-      args, function, existing_function, function_ref
+      args, function, existing_function
   )
 
   api_enablement.PromptToEnableApiIfDisabled('run.googleapis.com')
@@ -1286,6 +1307,11 @@ def Run(
   elif is_new_function and not event_trigger:
     allow_unauthenticated = _PromptToAllowUnauthenticatedInvocations(args.NAME)
 
+  service_account_util.ValidateDefaultBuildServiceAccountAndPromptWarning(
+      api_util.GetProject(),
+      function_ref.locationsId,
+      build_config.serviceAccount,
+  )
   if is_new_function:
     _CreateAndWait(client, function_ref, function)
   else:
@@ -1299,7 +1325,7 @@ def Run(
     )
     _UpdateAndWait(client, function_ref, function, updated_fields)
 
-  function = client.GetFunction(function_ref.RelativeName())
+  function = _GetFunctionWithRetry(client, function_ref)
 
   if (
       # New functions do not allow unauthenticated invocations by default so we

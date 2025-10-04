@@ -43,22 +43,24 @@ def _CommonArgs(track, parser):
   flags.GetTypeMapperFlag(messages).choice_arg.AddToParser(parser)
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Create(base.Command):
   """Create Compute Engine commitments."""
+
   _support_share_setting = True
   _support_stable_fleet = False
   _support_existing_reservation = True
+  _support_reservation_sharing_policy = False
+  _support_60_month_plan = False
 
-  detailed_help = {
-      'EXAMPLES': '''
+  detailed_help = {'EXAMPLES': """
         To create a commitment called ``commitment-1'' in the ``us-central1''
         region, with a ``12-month'' plan, ``9GB'' of memory and 4 vcpu cores,
         run:
 
           $ {command} commitment-1 --plan=12-month --resources=memory=9GB,vcpu=4 --region=us-central1
-      '''
-  }
+      """}
 
   @classmethod
   def Args(cls, parser):
@@ -67,7 +69,10 @@ class Create(base.Command):
         parser,
         support_share_setting=cls._support_share_setting,
         support_stable_fleet=cls._support_stable_fleet,
-        support_existing_reservation=cls._support_existing_reservation)
+        support_existing_reservation=cls._support_existing_reservation,
+        support_reservation_sharing_policy=cls._support_reservation_sharing_policy,
+        support_60_month_plan=cls._support_60_month_plan,
+    )
 
   def _MakeCreateRequest(
       self,
@@ -77,7 +82,8 @@ class Create(base.Command):
       region,
       commitment_ref,
       existing_reservations,
-      holder):
+      holder,
+  ):
 
     if (
         args.split_source_commitment is not None
@@ -102,8 +108,9 @@ class Create(base.Command):
         mergeSourceCommitments=flags.TranslateMergeArg(
             args.merge_source_commitments,
         ),
-        existingReservations=existing_reservations
+        existingReservations=existing_reservations,
     )
+    commitment.customEndTimestamp = flags.TranslateCustomEndTimeArg(args)
     return messages.ComputeRegionCommitmentsInsertRequest(
         commitment=commitment,
         project=project,
@@ -116,10 +123,11 @@ class Create(base.Command):
     commitment_ref = flags.MakeCommitmentArg(False).ResolveAsResource(
         args,
         resources,
-        scope_lister=compute_flags.GetDefaultScopeLister(holder.client))
+        scope_lister=compute_flags.GetDefaultScopeLister(holder.client),
+    )
     existing_reservations = flags.ResolveExistingReservationArgs(
-        args,
-        resources)
+        args, resources
+    )
     messages = holder.client.messages
     region = properties.VALUES.compute.region.Get()
     project = properties.VALUES.core.project.Get()
@@ -130,17 +138,21 @@ class Create(base.Command):
         region,
         commitment_ref,
         existing_reservations,
-        holder)
+        holder,
+    )
 
     service = holder.client.apitools_client.regionCommitments
     batch_url = holder.client.batch_url
     http = holder.client.apitools_client.http
     errors = []
-    result = list(request_helper.MakeRequests(
-        requests=[(service, 'Insert', create_request)],
-        http=http,
-        batch_url=batch_url,
-        errors=errors))
+    result = list(
+        request_helper.MakeRequests(
+            requests=[(service, 'Insert', create_request)],
+            http=http,
+            batch_url=batch_url,
+            errors=errors,
+        )
+    )
     for i, error in enumerate(errors):
       if hasattr(error[1], 'message') and isinstance(error[1].message, str):
         err_msg = error[1].message
@@ -163,12 +175,16 @@ class Create(base.Command):
     return result
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.BETA)
 class CreateBeta(Create):
   """Create Compute Engine commitments."""
+
   _support_share_setting = True
   _support_stable_fleet = True
   _support_existing_reservation = True
+  _support_reservation_sharing_policy = True
+  _support_60_month_plan = False
 
   @classmethod
   def Args(cls, parser):
@@ -177,23 +193,34 @@ class CreateBeta(Create):
         parser,
         support_share_setting=cls._support_share_setting,
         support_stable_fleet=cls._support_stable_fleet,
-        support_existing_reservation=cls._support_existing_reservation)
+        support_existing_reservation=cls._support_existing_reservation,
+        support_reservation_sharing_policy=cls._support_reservation_sharing_policy,
+        support_60_month_plan=cls._support_60_month_plan,
+    )
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
 class CreateAlpha(CreateBeta):
   """Create Compute Engine commitments."""
+
   _support_share_setting = True
   _support_stable_fleet = True
   _support_existing_reservation = True
+  _support_reservation_sharing_policy = True
+  _support_60_month_plan = True
 
   @classmethod
   def Args(cls, parser):
     _CommonArgs('alpha', parser)
     flags.AddCreateFlags(
-        parser, support_share_setting=cls._support_share_setting,
+        parser,
+        support_share_setting=cls._support_share_setting,
         support_stable_fleet=cls._support_stable_fleet,
-        support_existing_reservation=cls._support_existing_reservation)
+        support_existing_reservation=cls._support_existing_reservation,
+        support_reservation_sharing_policy=cls._support_reservation_sharing_policy,
+        support_60_month_plan=cls._support_60_month_plan,
+    )
 
   def _MakeCreateRequest(
       self,
@@ -203,10 +230,13 @@ class CreateAlpha(CreateBeta):
       region,
       commitment_ref,
       existing_reservations,
-      holder):
+      holder,
+  ):
 
-    if (args.split_source_commitment is not None and
-        args.merge_source_commitments is not None):
+    if (
+        args.split_source_commitment is not None
+        and args.merge_source_commitments is not None
+    ):
       raise exceptions.ConflictingArgumentsException(
           "It's not possible to merge and split in one request"
       )
@@ -215,7 +245,8 @@ class CreateAlpha(CreateBeta):
     commitment_type = commitment_type_flag.GetEnumForChoice(args.type)
     commitment = messages.Commitment(
         reservations=reservation_helper.MakeReservations(
-            args, messages, holder),
+            args, messages, holder
+        ),
         name=commitment_ref.Name(),
         plan=flags.TranslatePlanArg(messages, args.plan),
         resources=flags.TranslateResourcesArgGroup(messages, args),
@@ -223,9 +254,12 @@ class CreateAlpha(CreateBeta):
         autoRenew=flags.TranslateAutoRenewArgForCreate(args),
         splitSourceCommitment=args.split_source_commitment,
         mergeSourceCommitments=flags.TranslateMergeArg(
-            args.merge_source_commitments),
+            args.merge_source_commitments
+        ),
         existingReservations=existing_reservations,
-        )
+    )
+
+    commitment.customEndTimestamp = flags.TranslateCustomEndTimeArg(args)
     return messages.ComputeRegionCommitmentsInsertRequest(
         commitment=commitment,
         project=project,

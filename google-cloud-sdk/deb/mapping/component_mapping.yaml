@@ -7,7 +7,6 @@ app-engine-python-extras: google-cloud-cli-app-engine-python-extras
 alpha: google-cloud-cli
 anthoscli: google-cloud-cli-anthoscli
 anthos-auth: google-cloud-cli-anthos-auth
-appctl: unavailable
 beta: google-cloud-cli
 bigtable: google-cloud-cli-bigtable-emulator
 bq: google-cloud-cli
@@ -16,6 +15,7 @@ cloud-build-local: google-cloud-cli-cloud-build-local
 cloud-run-proxy: google-cloud-cli-cloud-run-proxy
 cloud_sql_proxy: unavailable
 cloud-sql-proxy: unavailable
+run-compose: google-cloud-cli-run-compose
 cloud-datastore-emulator: google-cloud-cli-datastore-emulator
 cloud-firestore-emulator: google-cloud-cli-firestore-emulator
 cloud-spanner-emulator: google-cloud-cli-spanner-emulator
@@ -30,7 +30,6 @@ gsutil: google-cloud-cli
 istioctl: google-cloud-cli-istioctl
 kpt: google-cloud-cli-kpt
 kubectl: kubectl
-harbourbridge: google-cloud-cli-harbourbridge
 spanner-migration-tool: google-cloud-cli-spanner-migration-tool
 kubectl-oidc: google-cloud-cli-kubectl-oidc
 local-extract: google-cloud-cli-local-extract
@@ -44,3 +43,5 @@ kustomize: unavailable
 config-connector: google-cloud-cli-config-connector
 terraform-tools: google-cloud-cli-terraform-tools
 bundled-python3-unix: unavailable
+managed-flink-client: google-cloud-cli-managed-flink-client
+spanner-cli: google-cloud-cli-spanner-cli

@@ -22,6 +22,39 @@ class Empty(_messages.Message):
 
 
 
+class GoogleCloudOsloginControlplaneRegionalV1alphaSignSshPublicKeyRequest(_messages.Message):
+  r"""A request message for signing an SSH public key.
+
+  Fields:
+    appEngineInstance: The App Engine instance to sign the SSH public key for.
+      Expected format:
+      apps/{app}/services/{service}/versions/{version}/instances/{instance}
+    computeInstance: The Compute instance to sign the SSH public key for.
+      Expected format:
+      projects/{project}/zones/{zone}/instances/{numeric_instance_id}
+    serviceAccount: Optional. The service account for the instance. If the
+      instance in question does not have a service account, this field should
+      be left empty. If the wrong service account is provided, this operation
+      will return a signed certificate that will not be accepted by the VM.
+    sshPublicKey: Required. The SSH public key to sign.
+  """
+
+  appEngineInstance = _messages.StringField(1)
+  computeInstance = _messages.StringField(2)
+  serviceAccount = _messages.StringField(3)
+  sshPublicKey = _messages.StringField(4)
+
+
+class GoogleCloudOsloginControlplaneRegionalV1alphaSignSshPublicKeyResponse(_messages.Message):
+  r"""The response message for signing an SSH public key.
+
+  Fields:
+    signedSshPublicKey: The signed SSH public key to use in the SSH handshake.
+  """
+
+  signedSshPublicKey = _messages.StringField(1)
+
+
 class ImportSshPublicKeyResponse(_messages.Message):
   r"""A response message for importing an SSH public key.
 
@@ -81,26 +114,41 @@ class LoginProfile(_messages.Message):
   sshPublicKeys = _messages.MessageField('SshPublicKeysValue', 4)
 
 
+class OsloginProjectsLocationsSignSshPublicKeyRequest(_messages.Message):
+  r"""A OsloginProjectsLocationsSignSshPublicKeyRequest object.
+
+  Fields:
+    googleCloudOsloginControlplaneRegionalV1alphaSignSshPublicKeyRequest: A
+      GoogleCloudOsloginControlplaneRegionalV1alphaSignSshPublicKeyRequest
+      resource to be passed as the request body.
+    parent: Required. The parent for the signing request. Format:
+      projects/{project}/locations/{location}
+  """
+
+  googleCloudOsloginControlplaneRegionalV1alphaSignSshPublicKeyRequest = _messages.MessageField('GoogleCloudOsloginControlplaneRegionalV1alphaSignSshPublicKeyRequest', 1)
+  parent = _messages.StringField(2, required=True)
+
+
 class OsloginUsersGetLoginProfileRequest(_messages.Message):
   r"""A OsloginUsersGetLoginProfileRequest object.
 
   Enums:
-    OperatingSystemTypeValueValuesEnum: The type of operating system
+    OperatingSystemTypeValueValuesEnum: Optional. The type of operating system
       associated with the account.
     ViewValueValuesEnum: The view configures whether to retrieve security keys
       information.
 
   Fields:
     name: Required. The unique ID for the user in format `users/{user}`.
-    operatingSystemType: The type of operating system associated with the
-      account.
-    projectId: The project ID of the Google Cloud Platform project.
-    systemId: A system ID for filtering the results of the request.
+    operatingSystemType: Optional. The type of operating system associated
+      with the account.
+    projectId: Required. The project ID of the Google Cloud Platform project.
+    systemId: Optional. A system ID for filtering the results of the request.
     view: The view configures whether to retrieve security keys information.
   """
 
   class OperatingSystemTypeValueValuesEnum(_messages.Enum):
-    r"""The type of operating system associated with the account.
+    r"""Optional. The type of operating system associated with the account.
 
     Values:
       OPERATING_SYSTEM_TYPE_UNSPECIFIED: The operating system type associated
@@ -142,9 +190,9 @@ class OsloginUsersImportSshPublicKeyRequest(_messages.Message):
   Fields:
     parent: The unique ID for the user in format `users/{user}`.
     projectId: The project ID of the Google Cloud Platform project.
-    regions: Optional. The regions to which to assert that the key was
-      written. If unspecified, defaults to all regions. Regions are listed at
-      https://cloud.google.com/about/locations#region.
+    regions: Optional. The regions to wait for a POSIX account to be written
+      to before returning a response. If unspecified, defaults to all regions.
+      Regions are listed at https://cloud.google.com/about/locations#region.
     sshPublicKey: A SshPublicKey resource to be passed as the request body.
     view: The view configures whether to retrieve security keys information.
   """
@@ -173,19 +221,19 @@ class OsloginUsersProjectsDeleteRequest(_messages.Message):
   r"""A OsloginUsersProjectsDeleteRequest object.
 
   Enums:
-    OperatingSystemTypeValueValuesEnum: The type of operating system
+    OperatingSystemTypeValueValuesEnum: Optional. The type of operating system
       associated with the account.
 
   Fields:
     name: Required. A reference to the POSIX account to update. POSIX accounts
       are identified by the project ID they are associated with. A reference
       to the POSIX account is in format `users/{user}/projects/{project}`.
-    operatingSystemType: The type of operating system associated with the
-      account.
+    operatingSystemType: Optional. The type of operating system associated
+      with the account.
   """
 
   class OperatingSystemTypeValueValuesEnum(_messages.Enum):
-    r"""The type of operating system associated with the account.
+    r"""Optional. The type of operating system associated with the account.
 
     Values:
       OPERATING_SYSTEM_TYPE_UNSPECIFIED: The operating system type associated
@@ -205,10 +253,7 @@ class OsloginUsersProjectsLocationsSignSshPublicKeyRequest(_messages.Message):
   r"""A OsloginUsersProjectsLocationsSignSshPublicKeyRequest object.
 
   Fields:
-    parent: The parent project and zone for the signing request. This is
-      needed to properly ensure per-organization ISS processing and
-      potentially to provide for the possibility of zone-specific certificates
-      used in the signing process.
+    parent: Required. The parent project and region for the signing request.
     signSshPublicKeyRequest: A SignSshPublicKeyRequest resource to be passed
       as the request body.
   """
@@ -217,14 +262,25 @@ class OsloginUsersProjectsLocationsSignSshPublicKeyRequest(_messages.Message):
   signSshPublicKeyRequest = _messages.MessageField('SignSshPublicKeyRequest', 2)
 
 
+class OsloginUsersProjectsProvisionPosixAccountRequest(_messages.Message):
+  r"""A OsloginUsersProjectsProvisionPosixAccountRequest object.
+
+  Fields:
+    name: Required. The unique ID for the user in format
+      `users/{user}/projects/{project}`.
+    provisionPosixAccountRequest: A ProvisionPosixAccountRequest resource to
+      be passed as the request body.
+  """
+
+  name = _messages.StringField(1, required=True)
+  provisionPosixAccountRequest = _messages.MessageField('ProvisionPosixAccountRequest', 2)
+
+
 class OsloginUsersProjectsZonesSignSshPublicKeyRequest(_messages.Message):
   r"""A OsloginUsersProjectsZonesSignSshPublicKeyRequest object.
 
   Fields:
-    parent: The parent project and zone for the signing request. This is
-      needed to properly ensure per-organization ISS processing and
-      potentially to provide for the possibility of zone-specific certificates
-      used in the signing process.
+    parent: Required. The parent project and region for the signing request.
     signSshPublicKeyRequest: A SignSshPublicKeyRequest resource to be passed
       as the request body.
   """
@@ -277,8 +333,8 @@ class OsloginUsersSshPublicKeysPatchRequest(_messages.Message):
       are identified by their SHA-256 fingerprint. The fingerprint of the
       public key is in format `users/{user}/sshPublicKeys/{fingerprint}`.
     sshPublicKey: A SshPublicKey resource to be passed as the request body.
-    updateMask: Mask to control which fields get updated. Updates all if not
-      present.
+    updateMask: Optional. Mask to control which fields get updated. Updates
+      all if not present.
   """
 
   name = _messages.StringField(1, required=True)
@@ -334,6 +390,18 @@ class PosixAccount(_messages.Message):
   username = _messages.StringField(11)
 
 
+class ProvisionPosixAccountRequest(_messages.Message):
+  r"""A request message for creating a POSIX account entry.
+
+  Fields:
+    regions: Optional. The regions to wait for a POSIX account to be written
+      to before returning a response. If unspecified, defaults to all regions.
+      Regions are listed at https://cloud.google.com/about/locations#region.
+  """
+
+  regions = _messages.StringField(1, repeated=True)
+
+
 class SecurityKey(_messages.Message):
   r"""The credential information for a Google registered security key.
 
@@ -357,7 +425,7 @@ class SignSshPublicKeyRequest(_messages.Message):
   r"""A SignSshPublicKeyRequest object.
 
   Fields:
-    sshPublicKey: The SSH public key to sign.
+    sshPublicKey: Required. The SSH public key to sign.
   """
 
   sshPublicKey = _messages.StringField(1)
@@ -379,7 +447,8 @@ class SshPublicKey(_messages.Message):
   Fields:
     expirationTimeUsec: An expiration time in microseconds since epoch.
     fingerprint: Output only. The SHA-256 fingerprint of the SSH public key.
-    key: Public key text in SSH format, defined by RFC4253 section 6.6.
+    key: Required. Public key text in SSH format, defined by
+      [RFC4253](https://www.ietf.org/rfc/rfc4253.txt) section 6.6.
     name: Output only. The canonical resource name.
   """
 

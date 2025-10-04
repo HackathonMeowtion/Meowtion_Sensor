@@ -79,7 +79,6 @@ def UpdateMembership(name,
                      membership,
                      update_mask,
                      release_track,
-                     description=None,
                      external_id=None,
                      infra_type=None,
                      clear_labels=False,
@@ -88,7 +87,8 @@ def UpdateMembership(name,
                      issuer_url=None,
                      oidc_jwks=None,
                      api_server_version=None,
-                     async_flag=False):
+                     async_flag=False,
+                     ):
   """UpdateMembership updates membership resource in the GKE Hub API.
 
   Args:
@@ -97,7 +97,6 @@ def UpdateMembership(name,
     membership: Membership resource that needs to be updated.
     update_mask: Field names of membership resource to be updated.
     release_track: The release_track used in the gcloud command.
-    description: the value to put in the description field
     external_id: the unique id associated with the cluster, or None if it is not
       available.
     infra_type: The infrastructure type that the cluster is running on
@@ -154,8 +153,6 @@ def UpdateMembership(name,
     else:
       request.membership.endpoint = endpoint
 
-  if description:
-    request.membership.description = description
   if external_id:
     request.membership.externalId = external_id
   if infra_type == 'on-prem':
@@ -196,7 +193,6 @@ def UpdateMembership(name,
 
 def CreateMembership(project,
                      membership_id,
-                     description,
                      location=None,
                      gke_cluster_self_link=None,
                      external_id=None,
@@ -209,7 +205,6 @@ def CreateMembership(project,
   Args:
     project: the project in which to create the membership
     membership_id: the value to use for the membership_id
-    description: the value to put in the description field
     location: the location for the membership
     gke_cluster_self_link: the selfLink for the cluster if it is a GKE cluster,
       or None if it is not
@@ -236,11 +231,10 @@ def CreateMembership(project,
   parent_ref = ParentRef(project, location)
 
   request = messages.GkehubProjectsLocationsMembershipsCreateRequest(
-      membership=messages.Membership(description=description),
+      membership=messages.Membership(),
       parent=parent_ref,
       membershipId=membership_id,
   )
-  # TODO(b/216318697): Use k8s_version for both GKE/Non-GKE
   if gke_cluster_self_link:
     endpoint = messages.MembershipEndpoint(
         gkeCluster=messages.GkeCluster(resourceLink=gke_cluster_self_link))
@@ -391,7 +385,8 @@ def ValidateExclusivity(cr_manifest,
   Raises:
     apitools.base.py.HttpError: if the request returns an HTTP error.
   """
-  release_track = calliope_base.ReleaseTrack.BETA
+  # ValidateExclusivity API is only available in v1alpha.
+  release_track = calliope_base.ReleaseTrack.ALPHA
   client = gkehub_api_util.GetApiClientForTrack(release_track)
   return client.projects_locations_memberships.ValidateExclusivity(
       client.MESSAGES_MODULE
@@ -422,9 +417,8 @@ def GenerateExclusivityManifest(crd_manifest,
   Raises:
     apitools.base.py.HttpError: if the request returns an HTTP error.
   """
-
-  # TODO(b/145955278): remove static mapping after Exclusivity is promoted.
-  release_track = calliope_base.ReleaseTrack.BETA
+  # GenerateExclusivityManifest API is only available in v1alpha.
+  release_track = calliope_base.ReleaseTrack.ALPHA
   client = gkehub_api_util.GetApiClientForTrack(release_track)
   return client.projects_locations_memberships.GenerateExclusivityManifest(
       client.MESSAGES_MODULE
@@ -499,7 +493,7 @@ def ListMembershipsFull(filter_cluster_missing=False):
     'projects/*/locations/*/memberships/*'.
     A list of locations which were unreachable.
   """
-  client = core_apis.GetClientInstance('gkehub', 'v1beta1')
+  client = core_apis.GetClientInstance('gkehub', 'v1beta')
   req = client.MESSAGES_MODULE.GkehubProjectsLocationsMembershipsListRequest(
       parent=hub_base.HubCommand.LocationResourceName(location='-')
   )

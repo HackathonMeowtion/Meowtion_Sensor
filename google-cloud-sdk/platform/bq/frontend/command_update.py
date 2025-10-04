@@ -6,28 +6,35 @@ from __future__ import division
 from __future__ import print_function
 
 import json
-import os
 import time
-from typing import Dict, List, Optional
-
-
+from typing import Any, Dict, List, Optional
 
 from absl import app
 from absl import flags
-from pyglib import appcommands
 
+import bq_flags
 import bq_utils
 from clients import bigquery_client_extended
+from clients import client_connection
+from clients import client_data_transfer
+from clients import client_dataset
+from clients import client_job
+from clients import client_model
+from clients import client_reservation
+from clients import client_row_access_policy
+from clients import client_table
 from clients import utils as bq_client_utils
 from frontend import bigquery_command
 from frontend import bq_cached_client
+from frontend import flags as frontend_flags
 from frontend import utils as frontend_utils
 from frontend import utils_data_transfer
+from frontend import utils_flags
+from frontend import utils_formatting
+from frontend import utils_id as frontend_id_utils
 from utils import bq_error
 from utils import bq_id_utils
 from utils import bq_processor_utils
-
-FLAGS = flags.FLAGS
 
 # These aren't relevant for user-facing docstrings:
 # pylint: disable=g-doc-return-or-yield
@@ -35,6 +42,7 @@ FLAGS = flags.FLAGS
 
 
 class Update(bigquery_command.BigqueryCmd):
+  """The BigQuery CLI update command."""
   usage = """update [-d] [-t] <identifier> [<schema>]"""
 
   def __init__(self, name: str, fv: flags.FlagValues):
@@ -58,6 +66,39 @@ class Update(bigquery_command.BigqueryCmd):
         False,
         'Updates a model with this model ID.',
         short_name='m',
+        flag_values=fv,
+    )
+    flags.DEFINE_boolean(
+        'row_access_policy',
+        None,
+        'Updates a row access policy.',
+        flag_values=fv,
+    )
+    flags.DEFINE_string(
+        'policy_id',
+        None,
+        'Policy ID used to update row access policy for.',
+        flag_values=fv,
+    )
+    flags.DEFINE_string(
+        'target_table',
+        None,
+        'The table to update the row access policy for.',
+        flag_values=fv,
+    )
+    flags.DEFINE_string(
+        'grantees',
+        None,
+        'Comma separated list of iam_member users or groups that specifies the'
+        ' initial members that the row-level access policy should be created'
+        ' with.',
+        flag_values=fv,
+    )
+    flags.DEFINE_string(
+        'filter_predicate',
+        None,
+        'A SQL boolean expression that represents the rows defined by this row'
+        ' access policy.',
         flag_values=fv,
     )
     flags.DEFINE_boolean(
@@ -212,6 +253,41 @@ class Update(bigquery_command.BigqueryCmd):
         'when setting this.',
         flag_values=fv,
     )
+    flags.DEFINE_integer(
+        'max_slots',
+        None,
+        'The overall max slots for the reservation. It needs to be specified '
+        'together with --scaling_mode. It cannot be used together '
+        'with --autoscale_max_slots. It is a private preview feature.',
+        flag_values=fv,
+    )
+    flags.DEFINE_enum(
+        'scaling_mode',
+        None,
+        [
+            'SCALING_MODE_UNSPECIFIED',
+            'AUTOSCALE_ONLY',
+            'IDLE_SLOTS_ONLY',
+            'ALL_SLOTS',
+        ],
+        'The scaling mode for the reservation. Available only for reservations '
+        'enrolled in the Max Slots Preview. It needs to be specified together '
+        'with --max_slots. It cannot be used together with '
+        '--autoscale_max_slots. Options include:'
+        '\n SCALING_MODE_UNSPECIFIED'
+        '\n AUTOSCALE_ONLY'
+        '\n IDLE_SLOTS_ONLY'
+        '\n ALL_SLOTS',
+        flag_values=fv,
+    )
+    flags.DEFINE_string(
+        'reservation_group_name',
+        None,
+        'Reservation group name used to create reservation for, it can be full'
+        ' path or just the reservation group name. Used in conjunction with'
+        ' --reservation.',
+        flag_values=fv,
+    )
     flags.DEFINE_boolean(
         'transfer_config',
         False,
@@ -278,13 +354,7 @@ class Update(bigquery_command.BigqueryCmd):
     flags.DEFINE_string(
         'schedule',
         None,
-        'Data transfer schedule. If the data source does not support a custom '
-        'schedule, this should be empty. If empty, the default '
-        'value for the data source will be used. The specified times are in '
-        'UTC. Examples of valid format: 1st,3rd monday of month 15:30, '
-        'every wed,fri of jan,jun 13:15, and first sunday of quarter 00:00. '
-        'See more explanation about the format here: '
-        'https://cloud.google.com/appengine/docs/flexible/python/scheduling-jobs-with-cron-yaml#the_schedule_format',  # pylint: disable=line-too-long
+        'Data transfer schedule. If the data source does not support a custom schedule, this should be empty. If empty, the default value for the data source will be used. The specified times are in UTC. Examples of valid format: 1st,3rd monday of month 15:30, every wed,fri of jan,jun 13:15, and first sunday of quarter 00:00. See more explanation about the format here: https://cloud.google.com/appengine/docs/flexible/python/scheduling-jobs-with-cron-yaml#the_schedule_format',  # pylint: disable=line-too-long
         flag_values=fv,
     )
     flags.DEFINE_bool(
@@ -293,6 +363,9 @@ class Update(bigquery_command.BigqueryCmd):
         'Disables automatic scheduling of data transfer runs for this '
         'configuration.',
         flag_values=fv,
+    )
+    self.event_driven_schedule_flag = (
+        frontend_flags.define_event_driven_schedule(flag_values=fv)
     )
     flags.DEFINE_string(
         'service_account_name',
@@ -394,7 +467,8 @@ class Update(bigquery_command.BigqueryCmd):
         'staleness is allowed. Examples of valid max_staleness values: '
         '1 day: "0-0 1 0:0:0"; 1 hour: "0-0 0 1:0:0".'
         'See more explanation about the INTERVAL values: '
-        'https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#interval_type',  # pylint: disable=line-too-long
+        'https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types#interval_type. '  # pylint: disable=line-too-long
+        'To use this flag, the external_table_definition flag must be set.',
         flag_values=fv,
     )
     flags.DEFINE_string(
@@ -406,13 +480,34 @@ class Update(bigquery_command.BigqueryCmd):
         'The format of inline definition is "schema@format=uri@connection". ',
         flag_values=fv,
     )
+    flags.DEFINE_string(
+        'external_catalog_dataset_options',
+        None,
+        'Options defining open source compatible datasets living in the'
+        ' BigQuery catalog. Contains metadata of open source database or'
+        ' default storage location represented by the current dataset. The'
+        ' value can be either an inline JSON definition or a path to a file'
+        ' containing a JSON definition.',
+        flag_values=fv,
+    )
+    flags.DEFINE_string(
+        'external_catalog_table_options',
+        None,
+        'Options defining the metadata of an open source compatible table'
+        ' living in the BigQuery catalog. Contains metadata of open source'
+        ' table including serializer/deserializer information, table schema,'
+        ' etc. The value can be either an inline JSON or a path to a file'
+        ' containing a JSON definition.',
+        flag_values=fv,
+    )
     flags.DEFINE_enum(
         'metadata_cache_mode',
         None,
         ['AUTOMATIC', 'MANUAL'],
-        'Enables metadata cache for an external table with a connection. '
-        'Specify AUTOMATIC to automatically refresh the cached metadata. '
-        'Specify MANUAL to stop the automatic refresh.',
+        'Enables metadata cache for an external table with a connection.'
+        ' Specify AUTOMATIC to automatically refresh the cached metadata.'
+        ' Specify MANUAL to stop the automatic refresh. To use this flag, the'
+        ' external_table_definition flag must be set.',
         flag_values=fv,
     )
     flags.DEFINE_enum(
@@ -500,9 +595,9 @@ class Update(bigquery_command.BigqueryCmd):
     flags.DEFINE_enum(
         'connection_type',
         None,
-        bq_client_utils.CONNECTION_TYPES,
+        bq_processor_utils.CONNECTION_TYPES,
         'Connection type. Valid values:\n '
-        + '\n '.join(bq_client_utils.CONNECTION_TYPES),
+        + '\n '.join(bq_processor_utils.CONNECTION_TYPES),
         flag_values=fv,
     )
     flags.DEFINE_string(
@@ -599,15 +694,13 @@ class Update(bigquery_command.BigqueryCmd):
     flags.DEFINE_string(
         'add_tags',
         None,
-        'Tags to attach to the table'
-        'The format is namespaced key:value pair '
-        'like "1234567/my_tag_key:my_tag_value,test-project123/environment:production"',  # pylint: disable=line-too-long
+        'Tags to attach to the dataset or table.The format is namespaced key:value pair like "1234567/my_tag_key:my_tag_value,test-project123/environment:production"',  # pylint: disable=line-too-long
         flag_values=fv,
     )
     flags.DEFINE_string(
         'remove_tags',
         None,
-        'Tags to remove from the table.'
+        'Tags to remove from the dataset or table'
         'The format is namespaced keys like'
         ' "1234567/my_tag_key,test-project123/environment"',
         flag_values=fv,
@@ -615,10 +708,33 @@ class Update(bigquery_command.BigqueryCmd):
     flags.DEFINE_boolean(
         'clear_all_tags',
         False,
-        'Clear all tags attached to the table',
+        'Clear all tags attached to the dataset or table',
         flag_values=fv,
     )
+    flags.DEFINE_enum_class(
+        'update_mode',
+        None,
+        bq_client_utils.UpdateMode,
+        ''.join([
+            'Specifies which dataset fields are updated. By default, both ',
+            'metadata and ACL information are updated. ',
+            'Options include:\n ',
+            '\n '.join([e.value for e in bq_client_utils.UpdateMode]),
+            '\n If not set, defaults as UPDATE_FULL',
+        ]),
+        flag_values=fv,
+    )
+
     self._ProcessCommandRc(fv)
+
+  def printSuccessMessage(self, object_name: str, reference: Any):
+    print(
+        "%s '%s' successfully updated."
+        % (
+            object_name,
+            reference,
+        )
+    )
 
   def RunWithArgs(
       self, identifier: str = '', schema: str = ''
@@ -656,6 +772,10 @@ class Update(bigquery_command.BigqueryCmd):
           proj:US.old_reservation.assignment_id
       bq update --connection_credential='{"username":"u", "password":"p"}'
         --location=US --project_id=my-project existing_connection
+      bq update --row_access_policy --policy_id=existing_policy
+      --target_table='existing_dataset.existing_table'
+      --grantees='user:user1@google.com,group:group1@google.com'
+      --filter_predicate='Region="US"'
     """
     client = bq_cached_client.Client.Get()
     if self.d and self.t:
@@ -668,12 +788,43 @@ class Update(bigquery_command.BigqueryCmd):
           ' --schema or --view or --materialized_view.'
       )
     if self.t:
-      reference = client.GetTableReference(identifier)
+      reference = bq_client_utils.GetTableReference(
+          id_fallbacks=client, identifier=identifier
+      )
     elif self.view:
-      reference = client.GetTableReference(identifier)
+      reference = bq_client_utils.GetTableReference(
+          id_fallbacks=client, identifier=identifier
+      )
     elif self.materialized_view:
-      reference = client.GetTableReference(identifier)
+      reference = bq_client_utils.GetTableReference(
+          id_fallbacks=client, identifier=identifier
+      )
+    elif self.row_access_policy:
+      reference = bq_client_utils.GetRowAccessPolicyReference(
+          id_fallbacks=client,
+          table_identifier=self.target_table,
+          policy_id=self.policy_id,
+      )
+      try:
+        client_row_access_policy.update_row_access_policy(
+            bqclient=client,
+            policy_reference=reference,
+            grantees=self.grantees.split(','),
+            filter_predicate=self.filter_predicate,
+        )
+      except BaseException as e:
+        raise bq_error.BigqueryError(
+            "Failed to update row access policy '%s' on '%s': %s"
+            % (self.policy_id, self.target_table, e)
+        )
+      self.printSuccessMessage('Row access policy', self.policy_id)
     elif self.reservation:
+      label_keys_to_remove = None
+      labels_to_set = None
+      if self.set_label is not None:
+        labels_to_set = frontend_utils.ParseLabels(self.set_label)
+      if self.clear_label is not None:
+        label_keys_to_remove = set(self.clear_label)
       try:
         if (
             self.reservation_size is not None
@@ -682,12 +833,24 @@ class Update(bigquery_command.BigqueryCmd):
           size = self.bi_reservation_size
           if size is None:
             size = self.reservation_size
-          reference = client.GetBiReservationReference(FLAGS.location)
-          object_info = client.UpdateBiReservation(reference, size)
+          reference = bq_client_utils.GetBiReservationReference(
+              id_fallbacks=client, default_location=bq_flags.LOCATION.value
+          )
+          object_info = client_reservation.UpdateBiReservation(
+              client=client.GetReservationApiClient(),
+              reference=reference,
+              reservation_size=size,
+          )
           print(object_info)
         else:
-          reference = client.GetReservationReference(
-              identifier=identifier, default_location=FLAGS.location
+          if self.reservation_group_name is not None:
+            utils_flags.fail_if_not_using_alpha_feature(
+                bq_flags.AlphaFeatures.RESERVATION_GROUPS
+            )
+          reference = bq_client_utils.GetReservationReference(
+              id_fallbacks=client,
+              identifier=identifier,
+              default_location=bq_flags.LOCATION.value,
           )
           ignore_idle_arg = self.ignore_idle_slots
           if ignore_idle_arg is None and self.use_idle_slots is not None:
@@ -699,12 +862,19 @@ class Update(bigquery_command.BigqueryCmd):
                 if self.concurrency is not None
                 else self.max_concurrency
             )
-          object_info = client.UpdateReservation(
+          object_info = client_reservation.UpdateReservation(
+              client=client.GetReservationApiClient(),
+              api_version=bq_flags.API_VERSION.value,
               reference=reference,
               slots=self.slots,
               ignore_idle_slots=ignore_idle_arg,
               target_job_concurrency=concurrency,
               autoscale_max_slots=self.autoscale_max_slots,
+              max_slots=self.max_slots,
+              scaling_mode=self.scaling_mode,
+              labels_to_set=labels_to_set,
+              label_keys_to_remove=label_keys_to_remove,
+              reservation_group_name=self.reservation_group_name,
           )
           frontend_utils.PrintObjectInfo(
               object_info, reference, custom_format='show'
@@ -719,30 +889,43 @@ class Update(bigquery_command.BigqueryCmd):
           raise bq_error.BigqueryError(
               'Cannot specify both --split and --merge.'
           )
-        reference = client.GetCapacityCommitmentReference(
+        reference = bq_client_utils.GetCapacityCommitmentReference(
+            id_fallbacks=client,
             identifier=identifier,
-            default_location=FLAGS.location,
+            default_location=bq_flags.LOCATION.value,
             allow_commas=self.merge,
         )
         if self.split:
-          response = client.SplitCapacityCommitment(reference, self.slots)
+          response = client_reservation.SplitCapacityCommitment(
+              client=client.GetReservationApiClient(),
+              reference=reference,
+              slots=self.slots,
+          )
           frontend_utils.PrintObjectsArray(
               response,
               objects_type=bq_id_utils.ApiClientHelper.CapacityCommitmentReference,
           )
         elif self.merge:
-          object_info = client.MergeCapacityCommitments(
-              reference.location, reference.capacityCommitmentId.split(',')
+          object_info = client_reservation.MergeCapacityCommitments(
+              client=client.GetReservationApiClient(),
+              project_id=reference.projectId,
+              location=reference.location,
+              capacity_commitment_ids=reference.capacityCommitmentId.split(','),
           )
-          reference = client.GetCapacityCommitmentReference(
-              path=object_info['name']
+          if not isinstance(object_info['name'], str):
+            raise ValueError('Parsed object does not have a name of type str.')
+          reference = bq_client_utils.GetCapacityCommitmentReference(
+              id_fallbacks=client, path=object_info['name']
           )
           frontend_utils.PrintObjectInfo(
               object_info, reference, custom_format='show'
           )
         else:
-          object_info = client.UpdateCapacityCommitment(
-              reference, self.plan, self.renewal_plan
+          object_info = client_reservation.UpdateCapacityCommitment(
+              client=client.GetReservationApiClient(),
+              reference=reference,
+              plan=self.plan,
+              renewal_plan=self.renewal_plan,
           )
           frontend_utils.PrintObjectInfo(
               object_info, reference, custom_format='show'
@@ -760,25 +943,31 @@ class Update(bigquery_command.BigqueryCmd):
         raise bq_error.BigqueryError(err)
     elif self.reservation_assignment:
       try:
-        reference = client.GetReservationAssignmentReference(
-            identifier=identifier, default_location=FLAGS.location
+        reference = bq_client_utils.GetReservationAssignmentReference(
+            id_fallbacks=client,
+            identifier=identifier,
+            default_location=bq_flags.LOCATION.value,
         )
         if self.destination_reservation_id and self.priority is not None:
           raise bq_error.BigqueryError(
               'Cannot specify both --destination_reservation_id and --priority.'
           )
         if self.destination_reservation_id:
-          object_info = client.MoveReservationAssignment(
+          object_info = client_reservation.MoveReservationAssignment(
+              client=client.GetReservationApiClient(),
+              id_fallbacks=client,
               reference=reference,
               destination_reservation_id=self.destination_reservation_id,
-              default_location=FLAGS.location,
+              default_location=bq_flags.LOCATION.value,
           )
-          reference = client.GetReservationAssignmentReference(
-              path=object_info['name']
+          reference = bq_client_utils.GetReservationAssignmentReference(
+              id_fallbacks=client, path=object_info['name']
           )
         elif self.priority is not None:
-          object_info = client.UpdateReservationAssignment(
-              reference, self.priority
+          object_info = client_reservation.UpdateReservationAssignment(
+              client=client.GetReservationApiClient(),
+              reference=reference,
+              priority=self.priority,
           )
         else:
           raise bq_error.BigqueryError(
@@ -794,19 +983,25 @@ class Update(bigquery_command.BigqueryCmd):
             "Failed to update reservation assignment '%s': %s" % (identifier, e)
         )
     elif self.d or not identifier:
-      reference = client.GetDatasetReference(identifier)
+      reference = bq_client_utils.GetDatasetReference(
+          id_fallbacks=client, identifier=identifier
+      )
     elif self.m:
-      reference = client.GetModelReference(identifier)
+      reference = bq_client_utils.GetModelReference(
+          id_fallbacks=client, identifier=identifier
+      )
     elif self.transfer_config:
-      formatted_identifier = bq_id_utils.FormatDataTransferIdentifiers(
+      formatted_identifier = frontend_id_utils.FormatDataTransferIdentifiers(
           client, identifier
       )
       reference = bq_id_utils.ApiClientHelper.TransferConfigReference(
           transferConfigName=formatted_identifier
       )
     elif self.connection or self.connection_credential:
-      reference = client.GetConnectionReference(
-          identifier=identifier, default_location=FLAGS.location
+      reference = bq_client_utils.GetConnectionReference(
+          id_fallbacks=client,
+          identifier=identifier,
+          default_location=bq_flags.LOCATION.value,
       )
       if self.connection_type == 'AWS' and self.iam_role_id:
         self.properties = bq_processor_utils.MakeAccessRolePropertiesJson(
@@ -835,7 +1030,8 @@ class Update(bigquery_command.BigqueryCmd):
           or self.connector_configuration
           or self.kms_key_name is not None
       ):
-        updated_connection = client.UpdateConnection(
+        updated_connection = client_connection.UpdateConnection(
+            client=client.GetConnectionV1ApiClient(),
             reference=reference,
             display_name=self.display_name,
             description=self.description,
@@ -845,12 +1041,14 @@ class Update(bigquery_command.BigqueryCmd):
             kms_key_name=self.kms_key_name,
             connector_configuration=self.connector_configuration,
         )
-        bq_client_utils.MaybePrintManualInstructionsForConnection(
+        utils_formatting.maybe_print_manual_instructions_for_connection(
             updated_connection
         )
 
     else:
-      reference = client.GetReference(identifier)
+      reference = bq_client_utils.GetReference(
+          id_fallbacks=client, identifier=identifier
+      )
       bq_id_utils.typecheck(
           reference,
           (
@@ -883,12 +1081,22 @@ class Update(bigquery_command.BigqueryCmd):
         )
       if self.source and self.description:
         raise app.UsageError('Cannot specify description with a source.')
+      if self.external_catalog_table_options is not None:
+        raise app.UsageError(
+            'Cannot specify external_catalog_table_options for a dataset.'
+        )
       default_table_exp_ms = None
       if self.default_table_expiration is not None:
         default_table_exp_ms = self.default_table_expiration * 1000
       default_partition_exp_ms = None
       if self.default_partition_expiration is not None:
         default_partition_exp_ms = self.default_partition_expiration * 1000
+      tags_to_attach = None
+      if self.add_tags:
+        tags_to_attach = bq_utils.ParseTags(self.add_tags)
+      tags_to_remove = None
+      if self.remove_tags:
+        tags_to_remove = bq_utils.ParseTagKeys(self.remove_tags)
       _UpdateDataset(
           client,
           reference,
@@ -902,8 +1110,13 @@ class Update(bigquery_command.BigqueryCmd):
           etag=self.etag,
           max_time_travel_hours=self.max_time_travel_hours,
           storage_billing_model=self.storage_billing_model,
+          tags_to_attach=tags_to_attach,
+          tags_to_remove=tags_to_remove,
+          clear_all_tags=self.clear_all_tags,
+          external_catalog_dataset_options=self.external_catalog_dataset_options,
+          update_mode=self.update_mode,
       )
-      print("Dataset '%s' successfully updated." % (reference,))
+      self.printSuccessMessage('Dataset', reference)
     elif isinstance(reference, bq_id_utils.ApiClientHelper.TableReference):
       object_name = 'Table'
       if self.view:
@@ -926,6 +1139,10 @@ class Update(bigquery_command.BigqueryCmd):
           expiration = int(self.expiration + time.time()) * 1000
       if self.default_table_expiration:
         raise app.UsageError('Cannot specify default expiration for a table.')
+      if self.external_catalog_dataset_options is not None:
+        raise app.UsageError(
+            'Cannot specify external_catalog_dataset_options for a table.'
+        )
       external_data_config = None
       if self.external_table_definition is not None:
         external_data_config = frontend_utils.GetExternalDataConfig(
@@ -965,7 +1182,6 @@ class Update(bigquery_command.BigqueryCmd):
           self.range_partitioning
       )
       clustering = frontend_utils.ParseClustering(self.clustering_fields)
-
       encryption_configuration = None
       if self.destination_kms_key:
         encryption_configuration = {'kmsKeyName': self.destination_kms_key}
@@ -977,8 +1193,9 @@ class Update(bigquery_command.BigqueryCmd):
       if self.remove_tags:
         tags_to_remove = bq_utils.ParseTagKeys(self.remove_tags)
 
-      client.UpdateTable(
-          reference,
+      client_table.update_table(
+          apiclient=client.apiclient,
+          reference=reference,
           schema=schema,
           description=self.description,
           expiration=expiration,
@@ -990,6 +1207,7 @@ class Update(bigquery_command.BigqueryCmd):
           view_udf_resources=view_udf_resources,
           use_legacy_sql=self.use_legacy_sql,
           external_data_config=external_data_config,
+          external_catalog_table_options=self.external_catalog_table_options,
           labels_to_set=labels_to_set,
           label_keys_to_remove=label_keys_to_remove,
           time_partitioning=time_partitioning,
@@ -1005,39 +1223,50 @@ class Update(bigquery_command.BigqueryCmd):
           clear_all_tags=self.clear_all_tags,
       )
 
-      print(
-          "%s '%s' successfully updated."
-          % (
-              object_name,
-              reference,
-          )
-      )
+      self.printSuccessMessage(object_name, reference)
     elif isinstance(
         reference, bq_id_utils.ApiClientHelper.TransferConfigReference
     ):
-      if client.TransferExists(reference):
+      if client_data_transfer.transfer_exists(
+          client.GetTransferV1ApiClient(), reference
+      ):
         auth_info = {}
         service_account_name = ''
         if self.update_credentials:
           if self.service_account_name:
             service_account_name = self.service_account_name
           else:
-            transfer_config_name = bq_id_utils.FormatDataTransferIdentifiers(
-                client, reference.transferConfigName
+            transfer_config_name = (
+                frontend_id_utils.FormatDataTransferIdentifiers(
+                    client, reference.transferConfigName
+                )
             )
-            current_config = client.GetTransferConfig(transfer_config_name)
+            current_config = client_data_transfer.get_transfer_config(
+                client.GetTransferV1ApiClient(), transfer_config_name
+            )
             auth_info = utils_data_transfer.RetrieveAuthorizationInfo(
-                'projects/' + client.GetProjectReference().projectId,
+                'projects/'
+                + bq_client_utils.GetProjectReference(
+                    id_fallbacks=client
+                ).projectId,
                 current_config['dataSourceId'],
                 client.GetTransferV1ApiClient(),
             )
-        schedule_args = bigquery_client_extended.TransferScheduleArgs(
+        self.event_driven_schedule = (
+            self.event_driven_schedule_flag.value
+            if self.event_driven_schedule_flag.present
+            else None
+        )
+        schedule_args = client_data_transfer.TransferScheduleArgs(
             schedule=self.schedule,
             start_time=self.schedule_start_time,
             end_time=self.schedule_end_time,
             disable_auto_scheduling=self.no_auto_scheduling,
+            event_driven_schedule=self.event_driven_schedule,
         )
-        client.UpdateTransferConfig(
+        client_data_transfer.update_transfer_config(
+            transfer_client=client.GetTransferV1ApiClient(),
+            id_fallbacks=client,
             reference=reference,
             target_dataset=self.target_dataset,
             display_name=self.display_name,
@@ -1049,9 +1278,7 @@ class Update(bigquery_command.BigqueryCmd):
             notification_pubsub_topic=self.notification_pubsub_topic,
             schedule_args=schedule_args,
         )
-        print(
-            "Transfer configuration '%s' successfully updated." % (reference,)
-        )
+        self.printSuccessMessage('Transfer configuration', reference)
       else:
         raise bq_error.BigqueryNotFoundError(
             'Not found: %r' % (reference,), {'reason': 'notFound'}, []
@@ -1062,8 +1289,9 @@ class Update(bigquery_command.BigqueryCmd):
         expiration = int(self.expiration + time.time()) * 1000
       else:
         expiration = self.expiration  # None or 0
-      client.UpdateModel(
-          reference,
+      client_model.update_model(
+          model_client=client.GetModelsApiClient(),
+          reference=reference,
           description=self.description,
           expiration=expiration,
           labels_to_set=labels_to_set,
@@ -1071,7 +1299,7 @@ class Update(bigquery_command.BigqueryCmd):
           vertex_ai_model_id=self.vertex_ai_model_id,
           etag=self.etag,
       )
-      print("Model '%s' successfully updated." % (reference))
+      self.printSuccessMessage('Model', reference)
 
 
 def _UpdateDataset(
@@ -1090,6 +1318,8 @@ def _UpdateDataset(
     tags_to_attach: Optional[Dict[str, str]] = None,
     tags_to_remove: Optional[List[str]] = None,
     clear_all_tags: Optional[bool] = None,
+    external_catalog_dataset_options: Optional[str] = None,
+    update_mode: Optional[bq_client_utils.UpdateMode] = None,
 ):
   """Updates a dataset.
 
@@ -1097,51 +1327,38 @@ def _UpdateDataset(
   dataset update.
 
   Args:
-    client: the BigQuery client.
-    reference: the DatasetReference to update.
-    description: an optional dataset description.
-    source: an optional filename containing the JSON payload.
-    default_table_expiration_ms: optional number of milliseconds for the default
-      expiration duration for new tables created in this dataset.
-    default_partition_expiration_ms: optional number of milliseconds for the
+    client: The BigQuery client.
+    reference: The DatasetReference to update.
+    description: An optional dataset description.
+    source: An optional filename containing the JSON payload.
+    default_table_expiration_ms: An optional number of milliseconds for the
+      default expiration duration for new tables created in this dataset.
+    default_partition_expiration_ms: An optional number of milliseconds for the
       default partition expiration duration for new partitioned tables created
       in this dataset.
-    labels_to_set: an optional dict of labels to set on this dataset.
+    labels_to_set: An optional dict of labels to set on this dataset.
     label_keys_to_remove: an optional list of label keys to remove from this
       dataset.
-    default_kms_key: an optional CMEK encryption key for all new tables in the
+    default_kms_key: An optional CMEK encryption key for all new tables in the
       dataset.
     max_time_travel_hours: Optional. Define the max time travel in hours. The
       value can be from 48 to 168 hours (2 to 7 days). The default value is 168
       hours if this is not set.
     storage_billing_model: Optional. Sets the storage billing model for the
       dataset.
-    tags_to_attach: an optional dict of tags to attach to the dataset.
-    tags_to_remove: an optional list of tag keys to remove from the dataset.
-    clear_all_tags: if set, clears all the tags attached to the dataset.
+    tags_to_attach: An optional dict of tags to attach to the dataset.
+    tags_to_remove: An optional list of tag keys to remove from the dataset.
+    clear_all_tags: If set, clears all the tags attached to the dataset.
+    external_catalog_dataset_options: An optional JSON string or file path
+      containing the external catalog dataset options to update.
 
   Raises:
     UsageError: when incorrect usage or invalid args are used.
   """
-  acl = None
-  if source is not None:
-    if not os.path.exists(source):
-      raise app.UsageError('Source file not found: %s' % (source,))
-    if not os.path.isfile(source):
-      raise app.UsageError('Source path is not a file: %s' % (source,))
-    with open(source) as f:
-      try:
-        payload = json.load(f)
-        if payload.__contains__('description'):
-          description = payload['description']
-        if payload.__contains__('access'):
-          acl = payload['access']
-      except ValueError as e:
-        raise app.UsageError(
-            'Error decoding JSON schema from file %s: %s' % (source, e)
-        )
-  client.UpdateDataset(
-      reference,
+  description, acl = frontend_utils.ProcessSource(description, source)
+  client_dataset.UpdateDataset(
+      apiclient=client.apiclient,
+      reference=reference,
       description=description,
       acl=acl,
       default_table_expiration_ms=default_table_expiration_ms,
@@ -1152,4 +1369,9 @@ def _UpdateDataset(
       default_kms_key=default_kms_key,
       max_time_travel_hours=max_time_travel_hours,
       storage_billing_model=storage_billing_model,
+      tags_to_attach=tags_to_attach,
+      tags_to_remove=tags_to_remove,
+      clear_all_tags=clear_all_tags,
+      external_catalog_dataset_options=external_catalog_dataset_options,
+      update_mode=update_mode,
   )

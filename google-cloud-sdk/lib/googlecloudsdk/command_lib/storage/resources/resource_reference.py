@@ -102,7 +102,6 @@ class CloudResource(Resource):
 
   @property
   def scheme(self):
-    # TODO(b/168690302): Stop using string scheme in storage_url.py.
     return self.storage_url.scheme
 
   def get_formatted_acl(self):
@@ -354,7 +353,7 @@ class ObjectResource(CloudResource):
 
   @property
   def name(self):
-    return self.storage_url.object_name
+    return self.storage_url.resource_name
 
   @property
   def generation(self):
@@ -445,7 +444,7 @@ class ManagedFolderResource(PrefixResource):
       update_time=None,
   ):
     super(ManagedFolderResource, self).__init__(
-        storage_url_object, storage_url_object.object_name
+        storage_url_object, storage_url_object.resource_name
     )
     self.create_time = create_time
     self.metadata = metadata
@@ -462,11 +461,55 @@ class ManagedFolderResource(PrefixResource):
 
   @property
   def name(self):
-    return self.storage_url.object_name
+    return self.storage_url.resource_name
 
   def __eq__(self, other):
     return (
         super(ManagedFolderResource, self).__eq__(other)
+        and self.storage_url == other.storage_url
+        and self.create_time == other.create_time
+        and self.metadata == other.metadata
+        and self.metageneration == other.metageneration
+        and self.update_time == other.update_time
+    )
+
+
+class FolderResource(PrefixResource):
+  """Class representing a folder."""
+
+  TYPE_STRING = 'folder'
+
+  def __init__(
+      self,
+      storage_url_object,
+      create_time=None,
+      metadata=None,
+      metageneration=None,
+      update_time=None,
+  ):
+    super(FolderResource, self).__init__(
+        storage_url_object, storage_url_object.resource_name
+    )
+    self.create_time = create_time
+    self.metadata = metadata
+    self.metageneration = metageneration
+    self.update_time = update_time
+
+  @property
+  def bucket(self):
+    return self.storage_url.bucket_name
+
+  @property
+  def is_symlink(self):
+    return False
+
+  @property
+  def name(self):
+    return self.storage_url.resource_name
+
+  def __eq__(self, other):
+    return (
+        super(FolderResource, self).__eq__(other)
         and self.storage_url == other.storage_url
         and self.create_time == other.create_time
         and self.metadata == other.metadata
@@ -501,13 +544,13 @@ class FileObjectResource(Resource):
     """Returns file size or None if pipe or stream."""
     if self.storage_url.is_stream:
       return None
-    return os.path.getsize(self.storage_url.object_name)
+    return os.path.getsize(self.storage_url.resource_name)
 
   @property
   def is_symlink(self):
     """Returns whether this file is a symlink."""
     if self._is_symlink is None:
-      self._is_symlink = os.path.islink(self.storage_url.object_name)
+      self._is_symlink = os.path.islink(self.storage_url.resource_name)
     return self._is_symlink
 
 
@@ -527,7 +570,7 @@ class FileSymlinkPlaceholderResource(FileObjectResource):
   @property
   def size(self):
     """Returns the length of the symlink target to be used as a placeholder."""
-    return len(os.readlink(self.storage_url.object_name).encode('utf-8'))
+    return len(os.readlink(self.storage_url.resource_name).encode('utf-8'))
 
   @property
   def is_symlink(self):

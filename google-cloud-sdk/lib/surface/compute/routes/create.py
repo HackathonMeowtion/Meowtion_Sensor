@@ -28,12 +28,14 @@ from googlecloudsdk.calliope import exceptions
 from googlecloudsdk.command_lib.compute import completers
 from googlecloudsdk.command_lib.compute import exceptions as compute_exceptions
 from googlecloudsdk.command_lib.compute import flags as compute_flags
+from googlecloudsdk.command_lib.compute import resource_manager_tags_utils
 from googlecloudsdk.command_lib.compute.forwarding_rules import flags as ilb_flags
 from googlecloudsdk.command_lib.compute.instances import flags as instance_flags
 from googlecloudsdk.command_lib.compute.networks import flags as network_flags
 from googlecloudsdk.command_lib.compute.routes import flags
 from googlecloudsdk.command_lib.compute.vpn_tunnels import flags as vpn_flags
 from googlecloudsdk.core import properties
+import six
 
 
 def _AddGaHops(next_hop_group):
@@ -134,10 +136,20 @@ def _Args(parser):
       help=('The region of the next hop forwarding rule. ' +
             compute_flags.REGION_PROPERTY_EXPLANATION))
 
+  parser.add_argument(
+      '--resource-manager-tags',
+      type=arg_parsers.ArgDict(),
+      metavar='KEY=VALUE',
+      help="""\
+          A comma-separated list of Resource Manager tags to apply to the route.
+      """,
+  )
+
   parser.display_info.AddCacheUpdater(completers.RoutesCompleter)
 
 
 @base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.UniverseCompatible
 class Create(base.CreateCommand):
   r"""Create a new route.
 
@@ -152,9 +164,7 @@ class Create(base.CreateCommand):
   Routes match packets by destination IP address, preferring
   smaller or more specific ranges over larger ones (see
   `--destination-range`). If there is a tie, the system selects
-  the route with the smallest priority value. If there is still
-  a tie, it uses the layer 3 and 4 packet headers to
-  select just one of the remaining matching routes. The packet
+  the route with the smallest priority value. The packet
   is then forwarded as specified by `--next-hop-address`,
   `--next-hop-instance`, `--next-hop-vpn-tunnel`, or
   `--next-hop-gateway` of the winning route. Packets that do
@@ -271,14 +281,38 @@ class Create(base.CreateCommand):
             nextHopVpnTunnel=next_hop_vpn_tunnel_uri,
             priority=args.priority,
             tags=args.tags,
-        ))
+        ),
+    )
     request.route.nextHopIlb = next_hop_ilb_uri
 
-    return client.MakeRequests([(client.apitools_client.routes, 'Insert',
-                                 request)])
+    if args.resource_manager_tags is not None:
+      request.route.params = _CreateRouteParams(
+          client.messages, args.resource_manager_tags
+      )
+
+    return client.MakeRequests(
+        [(client.apitools_client.routes, 'Insert', request)]
+    )
+
+
+def _CreateRouteParams(messages, resource_manager_tags):
+  resource_manager_tags_map = (
+      resource_manager_tags_utils.GetResourceManagerTags(resource_manager_tags)
+  )
+  params = messages.RouteParams
+  additional_properties = [
+      params.ResourceManagerTagsValue.AdditionalProperty(key=key, value=value)
+      for key, value in sorted(six.iteritems(resource_manager_tags_map))
+  ]
+  return params(
+      resourceManagerTags=params.ResourceManagerTagsValue(
+          additionalProperties=additional_properties
+      )
+  )
 
 
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
+@base.UniverseCompatible
 class CreateAlphaBeta(Create):
   r"""Create a new route.
 

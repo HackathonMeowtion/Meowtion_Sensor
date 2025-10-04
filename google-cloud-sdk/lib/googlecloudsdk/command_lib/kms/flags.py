@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*- #
-# Copyright 2017 Google LLC. All Rights Reserved.
+# Copyright 2024 Google LLC. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,10 +18,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from googlecloudsdk.api_lib.cloudkms import base as cloudkms_base
 from googlecloudsdk.calliope import actions
 from googlecloudsdk.calliope import arg_parsers
 from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.kms import maps
+from googlecloudsdk.command_lib.kms import resource_args
 from googlecloudsdk.command_lib.util import completers
 from googlecloudsdk.command_lib.util import parameter_info_lib
 from googlecloudsdk.core import properties
@@ -30,6 +32,7 @@ from googlecloudsdk.core.util import times
 
 EKM_CONNECTION_COLLECTION = 'cloudkms.projects.locations.ekmConnections'
 KEY_RING_COLLECTION = 'cloudkms.projects.locations.keyRings'
+KEY_HANDLE_COLLECTION = 'cloudkms.projects.locations.keyHandles'
 LOCATION_COLLECTION = 'cloudkms.projects.locations'
 
 # Collection names.
@@ -41,11 +44,13 @@ IMPORT_JOB_COLLECTION = 'cloudkms.projects.locations.keyRings.importJobs'
 
 class ListCommandParameterInfo(parameter_info_lib.ParameterInfoByConvention):
 
-  def GetFlag(self,
-              parameter_name,
-              parameter_value=None,
-              check_properties=True,
-              for_update=False):
+  def GetFlag(
+      self,
+      parameter_name,
+      parameter_value=None,
+      check_properties=True,
+      for_update=False,
+  ):
     return super(ListCommandParameterInfo, self).GetFlag(
         parameter_name,
         parameter_value=parameter_value,
@@ -74,7 +79,8 @@ class LocationCompleter(ListCommandCompleter):
     super(LocationCompleter, self).__init__(
         collection=LOCATION_COLLECTION,
         list_command='kms locations list --uri',
-        **kwargs)
+        **kwargs
+    )
 
 
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
@@ -85,7 +91,8 @@ class EkmConnectionCompleter(ListCommandCompleter):
         collection=EKM_CONNECTION_COLLECTION,
         list_command='kms ekm-connections list --uri',
         flags=['location'],
-        **kwargs)
+        **kwargs
+    )
 
 
 class KeyRingCompleter(ListCommandCompleter):
@@ -95,7 +102,8 @@ class KeyRingCompleter(ListCommandCompleter):
         collection=KEY_RING_COLLECTION,
         list_command='kms keyrings list --uri',
         flags=['location'],
-        **kwargs)
+        **kwargs
+    )
 
 
 class KeyCompleter(ListCommandCompleter):
@@ -105,7 +113,20 @@ class KeyCompleter(ListCommandCompleter):
         collection=CRYPTO_KEY_COLLECTION,
         list_command='kms keys list --uri',
         flags=['location', 'keyring'],
-        **kwargs)
+        **kwargs
+    )
+
+
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class KeyHandleCompleter(ListCommandCompleter):
+
+  def __init__(self, **kwargs):
+    super(KeyHandleCompleter, self).__init__(
+        collection=KEY_HANDLE_COLLECTION,
+        list_command='kms key-handles list --uri',
+        flags=['location'],
+        **kwargs
+    )
 
 
 class KeyVersionCompleter(ListCommandCompleter):
@@ -115,7 +136,8 @@ class KeyVersionCompleter(ListCommandCompleter):
         collection=CRYPTO_KEY_VERSION_COLLECTION,
         list_command='kms keys versions list --uri',
         flags=['location', 'key', 'keyring'],
-        **kwargs)
+        **kwargs
+    )
 
 
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
@@ -126,7 +148,8 @@ class ImportJobCompleter(ListCommandCompleter):
         collection=IMPORT_JOB_COLLECTION,
         list_command='beta kms import-jobs list --uri',
         flags=['location', 'keyring'],
-        **kwargs)
+        **kwargs
+    )
 
 
 # completers by parameter name convention
@@ -134,38 +157,33 @@ class ImportJobCompleter(ListCommandCompleter):
 COMPLETERS_BY_CONVENTION = {
     'location': (LocationCompleter, False),
     'keyring': (KeyRingCompleter, False),
+    'key-handle': (KeyHandleCompleter, False),
     'key': (KeyCompleter, False),
     'import-jobs': (ImportJobCompleter, False),
 }
 
 
 # Flags.
-def AddProjectFlag(parser):
-  parser.add_argument(
-      '--project',
-      metavar='PROJECT_ID_OR_NUMBER',
-      required=True,
-      help='Project ID to opt out.',
-  )
-
-
 def AddLocationFlag(parser, resource='resource'):
   parser.add_argument(
       '--location',
       completer=LocationCompleter,
-      help='Location of the {0}.'.format(resource))
+      help='Location of the {0}.'.format(resource),
+  )
 
 
 def AddKeyRingFlag(parser, resource='resource'):
   parser.add_argument(
       '--keyring',
       completer=KeyRingCompleter,
-      help='Key ring of the {0}.'.format(resource))
+      help='Key ring of the {0}.'.format(resource),
+  )
 
 
 def AddCryptoKeyFlag(parser, help_text=None):
   parser.add_argument(
-      '--key', completer=KeyCompleter, help=help_text or 'The containing key.')
+      '--key', completer=KeyCompleter, help=help_text or 'The containing key.'
+  )
 
 
 def AddKeyResourceFlags(parser, help_text=None):
@@ -179,7 +197,8 @@ def AddCryptoKeyVersionFlag(parser, help_action, required=False):
       '--version',
       required=required,
       completer=KeyVersionCompleter,
-      help='Version {0}.'.format(help_action))
+      help='Version {0}.'.format(help_action),
+  )
 
 
 def AddCryptoKeyPrimaryVersionFlag(parser, help_action, required=False):
@@ -187,30 +206,38 @@ def AddCryptoKeyPrimaryVersionFlag(parser, help_action, required=False):
       '--primary-version',
       required=required,
       completer=KeyVersionCompleter,
-      help='Primary version {0}.'.format(help_action))
+      help='Primary version {0}.'.format(help_action),
+  )
 
 
 def AddRotationPeriodFlag(parser):
   parser.add_argument(
       '--rotation-period',
       type=arg_parsers.Duration(lower_bound='1d'),
-      help=('Automatic rotation period of the key. See '
-            '$ gcloud topic datetimes for information on duration formats.'))
+      help=(
+          'Automatic rotation period of the key. See '
+          '$ gcloud topic datetimes for information on duration formats.'
+      ),
+  )
 
 
 def AddNextRotationTimeFlag(parser):
   parser.add_argument(
       '--next-rotation-time',
       type=arg_parsers.Datetime.Parse,
-      help=('Next automatic rotation time of the key. See '
-            '$ gcloud topic datetimes for information on time formats.'))
+      help=(
+          'Next automatic rotation time of the key. See '
+          '$ gcloud topic datetimes for information on time formats.'
+      ),
+  )
 
 
 def AddRemoveRotationScheduleFlag(parser):
   parser.add_argument(
       '--remove-rotation-schedule',
       action='store_true',
-      help='Remove any existing rotation schedule on the key.')
+      help='Remove any existing rotation schedule on the key.',
+  )
 
 
 def AddSkipInitialVersionCreationFlag(parser):
@@ -219,36 +246,51 @@ def AddSkipInitialVersionCreationFlag(parser):
       default=None,
       action='store_true',
       dest='skip_initial_version_creation',
-      help=('Skip creating the first version in a key and setting it as '
-            'primary during creation.'))
+      help=(
+          'Skip creating the first version in a key and setting it as '
+          'primary during creation.'
+      ),
+  )
 
 
 def AddPlaintextFileFlag(parser, help_action):
   parser.add_argument(
       '--plaintext-file',
       help='File path of the plaintext file {0}.'.format(help_action),
-      required=True)
+      required=True,
+  )
+
+
+def AddSharedSecretFileFlag(parser, help_action):
+  parser.add_argument(
+      '--shared-secret-file',
+      help='File path of the shared secret file {0}.'.format(help_action),
+      required=True,
+  )
 
 
 def AddCiphertextFileFlag(parser, help_action):
   parser.add_argument(
       '--ciphertext-file',
       help='File path of the ciphertext file {0}.'.format(help_action),
-      required=True)
+      required=True,
+  )
 
 
 def AddSignatureFileFlag(parser, help_action):
   parser.add_argument(
       '--signature-file',
       help='Path to the signature file {}.'.format(help_action),
-      required=True)
+      required=True,
+  )
 
 
 def AddInputFileFlag(parser, help_action):
   parser.add_argument(
       '--input-file',
       help='Path to the input file {}.'.format(help_action),
-      required=True)
+      required=True,
+  )
 
 
 def AddRsaAesWrappedKeyFileFlag(parser, help_action):
@@ -258,33 +300,45 @@ def AddRsaAesWrappedKeyFileFlag(parser, help_action):
       hidden=True,
       action=actions.DeprecationAction(
           '--rsa-aes-wrapped-key-file',
-          warn='The {flag_name} flag is deprecated but will continue to be '
-          'supported. Prefer to use the --wrapped-key-file flag instead.'))
+          warn=(
+              'The {flag_name} flag is deprecated but will continue to be '
+              'supported. Prefer to use the --wrapped-key-file flag instead.'
+          ),
+      ),
+  )
 
 
 def AddWrappedKeyFileFlag(parser, help_action):
   parser.add_argument(
       '--wrapped-key-file',
-      help='Path to the RSA/RSA+AES wrapped key file {}.'.format(help_action))
+      help='Path to the RSA/RSA+AES wrapped key file {}.'.format(help_action),
+  )
 
 
 def AddOutputFileFlag(parser, help_action):
   parser.add_argument(
-      '--output-file', help='Path to the output file {}.'.format(help_action))
+      '--output-file', help='Path to the output file {}.'.format(help_action)
+  )
 
 
 def AddAadFileFlag(parser):
   parser.add_argument(
       '--additional-authenticated-data-file',
-      help='File path to the optional file containing the additional '
-      'authenticated data.')
+      help=(
+          'File path to the optional file containing the additional '
+          'authenticated data.'
+      ),
+  )
 
 
 def AddIvFileFlag(parser, help_action):
   parser.add_argument(
       '--initialization-vector-file',
-      help='File path to the optional file containing the initialization '
-      'vector {}.'.format(help_action))
+      help=(
+          'File path to the optional file containing the initialization '
+          'vector {}.'.format(help_action)
+      ),
+  )
 
 
 def AddProtectionLevelFlag(parser):
@@ -292,7 +346,8 @@ def AddProtectionLevelFlag(parser):
       '--protection-level',
       choices=['software', 'hsm', 'external', 'external-vpc'],
       default='software',
-      help='Protection level of the key.')
+      help='Protection level of the key.',
+  )
 
 
 def AddRequiredProtectionLevelFlag(parser):
@@ -300,76 +355,100 @@ def AddRequiredProtectionLevelFlag(parser):
       '--protection-level',
       choices=['software', 'hsm'],
       help='Protection level of the import job.',
-      required=True)
+      required=True,
+  )
 
 
 def AddAttestationFileFlag(parser):
   parser.add_argument(
-      '--attestation-file', help='Path to the output attestation file.')
+      '--attestation-file', help='Path to the output attestation file.'
+  )
 
 
 def AddDefaultAlgorithmFlag(parser):
   parser.add_argument(
       '--default-algorithm',
       choices=sorted(maps.ALL_ALGORITHMS),
-      help='The default algorithm for the crypto key. For more information '
-      'about choosing an algorithm, see '
-      'https://cloud.google.com/kms/docs/algorithms.')
+      help=(
+          'The default algorithm for the crypto key. For more information '
+          'about choosing an algorithm, see '
+          'https://cloud.google.com/kms/docs/algorithms.'
+      ),
+  )
 
 
 def AddRequiredImportMethodFlag(parser):
   parser.add_argument(
       '--import-method',
       choices=sorted(maps.IMPORT_METHOD_MAPPER.choices)[1:],
-      help='The wrapping method to be used for incoming key material. For more '
-      'information about choosing an import method, see '
-      'https://cloud.google.com/kms/docs/key-wrapping.',
-      required=True)
+      help=(
+          'The wrapping method to be used for incoming key material. For more '
+          'information about choosing an import method, see '
+          'https://cloud.google.com/kms/docs/key-wrapping.'
+      ),
+      required=True,
+  )
 
 
 def AddPublicKeyFileFlag(parser):
   parser.add_argument(
       '--public-key-file',
-      help='Path to the public key of the ImportJob, used to wrap the key for '
-      'import. If missing, the public key will be fetched on your behalf.')
+      help=(
+          'Path to the public key of the ImportJob, used to wrap the key for '
+          'import. If missing, the public key will be fetched on your behalf.'
+      ),
+  )
 
 
 def AddTargetKeyFileFlag(parser):
   parser.add_argument(
       '--target-key-file',
-      help='Path to the unwrapped target key to import into a Cloud '
-      'KMS key version. If specified, the key will be securely wrapped before '
-      'transmission to Google.')
+      help=(
+          'Path to the unwrapped target key to import into a Cloud KMS key'
+          ' version. If specified, the key will be securely wrapped before'
+          ' transmission to Google.'
+      ),
+  )
 
 
 def AddDigestAlgorithmFlag(parser, help_action):
   parser.add_argument(
-      '--digest-algorithm', choices=sorted(maps.DIGESTS), help=help_action)
+      '--digest-algorithm', choices=sorted(maps.DIGESTS), help=help_action
+  )
 
 
 def AddImportedVersionAlgorithmFlag(parser):
   parser.add_argument(
       '--algorithm',
       choices=sorted(maps.ALGORITHMS_FOR_IMPORT),
-      help='The algorithm to assign to the new key version. For more '
-      'information about supported algorithms, see '
-      'https://cloud.google.com/kms/docs/algorithms.',
-      required=True)
+      help=(
+          'The algorithm to assign to the new key version. For more '
+          'information about supported algorithms, see '
+          'https://cloud.google.com/kms/docs/algorithms.'
+      ),
+      required=True,
+  )
 
 
 def AddExternalKeyUriFlag(parser):
   parser.add_argument(
       '--external-key-uri',
       suggestion_aliases=['--key-uri'],
-      help='The URI of the external key for keys with protection level'
-      ' "external".')
+      help=(
+          'The URI of the external key for keys with protection level'
+          ' "external".'
+      ),
+  )
 
 
 def AddEkmConnectionKeyPathFlag(parser):
   parser.add_argument(
       '--ekm-connection-key-path',
-      help='The path to the external key material on the EKM for keys with '
-      'protection level "external-vpc".')
+      help=(
+          'The path to the external key material on the EKM for keys with '
+          'protection level "external-vpc".'
+      ),
+  )
 
 
 def AddStateFlag(parser):
@@ -382,26 +461,32 @@ def AddSkipIntegrityVerification(parser):
       default=None,
       action='store_true',
       dest='skip_integrity_verification',
-      help=('Skip integrity verification on request and response API fields.'))
+      help='Skip integrity verification on request and response API fields.',
+  )
 
 
 def AddDestroyScheduledDurationFlag(parser):
   parser.add_argument(
       '--destroy-scheduled-duration',
       type=arg_parsers.Duration(upper_bound='120d'),
-      help='The amount of time that versions of the key should spend in the '
-      'DESTROY_SCHEDULED state before transitioning to DESTROYED. See '
-      '$ gcloud topic datetimes for information on duration formats.')
+      help=(
+          'The amount of time that versions of the key should spend in the '
+          'DESTROY_SCHEDULED state before transitioning to DESTROYED. See '
+          '$ gcloud topic datetimes for information on duration formats.'
+      ),
+  )
 
 
 def AddCryptoKeyBackendFlag(parser):
   parser.add_argument(
       '--crypto-key-backend',
-      help='The resource name of the backend environment where the key '
-      'material for all CryptoKeyVersions associated with this CryptoKey '
-      'reside and where all related cryptographic operations are performed. '
-      'Currently only applicable for EXTERNAL_VPC and EkmConnection '
-      'resource names.')
+      help=(
+          'The resource name of the backend environment where the key material'
+          ' for all CryptoKeyVersions associated with this CryptoKey reside and'
+          ' where all related cryptographic operations are performed. Currently'
+          ' only applicable for EXTERNAL_VPC and EkmConnection resource names.'
+      ),
+  )
 
 
 def AddImportOnlyFlag(parser):
@@ -410,7 +495,47 @@ def AddImportOnlyFlag(parser):
       default=None,
       action='store_true',
       dest='import_only',
-      help=('Restrict this key to imported versions only.'))
+      help='Restrict this key to imported versions only.',
+  )
+
+
+def AddAllowedAccessReasonsFlag(parser):
+  parser.add_argument(
+      '--allowed-access-reasons',
+      type=arg_parsers.ArgList(
+          choices=maps.ACCESS_REASON_MAPPER.choices,
+          max_length=len(maps.ACCESS_REASON_MAPPER.choices),
+      ),
+      metavar='ALLOWED_ACCESS_REASONS',
+      help=(
+          'The list of allowed Key Access Justifications access reasons on '
+          'the key. The key must be enrolled in Key Access Justifications to '
+          'configure this field. By default, this field is absent, and all '
+          'justification codes are allowed. For more information about '
+          'justification codes, see '
+          'https://cloud.google.com/assured-workloads/key-access-justifications/docs/justification-codes.'
+      ),
+  )
+
+
+def AddRemoveKeyAccessJustificationsPolicyFlag(parser):
+  parser.add_argument(
+      '--remove-key-access-justifications-policy',
+      default=None,
+      action='store_true',
+      help=(
+          'Removes the Key Access Justifications policy on the key, making '
+          'all justification codes allowed.'
+      ),
+  )
+
+
+def AddPublicKeyFormatFlag(parser):
+  parser.add_argument(
+      '--public-key-format',
+      default=None,
+      help='The format in which the public key will be returned.',
+  )
 
 
 # Arguments
@@ -418,14 +543,16 @@ def AddKeyRingArgument(parser, help_action):
   parser.add_argument(
       'keyring',
       completer=KeyRingCompleter,
-      help='Name of the key ring {0}.'.format(help_action))
+      help='Name of the key ring {0}.'.format(help_action),
+  )
 
 
 def AddCryptoKeyArgument(parser, help_action):
   parser.add_argument(
       'key',
       completer=KeyCompleter,
-      help='Name of the key {0}.'.format(help_action))
+      help='Name of the key {0}.'.format(help_action),
+  )
 
 
 def AddKeyResourceArgument(parser, help_action):
@@ -438,7 +565,8 @@ def AddCryptoKeyVersionArgument(parser, help_action):
   parser.add_argument(
       'version',
       completer=KeyVersionCompleter,
-      help='Name of the version {0}.'.format(help_action))
+      help='Name of the version {0}.'.format(help_action),
+  )
 
 
 def AddKeyVersionResourceArgument(parser, help_action):
@@ -450,7 +578,8 @@ def AddPositionalImportJobArgument(parser, help_action):
   parser.add_argument(
       'import_job',
       completer=ImportJobCompleter,
-      help='Name of the import job {0}.'.format(help_action))
+      help='Name of the import job {0}.'.format(help_action),
+  )
 
 
 def AddRequiredImportJobArgument(parser, help_action):
@@ -458,7 +587,8 @@ def AddRequiredImportJobArgument(parser, help_action):
       '--import-job',
       completer=ImportJobCompleter,
       help='Name of the import job {0}.'.format(help_action),
-      required=True)
+      required=True,
+  )
 
 
 def AddCertificateChainFlag(parser):
@@ -466,29 +596,37 @@ def AddCertificateChainFlag(parser):
       '--certificate-chain-type',
       default='all',
       choices=['all', 'cavium', 'google-card', 'google-partition'],
-      help='Certificate chain to retrieve.')
+      help='Certificate chain to retrieve.',
+  )
 
 
 def AddServiceDirectoryServiceFlag(parser, required=False):
   parser.add_argument(
       '--service-directory-service',
-      help='The resource name of the Service Directory service pointing to '
-      'an EKM replica.',
-      required=required)
+      help=(
+          'The resource name of the Service Directory service pointing to '
+          'an EKM replica.'
+      ),
+      required=required,
+  )
 
 
 def AddEndpointFilterFlag(parser):
   parser.add_argument(
       '--endpoint-filter',
-      help='The filter applied to the endpoints of the resolved service. '
-      'If no filter is specified, all endpoints will be considered.')
+      help=(
+          'The filter applied to the endpoints of the resolved service. '
+          'If no filter is specified, all endpoints will be considered.'
+      ),
+  )
 
 
 def AddHostnameFlag(parser, required=False):
   parser.add_argument(
       '--hostname',
       help='The hostname of the EKM replica used at TLS and HTTP layers.',
-      required=required)
+      required=required,
+  )
 
 
 def AddServerCertificatesFilesFlag(parser, required=False):
@@ -496,10 +634,13 @@ def AddServerCertificatesFilesFlag(parser, required=False):
       '--server-certificates-files',
       type=arg_parsers.ArgList(),
       metavar='SERVER_CERTIFICATES',
-      help='A list of filenames of leaf server certificates used to '
-      'authenticate HTTPS connections to the EKM replica in PEM format. If '
-      'files are not in PEM, the assumed format will be DER.',
-      required=required)
+      help=(
+          'A list of filenames of leaf server certificates used to '
+          'authenticate HTTPS connections to the EKM replica in PEM format. If '
+          'files are not in PEM, the assumed format will be DER.'
+      ),
+      required=required,
+  )
 
 
 def AddKeyManagementModeFlags(parser):
@@ -535,20 +676,54 @@ def AddKeyManagementModeFlags(parser):
 def AddDefaultEkmConnectionFlag(parser, required=False):
   parser.add_argument(
       '--default-ekm-connection',
-      help='The resource name of the EkmConnection to be used as the '
-      'default EkmConnection for all `external-vpc` CryptoKeys in a project '
-      'and location. Can be an empty string to remove the default '
-      'EkmConnection.',
-      required=required)
+      help=(
+          'The resource name of the EkmConnection to be used as the default'
+          ' EkmConnection for all `external-vpc` CryptoKeys in a project and'
+          ' location. Can be an empty string to remove the default'
+          ' EkmConnection.'
+      ),
+      required=required,
+  )
 
 
-def AddUndoOptOutFlag(parser):
+def AddResourceTypeSelectorFlag(parser, required=False):
   parser.add_argument(
-      '--undo',
-      default=None,
+      '--resource-type',
+      help=(
+          'The resource type selector for KeyHandle resources of the form'
+          ' {{SERVICE}}.{{UNIVERSE_DOMAIN}}/{{TYPE}}.'
+      ),
+      required=required,
+  )
+
+
+def AddCreateKeyHandleFlags(parser):
+  resource_args.AddKmsLocationResourceArgForKMS(parser, True, '--location')
+  AddResourceTypeSelectorFlag(parser, True)
+  group = parser.add_group(mutex=True, required=True)
+  group.add_argument(
+      '--key-handle-id',
+      help='The KeyHandle id for the new KeyHandle resource.',
+  )
+  group.add_argument(
+      '--generate-key-handle-id',
+      help='Generate a KeyHandle id for the new KeyHandle resource.',
       action='store_true',
-      dest='undo',
-      help='Opt the project back in the key deletion change.',
+  )
+
+
+def AddFolderIdFlag(parser, required=False):
+  parser.add_argument(
+      '--folder',
+      help='The folder id in which the AutokeyConfig resource exists.',
+      required=required,
+  )
+
+
+def AddAutokeyConfigFileFlag(parser):
+  parser.add_argument(
+      'CONFIG_FILE',
+      help='The file containing the AutokeyConfig resource.',
   )
 
 
@@ -557,7 +732,8 @@ def ParseLocationName(args):
   return resources.REGISTRY.Parse(
       args.location,
       params={'projectsId': properties.VALUES.core.project.GetOrFail},
-      collection=LOCATION_COLLECTION)
+      collection=LOCATION_COLLECTION,
+  )
 
 
 def ParseEkmConnectionName(args):
@@ -567,7 +743,8 @@ def ParseEkmConnectionName(args):
           'projectsId': properties.VALUES.core.project.GetOrFail,
           'locationsId': args.MakeGetOrRaise('--location'),
       },
-      collection=EKM_CONNECTION_COLLECTION)
+      collection=EKM_CONNECTION_COLLECTION,
+  )
 
 
 def ParseKeyRingName(args):
@@ -577,7 +754,8 @@ def ParseKeyRingName(args):
           'projectsId': properties.VALUES.core.project.GetOrFail,
           'locationsId': args.MakeGetOrRaise('--location'),
       },
-      collection=KEY_RING_COLLECTION)
+      collection=KEY_RING_COLLECTION,
+  )
 
 
 def ParseCryptoKeyName(args):
@@ -588,7 +766,8 @@ def ParseCryptoKeyName(args):
           'locationsId': args.MakeGetOrRaise('--location'),
           'projectsId': properties.VALUES.core.project.GetOrFail,
       },
-      collection=CRYPTO_KEY_COLLECTION)
+      collection=CRYPTO_KEY_COLLECTION,
+  )
 
 
 def ParseCryptoKeyVersionName(args):
@@ -600,7 +779,8 @@ def ParseCryptoKeyVersionName(args):
           'locationsId': args.MakeGetOrRaise('--location'),
           'projectsId': properties.VALUES.core.project.GetOrFail,
       },
-      collection=CRYPTO_KEY_VERSION_COLLECTION)
+      collection=CRYPTO_KEY_VERSION_COLLECTION,
+  )
 
 
 def ParseImportJobName(args):
@@ -611,7 +791,8 @@ def ParseImportJobName(args):
           'locationsId': args.MakeGetOrRaise('--location'),
           'projectsId': properties.VALUES.core.project.GetOrFail,
       },
-      collection=IMPORT_JOB_COLLECTION)
+      collection=IMPORT_JOB_COLLECTION,
+  )
 
 
 # Get parent type Resource from output of Parse functions above.
@@ -637,4 +818,20 @@ def SetNextRotationTime(args, crypto_key):
 def SetDestroyScheduledDuration(args, crypto_key):
   if args.destroy_scheduled_duration is not None:
     crypto_key.destroyScheduledDuration = '{0}s'.format(
-        args.destroy_scheduled_duration)
+        args.destroy_scheduled_duration
+    )
+
+
+def SetKeyAccessJustificationsPolicy(args, crypto_key):
+  messages = cloudkms_base.GetMessagesModule()
+  if args.allowed_access_reasons is not None:
+    allowed_access_reasons = []
+    for access_reason in args.allowed_access_reasons:
+      reason_string = maps.ACCESS_REASON_MAPPER.GetEnumForChoice(access_reason)
+      if reason_string not in allowed_access_reasons:
+        allowed_access_reasons.append(reason_string)
+    crypto_key.keyAccessJustificationsPolicy = (
+        messages.KeyAccessJustificationsPolicy(
+            allowedAccessReasons=allowed_access_reasons
+        )
+    )

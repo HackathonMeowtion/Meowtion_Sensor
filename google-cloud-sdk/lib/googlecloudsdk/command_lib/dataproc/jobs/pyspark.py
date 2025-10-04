@@ -113,13 +113,16 @@ class PySparkBase(job_base.JobBase):
         jarFileUris=files_by_type['jars'],
         pythonFileUris=files_by_type['py_files'],
         mainPythonFileUri=files_by_type['py_file'],
-        loggingConfig=logging_config)
+        loggingConfig=logging_config,
+    )
 
     job_properties = job_util.BuildJobProperties(
-        args.properties, args.properties_file)
+        args.properties, args.properties_file
+    )
     if job_properties:
-    # Sort properties to ensure tests comparing messages not fail on ordering.
+      # Sort properties to ensure tests comparing messages not fail on ordering.
       pyspark_job.properties = encoding.DictToAdditionalPropertyMessage(
-          job_properties, messages.PySparkJob.PropertiesValue, sort_items=True)
+          job_properties, messages.PySparkJob.PropertiesValue, sort_items=True
+      )
 
     job.pysparkJob = pyspark_job

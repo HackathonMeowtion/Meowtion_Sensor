@@ -126,6 +126,7 @@ def _Destination(trigger):
 
 
 @base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.DefaultUniverseOnly
 class List(base.ListCommand):
   """List Eventarc triggers."""
 
@@ -135,9 +136,11 @@ class List(base.ListCommand):
   def Args(parser):
     flags.AddLocationResourceArg(
         parser,
-        "The location for which to list triggers. This should be either "
+        'The location for which to list triggers. This should be either '
         "``global'' or one of the supported regions.",
-        required=False)
+        required=False,
+        allow_aggregation=True,
+    )
     flags.AddProjectResourceArg(parser)
     parser.display_info.AddFormat(_FORMAT)
     parser.display_info.AddUriFunc(triggers.GetTriggerURI)
@@ -149,28 +152,7 @@ class List(base.ListCommand):
 
   def Run(self, args):
     """Run the list command."""
-    client = triggers.CreateTriggersClient(self.ReleaseTrack())
+    client = triggers.TriggersClientV1()
     args.CONCEPTS.project.Parse()
     location_ref = args.CONCEPTS.location.Parse()
     return client.List(location_ref, args.limit, args.page_size)
-
-
-@base.Deprecate(
-    is_removed=True,
-    warning=(
-        'This command is deprecated. '
-        'Please use `gcloud eventarc triggers list` instead.'
-    ),
-    error=(
-        'This command has been removed. '
-        'Please use `gcloud eventarc triggers list` instead.'
-    ),
-)
-@base.ReleaseTracks(base.ReleaseTrack.BETA)
-class ListBeta(List):
-  """List Eventarc triggers."""
-
-  @staticmethod
-  def Args(parser):
-    List.Args(parser)
-    parser.display_info.AddFormat(_FORMAT_BETA)

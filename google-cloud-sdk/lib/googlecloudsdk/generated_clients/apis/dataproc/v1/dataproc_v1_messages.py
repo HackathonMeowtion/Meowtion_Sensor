@@ -26,14 +26,14 @@ class AcceleratorConfig(_messages.Message):
       accelerator type resource to expose to this instance. See Compute Engine
       AcceleratorTypes (https://cloud.google.com/compute/docs/reference/v1/acc
       eleratorTypes).Examples: https://www.googleapis.com/compute/v1/projects/
-      [project_id]/zones/[zone]/acceleratorTypes/nvidia-tesla-k80
-      projects/[project_id]/zones/[zone]/acceleratorTypes/nvidia-tesla-k80
-      nvidia-tesla-k80Auto Zone Exception: If you are using the Dataproc Auto
+      [project_id]/zones/[zone]/acceleratorTypes/nvidia-tesla-t4
+      projects/[project_id]/zones/[zone]/acceleratorTypes/nvidia-tesla-t4
+      nvidia-tesla-t4Auto Zone Exception: If you are using the Dataproc Auto
       Zone Placement
       (https://cloud.google.com/dataproc/docs/concepts/configuring-
       clusters/auto-zone#using_auto_zone_placement) feature, you must use the
       short name of the accelerator type resource, for example, nvidia-
-      tesla-k80.
+      tesla-t4.
   """
 
   acceleratorCount = _messages.IntegerField(1, variant=_messages.Variant.INT32)
@@ -59,6 +59,26 @@ class AccessSessionSparkApplicationJobResponse(_messages.Message):
   """
 
   jobData = _messages.MessageField('JobData', 1)
+
+
+class AccessSessionSparkApplicationNativeBuildInfoResponse(_messages.Message):
+  r"""Details of a native build info for a Spark Application
+
+  Fields:
+    executionData: Native SQL Execution Data
+  """
+
+  executionData = _messages.MessageField('NativeBuildInfoUiData', 1)
+
+
+class AccessSessionSparkApplicationNativeSqlQueryResponse(_messages.Message):
+  r"""Details of a native query for a Spark Application
+
+  Fields:
+    executionData: Native SQL Execution Data
+  """
+
+  executionData = _messages.MessageField('NativeSqlExecutionUiData', 1)
 
 
 class AccessSessionSparkApplicationResponse(_messages.Message):
@@ -133,6 +153,26 @@ class AccessSparkApplicationJobResponse(_messages.Message):
   """
 
   jobData = _messages.MessageField('JobData', 1)
+
+
+class AccessSparkApplicationNativeBuildInfoResponse(_messages.Message):
+  r"""Details of Native Build Info for a Spark Application
+
+  Fields:
+    buildInfo: Native Build Info Data
+  """
+
+  buildInfo = _messages.MessageField('NativeBuildInfoUiData', 1)
+
+
+class AccessSparkApplicationNativeSqlQueryResponse(_messages.Message):
+  r"""Details of a query for a Spark Application
+
+  Fields:
+    executionData: Native SQL Execution Data
+  """
+
+  executionData = _messages.MessageField('NativeSqlExecutionUiData', 1)
 
 
 class AccessSparkApplicationResponse(_messages.Message):
@@ -217,9 +257,12 @@ class AnalyzeBatchRequest(_messages.Message):
       (https://en.wikipedia.org/wiki/Universally_unique_identifier).The value
       must contain only letters (a-z, A-Z), numbers (0-9), underscores (_),
       and hyphens (-). The maximum length is 40 characters.
+    requestorId: Optional. The requestor ID is used to identify if the request
+      comes from a GCA investigation or the old Ask Gemini Experience.
   """
 
   requestId = _messages.StringField(1)
+  requestorId = _messages.StringField(2)
 
 
 class AnalyzeOperationMetadata(_messages.Message):
@@ -485,7 +528,13 @@ class ApplicationEnvironmentInfo(_messages.Message):
 class ApplicationInfo(_messages.Message):
   r"""High level information corresponding to an application.
 
+  Enums:
+    ApplicationContextIngestionStatusValueValuesEnum:
+    QuantileDataStatusValueValuesEnum:
+
   Fields:
+    applicationContextIngestionStatus: A
+      ApplicationContextIngestionStatusValueValuesEnum attribute.
     applicationId: A string attribute.
     attempts: A ApplicationAttemptInfo attribute.
     coresGranted: A integer attribute.
@@ -493,15 +542,83 @@ class ApplicationInfo(_messages.Message):
     maxCores: A integer attribute.
     memoryPerExecutorMb: A integer attribute.
     name: A string attribute.
+    quantileDataStatus: A QuantileDataStatusValueValuesEnum attribute.
   """
 
-  applicationId = _messages.StringField(1)
-  attempts = _messages.MessageField('ApplicationAttemptInfo', 2, repeated=True)
-  coresGranted = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  coresPerExecutor = _messages.IntegerField(4, variant=_messages.Variant.INT32)
-  maxCores = _messages.IntegerField(5, variant=_messages.Variant.INT32)
-  memoryPerExecutorMb = _messages.IntegerField(6, variant=_messages.Variant.INT32)
-  name = _messages.StringField(7)
+  class ApplicationContextIngestionStatusValueValuesEnum(_messages.Enum):
+    r"""ApplicationContextIngestionStatusValueValuesEnum enum type.
+
+    Values:
+      APPLICATION_CONTEXT_INGESTION_STATUS_UNSPECIFIED: <no description>
+      APPLICATION_CONTEXT_INGESTION_STATUS_COMPLETED: <no description>
+    """
+    APPLICATION_CONTEXT_INGESTION_STATUS_UNSPECIFIED = 0
+    APPLICATION_CONTEXT_INGESTION_STATUS_COMPLETED = 1
+
+  class QuantileDataStatusValueValuesEnum(_messages.Enum):
+    r"""QuantileDataStatusValueValuesEnum enum type.
+
+    Values:
+      QUANTILE_DATA_STATUS_UNSPECIFIED: <no description>
+      QUANTILE_DATA_STATUS_COMPLETED: <no description>
+      QUANTILE_DATA_STATUS_FAILED: <no description>
+    """
+    QUANTILE_DATA_STATUS_UNSPECIFIED = 0
+    QUANTILE_DATA_STATUS_COMPLETED = 1
+    QUANTILE_DATA_STATUS_FAILED = 2
+
+  applicationContextIngestionStatus = _messages.EnumField('ApplicationContextIngestionStatusValueValuesEnum', 1)
+  applicationId = _messages.StringField(2)
+  attempts = _messages.MessageField('ApplicationAttemptInfo', 3, repeated=True)
+  coresGranted = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  coresPerExecutor = _messages.IntegerField(5, variant=_messages.Variant.INT32)
+  maxCores = _messages.IntegerField(6, variant=_messages.Variant.INT32)
+  memoryPerExecutorMb = _messages.IntegerField(7, variant=_messages.Variant.INT32)
+  name = _messages.StringField(8)
+  quantileDataStatus = _messages.EnumField('QuantileDataStatusValueValuesEnum', 9)
+
+
+class AttachedDiskConfig(_messages.Message):
+  r"""Specifies the config of attached disk options for single VM instance.
+
+  Enums:
+    DiskTypeValueValuesEnum: Optional. Disk type.
+
+  Fields:
+    diskSizeGb: Optional. Disk size in GB.
+    diskType: Optional. Disk type.
+    provisionedIops: Optional. Indicates how many IOPS to provision for the
+      attached disk. This sets the number of I/O operations per second that
+      the disk can handle. See
+      https://cloud.google.com/compute/docs/disks/hyperdisks#hyperdisk-
+      features
+    provisionedThroughput: Optional. Indicates how much throughput to
+      provision for the attached disk. This sets the number of throughput mb
+      per second that the disk can handle. See
+      https://cloud.google.com/compute/docs/disks/hyperdisks#hyperdisk-
+      features
+  """
+
+  class DiskTypeValueValuesEnum(_messages.Enum):
+    r"""Optional. Disk type.
+
+    Values:
+      DISK_TYPE_UNSPECIFIED: Required unspecified disk type.
+      HYPERDISK_BALANCED: Hyperdisk Balanced disk type.
+      HYPERDISK_EXTREME: Hyperdisk Extreme disk type.
+      HYPERDISK_ML: Hyperdisk ML disk type.
+      HYPERDISK_THROUGHPUT: Hyperdisk Throughput disk type.
+    """
+    DISK_TYPE_UNSPECIFIED = 0
+    HYPERDISK_BALANCED = 1
+    HYPERDISK_EXTREME = 2
+    HYPERDISK_ML = 3
+    HYPERDISK_THROUGHPUT = 4
+
+  diskSizeGb = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  diskType = _messages.EnumField('DiskTypeValueValuesEnum', 2)
+  provisionedIops = _messages.IntegerField(3)
+  provisionedThroughput = _messages.IntegerField(4)
 
 
 class AuthenticationConfig(_messages.Message):
@@ -525,14 +642,15 @@ class AuthenticationConfig(_messages.Message):
 
     Values:
       AUTHENTICATION_TYPE_UNSPECIFIED: If AuthenticationType is unspecified
-        then SERVICE_ACCOUNT is used
-      SYSTEM_SERVICE_ACCOUNT: Use the system service account credentials for
-        authenticating to other services.
+        then END_USER_CREDENTIALS is used for 3.0 and newer runtimes, and
+        SERVICE_ACCOUNT is used for older runtimes.
+      SERVICE_ACCOUNT: Use service account credentials for authenticating to
+        other services.
       END_USER_CREDENTIALS: Use OAuth credentials associated with the workload
         creator/user for authenticating to other services.
     """
     AUTHENTICATION_TYPE_UNSPECIFIED = 0
-    SYSTEM_SERVICE_ACCOUNT = 1
+    SERVICE_ACCOUNT = 1
     END_USER_CREDENTIALS = 2
 
   userWorkloadAuthenticationType = _messages.EnumField('UserWorkloadAuthenticationTypeValueValuesEnum', 1)
@@ -556,6 +674,10 @@ class AutoscalingConfig(_messages.Message):
 class AutoscalingPolicy(_messages.Message):
   r"""Describes an autoscaling policy for Dataproc cluster autoscaler.
 
+  Enums:
+    ClusterTypeValueValuesEnum: Optional. The type of the clusters for which
+      this autoscaling policy is to be configured.
+
   Messages:
     LabelsValue: Optional. The labels to associate with this autoscaling
       policy. Label keys must contain 1 to 63 characters, and must conform to
@@ -566,6 +688,8 @@ class AutoscalingPolicy(_messages.Message):
 
   Fields:
     basicAlgorithm: A BasicAutoscalingAlgorithm attribute.
+    clusterType: Optional. The type of the clusters for which this autoscaling
+      policy is to be configured.
     id: Required. The policy id.The id must contain only letters (a-z, A-Z),
       numbers (0-9), underscores (_), and hyphens (-). Cannot begin or end
       with underscore or hyphen. Must consist of between 3 and 50 characters.
@@ -588,6 +712,21 @@ class AutoscalingPolicy(_messages.Message):
     workerConfig: Required. Describes how the autoscaler will operate for
       primary workers.
   """
+
+  class ClusterTypeValueValuesEnum(_messages.Enum):
+    r"""Optional. The type of the clusters for which this autoscaling policy
+    is to be configured.
+
+    Values:
+      CLUSTER_TYPE_UNSPECIFIED: Not set.
+      STANDARD: Standard dataproc cluster with a minimum of two primary
+        workers.
+      ZERO_SCALE: Clusters that can use only secondary workers and be scaled
+        down to zero secondary worker nodes.
+    """
+    CLUSTER_TYPE_UNSPECIFIED = 0
+    STANDARD = 1
+    ZERO_SCALE = 2
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
@@ -619,11 +758,12 @@ class AutoscalingPolicy(_messages.Message):
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
   basicAlgorithm = _messages.MessageField('BasicAutoscalingAlgorithm', 1)
-  id = _messages.StringField(2)
-  labels = _messages.MessageField('LabelsValue', 3)
-  name = _messages.StringField(4)
-  secondaryWorkerConfig = _messages.MessageField('InstanceGroupAutoscalingPolicyConfig', 5)
-  workerConfig = _messages.MessageField('InstanceGroupAutoscalingPolicyConfig', 6)
+  clusterType = _messages.EnumField('ClusterTypeValueValuesEnum', 2)
+  id = _messages.StringField(3)
+  labels = _messages.MessageField('LabelsValue', 4)
+  name = _messages.StringField(5)
+  secondaryWorkerConfig = _messages.MessageField('InstanceGroupAutoscalingPolicyConfig', 6)
+  workerConfig = _messages.MessageField('InstanceGroupAutoscalingPolicyConfig', 7)
 
 
 class AutotuningConfig(_messages.Message):
@@ -633,9 +773,9 @@ class AutotuningConfig(_messages.Message):
     ScenariosValueListEntryValuesEnum:
 
   Fields:
-    cohort: Required. Autotuning cohort identifier. Identifies families of the
+    cohort: Optional. Autotuning cohort identifier. Identifies families of the
       workloads having the same shape, e.g. daily ETL jobs.
-    scenarios: Required. Scenarios for which tunings are applied.
+    scenarios: Optional. Scenarios for which tunings are applied.
   """
 
   class ScenariosValueListEntryValuesEnum(_messages.Enum):
@@ -643,16 +783,20 @@ class AutotuningConfig(_messages.Message):
 
     Values:
       SCENARIO_UNSPECIFIED: Default value.
-      OOM: Out-of-memory errors remediation.
       SCALING: Scaling recommendations such as initialExecutors.
       BHJ: Adding hints for potential relation broadcasts.
+      BROADCAST_HASH_JOIN: Adding hints for potential relation broadcasts.
       MEMORY: Memory management for workloads.
+      NONE: No autotuning.
+      AUTO: Automatic selection of scenarios.
     """
     SCENARIO_UNSPECIFIED = 0
-    OOM = 1
-    SCALING = 2
-    BHJ = 3
+    SCALING = 1
+    BHJ = 2
+    BROADCAST_HASH_JOIN = 3
     MEMORY = 4
+    NONE = 5
+    AUTO = 6
 
   cohort = _messages.StringField(1)
   scenarios = _messages.EnumField('ScenariosValueListEntryValuesEnum', 2, repeated=True)
@@ -929,6 +1073,19 @@ class BatchOperationMetadata(_messages.Message):
   warnings = _messages.StringField(8, repeated=True)
 
 
+class BigqueryMetastoreConfig(_messages.Message):
+  r"""BigQuery Metastore configuration for the workload.
+
+  Fields:
+    location: Optional. Location where the BigQuery Metastore tables will be
+      created.
+    projectId: Optional. Project ID of the BigQuery Metastore tables.
+  """
+
+  location = _messages.StringField(1)
+  projectId = _messages.StringField(2)
+
+
 class Binding(_messages.Message):
   r"""Associates members, or principals, with a role.
 
@@ -1012,6 +1169,18 @@ class Binding(_messages.Message):
   role = _messages.StringField(3)
 
 
+class BuildInfo(_messages.Message):
+  r"""Native Build Info
+
+  Fields:
+    buildKey: Optional. Build key.
+    buildValue: Optional. Build value.
+  """
+
+  buildKey = _messages.StringField(1)
+  buildValue = _messages.StringField(2)
+
+
 class CancelJobRequest(_messages.Message):
   r"""A request to cancel a job."""
 
@@ -1039,6 +1208,8 @@ class Cluster(_messages.Message):
       Instances. Note that Dataproc may set default values, and values may
       change when clusters are updated.Exactly one of ClusterConfig or
       VirtualClusterConfig must be specified.
+    creator: Output only. The email address of the user who created the
+      cluster.
     labels: Optional. The labels to associate with this cluster. Label keys
       must contain 1 to 63 characters, and must conform to RFC 1035
       (https://www.ietf.org/rfc/rfc1035.txt). Label values may be empty, but,
@@ -1094,21 +1265,60 @@ class Cluster(_messages.Message):
   clusterName = _messages.StringField(1)
   clusterUuid = _messages.StringField(2)
   config = _messages.MessageField('ClusterConfig', 3)
-  labels = _messages.MessageField('LabelsValue', 4)
-  metrics = _messages.MessageField('ClusterMetrics', 5)
-  projectId = _messages.StringField(6)
-  status = _messages.MessageField('ClusterStatus', 7)
-  statusHistory = _messages.MessageField('ClusterStatus', 8, repeated=True)
-  virtualClusterConfig = _messages.MessageField('VirtualClusterConfig', 9)
+  creator = _messages.StringField(4)
+  labels = _messages.MessageField('LabelsValue', 5)
+  metrics = _messages.MessageField('ClusterMetrics', 6)
+  projectId = _messages.StringField(7)
+  status = _messages.MessageField('ClusterStatus', 8)
+  statusHistory = _messages.MessageField('ClusterStatus', 9, repeated=True)
+  virtualClusterConfig = _messages.MessageField('VirtualClusterConfig', 10)
+
+
+class ClusterAuthenticationConfig(_messages.Message):
+  r"""WIP: User workload credential configuration for Personal Auth v2 in
+  DPGCE Clusters. This is distinct from
+  environmentConfig.executionConfig.authenticationConfig in the s8s config
+  (see shared.proto). Unimplemented and not ready for use.
+
+  Enums:
+    UserWorkloadAuthenticationTypeValueValuesEnum: Optional. Authentication
+      type for the user workload running in containers.
+
+  Fields:
+    userWorkloadAuthenticationType: Optional. Authentication type for the user
+      workload running in containers.
+  """
+
+  class UserWorkloadAuthenticationTypeValueValuesEnum(_messages.Enum):
+    r"""Optional. Authentication type for the user workload running in
+    containers.
+
+    Values:
+      AUTHENTICATION_TYPE_UNSPECIFIED: Authentication type is not specified.
+      SYSTEM_SERVICE_ACCOUNT: Use the system service account credentials for
+        authenticating to other services.
+      END_USER_CREDENTIALS: use the end user credential for authentication.
+    """
+    AUTHENTICATION_TYPE_UNSPECIFIED = 0
+    SYSTEM_SERVICE_ACCOUNT = 1
+    END_USER_CREDENTIALS = 2
+
+  userWorkloadAuthenticationType = _messages.EnumField('UserWorkloadAuthenticationTypeValueValuesEnum', 1)
 
 
 class ClusterConfig(_messages.Message):
   r"""The cluster config.
 
+  Enums:
+    ClusterTierValueValuesEnum: Optional. The cluster tier.
+    ClusterTypeValueValuesEnum: Optional. The type of the cluster.
+
   Fields:
     autoscalingConfig: Optional. Autoscaling config for the policy associated
       with the cluster. Cluster does not autoscale if this field is unset.
     auxiliaryNodeGroups: Optional. The node group settings.
+    clusterTier: Optional. The cluster tier.
+    clusterType: Optional. The type of the cluster.
     configBucket: Optional. A Cloud Storage bucket used to stage job
       dependencies, config files, and job driver console output. If you do not
       specify a staging bucket, Cloud Dataproc will determine a Cloud Storage
@@ -1120,6 +1330,13 @@ class ClusterConfig(_messages.Message):
       clusters/staging-bucket)). This field requires a Cloud Storage bucket
       name, not a gs://... URI to a Cloud Storage bucket.
     dataprocMetricConfig: Optional. The config for Dataproc metrics.
+    diagnosticBucket: Optional. A Cloud Storage bucket used to collect
+      checkpoint diagnostic data
+      (https://cloud.google.com/dataproc/docs/support/diagnose-
+      clusters#checkpoint_data). If you do not specify a diagnostic bucket,
+      Cloud Dataproc will use the Dataproc temp bucket to collect the
+      checkpoint diagnostic data. This field requires a Cloud Storage bucket
+      name, not a gs://... URI to a Cloud Storage bucket.
     encryptionConfig: Optional. Encryption settings for the cluster.
     endpointConfig: Optional. Port/endpoint configuration for this cluster
     gceClusterConfig: Optional. The shared Compute Engine config settings for
@@ -1142,6 +1359,8 @@ class ClusterConfig(_messages.Message):
     masterConfig: Optional. The Compute Engine config settings for the
       cluster's master instance.
     metastoreConfig: Optional. Metastore configuration.
+    schedulingConfig: Optional. Config for scheduling the resources to be
+      allocated when available.
     secondaryWorkerConfig: Optional. The Compute Engine config settings for a
       cluster's secondary worker instances
     securityConfig: Optional. Security settings for the cluster.
@@ -1161,23 +1380,58 @@ class ClusterConfig(_messages.Message):
       cluster's worker instances.
   """
 
+  class ClusterTierValueValuesEnum(_messages.Enum):
+    r"""Optional. The cluster tier.
+
+    Values:
+      CLUSTER_TIER_UNSPECIFIED: Not set. Works the same as
+        CLUSTER_TIER_STANDARD.
+      CLUSTER_TIER_STANDARD: Standard Dataproc cluster.
+      CLUSTER_TIER_PREMIUM: Premium Dataproc cluster.
+    """
+    CLUSTER_TIER_UNSPECIFIED = 0
+    CLUSTER_TIER_STANDARD = 1
+    CLUSTER_TIER_PREMIUM = 2
+
+  class ClusterTypeValueValuesEnum(_messages.Enum):
+    r"""Optional. The type of the cluster.
+
+    Values:
+      CLUSTER_TYPE_UNSPECIFIED: Not set.
+      STANDARD: Standard dataproc cluster with a minimum of two primary
+        workers.
+      SINGLE_NODE:
+        https://cloud.google.com/dataproc/docs/concepts/configuring-
+        clusters/single-node-clusters
+      ZERO_SCALE: Clusters that can use only secondary workers and be scaled
+        down to zero secondary worker nodes.
+    """
+    CLUSTER_TYPE_UNSPECIFIED = 0
+    STANDARD = 1
+    SINGLE_NODE = 2
+    ZERO_SCALE = 3
+
   autoscalingConfig = _messages.MessageField('AutoscalingConfig', 1)
   auxiliaryNodeGroups = _messages.MessageField('AuxiliaryNodeGroup', 2, repeated=True)
-  configBucket = _messages.StringField(3)
-  dataprocMetricConfig = _messages.MessageField('DataprocMetricConfig', 4)
-  encryptionConfig = _messages.MessageField('EncryptionConfig', 5)
-  endpointConfig = _messages.MessageField('EndpointConfig', 6)
-  gceClusterConfig = _messages.MessageField('GceClusterConfig', 7)
-  gkeClusterConfig = _messages.MessageField('GkeClusterConfig', 8)
-  initializationActions = _messages.MessageField('NodeInitializationAction', 9, repeated=True)
-  lifecycleConfig = _messages.MessageField('LifecycleConfig', 10)
-  masterConfig = _messages.MessageField('InstanceGroupConfig', 11)
-  metastoreConfig = _messages.MessageField('MetastoreConfig', 12)
-  secondaryWorkerConfig = _messages.MessageField('InstanceGroupConfig', 13)
-  securityConfig = _messages.MessageField('SecurityConfig', 14)
-  softwareConfig = _messages.MessageField('SoftwareConfig', 15)
-  tempBucket = _messages.StringField(16)
-  workerConfig = _messages.MessageField('InstanceGroupConfig', 17)
+  clusterTier = _messages.EnumField('ClusterTierValueValuesEnum', 3)
+  clusterType = _messages.EnumField('ClusterTypeValueValuesEnum', 4)
+  configBucket = _messages.StringField(5)
+  dataprocMetricConfig = _messages.MessageField('DataprocMetricConfig', 6)
+  diagnosticBucket = _messages.StringField(7)
+  encryptionConfig = _messages.MessageField('EncryptionConfig', 8)
+  endpointConfig = _messages.MessageField('EndpointConfig', 9)
+  gceClusterConfig = _messages.MessageField('GceClusterConfig', 10)
+  gkeClusterConfig = _messages.MessageField('GkeClusterConfig', 11)
+  initializationActions = _messages.MessageField('NodeInitializationAction', 12, repeated=True)
+  lifecycleConfig = _messages.MessageField('LifecycleConfig', 13)
+  masterConfig = _messages.MessageField('InstanceGroupConfig', 14)
+  metastoreConfig = _messages.MessageField('MetastoreConfig', 15)
+  schedulingConfig = _messages.MessageField('SchedulingConfig', 16)
+  secondaryWorkerConfig = _messages.MessageField('InstanceGroupConfig', 17)
+  securityConfig = _messages.MessageField('SecurityConfig', 18)
+  softwareConfig = _messages.MessageField('SoftwareConfig', 19)
+  tempBucket = _messages.StringField(20)
+  workerConfig = _messages.MessageField('InstanceGroupConfig', 21)
 
 
 class ClusterMetrics(_messages.Message):
@@ -1462,6 +1716,9 @@ class ClusterStatus(_messages.Message):
       STOPPED: The cluster is currently stopped. It is not ready for use.
       STARTING: The cluster is being started. It is not ready for use.
       REPAIRING: The cluster is being repaired. It is not ready for use.
+      SCHEDULED: Cluster creation is currently waiting for resources to be
+        available. Once all resources are available, it will transition to
+        CREATING and then RUNNING.
     """
     UNKNOWN = 0
     CREATING = 1
@@ -1474,6 +1731,7 @@ class ClusterStatus(_messages.Message):
     STOPPED = 8
     STARTING = 9
     REPAIRING = 10
+    SCHEDULED = 11
 
   class SubstateValueValuesEnum(_messages.Enum):
     r"""Output only. Additional state information that includes status
@@ -1495,6 +1753,32 @@ class ClusterStatus(_messages.Message):
   state = _messages.EnumField('StateValueValuesEnum', 2)
   stateStartTime = _messages.StringField(3)
   substate = _messages.EnumField('SubstateValueValuesEnum', 4)
+
+
+class ClusterToRepair(_messages.Message):
+  r"""Cluster to be repaired
+
+  Enums:
+    ClusterRepairActionValueValuesEnum: Required. Repair action to take on the
+      cluster resource.
+
+  Fields:
+    clusterRepairAction: Required. Repair action to take on the cluster
+      resource.
+  """
+
+  class ClusterRepairActionValueValuesEnum(_messages.Enum):
+    r"""Required. Repair action to take on the cluster resource.
+
+    Values:
+      CLUSTER_REPAIR_ACTION_UNSPECIFIED: No action will be taken by default.
+      REPAIR_ERROR_DUE_TO_UPDATE_CLUSTER: Repair cluster in
+        ERROR_DUE_TO_UPDATE states.
+    """
+    CLUSTER_REPAIR_ACTION_UNSPECIFIED = 0
+    REPAIR_ERROR_DUE_TO_UPDATE_CLUSTER = 1
+
+  clusterRepairAction = _messages.EnumField('ClusterRepairActionValueValuesEnum', 1)
 
 
 class ConfidentialInstanceConfig(_messages.Message):
@@ -1549,6 +1833,18 @@ class ConsolidatedExecutorSummary(_messages.Message):
   totalShuffleRead = _messages.IntegerField(15)
   totalShuffleWrite = _messages.IntegerField(16)
   totalTasks = _messages.IntegerField(17, variant=_messages.Variant.INT32)
+
+
+class DataprocMetastoreConfig(_messages.Message):
+  r"""Dataproc Metastore configuration for the workload.
+
+  Fields:
+    service: Optional. Resource name of an existing Dataproc Metastore
+      service.Example:
+      projects/[project_id]/locations/[region]/services/[service_id]
+  """
+
+  service = _messages.StringField(1)
 
 
 class DataprocMetricConfig(_messages.Message):
@@ -1813,6 +2109,39 @@ class DataprocProjectsLocationsBatchesSparkApplicationsAccessJobRequest(_message
   parent = _messages.StringField(3)
 
 
+class DataprocProjectsLocationsBatchesSparkApplicationsAccessNativeBuildInfoRequest(_messages.Message):
+  r"""A DataprocProjectsLocationsBatchesSparkApplicationsAccessNativeBuildInfo
+  Request object.
+
+  Fields:
+    name: Required. The fully qualified name of the batch to retrieve in the
+      format "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/s
+      parkApplications/APPLICATION_ID"
+    parent: Required. Parent (Batch) resource reference.
+  """
+
+  name = _messages.StringField(1, required=True)
+  parent = _messages.StringField(2)
+
+
+class DataprocProjectsLocationsBatchesSparkApplicationsAccessNativeSqlQueryRequest(_messages.Message):
+  r"""A
+  DataprocProjectsLocationsBatchesSparkApplicationsAccessNativeSqlQueryRequest
+  object.
+
+  Fields:
+    executionId: Required. Execution ID
+    name: Required. The fully qualified name of the batch to retrieve in the
+      format "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/s
+      parkApplications/APPLICATION_ID"
+    parent: Required. Parent (Batch) resource reference.
+  """
+
+  executionId = _messages.IntegerField(1)
+  name = _messages.StringField(2, required=True)
+  parent = _messages.StringField(3)
+
+
 class DataprocProjectsLocationsBatchesSparkApplicationsAccessRequest(_messages.Message):
   r"""A DataprocProjectsLocationsBatchesSparkApplicationsAccessRequest object.
 
@@ -2023,6 +2352,29 @@ class DataprocProjectsLocationsBatchesSparkApplicationsSearchJobsRequest(_messag
   pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
   pageToken = _messages.StringField(4)
   parent = _messages.StringField(5)
+
+
+class DataprocProjectsLocationsBatchesSparkApplicationsSearchNativeSqlQueriesRequest(_messages.Message):
+  r"""A DataprocProjectsLocationsBatchesSparkApplicationsSearchNativeSqlQuerie
+  sRequest object.
+
+  Fields:
+    name: Required. The fully qualified name of the batch to retrieve in the
+      format "projects/PROJECT_ID/locations/DATAPROC_REGION/batches/BATCH_ID/s
+      parkApplications/APPLICATION_ID"
+    pageSize: Optional. Maximum number of queries to return in each response.
+      The service may return fewer than this. The default page size is 10; the
+      maximum page size is 100.
+    pageToken: Optional. A page token received from a previous
+      SearchSparkApplicationNativeSqlQueries call. Provide this token to
+      retrieve the subsequent page.
+    parent: Required. Parent (Batch) resource reference.
+  """
+
+  name = _messages.StringField(1, required=True)
+  pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(3)
+  parent = _messages.StringField(4)
 
 
 class DataprocProjectsLocationsBatchesSparkApplicationsSearchRequest(_messages.Message):
@@ -2472,20 +2824,6 @@ class DataprocProjectsLocationsSessionsGetRequest(_messages.Message):
   name = _messages.StringField(1, required=True)
 
 
-class DataprocProjectsLocationsSessionsInjectCredentialsRequest(_messages.Message):
-  r"""A DataprocProjectsLocationsSessionsInjectCredentialsRequest object.
-
-  Fields:
-    injectSessionCredentialsRequest: A InjectSessionCredentialsRequest
-      resource to be passed as the request body.
-    session: Required. The name of the session resource to inject credentials
-      to.
-  """
-
-  injectSessionCredentialsRequest = _messages.MessageField('InjectSessionCredentialsRequest', 1)
-  session = _messages.StringField(2, required=True)
-
-
 class DataprocProjectsLocationsSessionsListRequest(_messages.Message):
   r"""A DataprocProjectsLocationsSessionsListRequest object.
 
@@ -2546,6 +2884,38 @@ class DataprocProjectsLocationsSessionsSparkApplicationsAccessJobRequest(_messag
   """
 
   jobId = _messages.IntegerField(1)
+  name = _messages.StringField(2, required=True)
+  parent = _messages.StringField(3)
+
+
+class DataprocProjectsLocationsSessionsSparkApplicationsAccessNativeBuildInfoRequest(_messages.Message):
+  r"""A DataprocProjectsLocationsSessionsSparkApplicationsAccessNativeBuildInf
+  oRequest object.
+
+  Fields:
+    name: Required. The fully qualified name of the session to retrieve in the
+      format "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_I
+      D/sparkApplications/APPLICATION_ID"
+    parent: Required. Parent (Session) resource reference.
+  """
+
+  name = _messages.StringField(1, required=True)
+  parent = _messages.StringField(2)
+
+
+class DataprocProjectsLocationsSessionsSparkApplicationsAccessNativeSqlQueryRequest(_messages.Message):
+  r"""A DataprocProjectsLocationsSessionsSparkApplicationsAccessNativeSqlQuery
+  Request object.
+
+  Fields:
+    executionId: Required. Execution ID
+    name: Required. The fully qualified name of the session to retrieve in the
+      format "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_I
+      D/sparkApplications/APPLICATION_ID"
+    parent: Required. Parent (Session) resource reference.
+  """
+
+  executionId = _messages.IntegerField(1)
   name = _messages.StringField(2, required=True)
   parent = _messages.StringField(3)
 
@@ -2728,6 +3098,7 @@ class DataprocProjectsLocationsSessionsSparkApplicationsSearchJobsRequest(_messa
     JobStatusValueValuesEnum: Optional. List only jobs in the specific state.
 
   Fields:
+    jobIds: Optional. List of Job IDs to filter by if provided.
     jobStatus: Optional. List only jobs in the specific state.
     name: Required. The fully qualified name of the session to retrieve in the
       format "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_I
@@ -2757,11 +3128,35 @@ class DataprocProjectsLocationsSessionsSparkApplicationsSearchJobsRequest(_messa
     JOB_EXECUTION_STATUS_FAILED = 3
     JOB_EXECUTION_STATUS_UNKNOWN = 4
 
-  jobStatus = _messages.EnumField('JobStatusValueValuesEnum', 1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
-  parent = _messages.StringField(5)
+  jobIds = _messages.IntegerField(1, repeated=True)
+  jobStatus = _messages.EnumField('JobStatusValueValuesEnum', 2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
+  parent = _messages.StringField(6)
+
+
+class DataprocProjectsLocationsSessionsSparkApplicationsSearchNativeSqlQueriesRequest(_messages.Message):
+  r"""A DataprocProjectsLocationsSessionsSparkApplicationsSearchNativeSqlQueri
+  esRequest object.
+
+  Fields:
+    name: Required. The fully qualified name of the session to retrieve in the
+      format "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_I
+      D/sparkApplications/APPLICATION_ID"
+    pageSize: Optional. Maximum number of queries to return in each response.
+      The service may return fewer than this. The default page size is 10; the
+      maximum page size is 100.
+    pageToken: Optional. A page token received from a previous
+      SearchSessionSparkApplicationSqlQueries call. Provide this token to
+      retrieve the subsequent page.
+    parent: Required. Parent (Session) resource reference.
+  """
+
+  name = _messages.StringField(1, required=True)
+  pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(3)
+  parent = _messages.StringField(4)
 
 
 class DataprocProjectsLocationsSessionsSparkApplicationsSearchRequest(_messages.Message):
@@ -2822,6 +3217,8 @@ class DataprocProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesRequest(
     name: Required. The fully qualified name of the session to retrieve in the
       format "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_I
       D/sparkApplications/APPLICATION_ID"
+    operationIds: Optional. List of Spark Connect operation IDs to filter by
+      if provided.
     pageSize: Optional. Maximum number of queries to return in each response.
       The service may return fewer than this. The default page size is 10; the
       maximum page size is 100.
@@ -2835,10 +3232,11 @@ class DataprocProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesRequest(
 
   details = _messages.BooleanField(1)
   name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
-  parent = _messages.StringField(5)
-  planDescription = _messages.BooleanField(6)
+  operationIds = _messages.StringField(3, repeated=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
+  parent = _messages.StringField(6)
+  planDescription = _messages.BooleanField(7)
 
 
 class DataprocProjectsLocationsSessionsSparkApplicationsSearchStageAttemptTasksRequest(_messages.Message):
@@ -2943,6 +3341,7 @@ class DataprocProjectsLocationsSessionsSparkApplicationsSearchStagesRequest(_mes
       SearchSessionSparkApplicationStages call. Provide this token to retrieve
       the subsequent page.
     parent: Required. Parent (Session) resource reference.
+    stageIds: Optional. List of Stage IDs to filter by if provided.
     stageStatus: Optional. List only stages in the given state.
     summaryMetricsMask: Optional. The list of summary metrics fields to
       include. Empty list will default to skip all summary metrics fields.
@@ -2972,8 +3371,9 @@ class DataprocProjectsLocationsSessionsSparkApplicationsSearchStagesRequest(_mes
   pageSize = _messages.IntegerField(2, variant=_messages.Variant.INT32)
   pageToken = _messages.StringField(3)
   parent = _messages.StringField(4)
-  stageStatus = _messages.EnumField('StageStatusValueValuesEnum', 5)
-  summaryMetricsMask = _messages.StringField(6)
+  stageIds = _messages.IntegerField(5, repeated=True)
+  stageStatus = _messages.EnumField('StageStatusValueValuesEnum', 6)
+  summaryMetricsMask = _messages.StringField(7)
 
 
 class DataprocProjectsLocationsSessionsSparkApplicationsSummarizeExecutorsRequest(_messages.Message):
@@ -2997,14 +3397,16 @@ class DataprocProjectsLocationsSessionsSparkApplicationsSummarizeJobsRequest(_me
   object.
 
   Fields:
+    jobIds: Optional. List of Job IDs to filter by if provided.
     name: Required. The fully qualified name of the session to retrieve in the
       format "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_I
       D/sparkApplications/APPLICATION_ID"
     parent: Required. Parent (Session) resource reference.
   """
 
-  name = _messages.StringField(1, required=True)
-  parent = _messages.StringField(2)
+  jobIds = _messages.IntegerField(1, repeated=True)
+  name = _messages.StringField(2, required=True)
+  parent = _messages.StringField(3)
 
 
 class DataprocProjectsLocationsSessionsSparkApplicationsSummarizeStageAttemptTasksRequest(_messages.Message):
@@ -3036,10 +3438,12 @@ class DataprocProjectsLocationsSessionsSparkApplicationsSummarizeStagesRequest(_
       format "projects/PROJECT_ID/locations/DATAPROC_REGION/sessions/SESSION_I
       D/sparkApplications/APPLICATION_ID"
     parent: Required. Parent (Session) resource reference.
+    stageIds: Optional. List of Stage IDs to filter by if provided.
   """
 
   name = _messages.StringField(1, required=True)
   parent = _messages.StringField(2)
+  stageIds = _messages.IntegerField(3, repeated=True)
 
 
 class DataprocProjectsLocationsSessionsSparkApplicationsWriteRequest(_messages.Message):
@@ -3679,6 +4083,34 @@ class DataprocProjectsRegionsClustersNodeGroupsResizeRequest(_messages.Message):
   resizeNodeGroupRequest = _messages.MessageField('ResizeNodeGroupRequest', 2)
 
 
+class DataprocProjectsRegionsClustersNodeGroupsStartRequest(_messages.Message):
+  r"""A DataprocProjectsRegionsClustersNodeGroupsStartRequest object.
+
+  Fields:
+    name: Required. The name of the node group to start. Format: projects/{pro
+      ject}/regions/{region}/clusters/{cluster}/nodeGroups/{nodeGroup}
+    startNodeGroupRequest: A StartNodeGroupRequest resource to be passed as
+      the request body.
+  """
+
+  name = _messages.StringField(1, required=True)
+  startNodeGroupRequest = _messages.MessageField('StartNodeGroupRequest', 2)
+
+
+class DataprocProjectsRegionsClustersNodeGroupsStopRequest(_messages.Message):
+  r"""A DataprocProjectsRegionsClustersNodeGroupsStopRequest object.
+
+  Fields:
+    name: Required. The name of the node group to stop. Format: projects/{proj
+      ect}/regions/{region}/clusters/{cluster}/nodeGroups/{nodeGroup}
+    stopNodeGroupRequest: A StopNodeGroupRequest resource to be passed as the
+      request body.
+  """
+
+  name = _messages.StringField(1, required=True)
+  stopNodeGroupRequest = _messages.MessageField('StopNodeGroupRequest', 2)
+
+
 class DataprocProjectsRegionsClustersNodeGroupsUpdateLabelsRequest(_messages.Message):
   r"""A DataprocProjectsRegionsClustersNodeGroupsUpdateLabelsRequest object.
 
@@ -3692,6 +4124,23 @@ class DataprocProjectsRegionsClustersNodeGroupsUpdateLabelsRequest(_messages.Mes
 
   name = _messages.StringField(1, required=True)
   updateLabelsNodeGroupRequest = _messages.MessageField('UpdateLabelsNodeGroupRequest', 2)
+
+
+class DataprocProjectsRegionsClustersNodeGroupsUpdateMetadataConfigRequest(_messages.Message):
+  r"""A DataprocProjectsRegionsClustersNodeGroupsUpdateMetadataConfigRequest
+  object.
+
+  Fields:
+    name: Required. The name of the node group for updating the config.
+      Format: projects/{project}/regions/{region}/clusters/{cluster}/nodeGroup
+      s/{nodeGroup}
+    updateMetadataConfigNodeGroupRequest: A
+      UpdateMetadataConfigNodeGroupRequest resource to be passed as the
+      request body.
+  """
+
+  name = _messages.StringField(1, required=True)
+  updateMetadataConfigNodeGroupRequest = _messages.MessageField('UpdateMetadataConfigNodeGroupRequest', 2)
 
 
 class DataprocProjectsRegionsClustersPatchRequest(_messages.Message):
@@ -4388,9 +4837,20 @@ class DiagnoseClusterResults(_messages.Message):
 
 
 class DiskConfig(_messages.Message):
-  r"""Specifies the config of disk options for a group of VM instances.
+  r"""Specifies the config of boot disk and attached disk options for a group
+  of VM instances.
 
   Fields:
+    attachedDiskConfigs: Optional. A list of attached disk configs for a group
+      of VM instances.
+    bootDiskProvisionedIops: Optional. Indicates how many IOPS to provision
+      for the disk. This sets the number of I/O operations per second that the
+      disk can handle. This field is supported only if boot_disk_type is
+      hyperdisk-balanced.
+    bootDiskProvisionedThroughput: Optional. Indicates how much throughput to
+      provision for the disk. This sets the number of throughput mb per second
+      that the disk can handle. Values must be greater than or equal to 1.
+      This field is supported only if boot_disk_type is hyperdisk-balanced.
     bootDiskSizeGb: Optional. Size in GB of the boot disk (default is 500GB).
     bootDiskType: Optional. Type of the boot disk (default is "pd-standard").
       Valid values: "pd-balanced" (Persistent Disk Balanced Solid State
@@ -4411,10 +4871,13 @@ class DiskConfig(_messages.Message):
       vCPUs selected.
   """
 
-  bootDiskSizeGb = _messages.IntegerField(1, variant=_messages.Variant.INT32)
-  bootDiskType = _messages.StringField(2)
-  localSsdInterface = _messages.StringField(3)
-  numLocalSsds = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  attachedDiskConfigs = _messages.MessageField('AttachedDiskConfig', 1, repeated=True)
+  bootDiskProvisionedIops = _messages.IntegerField(2)
+  bootDiskProvisionedThroughput = _messages.IntegerField(3)
+  bootDiskSizeGb = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  bootDiskType = _messages.StringField(5)
+  localSsdInterface = _messages.StringField(6)
+  numLocalSsds = _messages.IntegerField(7, variant=_messages.Variant.INT32)
 
 
 class DriverRunner(_messages.Message):
@@ -4547,12 +5010,12 @@ class EnvironmentConfig(_messages.Message):
   peripheralsConfig = _messages.MessageField('PeripheralsConfig', 2)
 
 
+class EphemeralMetastoreConfig(_messages.Message):
+  r"""Default Metastore configuration for the workload."""
+
+
 class ExecutionConfig(_messages.Message):
   r"""Execution configuration for a workload.
-
-  Enums:
-    PerformanceTierValueValuesEnum: Optional. Performance tier for workload
-      execution.
 
   Fields:
     authenticationConfig: Optional. Authentication configuration used to set
@@ -4572,7 +5035,6 @@ class ExecutionConfig(_messages.Message):
     kmsKey: Optional. The Cloud KMS key to use for encryption.
     networkTags: Optional. Tags used for network traffic control.
     networkUri: Optional. Network URI to connect workload to.
-    performanceTier: Optional. Performance tier for workload execution.
     serviceAccount: Optional. Service account that used to execute workload.
     stagingBucket: Optional. A Cloud Storage bucket used to stage workload
       dependencies, config files, and store workload output and other
@@ -4599,30 +5061,15 @@ class ExecutionConfig(_messages.Message):
       first.
   """
 
-  class PerformanceTierValueValuesEnum(_messages.Enum):
-    r"""Optional. Performance tier for workload execution.
-
-    Values:
-      PERFORMANCE_TIER_UNSPECIFIED: Performance tier unknown.
-      ECONOMY: Economy performance tier.
-      STANDARD: Standard performance tier.
-      HIGH: High performance tier.
-    """
-    PERFORMANCE_TIER_UNSPECIFIED = 0
-    ECONOMY = 1
-    STANDARD = 2
-    HIGH = 3
-
   authenticationConfig = _messages.MessageField('AuthenticationConfig', 1)
   idleTtl = _messages.StringField(2)
   kmsKey = _messages.StringField(3)
   networkTags = _messages.StringField(4, repeated=True)
   networkUri = _messages.StringField(5)
-  performanceTier = _messages.EnumField('PerformanceTierValueValuesEnum', 6)
-  serviceAccount = _messages.StringField(7)
-  stagingBucket = _messages.StringField(8)
-  subnetworkUri = _messages.StringField(9)
-  ttl = _messages.StringField(10)
+  serviceAccount = _messages.StringField(6)
+  stagingBucket = _messages.StringField(7)
+  subnetworkUri = _messages.StringField(8)
+  ttl = _messages.StringField(9)
 
 
 class ExecutorMetrics(_messages.Message):
@@ -4956,14 +5403,26 @@ class Expr(_messages.Message):
   title = _messages.StringField(4)
 
 
+class FallbackReason(_messages.Message):
+  r"""Native SQL Execution Data
+
+  Fields:
+    fallbackNode: Optional. Fallback node information.
+    fallbackReason: Optional. Fallback to Spark reason.
+  """
+
+  fallbackNode = _messages.StringField(1)
+  fallbackReason = _messages.StringField(2)
+
+
 class FlinkJob(_messages.Message):
   r"""A Dataproc job for running Apache Flink applications on YARN.
 
   Messages:
     PropertiesValue: Optional. A mapping of property names to values, used to
       configure Flink. Properties that conflict with values set by the
-      Dataproc API might beoverwritten. Can include properties set
-      in/etc/flink/conf/flink-defaults.conf and classes in user code.
+      Dataproc API might be overwritten. Can include properties set in
+      /etc/flink/conf/flink-defaults.conf and classes in user code.
 
   Fields:
     args: Optional. The arguments to pass to the driver. Do not include
@@ -4977,8 +5436,8 @@ class FlinkJob(_messages.Message):
     mainJarFileUri: The HCFS URI of the jar file that contains the main class.
     properties: Optional. A mapping of property names to values, used to
       configure Flink. Properties that conflict with values set by the
-      Dataproc API might beoverwritten. Can include properties set
-      in/etc/flink/conf/flink-defaults.conf and classes in user code.
+      Dataproc API might be overwritten. Can include properties set in
+      /etc/flink/conf/flink-defaults.conf and classes in user code.
     savepointUri: Optional. HCFS URI of the savepoint, which contains the last
       saved progress for starting the current job.
   """
@@ -4987,7 +5446,7 @@ class FlinkJob(_messages.Message):
   class PropertiesValue(_messages.Message):
     r"""Optional. A mapping of property names to values, used to configure
     Flink. Properties that conflict with values set by the Dataproc API might
-    beoverwritten. Can include properties set in/etc/flink/conf/flink-
+    be overwritten. Can include properties set in /etc/flink/conf/flink-
     defaults.conf and classes in user code.
 
     Messages:
@@ -5032,8 +5491,22 @@ class GceClusterConfig(_messages.Message):
       instances (see Project and instance metadata
       (https://cloud.google.com/compute/docs/storing-retrieving-
       metadata#project_and_instance_metadata)).
+    ResourceManagerTagsValue: Optional. Resource manager tags
+      (https://cloud.google.com/resource-manager/docs/tags/tags-creating-and-
+      managing) to add to all instances (see Use secure tags in Dataproc
+      (https://cloud.google.com/dataproc/docs/guides/attach-secure-tags)).
 
   Fields:
+    autoZoneExcludeZoneUris: Optional. An optional list of Compute Engine
+      zones where the Dataproc cluster will not be located when Auto Zone is
+      enabled. Only one of zone_uri or auto_zone_exclude_zone_uris can be set.
+      If both are omitted, the service will pick a zone in the cluster Compute
+      Engine region. If auto_zone_exclude_zone_uris is set and there are at
+      least two zones in the Compute Engine region that are not included in
+      the auto_zone_exclude_zone_uris, the service will pick one of those
+      zones.A full URL, partial URI, or short name are valid. Examples:
+      https://www.googleapis.com/compute/v1/projects/[project_id]/zones/[zone]
+      projects/[project_id]/zones/[zone] [zone]
     confidentialInstanceConfig: Optional. Confidential Instance Config for
       clusters using Confidential VMs
       (https://cloud.google.com/compute/confidential-vm/docs).
@@ -5064,6 +5537,10 @@ class GceClusterConfig(_messages.Message):
     privateIpv6GoogleAccess: Optional. The type of IPv6 access for a cluster.
     reservationAffinity: Optional. Reservation Affinity for consuming Zonal
       reservation.
+    resourceManagerTags: Optional. Resource manager tags
+      (https://cloud.google.com/resource-manager/docs/tags/tags-creating-and-
+      managing) to add to all instances (see Use secure tags in Dataproc
+      (https://cloud.google.com/dataproc/docs/guides/attach-secure-tags)).
     serviceAccount: Optional. The Dataproc service account
       (https://cloud.google.com/dataproc/docs/concepts/configuring-
       clusters/service-accounts#service_accounts_in_dataproc) (also see VM
@@ -5093,9 +5570,8 @@ class GceClusterConfig(_messages.Message):
       partial URI, or short name are valid. Examples: https://www.googleapis.c
       om/compute/v1/projects/[project_id]/regions/[region]/subnetworks/sub0
       projects/[project_id]/regions/[region]/subnetworks/sub0 sub0
-    tags: The Compute Engine tags to add to all instances (see Tagging
-      instances (https://cloud.google.com/compute/docs/label-or-tag-
-      resources#tags)).
+    tags: The Compute Engine network tags to add to all instances (see Tagging
+      instances (https://cloud.google.com/vpc/docs/add-remove-network-tags)).
     zoneUri: Optional. The Compute Engine zone where the Dataproc cluster will
       be located. If omitted, the service will pick a zone in the cluster's
       Compute Engine region. On a get request, zone will always be present.A
@@ -5151,19 +5627,50 @@ class GceClusterConfig(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
-  confidentialInstanceConfig = _messages.MessageField('ConfidentialInstanceConfig', 1)
-  internalIpOnly = _messages.BooleanField(2)
-  metadata = _messages.MessageField('MetadataValue', 3)
-  networkUri = _messages.StringField(4)
-  nodeGroupAffinity = _messages.MessageField('NodeGroupAffinity', 5)
-  privateIpv6GoogleAccess = _messages.EnumField('PrivateIpv6GoogleAccessValueValuesEnum', 6)
-  reservationAffinity = _messages.MessageField('ReservationAffinity', 7)
-  serviceAccount = _messages.StringField(8)
-  serviceAccountScopes = _messages.StringField(9, repeated=True)
-  shieldedInstanceConfig = _messages.MessageField('ShieldedInstanceConfig', 10)
-  subnetworkUri = _messages.StringField(11)
-  tags = _messages.StringField(12, repeated=True)
-  zoneUri = _messages.StringField(13)
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class ResourceManagerTagsValue(_messages.Message):
+    r"""Optional. Resource manager tags (https://cloud.google.com/resource-
+    manager/docs/tags/tags-creating-and-managing) to add to all instances (see
+    Use secure tags in Dataproc
+    (https://cloud.google.com/dataproc/docs/guides/attach-secure-tags)).
+
+    Messages:
+      AdditionalProperty: An additional property for a
+        ResourceManagerTagsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type
+        ResourceManagerTagsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a ResourceManagerTagsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  autoZoneExcludeZoneUris = _messages.StringField(1, repeated=True)
+  confidentialInstanceConfig = _messages.MessageField('ConfidentialInstanceConfig', 2)
+  internalIpOnly = _messages.BooleanField(3)
+  metadata = _messages.MessageField('MetadataValue', 4)
+  networkUri = _messages.StringField(5)
+  nodeGroupAffinity = _messages.MessageField('NodeGroupAffinity', 6)
+  privateIpv6GoogleAccess = _messages.EnumField('PrivateIpv6GoogleAccessValueValuesEnum', 7)
+  reservationAffinity = _messages.MessageField('ReservationAffinity', 8)
+  resourceManagerTags = _messages.MessageField('ResourceManagerTagsValue', 9)
+  serviceAccount = _messages.StringField(10)
+  serviceAccountScopes = _messages.StringField(11, repeated=True)
+  shieldedInstanceConfig = _messages.MessageField('ShieldedInstanceConfig', 12)
+  subnetworkUri = _messages.StringField(13)
+  tags = _messages.StringField(14, repeated=True)
+  zoneUri = _messages.StringField(15)
 
 
 class GdceClusterConfig(_messages.Message):
@@ -5669,30 +6176,6 @@ class InjectCredentialsRequest(_messages.Message):
 
   clusterUuid = _messages.StringField(1)
   credentialsCiphertext = _messages.StringField(2)
-
-
-class InjectSessionCredentialsRequest(_messages.Message):
-  r"""A request to inject credentials into a session.
-
-  Fields:
-    credentialsCiphertext: Required. The encrypted credentials being injected
-      into the session.The client is responsible for enuring that the
-      encrypted credentials are supported by the session.A wrapped value is
-      used to avoid writing the contents of the encrypted credentials to audit
-      logs.
-    requestId: Optional. A unique ID used to identify the request. If the
-      service receives two TerminateSessionRequest (https://cloud.google.com/d
-      ataproc/docs/reference/rpc/google.cloud.dataproc.v1#google.cloud.datapro
-      c.v1.TerminateSessionRequest)s with the same ID, the first request is
-      ignored to ensure that the most recent credentials are
-      injected.Recommendation: Set this value to a UUID
-      (https://en.wikipedia.org/wiki/Universally_unique_identifier).The value
-      must contain only letters (a-z, A-Z), numbers (0-9), underscores (_),
-      and hyphens (-). The maximum length is 40 characters.
-  """
-
-  credentialsCiphertext = _messages.StringField(1)
-  requestId = _messages.StringField(2)
 
 
 class InputMetrics(_messages.Message):
@@ -6317,10 +6800,16 @@ class JobScheduling(_messages.Message):
       is not supported in Dataproc workflow templates
       (https://cloud.google.com/dataproc/docs/concepts/workflows/using-
       workflows#adding_jobs_to_a_template).
+    ttl: Optional. The duration after which the workload will be terminated.
+      When the workload passes this ttl, it will be unconditionally killed
+      without waiting for ongoing work to finish. Minimum value is 10 minutes;
+      maximum value is 14 days (see JSON representation of Duration
+      (https://developers.google.com/protocol-buffers/docs/proto3#json)
   """
 
   maxFailuresPerHour = _messages.IntegerField(1, variant=_messages.Variant.INT32)
   maxFailuresTotal = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  ttl = _messages.StringField(3)
 
 
 class JobStatus(_messages.Message):
@@ -6506,33 +6995,6 @@ class KerberosConfig(_messages.Message):
   truststoreUri = _messages.StringField(15)
 
 
-class Key(_messages.Message):
-  r"""The key that can be used to share data with the workload.
-
-  Enums:
-    TypeValueValuesEnum: Output only. The type of the key.
-
-  Fields:
-    content: Output only. The content of the key.
-    type: Output only. The type of the key.
-  """
-
-  class TypeValueValuesEnum(_messages.Enum):
-    r"""Output only. The type of the key.
-
-    Values:
-      KEY_TYPE_UNSPECIFIED: Unspecified
-      RSA: RSA public-key type
-      ECIES: ECIES public-key type
-    """
-    KEY_TYPE_UNSPECIFIED = 0
-    RSA = 1
-    ECIES = 2
-
-  content = _messages.StringField(1)
-  type = _messages.EnumField('TypeValueValuesEnum', 2)
-
-
 class KubernetesClusterConfig(_messages.Message):
   r"""The configuration for running the Dataproc cluster on Kubernetes.
 
@@ -6658,6 +7120,15 @@ class LifecycleConfig(_messages.Message):
       will be auto-deleted at the end of this period. Minimum value is 10
       minutes; maximum value is 14 days (see JSON representation of Duration
       (https://developers.google.com/protocol-buffers/docs/proto3#json)).
+    autoStopTime: Optional. The time when cluster will be auto-stopped (see
+      JSON representation of Timestamp
+      (https://developers.google.com/protocol-buffers/docs/proto3#json)).
+    autoStopTtl: Optional. The lifetime duration of the cluster. The cluster
+      will be auto-stopped at the end of this period, calculated from the time
+      of submission of the create or update cluster request. Minimum value is
+      10 minutes; maximum value is 14 days (see JSON representation of
+      Duration (https://developers.google.com/protocol-
+      buffers/docs/proto3#json)).
     idleDeleteTtl: Optional. The duration to keep the cluster alive while
       idling (when no jobs are running). Passing this threshold will cause the
       cluster to be deleted. Minimum value is 5 minutes; maximum value is 14
@@ -6667,12 +7138,20 @@ class LifecycleConfig(_messages.Message):
       job finished) and became eligible for deletion due to idleness (see JSON
       representation of Timestamp (https://developers.google.com/protocol-
       buffers/docs/proto3#json)).
+    idleStopTtl: Optional. The duration to keep the cluster started while
+      idling (when no jobs are running). Passing this threshold will cause the
+      cluster to be stopped. Minimum value is 5 minutes; maximum value is 14
+      days (see JSON representation of Duration
+      (https://developers.google.com/protocol-buffers/docs/proto3#json)).
   """
 
   autoDeleteTime = _messages.StringField(1)
   autoDeleteTtl = _messages.StringField(2)
-  idleDeleteTtl = _messages.StringField(3)
-  idleStartTime = _messages.StringField(4)
+  autoStopTime = _messages.StringField(3)
+  autoStopTtl = _messages.StringField(4)
+  idleDeleteTtl = _messages.StringField(5)
+  idleStartTime = _messages.StringField(6)
+  idleStopTtl = _messages.StringField(7)
 
 
 class ListAutoscalingPoliciesResponse(_messages.Message):
@@ -6986,13 +7465,16 @@ class MetastoreConfig(_messages.Message):
   r"""Specifies a Metastore configuration.
 
   Fields:
+    bigqueryMetastoreConfig: Optional. The BigQuery Metastore configuration
+      for the workload.
     dataprocMetastoreService: Required. Resource name of an existing Dataproc
       Metastore service.Example:
       projects/[project_id]/locations/[dataproc_region]/services/[service-
       name]
   """
 
-  dataprocMetastoreService = _messages.StringField(1)
+  bigqueryMetastoreConfig = _messages.MessageField('BigqueryMetastoreConfig', 1)
+  dataprocMetastoreService = _messages.StringField(2)
 
 
 class Metric(_messages.Message):
@@ -7021,7 +7503,7 @@ class Metric(_messages.Message):
       one or more spark:executive metrics are listed as metric overrides,
       other SPARK metrics are not collected. The collection of the metrics for
       other enabled custom metric sources is unaffected. For example, if both
-      SPARK andd YARN metric sources are enabled, and overrides are provided
+      SPARK and YARN metric sources are enabled, and overrides are provided
       for Spark metrics only, all YARN metrics are collected.
     metricSource: Required. A standard set of metrics is collected unless
       metricOverrides are specified for the metric source (see Custom metrics
@@ -7078,6 +7560,38 @@ class NamespacedGkeDeploymentTarget(_messages.Message):
   targetGkeCluster = _messages.StringField(2)
 
 
+class NativeBuildInfoUiData(_messages.Message):
+  r"""A NativeBuildInfoUiData object.
+
+  Fields:
+    buildClass: Optional. Build class of Native.
+    buildInfo: Optional. Build related details.
+  """
+
+  buildClass = _messages.StringField(1)
+  buildInfo = _messages.MessageField('BuildInfo', 2, repeated=True)
+
+
+class NativeSqlExecutionUiData(_messages.Message):
+  r"""Native SQL Execution Data
+
+  Fields:
+    description: Optional. Description of the execution.
+    executionId: Required. Execution ID of the Native SQL Execution.
+    fallbackDescription: Optional. Description of the fallback.
+    fallbackNodeToReason: Optional. Fallback node to reason.
+    numFallbackNodes: Optional. Number of nodes fallen back to Spark.
+    numNativeNodes: Optional. Number of nodes in Native.
+  """
+
+  description = _messages.StringField(1)
+  executionId = _messages.IntegerField(2)
+  fallbackDescription = _messages.StringField(3)
+  fallbackNodeToReason = _messages.MessageField('FallbackReason', 4, repeated=True)
+  numFallbackNodes = _messages.IntegerField(5, variant=_messages.Variant.INT32)
+  numNativeNodes = _messages.IntegerField(6, variant=_messages.Variant.INT32)
+
+
 class NodeGroup(_messages.Message):
   r"""Dataproc Node Group. The Dataproc NodeGroup resource is not related to
   the Dataproc NodeGroupAffinity resource.
@@ -7091,7 +7605,7 @@ class NodeGroup(_messages.Message):
       (https://www.ietf.org/rfc/rfc1035.txt). Label values can be empty. If
       specified, they must consist of from 1 to 63 characters and conform to
       RFC 1035 (https://www.ietf.org/rfc/rfc1035.txt). The node group must
-      have no more than 32 labelsn.
+      have no more than 32 labels.
 
   Fields:
     labels: Optional. Node group labels. Label keys must consist of from 1 to
@@ -7099,7 +7613,7 @@ class NodeGroup(_messages.Message):
       (https://www.ietf.org/rfc/rfc1035.txt). Label values can be empty. If
       specified, they must consist of from 1 to 63 characters and conform to
       RFC 1035 (https://www.ietf.org/rfc/rfc1035.txt). The node group must
-      have no more than 32 labelsn.
+      have no more than 32 labels.
     name: The Node group resource name (https://aip.dev/122).
     nodeGroupConfig: Optional. The node group instance group configuration.
     roles: Required. Node group roles.
@@ -7127,7 +7641,7 @@ class NodeGroup(_messages.Message):
     characters and conform to RFC 1035 (https://www.ietf.org/rfc/rfc1035.txt).
     Label values can be empty. If specified, they must consist of from 1 to 63
     characters and conform to RFC 1035 (https://www.ietf.org/rfc/rfc1035.txt).
-    The node group must have no more than 32 labelsn.
+    The node group must have no more than 32 labels.
 
     Messages:
       AdditionalProperty: An additional property for a LabelsValue object.
@@ -7205,6 +7719,13 @@ class NodeGroupOperationMetadata(_messages.Message):
       RESIZE: Resize node group operation type.
       REPAIR: Repair node group operation type.
       UPDATE_LABELS: Update node group label operation type.
+      START: Start node group operation type.
+      STOP: Stop node group operation type.
+      UPDATE_METADATA_CONFIG: This operation type is used to update the
+        metadata config of a node group. We update the metadata of the VMs in
+        the node group and await for intended config change to be completed at
+        the node group level. Currently, only the identity config update is
+        supported.
     """
     NODE_GROUP_OPERATION_TYPE_UNSPECIFIED = 0
     CREATE = 1
@@ -7213,6 +7734,9 @@ class NodeGroupOperationMetadata(_messages.Message):
     RESIZE = 4
     REPAIR = 5
     UPDATE_LABELS = 6
+    START = 7
+    STOP = 8
+    UPDATE_METADATA_CONFIG = 9
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
@@ -7533,6 +8057,12 @@ class PeripheralsConfig(_messages.Message):
   r"""Auxiliary services configuration for a workload.
 
   Fields:
+    bigqueryMetastoreConfig: Optional. The BigQuery Metastore configuration
+      for the workload.
+    dataprocMetastoreConfig: Optional. The Dataproc Metastore configuration
+      for the workload.
+    ephemeralMetastoreConfig: Optional. An Ephemeral Metastore configuration
+      for the workload. For Spark it will be in-memory Hive Metastore.
     metastoreService: Optional. Resource name of an existing Dataproc
       Metastore service.Example:
       projects/[project_id]/locations/[region]/services/[service_id]
@@ -7540,8 +8070,11 @@ class PeripheralsConfig(_messages.Message):
       for the workload.
   """
 
-  metastoreService = _messages.StringField(1)
-  sparkHistoryServerConfig = _messages.MessageField('SparkHistoryServerConfig', 2)
+  bigqueryMetastoreConfig = _messages.MessageField('BigqueryMetastoreConfig', 1)
+  dataprocMetastoreConfig = _messages.MessageField('DataprocMetastoreConfig', 2)
+  ephemeralMetastoreConfig = _messages.MessageField('EphemeralMetastoreConfig', 3)
+  metastoreService = _messages.StringField(4)
+  sparkHistoryServerConfig = _messages.MessageField('SparkHistoryServerConfig', 5)
 
 
 class PigJob(_messages.Message):
@@ -7882,25 +8415,23 @@ class ProvisioningModelMix(_messages.Message):
     standardCapacityBase: Optional. The base capacity that will always use
       Standard VMs to avoid risk of more preemption than the minimum capacity
       you need. Dataproc will create only standard VMs until it reaches
-      standardCapacityBaseNumber, then it will starting
-      standardCapacityPercentAboveBase to mix Spot with Standard VMs.
-    standardCapacityPercentAboveBase: Optional. The percentage of the capacity
-      above standardCapacityBase that should use Spot VMs. The remaining
-      percentage will use Standard VMs.
+      standard_capacity_base, then it will start using
+      standard_capacity_percent_above_base to mix Spot with Standard VMs. eg.
+      If 15 instances are requested and standard_capacity_base is 5, Dataproc
+      will create 5 standard VMs and then start mixing spot and standard VMs
+      for remaining 10 instances.
+    standardCapacityPercentAboveBase: Optional. The percentage of target
+      capacity that should use Standard VM. The remaining percentage will use
+      Spot VMs. The percentage applies only to the capacity above
+      standard_capacity_base. eg. If 15 instances are requested and
+      standard_capacity_base is 5 and standard_capacity_percent_above_base is
+      30, Dataproc will create 5 standard VMs and then start mixing spot and
+      standard VMs for remaining 10 instances. The mix will be 30% standard
+      and 70% spot.
   """
 
   standardCapacityBase = _messages.IntegerField(1, variant=_messages.Variant.INT32)
   standardCapacityPercentAboveBase = _messages.IntegerField(2, variant=_messages.Variant.INT32)
-
-
-class PublicKeys(_messages.Message):
-  r"""The public keys informations from the workload.
-
-  Fields:
-    keys: Output only. The list of keys.
-  """
-
-  keys = _messages.MessageField('Key', 1, repeated=True)
 
 
 class PyFlinkJob(_messages.Message):
@@ -8019,8 +8550,12 @@ class PySparkBatch(_messages.Message):
 
 class PySparkJob(_messages.Message):
   r"""A Dataproc job for running Apache PySpark
-  (https://spark.apache.org/docs/0.9.0/python-programming-guide.html)
-  applications on YARN.
+  (https://spark.apache.org/docs/latest/api/python/index.html#pyspark-
+  overview) applications on YARN.
+
+  Enums:
+    SparkEngineValueValuesEnum: Optional. The engine on which the spark job
+      runs.
 
   Messages:
     PropertiesValue: Optional. A mapping of property names to values, used to
@@ -8048,7 +8583,20 @@ class PySparkJob(_messages.Message):
       /etc/spark/conf/spark-defaults.conf and classes in user code.
     pythonFileUris: Optional. HCFS file URIs of Python files to pass to the
       PySpark framework. Supported file types: .py, .egg, and .zip.
+    sparkEngine: Optional. The engine on which the spark job runs.
   """
+
+  class SparkEngineValueValuesEnum(_messages.Enum):
+    r"""Optional. The engine on which the spark job runs.
+
+    Values:
+      SPARK_ENGINE_UNSPECIFIED: Not set.
+      SPARK_ENGINE_DEFAULT: Default engine for Spark Job
+      SPARK_ENGINE_NATIVE: Native Query Engine for Spark Job
+    """
+    SPARK_ENGINE_UNSPECIFIED = 0
+    SPARK_ENGINE_DEFAULT = 1
+    SPARK_ENGINE_NATIVE = 2
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class PropertiesValue(_messages.Message):
@@ -8085,6 +8633,7 @@ class PySparkJob(_messages.Message):
   mainPythonFileUri = _messages.StringField(6)
   properties = _messages.MessageField('PropertiesValue', 7)
   pythonFileUris = _messages.StringField(8, repeated=True)
+  sparkEngine = _messages.EnumField('SparkEngineValueValuesEnum', 9)
 
 
 class Quantiles(_messages.Message):
@@ -8131,13 +8680,17 @@ class RayBatch(_messages.Message):
   submission/index.html) workload.
 
   Fields:
+    archiveUris: Optional. HCFS URI of archives to be extracted into the
+      working directory of each Ray node. Supported file types: .tar, .tar.gz,
+      .tgz, and .zip.
     args: Optional. The arguments to pass to the Ray job script.
     mainPythonFileUri: Required. The HCFS URI of the main Python file to use
       as the Ray job. Must be a .py file.
   """
 
-  args = _messages.StringField(1, repeated=True)
-  mainPythonFileUri = _messages.StringField(2)
+  archiveUris = _messages.StringField(1, repeated=True)
+  args = _messages.StringField(2, repeated=True)
+  mainPythonFileUri = _messages.StringField(3)
 
 
 class RddDataDistribution(_messages.Message):
@@ -8310,9 +8863,15 @@ class RepairClusterRequest(_messages.Message):
   r"""A request to repair a cluster.
 
   Fields:
+    cluster: Optional. Cluster to be repaired
     clusterUuid: Optional. Specifying the cluster_uuid means the RPC will fail
       (with error NOT_FOUND) if a cluster with the specified UUID does not
       exist.
+    dataprocSuperUser: Optional. Whether the request is submitted by Dataproc
+      super user. If true, IAM will check 'dataproc.clusters.repair'
+      permission instead of 'dataproc.clusters.update' permission. This is to
+      give Dataproc superuser the ability to repair clusters without granting
+      the overly broad update permission.
     gracefulDecommissionTimeout: Optional. Timeout for graceful YARN
       decommissioning. Graceful decommissioning facilitates the removal of
       cluster nodes without interrupting jobs in progress. The timeout
@@ -8336,11 +8895,13 @@ class RepairClusterRequest(_messages.Message):
       and hyphens (-). The maximum length is 40 characters.
   """
 
-  clusterUuid = _messages.StringField(1)
-  gracefulDecommissionTimeout = _messages.StringField(2)
-  nodePools = _messages.MessageField('NodePool', 3, repeated=True)
-  parentOperationId = _messages.StringField(4)
-  requestId = _messages.StringField(5)
+  cluster = _messages.MessageField('ClusterToRepair', 1)
+  clusterUuid = _messages.StringField(2)
+  dataprocSuperUser = _messages.BooleanField(3)
+  gracefulDecommissionTimeout = _messages.StringField(4)
+  nodePools = _messages.MessageField('NodePool', 5, repeated=True)
+  parentOperationId = _messages.StringField(6)
+  requestId = _messages.StringField(7)
 
 
 class RepairNodeGroupRequest(_messages.Message):
@@ -8458,6 +9019,34 @@ class ResizeNodeGroupRequest(_messages.Message):
   parentOperationId = _messages.StringField(2)
   requestId = _messages.StringField(3)
   size = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+
+
+class ResolvedCohortInfo(_messages.Message):
+  r"""Information about the cohort the workload belongs to.
+
+  Enums:
+    CohortSourceValueValuesEnum: Output only. Source of the cohort.
+
+  Fields:
+    cohortSource: Output only. Source of the cohort.
+    resolvedCohort: Output only. Final cohort used to tune the workload.
+  """
+
+  class CohortSourceValueValuesEnum(_messages.Enum):
+    r"""Output only. Source of the cohort.
+
+    Values:
+      COHORT_SOURCE_UNSPECIFIED: Cohort source is unspecified.
+      USER_PROVIDED: Cohort was resolved from the cohort config, explicitly
+        provided by the user.
+      AIRFLOW: Composed from the labels coming from Airflow/Composer.
+    """
+    COHORT_SOURCE_UNSPECIFIED = 0
+    USER_PROVIDED = 1
+    AIRFLOW = 2
+
+  cohortSource = _messages.EnumField('CohortSourceValueValuesEnum', 1)
+  resolvedCohort = _messages.StringField(2)
 
 
 class ResourceInformation(_messages.Message):
@@ -8619,8 +9208,8 @@ class RuntimeInfo(_messages.Message):
     outputUri: Output only. A URI pointing to the location of the stdout and
       stderr of the workload.
     propertiesInfo: Optional. Properties of the workload organized by origin.
-    publicKeys: Output only. The public keys used for sharing data with this
-      workload.
+    resolvedCohortInfo: Output only. Information about the cohort the workload
+      belongs to.
   """
 
   @encoding.MapUnrecognizedFields('additionalProperties')
@@ -8654,7 +9243,26 @@ class RuntimeInfo(_messages.Message):
   endpoints = _messages.MessageField('EndpointsValue', 4)
   outputUri = _messages.StringField(5)
   propertiesInfo = _messages.MessageField('PropertiesInfo', 6)
-  publicKeys = _messages.MessageField('PublicKeys', 7)
+  resolvedCohortInfo = _messages.MessageField('ResolvedCohortInfo', 7)
+
+
+class SchedulingConfig(_messages.Message):
+  r"""Config for scheduling the request to create Compute Engine resources for
+  the cluster, when available.
+
+  Fields:
+    requestedRunDuration: Optional. Required lifetime of the resources, once
+      provisioned. Min 10 mins, Max/Default 7 days . Note that the cluster can
+      still be deleted before reaching this time. This time is a maximum
+      amount of time before the cluster is forcibly deleted. Lower times are
+      more likely to start running sooner.
+    schedulingTimeout: Optional. How long to wait for worker resources to be
+      allocated before failing the cluster creation request. Max/Default
+      value: 13 days
+  """
+
+  requestedRunDuration = _messages.StringField(1)
+  schedulingTimeout = _messages.StringField(2)
 
 
 class SearchSessionSparkApplicationExecutorStageSummaryResponse(_messages.Message):
@@ -8701,6 +9309,21 @@ class SearchSessionSparkApplicationJobsResponse(_messages.Message):
 
   nextPageToken = _messages.StringField(1)
   sparkApplicationJobs = _messages.MessageField('JobData', 2, repeated=True)
+
+
+class SearchSessionSparkApplicationNativeSqlQueriesResponse(_messages.Message):
+  r"""List of all Native queries for a Spark Application.
+
+  Fields:
+    nextPageToken: This token is included in the response if there are more
+      results to fetch. To fetch additional results, provide this value as the
+      page_token in a subsequent
+      SearchSessionSparkApplicationSqlQueriesRequest.
+    sparkApplicationNativeSqlQueries: Output only. Native SQL Execution Data
+  """
+
+  nextPageToken = _messages.StringField(1)
+  sparkApplicationNativeSqlQueries = _messages.MessageField('NativeSqlExecutionUiData', 2, repeated=True)
 
 
 class SearchSessionSparkApplicationSqlQueriesResponse(_messages.Message):
@@ -8823,6 +9446,21 @@ class SearchSparkApplicationJobsResponse(_messages.Message):
   sparkApplicationJobs = _messages.MessageField('JobData', 2, repeated=True)
 
 
+class SearchSparkApplicationNativeSqlQueriesResponse(_messages.Message):
+  r"""List of all Native SQL queries details for a Spark Application.
+
+  Fields:
+    nextPageToken: This token is included in the response if there are more
+      results to fetch. To fetch additional results, provide this value as the
+      page_token in a subsequent
+      SearchSparkApplicationNativeSqlQueriesRequest.
+    sparkApplicationNativeSqlQueries: Output only. Native SQL Execution Data
+  """
+
+  nextPageToken = _messages.StringField(1)
+  sparkApplicationNativeSqlQueries = _messages.MessageField('NativeSqlExecutionUiData', 2, repeated=True)
+
+
 class SearchSparkApplicationSqlQueriesResponse(_messages.Message):
   r"""List of all queries for a Spark Application.
 
@@ -8900,13 +9538,16 @@ class SecurityConfig(_messages.Message):
   r"""Security related configuration, including encryption, Kerberos, etc.
 
   Fields:
+    authenticationConfig: Optional. User workload credential configuration
+      (WIP). This is mutually exclusive with the identity_config field.
     identityConfig: Optional. Identity related configuration, including
       service account based secure multi-tenancy user mappings.
     kerberosConfig: Optional. Kerberos related configuration.
   """
 
-  identityConfig = _messages.MessageField('IdentityConfig', 1)
-  kerberosConfig = _messages.MessageField('KerberosConfig', 2)
+  authenticationConfig = _messages.MessageField('ClusterAuthenticationConfig', 1)
+  identityConfig = _messages.MessageField('IdentityConfig', 2)
+  kerberosConfig = _messages.MessageField('KerberosConfig', 3)
 
 
 class Session(_messages.Message):
@@ -8936,7 +9577,7 @@ class Session(_messages.Message):
       if present, must contain 1 to 63 characters, and must conform to RFC
       1035 (https://www.ietf.org/rfc/rfc1035.txt). No more than 32 labels can
       be associated with a session.
-    name: Required. The resource name of the session.
+    name: Identifier. The resource name of the session.
     runtimeConfig: Optional. Runtime configuration for the session execution.
     runtimeInfo: Output only. Runtime information about session execution.
     sessionTemplate: Optional. The session template used by the session.Only
@@ -8945,7 +9586,6 @@ class Session(_messages.Message):
       ataproc_region]/sessionTemplates/[template_id] * projects/[project_id]/l
       ocations/[dataproc_region]/sessionTemplates/[template_id]The template
       must be in the same project and Dataproc region as the session.
-    spark: Optional. Spark engine config.
     sparkConnectSession: Optional. Spark connect session config.
     state: Output only. A state of the session.
     stateHistory: Output only. Historical state information for the session.
@@ -9014,14 +9654,13 @@ class Session(_messages.Message):
   runtimeConfig = _messages.MessageField('RuntimeConfig', 7)
   runtimeInfo = _messages.MessageField('RuntimeInfo', 8)
   sessionTemplate = _messages.StringField(9)
-  spark = _messages.MessageField('SparkConfig', 10)
-  sparkConnectSession = _messages.MessageField('SparkConnectConfig', 11)
-  state = _messages.EnumField('StateValueValuesEnum', 12)
-  stateHistory = _messages.MessageField('SessionStateHistory', 13, repeated=True)
-  stateMessage = _messages.StringField(14)
-  stateTime = _messages.StringField(15)
-  user = _messages.StringField(16)
-  uuid = _messages.StringField(17)
+  sparkConnectSession = _messages.MessageField('SparkConnectConfig', 10)
+  state = _messages.EnumField('StateValueValuesEnum', 11)
+  stateHistory = _messages.MessageField('SessionStateHistory', 12, repeated=True)
+  stateMessage = _messages.StringField(13)
+  stateTime = _messages.StringField(14)
+  user = _messages.StringField(15)
+  uuid = _messages.StringField(16)
 
 
 class SessionOperationMetadata(_messages.Message):
@@ -9157,9 +9796,16 @@ class SessionTemplate(_messages.Message):
       empty, but, if present, must contain 1 to 63 characters and conform to
       RFC 1035 (https://www.ietf.org/rfc/rfc1035.txt). No more than 32 labels
       can be associated with a session.
-    name: Required. The resource name of the session template.
+    name: Required. Identifier. The resource name of the session template.
+    preWarmedDriversCount: Optional. The count of drivers to have pre-warmed
+      available for Sessions created from this SessionTemplate. These are
+      created and billed as soon as the SessionTemplate is created. When a
+      Session is created from this SessionTemplate, it will use one of these
+      pre-warmed drivers, if any are available. If not available, then the
+      Session will create its own driver. As soon as a Session adopts one of
+      these pre-warmed drivers, a new pre-warmed driver will be created to
+      replace it.
     runtimeConfig: Optional. Runtime configuration for session execution.
-    spark: Optional. Spark engine config.
     sparkConnectSession: Optional. Spark connect session config.
     updateTime: Output only. The time the template was last updated.
     uuid: Output only. A session template UUID (Unique Universal Identifier).
@@ -9202,8 +9848,8 @@ class SessionTemplate(_messages.Message):
   jupyterSession = _messages.MessageField('JupyterConfig', 5)
   labels = _messages.MessageField('LabelsValue', 6)
   name = _messages.StringField(7)
-  runtimeConfig = _messages.MessageField('RuntimeConfig', 8)
-  spark = _messages.MessageField('SparkConfig', 9)
+  preWarmedDriversCount = _messages.IntegerField(8, variant=_messages.Variant.INT32)
+  runtimeConfig = _messages.MessageField('RuntimeConfig', 9)
   sparkConnectSession = _messages.MessageField('SparkConnectConfig', 10)
   updateTime = _messages.StringField(11)
   uuid = _messages.StringField(12)
@@ -9434,7 +10080,7 @@ class SoftwareConfig(_messages.Message):
     imageVersion: Optional. The version of software inside the cluster. It
       must be one of the supported Dataproc Versions
       (https://cloud.google.com/dataproc/docs/concepts/versioning/dataproc-
-      versions#supported_dataproc_versions), such as "1.2" (including a
+      versions#supported-dataproc-image-versions), such as "1.2" (including a
       subminor version, such as "1.2.29"), or the "preview" version
       (https://cloud.google.com/dataproc/docs/concepts/versioning/dataproc-
       versions#other_versions). If unspecified, it defaults to the latest
@@ -9457,9 +10103,13 @@ class SoftwareConfig(_messages.Message):
     Values:
       COMPONENT_UNSPECIFIED: Unspecified component. Specifying this will cause
         Cluster creation to fail.
-      ANACONDA: The Anaconda python distribution. The Anaconda component is
-        not supported in the Dataproc 2.0 image. The 2.0 image is pre-
-        installed with Miniconda.
+      ANACONDA: The Anaconda component is no longer supported or applicable to
+        supported Dataproc on Compute Engine image versions
+        (https://cloud.google.com/dataproc/docs/concepts/versioning/dataproc-
+        version-clusters#supported-dataproc-image-versions). It cannot be
+        activated on clusters created with supported Dataproc on Compute
+        Engine image versions.
+      DELTA: Delta Lake.
       DOCKER: Docker
       DRUID: The Druid query engine. (alpha)
       FLINK: Flink
@@ -9467,8 +10117,10 @@ class SoftwareConfig(_messages.Message):
       HIVE_WEBHCAT: The Hive Web HCatalog (the REST service for accessing
         HCatalog).
       HUDI: Hudi.
+      ICEBERG: Iceberg.
       JUPYTER: The Jupyter Notebook.
       KERBEROS: The Kerberos security feature.
+      PIG: The Pig component.
       PRESTO: The Presto query engine.
       TRINO: The Trino query engine.
       RANGER: The Ranger service.
@@ -9477,25 +10129,30 @@ class SoftwareConfig(_messages.Message):
       ZOOKEEPER: The Zookeeper service.
       DASK: Dask
       GPU_DRIVER: Nvidia GPU driver.
+      JUPYTER_KERNEL_GATEWAY: The Jupyter Kernel Gateway.
     """
     COMPONENT_UNSPECIFIED = 0
     ANACONDA = 1
-    DOCKER = 2
-    DRUID = 3
-    FLINK = 4
-    HBASE = 5
-    HIVE_WEBHCAT = 6
-    HUDI = 7
-    JUPYTER = 8
-    KERBEROS = 9
-    PRESTO = 10
-    TRINO = 11
-    RANGER = 12
-    SOLR = 13
-    ZEPPELIN = 14
-    ZOOKEEPER = 15
-    DASK = 16
-    GPU_DRIVER = 17
+    DELTA = 2
+    DOCKER = 3
+    DRUID = 4
+    FLINK = 5
+    HBASE = 6
+    HIVE_WEBHCAT = 7
+    HUDI = 8
+    ICEBERG = 9
+    JUPYTER = 10
+    KERBEROS = 11
+    PIG = 12
+    PRESTO = 13
+    TRINO = 14
+    RANGER = 15
+    SOLR = 16
+    ZEPPELIN = 17
+    ZOOKEEPER = 18
+    DASK = 19
+    GPU_DRIVER = 20
+    JUPYTER_KERNEL_GATEWAY = 21
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class PropertiesValue(_messages.Message):
@@ -9627,25 +10284,6 @@ class SparkBatch(_messages.Message):
   mainJarFileUri = _messages.StringField(6)
 
 
-class SparkConfig(_messages.Message):
-  r"""Apache Spark (https://spark.apache.org) engine for an interactive
-  session.
-
-  Fields:
-    archiveUris: Optional. HCFS URIs of archives to be extracted into the
-      working directory of each executor. Supported file types: .jar, .tar,
-      .tar.gz, .tgz, and .zip.
-    fileUris: Optional. HCFS URIs of files to be placed in the working
-      directory of each executor.
-    jarFileUris: Optional. HCFS URIs of jar files to add to the classpath of
-      the Spark driver and tasks.
-  """
-
-  archiveUris = _messages.StringField(1, repeated=True)
-  fileUris = _messages.StringField(2, repeated=True)
-  jarFileUris = _messages.StringField(3, repeated=True)
-
-
 class SparkConnectConfig(_messages.Message):
   r"""Spark connect configuration for an interactive session."""
 
@@ -9665,6 +10303,10 @@ class SparkHistoryServerConfig(_messages.Message):
 class SparkJob(_messages.Message):
   r"""A Dataproc job for running Apache Spark (https://spark.apache.org/)
   applications on YARN.
+
+  Enums:
+    SparkEngineValueValuesEnum: Optional. The engine on which the spark job
+      runs.
 
   Messages:
     PropertiesValue: Optional. A mapping of property names to values, used to
@@ -9692,7 +10334,20 @@ class SparkJob(_messages.Message):
       configure Spark. Properties that conflict with values set by the
       Dataproc API might be overwritten. Can include properties set in
       /etc/spark/conf/spark-defaults.conf and classes in user code.
+    sparkEngine: Optional. The engine on which the spark job runs.
   """
+
+  class SparkEngineValueValuesEnum(_messages.Enum):
+    r"""Optional. The engine on which the spark job runs.
+
+    Values:
+      SPARK_ENGINE_UNSPECIFIED: Not set.
+      SPARK_ENGINE_DEFAULT: Default engine for Spark Job
+      SPARK_ENGINE_NATIVE: Native Query Engine for Spark Job
+    """
+    SPARK_ENGINE_UNSPECIFIED = 0
+    SPARK_ENGINE_DEFAULT = 1
+    SPARK_ENGINE_NATIVE = 2
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class PropertiesValue(_messages.Message):
@@ -9729,6 +10384,7 @@ class SparkJob(_messages.Message):
   mainClass = _messages.StringField(6)
   mainJarFileUri = _messages.StringField(7)
   properties = _messages.MessageField('PropertiesValue', 8)
+  sparkEngine = _messages.EnumField('SparkEngineValueValuesEnum', 9)
 
 
 class SparkPlanGraph(_messages.Message):
@@ -9830,6 +10486,10 @@ class SparkRJob(_messages.Message):
   r"""A Dataproc job for running Apache SparkR
   (https://spark.apache.org/docs/latest/sparkr.html) applications on YARN.
 
+  Enums:
+    SparkEngineValueValuesEnum: Optional. The engine on which the spark job
+      runs.
+
   Messages:
     PropertiesValue: Optional. A mapping of property names to values, used to
       configure SparkR. Properties that conflict with values set by the
@@ -9852,7 +10512,20 @@ class SparkRJob(_messages.Message):
       configure SparkR. Properties that conflict with values set by the
       Dataproc API might be overwritten. Can include properties set in
       /etc/spark/conf/spark-defaults.conf and classes in user code.
+    sparkEngine: Optional. The engine on which the spark job runs.
   """
+
+  class SparkEngineValueValuesEnum(_messages.Enum):
+    r"""Optional. The engine on which the spark job runs.
+
+    Values:
+      SPARK_ENGINE_UNSPECIFIED: Not set.
+      SPARK_ENGINE_DEFAULT: Default engine for Spark Job
+      SPARK_ENGINE_NATIVE: Native Query Engine for Spark Job
+    """
+    SPARK_ENGINE_UNSPECIFIED = 0
+    SPARK_ENGINE_DEFAULT = 1
+    SPARK_ENGINE_NATIVE = 2
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class PropertiesValue(_messages.Message):
@@ -9887,6 +10560,7 @@ class SparkRJob(_messages.Message):
   loggingConfig = _messages.MessageField('LoggingConfig', 4)
   mainRFileUri = _messages.StringField(5)
   properties = _messages.MessageField('PropertiesValue', 6)
+  sparkEngine = _messages.EnumField('SparkEngineValueValuesEnum', 7)
 
 
 class SparkRuntimeInfo(_messages.Message):
@@ -9955,6 +10629,10 @@ class SparkSqlJob(_messages.Message):
   r"""A Dataproc job for running Apache Spark SQL
   (https://spark.apache.org/sql/) queries.
 
+  Enums:
+    SparkEngineValueValuesEnum: Optional. The engine on which the spark job
+      runs.
+
   Messages:
     PropertiesValue: Optional. A mapping of property names to values, used to
       configure Spark SQL's SparkConf. Properties that conflict with values
@@ -9973,7 +10651,20 @@ class SparkSqlJob(_messages.Message):
     queryList: A list of queries.
     scriptVariables: Optional. Mapping of query variable names to values
       (equivalent to the Spark SQL command: SET name="value";).
+    sparkEngine: Optional. The engine on which the spark job runs.
   """
+
+  class SparkEngineValueValuesEnum(_messages.Enum):
+    r"""Optional. The engine on which the spark job runs.
+
+    Values:
+      SPARK_ENGINE_UNSPECIFIED: Not set.
+      SPARK_ENGINE_DEFAULT: Default engine for Spark Job
+      SPARK_ENGINE_NATIVE: Native Query Engine for Spark Job
+    """
+    SPARK_ENGINE_UNSPECIFIED = 0
+    SPARK_ENGINE_DEFAULT = 1
+    SPARK_ENGINE_NATIVE = 2
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class PropertiesValue(_messages.Message):
@@ -10033,6 +10724,7 @@ class SparkSqlJob(_messages.Message):
   queryFileUri = _messages.StringField(4)
   queryList = _messages.MessageField('QueryList', 5)
   scriptVariables = _messages.MessageField('ScriptVariablesValue', 6)
+  sparkEngine = _messages.EnumField('SparkEngineValueValuesEnum', 7)
 
 
 class SparkStandaloneAutoscalingConfig(_messages.Message):
@@ -10093,6 +10785,8 @@ class SparkWrapperObject(_messages.Message):
     executorStageSummary: A ExecutorStageSummary attribute.
     executorSummary: A ExecutorSummary attribute.
     jobData: A JobData attribute.
+    nativeBuildInfoUiData: Native Build Info
+    nativeSqlExecutionUiData: Native SQL Execution Info
     poolData: A PoolData attribute.
     processSummary: A ProcessSummary attribute.
     rddOperationGraph: A RddOperationGraph attribute.
@@ -10116,19 +10810,21 @@ class SparkWrapperObject(_messages.Message):
   executorStageSummary = _messages.MessageField('ExecutorStageSummary', 6)
   executorSummary = _messages.MessageField('ExecutorSummary', 7)
   jobData = _messages.MessageField('JobData', 8)
-  poolData = _messages.MessageField('PoolData', 9)
-  processSummary = _messages.MessageField('ProcessSummary', 10)
-  rddOperationGraph = _messages.MessageField('RddOperationGraph', 11)
-  rddStorageInfo = _messages.MessageField('RddStorageInfo', 12)
-  resourceProfileInfo = _messages.MessageField('ResourceProfileInfo', 13)
-  sparkPlanGraph = _messages.MessageField('SparkPlanGraph', 14)
-  speculationStageSummary = _messages.MessageField('SpeculationStageSummary', 15)
-  sqlExecutionUiData = _messages.MessageField('SqlExecutionUiData', 16)
-  stageData = _messages.MessageField('StageData', 17)
-  streamBlockData = _messages.MessageField('StreamBlockData', 18)
-  streamingQueryData = _messages.MessageField('StreamingQueryData', 19)
-  streamingQueryProgress = _messages.MessageField('StreamingQueryProgress', 20)
-  taskData = _messages.MessageField('TaskData', 21)
+  nativeBuildInfoUiData = _messages.MessageField('NativeBuildInfoUiData', 9)
+  nativeSqlExecutionUiData = _messages.MessageField('NativeSqlExecutionUiData', 10)
+  poolData = _messages.MessageField('PoolData', 11)
+  processSummary = _messages.MessageField('ProcessSummary', 12)
+  rddOperationGraph = _messages.MessageField('RddOperationGraph', 13)
+  rddStorageInfo = _messages.MessageField('RddStorageInfo', 14)
+  resourceProfileInfo = _messages.MessageField('ResourceProfileInfo', 15)
+  sparkPlanGraph = _messages.MessageField('SparkPlanGraph', 16)
+  speculationStageSummary = _messages.MessageField('SpeculationStageSummary', 17)
+  sqlExecutionUiData = _messages.MessageField('SqlExecutionUiData', 18)
+  stageData = _messages.MessageField('StageData', 19)
+  streamBlockData = _messages.MessageField('StreamBlockData', 20)
+  streamingQueryData = _messages.MessageField('StreamingQueryData', 21)
+  streamingQueryProgress = _messages.MessageField('StreamingQueryProgress', 22)
+  taskData = _messages.MessageField('TaskData', 23)
 
 
 class SpeculationStageSummary(_messages.Message):
@@ -10761,6 +11457,25 @@ class StartClusterRequest(_messages.Message):
   requestId = _messages.StringField(2)
 
 
+class StartNodeGroupRequest(_messages.Message):
+  r"""A request to start a node group.
+
+  Fields:
+    parentOperationId: Optional. Operation id of the parent operation sending
+      the start node group request.
+    requestId: Optional. A unique ID used to identify the request. If the
+      server receives two StartNodeGroupRequest with the same ID, the second
+      request is ignored and the first google.longrunning.Operation created
+      and stored in the backend is returned.Recommendation: Set this value to
+      a UUID (https://en.wikipedia.org/wiki/Universally_unique_identifier).The
+      ID must contain only letters (a-z, A-Z), numbers (0-9), underscores (_),
+      and hyphens (-). The maximum length is 40 characters.
+  """
+
+  parentOperationId = _messages.StringField(1)
+  requestId = _messages.StringField(2)
+
+
 class StartupConfig(_messages.Message):
   r"""Configuration to handle the startup of instances during cluster create
   and update process.
@@ -10948,6 +11663,25 @@ class StopClusterRequest(_messages.Message):
   """
 
   clusterUuid = _messages.StringField(1)
+  requestId = _messages.StringField(2)
+
+
+class StopNodeGroupRequest(_messages.Message):
+  r"""A request to stop a node group.
+
+  Fields:
+    parentOperationId: Optional. Operation id of the parent operation sending
+      the stop request.
+    requestId: Optional. A unique ID used to identify the request. If the
+      server receives two StopNodeGroupRequest with the same ID, the second
+      request is ignored and the first google.longrunning.Operation created
+      and stored in the backend is returned.Recommendation: Set this value to
+      a UUID (https://en.wikipedia.org/wiki/Universally_unique_identifier).The
+      ID must contain only letters (a-z, A-Z), numbers (0-9), underscores (_),
+      and hyphens (-). The maximum length is 40 characters.
+  """
+
+  parentOperationId = _messages.StringField(1)
   requestId = _messages.StringField(2)
 
 
@@ -11608,6 +12342,91 @@ class UpdateLabelsNodeGroupRequest(_messages.Message):
   requestId = _messages.StringField(3)
 
 
+class UpdateMetadataConfigNodeGroupRequest(_messages.Message):
+  r"""A request to update the config of a node group.
+
+  Enums:
+    UpdateMetadataConfigTypeValueValuesEnum: Required. The type of metadata
+      config update to perform. Currently only
+      CLUSTER_MULTITENANCY_USER_MAPPING is supported.
+
+  Messages:
+    MetadataConfigMapValue: Required. The metadata config to associate with
+      this Node Group. This is a patch on top of the metadata that is defined
+      in the NodeGroup's InstanceTemplate, which itself is derived from the
+      Cluster's initial configuration. This will include the metadata key
+      value pairs to be added on the VMs in the node group.
+
+  Fields:
+    metadataConfigMap: Required. The metadata config to associate with this
+      Node Group. This is a patch on top of the metadata that is defined in
+      the NodeGroup's InstanceTemplate, which itself is derived from the
+      Cluster's initial configuration. This will include the metadata key
+      value pairs to be added on the VMs in the node group.
+    parentOperationId: Optional. Operation id of the parent operation sending
+      the update config request.
+    requestId: Optional. A unique ID used to identify the request. If the
+      server receives two UpdateMetadataConfigNodeGroupRequest (https://cloud.
+      google.com/dataproc/docs/reference/rpc/google.cloud.dataproc.v1#google.c
+      loud.dataproc.v1.UpdateLabelsNodeGroupRequests) with the same ID, the
+      second request is ignored and the first google.longrunning.Operation
+      created and stored in the backend is returned.Recommendation: Set this
+      value to a UUID
+      (https://en.wikipedia.org/wiki/Universally_unique_identifier).The ID
+      must contain only letters (a-z, A-Z), numbers (0-9), underscores (_),
+      and hyphens (-). The maximum length is 40 characters.
+    updateMetadataConfigType: Required. The type of metadata config update to
+      perform. Currently only CLUSTER_MULTITENANCY_USER_MAPPING is supported.
+  """
+
+  class UpdateMetadataConfigTypeValueValuesEnum(_messages.Enum):
+    r"""Required. The type of metadata config update to perform. Currently
+    only CLUSTER_MULTITENANCY_USER_MAPPING is supported.
+
+    Values:
+      UNSPECIFIED: Unused.
+      CLUSTER_MULTITENANCY_USER_MAPPING: Update the metadata property(s)
+        related to multitenancy user mapping.
+    """
+    UNSPECIFIED = 0
+    CLUSTER_MULTITENANCY_USER_MAPPING = 1
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class MetadataConfigMapValue(_messages.Message):
+    r"""Required. The metadata config to associate with this Node Group. This
+    is a patch on top of the metadata that is defined in the NodeGroup's
+    InstanceTemplate, which itself is derived from the Cluster's initial
+    configuration. This will include the metadata key value pairs to be added
+    on the VMs in the node group.
+
+    Messages:
+      AdditionalProperty: An additional property for a MetadataConfigMapValue
+        object.
+
+    Fields:
+      additionalProperties: Additional properties of type
+        MetadataConfigMapValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a MetadataConfigMapValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  metadataConfigMap = _messages.MessageField('MetadataConfigMapValue', 1)
+  parentOperationId = _messages.StringField(2)
+  requestId = _messages.StringField(3)
+  updateMetadataConfigType = _messages.EnumField('UpdateMetadataConfigTypeValueValuesEnum', 4)
+
+
 class UsageMetrics(_messages.Message):
   r"""Usage metrics represent approximate total resources consumed by a
   workload.
@@ -11623,12 +12442,14 @@ class UsageMetrics(_messages.Message):
     shuffleStorageGbSeconds: Optional. Shuffle storage usage in (GB x seconds)
       (see Dataproc Serverless pricing (https://cloud.google.com/dataproc-
       serverless/pricing)).
+    updateTime: Optional. The timestamp of the usage metrics.
   """
 
   acceleratorType = _messages.StringField(1)
   milliAcceleratorSeconds = _messages.IntegerField(2)
   milliDcuSeconds = _messages.IntegerField(3)
   shuffleStorageGbSeconds = _messages.IntegerField(4)
+  updateTime = _messages.StringField(5)
 
 
 class UsageSnapshot(_messages.Message):

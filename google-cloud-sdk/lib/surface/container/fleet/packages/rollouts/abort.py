@@ -22,19 +22,20 @@ from googlecloudsdk.command_lib.util.concepts import concept_parsers
 _DETAILED_HELP = {
     'DESCRIPTION': '{description}',
     'EXAMPLES': """ \
-        To abort Rollout ``20240318'' for ``cert-manager-app'' in ``us-central1'', run:
+        To abort Rollout `20240318` for `cert-manager-app` in `us-central1`, run:
 
           $ {command} 20240318 --fleet-package=cert-manager-app --location=us-central1
         """,
 }
 
 
-@base.Hidden
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.GA)
 class Abort(base.Command):
-  """Describe Rollout resource."""
+  """Abort Rollout resource."""
 
   detailed_help = _DETAILED_HELP
+  _api_version = 'v1'
 
   @staticmethod
   def Args(parser):
@@ -51,7 +52,7 @@ class Abort(base.Command):
 
   def Run(self, args):
     """Run the abort command."""
-    client = apis.RolloutsClient()
+    client = apis.RolloutsClient(self._api_version)
     return client.Abort(
         project=flags.GetProject(args),
         location=flags.GetLocation(args),
@@ -59,3 +60,19 @@ class Abort(base.Command):
         rollout=args.rollout,
         reason=args.reason,
     )
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.BETA)
+class AbortBeta(Abort):
+  """Abort Rollout resource."""
+
+  _api_version = 'v1beta'
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class AbortAlpha(Abort):
+  """Abort Rollout resource."""
+
+  _api_version = 'v1alpha'

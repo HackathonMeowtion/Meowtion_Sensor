@@ -42,6 +42,7 @@ class ConfigdeliveryV1alpha(base_api.BaseApiClient):
     self.projects_locations_fleetPackages_rollouts = self.ProjectsLocationsFleetPackagesRolloutsService(self)
     self.projects_locations_fleetPackages = self.ProjectsLocationsFleetPackagesService(self)
     self.projects_locations_operations = self.ProjectsLocationsOperationsService(self)
+    self.projects_locations_resourceBundles_releases_variants = self.ProjectsLocationsResourceBundlesReleasesVariantsService(self)
     self.projects_locations_resourceBundles_releases = self.ProjectsLocationsResourceBundlesReleasesService(self)
     self.projects_locations_resourceBundles = self.ProjectsLocationsResourceBundlesService(self)
     self.projects_locations = self.ProjectsLocationsService(self)
@@ -112,7 +113,7 @@ class ConfigdeliveryV1alpha(base_api.BaseApiClient):
     )
 
     def List(self, request, global_params=None):
-      r"""Lists Rollouts in a given project, location, and fleet package.
+      r"""Lists Rollouts in a given project, location, and Fleet Package.
 
       Args:
         request: (ConfigdeliveryProjectsLocationsFleetPackagesRolloutsListRequest) input message
@@ -348,7 +349,7 @@ class ConfigdeliveryV1alpha(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (ConfigdeliveryProjectsLocationsOperationsCancelRequest) input message
@@ -455,6 +456,151 @@ class ConfigdeliveryV1alpha(base_api.BaseApiClient):
         supports_download=False,
     )
 
+  class ProjectsLocationsResourceBundlesReleasesVariantsService(base_api.BaseApiService):
+    """Service class for the projects_locations_resourceBundles_releases_variants resource."""
+
+    _NAME = 'projects_locations_resourceBundles_releases_variants'
+
+    def __init__(self, client):
+      super(ConfigdeliveryV1alpha.ProjectsLocationsResourceBundlesReleasesVariantsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new Variant in a given project, location, resource bundle, and release.
+
+      Args:
+        request: (ConfigdeliveryProjectsLocationsResourceBundlesReleasesVariantsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/resourceBundles/{resourceBundlesId}/releases/{releasesId}/variants',
+        http_method='POST',
+        method_id='configdelivery.projects.locations.resourceBundles.releases.variants.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['requestId', 'variantId'],
+        relative_path='v1alpha/{+parent}/variants',
+        request_field='variant',
+        request_type_name='ConfigdeliveryProjectsLocationsResourceBundlesReleasesVariantsCreateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a single Variant.
+
+      Args:
+        request: (ConfigdeliveryProjectsLocationsResourceBundlesReleasesVariantsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/resourceBundles/{resourceBundlesId}/releases/{releasesId}/variants/{variantsId}',
+        http_method='DELETE',
+        method_id='configdelivery.projects.locations.resourceBundles.releases.variants.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId'],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='ConfigdeliveryProjectsLocationsResourceBundlesReleasesVariantsDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets details of a single Variant.
+
+      Args:
+        request: (ConfigdeliveryProjectsLocationsResourceBundlesReleasesVariantsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Variant) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/resourceBundles/{resourceBundlesId}/releases/{releasesId}/variants/{variantsId}',
+        http_method='GET',
+        method_id='configdelivery.projects.locations.resourceBundles.releases.variants.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='ConfigdeliveryProjectsLocationsResourceBundlesReleasesVariantsGetRequest',
+        response_type_name='Variant',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists Variants in a given project and location.
+
+      Args:
+        request: (ConfigdeliveryProjectsLocationsResourceBundlesReleasesVariantsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListVariantsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/resourceBundles/{resourceBundlesId}/releases/{releasesId}/variants',
+        http_method='GET',
+        method_id='configdelivery.projects.locations.resourceBundles.releases.variants.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha/{+parent}/variants',
+        request_field='',
+        request_type_name='ConfigdeliveryProjectsLocationsResourceBundlesReleasesVariantsListRequest',
+        response_type_name='ListVariantsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates the parameters of a single Variant.
+
+      Args:
+        request: (ConfigdeliveryProjectsLocationsResourceBundlesReleasesVariantsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/resourceBundles/{resourceBundlesId}/releases/{releasesId}/variants/{variantsId}',
+        http_method='PATCH',
+        method_id='configdelivery.projects.locations.resourceBundles.releases.variants.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['requestId', 'updateMask'],
+        relative_path='v1alpha/{+name}',
+        request_field='variant',
+        request_type_name='ConfigdeliveryProjectsLocationsResourceBundlesReleasesVariantsPatchRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
   class ProjectsLocationsResourceBundlesReleasesService(base_api.BaseApiService):
     """Service class for the projects_locations_resourceBundles_releases resource."""
 
@@ -511,7 +657,7 @@ class ConfigdeliveryV1alpha(base_api.BaseApiClient):
         method_id='configdelivery.projects.locations.resourceBundles.releases.delete',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['requestId'],
+        query_params=['force', 'requestId'],
         relative_path='v1alpha/{+name}',
         request_field='',
         request_type_name='ConfigdeliveryProjectsLocationsResourceBundlesReleasesDeleteRequest',
@@ -801,7 +947,7 @@ class ConfigdeliveryV1alpha(base_api.BaseApiClient):
         method_id='configdelivery.projects.locations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['extraLocationTypes', 'filter', 'pageSize', 'pageToken'],
         relative_path='v1alpha/{+name}/locations',
         request_field='',
         request_type_name='ConfigdeliveryProjectsLocationsListRequest',

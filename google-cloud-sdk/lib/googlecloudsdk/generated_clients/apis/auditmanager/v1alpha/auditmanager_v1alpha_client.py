@@ -39,8 +39,6 @@ class AuditmanagerV1alpha(base_api.BaseApiClient):
         default_global_params=default_global_params,
         additional_http_headers=additional_http_headers,
         response_encoding=response_encoding)
-    self.folders_locations_auditReports_controlReports_findings = self.FoldersLocationsAuditReportsControlReportsFindingsService(self)
-    self.folders_locations_auditReports_controlReports = self.FoldersLocationsAuditReportsControlReportsService(self)
     self.folders_locations_auditReports = self.FoldersLocationsAuditReportsService(self)
     self.folders_locations_auditScopeReports = self.FoldersLocationsAuditScopeReportsService(self)
     self.folders_locations_operationDetails = self.FoldersLocationsOperationDetailsService(self)
@@ -51,13 +49,12 @@ class AuditmanagerV1alpha(base_api.BaseApiClient):
     self.folders_locations = self.FoldersLocationsService(self)
     self.folders = self.FoldersService(self)
     self.organizations_locations_auditReports = self.OrganizationsLocationsAuditReportsService(self)
+    self.organizations_locations_operations = self.OrganizationsLocationsOperationsService(self)
     self.organizations_locations_resourceEnrollmentStatuses = self.OrganizationsLocationsResourceEnrollmentStatusesService(self)
     self.organizations_locations_standards_controls = self.OrganizationsLocationsStandardsControlsService(self)
     self.organizations_locations_standards = self.OrganizationsLocationsStandardsService(self)
     self.organizations_locations = self.OrganizationsLocationsService(self)
     self.organizations = self.OrganizationsService(self)
-    self.projects_locations_auditReports_controlReports_findings = self.ProjectsLocationsAuditReportsControlReportsFindingsService(self)
-    self.projects_locations_auditReports_controlReports = self.ProjectsLocationsAuditReportsControlReportsService(self)
     self.projects_locations_auditReports = self.ProjectsLocationsAuditReportsService(self)
     self.projects_locations_auditScopeReports = self.ProjectsLocationsAuditScopeReportsService(self)
     self.projects_locations_operationDetails = self.ProjectsLocationsOperationDetailsService(self)
@@ -68,134 +65,6 @@ class AuditmanagerV1alpha(base_api.BaseApiClient):
     self.projects_locations_standards = self.ProjectsLocationsStandardsService(self)
     self.projects_locations = self.ProjectsLocationsService(self)
     self.projects = self.ProjectsService(self)
-
-  class FoldersLocationsAuditReportsControlReportsFindingsService(base_api.BaseApiService):
-    """Service class for the folders_locations_auditReports_controlReports_findings resource."""
-
-    _NAME = 'folders_locations_auditReports_controlReports_findings'
-
-    def __init__(self, client):
-      super(AuditmanagerV1alpha.FoldersLocationsAuditReportsControlReportsFindingsService, self).__init__(client)
-      self._upload_configs = {
-          }
-
-    def Get(self, request, global_params=None):
-      r"""Get the finding from a control report.
-
-      Args:
-        request: (AuditmanagerFoldersLocationsAuditReportsControlReportsFindingsGetRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (Finding) The response message.
-      """
-      config = self.GetMethodConfig('Get')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Get.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/folders/{foldersId}/locations/{locationsId}/auditReports/{auditReportsId}/controlReports/{controlReportsId}/findings/{findingsId}',
-        http_method='GET',
-        method_id='auditmanager.folders.locations.auditReports.controlReports.findings.get',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=[],
-        relative_path='v1alpha/{+name}',
-        request_field='',
-        request_type_name='AuditmanagerFoldersLocationsAuditReportsControlReportsFindingsGetRequest',
-        response_type_name='Finding',
-        supports_download=False,
-    )
-
-    def List(self, request, global_params=None):
-      r"""Fetches all findings under the control report.
-
-      Args:
-        request: (AuditmanagerFoldersLocationsAuditReportsControlReportsFindingsListRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (ListFindingsResponse) The response message.
-      """
-      config = self.GetMethodConfig('List')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    List.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/folders/{foldersId}/locations/{locationsId}/auditReports/{auditReportsId}/controlReports/{controlReportsId}/findings',
-        http_method='GET',
-        method_id='auditmanager.folders.locations.auditReports.controlReports.findings.list',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['pageSize', 'pageToken'],
-        relative_path='v1alpha/{+parent}/findings',
-        request_field='',
-        request_type_name='AuditmanagerFoldersLocationsAuditReportsControlReportsFindingsListRequest',
-        response_type_name='ListFindingsResponse',
-        supports_download=False,
-    )
-
-  class FoldersLocationsAuditReportsControlReportsService(base_api.BaseApiService):
-    """Service class for the folders_locations_auditReports_controlReports resource."""
-
-    _NAME = 'folders_locations_auditReports_controlReports'
-
-    def __init__(self, client):
-      super(AuditmanagerV1alpha.FoldersLocationsAuditReportsControlReportsService, self).__init__(client)
-      self._upload_configs = {
-          }
-
-    def Get(self, request, global_params=None):
-      r"""Get the audit report for a control.
-
-      Args:
-        request: (AuditmanagerFoldersLocationsAuditReportsControlReportsGetRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (ControlReport) The response message.
-      """
-      config = self.GetMethodConfig('Get')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Get.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/folders/{foldersId}/locations/{locationsId}/auditReports/{auditReportsId}/controlReports/{controlReportsId}',
-        http_method='GET',
-        method_id='auditmanager.folders.locations.auditReports.controlReports.get',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=[],
-        relative_path='v1alpha/{+name}',
-        request_field='',
-        request_type_name='AuditmanagerFoldersLocationsAuditReportsControlReportsGetRequest',
-        response_type_name='ControlReport',
-        supports_download=False,
-    )
-
-    def List(self, request, global_params=None):
-      r"""Fetches all control reports under the parent.
-
-      Args:
-        request: (AuditmanagerFoldersLocationsAuditReportsControlReportsListRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (ListControlReportsResponse) The response message.
-      """
-      config = self.GetMethodConfig('List')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    List.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/folders/{foldersId}/locations/{locationsId}/auditReports/{auditReportsId}/controlReports',
-        http_method='GET',
-        method_id='auditmanager.folders.locations.auditReports.controlReports.list',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['pageSize', 'pageToken'],
-        relative_path='v1alpha/{+parent}/controlReports',
-        request_field='',
-        request_type_name='AuditmanagerFoldersLocationsAuditReportsControlReportsListRequest',
-        response_type_name='ListControlReportsResponse',
-        supports_download=False,
-    )
 
   class FoldersLocationsAuditReportsService(base_api.BaseApiService):
     """Service class for the folders_locations_auditReports resource."""
@@ -521,7 +390,7 @@ class AuditmanagerV1alpha(base_api.BaseApiClient):
           }
 
     def EnrollResource(self, request, global_params=None):
-      r"""Enrolls the customer resource(folder/project) to the audit manager service by creating the audit managers P4SA in customers workload and granting required permissions to the P4SA. Please note that if enrollment request is made on the already enrolled workload then enrollment is executed overriding the existing set of destinations. As per https://google.aip.dev/127 recommendation, we are having multiple URI binding for Enroll API.
+      r"""Enrolls the customer resource(folder/project/organization) to the audit manager service by creating the audit managers P4SA in customers workload and granting required permissions to the P4SA. Please note that if enrollment request is made on the already enrolled workload then enrollment is executed overriding the existing set of destinations. As per https://google.aip.dev/127 recommendation, we are having multiple URI binding for Enroll API.
 
       Args:
         request: (AuditmanagerFoldersLocationsEnrollResourceRequest) input message
@@ -594,6 +463,124 @@ class AuditmanagerV1alpha(base_api.BaseApiClient):
         supports_download=False,
     )
 
+  class OrganizationsLocationsOperationsService(base_api.BaseApiService):
+    """Service class for the organizations_locations_operations resource."""
+
+    _NAME = 'organizations_locations_operations'
+
+    def __init__(self, client):
+      super(AuditmanagerV1alpha.OrganizationsLocationsOperationsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Cancel(self, request, global_params=None):
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
+
+      Args:
+        request: (AuditmanagerOrganizationsLocationsOperationsCancelRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Empty) The response message.
+      """
+      config = self.GetMethodConfig('Cancel')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Cancel.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}/operations/{operationsId}:cancel',
+        http_method='POST',
+        method_id='auditmanager.organizations.locations.operations.cancel',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}:cancel',
+        request_field='cancelOperationRequest',
+        request_type_name='AuditmanagerOrganizationsLocationsOperationsCancelRequest',
+        response_type_name='Empty',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a long-running operation. This method indicates that the client is no longer interested in the operation result. It does not cancel the operation. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`.
+
+      Args:
+        request: (AuditmanagerOrganizationsLocationsOperationsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Empty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}/operations/{operationsId}',
+        http_method='DELETE',
+        method_id='auditmanager.organizations.locations.operations.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='AuditmanagerOrganizationsLocationsOperationsDeleteRequest',
+        response_type_name='Empty',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets the latest state of a long-running operation. Clients can use this method to poll the operation result at intervals as recommended by the API service.
+
+      Args:
+        request: (AuditmanagerOrganizationsLocationsOperationsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}/operations/{operationsId}',
+        http_method='GET',
+        method_id='auditmanager.organizations.locations.operations.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='AuditmanagerOrganizationsLocationsOperationsGetRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists operations that match the specified filter in the request. If the server doesn't support this method, it returns `UNIMPLEMENTED`.
+
+      Args:
+        request: (AuditmanagerOrganizationsLocationsOperationsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListOperationsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}/operations',
+        http_method='GET',
+        method_id='auditmanager.organizations.locations.operations.list',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v1alpha/{+name}/operations',
+        request_field='',
+        request_type_name='AuditmanagerOrganizationsLocationsOperationsListRequest',
+        response_type_name='ListOperationsResponse',
+        supports_download=False,
+    )
+
   class OrganizationsLocationsResourceEnrollmentStatusesService(base_api.BaseApiService):
     """Service class for the organizations_locations_resourceEnrollmentStatuses resource."""
 
@@ -603,6 +590,33 @@ class AuditmanagerV1alpha(base_api.BaseApiClient):
       super(AuditmanagerV1alpha.OrganizationsLocationsResourceEnrollmentStatusesService, self).__init__(client)
       self._upload_configs = {
           }
+
+    def Get(self, request, global_params=None):
+      r"""Get a resource along with its enrollment status.
+
+      Args:
+        request: (AuditmanagerOrganizationsLocationsResourceEnrollmentStatusesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ResourceEnrollmentStatus) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}/resourceEnrollmentStatuses/{resourceEnrollmentStatusesId}',
+        http_method='GET',
+        method_id='auditmanager.organizations.locations.resourceEnrollmentStatuses.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='AuditmanagerOrganizationsLocationsResourceEnrollmentStatusesGetRequest',
+        response_type_name='ResourceEnrollmentStatus',
+        supports_download=False,
+    )
 
     def List(self, request, global_params=None):
       r"""Fetches all resources under the parent along with their enrollment.
@@ -688,6 +702,33 @@ class AuditmanagerV1alpha(base_api.BaseApiClient):
       self._upload_configs = {
           }
 
+    def EnrollResource(self, request, global_params=None):
+      r"""Enrolls the customer resource(folder/project/organization) to the audit manager service by creating the audit managers P4SA in customers workload and granting required permissions to the P4SA. Please note that if enrollment request is made on the already enrolled workload then enrollment is executed overriding the existing set of destinations. As per https://google.aip.dev/127 recommendation, we are having multiple URI binding for Enroll API.
+
+      Args:
+        request: (AuditmanagerOrganizationsLocationsEnrollResourceRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Enrollment) The response message.
+      """
+      config = self.GetMethodConfig('EnrollResource')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    EnrollResource.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/organizations/{organizationsId}/locations/{locationsId}:enrollResource',
+        http_method='POST',
+        method_id='auditmanager.organizations.locations.enrollResource',
+        ordered_params=['scope'],
+        path_params=['scope'],
+        query_params=[],
+        relative_path='v1alpha/{+scope}:enrollResource',
+        request_field='enrollResourceRequest',
+        request_type_name='AuditmanagerOrganizationsLocationsEnrollResourceRequest',
+        response_type_name='Enrollment',
+        supports_download=False,
+    )
+
   class OrganizationsService(base_api.BaseApiService):
     """Service class for the organizations resource."""
 
@@ -697,134 +738,6 @@ class AuditmanagerV1alpha(base_api.BaseApiClient):
       super(AuditmanagerV1alpha.OrganizationsService, self).__init__(client)
       self._upload_configs = {
           }
-
-  class ProjectsLocationsAuditReportsControlReportsFindingsService(base_api.BaseApiService):
-    """Service class for the projects_locations_auditReports_controlReports_findings resource."""
-
-    _NAME = 'projects_locations_auditReports_controlReports_findings'
-
-    def __init__(self, client):
-      super(AuditmanagerV1alpha.ProjectsLocationsAuditReportsControlReportsFindingsService, self).__init__(client)
-      self._upload_configs = {
-          }
-
-    def Get(self, request, global_params=None):
-      r"""Get the finding from a control report.
-
-      Args:
-        request: (AuditmanagerProjectsLocationsAuditReportsControlReportsFindingsGetRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (Finding) The response message.
-      """
-      config = self.GetMethodConfig('Get')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Get.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/auditReports/{auditReportsId}/controlReports/{controlReportsId}/findings/{findingsId}',
-        http_method='GET',
-        method_id='auditmanager.projects.locations.auditReports.controlReports.findings.get',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=[],
-        relative_path='v1alpha/{+name}',
-        request_field='',
-        request_type_name='AuditmanagerProjectsLocationsAuditReportsControlReportsFindingsGetRequest',
-        response_type_name='Finding',
-        supports_download=False,
-    )
-
-    def List(self, request, global_params=None):
-      r"""Fetches all findings under the control report.
-
-      Args:
-        request: (AuditmanagerProjectsLocationsAuditReportsControlReportsFindingsListRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (ListFindingsResponse) The response message.
-      """
-      config = self.GetMethodConfig('List')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    List.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/auditReports/{auditReportsId}/controlReports/{controlReportsId}/findings',
-        http_method='GET',
-        method_id='auditmanager.projects.locations.auditReports.controlReports.findings.list',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['pageSize', 'pageToken'],
-        relative_path='v1alpha/{+parent}/findings',
-        request_field='',
-        request_type_name='AuditmanagerProjectsLocationsAuditReportsControlReportsFindingsListRequest',
-        response_type_name='ListFindingsResponse',
-        supports_download=False,
-    )
-
-  class ProjectsLocationsAuditReportsControlReportsService(base_api.BaseApiService):
-    """Service class for the projects_locations_auditReports_controlReports resource."""
-
-    _NAME = 'projects_locations_auditReports_controlReports'
-
-    def __init__(self, client):
-      super(AuditmanagerV1alpha.ProjectsLocationsAuditReportsControlReportsService, self).__init__(client)
-      self._upload_configs = {
-          }
-
-    def Get(self, request, global_params=None):
-      r"""Get the audit report for a control.
-
-      Args:
-        request: (AuditmanagerProjectsLocationsAuditReportsControlReportsGetRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (ControlReport) The response message.
-      """
-      config = self.GetMethodConfig('Get')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    Get.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/auditReports/{auditReportsId}/controlReports/{controlReportsId}',
-        http_method='GET',
-        method_id='auditmanager.projects.locations.auditReports.controlReports.get',
-        ordered_params=['name'],
-        path_params=['name'],
-        query_params=[],
-        relative_path='v1alpha/{+name}',
-        request_field='',
-        request_type_name='AuditmanagerProjectsLocationsAuditReportsControlReportsGetRequest',
-        response_type_name='ControlReport',
-        supports_download=False,
-    )
-
-    def List(self, request, global_params=None):
-      r"""Fetches all control reports under the parent.
-
-      Args:
-        request: (AuditmanagerProjectsLocationsAuditReportsControlReportsListRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (ListControlReportsResponse) The response message.
-      """
-      config = self.GetMethodConfig('List')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    List.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/auditReports/{auditReportsId}/controlReports',
-        http_method='GET',
-        method_id='auditmanager.projects.locations.auditReports.controlReports.list',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['pageSize', 'pageToken'],
-        relative_path='v1alpha/{+parent}/controlReports',
-        request_field='',
-        request_type_name='AuditmanagerProjectsLocationsAuditReportsControlReportsListRequest',
-        response_type_name='ListControlReportsResponse',
-        supports_download=False,
-    )
 
   class ProjectsLocationsAuditReportsService(base_api.BaseApiService):
     """Service class for the projects_locations_auditReports resource."""
@@ -1039,7 +952,7 @@ class AuditmanagerV1alpha(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AuditmanagerProjectsLocationsOperationsCancelRequest) input message
@@ -1183,33 +1096,6 @@ class AuditmanagerV1alpha(base_api.BaseApiClient):
         supports_download=False,
     )
 
-    def List(self, request, global_params=None):
-      r"""Fetches all resources under the parent along with their enrollment.
-
-      Args:
-        request: (AuditmanagerProjectsLocationsResourceEnrollmentStatusesListRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (ListResourceEnrollmentStatusesResponse) The response message.
-      """
-      config = self.GetMethodConfig('List')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    List.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/resourceEnrollmentStatuses',
-        http_method='GET',
-        method_id='auditmanager.projects.locations.resourceEnrollmentStatuses.list',
-        ordered_params=['parent'],
-        path_params=['parent'],
-        query_params=['pageSize', 'pageToken'],
-        relative_path='v1alpha/{+parent}/resourceEnrollmentStatuses',
-        request_field='',
-        request_type_name='AuditmanagerProjectsLocationsResourceEnrollmentStatusesListRequest',
-        response_type_name='ListResourceEnrollmentStatusesResponse',
-        supports_download=False,
-    )
-
   class ProjectsLocationsStandardsControlsService(base_api.BaseApiService):
     """Service class for the projects_locations_standards_controls resource."""
 
@@ -1268,7 +1154,7 @@ class AuditmanagerV1alpha(base_api.BaseApiClient):
           }
 
     def EnrollResource(self, request, global_params=None):
-      r"""Enrolls the customer resource(folder/project) to the audit manager service by creating the audit managers P4SA in customers workload and granting required permissions to the P4SA. Please note that if enrollment request is made on the already enrolled workload then enrollment is executed overriding the existing set of destinations. As per https://google.aip.dev/127 recommendation, we are having multiple URI binding for Enroll API.
+      r"""Enrolls the customer resource(folder/project/organization) to the audit manager service by creating the audit managers P4SA in customers workload and granting required permissions to the P4SA. Please note that if enrollment request is made on the already enrolled workload then enrollment is executed overriding the existing set of destinations. As per https://google.aip.dev/127 recommendation, we are having multiple URI binding for Enroll API.
 
       Args:
         request: (AuditmanagerProjectsLocationsEnrollResourceRequest) input message
@@ -1340,7 +1226,7 @@ class AuditmanagerV1alpha(base_api.BaseApiClient):
         method_id='auditmanager.projects.locations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['extraLocationTypes', 'filter', 'pageSize', 'pageToken'],
         relative_path='v1alpha/{+name}/locations',
         request_field='',
         request_type_name='AuditmanagerProjectsLocationsListRequest',

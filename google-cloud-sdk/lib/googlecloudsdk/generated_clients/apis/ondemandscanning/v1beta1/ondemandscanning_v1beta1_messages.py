@@ -169,6 +169,20 @@ class AttestationOccurrence(_messages.Message):
   signatures = _messages.MessageField('Signature', 3, repeated=True)
 
 
+class BaseImage(_messages.Message):
+  r"""BaseImage describes a base image of a container image.
+
+  Fields:
+    layerCount: The number of layers that the base image is composed of.
+    name: The name of the base image.
+    repository: The repository name in which the base image is from.
+  """
+
+  layerCount = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  name = _messages.StringField(2)
+  repository = _messages.StringField(3)
+
+
 class BinarySourceInfo(_messages.Message):
   r"""A BinarySourceInfo object.
 
@@ -177,7 +191,7 @@ class BinarySourceInfo(_messages.Message):
       different than the binary itself. Historically if they've differed,
       we've stored the name of the source and its version in the
       package/version fields, but we should also store the binary package
-      info, as that's what's actually installed. See b/175908657#comment15.
+      info, as that's what's actually installed.
     sourceVersion: The source package. Similar to the above, this is
       significant when the source is different than the binary itself. Since
       the top-level package/version fields are based on an if/else, we need a
@@ -385,6 +399,17 @@ class BuilderConfig(_messages.Message):
   """
 
   id = _messages.StringField(1)
+
+
+class CISAKnownExploitedVulnerabilities(_messages.Message):
+  r"""A CISAKnownExploitedVulnerabilities object.
+
+  Fields:
+    knownRansomwareCampaignUse: Whether the vulnerability is known to have
+      been leveraged as part of a ransomware campaign.
+  """
+
+  knownRansomwareCampaignUse = _messages.StringField(1)
 
 
 class CVSS(_messages.Message):
@@ -651,10 +676,30 @@ class ComplianceOccurrence(_messages.Message):
   Fields:
     nonComplianceReason: A string attribute.
     nonCompliantFiles: A NonCompliantFile attribute.
+    version: The OS and config version the benchmark was run on.
   """
 
   nonComplianceReason = _messages.StringField(1)
   nonCompliantFiles = _messages.MessageField('NonCompliantFile', 2, repeated=True)
+  version = _messages.MessageField('ComplianceVersion', 3)
+
+
+class ComplianceVersion(_messages.Message):
+  r"""Describes the CIS benchmark version that is applicable to a given OS and
+  os version.
+
+  Fields:
+    benchmarkDocument: The name of the document that defines this benchmark,
+      e.g. "CIS Container-Optimized OS".
+    cpeUri: The CPE URI (https://cpe.mitre.org/specification/) this benchmark
+      is applicable to.
+    version: The version of the benchmark. This is set to the version of the
+      OS-specific CIS document the benchmark is defined in.
+  """
+
+  benchmarkDocument = _messages.StringField(1)
+  cpeUri = _messages.StringField(2)
+  version = _messages.StringField(3)
 
 
 class DSSEAttestationOccurrence(_messages.Message):
@@ -731,6 +776,7 @@ class DiscoveryOccurrence(_messages.Message):
       occurrence were archived.
     continuousAnalysis: Whether the resource is continuously analyzed.
     cpe: The CPE of the resource being scanned.
+    files: Files that make up the resource described by the occurrence.
     lastScanTime: The last time this resource was scanned.
     sbomStatus: The status of an SBOM generation.
   """
@@ -775,8 +821,9 @@ class DiscoveryOccurrence(_messages.Message):
   archiveTime = _messages.StringField(5)
   continuousAnalysis = _messages.EnumField('ContinuousAnalysisValueValuesEnum', 6)
   cpe = _messages.StringField(7)
-  lastScanTime = _messages.StringField(8)
-  sbomStatus = _messages.MessageField('SBOMStatus', 9)
+  files = _messages.MessageField('File', 8, repeated=True)
+  lastScanTime = _messages.StringField(9)
+  sbomStatus = _messages.MessageField('SBOMStatus', 10)
 
 
 class Empty(_messages.Message):
@@ -816,6 +863,59 @@ class EnvelopeSignature(_messages.Message):
   sig = _messages.BytesField(2)
 
 
+class ExploitPredictionScoringSystem(_messages.Message):
+  r"""A ExploitPredictionScoringSystem object.
+
+  Fields:
+    percentile: The percentile of the current score, the proportion of all
+      scored vulnerabilities with the same or a lower EPSS score
+    score: The EPSS score representing the probability [0-1] of exploitation
+      in the wild in the next 30 days
+  """
+
+  percentile = _messages.FloatField(1)
+  score = _messages.FloatField(2)
+
+
+class File(_messages.Message):
+  r"""A File object.
+
+  Messages:
+    DigestValue: A DigestValue object.
+
+  Fields:
+    digest: A DigestValue attribute.
+    name: A string attribute.
+  """
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class DigestValue(_messages.Message):
+    r"""A DigestValue object.
+
+    Messages:
+      AdditionalProperty: An additional property for a DigestValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type DigestValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a DigestValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  digest = _messages.MessageField('DigestValue', 1)
+  name = _messages.StringField(2)
+
+
 class FileHashes(_messages.Message):
   r"""Container message for hashes of byte content of files, used in source
   messages to verify integrity of source input to the build.
@@ -833,9 +933,11 @@ class FileLocation(_messages.Message):
   Fields:
     filePath: For jars that are contained inside .war files, this filepath can
       indicate the path to war file combined with the path to jar file.
+    layerDetails: A LayerDetails attribute.
   """
 
   filePath = _messages.StringField(1)
+  layerDetails = _messages.MessageField('LayerDetails', 2)
 
 
 class Fingerprint(_messages.Message):
@@ -887,15 +989,55 @@ class GitSourceContext(_messages.Message):
   url = _messages.StringField(2)
 
 
+class GrafeasV1BaseImage(_messages.Message):
+  r"""BaseImage describes a base image of a container image.
+
+  Fields:
+    layerCount: The number of layers that the base image is composed of.
+    name: The name of the base image.
+    repository: The repository name in which the base image is from.
+  """
+
+  layerCount = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  name = _messages.StringField(2)
+  repository = _messages.StringField(3)
+
+
 class GrafeasV1FileLocation(_messages.Message):
   r"""Indicates the location at which a package was found.
 
   Fields:
     filePath: For jars that are contained inside .war files, this filepath can
       indicate the path to war file combined with the path to jar file.
+    layerDetails: Each package found in a file should have its own layer
+      metadata (that is, information from the origin layer of the package).
   """
 
   filePath = _messages.StringField(1)
+  layerDetails = _messages.MessageField('GrafeasV1LayerDetails', 2)
+
+
+class GrafeasV1LayerDetails(_messages.Message):
+  r"""Details about the layer a package was found in.
+
+  Fields:
+    baseImages: The base images the layer is found within.
+    chainId: The layer chain ID (sha256 hash) of the layer in the container
+      image. https://github.com/opencontainers/image-
+      spec/blob/main/config.md#layer-chainid
+    command: The layer build command that was used to build the layer. This
+      may not be found in all layers depending on how the container image is
+      built.
+    diffId: The diff ID (typically a sha256 hash) of the layer in the
+      container image.
+    index: The index of the layer in the container image.
+  """
+
+  baseImages = _messages.MessageField('GrafeasV1BaseImage', 1, repeated=True)
+  chainId = _messages.StringField(2)
+  command = _messages.StringField(3)
+  diffId = _messages.StringField(4)
+  index = _messages.IntegerField(5, variant=_messages.Variant.INT32)
 
 
 class GrafeasV1SlsaProvenanceZeroTwoSlsaBuilder(_messages.Message):
@@ -1283,6 +1425,28 @@ class Layer(_messages.Message):
   directive = _messages.StringField(2)
 
 
+class LayerDetails(_messages.Message):
+  r"""Details about the layer a package was found in.
+
+  Fields:
+    baseImages: The base images the layer is found within.
+    chainId: The layer chain ID (sha256 hash) of the layer in the container
+      image. https://github.com/opencontainers/image-
+      spec/blob/main/config.md#layer-chainid
+    command: The layer build command that was used to build the layer. This
+      may not be found in all layers depending on how the container image is
+      built.
+    diffId: The diff ID (sha256 hash) of the layer in the container image.
+    index: The index of the layer in the container image.
+  """
+
+  baseImages = _messages.MessageField('BaseImage', 1, repeated=True)
+  chainId = _messages.StringField(2)
+  command = _messages.StringField(3)
+  diffId = _messages.StringField(4)
+  index = _messages.IntegerField(5, variant=_messages.Variant.INT32)
+
+
 class License(_messages.Message):
   r"""License information.
 
@@ -1470,6 +1634,7 @@ class Occurrence(_messages.Message):
       which the occurrence applies. For example,
       `https://gcr.io/project/image@sha256:123abc` for a Docker image.
     sbomReference: Describes a specific SBOM reference occurrences.
+    secret: Describes a secret.
     updateTime: Output only. The time this occurrence was last updated.
     upgrade: Describes an available package upgrade on the linked resource.
     vulnerability: Describes a security vulnerability.
@@ -1496,6 +1661,7 @@ class Occurrence(_messages.Message):
       DSSE_ATTESTATION: This represents a DSSE attestation Note
       VULNERABILITY_ASSESSMENT: This represents a Vulnerability Assessment.
       SBOM_REFERENCE: This represents an SBOM Reference.
+      SECRET: This represents a secret.
     """
     NOTE_KIND_UNSPECIFIED = 0
     VULNERABILITY = 1
@@ -1510,6 +1676,7 @@ class Occurrence(_messages.Message):
     DSSE_ATTESTATION = 10
     VULNERABILITY_ASSESSMENT = 11
     SBOM_REFERENCE = 12
+    SECRET = 13
 
   attestation = _messages.MessageField('AttestationOccurrence', 1)
   build = _messages.MessageField('BuildOccurrence', 2)
@@ -1527,9 +1694,10 @@ class Occurrence(_messages.Message):
   remediation = _messages.StringField(14)
   resourceUri = _messages.StringField(15)
   sbomReference = _messages.MessageField('SBOMReferenceOccurrence', 16)
-  updateTime = _messages.StringField(17)
-  upgrade = _messages.MessageField('UpgradeOccurrence', 18)
-  vulnerability = _messages.MessageField('VulnerabilityOccurrence', 19)
+  secret = _messages.MessageField('SecretOccurrence', 17)
+  updateTime = _messages.StringField(18)
+  upgrade = _messages.MessageField('UpgradeOccurrence', 19)
+  vulnerability = _messages.MessageField('VulnerabilityOccurrence', 20)
 
 
 class OndemandscanningProjectsLocationsOperationsCancelRequest(_messages.Message):
@@ -1754,6 +1922,7 @@ class PackageData(_messages.Message):
     hashDigest: HashDigest stores the SHA512 hash digest of the jar file if
       the package is of type Maven. This field will be unset for non Maven
       packages.
+    layerDetails: A LayerDetails attribute.
     licenses: The list of licenses found that are related to a given package.
       Note that licenses may also be stored on the BinarySourceInfo. If there
       is no BinarySourceInfo (because there's no concept of source vs binary),
@@ -1767,8 +1936,7 @@ class PackageData(_messages.Message):
       packages
     package: The package being analysed for vulnerabilities
     packageType: The type of package: os, maven, go, etc.
-    patchedCve: CVEs that this package is no longer vulnerable to go/drydock-
-      dd-custom-binary-scanning
+    patchedCve: CVEs that this package is no longer vulnerable to
     sourceVersion: DEPRECATED
     unused: A string attribute.
     version: The version of the package being analysed
@@ -1787,8 +1955,9 @@ class PackageData(_messages.Message):
       NPM: NPM packages.
       NUGET: Nuget (C#/.NET) packages.
       RUBYGEMS: Ruby packges (from RubyGems package manager).
-      RUST: Rust packages from Cargo (Github ecosystem is `RUST`).
+      RUST: Rust packages from Cargo (GitHub ecosystem is `RUST`).
       COMPOSER: PHP packages from Composer package manager.
+      SWIFT: Swift packages from Swift Package Manager (SwiftPM).
     """
     PACKAGE_TYPE_UNSPECIFIED = 0
     OS = 1
@@ -1801,6 +1970,7 @@ class PackageData(_messages.Message):
     RUBYGEMS = 8
     RUST = 9
     COMPOSER = 10
+    SWIFT = 11
 
   architecture = _messages.StringField(1)
   binarySourceInfo = _messages.MessageField('BinarySourceInfo', 2, repeated=True)
@@ -1809,16 +1979,17 @@ class PackageData(_messages.Message):
   dependencyChain = _messages.MessageField('LanguagePackageDependency', 5, repeated=True)
   fileLocation = _messages.MessageField('FileLocation', 6, repeated=True)
   hashDigest = _messages.StringField(7)
-  licenses = _messages.StringField(8, repeated=True)
-  maintainer = _messages.MessageField('Maintainer', 9)
-  os = _messages.StringField(10)
-  osVersion = _messages.StringField(11)
-  package = _messages.StringField(12)
-  packageType = _messages.EnumField('PackageTypeValueValuesEnum', 13)
-  patchedCve = _messages.StringField(14, repeated=True)
-  sourceVersion = _messages.MessageField('PackageVersion', 15)
-  unused = _messages.StringField(16)
-  version = _messages.StringField(17)
+  layerDetails = _messages.MessageField('LayerDetails', 8)
+  licenses = _messages.StringField(9, repeated=True)
+  maintainer = _messages.MessageField('Maintainer', 10)
+  os = _messages.StringField(11)
+  osVersion = _messages.StringField(12)
+  package = _messages.StringField(13)
+  packageType = _messages.EnumField('PackageTypeValueValuesEnum', 14)
+  patchedCve = _messages.StringField(15, repeated=True)
+  sourceVersion = _messages.MessageField('PackageVersion', 16)
+  unused = _messages.StringField(17)
+  version = _messages.StringField(18)
 
 
 class PackageIssue(_messages.Message):
@@ -2236,6 +2407,21 @@ class ResourceDescriptor(_messages.Message):
   uri = _messages.StringField(7)
 
 
+class Risk(_messages.Message):
+  r"""A Risk object.
+
+  Fields:
+    cisaKev: CISA maintains the authoritative source of vulnerabilities that
+      have been exploited in the wild.
+    epss: The Exploit Prediction Scoring System (EPSS) estimates the
+      likelihood (probability) that a software vulnerability will be exploited
+      in the wild.
+  """
+
+  cisaKev = _messages.MessageField('CISAKnownExploitedVulnerabilities', 1)
+  epss = _messages.MessageField('ExploitPredictionScoringSystem', 2)
+
+
 class RunDetails(_messages.Message):
   r"""A RunDetails object.
 
@@ -2358,6 +2544,78 @@ class SbomReferenceIntotoPredicate(_messages.Message):
   location = _messages.StringField(2)
   mimeType = _messages.StringField(3)
   referrerId = _messages.StringField(4)
+
+
+class SecretLocation(_messages.Message):
+  r"""The location of the secret.
+
+  Fields:
+    fileLocation: The secret is found from a file.
+  """
+
+  fileLocation = _messages.MessageField('GrafeasV1FileLocation', 1)
+
+
+class SecretOccurrence(_messages.Message):
+  r"""The occurrence provides details of a secret.
+
+  Enums:
+    KindValueValuesEnum: Required. Type of secret.
+
+  Fields:
+    kind: Required. Type of secret.
+    locations: Optional. Locations where the secret is detected.
+    statuses: Optional. Status of the secret.
+  """
+
+  class KindValueValuesEnum(_messages.Enum):
+    r"""Required. Type of secret.
+
+    Values:
+      SECRET_KIND_UNSPECIFIED: Unspecified
+      SECRET_KIND_UNKNOWN: The secret kind is unknown.
+      SECRET_KIND_GCP_SERVICE_ACCOUNT_KEY: A GCP service account key per:
+        https://cloud.google.com/iam/docs/creating-managing-service-account-
+        keys
+    """
+    SECRET_KIND_UNSPECIFIED = 0
+    SECRET_KIND_UNKNOWN = 1
+    SECRET_KIND_GCP_SERVICE_ACCOUNT_KEY = 2
+
+  kind = _messages.EnumField('KindValueValuesEnum', 1)
+  locations = _messages.MessageField('SecretLocation', 2, repeated=True)
+  statuses = _messages.MessageField('SecretStatus', 3, repeated=True)
+
+
+class SecretStatus(_messages.Message):
+  r"""The status of the secret with a timestamp.
+
+  Enums:
+    StatusValueValuesEnum: Optional. The status of the secret.
+
+  Fields:
+    message: Optional. Optional message about the status code.
+    status: Optional. The status of the secret.
+    updateTime: Optional. The time the secret status was last updated.
+  """
+
+  class StatusValueValuesEnum(_messages.Enum):
+    r"""Optional. The status of the secret.
+
+    Values:
+      STATUS_UNSPECIFIED: Unspecified
+      UNKNOWN: The status of the secret is unknown.
+      VALID: The secret is valid.
+      INVALID: The secret is invalid.
+    """
+    STATUS_UNSPECIFIED = 0
+    UNKNOWN = 1
+    VALID = 2
+    INVALID = 3
+
+  message = _messages.StringField(1)
+  status = _messages.EnumField('StatusValueValuesEnum', 2)
+  updateTime = _messages.StringField(3)
 
 
 class Signature(_messages.Message):
@@ -3107,6 +3365,7 @@ class VulnerabilityOccurrence(_messages.Message):
     packageIssue: Required. The set of affected locations and their fixes (if
       available) within the associated resource.
     relatedUrls: Output only. URLs related to this vulnerability.
+    risk: Risk information about the vulnerability, such as CISA, EPSS, etc.
     severity: Output only. The note provider assigned severity of this
       vulnerability.
     shortDescription: Output only. A one sentence description of this
@@ -3183,10 +3442,11 @@ class VulnerabilityOccurrence(_messages.Message):
   longDescription = _messages.StringField(8)
   packageIssue = _messages.MessageField('PackageIssue', 9, repeated=True)
   relatedUrls = _messages.MessageField('RelatedUrl', 10, repeated=True)
-  severity = _messages.EnumField('SeverityValueValuesEnum', 11)
-  shortDescription = _messages.StringField(12)
-  type = _messages.StringField(13)
-  vexAssessment = _messages.MessageField('VexAssessment', 14)
+  risk = _messages.MessageField('Risk', 11)
+  severity = _messages.EnumField('SeverityValueValuesEnum', 12)
+  shortDescription = _messages.StringField(13)
+  type = _messages.StringField(14)
+  vexAssessment = _messages.MessageField('VexAssessment', 15)
 
 
 class WindowsUpdate(_messages.Message):

@@ -26,8 +26,8 @@ from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.iam import iam_util
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
-@base.Hidden
 class AddIamPolicyBinding(base.Command):
   """Add IAM policy binding to a log view."""
 

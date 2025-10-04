@@ -353,6 +353,9 @@ class BaremetalsolutionProjectsLocationsListRequest(_messages.Message):
   r"""A BaremetalsolutionProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -363,10 +366,11 @@ class BaremetalsolutionProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class BaremetalsolutionProjectsLocationsNetworkQuotasListRequest(_messages.Message):
@@ -1339,7 +1343,7 @@ class InstanceConfig(_messages.Message):
       InstanceConfig.multivlan_config is false.
     hyperthreading: Whether the instance should be provisioned with
       Hyperthreading enabled.
-    id: A transient unique identifier to idenfity an instance within an
+    id: A transient unique identifier to identify an instance within an
       ProvisioningConfig request.
     instanceType: Instance type. [Available
       types](https://cloud.google.com/bare-metal/docs/bms-
@@ -2043,9 +2047,13 @@ class NetworkConfig(_messages.Message):
     userNote: User note field, it can be used by customers to add additional
       information for the BMS Ops team .
     vlanAttachments: List of VLAN attachments. As of now there are always 2
-      attachments, but it is going to change in the future (multi vlan).
+      attachments, but it is going to change in the future (multi vlan). Use
+      only one of vlan_attachments or vrf
     vlanSameProject: Whether the VLAN attachment pair is located in the same
       project.
+    vrf: Optional. The name of a pre-existing Vrf that the network should be
+      attached to. Format is `vrfs/{vrf}`. If vrf is specified,
+      vlan_attachments must be empty.
   """
 
   class BandwidthValueValuesEnum(_messages.Enum):
@@ -2103,6 +2111,7 @@ class NetworkConfig(_messages.Message):
   userNote = _messages.StringField(9)
   vlanAttachments = _messages.MessageField('IntakeVlanAttachment', 10, repeated=True)
   vlanSameProject = _messages.BooleanField(11)
+  vrf = _messages.StringField(12)
 
 
 class NetworkMountPoint(_messages.Message):

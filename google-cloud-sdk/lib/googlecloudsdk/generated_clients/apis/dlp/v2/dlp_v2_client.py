@@ -49,6 +49,8 @@ class DlpV2(base_api.BaseApiClient):
     self.organizations_locations_deidentifyTemplates = self.OrganizationsLocationsDeidentifyTemplatesService(self)
     self.organizations_locations_discoveryConfigs = self.OrganizationsLocationsDiscoveryConfigsService(self)
     self.organizations_locations_dlpJobs = self.OrganizationsLocationsDlpJobsService(self)
+    self.organizations_locations_fileStoreDataProfiles = self.OrganizationsLocationsFileStoreDataProfilesService(self)
+    self.organizations_locations_infoTypes = self.OrganizationsLocationsInfoTypesService(self)
     self.organizations_locations_inspectTemplates = self.OrganizationsLocationsInspectTemplatesService(self)
     self.organizations_locations_jobTriggers = self.OrganizationsLocationsJobTriggersService(self)
     self.organizations_locations_projectDataProfiles = self.OrganizationsLocationsProjectDataProfilesService(self)
@@ -69,7 +71,9 @@ class DlpV2(base_api.BaseApiClient):
     self.projects_locations_deidentifyTemplates = self.ProjectsLocationsDeidentifyTemplatesService(self)
     self.projects_locations_discoveryConfigs = self.ProjectsLocationsDiscoveryConfigsService(self)
     self.projects_locations_dlpJobs = self.ProjectsLocationsDlpJobsService(self)
+    self.projects_locations_fileStoreDataProfiles = self.ProjectsLocationsFileStoreDataProfilesService(self)
     self.projects_locations_image = self.ProjectsLocationsImageService(self)
+    self.projects_locations_infoTypes = self.ProjectsLocationsInfoTypesService(self)
     self.projects_locations_inspectTemplates = self.ProjectsLocationsInspectTemplatesService(self)
     self.projects_locations_jobTriggers = self.ProjectsLocationsJobTriggersService(self)
     self.projects_locations_projectDataProfiles = self.ProjectsLocationsProjectDataProfilesService(self)
@@ -90,7 +94,7 @@ class DlpV2(base_api.BaseApiClient):
           }
 
     def List(self, request, global_params=None):
-      r"""Returns a list of the sensitive information types that DLP API supports. See https://cloud.google.com/sensitive-data-protection/docs/infotypes-reference to learn more.
+      r"""Returns a list of the sensitive information types that the DLP API supports. See https://cloud.google.com/sensitive-data-protection/docs/infotypes-reference to learn more.
 
       Args:
         request: (DlpInfoTypesListRequest) input message
@@ -126,7 +130,7 @@ class DlpV2(base_api.BaseApiClient):
           }
 
     def List(self, request, global_params=None):
-      r"""Returns a list of the sensitive information types that DLP API supports. See https://cloud.google.com/sensitive-data-protection/docs/infotypes-reference to learn more.
+      r"""Returns a list of the sensitive information types that the DLP API supports. See https://cloud.google.com/sensitive-data-protection/docs/infotypes-reference to learn more.
 
       Args:
         request: (DlpLocationsInfoTypesListRequest) input message
@@ -526,6 +530,141 @@ class DlpV2(base_api.BaseApiClient):
       self._upload_configs = {
           }
 
+    def Create(self, request, global_params=None):
+      r"""Create a Connection to an external data source.
+
+      Args:
+        request: (DlpOrganizationsLocationsConnectionsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GooglePrivacyDlpV2Connection) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/organizations/{organizationsId}/locations/{locationsId}/connections',
+        http_method='POST',
+        method_id='dlp.organizations.locations.connections.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v2/{+parent}/connections',
+        request_field='googlePrivacyDlpV2CreateConnectionRequest',
+        request_type_name='DlpOrganizationsLocationsConnectionsCreateRequest',
+        response_type_name='GooglePrivacyDlpV2Connection',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Delete a Connection.
+
+      Args:
+        request: (DlpOrganizationsLocationsConnectionsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/organizations/{organizationsId}/locations/{locationsId}/connections/{connectionsId}',
+        http_method='DELETE',
+        method_id='dlp.organizations.locations.connections.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v2/{+name}',
+        request_field='',
+        request_type_name='DlpOrganizationsLocationsConnectionsDeleteRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Get a Connection by name.
+
+      Args:
+        request: (DlpOrganizationsLocationsConnectionsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GooglePrivacyDlpV2Connection) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/organizations/{organizationsId}/locations/{locationsId}/connections/{connectionsId}',
+        http_method='GET',
+        method_id='dlp.organizations.locations.connections.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v2/{+name}',
+        request_field='',
+        request_type_name='DlpOrganizationsLocationsConnectionsGetRequest',
+        response_type_name='GooglePrivacyDlpV2Connection',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists Connections in a parent. Use SearchConnections to see all connections within an organization.
+
+      Args:
+        request: (DlpOrganizationsLocationsConnectionsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GooglePrivacyDlpV2ListConnectionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/organizations/{organizationsId}/locations/{locationsId}/connections',
+        http_method='GET',
+        method_id='dlp.organizations.locations.connections.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v2/{+parent}/connections',
+        request_field='',
+        request_type_name='DlpOrganizationsLocationsConnectionsListRequest',
+        response_type_name='GooglePrivacyDlpV2ListConnectionsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Update a Connection.
+
+      Args:
+        request: (DlpOrganizationsLocationsConnectionsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GooglePrivacyDlpV2Connection) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/organizations/{organizationsId}/locations/{locationsId}/connections/{connectionsId}',
+        http_method='PATCH',
+        method_id='dlp.organizations.locations.connections.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v2/{+name}',
+        request_field='googlePrivacyDlpV2UpdateConnectionRequest',
+        request_type_name='DlpOrganizationsLocationsConnectionsPatchRequest',
+        response_type_name='GooglePrivacyDlpV2Connection',
+        supports_download=False,
+    )
+
     def Search(self, request, global_params=None):
       r"""Searches for Connections in a parent.
 
@@ -877,6 +1016,134 @@ class DlpV2(base_api.BaseApiClient):
         request_field='',
         request_type_name='DlpOrganizationsLocationsDlpJobsListRequest',
         response_type_name='GooglePrivacyDlpV2ListDlpJobsResponse',
+        supports_download=False,
+    )
+
+  class OrganizationsLocationsFileStoreDataProfilesService(base_api.BaseApiService):
+    """Service class for the organizations_locations_fileStoreDataProfiles resource."""
+
+    _NAME = 'organizations_locations_fileStoreDataProfiles'
+
+    def __init__(self, client):
+      super(DlpV2.OrganizationsLocationsFileStoreDataProfilesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Delete(self, request, global_params=None):
+      r"""Delete a FileStoreDataProfile. Will not prevent the profile from being regenerated if the resource is still included in a discovery configuration.
+
+      Args:
+        request: (DlpOrganizationsLocationsFileStoreDataProfilesDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/organizations/{organizationsId}/locations/{locationsId}/fileStoreDataProfiles/{fileStoreDataProfilesId}',
+        http_method='DELETE',
+        method_id='dlp.organizations.locations.fileStoreDataProfiles.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v2/{+name}',
+        request_field='',
+        request_type_name='DlpOrganizationsLocationsFileStoreDataProfilesDeleteRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets a file store data profile.
+
+      Args:
+        request: (DlpOrganizationsLocationsFileStoreDataProfilesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GooglePrivacyDlpV2FileStoreDataProfile) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/organizations/{organizationsId}/locations/{locationsId}/fileStoreDataProfiles/{fileStoreDataProfilesId}',
+        http_method='GET',
+        method_id='dlp.organizations.locations.fileStoreDataProfiles.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v2/{+name}',
+        request_field='',
+        request_type_name='DlpOrganizationsLocationsFileStoreDataProfilesGetRequest',
+        response_type_name='GooglePrivacyDlpV2FileStoreDataProfile',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists file store data profiles for an organization.
+
+      Args:
+        request: (DlpOrganizationsLocationsFileStoreDataProfilesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GooglePrivacyDlpV2ListFileStoreDataProfilesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/organizations/{organizationsId}/locations/{locationsId}/fileStoreDataProfiles',
+        http_method='GET',
+        method_id='dlp.organizations.locations.fileStoreDataProfiles.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v2/{+parent}/fileStoreDataProfiles',
+        request_field='',
+        request_type_name='DlpOrganizationsLocationsFileStoreDataProfilesListRequest',
+        response_type_name='GooglePrivacyDlpV2ListFileStoreDataProfilesResponse',
+        supports_download=False,
+    )
+
+  class OrganizationsLocationsInfoTypesService(base_api.BaseApiService):
+    """Service class for the organizations_locations_infoTypes resource."""
+
+    _NAME = 'organizations_locations_infoTypes'
+
+    def __init__(self, client):
+      super(DlpV2.OrganizationsLocationsInfoTypesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def List(self, request, global_params=None):
+      r"""Returns a list of the sensitive information types that the DLP API supports. See https://cloud.google.com/sensitive-data-protection/docs/infotypes-reference to learn more.
+
+      Args:
+        request: (DlpOrganizationsLocationsInfoTypesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GooglePrivacyDlpV2ListInfoTypesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/organizations/{organizationsId}/locations/{locationsId}/infoTypes',
+        http_method='GET',
+        method_id='dlp.organizations.locations.infoTypes.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'languageCode', 'locationId'],
+        relative_path='v2/{+parent}/infoTypes',
+        request_field='',
+        request_type_name='DlpOrganizationsLocationsInfoTypesListRequest',
+        response_type_name='GooglePrivacyDlpV2ListInfoTypesResponse',
         supports_download=False,
     )
 
@@ -2027,7 +2294,7 @@ class DlpV2(base_api.BaseApiClient):
           }
 
     def Redact(self, request, global_params=None):
-      r"""Redacts potentially sensitive info from an image. This method has limits on input size, processing time, and output size. See https://cloud.google.com/sensitive-data-protection/docs/redacting-sensitive-data-images to learn more. When no InfoTypes or CustomInfoTypes are specified in this request, the system will automatically choose what detectors to run. By default this may be all types, but may change over time as detectors are updated.
+      r"""Redacts potentially sensitive info from an image. This method has limits on input size, processing time, and output size. See https://cloud.google.com/sensitive-data-protection/docs/redacting-sensitive-data-images to learn more. When no InfoTypes or CustomInfoTypes are specified in this request, the system will automatically choose what detectors to run. By default this may be all types, but may change over time as detectors are updated. Only the first frame of each multiframe image is redacted. Metadata and other frames are omitted in the response.
 
       Args:
         request: (DlpProjectsImageRedactRequest) input message
@@ -2526,7 +2793,7 @@ class DlpV2(base_api.BaseApiClient):
     )
 
     def List(self, request, global_params=None):
-      r"""Lists Connections in a parent.
+      r"""Lists Connections in a parent. Use SearchConnections to see all connections within an organization.
 
       Args:
         request: (DlpProjectsLocationsConnectionsListRequest) input message
@@ -3186,6 +3453,97 @@ class DlpV2(base_api.BaseApiClient):
         supports_download=False,
     )
 
+  class ProjectsLocationsFileStoreDataProfilesService(base_api.BaseApiService):
+    """Service class for the projects_locations_fileStoreDataProfiles resource."""
+
+    _NAME = 'projects_locations_fileStoreDataProfiles'
+
+    def __init__(self, client):
+      super(DlpV2.ProjectsLocationsFileStoreDataProfilesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Delete(self, request, global_params=None):
+      r"""Delete a FileStoreDataProfile. Will not prevent the profile from being regenerated if the resource is still included in a discovery configuration.
+
+      Args:
+        request: (DlpProjectsLocationsFileStoreDataProfilesDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/locations/{locationsId}/fileStoreDataProfiles/{fileStoreDataProfilesId}',
+        http_method='DELETE',
+        method_id='dlp.projects.locations.fileStoreDataProfiles.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v2/{+name}',
+        request_field='',
+        request_type_name='DlpProjectsLocationsFileStoreDataProfilesDeleteRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets a file store data profile.
+
+      Args:
+        request: (DlpProjectsLocationsFileStoreDataProfilesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GooglePrivacyDlpV2FileStoreDataProfile) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/locations/{locationsId}/fileStoreDataProfiles/{fileStoreDataProfilesId}',
+        http_method='GET',
+        method_id='dlp.projects.locations.fileStoreDataProfiles.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v2/{+name}',
+        request_field='',
+        request_type_name='DlpProjectsLocationsFileStoreDataProfilesGetRequest',
+        response_type_name='GooglePrivacyDlpV2FileStoreDataProfile',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists file store data profiles for an organization.
+
+      Args:
+        request: (DlpProjectsLocationsFileStoreDataProfilesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GooglePrivacyDlpV2ListFileStoreDataProfilesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/locations/{locationsId}/fileStoreDataProfiles',
+        http_method='GET',
+        method_id='dlp.projects.locations.fileStoreDataProfiles.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v2/{+parent}/fileStoreDataProfiles',
+        request_field='',
+        request_type_name='DlpProjectsLocationsFileStoreDataProfilesListRequest',
+        response_type_name='GooglePrivacyDlpV2ListFileStoreDataProfilesResponse',
+        supports_download=False,
+    )
+
   class ProjectsLocationsImageService(base_api.BaseApiService):
     """Service class for the projects_locations_image resource."""
 
@@ -3197,7 +3555,7 @@ class DlpV2(base_api.BaseApiClient):
           }
 
     def Redact(self, request, global_params=None):
-      r"""Redacts potentially sensitive info from an image. This method has limits on input size, processing time, and output size. See https://cloud.google.com/sensitive-data-protection/docs/redacting-sensitive-data-images to learn more. When no InfoTypes or CustomInfoTypes are specified in this request, the system will automatically choose what detectors to run. By default this may be all types, but may change over time as detectors are updated.
+      r"""Redacts potentially sensitive info from an image. This method has limits on input size, processing time, and output size. See https://cloud.google.com/sensitive-data-protection/docs/redacting-sensitive-data-images to learn more. When no InfoTypes or CustomInfoTypes are specified in this request, the system will automatically choose what detectors to run. By default this may be all types, but may change over time as detectors are updated. Only the first frame of each multiframe image is redacted. Metadata and other frames are omitted in the response.
 
       Args:
         request: (DlpProjectsLocationsImageRedactRequest) input message
@@ -3220,6 +3578,43 @@ class DlpV2(base_api.BaseApiClient):
         request_field='googlePrivacyDlpV2RedactImageRequest',
         request_type_name='DlpProjectsLocationsImageRedactRequest',
         response_type_name='GooglePrivacyDlpV2RedactImageResponse',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsInfoTypesService(base_api.BaseApiService):
+    """Service class for the projects_locations_infoTypes resource."""
+
+    _NAME = 'projects_locations_infoTypes'
+
+    def __init__(self, client):
+      super(DlpV2.ProjectsLocationsInfoTypesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def List(self, request, global_params=None):
+      r"""Returns a list of the sensitive information types that the DLP API supports. See https://cloud.google.com/sensitive-data-protection/docs/infotypes-reference to learn more.
+
+      Args:
+        request: (DlpProjectsLocationsInfoTypesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GooglePrivacyDlpV2ListInfoTypesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/locations/{locationsId}/infoTypes',
+        http_method='GET',
+        method_id='dlp.projects.locations.infoTypes.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'languageCode', 'locationId'],
+        relative_path='v2/{+parent}/infoTypes',
+        request_field='',
+        request_type_name='DlpProjectsLocationsInfoTypesListRequest',
+        response_type_name='GooglePrivacyDlpV2ListInfoTypesResponse',
         supports_download=False,
     )
 

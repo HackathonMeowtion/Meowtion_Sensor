@@ -51,8 +51,16 @@ def SetParentCollection(ref, args, request):
   Returns:
     modified request
   """
-  del ref, args  # Unused.
-  request.parent = request.parent + '/locations/-'
+  del ref  # Unused.
+  # Find the last '/' in request.parent.
+  index = request.parent.rfind('/')
+  if index == -1:
+    raise ValueError('Invalid parent collection: %s' % request.parent)
+
+  if args.IsKnownAndSpecified('location'):
+    request.parent = request.parent[:index] + '/' + args.location
+  else:
+    request.parent = request.parent[:index] + '/-'
   return request
 
 
@@ -82,7 +90,7 @@ def SetMembershipLocation(ref, args, request):
 
 
 def ExecuteUpdateMembershipRequest(ref, args):
-  """Set membership location for requested resource.
+  """Execute update membership request.
 
   Args:
     ref: API response from update membership call
@@ -102,11 +110,7 @@ def ExecuteUpdateMembershipRequest(ref, args):
   obj = api_util.GetMembership(name, release_track)
   update_fields = []
 
-  description = external_id = infra_type = None
-  if release_track == calliope_base.ReleaseTrack.BETA and args.GetValue(
-      'description'):
-    update_fields.append('description')
-    description = args.GetValue('description')
+  external_id = infra_type = None
   if args.GetValue('external_id'):
     update_fields.append('externalId')
     external_id = args.GetValue('external_id')
@@ -123,7 +127,6 @@ def ExecuteUpdateMembershipRequest(ref, args):
       obj,
       update_mask,
       release_track,
-      description=description,
       external_id=external_id,
       infra_type=infra_type,
       clear_labels=args.GetValue('clear_labels'),

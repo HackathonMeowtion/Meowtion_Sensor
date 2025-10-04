@@ -22,11 +22,15 @@ from __future__ import unicode_literals
 from googlecloudsdk.calliope import base
 
 
-@base.ReleaseTracks(base.ReleaseTrack.GA, base.ReleaseTrack.BETA,
-                    base.ReleaseTrack.ALPHA)
+@base.UniverseCompatible
+@base.ReleaseTracks(
+    base.ReleaseTrack.GA, base.ReleaseTrack.BETA, base.ReleaseTrack.ALPHA
+)
 class Buckets(base.Group):
   """Manage Cloud Logging buckets.
 
   Commands for managing Cloud Logging buckets. A bucket is a container of logs
   that can be managed as a unit, for example by setting the retention period.
   """
+
+  category = base.MANAGEMENT_TOOLS_CATEGORY

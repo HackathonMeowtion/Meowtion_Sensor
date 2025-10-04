@@ -79,13 +79,27 @@ class LoginProfile(_messages.Message):
   sshPublicKeys = _messages.MessageField('SshPublicKeysValue', 3)
 
 
+class OsloginProjectsLocationsSignSshPublicKeyRequest(_messages.Message):
+  r"""A OsloginProjectsLocationsSignSshPublicKeyRequest object.
+
+  Fields:
+    parent: Required. The parent for the signing request. Format:
+      projects/{project}/locations/{location}
+    signSshPublicKeyRequest: A SignSshPublicKeyRequest resource to be passed
+      as the request body.
+  """
+
+  parent = _messages.StringField(1, required=True)
+  signSshPublicKeyRequest = _messages.MessageField('SignSshPublicKeyRequest', 2)
+
+
 class OsloginUsersGetLoginProfileRequest(_messages.Message):
   r"""A OsloginUsersGetLoginProfileRequest object.
 
   Fields:
     name: Required. The unique ID for the user in format `users/{user}`.
-    projectId: The project ID of the Google Cloud Platform project.
-    systemId: A system ID for filtering the results of the request.
+    projectId: Required. The project ID of the Google Cloud Platform project.
+    systemId: Optional. A system ID for filtering the results of the request.
   """
 
   name = _messages.StringField(1, required=True)
@@ -167,8 +181,8 @@ class OsloginUsersSshPublicKeysPatchRequest(_messages.Message):
       are identified by their SHA-256 fingerprint. The fingerprint of the
       public key is in format `users/{user}/sshPublicKeys/{fingerprint}`.
     sshPublicKey: A SshPublicKey resource to be passed as the request body.
-    updateMask: Mask to control which fields get updated. Updates all if not
-      present.
+    updateMask: Optional. Mask to control which fields get updated. Updates
+      all if not present.
   """
 
   name = _messages.StringField(1, required=True)
@@ -224,13 +238,47 @@ class PosixAccount(_messages.Message):
   username = _messages.StringField(11)
 
 
+class SignSshPublicKeyRequest(_messages.Message):
+  r"""A request message for signing an SSH public key.
+
+  Fields:
+    appEngineInstance: The App Engine instance to sign the SSH public key for.
+      Expected format:
+      apps/{app}/services/{service}/versions/{version}/instances/{instance}
+    computeInstance: The Compute instance to sign the SSH public key for.
+      Expected format:
+      projects/{project}/zones/{zone}/instances/{numeric_instance_id}
+    serviceAccount: Optional. The service account for the instance. If the
+      instance in question does not have a service account, this field should
+      be left empty. If the wrong service account is provided, this operation
+      will return a signed certificate that will not be accepted by the VM.
+    sshPublicKey: Required. The SSH public key to sign.
+  """
+
+  appEngineInstance = _messages.StringField(1)
+  computeInstance = _messages.StringField(2)
+  serviceAccount = _messages.StringField(3)
+  sshPublicKey = _messages.StringField(4)
+
+
+class SignSshPublicKeyResponse(_messages.Message):
+  r"""The response message for signing an SSH public key.
+
+  Fields:
+    signedSshPublicKey: The signed SSH public key to use in the SSH handshake.
+  """
+
+  signedSshPublicKey = _messages.StringField(1)
+
+
 class SshPublicKey(_messages.Message):
   r"""The SSH public key information associated with a Google account.
 
   Fields:
     expirationTimeUsec: An expiration time in microseconds since epoch.
     fingerprint: Output only. The SHA-256 fingerprint of the SSH public key.
-    key: Public key text in SSH format, defined by RFC4253 section 6.6.
+    key: Required. Public key text in SSH format, defined by
+      [RFC4253](https://www.ietf.org/rfc/rfc4253.txt) section 6.6.
     name: Output only. The canonical resource name.
   """
 

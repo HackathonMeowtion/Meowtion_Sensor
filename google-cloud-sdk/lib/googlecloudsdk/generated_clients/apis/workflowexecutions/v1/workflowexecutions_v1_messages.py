@@ -8,6 +8,7 @@ from __future__ import absolute_import
 
 from apitools.base.protorpclite import messages as _messages
 from apitools.base.py import encoding
+from apitools.base.py import extra_types
 
 
 package = 'workflowexecutions'
@@ -35,6 +36,19 @@ class Callback(_messages.Message):
 
 class CancelExecutionRequest(_messages.Message):
   r"""Request for the CancelExecution method."""
+
+
+class DeleteExecutionHistoryRequest(_messages.Message):
+  r"""Request for the DeleteExecutionHistory method."""
+
+
+class Empty(_messages.Message):
+  r"""A generic empty message that you can re-use to avoid defining duplicated
+  empty messages in your APIs. A typical example is to use it as the request
+  or the response type of an API method. For instance: service Foo { rpc
+  Bar(google.protobuf.Empty) returns (google.protobuf.Empty); }
+  """
+
 
 
 class Error(_messages.Message):
@@ -69,6 +83,11 @@ class Execution(_messages.Message):
   Enums:
     CallLogLevelValueValuesEnum: The call logging level associated to this
       execution.
+    ExecutionHistoryLevelValueValuesEnum: Optional. Describes the execution
+      history level to apply to this execution. If not specified, the
+      execution history level is determined by its workflow's execution
+      history level. If the levels are different, the executionHistoryLevel
+      overrides the workflow's execution history level for this execution.
     StateValueValuesEnum: Output only. Current state of the execution.
 
   Messages:
@@ -96,6 +115,11 @@ class Execution(_messages.Message):
     error: Output only. The error which caused the execution to finish
       prematurely. The value is only present if the execution's state is
       `FAILED` or `CANCELLED`.
+    executionHistoryLevel: Optional. Describes the execution history level to
+      apply to this execution. If not specified, the execution history level
+      is determined by its workflow's execution history level. If the levels
+      are different, the executionHistoryLevel overrides the workflow's
+      execution history level for this execution.
     labels: Labels associated with this execution. Labels can contain at most
       64 entries. Keys and values can be no longer than 63 characters and can
       only contain lowercase letters, numeric characters, underscores, and
@@ -106,7 +130,8 @@ class Execution(_messages.Message):
       roject}/locations/{location}/workflows/{workflow}/executions/{execution}
     result: Output only. Output of the execution represented as a JSON string.
       The value can only be present if the execution's state is `SUCCEEDED`.
-    startTime: Output only. Marks the beginning of execution.
+    startTime: Output only. Marks the beginning of execution. Note that this
+      will be the same as `createTime` for executions that start immediately.
     state: Output only. Current state of the execution.
     stateError: Output only. Error regarding the state of the Execution
       resource. For example, this field will have error details if the
@@ -132,6 +157,24 @@ class Execution(_messages.Message):
     LOG_ALL_CALLS = 1
     LOG_ERRORS_ONLY = 2
     LOG_NONE = 3
+
+  class ExecutionHistoryLevelValueValuesEnum(_messages.Enum):
+    r"""Optional. Describes the execution history level to apply to this
+    execution. If not specified, the execution history level is determined by
+    its workflow's execution history level. If the levels are different, the
+    executionHistoryLevel overrides the workflow's execution history level for
+    this execution.
+
+    Values:
+      EXECUTION_HISTORY_LEVEL_UNSPECIFIED: The default/unset value.
+      EXECUTION_HISTORY_BASIC: Enable execution history basic feature for this
+        execution.
+      EXECUTION_HISTORY_DETAILED: Enable execution history detailed feature
+        for this execution.
+    """
+    EXECUTION_HISTORY_LEVEL_UNSPECIFIED = 0
+    EXECUTION_HISTORY_BASIC = 1
+    EXECUTION_HISTORY_DETAILED = 2
 
   class StateValueValuesEnum(_messages.Enum):
     r"""Output only. Current state of the execution.
@@ -190,14 +233,15 @@ class Execution(_messages.Message):
   duration = _messages.StringField(5)
   endTime = _messages.StringField(6)
   error = _messages.MessageField('Error', 7)
-  labels = _messages.MessageField('LabelsValue', 8)
-  name = _messages.StringField(9)
-  result = _messages.StringField(10)
-  startTime = _messages.StringField(11)
-  state = _messages.EnumField('StateValueValuesEnum', 12)
-  stateError = _messages.MessageField('StateError', 13)
-  status = _messages.MessageField('Status', 14)
-  workflowRevisionId = _messages.StringField(15)
+  executionHistoryLevel = _messages.EnumField('ExecutionHistoryLevelValueValuesEnum', 8)
+  labels = _messages.MessageField('LabelsValue', 9)
+  name = _messages.StringField(10)
+  result = _messages.StringField(11)
+  startTime = _messages.StringField(12)
+  state = _messages.EnumField('StateValueValuesEnum', 13)
+  stateError = _messages.MessageField('StateError', 14)
+  status = _messages.MessageField('Status', 15)
+  workflowRevisionId = _messages.StringField(16)
 
 
 class ExportDataResponse(_messages.Message):
@@ -525,16 +569,17 @@ class StepEntry(_messages.Message):
       counter. Step entry names have the format: `projects/{project}/locations
       /{location}/workflows/{workflow}/executions/{execution}/stepEntries/{ste
       p_entry}`.
-    navigationInfo: Output only. The NavigationInfo associated to this step.
+    navigationInfo: Output only. The NavigationInfo associated with this step.
     routine: Output only. The name of the routine this step entry belongs to.
       A routine name is the subworkflow name defined in the YAML source code.
       The top level routine name is `main`.
     state: Output only. The state of the step entry.
     step: Output only. The name of the step this step entry belongs to.
-    stepEntryMetadata: Output only. The StepEntryMetadata associated to this
+    stepEntryMetadata: Output only. The StepEntryMetadata associated with this
       step.
     stepType: Output only. The type of the step this step entry belongs to.
     updateTime: Output only. The most recently updated time of the step entry.
+    variableData: Output only. The VariableData associated with this step.
   """
 
   class StateValueValuesEnum(_messages.Enum):
@@ -545,11 +590,13 @@ class StepEntry(_messages.Message):
       STATE_IN_PROGRESS: The step entry is in progress.
       STATE_SUCCEEDED: The step entry finished successfully.
       STATE_FAILED: The step entry failed with an error.
+      STATE_CANCELLED: The step entry is cancelled.
     """
     STATE_UNSPECIFIED = 0
     STATE_IN_PROGRESS = 1
     STATE_SUCCEEDED = 2
     STATE_FAILED = 3
+    STATE_CANCELLED = 4
 
   class StepTypeValueValuesEnum(_messages.Enum):
     r"""Output only. The type of the step this step entry belongs to.
@@ -613,6 +660,7 @@ class StepEntry(_messages.Message):
   stepEntryMetadata = _messages.MessageField('StepEntryMetadata', 9)
   stepType = _messages.EnumField('StepTypeValueValuesEnum', 10)
   updateTime = _messages.StringField(11)
+  variableData = _messages.MessageField('VariableData', 12)
 
 
 class StepEntryMetadata(_messages.Message):
@@ -622,9 +670,12 @@ class StepEntryMetadata(_messages.Message):
     ProgressTypeValueValuesEnum: Progress type of this step entry.
 
   Fields:
+    expectedIteration: Expected iteration represents the expected number of
+      iterations in the step's progress.
     progressNumber: Progress number represents the current state of the
       current progress. eg: A step entry represents the 4th iteration in a
-      progress of PROGRESS_TYPE_FOR.
+      progress of PROGRESS_TYPE_FOR. Note: This field is only populated when
+      an iteration exists and the starting value is 1.
     progressType: Progress type of this step entry.
     threadId: Child thread id that this step entry belongs to.
   """
@@ -651,9 +702,10 @@ class StepEntryMetadata(_messages.Message):
     PROGRESS_TYPE_PARALLEL_FOR = 4
     PROGRESS_TYPE_PARALLEL_BRANCH = 5
 
-  progressNumber = _messages.IntegerField(1)
-  progressType = _messages.EnumField('ProgressTypeValueValuesEnum', 2)
-  threadId = _messages.StringField(3)
+  expectedIteration = _messages.IntegerField(1)
+  progressNumber = _messages.IntegerField(2)
+  progressType = _messages.EnumField('ProgressTypeValueValuesEnum', 3)
+  threadId = _messages.StringField(4)
 
 
 class TriggerPubsubExecutionRequest(_messages.Message):
@@ -676,6 +728,43 @@ class TriggerPubsubExecutionRequest(_messages.Message):
   deliveryAttempt = _messages.IntegerField(2, variant=_messages.Variant.INT32)
   message = _messages.MessageField('PubsubMessage', 3)
   subscription = _messages.StringField(4)
+
+
+class VariableData(_messages.Message):
+  r"""VariableData contains the variable data for this step.
+
+  Messages:
+    VariablesValue: Variables that are associated with this step.
+
+  Fields:
+    variables: Variables that are associated with this step.
+  """
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class VariablesValue(_messages.Message):
+    r"""Variables that are associated with this step.
+
+    Messages:
+      AdditionalProperty: An additional property for a VariablesValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type VariablesValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a VariablesValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A extra_types.JsonValue attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.MessageField('extra_types.JsonValue', 2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  variables = _messages.MessageField('VariablesValue', 1)
 
 
 class WorkflowexecutionsProjectsLocationsWorkflowsExecutionsCallbacksListRequest(_messages.Message):
@@ -729,6 +818,22 @@ class WorkflowexecutionsProjectsLocationsWorkflowsExecutionsCreateRequest(_messa
 
   execution = _messages.MessageField('Execution', 1)
   parent = _messages.StringField(2, required=True)
+
+
+class WorkflowexecutionsProjectsLocationsWorkflowsExecutionsDeleteExecutionHistoryRequest(_messages.Message):
+  r"""A WorkflowexecutionsProjectsLocationsWorkflowsExecutionsDeleteExecutionH
+  istoryRequest object.
+
+  Fields:
+    deleteExecutionHistoryRequest: A DeleteExecutionHistoryRequest resource to
+      be passed as the request body.
+    name: Required. Name of the execution for which step entries should be
+      deleted. Format: projects/{project}/locations/{location}/workflows/{work
+      flow}/executions/{execution}
+  """
+
+  deleteExecutionHistoryRequest = _messages.MessageField('DeleteExecutionHistoryRequest', 1)
+  name = _messages.StringField(2, required=True)
 
 
 class WorkflowexecutionsProjectsLocationsWorkflowsExecutionsExportDataRequest(_messages.Message):
@@ -792,9 +897,11 @@ class WorkflowexecutionsProjectsLocationsWorkflowsExecutionsListRequest(_message
     filter: Optional. Filters applied to the `[Executions.ListExecutions]`
       results. The following fields are supported for filtering:
       `executionId`, `state`, `createTime`, `startTime`, `endTime`,
-      `duration`, `workflowRevisionId`, `stepName`, and `label`. For details,
-      see AIP-160. For example, if you are using the Google APIs Explorer:
-      `state="SUCCEEDED"` or `startTime>"2023-08-01" AND state="FAILED"`
+      `duration`, `workflowRevisionId`, `stepName`, `label`, and
+      `disableConcurrencyQuotaOverflowBuffering`. For details, see AIP-160.
+      For more information, see Filter executions. For example, if you are
+      using the Google APIs Explorer: `state="SUCCEEDED"` or
+      `startTime>"2023-08-01" AND state="FAILED"`
     orderBy: Optional. Comma-separated list of fields that specify the
       ordering applied to the `[Executions.ListExecutions]` results. By
       default the ordering is based on descending `createTime`. The following
@@ -846,13 +953,32 @@ class WorkflowexecutionsProjectsLocationsWorkflowsExecutionsStepEntriesGetReques
   WorkflowexecutionsProjectsLocationsWorkflowsExecutionsStepEntriesGetRequest
   object.
 
+  Enums:
+    ViewValueValuesEnum: Deprecated field.
+
   Fields:
     name: Required. The name of the step entry to retrieve. Format: projects/{
       project}/locations/{location}/workflows/{workflow}/executions/{execution
       }/stepEntries/{step_entry}
+    view: Deprecated field.
   """
 
+  class ViewValueValuesEnum(_messages.Enum):
+    r"""Deprecated field.
+
+    Values:
+      EXECUTION_ENTRY_VIEW_UNSPECIFIED: The default/unset value.
+      EXECUTION_ENTRY_VIEW_BASIC: Include basic information in the step
+        entries. All fields in StepEntry are returned except for
+        variable_data.
+      EXECUTION_ENTRY_VIEW_DETAILED: Include all data.
+    """
+    EXECUTION_ENTRY_VIEW_UNSPECIFIED = 0
+    EXECUTION_ENTRY_VIEW_BASIC = 1
+    EXECUTION_ENTRY_VIEW_DETAILED = 2
+
   name = _messages.StringField(1, required=True)
+  view = _messages.EnumField('ViewValueValuesEnum', 2)
 
 
 class WorkflowexecutionsProjectsLocationsWorkflowsExecutionsStepEntriesListRequest(_messages.Message):
@@ -860,13 +986,16 @@ class WorkflowexecutionsProjectsLocationsWorkflowsExecutionsStepEntriesListReque
   WorkflowexecutionsProjectsLocationsWorkflowsExecutionsStepEntriesListRequest
   object.
 
+  Enums:
+    ViewValueValuesEnum: Deprecated field.
+
   Fields:
     filter: Optional. Filters applied to the `[StepEntries.ListStepEntries]`
       results. The following fields are supported for filtering: `entryId`,
-      `createTime`, `updateTime`, `routine`, `step`, `stepType`, `state`. For
-      details, see AIP-160. For example, if you are using the Google APIs
-      Explorer: `state="SUCCEEDED"` or `createTime>"2023-08-01" AND
-      state="FAILED"`
+      `createTime`, `updateTime`, `routine`, `step`, `stepType`, `parent`,
+      `state`. For details, see AIP-160. For example, if you are using the
+      Google APIs Explorer: `state="SUCCEEDED"` or `createTime>"2023-08-01"
+      AND state="FAILED"`
     orderBy: Optional. Comma-separated list of fields that specify the
       ordering applied to the `[StepEntries.ListStepEntries]` results. By
       default the ordering is based on ascending `entryId`. The following
@@ -881,11 +1010,26 @@ class WorkflowexecutionsProjectsLocationsWorkflowsExecutionsStepEntriesListReque
       match the call that provided the page token.
     parent: Required. Name of the workflow execution to list entries for.
       Format: projects/{project}/locations/{location}/workflows/{workflow}/exe
-      cutions/{execution}/stepEntries/
+      cutions/{execution}
     skip: Optional. The number of step entries to skip. It can be used with or
       without a pageToken. If used with a pageToken, then it indicates the
       number of step entries to skip starting from the requested page.
+    view: Deprecated field.
   """
+
+  class ViewValueValuesEnum(_messages.Enum):
+    r"""Deprecated field.
+
+    Values:
+      EXECUTION_ENTRY_VIEW_UNSPECIFIED: The default/unset value.
+      EXECUTION_ENTRY_VIEW_BASIC: Include basic information in the step
+        entries. All fields in StepEntry are returned except for
+        variable_data.
+      EXECUTION_ENTRY_VIEW_DETAILED: Include all data.
+    """
+    EXECUTION_ENTRY_VIEW_UNSPECIFIED = 0
+    EXECUTION_ENTRY_VIEW_BASIC = 1
+    EXECUTION_ENTRY_VIEW_DETAILED = 2
 
   filter = _messages.StringField(1)
   orderBy = _messages.StringField(2)
@@ -893,6 +1037,7 @@ class WorkflowexecutionsProjectsLocationsWorkflowsExecutionsStepEntriesListReque
   pageToken = _messages.StringField(4)
   parent = _messages.StringField(5, required=True)
   skip = _messages.IntegerField(6, variant=_messages.Variant.INT32)
+  view = _messages.EnumField('ViewValueValuesEnum', 7)
 
 
 class WorkflowexecutionsProjectsLocationsWorkflowsTriggerPubsubExecutionRequest(_messages.Message):

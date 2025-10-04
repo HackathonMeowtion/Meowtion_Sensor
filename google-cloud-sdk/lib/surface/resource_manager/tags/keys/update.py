@@ -25,6 +25,7 @@ from googlecloudsdk.command_lib.resource_manager import tag_arguments as argumen
 from googlecloudsdk.command_lib.resource_manager import tag_utils
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA,
                     base.ReleaseTrack.GA)
 class Update(base.Command):
@@ -39,20 +40,22 @@ class Update(base.Command):
           """
           To update a TagKey with id ``123'', run:
 
-            $ {command} tagKeys/123 --description=foobar
+            $ {command} tagKeys/123 --description=foobar --allowed-values-regex=.*
 
           To update a TagKey named ``env'' under organization ``456'',
           run:
 
-            $ {command} 456/env --description=foobar
+            $ {command} 456/env --description=foobar --allowed-values-regex=.*
           """
   }
 
-  @staticmethod
-  def Args(parser):
+  @classmethod
+  def Args(cls, parser):
     arguments.AddResourceNameArgToParser(parser)
     arguments.AddAsyncArgToParser(parser)
     arguments.AddDescriptionArgToParser(parser)
+    if cls.ReleaseTrack() in [base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA]:
+      arguments.AddAllowedValuesRegexArgToParser(parser)
 
   def Run(self, args):
     service = tags.TagKeysService()
@@ -66,10 +69,19 @@ class Update(base.Command):
           args.RESOURCE_NAME, tag_utils.TAG_KEYS
       )
 
-    tag_key.description = args.description
+    update_masks = []
+    if 'allowed_values_regex' in args and args.IsSpecified(
+        'allowed_values_regex'
+    ):
+      tag_key.allowedValuesRegex = args.allowed_values_regex
+      update_masks.append('allowed_values_regex')
+
+    if args.IsSpecified('description'):
+      tag_key.description = args.description
+      update_masks.append('description')
 
     update_request = messages.CloudresourcemanagerTagKeysPatchRequest(
-        name=tag_key.name, tagKey=tag_key, updateMask='description')
+        name=tag_key.name, tagKey=tag_key, updateMask=','.join(update_masks))
     op = service.Patch(update_request)
 
     if args.async_:

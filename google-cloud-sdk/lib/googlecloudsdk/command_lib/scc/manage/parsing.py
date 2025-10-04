@@ -60,6 +60,30 @@ def _GetParentResourceFromArgs(args):
     )
 
 
+def GetServiceNameFromArgs(args) -> str:
+  """Returns the specified service name from args if it exists.
+
+  Otherwise, an exception is raised detailing the parsing error along with the
+  expectation.
+
+  Args:
+    args: The argument input as the gcloud command.
+
+  Raises:
+    InvalidServiceNameError: the specified service name was invalid.
+  """
+
+  parent = GetParentResourceNameFromArgs(args)
+
+  maybe_service_name_or_abbr = args.service_name.lower()
+  service = constants.SERVICE_INVENTORY.get(maybe_service_name_or_abbr)
+
+  if service:
+    return f'{parent}/{constants.SERVICE_RESOURCE_PLURAL_NAME}/{service.name}'
+  else:
+    raise errors.InvalidServiceNameError(args.service_name)
+
+
 def GetModuleIdFromArgs(args) -> str:
   """Returns the module id from args."""
   if not args.module_id_or_name:
@@ -259,4 +283,143 @@ def CreateUpdateMaskFromArgs(args):
         'Error parsing Update Mask. Either a custom configuration or an'
         ' enablement state (or both) must be provided to update the custom'
         ' module.'
+    )
+
+
+def GetModuleConfigValueFromArgs(file: str):
+  """Process the module config file for the service."""
+  if file is not None:
+    try:
+      config = yaml.load(file)
+      return encoding.DictToMessage(
+          config, messages.SecurityCenterService.ModulesValue
+      )
+    except (yaml.YAMLParseError, AttributeError) as ype:
+      raise errors.InvalidConfigValueFileError(
+          f'Error parsing config value file [{ype}]'
+      )
+  else:
+    return None
+
+
+def GetServiceEnablementStateFromArgs(enablement_state: str):
+  """Parse the service enablement state."""
+  state_enum = (
+      messages.SecurityCenterService.IntendedEnablementStateValueValuesEnum
+  )
+
+  if enablement_state is None:
+    return None
+
+  state = enablement_state.upper()
+  if state == 'ENABLED':
+    return state_enum.ENABLED
+  elif state == 'DISABLED':
+    return state_enum.DISABLED
+  elif state == 'INHERITED':
+    return state_enum.INHERITED
+  else:
+    raise errors.InvalidEnablementStateError(
+        f'Error parsing enablement state. "{state}" is not a valid enablement'
+        ' state. Please provide one of ENABLED, DISABLED, or INHERITED.'
+    )
+
+
+def CreateUpdateMaskFromArgsForService(args):
+  """Create an update mask with the args given for the given service."""
+  if args.enablement_state is not None and args.module_config_file is not None:
+    return 'intended_enablement_state,modules'
+  elif args.enablement_state is not None:
+    return 'intended_enablement_state'
+  elif args.module_config_file is not None:
+    return 'modules'
+  else:
+    raise errors.InvalidUpdateMaskInputError(
+        'Error parsing Update Mask. Either a module configuration or an'
+        ' enablement state (or both) must be provided to update the service.'
+    )
+
+
+def GetModuleListFromArgs(args) -> {str}:
+  """Returns a list of module names from args."""
+
+  if not args.filter_modules:
+    return []
+
+  modules = args.filter_modules.strip('[]')
+  modules_list = modules.split(',')
+  modules_set = {module.strip() for module in modules_list}
+
+  return modules_set
+
+
+def GetModuleNamePathFromArgs(
+    args, module_type: constants.CustomModuleType
+) -> str:
+  """Returns the specified module name path from args if it exists.
+
+  Args:
+    args: command line args.
+    module_type: the module type (see
+      googlecloudsdk.command_lib.scc.manage.constants)
+
+  Returns:
+    The relative path. e.g.
+    'organizations/1234/locations/global/{module_type}',
+    'projects/foo/locations/global/{module_type}'.
+  """
+  if args.parent:
+    return (
+        f'{_ParseParentFlag(args.parent).RelativeName()}/locations/global/'
+        f'{module_type}'
+    )
+
+  return (
+      f'{_GetParentResourceFromArg(args).RelativeName()}/locations/global/'
+      f'{module_type}'
+  )
+
+
+def _ParseParentFlag(parent: str) -> str:
+  """Extracts parent name from {organizations|projects}/<id>.
+
+  Args:
+    parent: The parent string to parse.
+
+  Returns:
+    The relative path of the parent.
+
+  Raises:
+    InvalidParentFlagError: The provided parent string is invalid.
+  """
+
+  if parent.startswith('organizations/'):
+    return resources.REGISTRY.Parse(
+        parent, collection='cloudresourcemanager.organizations'
+    )
+  if parent.startswith('projects/'):
+    return resources.REGISTRY.Parse(
+        parent,
+        collection='cloudresourcemanager.projects',
+    )
+
+  raise errors.InvalidParentFlagError(parent)
+
+
+def _GetParentResourceFromArg(args):
+  """Returns the parent resource from the given args.
+
+  Args:
+    args: command line args.
+
+  Returns:
+    The parent resource.
+  """
+  if args.organization:
+    return resources.REGISTRY.Parse(
+        args.organization, collection='cloudresourcemanager.organizations'
+    )
+  return resources.REGISTRY.Parse(
+      args.project or properties.VALUES.core.project.Get(required=True),
+      collection='cloudresourcemanager.projects',
     )

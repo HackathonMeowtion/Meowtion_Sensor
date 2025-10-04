@@ -25,6 +25,7 @@ from googlecloudsdk.api_lib.storage import errors as api_errors
 from googlecloudsdk.command_lib.storage import errors as command_errors
 from googlecloudsdk.command_lib.storage import manifest_util
 from googlecloudsdk.command_lib.storage import storage_url
+from googlecloudsdk.command_lib.storage.resources import resource_reference
 from googlecloudsdk.command_lib.storage.resources import resource_util
 from googlecloudsdk.command_lib.storage.tasks import task
 from googlecloudsdk.core import exceptions
@@ -176,7 +177,7 @@ def check_for_cloud_clobber(user_request_args, api_client,
   try:
     api_client.get_object_metadata(
         destination_resource.storage_url.bucket_name,
-        destination_resource.storage_url.object_name,
+        destination_resource.storage_url.resource_name,
         fields_scope=cloud_api.FieldsScope.SHORT)
   except api_errors.NotFoundError:
     return False
@@ -194,6 +195,8 @@ def get_generation_match_value(request_config):
 
 def raise_if_mv_early_deletion_fee_applies(object_resource):
   """Raises error if Google Cloud Storage object will incur an extra charge."""
+  if isinstance(object_resource, resource_reference.FolderResource):
+    return
   if not (properties.VALUES.storage.check_mv_early_deletion_fee.GetBool() and
           object_resource.storage_url.scheme is storage_url.ProviderPrefix.GCS
           and object_resource.creation_time and

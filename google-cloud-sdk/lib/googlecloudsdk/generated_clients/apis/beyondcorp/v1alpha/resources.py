@@ -49,30 +49,6 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
-  ORGANIZATIONS_LOCATIONS_GLOBAL_PARTNERTENANTS_BROWSERDLPRULES = (
-      'organizations.locations.global.partnerTenants.browserDlpRules',
-      '{+name}',
-      {
-          '':
-              'organizations/{organizationsId}/locations/global/'
-              'partnerTenants/{partnerTenantsId}/browserDlpRules/'
-              '{browserDlpRulesId}',
-      },
-      ['name'],
-      True
-  )
-  ORGANIZATIONS_LOCATIONS_GLOBAL_PARTNERTENANTS_PROXYCONFIGS = (
-      'organizations.locations.global.partnerTenants.proxyConfigs',
-      '{+name}',
-      {
-          '':
-              'organizations/{organizationsId}/locations/global/'
-              'partnerTenants/{partnerTenantsId}/proxyConfigs/'
-              '{proxyConfigsId}',
-      },
-      ['name'],
-      True
-  )
   ORGANIZATIONS_LOCATIONS_INSIGHTS = (
       'organizations.locations.insights',
       '{+name}',
@@ -207,6 +183,18 @@ class Collections(enum.Enum):
           '':
               'projects/{projectsId}/locations/{locationsId}/'
               'securityGateways/{securityGatewaysId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_SECURITYGATEWAYS_APPLICATIONS = (
+      'projects.locations.securityGateways.applications',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'securityGateways/{securityGatewaysId}/applications/'
+              '{applicationsId}',
       },
       ['name'],
       True

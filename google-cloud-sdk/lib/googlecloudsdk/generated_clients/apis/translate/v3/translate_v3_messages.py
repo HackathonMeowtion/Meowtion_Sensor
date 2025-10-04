@@ -84,27 +84,37 @@ class AdaptiveMtTranslateRequest(_messages.Message):
   r"""The request for sending an AdaptiveMt translation query.
 
   Fields:
-    content: Required. The content of the input in string format. For now only
-      one sentence per request is supported.
+    content: Required. The content of the input in string format.
     dataset: Required. The resource name for the dataset to use for adaptive
       MT. `projects/{project}/locations/{location-
       id}/adaptiveMtDatasets/{dataset}`
+    glossaryConfig: Optional. Glossary to be applied. The glossary must be
+      within the same region (have the same location-id) as the model,
+      otherwise an INVALID_ARGUMENT (400) error is returned.
+    referenceSentenceConfig: Configuration for caller provided reference
+      sentences.
   """
 
   content = _messages.StringField(1, repeated=True)
   dataset = _messages.StringField(2)
+  glossaryConfig = _messages.MessageField('GlossaryConfig', 3)
+  referenceSentenceConfig = _messages.MessageField('ReferenceSentenceConfig', 4)
 
 
 class AdaptiveMtTranslateResponse(_messages.Message):
   r"""An AdaptiveMtTranslate response.
 
   Fields:
+    glossaryTranslations: Text translation response if a glossary is provided
+      in the request. This could be the same as 'translation' above if no
+      terms apply.
     languageCode: Output only. The translation's language code.
     translations: Output only. The translation.
   """
 
-  languageCode = _messages.StringField(1)
-  translations = _messages.MessageField('AdaptiveMtTranslation', 2, repeated=True)
+  glossaryTranslations = _messages.MessageField('AdaptiveMtTranslation', 1, repeated=True)
+  languageCode = _messages.StringField(2)
+  translations = _messages.MessageField('AdaptiveMtTranslation', 3, repeated=True)
 
 
 class AdaptiveMtTranslation(_messages.Message):
@@ -238,12 +248,16 @@ class BatchTranslateDocumentRequest(_messages.Message):
     outputConfig: Required. Output configuration. If 2 input configs match to
       the same file (that is, same input path), we don't generate output for
       duplicate inputs.
+    pdfNativeOnly: Optional. If true, only native pdf pages will be
+      translated.
     sourceLanguageCode: Required. The ISO-639 language code of the input
       document if known, for example, "en-US" or "sr-Latn". Supported language
       codes are listed in [Language
       Support](https://cloud.google.com/translate/docs/languages).
     targetLanguageCodes: Required. The ISO-639 language code to use for
       translation of the input document. Specify up to 10 language codes here.
+      Supported language codes are listed in [Language
+      Support](https://cloud.google.com/translate/docs/languages).
   """
 
   @encoding.MapUnrecognizedFields('additionalProperties')
@@ -341,8 +355,9 @@ class BatchTranslateDocumentRequest(_messages.Message):
   inputConfigs = _messages.MessageField('BatchDocumentInputConfig', 6, repeated=True)
   models = _messages.MessageField('ModelsValue', 7)
   outputConfig = _messages.MessageField('BatchDocumentOutputConfig', 8)
-  sourceLanguageCode = _messages.StringField(9)
-  targetLanguageCodes = _messages.StringField(10, repeated=True)
+  pdfNativeOnly = _messages.BooleanField(9)
+  sourceLanguageCode = _messages.StringField(10)
+  targetLanguageCodes = _messages.StringField(11, repeated=True)
 
 
 class BatchTranslateTextRequest(_messages.Message):
@@ -391,8 +406,12 @@ class BatchTranslateTextRequest(_messages.Message):
     outputConfig: Required. Output configuration. If 2 input configs match to
       the same file (that is, same input path), we don't generate output for
       duplicate inputs.
-    sourceLanguageCode: Required. Source language code.
+    sourceLanguageCode: Required. Source language code. Supported language
+      codes are listed in [Language
+      Support](https://cloud.google.com/translate/docs/languages).
     targetLanguageCodes: Required. Specify up to 10 language codes here.
+      Supported language codes are listed in [Language
+      Support](https://cloud.google.com/translate/docs/languages).
   """
 
   @encoding.MapUnrecognizedFields('additionalProperties')
@@ -746,7 +765,7 @@ class Example(_messages.Message):
   Fields:
     name: Output only. The resource name of the example, in form of
       `projects/{project-number-or-
-      id}/locations/{location_id}/datasets/{dataset_id}/examples/{example_id}'
+      id}/locations/{location_id}/datasets/{dataset_id}/examples/{example_id}`
     sourceText: Sentence in source language.
     targetText: Sentence in target language.
     usage: Output only. Usage of the sentence pair. Options are
@@ -859,13 +878,33 @@ class Glossary(_messages.Message):
   submitTime = _messages.StringField(8)
 
 
+class GlossaryConfig(_messages.Message):
+  r"""Configures which glossary is used for a specific target language and
+  defines options for applying that glossary.
+
+  Fields:
+    contextualTranslationEnabled: Optional. If set to true, the glossary will
+      be used for contextual translation.
+    glossary: Required. The `glossary` to be applied for this translation. The
+      format depends on the glossary: - User-provided custom glossary:
+      `projects/{project-number-or-id}/locations/{location-
+      id}/glossaries/{glossary-id}`
+    ignoreCase: Optional. Indicates match is case insensitive. The default
+      value is `false` if missing.
+  """
+
+  contextualTranslationEnabled = _messages.BooleanField(1)
+  glossary = _messages.StringField(2)
+  ignoreCase = _messages.BooleanField(3)
+
+
 class GlossaryEntry(_messages.Message):
   r"""Represents a single entry in a glossary.
 
   Fields:
     description: Describes the glossary entry.
-    name: Required. The resource name of the entry. Format:
-      "projects/*/locations/*/glossaries/*/glossaryEntries/*"
+    name: Identifier. The resource name of the entry. Format:
+      `projects/*/locations/*/glossaries/*/glossaryEntries/*`
     termsPair: Used for an unidirectional glossary.
     termsSet: Used for an equivalent term sets glossary.
   """
@@ -1259,7 +1298,7 @@ class Model(_messages.Message):
   Fields:
     createTime: Output only. Timestamp when the model resource was created,
       which is also when the training started.
-    dataset: The dataset from which the model is trained, in form of
+    dataset: Required. The dataset from which the model is trained, in form of
       `projects/{project-number-or-
       id}/locations/{location_id}/datasets/{dataset_id}`
     displayName: The name of the model to show in the interface. The name can
@@ -1460,6 +1499,45 @@ class OutputConfig(_messages.Message):
   gcsDestination = _messages.MessageField('GcsDestination', 1)
 
 
+class ReferenceSentenceConfig(_messages.Message):
+  r"""Message of caller-provided reference configuration.
+
+  Fields:
+    referenceSentencePairLists: Reference sentences pair lists. Each list will
+      be used as the references to translate the sentence under "content"
+      field at the corresponding index. Length of the list is required to be
+      equal to the length of "content" field.
+    sourceLanguageCode: Source language code.
+    targetLanguageCode: Target language code.
+  """
+
+  referenceSentencePairLists = _messages.MessageField('ReferenceSentencePairList', 1, repeated=True)
+  sourceLanguageCode = _messages.StringField(2)
+  targetLanguageCode = _messages.StringField(3)
+
+
+class ReferenceSentencePair(_messages.Message):
+  r"""A pair of sentences used as reference in source and target languages.
+
+  Fields:
+    sourceSentence: Source sentence in the sentence pair.
+    targetSentence: Target sentence in the sentence pair.
+  """
+
+  sourceSentence = _messages.StringField(1)
+  targetSentence = _messages.StringField(2)
+
+
+class ReferenceSentencePairList(_messages.Message):
+  r"""A list of reference sentence pairs.
+
+  Fields:
+    referenceSentencePairs: Reference sentence pairs.
+  """
+
+  referenceSentencePairs = _messages.MessageField('ReferenceSentencePair', 1, repeated=True)
+
+
 class Romanization(_messages.Message):
   r"""A single romanization response.
 
@@ -1482,10 +1560,12 @@ class RomanizeTextRequest(_messages.Message):
   Fields:
     contents: Required. The content of the input in string format.
     sourceLanguageCode: Optional. The ISO-639 language code of the input text
-      if known, for example, "hi" or "zh". If the source language isn't
-      specified, the API attempts to identify the source language
-      automatically and returns the source language for each content in the
-      response.
+      if known, for example, "hi" or "zh". Supported language codes are listed
+      in [Language
+      Support](https://cloud.google.com/translate/docs/languages#roman). If
+      the source language isn't specified, the API attempts to identify the
+      source language automatically and returns the source language for each
+      content in the response.
   """
 
   contents = _messages.StringField(1, repeated=True)
@@ -1699,14 +1779,16 @@ class TranslateDocumentRequest(_messages.Message):
       default Google model (NMT) will be used for translation.
     sourceLanguageCode: Optional. The ISO-639 language code of the input
       document if known, for example, "en-US" or "sr-Latn". Supported language
-      codes are listed in Language Support. If the source language isn't
-      specified, the API attempts to identify the source language
-      automatically and returns the source language within the response.
-      Source language must be specified if the request contains a glossary or
-      a custom model.
+      codes are listed in [Language
+      Support](https://cloud.google.com/translate/docs/languages). If the
+      source language isn't specified, the API attempts to identify the source
+      language automatically and returns the source language within the
+      response. Source language must be specified if the request contains a
+      glossary or a custom model.
     targetLanguageCode: Required. The ISO-639 language code to use for
       translation of the input document, set to one of the language codes
-      listed in Language Support.
+      listed in [Language
+      Support](https://cloud.google.com/translate/docs/languages).
   """
 
   @encoding.MapUnrecognizedFields('additionalProperties')
@@ -2338,8 +2420,8 @@ class TranslateProjectsLocationsGlossariesPatchRequest(_messages.Message):
     name: Required. The resource name of the glossary. Glossary names have the
       form `projects/{project-number-or-id}/locations/{location-
       id}/glossaries/{glossary-id}`.
-    updateMask: The list of fields to be updated. Currently only
-      `display_name` and 'input_config'
+    updateMask: The list of fields to be updated. Currently, only
+      `display_name` and `input_config` are supported.
   """
 
   glossary = _messages.MessageField('Glossary', 1)
@@ -2351,6 +2433,9 @@ class TranslateProjectsLocationsListRequest(_messages.Message):
   r"""A TranslateProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -2361,10 +2446,11 @@ class TranslateProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class TranslateProjectsLocationsModelsCreateRequest(_messages.Message):
@@ -2581,6 +2667,8 @@ class TranslateTextGlossaryConfig(_messages.Message):
   defines options for applying that glossary.
 
   Fields:
+    contextualTranslationEnabled: Optional. If set to true, the glossary will
+      be used for contextual translation.
     glossary: Required. The `glossary` to be applied for this translation. The
       format depends on the glossary: - User-provided custom glossary:
       `projects/{project-number-or-id}/locations/{location-
@@ -2589,8 +2677,9 @@ class TranslateTextGlossaryConfig(_messages.Message):
       value is `false` if missing.
   """
 
-  glossary = _messages.StringField(1)
-  ignoreCase = _messages.BooleanField(2)
+  contextualTranslationEnabled = _messages.BooleanField(1)
+  glossary = _messages.StringField(2)
+  ignoreCase = _messages.BooleanField(3)
 
 
 class TranslateTextRequest(_messages.Message):
@@ -2634,12 +2723,15 @@ class TranslateTextRequest(_messages.Message):
       default Google model (NMT) will be used
     sourceLanguageCode: Optional. The ISO-639 language code of the input text
       if known, for example, "en-US" or "sr-Latn". Supported language codes
-      are listed in Language Support. If the source language isn't specified,
-      the API attempts to identify the source language automatically and
-      returns the source language within the response.
+      are listed in [Language
+      Support](https://cloud.google.com/translate/docs/languages). If the
+      source language isn't specified, the API attempts to identify the source
+      language automatically and returns the source language within the
+      response.
     targetLanguageCode: Required. The ISO-639 language code to use for
       translation of the input text, set to one of the language codes listed
-      in Language Support.
+      in [Language
+      Support](https://cloud.google.com/translate/docs/languages).
     transliterationConfig: Optional. Transliteration to be applied.
   """
 

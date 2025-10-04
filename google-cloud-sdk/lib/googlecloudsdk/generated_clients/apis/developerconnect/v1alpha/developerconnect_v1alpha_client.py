@@ -39,10 +39,303 @@ class DeveloperconnectV1alpha(base_api.BaseApiClient):
         default_global_params=default_global_params,
         additional_http_headers=additional_http_headers,
         response_encoding=response_encoding)
+    self.projects_locations_accountConnectors_users = self.ProjectsLocationsAccountConnectorsUsersService(self)
+    self.projects_locations_accountConnectors = self.ProjectsLocationsAccountConnectorsService(self)
     self.projects_locations_connections_gitRepositoryLinks = self.ProjectsLocationsConnectionsGitRepositoryLinksService(self)
     self.projects_locations_connections = self.ProjectsLocationsConnectionsService(self)
+    self.projects_locations_insightsConfigs = self.ProjectsLocationsInsightsConfigsService(self)
     self.projects_locations = self.ProjectsLocationsService(self)
     self.projects = self.ProjectsService(self)
+
+  class ProjectsLocationsAccountConnectorsUsersService(base_api.BaseApiService):
+    """Service class for the projects_locations_accountConnectors_users resource."""
+
+    _NAME = 'projects_locations_accountConnectors_users'
+
+    def __init__(self, client):
+      super(DeveloperconnectV1alpha.ProjectsLocationsAccountConnectorsUsersService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a single User.
+
+      Args:
+        request: (DeveloperconnectProjectsLocationsAccountConnectorsUsersDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/accountConnectors/{accountConnectorsId}/users/{usersId}',
+        http_method='DELETE',
+        method_id='developerconnect.projects.locations.accountConnectors.users.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['etag', 'requestId', 'validateOnly'],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='DeveloperconnectProjectsLocationsAccountConnectorsUsersDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def DeleteSelf(self, request, global_params=None):
+      r"""Delete the User based on the user credentials.
+
+      Args:
+        request: (DeveloperconnectProjectsLocationsAccountConnectorsUsersDeleteSelfRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('DeleteSelf')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    DeleteSelf.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/accountConnectors/{accountConnectorsId}/users:deleteSelf',
+        http_method='DELETE',
+        method_id='developerconnect.projects.locations.accountConnectors.users.deleteSelf',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}/users:deleteSelf',
+        request_field='',
+        request_type_name='DeveloperconnectProjectsLocationsAccountConnectorsUsersDeleteSelfRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def FetchAccessToken(self, request, global_params=None):
+      r"""Fetches OAuth access token based on end user credentials.
+
+      Args:
+        request: (DeveloperconnectProjectsLocationsAccountConnectorsUsersFetchAccessTokenRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (FetchAccessTokenResponse) The response message.
+      """
+      config = self.GetMethodConfig('FetchAccessToken')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    FetchAccessToken.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/accountConnectors/{accountConnectorsId}/users:fetchAccessToken',
+        http_method='POST',
+        method_id='developerconnect.projects.locations.accountConnectors.users.fetchAccessToken',
+        ordered_params=['accountConnector'],
+        path_params=['accountConnector'],
+        query_params=[],
+        relative_path='v1alpha/{+accountConnector}/users:fetchAccessToken',
+        request_field='fetchAccessTokenRequest',
+        request_type_name='DeveloperconnectProjectsLocationsAccountConnectorsUsersFetchAccessTokenRequest',
+        response_type_name='FetchAccessTokenResponse',
+        supports_download=False,
+    )
+
+    def FetchSelf(self, request, global_params=None):
+      r"""Fetch the User based on the user credentials.
+
+      Args:
+        request: (DeveloperconnectProjectsLocationsAccountConnectorsUsersFetchSelfRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (User) The response message.
+      """
+      config = self.GetMethodConfig('FetchSelf')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    FetchSelf.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/accountConnectors/{accountConnectorsId}/users:fetchSelf',
+        http_method='GET',
+        method_id='developerconnect.projects.locations.accountConnectors.users.fetchSelf',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}/users:fetchSelf',
+        request_field='',
+        request_type_name='DeveloperconnectProjectsLocationsAccountConnectorsUsersFetchSelfRequest',
+        response_type_name='User',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists Users in a given project, location, and account_connector.
+
+      Args:
+        request: (DeveloperconnectProjectsLocationsAccountConnectorsUsersListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListUsersResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/accountConnectors/{accountConnectorsId}/users',
+        http_method='GET',
+        method_id='developerconnect.projects.locations.accountConnectors.users.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha/{+parent}/users',
+        request_field='',
+        request_type_name='DeveloperconnectProjectsLocationsAccountConnectorsUsersListRequest',
+        response_type_name='ListUsersResponse',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsAccountConnectorsService(base_api.BaseApiService):
+    """Service class for the projects_locations_accountConnectors resource."""
+
+    _NAME = 'projects_locations_accountConnectors'
+
+    def __init__(self, client):
+      super(DeveloperconnectV1alpha.ProjectsLocationsAccountConnectorsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new AccountConnector in a given project and location.
+
+      Args:
+        request: (DeveloperconnectProjectsLocationsAccountConnectorsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/accountConnectors',
+        http_method='POST',
+        method_id='developerconnect.projects.locations.accountConnectors.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['accountConnectorId', 'requestId', 'validateOnly'],
+        relative_path='v1alpha/{+parent}/accountConnectors',
+        request_field='accountConnector',
+        request_type_name='DeveloperconnectProjectsLocationsAccountConnectorsCreateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a single AccountConnector.
+
+      Args:
+        request: (DeveloperconnectProjectsLocationsAccountConnectorsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/accountConnectors/{accountConnectorsId}',
+        http_method='DELETE',
+        method_id='developerconnect.projects.locations.accountConnectors.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['etag', 'force', 'requestId', 'validateOnly'],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='DeveloperconnectProjectsLocationsAccountConnectorsDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets details of a single AccountConnector.
+
+      Args:
+        request: (DeveloperconnectProjectsLocationsAccountConnectorsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (AccountConnector) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/accountConnectors/{accountConnectorsId}',
+        http_method='GET',
+        method_id='developerconnect.projects.locations.accountConnectors.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='DeveloperconnectProjectsLocationsAccountConnectorsGetRequest',
+        response_type_name='AccountConnector',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists AccountConnectors in a given project and location.
+
+      Args:
+        request: (DeveloperconnectProjectsLocationsAccountConnectorsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListAccountConnectorsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/accountConnectors',
+        http_method='GET',
+        method_id='developerconnect.projects.locations.accountConnectors.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha/{+parent}/accountConnectors',
+        request_field='',
+        request_type_name='DeveloperconnectProjectsLocationsAccountConnectorsListRequest',
+        response_type_name='ListAccountConnectorsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates the parameters of a single AccountConnector.
+
+      Args:
+        request: (DeveloperconnectProjectsLocationsAccountConnectorsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/accountConnectors/{accountConnectorsId}',
+        http_method='PATCH',
+        method_id='developerconnect.projects.locations.accountConnectors.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['allowMissing', 'requestId', 'updateMask', 'validateOnly'],
+        relative_path='v1alpha/{+name}',
+        request_field='accountConnector',
+        request_type_name='DeveloperconnectProjectsLocationsAccountConnectorsPatchRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
 
   class ProjectsLocationsConnectionsGitRepositoryLinksService(base_api.BaseApiService):
     """Service class for the projects_locations_connections_gitRepositoryLinks resource."""
@@ -243,6 +536,114 @@ class DeveloperconnectV1alpha(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def ProcessBitbucketCloudWebhook(self, request, global_params=None):
+      r"""ProcessBitbucketCloudWebhook is called by the external Bitbucket Cloud instances for notifying events.
+
+      Args:
+        request: (DeveloperconnectProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketCloudWebhookRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Empty) The response message.
+      """
+      config = self.GetMethodConfig('ProcessBitbucketCloudWebhook')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ProcessBitbucketCloudWebhook.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/connections/{connectionsId}/gitRepositoryLinks/{gitRepositoryLinksId}:processBitbucketCloudWebhook',
+        http_method='POST',
+        method_id='developerconnect.projects.locations.connections.gitRepositoryLinks.processBitbucketCloudWebhook',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}:processBitbucketCloudWebhook',
+        request_field='processBitbucketCloudWebhookRequest',
+        request_type_name='DeveloperconnectProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketCloudWebhookRequest',
+        response_type_name='Empty',
+        supports_download=False,
+    )
+
+    def ProcessBitbucketDataCenterWebhook(self, request, global_params=None):
+      r"""ProcessBitbucketDataCenterWebhook is called by the external Bitbucket Data Center instances for notifying events.
+
+      Args:
+        request: (DeveloperconnectProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketDataCenterWebhookRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Empty) The response message.
+      """
+      config = self.GetMethodConfig('ProcessBitbucketDataCenterWebhook')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ProcessBitbucketDataCenterWebhook.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/connections/{connectionsId}/gitRepositoryLinks/{gitRepositoryLinksId}:processBitbucketDataCenterWebhook',
+        http_method='POST',
+        method_id='developerconnect.projects.locations.connections.gitRepositoryLinks.processBitbucketDataCenterWebhook',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}:processBitbucketDataCenterWebhook',
+        request_field='processBitbucketDataCenterWebhookRequest',
+        request_type_name='DeveloperconnectProjectsLocationsConnectionsGitRepositoryLinksProcessBitbucketDataCenterWebhookRequest',
+        response_type_name='Empty',
+        supports_download=False,
+    )
+
+    def ProcessGitLabEnterpriseWebhook(self, request, global_params=None):
+      r"""ProcessGitLabEnterpriseWebhook is called by the external GitLab Enterprise instances for notifying events.
+
+      Args:
+        request: (DeveloperconnectProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabEnterpriseWebhookRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Empty) The response message.
+      """
+      config = self.GetMethodConfig('ProcessGitLabEnterpriseWebhook')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ProcessGitLabEnterpriseWebhook.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/connections/{connectionsId}/gitRepositoryLinks/{gitRepositoryLinksId}:processGitLabEnterpriseWebhook',
+        http_method='POST',
+        method_id='developerconnect.projects.locations.connections.gitRepositoryLinks.processGitLabEnterpriseWebhook',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}:processGitLabEnterpriseWebhook',
+        request_field='processGitLabEnterpriseWebhookRequest',
+        request_type_name='DeveloperconnectProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabEnterpriseWebhookRequest',
+        response_type_name='Empty',
+        supports_download=False,
+    )
+
+    def ProcessGitLabWebhook(self, request, global_params=None):
+      r"""ProcessGitLabWebhook is called by the GitLab.com for notifying events.
+
+      Args:
+        request: (DeveloperconnectProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabWebhookRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Empty) The response message.
+      """
+      config = self.GetMethodConfig('ProcessGitLabWebhook')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ProcessGitLabWebhook.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/connections/{connectionsId}/gitRepositoryLinks/{gitRepositoryLinksId}:processGitLabWebhook',
+        http_method='POST',
+        method_id='developerconnect.projects.locations.connections.gitRepositoryLinks.processGitLabWebhook',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}:processGitLabWebhook',
+        request_field='processGitLabWebhookRequest',
+        request_type_name='DeveloperconnectProjectsLocationsConnectionsGitRepositoryLinksProcessGitLabWebhookRequest',
+        response_type_name='Empty',
+        supports_download=False,
+    )
+
   class ProjectsLocationsConnectionsService(base_api.BaseApiService):
     """Service class for the projects_locations_connections resource."""
 
@@ -299,7 +700,7 @@ class DeveloperconnectV1alpha(base_api.BaseApiClient):
         method_id='developerconnect.projects.locations.connections.delete',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['etag', 'force', 'requestId', 'validateOnly'],
+        query_params=['etag', 'requestId', 'validateOnly'],
         relative_path='v1alpha/{+name}',
         request_field='',
         request_type_name='DeveloperconnectProjectsLocationsConnectionsDeleteRequest',
@@ -469,57 +870,148 @@ class DeveloperconnectV1alpha(base_api.BaseApiClient):
         supports_download=False,
     )
 
-    def ProcessGitLabEnterpriseWebhook(self, request, global_params=None):
-      r"""ProcessGitLabEnterpriseWebhook is called by the external GitLab Enterprise instances for notifying events.
+  class ProjectsLocationsInsightsConfigsService(base_api.BaseApiService):
+    """Service class for the projects_locations_insightsConfigs resource."""
+
+    _NAME = 'projects_locations_insightsConfigs'
+
+    def __init__(self, client):
+      super(DeveloperconnectV1alpha.ProjectsLocationsInsightsConfigsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new InsightsConfig in a given project and location.
 
       Args:
-        request: (DeveloperconnectProjectsLocationsConnectionsProcessGitLabEnterpriseWebhookRequest) input message
+        request: (DeveloperconnectProjectsLocationsInsightsConfigsCreateRequest) input message
         global_params: (StandardQueryParameters, default: None) global arguments
       Returns:
-        (Empty) The response message.
+        (Operation) The response message.
       """
-      config = self.GetMethodConfig('ProcessGitLabEnterpriseWebhook')
+      config = self.GetMethodConfig('Create')
       return self._RunMethod(
           config, request, global_params=global_params)
 
-    ProcessGitLabEnterpriseWebhook.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/connections:processGitLabEnterpriseWebhook',
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/insightsConfigs',
         http_method='POST',
-        method_id='developerconnect.projects.locations.connections.processGitLabEnterpriseWebhook',
+        method_id='developerconnect.projects.locations.insightsConfigs.create',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=[],
-        relative_path='v1alpha/{+parent}/connections:processGitLabEnterpriseWebhook',
-        request_field='processGitLabEnterpriseWebhookRequest',
-        request_type_name='DeveloperconnectProjectsLocationsConnectionsProcessGitLabEnterpriseWebhookRequest',
-        response_type_name='Empty',
+        query_params=['insightsConfigId', 'validateOnly'],
+        relative_path='v1alpha/{+parent}/insightsConfigs',
+        request_field='insightsConfig',
+        request_type_name='DeveloperconnectProjectsLocationsInsightsConfigsCreateRequest',
+        response_type_name='Operation',
         supports_download=False,
     )
 
-    def ProcessGitLabWebhook(self, request, global_params=None):
-      r"""ProcessGitLabWebhook is called by the GitLab.com for notifying events.
+    def Delete(self, request, global_params=None):
+      r"""Delete a single Insight.
 
       Args:
-        request: (DeveloperconnectProjectsLocationsConnectionsProcessGitLabWebhookRequest) input message
+        request: (DeveloperconnectProjectsLocationsInsightsConfigsDeleteRequest) input message
         global_params: (StandardQueryParameters, default: None) global arguments
       Returns:
-        (Empty) The response message.
+        (Operation) The response message.
       """
-      config = self.GetMethodConfig('ProcessGitLabWebhook')
+      config = self.GetMethodConfig('Delete')
       return self._RunMethod(
           config, request, global_params=global_params)
 
-    ProcessGitLabWebhook.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/connections:processGitLabWebhook',
-        http_method='POST',
-        method_id='developerconnect.projects.locations.connections.processGitLabWebhook',
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/insightsConfigs/{insightsConfigsId}',
+        http_method='DELETE',
+        method_id='developerconnect.projects.locations.insightsConfigs.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['etag', 'requestId', 'validateOnly'],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='DeveloperconnectProjectsLocationsInsightsConfigsDeleteRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets details of a single Insight.
+
+      Args:
+        request: (DeveloperconnectProjectsLocationsInsightsConfigsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (InsightsConfig) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/insightsConfigs/{insightsConfigsId}',
+        http_method='GET',
+        method_id='developerconnect.projects.locations.insightsConfigs.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1alpha/{+name}',
+        request_field='',
+        request_type_name='DeveloperconnectProjectsLocationsInsightsConfigsGetRequest',
+        response_type_name='InsightsConfig',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists InsightsConfigs in a given project and location.
+
+      Args:
+        request: (DeveloperconnectProjectsLocationsInsightsConfigsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListInsightsConfigsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/insightsConfigs',
+        http_method='GET',
+        method_id='developerconnect.projects.locations.insightsConfigs.list',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=[],
-        relative_path='v1alpha/{+parent}/connections:processGitLabWebhook',
-        request_field='processGitLabWebhookRequest',
-        request_type_name='DeveloperconnectProjectsLocationsConnectionsProcessGitLabWebhookRequest',
-        response_type_name='Empty',
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1alpha/{+parent}/insightsConfigs',
+        request_field='',
+        request_type_name='DeveloperconnectProjectsLocationsInsightsConfigsListRequest',
+        response_type_name='ListInsightsConfigsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates the parameters of a single InsightsConfig.
+
+      Args:
+        request: (DeveloperconnectProjectsLocationsInsightsConfigsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1alpha/projects/{projectsId}/locations/{locationsId}/insightsConfigs/{insightsConfigsId}',
+        http_method='PATCH',
+        method_id='developerconnect.projects.locations.insightsConfigs.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['allowMissing', 'requestId', 'validateOnly'],
+        relative_path='v1alpha/{+name}',
+        request_field='insightsConfig',
+        request_type_name='DeveloperconnectProjectsLocationsInsightsConfigsPatchRequest',
+        response_type_name='Operation',
         supports_download=False,
     )
 

@@ -62,7 +62,9 @@ def _Args(parser):
       help='THIS ARGUMENT NEEDS HELP TEXT.')
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.UniverseCompatible
 class Update(base.UpdateCommand):
   """Updates a node pool in a running cluster."""
 
@@ -76,6 +78,13 @@ class Update(base.UpdateCommand):
     node_management_group = group.add_argument_group('Node management')
     flags.AddEnableAutoRepairFlag(node_management_group, for_node_pool=True)
     flags.AddEnableAutoUpgradeFlag(node_management_group, for_node_pool=True)
+    flags.AddAcceleratorArgs(
+        group,
+        enable_gpu_partition=True,
+        enable_gpu_sharing=True,
+        enable_gpu_driver_installation=True,
+        hidden=False,
+    )
 
     autoscaling_group = flags.AddClusterAutoscalingFlags(group)
     flags.AddNodePoolAutoprovisioningFlag(autoscaling_group, hidden=False)
@@ -90,6 +99,7 @@ class Update(base.UpdateCommand):
     flags.AddEnableBlueGreenUpgradeFlag(upgrade_settings_group)
     flags.AddStandardRolloutPolicyFlag(
         upgrade_settings_group, for_node_pool=True)
+    flags.AddAutoscaledRolloutPolicyFlag(upgrade_settings_group)
     flags.AddNodePoolSoakDurationFlag(
         upgrade_settings_group, for_node_pool=True)
 
@@ -102,24 +112,32 @@ class Update(base.UpdateCommand):
     flags.AddEnableImageStreamingFlag(group, for_node_pool=True)
     flags.AddEnableConfidentialNodesFlag(
         group, for_node_pool=True, is_update=True)
+    flags.AddConfidentialNodeTypeFlag(group, for_node_pool=True, is_update=True)
     flags.AddNetworkPerformanceConfigFlags(group, hidden=False)
     flags.AddNodePoolEnablePrivateNodes(group)
     flags.AddEnableFastSocketFlag(group)
     flags.AddLoggingVariantFlag(group, for_node_pool=True)
     flags.AddWindowsOsVersionFlag(group)
     flags.AddContainerdConfigFlag(group)
+    flags.AddStoragePoolsFlag(
+        group, for_node_pool=True, for_create=False)
     flags.AddResourceManagerTagsNodePoolUpdate(group)
     flags.AddQueuedProvisioningFlag(group)
+    flags.AddMaxRunDurationFlag(group)
+    flags.AddFlexStartFlag(group)
     flags.AddEnableKubeletReadonlyPortFlag(group)
     node_config_group = group.add_argument_group('Node config')
     flags.AddMachineTypeFlag(node_config_group, update=True)
     flags.AddDiskTypeFlag(node_config_group)
     flags.AddDiskSizeFlag(node_config_group)
+    flags.AddBootDiskProvisionedThroughputFlag(node_config_group)
+    flags.AddBootDiskProvisionedIopsFlag(node_config_group)
 
   def ParseUpdateNodePoolOptions(self, args):
     flags.ValidateSurgeUpgradeSettings(args)
 
     return api_adapter.UpdateNodePoolOptions(
+        accelerators=args.accelerator,
         enable_autorepair=args.enable_autorepair,
         enable_autoupgrade=args.enable_autoupgrade,
         enable_autoscaling=args.enable_autoscaling,
@@ -143,16 +161,21 @@ class Update(base.UpdateCommand):
         enable_image_streaming=args.enable_image_streaming,
         network_performance_config=args.network_performance_configs,
         enable_confidential_nodes=args.enable_confidential_nodes,
+        confidential_node_type=args.confidential_node_type,
         enable_blue_green_upgrade=args.enable_blue_green_upgrade,
         enable_surge_upgrade=args.enable_surge_upgrade,
         node_pool_soak_duration=args.node_pool_soak_duration,
         standard_rollout_policy=args.standard_rollout_policy,
+        autoscaled_rollout_policy=args.autoscaled_rollout_policy,
         enable_private_nodes=args.enable_private_nodes,
         enable_fast_socket=args.enable_fast_socket,
         logging_variant=args.logging_variant,
         windows_os_version=args.windows_os_version,
         containerd_config_from_file=args.containerd_config_from_file,
+        storage_pools=args.storage_pools,
         enable_queued_provisioning=args.enable_queued_provisioning,
+        max_run_duration=args.max_run_duration,
+        flex_start=args.flex_start,
         machine_type=args.machine_type,
         disk_type=args.disk_type,
         enable_insecure_kubelet_readonly_port=args.enable_insecure_kubelet_readonly_port,
@@ -160,6 +183,8 @@ class Update(base.UpdateCommand):
         if hasattr(args, 'disk_size')
         else None,
         resource_manager_tags=args.resource_manager_tags,
+        boot_disk_provisioned_iops=args.boot_disk_provisioned_iops,
+        boot_disk_provisioned_throughput=args.boot_disk_provisioned_throughput,
     )
 
   def Run(self, args):
@@ -225,6 +250,7 @@ class Update(base.UpdateCommand):
           'Updating node pool {0}'.format(pool_ref.nodePoolId),
           timeout_s=args.timeout)
       pool = adapter.GetNodePool(pool_ref)
+      util.CheckForCgroupModeV1(pool)
     except apitools_exceptions.HttpError as error:
       raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
 
@@ -249,7 +275,7 @@ class UpdateBeta(Update):
         enable_gpu_partition=True,
         enable_gpu_sharing=True,
         enable_gpu_driver_installation=True,
-        hidden=True,
+        hidden=False,
     )
 
     autoscaling_group = flags.AddClusterAutoscalingFlags(group)
@@ -264,8 +290,7 @@ class UpdateBeta(Update):
     flags.AddEnableBlueGreenUpgradeFlag(upgrade_settings_group)
     flags.AddStandardRolloutPolicyFlag(
         upgrade_settings_group, for_node_pool=True)
-    flags.AddAutoscaleRolloutPolicyFlag(
-        upgrade_settings_group, for_node_pool=True)
+    flags.AddAutoscaledRolloutPolicyFlag(upgrade_settings_group)
     flags.AddNodePoolSoakDurationFlag(
         upgrade_settings_group, for_node_pool=True)
 
@@ -286,18 +311,25 @@ class UpdateBeta(Update):
     flags.AddNetworkPerformanceConfigFlags(group, hidden=False)
     flags.AddEnableConfidentialNodesFlag(
         group, for_node_pool=True, is_update=True)
+    flags.AddConfidentialNodeTypeFlag(group, for_node_pool=True, is_update=True)
     flags.AddEnableFastSocketFlag(group)
     flags.AddLoggingVariantFlag(group, for_node_pool=True)
     flags.AddWindowsOsVersionFlag(group)
     flags.AddResourceManagerTagsNodePoolUpdate(group)
     flags.AddContainerdConfigFlag(group)
+    flags.AddStoragePoolsFlag(
+        group, for_node_pool=True, for_create=False)
     flags.AddQueuedProvisioningFlag(group)
+    flags.AddMaxRunDurationFlag(group)
+    flags.AddFlexStartFlag(group)
     flags.AddEnableKubeletReadonlyPortFlag(group)
 
     node_config_group = group.add_argument_group('Node config')
     flags.AddMachineTypeFlag(node_config_group, update=True)
     flags.AddDiskTypeFlag(node_config_group)
     flags.AddDiskSizeFlag(node_config_group)
+    flags.AddBootDiskProvisionedThroughputFlag(node_config_group)
+    flags.AddBootDiskProvisionedIopsFlag(node_config_group)
 
   def ParseUpdateNodePoolOptions(self, args):
     flags.ValidateSurgeUpgradeSettings(args)
@@ -334,18 +366,24 @@ class UpdateBeta(Update):
         autoscaled_rollout_policy=args.autoscaled_rollout_policy,
         network_performance_config=args.network_performance_configs,
         enable_confidential_nodes=args.enable_confidential_nodes,
+        confidential_node_type=args.confidential_node_type,
         enable_fast_socket=args.enable_fast_socket,
         logging_variant=args.logging_variant,
         windows_os_version=args.windows_os_version,
         resource_manager_tags=args.resource_manager_tags,
         containerd_config_from_file=args.containerd_config_from_file,
+        storage_pools=args.storage_pools,
         enable_queued_provisioning=args.enable_queued_provisioning,
+        max_run_duration=args.max_run_duration,
+        flex_start=args.flex_start,
         machine_type=args.machine_type,
         disk_type=args.disk_type,
         enable_insecure_kubelet_readonly_port=args.enable_insecure_kubelet_readonly_port,
         disk_size_gb=utils.BytesToGb(args.disk_size)
         if hasattr(args, 'disk_size')
         else None,
+        boot_disk_provisioned_iops=args.boot_disk_provisioned_iops,
+        boot_disk_provisioned_throughput=args.boot_disk_provisioned_throughput,
     )
     return ops
 
@@ -367,7 +405,7 @@ class UpdateAlpha(Update):
         enable_gpu_partition=True,
         enable_gpu_sharing=True,
         enable_gpu_driver_installation=True,
-        hidden=True,
+        hidden=False,
     )
 
     autoscaling_group = flags.AddClusterAutoscalingFlags(group)
@@ -382,8 +420,7 @@ class UpdateAlpha(Update):
     flags.AddEnableBlueGreenUpgradeFlag(upgrade_settings_group)
     flags.AddStandardRolloutPolicyFlag(
         upgrade_settings_group, for_node_pool=True)
-    flags.AddAutoscaleRolloutPolicyFlag(
-        upgrade_settings_group, for_node_pool=True)
+    flags.AddAutoscaledRolloutPolicyFlag(upgrade_settings_group)
     flags.AddNodePoolSoakDurationFlag(
         upgrade_settings_group, for_node_pool=True)
 
@@ -404,18 +441,25 @@ class UpdateAlpha(Update):
     flags.AddNetworkPerformanceConfigFlags(group, hidden=False)
     flags.AddEnableConfidentialNodesFlag(
         group, for_node_pool=True, is_update=True)
+    flags.AddConfidentialNodeTypeFlag(group, for_node_pool=True, is_update=True)
     flags.AddEnableFastSocketFlag(group)
     flags.AddLoggingVariantFlag(group, for_node_pool=True)
     flags.AddWindowsOsVersionFlag(group)
     flags.AddResourceManagerTagsNodePoolUpdate(group)
     flags.AddContainerdConfigFlag(group)
+    flags.AddStoragePoolsFlag(
+        group, for_node_pool=True, for_create=False)
     flags.AddQueuedProvisioningFlag(group)
+    flags.AddMaxRunDurationFlag(group)
+    flags.AddFlexStartFlag(group)
     flags.AddEnableKubeletReadonlyPortFlag(group)
 
     node_config_group = group.add_argument_group('Node config')
     flags.AddMachineTypeFlag(node_config_group, update=True)
     flags.AddDiskTypeFlag(node_config_group)
     flags.AddDiskSizeFlag(node_config_group)
+    flags.AddBootDiskProvisionedThroughputFlag(node_config_group)
+    flags.AddBootDiskProvisionedIopsFlag(node_config_group)
 
   def ParseUpdateNodePoolOptions(self, args):
     flags.ValidateSurgeUpgradeSettings(args)
@@ -452,18 +496,24 @@ class UpdateAlpha(Update):
         autoscaled_rollout_policy=args.autoscaled_rollout_policy,
         network_performance_config=args.network_performance_configs,
         enable_confidential_nodes=args.enable_confidential_nodes,
+        confidential_node_type=args.confidential_node_type,
         enable_fast_socket=args.enable_fast_socket,
         logging_variant=args.logging_variant,
         windows_os_version=args.windows_os_version,
         resource_manager_tags=args.resource_manager_tags,
         containerd_config_from_file=args.containerd_config_from_file,
+        storage_pools=args.storage_pools,
         enable_queued_provisioning=args.enable_queued_provisioning,
+        max_run_duration=args.max_run_duration,
+        flex_start=args.flex_start,
         machine_type=args.machine_type,
         disk_type=args.disk_type,
         enable_insecure_kubelet_readonly_port=args.enable_insecure_kubelet_readonly_port,
         disk_size_gb=utils.BytesToGb(args.disk_size)
         if hasattr(args, 'disk_size')
         else None,
+        boot_disk_provisioned_iops=args.boot_disk_provisioned_iops,
+        boot_disk_provisioned_throughput=args.boot_disk_provisioned_throughput,
     )
     return ops
 

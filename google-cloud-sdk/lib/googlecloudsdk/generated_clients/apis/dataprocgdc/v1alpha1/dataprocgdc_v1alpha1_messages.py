@@ -137,6 +137,9 @@ class DataprocgdcProjectsLocationsListRequest(_messages.Message):
   r"""A DataprocgdcProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -147,10 +150,11 @@ class DataprocgdcProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class DataprocgdcProjectsLocationsOperationsCancelRequest(_messages.Message):
@@ -276,11 +280,11 @@ class DataprocgdcProjectsLocationsServiceInstancesApplicationEnvironmentsListReq
   tRequest object.
 
   Fields:
-    filter: Output only. Filtering results
-    orderBy: Output only. Hint for how to order the results
-    pageSize: Output only. Requested page size. Server may return fewer items
+    filter: Optional. Filtering results
+    orderBy: Optional. Hint for how to order the results
+    pageSize: Optional. Requested page size. Server may return fewer items
       than requested. If unspecified, server will pick an appropriate default.
-    pageToken: Output only. A token identifying a page of results the server
+    pageToken: Optional. A token identifying a page of results the server
       should return.
     parent: Required. Parent value for ListSparkApplicationsRequest
   """
@@ -403,11 +407,11 @@ class DataprocgdcProjectsLocationsServiceInstancesListRequest(_messages.Message)
   r"""A DataprocgdcProjectsLocationsServiceInstancesListRequest object.
 
   Fields:
-    filter: Output only. Filtering results
-    orderBy: Output only. Hint for how to order the results
-    pageSize: Output only. Requested page size. Server may return fewer items
+    filter: Optional. Filtering results
+    orderBy: Optional. Hint for how to order the results
+    pageSize: Optional. Requested page size. Server may return fewer items
       than requested. If unspecified, server will pick an appropriate default.
-    pageToken: Output only. A token identifying a page of results the server
+    pageToken: Optional. A token identifying a page of results the server
       should return.
     parent: Required. Parent value for ListServiceInstancesRequest
   """
@@ -497,11 +501,11 @@ class DataprocgdcProjectsLocationsServiceInstancesSparkApplicationsListRequest(_
   object.
 
   Fields:
-    filter: Output only. Filtering results
-    orderBy: Output only. Hint for how to order the results
-    pageSize: Output only. Requested page size. Server may return fewer items
+    filter: Optional. Filtering results
+    orderBy: Optional. Hint for how to order the results
+    pageSize: Optional. Requested page size. Server may return fewer items
       than requested. If unspecified, server will pick an appropriate default.
-    pageToken: Output only. A token identifying a page of results the server
+    pageToken: Optional. A token identifying a page of results the server
       should return.
     parent: Required. Parent value for ListSparkApplicationsRequest
   """
@@ -571,7 +575,7 @@ class ListApplicationEnvironmentsResponse(_messages.Message):
   r"""Message for response to listing ApplicationEnvironments
 
   Fields:
-    applicationEnvironments: Required. The list of ApplicationEnvironment
+    applicationEnvironments: The list of ApplicationEnvironment
     nextPageToken: Output only. A token identifying a page of results the
       server should return.
     unreachable: Output only. Locations that could not be reached.
@@ -716,6 +720,57 @@ class Location(_messages.Message):
   locationId = _messages.StringField(3)
   metadata = _messages.MessageField('MetadataValue', 4)
   name = _messages.StringField(5)
+
+
+class MaintenancePolicy(_messages.Message):
+  r"""Maintenance policy for a service instance.
+
+  Fields:
+    maintenanceWindow: Optional. The maintenance window for the service
+      instance.
+  """
+
+  maintenanceWindow = _messages.MessageField('MaintenanceWindow', 1)
+
+
+class MaintenanceWindow(_messages.Message):
+  r"""Maintenance window for a service instance.
+
+  Enums:
+    DayOfWeekValueValuesEnum: Optional. The day of the week when maintenance
+      is scheduled.
+
+  Fields:
+    dayOfWeek: Optional. The day of the week when maintenance is scheduled.
+    duration: Required. Duration of the time window, set by service producer.
+    startTime: Optional. Time within the window to start the operations.
+  """
+
+  class DayOfWeekValueValuesEnum(_messages.Enum):
+    r"""Optional. The day of the week when maintenance is scheduled.
+
+    Values:
+      DAY_OF_WEEK_UNSPECIFIED: The day of the week is unspecified.
+      MONDAY: Monday
+      TUESDAY: Tuesday
+      WEDNESDAY: Wednesday
+      THURSDAY: Thursday
+      FRIDAY: Friday
+      SATURDAY: Saturday
+      SUNDAY: Sunday
+    """
+    DAY_OF_WEEK_UNSPECIFIED = 0
+    MONDAY = 1
+    TUESDAY = 2
+    WEDNESDAY = 3
+    THURSDAY = 4
+    FRIDAY = 5
+    SATURDAY = 6
+    SUNDAY = 7
+
+  dayOfWeek = _messages.EnumField('DayOfWeekValueValuesEnum', 1)
+  duration = _messages.StringField(2)
+  startTime = _messages.MessageField('TimeOfDay', 3)
 
 
 class Operation(_messages.Message):
@@ -881,6 +936,16 @@ class PySparkApplicationConfig(_messages.Message):
   pythonFileUris = _messages.StringField(6, repeated=True)
 
 
+class QueryList(_messages.Message):
+  r"""Represents a list of queries.
+
+  Fields:
+    queries: Required. The queries to run.
+  """
+
+  queries = _messages.StringField(1, repeated=True)
+
+
 class ServiceInstance(_messages.Message):
   r"""Message describing ServiceInstance object TODO(user) add appropriate
   visibility tags to the fields of this proto.
@@ -901,22 +966,19 @@ class ServiceInstance(_messages.Message):
     annotations: Optional. The annotations to associate with this service
       instance. Annotations may be used to store client information, but are
       not used by the server.
-    auxiliaryServicesConfig: Optional. Maintenance policy for this service
-      instance. TODO this might end up being a separate API instead of
-      inlined. Not in scope for private GA MaintenancePolicy
-      maintenance_policy = 19; Configuration of auxiliary services used by
-      this instance.
+    auxiliaryServicesConfig: Optional. Configuration of auxiliary services
+      used by this instance.
     createTime: Output only. The timestamp when the resource was created.
     displayName: Optional. User-provided human-readable name to be used in
       user interfaces.
-    effectiveServiceAccount: Output only. Effective GCP service account
-      associated with ServiceInstance. This will be the service_account if
-      specified. Otherwise, it will be an automatically created per-resource
-      P4SA that also automatically has Fleet Workload Identity bindings
-      applied.
+    effectiveServiceAccount: Output only. Effective service account associated
+      with ServiceInstance. This will be the service_account if specified.
+      Otherwise, it will be an automatically created per-resource P4SA that
+      also automatically has Fleet Workload Identity bindings applied.
     gdceCluster: Optional. A GDCE cluster.
     labels: Optional. The labels to associate with this service instance.
       Labels may be used for filtering and billing tracking.
+    maintenancePolicy: Optional. Maintenance policy for this service instance.
     name: Identifier. The name of the service instance.
     reconciling: Output only. Whether the service instance is currently
       reconciling. True if the current state of the resource does not match
@@ -925,7 +987,7 @@ class ServiceInstance(_messages.Message):
       aip.dev/128#reconciliation
     requestedState: Output only. The intended state to which the service
       instance is reconciling.
-    serviceAccount: Optional. Requested GCP service account to associate with
+    serviceAccount: Optional. Requested service account to associate with
       ServiceInstance.
     sparkServiceInstanceConfig: Optional. Spark-specific service instance
       configuration.
@@ -1057,15 +1119,16 @@ class ServiceInstance(_messages.Message):
   effectiveServiceAccount = _messages.StringField(5)
   gdceCluster = _messages.MessageField('GdceCluster', 6)
   labels = _messages.MessageField('LabelsValue', 7)
-  name = _messages.StringField(8)
-  reconciling = _messages.BooleanField(9)
-  requestedState = _messages.EnumField('RequestedStateValueValuesEnum', 10)
-  serviceAccount = _messages.StringField(11)
-  sparkServiceInstanceConfig = _messages.MessageField('SparkServiceInstanceConfig', 12)
-  state = _messages.EnumField('StateValueValuesEnum', 13)
-  stateMessage = _messages.StringField(14)
-  uid = _messages.StringField(15)
-  updateTime = _messages.StringField(16)
+  maintenancePolicy = _messages.MessageField('MaintenancePolicy', 8)
+  name = _messages.StringField(9)
+  reconciling = _messages.BooleanField(10)
+  requestedState = _messages.EnumField('RequestedStateValueValuesEnum', 11)
+  serviceAccount = _messages.StringField(12)
+  sparkServiceInstanceConfig = _messages.MessageField('SparkServiceInstanceConfig', 13)
+  state = _messages.EnumField('StateValueValuesEnum', 14)
+  stateMessage = _messages.StringField(15)
+  uid = _messages.StringField(16)
+  updateTime = _messages.StringField(17)
 
 
 class SparkApplication(_messages.Message):
@@ -1091,6 +1154,10 @@ class SparkApplication(_messages.Message):
     applicationEnvironment: Optional. An ApplicationEnvironment from which to
       inherit configuration properties.
     createTime: Output only. The timestamp when the resource was created.
+    dependencyImages: Optional. List of container image uris for additional
+      file dependencies. Dependent files are sequentially copied from each
+      image. If a file with the same name exists in 2 images then the file
+      from later image is used.
     displayName: Optional. User-provided human-readable name to be used in
       user interfaces.
     labels: Optional. The labels to associate with this application. Labels
@@ -1247,24 +1314,25 @@ class SparkApplication(_messages.Message):
   annotations = _messages.MessageField('AnnotationsValue', 1)
   applicationEnvironment = _messages.StringField(2)
   createTime = _messages.StringField(3)
-  displayName = _messages.StringField(4)
-  labels = _messages.MessageField('LabelsValue', 5)
-  monitoringEndpoint = _messages.StringField(6)
-  name = _messages.StringField(7)
-  namespace = _messages.StringField(8)
-  outputUri = _messages.StringField(9)
-  properties = _messages.MessageField('PropertiesValue', 10)
-  pysparkApplicationConfig = _messages.MessageField('PySparkApplicationConfig', 11)
-  reconciling = _messages.BooleanField(12)
-  requestedState = _messages.EnumField('RequestedStateValueValuesEnum', 13)
-  sparkApplicationConfig = _messages.MessageField('SparkApplicationConfig', 14)
-  sparkRApplicationConfig = _messages.MessageField('SparkRApplicationConfig', 15)
-  sparkSqlApplicationConfig = _messages.MessageField('SparkSqlApplicationConfig', 16)
-  state = _messages.EnumField('StateValueValuesEnum', 17)
-  stateMessage = _messages.StringField(18)
-  uid = _messages.StringField(19)
-  updateTime = _messages.StringField(20)
-  version = _messages.StringField(21)
+  dependencyImages = _messages.StringField(4, repeated=True)
+  displayName = _messages.StringField(5)
+  labels = _messages.MessageField('LabelsValue', 6)
+  monitoringEndpoint = _messages.StringField(7)
+  name = _messages.StringField(8)
+  namespace = _messages.StringField(9)
+  outputUri = _messages.StringField(10)
+  properties = _messages.MessageField('PropertiesValue', 11)
+  pysparkApplicationConfig = _messages.MessageField('PySparkApplicationConfig', 12)
+  reconciling = _messages.BooleanField(13)
+  requestedState = _messages.EnumField('RequestedStateValueValuesEnum', 14)
+  sparkApplicationConfig = _messages.MessageField('SparkApplicationConfig', 15)
+  sparkRApplicationConfig = _messages.MessageField('SparkRApplicationConfig', 16)
+  sparkSqlApplicationConfig = _messages.MessageField('SparkSqlApplicationConfig', 17)
+  state = _messages.EnumField('StateValueValuesEnum', 18)
+  stateMessage = _messages.StringField(19)
+  uid = _messages.StringField(20)
+  updateTime = _messages.StringField(21)
+  version = _messages.StringField(22)
 
 
 class SparkApplicationConfig(_messages.Message):
@@ -1456,6 +1524,7 @@ class SparkSqlApplicationConfig(_messages.Message):
     jarFileUris: Optional. HCFS URIs of jar files to be added to the Spark
       CLASSPATH.
     queryFileUri: The HCFS URI of the script that contains SQL queries.
+    queryList: A list of queries.
     scriptVariables: Optional. Mapping of query variable names to values
       (equivalent to the Spark SQL command: SET `name="value";`).
   """
@@ -1488,7 +1557,8 @@ class SparkSqlApplicationConfig(_messages.Message):
 
   jarFileUris = _messages.StringField(1, repeated=True)
   queryFileUri = _messages.StringField(2)
-  scriptVariables = _messages.MessageField('ScriptVariablesValue', 3)
+  queryList = _messages.MessageField('QueryList', 3)
+  scriptVariables = _messages.MessageField('ScriptVariablesValue', 4)
 
 
 class StandardQueryParameters(_messages.Message):
@@ -1603,6 +1673,30 @@ class Status(_messages.Message):
   code = _messages.IntegerField(1, variant=_messages.Variant.INT32)
   details = _messages.MessageField('DetailsValueListEntry', 2, repeated=True)
   message = _messages.StringField(3)
+
+
+class TimeOfDay(_messages.Message):
+  r"""Represents a time of day. The date and time zone are either not
+  significant or are specified elsewhere. An API may choose to allow leap
+  seconds. Related types are google.type.Date and `google.protobuf.Timestamp`.
+
+  Fields:
+    hours: Hours of a day in 24 hour format. Must be greater than or equal to
+      0 and typically must be less than or equal to 23. An API may choose to
+      allow the value "24:00:00" for scenarios like business closing time.
+    minutes: Minutes of an hour. Must be greater than or equal to 0 and less
+      than or equal to 59.
+    nanos: Fractions of seconds, in nanoseconds. Must be greater than or equal
+      to 0 and less than or equal to 999,999,999.
+    seconds: Seconds of a minute. Must be greater than or equal to 0 and
+      typically must be less than or equal to 59. An API may allow the value
+      60 if it allows leap-seconds.
+  """
+
+  hours = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  minutes = _messages.IntegerField(2, variant=_messages.Variant.INT32)
+  nanos = _messages.IntegerField(3, variant=_messages.Variant.INT32)
+  seconds = _messages.IntegerField(4, variant=_messages.Variant.INT32)
 
 
 encoding.AddCustomJsonFieldMapping(

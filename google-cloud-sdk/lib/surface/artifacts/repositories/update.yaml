@@ -42,13 +42,11 @@
         Secret Manager secret version that contains password for the remote repository upstream.
     - group:
         mutex: true
-        hidden: true
         params:
         - arg_name: allow-vulnerability-scanning
           api_field: repository.vulnerabilityScanningConfig.enablementConfig
           default: null
           action: store_true
-          hidden: true
           help_text: |
             Allow vulnerability scanning on the repository.
           choices:
@@ -59,7 +57,6 @@
           api_field: repository.vulnerabilityScanningConfig.enablementConfig
           default: null
           action: store_true
-          hidden: true
           help_text: |
             Disable vulnerability scanning on the repository.
           choices:
@@ -72,6 +69,32 @@
       default: null
       help_text: |
         Do not make an HTTP request to validate the remote upstream. Not recommended when setting a custom remote upstream unless you are absolutely sure your upstream URI and any auth is valid.
+    - arg_name: enable-ingestion-attestation
+      api_field: repository.remoteRepositoryConfig.enableIngestionAttestation
+      action: store_true
+      hidden: true
+      default: null
+      type: bool
+      help_text: |
+        Enable generating attestation with verifiable signature on imported files in remote repositories.
+    - arg_name: alternative-hostname
+      api_field: repository.networkConfig.alternativeHostname
+      hidden: true
+      default: null
+      help_text: |
+        An alternative hostname that a repository can be accessed through.
+    - arg_name: alternative-hostname-path-prefix
+      api_field: repository.networkConfig.prefix
+      hidden: true
+      default: null
+      help_text: |
+        An alternative hostname path prefix that a repository can be accessed through.
+    - arg_name: alternative-hostname-default
+      api_field: repository.networkConfig.isDefault
+      hidden: true
+      default: null
+      help_text: |
+        Whether this is the default repository for the alternative hostname if no repository matches the path prefix.
     - group:
         mutex: true
         hidden: true
@@ -107,6 +130,7 @@
     collection: artifactregistry.projects.locations.repositories
     modify_request_hooks:
     - googlecloudsdk.command_lib.artifacts.util:AppendUpstreamPoliciesToRequest
+
 
   update:
     read_modify_update: true

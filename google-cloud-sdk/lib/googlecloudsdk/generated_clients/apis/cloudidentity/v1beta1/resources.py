@@ -92,6 +92,16 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  INBOUNDOIDCSSOPROFILES = (
+      'inboundOidcSsoProfiles',
+      '{+name}',
+      {
+          '':
+              'inboundOidcSsoProfiles/{inboundOidcSsoProfilesId}',
+      },
+      ['name'],
+      True
+  )
   INBOUNDSAMLSSOPROFILES = (
       'inboundSamlSsoProfiles',
       '{+name}',
@@ -119,6 +129,16 @@ class Collections(enum.Enum):
       {
           '':
               'inboundSsoAssignments/{inboundSsoAssignmentsId}',
+      },
+      ['name'],
+      True
+  )
+  POLICIES = (
+      'policies',
+      '{+name}',
+      {
+          '':
+              'policies/{policiesId}',
       },
       ['name'],
       True

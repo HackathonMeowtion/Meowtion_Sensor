@@ -39,51 +39,95 @@ _LOG_RELPATH = 'log'
 SAMPLES_LOG_PATH = os.path.join(SAMPLES_DIR_PATH, _LOG_RELPATH)
 _ETC_RELPATH = 'etc'
 SAMPLES_ETC_PATH = os.path.join(SAMPLES_DIR_PATH, _ETC_RELPATH)
+_DATA_INSERT_RELPATH = 'data-insert-statements'
+SAMPLES_DATA_INSERT_PATH = os.path.join(SAMPLES_DIR_PATH, _DATA_INSERT_RELPATH)
 
 # TODO(b/228633873): Replace with prod bucket
 GCS_BUCKET = 'gs://cloud-spanner-samples'
+NOT_EXIST = 'not-exist'
 
+BANKING_APP_NAME = 'banking'
 FINANCE_APP_NAME = 'finance'
+FINANCE_GRAPH_APP_NAME = 'finance-graph'
 FINANCE_PG_APP_NAME = 'finance-pg'
+GAMING_APP_NAME = 'gaming'
 
-AppAttrs = collections.namedtuple('AppAttrs', [
-    'db_id',  # Name of the sample app DB
-    'bin_path',  # Relative path for sample app bin files
-    'etc_path',  # Relative path for schema, data, and other files
-    'gcs_prefix',  # Prefix for sample app files in GCS_BUCKET
-    'schema_file',  # Schema filename (in GCS and locally)
-    'backend_bin',  # Backend/server bin filename
-    'workload_bin',  # Workload bin filename
-    'database_dialect'  # The database dialect used in this sample
-])
+AppAttrs = collections.namedtuple(
+    'AppAttrs',
+    [
+        'db_id',  # Name of the sample app DB
+        'bin_path',  # Relative path for sample app bin files
+        'etc_path',  # Relative path for schema, data, and other files
+        'gcs_prefix',  # Prefix for sample app files in GCS_BUCKET
+        'schema_file',  # Schema filename (in GCS and locally)
+        'backend_bin',  # Backend/server bin filename
+        'workload_bin',  # Workload bin filename
+        'database_dialect',  # The database dialect used in this sample
+        'data_insert_statements_path',  # Relative path for INSERT stmt files.
+    ],
+)
 
 APPS = {
-    FINANCE_APP_NAME:
-        AppAttrs(
-            db_id='finance-db',
-            bin_path='finance',
-            etc_path='finance',
-            schema_file='finance-schema.sdl',
-            gcs_prefix='finance',
-            backend_bin='server-1.0-SNAPSHOT-jar-with-dependencies.jar',
-            workload_bin='workload-1.0-SNAPSHOT-jar-with-dependencies.jar',
-            database_dialect=databases.DATABASE_DIALECT_GOOGLESQL,
-        ),
-    FINANCE_PG_APP_NAME:
-        AppAttrs(
-            db_id='finance-pg-db',
-            bin_path='finance-pg',
-            etc_path='finance-pg',
-            schema_file='finance-schema-pg.sdl',
-            gcs_prefix='finance',
-            backend_bin='server-1.0-SNAPSHOT-jar-with-dependencies.jar',
-            workload_bin='workload-1.0-SNAPSHOT-jar-with-dependencies.jar',
-            database_dialect=databases.DATABASE_DIALECT_POSTGRESQL,
-        )
+    BANKING_APP_NAME: AppAttrs(
+        db_id='banking-db',
+        bin_path='banking',
+        etc_path='banking',
+        data_insert_statements_path='banking',
+        schema_file='banking-schema.sdl',
+        gcs_prefix='banking',
+        backend_bin=NOT_EXIST,
+        workload_bin=NOT_EXIST,
+        database_dialect=databases.DATABASE_DIALECT_GOOGLESQL,
+    ),
+    FINANCE_APP_NAME: AppAttrs(
+        db_id='finance-db',
+        bin_path='finance',
+        etc_path='finance',
+        schema_file='finance-schema.sdl',
+        gcs_prefix='finance',
+        data_insert_statements_path=NOT_EXIST,
+        backend_bin='server-1.0-SNAPSHOT-jar-with-dependencies.jar',
+        workload_bin='workload-1.0-SNAPSHOT-jar-with-dependencies.jar',
+        database_dialect=databases.DATABASE_DIALECT_GOOGLESQL,
+    ),
+    FINANCE_GRAPH_APP_NAME: AppAttrs(
+        db_id='finance-graph-db',
+        bin_path='finance-graph',
+        etc_path='finance-graph',
+        data_insert_statements_path='finance-graph',
+        schema_file='finance-graph-schema.sdl',
+        gcs_prefix='finance-graph',
+        backend_bin=NOT_EXIST,
+        workload_bin=NOT_EXIST,
+        database_dialect=databases.DATABASE_DIALECT_GOOGLESQL,
+    ),
+    FINANCE_PG_APP_NAME: AppAttrs(
+        db_id='finance-pg-db',
+        bin_path='finance-pg',
+        etc_path='finance-pg',
+        schema_file='finance-schema-pg.sdl',
+        gcs_prefix='finance',
+        data_insert_statements_path=NOT_EXIST,
+        backend_bin='server-1.0-SNAPSHOT-jar-with-dependencies.jar',
+        workload_bin='workload-1.0-SNAPSHOT-jar-with-dependencies.jar',
+        database_dialect=databases.DATABASE_DIALECT_POSTGRESQL,
+    ),
+    GAMING_APP_NAME: AppAttrs(
+        db_id='gaming-db',
+        bin_path='gaming',
+        etc_path='gaming',
+        data_insert_statements_path='gaming',
+        schema_file='gaming-schema.sdl',
+        gcs_prefix='gaming',
+        backend_bin=NOT_EXIST,
+        workload_bin=NOT_EXIST,
+        database_dialect=databases.DATABASE_DIALECT_GOOGLESQL,
+    ),
 }
 
 _GCS_BIN_PREFIX = 'bin'
 _GCS_SCHEMA_PREFIX = 'schema'
+_GCS_DATA_INSERT_STATEMENTS_PREFIX = 'data-insert-statements'
 
 
 class SpannerSamplesError(exceptions.Error):
@@ -158,6 +202,29 @@ def get_local_bin_path(appname):
   return os.path.join(SAMPLES_BIN_PATH, APPS[appname].bin_path)
 
 
+def get_local_data_insert_statements_path(appname):
+  """Get the local path to data insert statements for the given sample app.
+
+  Args:
+    appname: str, Name of the sample app.
+
+  Returns:
+    str, The local path of the sample app data insert statements.
+
+  Raises:
+    ValueError: if the given sample app or the data_insert_statements_path don't
+    exist.
+  """
+  check_appname(appname)
+  if APPS[appname].data_insert_statements_path == NOT_EXIST:
+    raise ValueError(
+        "Unknown sample app data insert statements '{}'".format(appname)
+    )
+  return os.path.join(
+      SAMPLES_DATA_INSERT_PATH, APPS[appname].data_insert_statements_path
+  )
+
+
 def get_gcs_schema_name(appname):
   """Get the GCS file path for the schema for the given sample app.
 
@@ -198,6 +265,28 @@ def get_gcs_bin_prefix(appname):
   return '/'.join([APPS[appname].gcs_prefix, _GCS_BIN_PREFIX, ''])
 
 
+def get_gcs_data_insert_statements_prefix(appname):
+  """Get the GCS prefix for data insert statements for the given sample app.
+
+  Args:
+    appname: str, Name of the sample app.
+
+  Returns:
+    str, The sample app binaries GCS prefix.
+
+  Raises:
+    ValueError: if the given sample app or the gcs_prefix don't exist.
+  """
+  check_appname(appname)
+  if APPS[appname].gcs_prefix == NOT_EXIST:
+    raise ValueError(
+        "Unknown sample app data insert statements '{}'".format(appname)
+    )
+  return '/'.join(
+      [APPS[appname].gcs_prefix, _GCS_DATA_INSERT_STATEMENTS_PREFIX, '']
+  )
+
+
 def get_database_dialect(appname):
   """Get the database dialect for the given sample app.
 
@@ -212,6 +301,25 @@ def get_database_dialect(appname):
   """
   check_appname(appname)
   return APPS[appname].database_dialect
+
+
+def has_sample_data_statements(appname):
+  """Check if the sample app has both gcs_prefix and data_insert_statements_path.
+
+  Args:
+    appname: str, Name of the sample app.
+
+  Returns:
+    bool, both gcs_prefix and data_insert_statements_path exist.
+
+  Raises:
+    ValueError: if the given sample app doesn't exist.
+  """
+  check_appname(appname)
+  return (
+      APPS[appname].gcs_prefix != NOT_EXIST
+      and APPS[appname].data_insert_statements_path != NOT_EXIST
+  )
 
 
 def run_proc(args, capture_logs_fn=None):
@@ -232,4 +340,3 @@ def run_proc(args, capture_logs_fn=None):
   else:
     popen_args = {}
   return execution_utils.Subprocess(args, **popen_args)
-

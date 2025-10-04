@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Common utility functions to consturct compute reservations message."""
+"""Common utility functions to construct compute reservations message."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -54,6 +54,10 @@ def MakeReservationMessageFromArgs(messages, args, reservation_ref, resources):
       messages, reservation_ref, getattr(args, 'resource_policies', None),
       resources)
 
+  scheduling_type = None
+  if args.IsKnownAndSpecified('scheduling_type'):
+    scheduling_type = getattr(args, 'scheduling_type', None)
+
   return MakeReservationMessage(
       messages,
       reservation_ref.Name(),
@@ -64,6 +68,9 @@ def MakeReservationMessageFromArgs(messages, args, reservation_ref, resources):
       reservation_ref.zone,
       getattr(args, 'delete_at_time', None),
       getattr(args, 'delete_after_duration', None),
+      getattr(args, 'reservation_sharing_policy', None),
+      getattr(args, 'enable_emergent_maintenance', None),
+      scheduling_type,
   )
 
 
@@ -104,27 +111,25 @@ def MakeLocalSsds(messages, ssd_configs):
       messages
       .AllocationSpecificSKUAllocationAllocatedInstancePropertiesReservedDisk)
   interface_msg = disk_msg.InterfaceValueValuesEnum
-  total_partitions = 0
   for s in ssd_configs:
     if s['interface'].upper() == 'NVME':
       interface = interface_msg.NVME
-    else:
+    elif s['interface'].upper() == 'SCSI':
       interface = interface_msg.SCSI
+    else:
+      raise exceptions.InvalidArgumentException(
+          '--local-ssd',
+          'Must specify a valid interface (NVME, SCSI) for SSDs attached to the'
+          ' instance.',
+      )
     m = disk_msg(diskSizeGb=s['size'], interface=interface)
     partitions = s.get('count', 1)
-    if partitions not in range(24 + 1):
+    if partitions < 1:
       raise exceptions.InvalidArgumentException(
           '--local-ssd',
-          'The number of SSDs attached to an instance must be in the range of 1-24.'
+          'Must specify a valid count (>= 1) for SSDs attached to the '
+          'reservation.',
       )
-
-    total_partitions += partitions
-    if total_partitions > 24:
-      raise exceptions.InvalidArgumentException(
-          '--local-ssd',
-          'The total number of SSDs attached to an instance must not exceed 24.'
-      )
-
     local_ssds.extend([m] * partitions)
 
   return local_ssds
@@ -140,7 +145,7 @@ def MakeShareSettingsWithArgs(messages,
       return messages.ShareSettings(shareType=messages.ShareSettings
                                     .ShareTypeValueValuesEnum.ORGANIZATION)
     if setting_configs == 'local':
-      if args.IsSpecified(share_with):
+      if args.IsSpecified(share_with) and share_with != 'remove_share_with':
         raise exceptions.InvalidArgumentException(
             '--share_with',
             'The scope this reservation is to be shared with must not be '
@@ -153,11 +158,14 @@ def MakeShareSettingsWithArgs(messages,
             '--share_with',
             'The projects this reservation is to be shared with must be '
             'specified.')
+      project_map = None
+      if share_with != 'remove_share_with':
+        project_map = MakeProjectMapFromProjectList(
+            messages, getattr(args, share_with, None))
       return messages.ShareSettings(
           shareType=messages.ShareSettings.ShareTypeValueValuesEnum
           .SPECIFIC_PROJECTS,
-          projectMap=MakeProjectMapFromProjectList(
-              messages, getattr(args, share_with, None)))
+          projectMap=project_map)
     if setting_configs == 'folders':
       if not args.IsSpecified(share_with):
         raise exceptions.InvalidArgumentException(
@@ -261,12 +269,20 @@ def MakeSpecificSKUReservationMessage(
         count=vm_count, instanceProperties=instance_properties)
 
 
-def MakeReservationMessage(messages, reservation_name, share_settings,
-                           specific_reservation, resource_policies,
-                           require_specific_reservation,
-                           reservation_zone,
-                           delete_at_time=None,
-                           delete_after_duration=None):
+def MakeReservationMessage(
+    messages,
+    reservation_name,
+    share_settings,
+    specific_reservation,
+    resource_policies,
+    require_specific_reservation,
+    reservation_zone,
+    delete_at_time=None,
+    delete_after_duration=None,
+    reservation_sharing_policy=None,
+    enable_emergent_maintenance=None,
+    scheduling_type=None,
+):
   """Constructs a single reservations message object."""
   reservation_message = messages.Reservation(
       name=reservation_name,
@@ -286,7 +302,35 @@ def MakeReservationMessage(messages, reservation_name, share_settings,
         seconds=delete_after_duration
     )
 
+  if reservation_sharing_policy:
+    reservation_message.reservationSharingPolicy = (
+        MakeReservationSharingPolicyMessage(
+            messages, reservation_sharing_policy
+        )
+    )
+
+  if enable_emergent_maintenance is not None:
+    reservation_message.enableEmergentMaintenance = enable_emergent_maintenance
+
+  if scheduling_type is not None:
+    reservation_message.schedulingType = (
+        MakeSchedulingType(messages, scheduling_type)
+    )
+
   return reservation_message
+
+
+def MakeReservationSharingPolicyMessage(messages, reservation_sharing_policy):
+  if reservation_sharing_policy == 'DISALLOW_ALL':
+    return messages.AllocationReservationSharingPolicy(
+        serviceShareType=messages.AllocationReservationSharingPolicy.ServiceShareTypeValueValuesEnum.DISALLOW_ALL
+    )
+  elif reservation_sharing_policy == 'ALLOW_ALL':
+    return messages.AllocationReservationSharingPolicy(
+        serviceShareType=messages.AllocationReservationSharingPolicy.ServiceShareTypeValueValuesEnum.ALLOW_ALL
+    )
+  else:
+    return None
 
 
 def MakeProjectMapFromProjectList(messages, projects):
@@ -322,6 +366,52 @@ def MakeResourcePolicies(messages, reservation_ref, resource_policy_dictionary,
           key=key, value=MakeUrl(resources, value, reservation_ref))
       for key, value in sorted(six.iteritems(resource_policy_dictionary))
   ])
+
+
+def MakeReservationsMaintenanceScope(messages, maintenance_scope):
+  """Constructs the maintenance scope message object for reservations."""
+  if maintenance_scope == 'all':
+    return (
+        messages.ReservationsPerformMaintenanceRequest.MaintenanceScopeValueValuesEnum.ALL
+    )
+  elif maintenance_scope == 'unused':
+    return (
+        messages.ReservationsPerformMaintenanceRequest.MaintenanceScopeValueValuesEnum.UNUSED_CAPACITY
+    )
+  elif maintenance_scope == 'running':
+    return (
+        messages.ReservationsPerformMaintenanceRequest.MaintenanceScopeValueValuesEnum.RUNNING_VMS
+    )
+  else:
+    return None
+
+
+def MakeReservationBlocksMaintenanceScope(messages, maintenance_scope):
+  """Constructs the maintenance scope message object for reservation blocks."""
+  if maintenance_scope == 'all':
+    return (
+        messages.ReservationsBlocksPerformMaintenanceRequest.MaintenanceScopeValueValuesEnum.ALL
+    )
+  elif maintenance_scope == 'unused':
+    return (
+        messages.ReservationsBlocksPerformMaintenanceRequest.MaintenanceScopeValueValuesEnum.UNUSED_CAPACITY
+    )
+  elif maintenance_scope == 'running':
+    return (
+        messages.ReservationsBlocksPerformMaintenanceRequest.MaintenanceScopeValueValuesEnum.RUNNING_VMS
+    )
+  else:
+    return None
+
+
+def MakeSchedulingType(messages, scheduling_type):
+  """Constructs the scheduling type enum value."""
+  if scheduling_type:
+    if scheduling_type == 'GROUPED':
+      return messages.Reservation.SchedulingTypeValueValuesEnum.GROUPED
+    if scheduling_type == 'INDEPENDENT':
+      return messages.Reservation.SchedulingTypeValueValuesEnum.INDEPENDENT
+  return None
 
 
 def MakeUrl(resources, value, reservation_ref):

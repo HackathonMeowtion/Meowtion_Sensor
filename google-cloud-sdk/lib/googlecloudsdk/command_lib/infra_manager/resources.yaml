@@ -105,3 +105,31 @@ terraform_version:
     attribute_name: terraform_version
     help: terraform version TBD
   disable_auto_completers: false
+resource_change:
+  name: resourceChange
+  plural_name: resourceChanges
+  collection: config.projects.locations.previews.resourceChanges
+  request_id_field: resourceChangeId
+  attributes:
+  - *project
+  - *location
+  - *preview
+  - &resource_change
+    parameter_name: resourceChangesId
+    attribute_name: resource_change
+    help: resource change TBD
+  disable_auto_completers: false
+resource_drift:
+  name: resourceDrift
+  plural_name: resourceDrifts
+  collection: config.projects.locations.previews.resourceDrifts
+  request_id_field: resourceDriftId
+  attributes:
+  - *project
+  - *location
+  - *preview
+  - &resource_drift
+    parameter_name: resourceDriftsId
+    attribute_name: resource_drift
+    help: resource drift TBD
+  disable_auto_completers: false

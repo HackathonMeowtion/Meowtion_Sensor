@@ -785,9 +785,9 @@ class GoogleCloudEssentialcontactsV1alpha1Contact(_messages.Message):
 
   Enums:
     NotificationCategorySubscriptionsValueListEntryValuesEnum:
-    ValidationStateValueValuesEnum: The validity of the contact. A contact is
-      considered valid if it is the correct recipient for notifications for a
-      particular resource.
+    ValidationStateValueValuesEnum: Output only. The validity of the contact.
+      A contact is considered valid if it is the correct recipient for
+      notifications for a particular resource.
     VerificationStateValueValuesEnum: The verification state of this contact's
       email address.
 
@@ -803,12 +803,12 @@ class GoogleCloudEssentialcontactsV1alpha1Contact(_messages.Message):
       {resource_type}/{resource_id}/contacts/{contact_id}
     notificationCategorySubscriptions: Required. The categories of
       notifications that the contact will receive communications for.
-    validateTime: The last time the validation_state was updated, either
-      manually or automatically. A contact is considered stale if its
+    validateTime: Output only. The last time the validation_state was updated,
+      either manually or automatically. A contact is considered stale if its
       validation state was updated more than 1 year ago.
-    validationState: The validity of the contact. A contact is considered
-      valid if it is the correct recipient for notifications for a particular
-      resource.
+    validationState: Output only. The validity of the contact. A contact is
+      considered valid if it is the correct recipient for notifications for a
+      particular resource.
     verificationExpireTime: Time when the current verification token will
       expire. After this a new token will need to be generated for the user to
       verify the contact.
@@ -852,8 +852,9 @@ class GoogleCloudEssentialcontactsV1alpha1Contact(_messages.Message):
     TECHNICAL_INCIDENTS = 10
 
   class ValidationStateValueValuesEnum(_messages.Enum):
-    r"""The validity of the contact. A contact is considered valid if it is
-    the correct recipient for notifications for a particular resource.
+    r"""Output only. The validity of the contact. A contact is considered
+    valid if it is the correct recipient for notifications for a particular
+    resource.
 
     Values:
       VALIDATION_STATE_UNSPECIFIED: The validation state is unknown or

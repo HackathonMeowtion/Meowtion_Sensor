@@ -36,6 +36,7 @@ from googlecloudsdk.command_lib.functions.v2.deploy import env_vars_util
 from googlecloudsdk.command_lib.run import config_changes
 from googlecloudsdk.command_lib.run import exceptions as serverless_exceptions
 from googlecloudsdk.command_lib.run import platforms
+from googlecloudsdk.command_lib.run import preset_arg
 from googlecloudsdk.command_lib.run import pretty_print
 from googlecloudsdk.command_lib.run import resource_args
 from googlecloudsdk.command_lib.run import secrets_mapping
@@ -54,9 +55,52 @@ from googlecloudsdk.core.util import files
 
 SERVICE_MESH_FLAG = base.Argument(
     '--mesh',
-    hidden=True,
-    help='Enables Service Mesh configuration using the specified mesh name.',
+    help=(
+        'Enables Cloud Service Mesh using the specified mesh resource name.'
+        ' Mesh resource name must be in the format of'
+        ' projects/PROJECT/locations/global/meshes/MESH_NAME or MESH_NAME. Will'
+        ' default to the current project if only MESH_NAME is provided.'
+    ),
 )
+
+IDENTITY_FLAG = base.Argument(
+    '--identity',
+    help=(
+        'Configures a managed workload identity to be used by the service.'
+        ' Must have the form //TRUST_DOMAIN/ns/NAMESPACE/sa/NAME.'
+    ),
+    hidden=True,
+)
+
+ENABLE_WORKLOAD_CERTIFICATE_FLAG = base.Argument(
+    '--enable-workload-certificate',
+    help='Enables workload certificates using managed workload identity.',
+    action=arg_parsers.StoreTrueFalseAction,
+    hidden=True,
+)
+
+MESH_DATAPLANE_FLAG = base.Argument(
+    '--mesh-dataplane',
+    help='Configures the mesh dataplane mode used by the Service.',
+    action=arg_parsers.StoreOnceAction,
+    type=str,
+    choices=['sidecar', 'proxyless-grpc'],
+    hidden=True,
+)
+# A list of preset that provide ingress containers that require a placeholder.
+# TODO(b/436350694): Remove this constant once preset metadata is available.
+INGRESS_CONTAINER_PRESETS = frozenset([
+    'ollama',
+    'tagmanager',
+])
+
+PRIVATE_ACCESS_PRESETS = frozenset([
+    'private-service',
+])
+
+PUBLIC_ACCESS_PRESETS = frozenset([
+    'public-service',
+])
 
 _VISIBILITY_MODES = {
     'internal': 'Visible only within the cluster.',
@@ -66,19 +110,16 @@ _VISIBILITY_MODES = {
 _INGRESS_MODES = {
     'all': 'Inbound requests from all sources are allowed.',
     'internal': """\
-        For Cloud Run (fully managed), only inbound requests from VPC networks
+        For Cloud Run, only inbound requests from VPC networks
         in the same project or VPC Service Controls perimeter, as well as
         Pub/Sub subscriptions and Eventarc events in the same project or VPC
         Service Controls perimeter are allowed. All other requests are rejected.
         See https://cloud.google.com/run/docs/securing/ingress for full details
-        on the definition of internal traffic for Cloud Run (fully managed). For
-        Cloud Run for Anthos, only inbound requests from the same cluster are
-        allowed.
+        on the definition of internal traffic for Cloud Run.
         """,
     'internal-and-cloud-load-balancing': """\
-        Only supported for Cloud Run (fully managed). Only inbound requests
-        from Google Cloud Load Balancing or a traffic source allowed by the
-        internal option are allowed.
+        Only inbound requests from Google Cloud Load Balancing or a traffic
+        source allowed by the internal option are allowed.
         """,
 }
 
@@ -106,12 +147,16 @@ _CONTAINER_NAME_TYPE = arg_parsers.RegexpValidator(
     ' less than 64 characters.',
 )
 
+_SCALING_MODE_AUTOMATIC = 'automatic'
 
-def _StripKeys(d):
+_SCALING_MODE_MANUAL = 'manual'
+
+
+def StripKeys(d):
   return {k.strip(): v for k, v in d.items()}
 
 
-def _MapLStrip(seq):
+def MapLStrip(seq):
   return [elem.lstrip() for elem in seq]
 
 
@@ -125,7 +170,11 @@ class Product(enum.Enum):
   STACKS = 'Stacks'
 
 
-def AddImageArg(parser, required=True, image='gcr.io/cloudrun/hello:latest'):
+def AddImageArg(
+    parser,
+    required=True,
+    image='us-docker.pkg.dev/cloudrun/container/hello:latest',
+):
   """Add an image resource arg."""
   parser.add_argument(
       '--image',
@@ -136,85 +185,27 @@ def AddImageArg(parser, required=True, image='gcr.io/cloudrun/hello:latest'):
   )
 
 
-def ImageArg(required=True, image='gcr.io/cloudrun/hello:latest'):
+def ImageArg(
+    required=True,
+    image='us-docker.pkg.dev/cloudrun/container/hello:latest',
+    mutex=True,
+):
   """Image resource arg."""
+  help_text = 'Name of the container image to deploy (e.g. `{image}`).'.format(
+      image=image
+  )
+  if not mutex:
+    help_text += (
+        ' When used with --source, the image must be the URI of an Artifact '
+        'Registry Docker repository in the Docker format '
+        '($REGION-docker.pkg.dev/$PROJECT/$REPOSITORY") or '
+        '($REGION-docker.pkg.dev/$PROJECT/$REPOSITORY/$IMAGE_NAME"). '
+        'The image name must be the same as the name of the service.'
+    )
   return base.Argument(
       '--image',
       required=required,
-      help='Name of the container image to deploy (e.g. `{image}`).'.format(
-          image=image
-      ),
-  )
-
-
-_ARG_GROUP_HELP_TEXT = (
-    'Only applicable if connecting to {platform_desc}. '
-    'Specify {platform} to use:'
-)
-
-
-def _GetOrAddArgGroup(parser, help_text):
-  """Create a new arg group or return existing group with given help text."""
-  for arg in parser.arguments:
-    if arg.is_group and arg.help == help_text:
-      return arg
-  return parser.add_argument_group(help_text)
-
-
-def GetManagedArgGroup(parser):
-  """Get an arg group for managed CR-only flags."""
-  return _GetOrAddArgGroup(
-      parser,
-      _ARG_GROUP_HELP_TEXT.format(
-          platform='`--platform={}`'.format(platforms.PLATFORM_MANAGED),
-          platform_desc=platforms.PLATFORM_SHORT_DESCRIPTIONS[
-              platforms.PLATFORM_MANAGED
-          ],
-      ),
-  )
-
-
-def GetGkeArgGroup(parser):
-  """Get an arg group for CRoGKE-only flags."""
-  return _GetOrAddArgGroup(
-      parser,
-      _ARG_GROUP_HELP_TEXT.format(
-          platform='`--platform={}`'.format(platforms.PLATFORM_GKE),
-          platform_desc=platforms.PLATFORM_SHORT_DESCRIPTIONS[
-              platforms.PLATFORM_GKE
-          ],
-      ),
-  )
-
-
-def GetKubernetesArgGroup(parser):
-  """Get an arg group for --platform=kubernetes only flags."""
-  return _GetOrAddArgGroup(
-      parser,
-      _ARG_GROUP_HELP_TEXT.format(
-          platform='`--platform={}`'.format(platforms.PLATFORM_KUBERNETES),
-          platform_desc=platforms.PLATFORM_SHORT_DESCRIPTIONS[
-              platforms.PLATFORM_KUBERNETES
-          ],
-      ),
-  )
-
-
-def GetClusterArgGroup(parser):
-  """Get an arg group for any generic cluster flags."""
-  return _GetOrAddArgGroup(
-      parser,
-      _ARG_GROUP_HELP_TEXT.format(
-          platform='`--platform={}` or `--platform={}`'.format(
-              platforms.PLATFORM_GKE, platforms.PLATFORM_KUBERNETES
-          ),
-          platform_desc='{} or {}'.format(
-              platforms.PLATFORM_SHORT_DESCRIPTIONS[platforms.PLATFORM_GKE],
-              platforms.PLATFORM_SHORT_DESCRIPTIONS[
-                  platforms.PLATFORM_KUBERNETES
-              ],
-          ),
-      ),
+      help=help_text,
   )
 
 
@@ -227,26 +218,17 @@ def AddPlatformAndLocationFlags(parser, managed_only=False, anthos_only=False):
     AddRegionArg(parser)
     return None
 
-  # When multiple platforms are supported, add a arg group that covers the
-  # various ways to specify region/zone/cluster.
-  platform_helpers_group = parser.add_mutually_exclusive_group(
-      help='Arguments to locate resources, depending on the platform used.'
-  )
-
   if not anthos_only:
     # Add --region flag
-    managed_group = GetManagedArgGroup(platform_helpers_group)
-    AddRegionArg(managed_group)
+    AddRegionArg(parser)
 
   # Add --cluster and --cluster-location (plus properties)
-  gke_group = GetGkeArgGroup(platform_helpers_group)
   concept_parsers.ConceptParser(
       [resource_args.CLUSTER_PRESENTATION]
-  ).AddToParser(gke_group)
+  ).AddToParser(parser)
 
   # Add --kubeconfig and --context
-  kubernetes_group = GetKubernetesArgGroup(platform_helpers_group)
-  AddKubeconfigFlags(kubernetes_group)
+  AddKubeconfigFlags(parser)
 
 
 def AddAllowUnauthenticatedFlag(parser):
@@ -261,16 +243,34 @@ def AddAllowUnauthenticatedFlag(parser):
   )
 
 
-def AddAsyncFlag(parser, default_async_for_cluster=False, is_job=False):
+def AddAllowUnencryptedBuildFlag(parser):
+  """Add the --allow-unencrypted-build flag."""
+  parser.add_argument(
+      '--allow-unencrypted-build',
+      action=actions.DeprecationAction(
+          '--allow-unencrypted-build',
+          removed=False,
+          warn=(
+              'The flag {flag_name} is deprecated. The CMEK compliance is now'
+              ' available for the build process of source-based deployments.'
+              ' For more details, see'
+              ' https://cloud.google.com/run/docs/securing/using-cmek#source-deploy'
+          ),
+          action=arg_parsers.StoreTrueFalseAction,
+      ),
+      help=(
+          'Whether to allow customer-managed encryption key (CMEK) deployments'
+          ' without encrypting the build process. This means that only the'
+          ' deployed container will be encrypted.'
+      ),
+  )
+
+
+def AddAsyncFlag(parser, default_async_for_cluster=False):
   """Add an async flag."""
   help_text = """\
     Return immediately, without waiting for the operation in progress to
-    complete."""
-  if is_job:
-    help_text += ' Defaults to --no-async.'
-  else:
-    help_text += """ Defaults to --no-async for Cloud Run (fully managed) and --async
-    for Cloud Run for Anthos."""
+    complete. Defaults to --no-async."""
   if default_async_for_cluster:
     modified_async_flag = base.Argument(
         '--async',
@@ -287,6 +287,7 @@ def AddEndpointVisibilityEnum(parser):
   """Add the --connectivity=[external|internal] flag."""
   parser.add_argument(
       '--connectivity',
+      hidden=True,
       choices=_VISIBILITY_MODES,
       help=(
           "Defaults to 'external'. If 'external', the service can be "
@@ -303,6 +304,16 @@ def AddEndpointVisibilityEnum(parser):
   )
 
 
+def AddIapFlag(parser):
+  """Adds the --iap flag."""
+  parser.add_argument(
+      '--iap',
+      action=arg_parsers.StoreTrueFalseAction,
+      required=False,
+      help='Whether to enable IAP for the Service.',
+  )
+
+
 def AddIngressFlag(parser):
   """Adds the --ingress flag."""
   parser.add_argument(
@@ -310,7 +321,7 @@ def AddIngressFlag(parser):
       choices=_INGRESS_MODES,
       help=(
           'Set the ingress traffic sources allowed to call the service. For '
-          'Cloud Run (fully managed) the `--[no-]allow-unauthenticated` flag '
+          'Cloud Run the `--[no-]allow-unauthenticated` flag '
           'separately controls the identities allowed to call the service.'
       ),
       default='all',
@@ -343,6 +354,15 @@ def AddWorkerFlag(parser):
   )
 
 
+def AddWorkerPoolFlag(parser):
+  """Add a worker pool resource flag."""
+  parser.add_argument(
+      '--worker-pool',
+      required=False,
+      help='Limit matched revisions to the given worker.',
+  )
+
+
 def AddRegionArg(parser):
   """Add a region arg."""
   parser.add_argument(
@@ -351,20 +371,6 @@ def AddRegionArg(parser):
           'Region in which the resource can be found. '
           'Alternatively, set the property [run/region].'
       ),
-  )
-
-
-def AddFunctionArg(parser):
-  """Add a function resource arg."""
-  parser.add_argument(
-      '--function',
-      hidden=True,
-      nargs='?',
-      const=True,
-      help="""\
-      Specifies that the deployed object is a function. If a value is
-      provided, that value is used as the entrypoint.
-      """,
   )
 
 
@@ -451,6 +457,20 @@ created revision."""
 def AddDeployTagFlag(parser, help_text=_DEFAULT_DEPLOY_TAG_HELP):
   """Add flag to specify a tag for the new revision."""
   parser.add_argument('--tag', help=help_text)
+
+
+def AddDeployFromComposeArgument(parser):
+  """Add argument to specify the compose yaml file to be used for deploying to Cloud Run."""
+  parser.add_argument(
+      'compose_file',
+      type=str,
+      nargs='?',
+      default=None,
+      help=(
+          'The compose yaml file to deploy from a Compose '
+          'directory to Cloud Run.'
+      ),
+  )
 
 
 def AddTrafficTagsFlags(parser):
@@ -771,6 +791,7 @@ def MapFlagsNoFile(
     value_type=None,
     key_metavar='KEY',
     value_metavar='VALUE',
+    hidden=False,
 ):
   """Create an argument group like map_util.AddUpdateMapFlags but without the file one.
 
@@ -782,6 +803,7 @@ def MapFlagsNoFile(
     value_type: A function to apply to map values.
     key_metavar: Metavariable to list for the key.
     value_metavar: Metavariable to list for the value.
+    hidden: Whether the group should be hidden.
 
   Returns:
     A mutually exclusive group for the map flags.
@@ -789,7 +811,7 @@ def MapFlagsNoFile(
   if not long_name:
     long_name = flag_name
 
-  group = base.ArgumentGroup(mutex=True, help=group_help)
+  group = base.ArgumentGroup(mutex=True, help=group_help, hidden=hidden)
   update_remove_group = base.ArgumentGroup(
       help=(
           'Only --update-{0} and --remove-{0} can be used together. If both '
@@ -879,8 +901,9 @@ def AddSetEnvVarsFlag(parser):
   )
 
 
-def MutexEnvVarsFlags():
+def MutexEnvVarsFlags(release_track=base.ReleaseTrack.GA):
   """Return argument group for setting, updating and deleting env vars."""
+  del release_track  # Unused in this function.
   group = MapFlagsNoFile(
       'env-vars',
       long_name='environment variables',
@@ -891,13 +914,50 @@ def MutexEnvVarsFlags():
       base.Argument(
           '--env-vars-file',
           metavar='FILE_PATH',
+          type=map_util.ArgDictWithYAMLOrEnv(
+              key_type=env_vars_util.EnvVarKeyType,
+              value_type=env_vars_util.EnvVarValueType,
+          ),
+          help="""Path to a local YAML or ENV file with definitions for all environment
+            variables. All existing environment variables will be removed before
+            the new environment variables are added. Example YAML content:
+
+              ```
+              KEY_1: "value1"
+              KEY_2: "value 2"
+              ```
+              Example ENV content:
+
+              ```
+              KEY_1="value1"
+              KEY_2="value 2"
+              ```
+            """,
+      )
+  )
+  return group
+
+
+def MutexBuildEnvVarsFlags():
+  """Return argument group for setting, updating and deleting build env vars."""
+  group = MapFlagsNoFile(
+      'build-env-vars',
+      long_name='build environment variables',
+      key_type=env_vars_util.EnvVarKeyType,
+      value_type=env_vars_util.EnvVarValueType,
+  )
+  group.AddArgument(
+      base.Argument(
+          '--build-env-vars-file',
+          metavar='FILE_PATH',
           type=map_util.ArgDictFile(
               key_type=env_vars_util.EnvVarKeyType,
               value_type=env_vars_util.EnvVarValueType,
           ),
-          help="""Path to a local YAML file with definitions for all environment
-            variables. All existing environment variables will be removed before
-            the new environment variables are added. Example YAML content:
+          help="""Path to a local YAML file with definitions for all build
+            environment variables. All existing build environment variables will
+            be removed before the new build environment variables are added.
+            Example YAML content:
 
               ```
               KEY_1: "value1"
@@ -936,9 +996,9 @@ def AddMutexEnvVarsFlagsForCreate(parser):
   )
 
 
-def AddOverrideEnvVarsFlag(parser):
-  """Add the --update-env-vars flag."""
-  parser.add_argument(
+def OverrideEnvVarsFlag():
+  """Creates a flag for overrding container's evn vars args."""
+  return base.Argument(
       '--update-env-vars',
       metavar='KEY=VALUE',
       action=arg_parsers.UpdateAction,
@@ -957,6 +1017,11 @@ def AddOverrideEnvVarsFlag(parser):
   )
 
 
+def AddOverrideEnvVarsFlag(parser):
+  """Add the --update-env-vars flag."""
+  OverrideEnvVarsFlag().AddToParser(parser)
+
+
 def MemoryFlag():
   return base.Argument('--memory', help='Set a memory limit. Ex: 1024Mi, 4Gi.')
 
@@ -965,25 +1030,19 @@ def AddMemoryFlag(parser):
   MemoryFlag().AddToParser(parser)
 
 
-def CpuFlag(managed_only=False):
+def CpuFlag():
   """Create the --cpu flag."""
   help_msg = (
       'Set a CPU limit in Kubernetes cpu units.\n\n'
-      'Cloud Run (fully managed) supports values 1, 2 and 4.'
-      '  For Cloud Run (fully managed), 4 cpus also requires a minimum '
-      '2Gi `--memory` value.  Examples 2, 2.0, 2000m'
+      'Cloud Run supports values fractional values below 1, 1, 2, 4, and 8.'
+      '  Some CPU values requires a minimum Memory `--memory` value.'
   )
-  if not managed_only:
-    help_msg += (
-        '\n\nCloud Run for Anthos and Knative-compatible Kubernetes '
-        'clusters support fractional values.  Examples .5, 500m, 2'
-    )
   return base.Argument('--cpu', help=help_msg)
 
 
-def AddCpuFlag(parser, managed_only=False):
+def AddCpuFlag(parser):
   """Add the --cpu flag."""
-  CpuFlag(managed_only=managed_only).AddToParser(parser)
+  CpuFlag().AddToParser(parser)
 
 
 def AddGpuTypeFlag(parser):
@@ -991,7 +1050,6 @@ def AddGpuTypeFlag(parser):
   parser.add_argument(
       '--gpu-type',
       metavar='GPU_TYPE',
-      hidden=True,
       help='The GPU type to use.',
   )
 
@@ -1001,13 +1059,113 @@ def GpuFlag():
   return base.Argument(
       '--gpu',
       metavar='GPU',
-      hidden=True,
       help=(
           'Cloud Run supports values 0 or 1.'
-          '  1 gpu also requires a minimum 4 `--cpu` value'
-          '  1 gpu also requires a minimum 8Gi `--memory` value.'
+          '  1 gpu also requires a minimum 4 `--cpu` value and'
+          '  a minimum 16Gi `--memory` value.'
       ),
   )
+
+
+def GpuZonalRedundancyFlag(parser):
+  """Add the --gpu-zonal-redundancy flag."""
+  return parser.add_argument(
+      '--gpu-zonal-redundancy',
+      action=arg_parsers.StoreTrueFalseAction,
+      help='Set GPU zonal redundancy.',
+  )
+
+
+_SUPPORTED_LIVENESS_PROBE_KEYS = (
+    'initialDelaySeconds',
+    'timeoutSeconds',
+    'periodSeconds',
+    'failureThreshold',
+    'httpGet.port',
+    'httpGet.path',
+    'grpc.port',
+    'grpc.service',
+)
+_SUPPORTED_STARTUP_PROBE_KEYS = (
+    'initialDelaySeconds',
+    'timeoutSeconds',
+    'periodSeconds',
+    'failureThreshold',
+    'httpGet.port',
+    'httpGet.path',
+    'grpc.port',
+    'grpc.service',
+    'tcpSocket.port',
+)
+
+_SUPPORTED_READINESS_PROBE_KEYS = (
+    'timeoutSeconds',
+    'periodSeconds',
+    'failureThreshold',
+    'successThreshold',
+    'httpGet.port',
+    'httpGet.path',
+    'grpc.port',
+    'grpc.service',
+)
+
+
+def _ProbeFlag(probe_type, supported_keys):
+  """Create a flag for the given probe type.
+
+  Args:
+    probe_type: Probe type, either 'startup' or 'liveness'
+    supported_keys: supported keys for the given probe type
+
+  Returns:
+    A flag.
+  """
+
+  def _LimitKeys(key):
+    if key not in supported_keys:
+      raise serverless_exceptions.ArgumentError(
+          'Key [{}] not recognized for {} probe.'.format(key, probe_type)
+      )
+    return key
+
+  supported_keys_str = ', '.join(supported_keys)
+  return base.Argument(
+      '--{}-probe'.format(probe_type),
+      metavar='KEY=VALUE',
+      type=arg_parsers.ArgDict(
+          key_type=_LimitKeys,
+      ),
+      help=f"""\
+          Comma separated settings for {probe_type} probe in the form KEY=VALUE.
+          Each key stands for a field of the probe described in
+          https://cloud.google.com/run/docs/reference/rest/v1/Container#Probe.
+          Currently supported keys are: {supported_keys_str}.
+
+          For example, to set a probe with 10s timeout and HTTP probe requests
+          sent to 8080 port of the container:
+
+              $ --{probe_type}-probe=timeoutSeconds=10,httpGet.port=8080
+
+          To remove existing probe:
+
+              $ --{probe_type}-probe=""
+          """.format(probe_type=probe_type, supported_keys=supported_keys_str),
+  )
+
+
+def StartupProbeFlag():
+  """Create the --startup-probe flag."""
+  return _ProbeFlag('startup', _SUPPORTED_STARTUP_PROBE_KEYS)
+
+
+def LivenessProbeFlag():
+  """Create the --liveness-probe flag."""
+  return _ProbeFlag('liveness', _SUPPORTED_LIVENESS_PROBE_KEYS)
+
+
+def ReadinessProbeFlag():
+  """Create the --readiness-probe flag."""
+  return _ProbeFlag('readiness', _SUPPORTED_READINESS_PROBE_KEYS)
 
 
 def _ConcurrencyValue(value):
@@ -1045,29 +1203,13 @@ def AddTimeoutFlag(parser):
   )
 
 
-def AddServiceAccountFlag(parser, managed_only=False):
+def AddServiceAccountFlag(parser):
   """Add the --service-account flag."""
   help_text = (
-      'Service account associated with the revision of the service. '
-      'The service account represents the identity of '
-      'the running revision, and determines what permissions the revision has. '
+      'the email address of an IAM service account associated with the revision'
+      ' of the service. The service account represents the identity of the'
+      ' running revision, and determines what permissions the revision has. '
   )
-  if managed_only:
-    help_text += 'This is the email address of an IAM service account.'
-  else:
-    help_text += (
-        'For the {} platform, this is the email address of an IAM service '
-        'account. For the Kubernetes-based platforms ({}, {}), this is the '
-        'name of a Kubernetes service account in the same namespace as the '
-        'service. If not provided, the revision will use the default service '
-        'account of the project, or default Kubernetes namespace service '
-        'account respectively.'.format(
-            platforms.PLATFORM_MANAGED,
-            platforms.PLATFORM_GKE,
-            platforms.PLATFORM_KUBERNETES,
-        )
-    )
-
   parser.add_argument('--service-account', help=help_text)
 
 
@@ -1084,6 +1226,7 @@ def AddPlatformArg(parser, managed_only=False, anthos_only=False):
       choices=choices,
       action=actions.StoreProperty(properties.VALUES.run.platform),
       default=platforms.PLATFORM_MANAGED,
+      hidden=True,
       help=(
           'Target platform for running commands. '
           'Alternatively, set the property [run/platform]. '
@@ -1094,6 +1237,7 @@ def AddPlatformArg(parser, managed_only=False, anthos_only=False):
 def AddKubeconfigFlags(parser):
   parser.add_argument(
       '--kubeconfig',
+      hidden=True,
       help=(
           'The absolute path to your kubectl config file. If not specified, '
           'the colon- or semicolon-delimited list of paths specified by '
@@ -1103,6 +1247,7 @@ def AddKubeconfigFlags(parser):
   )
   parser.add_argument(
       '--context',
+      hidden=True,
       help=(
           'The name of the context in your kubectl config file to use for '
           'connecting.'
@@ -1117,7 +1262,8 @@ def AddRevisionSuffixArg(parser):
           'Specify the suffix of the revision name. Revision names always '
           'start with the service name automatically. For example, specifying '
           "[--revision-suffix=v1] for a service named 'helloworld', "
-          "would lead to a revision named 'helloworld-v1'."
+          "would lead to a revision named 'helloworld-v1'. Set empty string to "
+          'clear the suffix and resume server-assigned naming.'
       ),
   )
 
@@ -1227,29 +1373,27 @@ def AddSecretsFlags(parser):
   SecretsFlags().AddToParser(parser)
 
 
-def AddConfigMapsFlags(parser):
-  """Adds flags for creating, updating, and deleting config maps."""
-  AddMapFlagsNoFile(
-      parser,
-      group_help=(
-          'Specify config map to mount or provide as environment '
-          "variables. Keys starting with a forward slash '/' are mount "
-          'paths. All other keys correspond to environment variables. '
-          'The values associated with each of these should be in the '
-          'form CONFIG_MAP_NAME:KEY_IN_CONFIG_MAP; you may omit the '
-          'key within the config map to specify a mount of all keys '
-          'within the config map. For example: '
-          "'--update-config-maps=/my/path=myconfig,"
-          "ENV=otherconfig:key.json' "
-          "will create a volume with config map 'myconfig' "
-          "and mount that volume at '/my/path'. Because no config map "
-          "key was specified, all keys in 'myconfig' will be included. "
-          'An environment variable named ENV will also be created '
-          "whose value is the value of 'key.json' in 'otherconfig. Not "
-          'supported on the fully managed version of Cloud Run.'
-      ),
-      flag_name='config-maps',
-  )
+CONFIG_MAP_FLAGS = MapFlagsNoFile(
+    group_help=(
+        'Specify config map to mount or provide as environment '
+        "variables. Keys starting with a forward slash '/' are mount "
+        'paths. All other keys correspond to environment variables. '
+        'The values associated with each of these should be in the '
+        'form CONFIG_MAP_NAME:KEY_IN_CONFIG_MAP; you may omit the '
+        'key within the config map to specify a mount of all keys '
+        'within the config map. For example: '
+        "'--update-config-maps=/my/path=myconfig,"
+        "ENV=otherconfig:key.json' "
+        "will create a volume with config map 'myconfig' "
+        "and mount that volume at '/my/path'. Because no config map "
+        "key was specified, all keys in 'myconfig' will be included. "
+        'An environment variable named ENV will also be created '
+        "whose value is the value of 'key.json' in 'otherconfig. Not "
+        'supported on the fully managed version of Cloud Run.'
+    ),
+    flag_name='config-maps',
+    hidden=True,
+)
 
 
 def AddDescriptionFlag(parser):
@@ -1303,7 +1447,7 @@ def AddGeneralAnnotationFlags(parser):
   )
 
 
-class _ScaleValue(object):
+class ScaleValue:
   """Type for min/max-instances flag values."""
 
   def __init__(self, value):
@@ -1322,34 +1466,119 @@ class _ScaleValue(object):
         )
 
 
+class ScalingValue:
+  """Type for --scaling flag values.
+
+  Input values could be either 'auto' for automatic scaling or integer to
+  support manual scaling mode with the integer value as instance count.
+  """
+
+  def __init__(self, value):
+    self.auto_scaling = value == 'auto'
+    if not self.auto_scaling:
+      try:
+        self.instance_count = int(value)
+      except (TypeError, ValueError):
+        raise serverless_exceptions.ArgumentError(
+            "Input value '%s' for --scaling flag is not an integer nor 'auto'."
+            % value
+        )
+
+      if self.instance_count < 0:
+        raise serverless_exceptions.ArgumentError(
+            "Input value '%s' for --scaling flag should be a positive integer"
+            " or 'auto'." % value
+        )
+
+
 def AddMinInstancesFlag(parser, resource_kind='service'):
   """Add min scaling flag."""
-  help_text = (
-      'The minimum number of container instances for this Revision of the'
-      " Service to run or 'default' to remove any minimum."
-  )
-  if resource_kind == 'worker':
-    help_text = (
-        'The minimum number of container instances for this Worker to run or'
-        " 'default' to remove any minimum. These instances will be divided"
-        ' among all Revisions receiving a percentage of instance split.'
-    )
+  resource = 'Service' if resource_kind == 'service' else 'Worker'
   parser.add_argument(
       '--min-instances',
-      type=_ScaleValue,
-      help=help_text,
+      type=ScaleValue,
+      help=(
+          'The minimum number of container instances to run for this Revision '
+          " or 'default' to remove. This setting is immutably set on each new "
+          ' Revision and modifying its value will deploy a another Revision.'
+          ' Consider using --min to set the minimum number of instances across'
+          f' all revisions of the {resource} which may be modified dynamically.'
+      ),
   )
 
 
-def AddServiceMinInstancesFlag(parser):
+def AddServiceMinMaxInstancesFlag(parser):
   """Add service-level min scaling flag."""
   parser.add_argument(
-      '--service-min-instances',
-      type=_ScaleValue,
+      '--min',
+      type=ScaleValue,
       help=(
-          'The minimum number of container instances for this Service to run '
-          "or 'default' to remove any minimum. These instances will be divided "
-          'among all Revisions receiving a percentage of traffic.'
+          'The minimum number of container instances to run for this Service '
+          "or 'default' to remove. These instances will be divided among all "
+          'Revisions receiving a percentage of traffic and can be modified '
+          'without deploying a new Revision.'
+      ),
+  )
+
+  parser.add_argument(
+      '--service-min-instances',
+      type=ScaleValue,
+      hidden=True,
+      help=(
+          'The minimum number of container instances to run for this Service '
+          "or 'default' to remove. These instances will be divided among all "
+          'Revisions receiving a percentage of traffic and can be modified '
+          'without deploying a new Revision.'
+      ),
+  )
+
+  parser.add_argument(
+      '--max',
+      type=ScaleValue,
+      help=(
+          'The maximum number of container instances to run for this Service. '
+          'This instance limit will be divided among all Revisions receiving a '
+          'percentage of traffic and can be modified without deploying a new '
+          'Revision.'
+      ),
+  )
+
+  parser.add_argument(
+      '--service-max-instances',
+      type=ScaleValue,
+      hidden=True,
+      help=(
+          'The maximum number of container instances for this Service to run. '
+          'This instance limit will be divided among all Revisions receiving a '
+          'percentage of traffic.'
+      ),
+  )
+
+
+def AddWorkerPoolMinInstancesFlag(parser):
+  """Add min instances flag for worker pools."""
+  parser.add_argument(
+      '--min',
+      type=ScaleValue,
+      help=(
+          'The minimum number of container instances to run for this WorkerPool'
+          " or 'default' to use system default of 1. These instances will be"
+          ' divided among all Revisions receiving a percentage of instance'
+          ' assignments and can be modified without deploying a new Revision.'
+      ),
+  )
+
+
+def AddWorkerPoolMaxInstancesFlag(parser):
+  """Add max instances flag for worker pools."""
+  parser.add_argument(
+      '--max',
+      type=ScaleValue,
+      help=(
+          'The maximum number of container instances to run for this WorkerPool'
+          " or 'default' to use system default of 100. This instance limit will"
+          ' be divided among all Revisions receiving a percentage of instance'
+          ' assignments and can be modified without deploying a new Revision. '
       ),
   )
 
@@ -1357,56 +1586,49 @@ def AddServiceMinInstancesFlag(parser):
 def AddMaxInstancesFlag(parser, resource_kind='service'):
   """Add max scaling flag."""
   help_text = (
-      'The maximum number of container instances of the Service to run. '
-      "Use 'default' to unset the limit and use the platform default."
+      'The maximum number of container instances for this Revision '
+      "to run or 'default' to remove. This setting is immutably set on each "
+      'new Revision and modifying its value will deploy another Revision. '
   )
   if resource_kind == 'worker':
     help_text = (
-        'The maximum number of container instances of the Worker to run. '
-        "Use 'default' to unset the limit and use the platform default."
+        'The maximum number of container instances for this Revision '
+        "to run or 'default' to remove. This setting is immutably set on each "
+        'new Revision and modifying its value will deploy another Revision. '
+        'Consider using --max to set the maximum number of instances across '
+        'all revisions of the Worker which may be modified dynamically.'
     )
   parser.add_argument(
       '--max-instances',
-      type=_ScaleValue,
+      type=ScaleValue,
       help=help_text,
   )
 
 
-class _MaxSurgeValue(object):
-  """Type for max-surge flag values."""
-
-  def __init__(self, value):
-    self.restore_default = value == 'default'
-    if not self.restore_default:
-      try:
-        self.surge_percent = int(value)
-      except (TypeError, ValueError):
-        raise serverless_exceptions.ArgumentError(
-            "Surge percent value %s is not an integer or 'default'." % value
-        )
-
-      if self.surge_percent < 0:
-        raise serverless_exceptions.ArgumentError(
-            'Surge percent value %s is negative.' % value
-        )
-
-      if self.surge_percent > 100:
-        raise serverless_exceptions.ArgumentError(
-            'Surge percent value %s is greater than 100.' % value
-        )
-
-
-def AddMaxSurgeFlag(parser, resource_kind='service'):
-  """Add max surge flag."""
-  split_type = 'instance' if resource_kind == 'worker' else 'traffic'
+def AddScalingFlag(
+    parser, release_track=base.ReleaseTrack.GA, resource_kind='service'
+):
+  """Add scaling flag."""
+  # For worker pools in BETA, we only support manual scaling with a fixed
+  # instance count.
+  help_text = (
+      'The scaling mode to use for this resource. Flag value should be a'
+      ' positive integer to configure manual scaling with the given integer as'
+      ' a fixed instance count.'
+  )
+  # For worker pools in ALPHA and services, we support both manual and automatic
+  # scaling.
+  if resource_kind == 'service' or release_track == base.ReleaseTrack.ALPHA:
+    help_text = (
+        'The scaling mode to use for this resource. Flag value could be'
+        ' either "auto" for automatic scaling, or a positive integer to'
+        ' configure manual scaling with the given integer as a fixed instance'
+        ' count.'
+    )
   parser.add_argument(
-      '--max-surge',
-      type=_MaxSurgeValue,
-      help=(
-          'A maximum percentage of instances that will be moved in each step of'
-          ' {split_type} split changes. Use "default" to unset the limit and'
-          ' use the platform default.'.format(split_type=split_type)
-      ),
+      '--scaling',
+      type=ScalingValue,
+      help=help_text,
   )
 
 
@@ -1495,19 +1717,22 @@ def AddInvokerIamCheckFlag(parser):
       '--invoker-iam-check',
       action=arg_parsers.StoreTrueFalseAction,
       help=(
-          'Indicates whether an IAM check should occur when invoking the '
-          'container. This is Enabled by default. Disabling this flag is not '
-          'available in all projects.'
+          'Optionally disable invoker IAM checks. This feature is available by'
+          ' invitation only. More info at '
+          'https://cloud.google.com/run/docs/securing/managing-access#invoker_check.'
       ),
   )
 
 
-def AddRegionsArg(parser, hidden=True):
+def AddRegionsArg(parser, hidden=False):
   """Add a multi-regional 'regions' arg."""
   parser.add_argument(
       '--regions',
       hidden=hidden,
-      help='Regions in which the multi-region Service can be found.',
+      help=(
+          'Comma-separated list of regions in which the multi-region Service'
+          ' can be found.'
+      ),
   )
 
 
@@ -1524,18 +1749,6 @@ def AddRemoveRegionsArg(parser):
       '--remove-regions',
       hidden=True,
       help='Existing egions to remove the multi-region Service from',
-  )
-
-
-def AddDomainArg(parser):
-  parser.add_argument(
-      '--domain',
-      hidden=True,
-      help=(
-          'Optional domain name to create a multi-regional load-balancer. This'
-          ' requires both the Serverless Integrations (RunApps) and Compute '
-          'APIs to be enabled.'
-      ),
   )
 
 
@@ -1935,12 +2148,31 @@ def AddRuntimeFlag(parser):
   )
 
 
-def _HasChanges(args, flags):
+def AddOverflowScalingFlag(parser):
+  """Add flag to enable overflow scaling."""
+  parser.add_argument(
+      '--overflow-scaling',
+      hidden=True,
+      action=arg_parsers.StoreTrueFalseAction,
+      help=(
+          'Whether to start instances for new requests when no capacity is'
+          ' available on existing instances. This behavior is enabled by'
+          ' default i.e. Overflow instances will be started if a request cannot'
+          ' be handled by the existing instances. Enables rapid scaling in'
+          ' response to traffic spikes. When disabled, only Scheduled instances'
+          ' will be started, based on the configured scaling factors and'
+          ' targets. Use --overflow-scaling to enable and --no-overflow-scaling'
+          ' to disable.'
+      ),
+  )
+
+
+def HasChanges(args, flags):
   """True iff any of the passed flags are set."""
   return any(FlagIsExplicitlySet(args, flag) for flag in flags)
 
 
-def _HasEnvChanges(args):
+def HasEnvChanges(args):
   """True iff any of the env var flags are set."""
   env_flags = [
       'update_env_vars',
@@ -1949,10 +2181,10 @@ def _HasEnvChanges(args):
       'clear_env_vars',
       'env_vars_file',
   ]
-  return _HasChanges(args, env_flags)
+  return HasChanges(args, env_flags)
 
 
-def _HasCloudSQLChanges(args):
+def HasCloudSQLChanges(args):
   """True iff any of the cloudsql flags are set."""
   instances_flags = [
       'add_cloudsql_instances',
@@ -1960,25 +2192,25 @@ def _HasCloudSQLChanges(args):
       'remove_cloudsql_instances',
       'clear_cloudsql_instances',
   ]
-  return _HasChanges(args, instances_flags)
+  return HasChanges(args, instances_flags)
 
 
-def _EnabledCloudSqlApiRequired(args):
+def EnabledCloudSqlApiRequired(args):
   """True iff flags that add or set cloud sql instances are set."""
   instances_flags = (
       'add_cloudsql_instances',
       'set_cloudsql_instances',
   )
-  return _HasChanges(args, instances_flags)
+  return HasChanges(args, instances_flags)
 
 
-def _HasLabelChanges(args):
+def HasLabelChanges(args):
   """True iff any of the label flags are set."""
   label_flags = ['labels', 'update_labels', 'clear_labels', 'remove_labels']
-  return _HasChanges(args, label_flags)
+  return HasChanges(args, label_flags)
 
 
-def _HasSecretsChanges(args):
+def HasSecretsChanges(args):
   """True iff any of the secret flags are set."""
   secret_flags = [
       'update_secrets',
@@ -1986,7 +2218,7 @@ def _HasSecretsChanges(args):
       'remove_secrets',
       'clear_secrets',
   ]
-  return _HasChanges(args, secret_flags)
+  return HasChanges(args, secret_flags)
 
 
 def _HasConfigMapsChanges(args):
@@ -1997,25 +2229,25 @@ def _HasConfigMapsChanges(args):
       'remove_config_maps',
       'clear_config_maps',
   ]
-  return _HasChanges(args, config_maps_flags)
+  return HasChanges(args, config_maps_flags)
 
 
 def _HasTrafficTagsChanges(args):
   """True iff any of the traffic tags flags are set."""
   tags_flags = ['update_tags', 'set_tags', 'remove_tags', 'clear_tags']
-  return _HasChanges(args, tags_flags)
+  return HasChanges(args, tags_flags)
 
 
 def _HasTrafficChanges(args):
   """True iff any of the traffic flags are set."""
   traffic_flags = ['to_revisions', 'to_tags', 'to_latest']
-  return _HasChanges(args, traffic_flags) or _HasTrafficTagsChanges(args)
+  return HasChanges(args, traffic_flags) or _HasTrafficTagsChanges(args)
 
 
-def _HasInstanceSplitChanges(args):
+def HasInstanceSplitChanges(args):
   """True iff any of the instance split flags are set."""
   traffic_flags = ['to_revisions', 'to_latest']
-  return _HasChanges(args, traffic_flags)
+  return HasChanges(args, traffic_flags)
 
 
 def _HasCustomAudiencesChanges(args):
@@ -2026,7 +2258,7 @@ def _HasCustomAudiencesChanges(args):
       'remove_custom_audiences',
       'clear_custom_audiences',
   ]
-  return _HasChanges(args, instances_flags)
+  return HasChanges(args, instances_flags)
 
 
 def HasExecutionOverrides(args):
@@ -2036,27 +2268,35 @@ def HasExecutionOverrides(args):
       'task_timeout',
       'tasks',
   ]
-  return _HasChanges(args, overrides_flags)
+  return HasChanges(args, overrides_flags) or FlagIsExplicitlySet(
+      args, 'containers'
+  )
 
 
 def HasContainerOverrides(args):
+  return HasTopLevelContainerOverride(args) or FlagIsExplicitlySet(
+      args, 'containers'
+  )
+
+
+def HasTopLevelContainerOverride(args):
   overrides_flags = [
       'args',
       'update_env_vars',
   ]
-  return _HasChanges(args, overrides_flags)
+  return HasChanges(args, overrides_flags)
 
 
 def _GetEnvChanges(args, **kwargs):
   """Return config_changes.EnvVarLiteralChanges for given args."""
   return config_changes.EnvVarLiteralChanges(
-      updates=_StripKeys(
+      updates=StripKeys(
           getattr(args, 'update_env_vars', None)
           or args.set_env_vars
           or args.env_vars_file
           or {}
       ),
-      removes=_MapLStrip(getattr(args, 'remove_env_vars', None) or []),
+      removes=MapLStrip(getattr(args, 'remove_env_vars', None) or []),
       clear_others=bool(
           args.set_env_vars or args.env_vars_file or args.clear_env_vars
       ),
@@ -2101,9 +2341,11 @@ def _GetScalingChanges(args):
 def _GetServiceScalingChanges(args):
   """Return the changes for service-level scaling for the given args."""
   result = []
-  if 'service_min_instances' in args and args.service_min_instances is not None:
-    scale_value = args.service_min_instances
-    if scale_value.restore_default or scale_value.instance_count == 0:
+  min_scale_value = getattr(args, 'service_min_instances', None) or getattr(
+      args, 'min', None
+  )
+  if min_scale_value is not None:
+    if min_scale_value.restore_default or min_scale_value.instance_count == 0:
       result.append(
           config_changes.DeleteAnnotationChange(
               service.SERVICE_MIN_SCALE_ANNOTATION
@@ -2113,76 +2355,67 @@ def _GetServiceScalingChanges(args):
       result.append(
           config_changes.SetAnnotationChange(
               service.SERVICE_MIN_SCALE_ANNOTATION,
-              str(scale_value.instance_count),
+              str(min_scale_value.instance_count),
           )
       )
-  if 'max_surge' in args and args.max_surge is not None:
-    max_surge_value = args.max_surge
-    if max_surge_value.restore_default or max_surge_value.surge_percent == 0:
+
+  max_scale_value = getattr(args, 'service_max_instances', None) or getattr(
+      args, 'max', None
+  )
+  if max_scale_value is not None:
+    if getattr(args, 'scaling', None) and not args.scaling.auto_scaling:
+      # TODO(b/373873152): this validation should expand to service min instance
+      # once we enforce the use of manual instance count for manual scaling.
+      raise serverless_exceptions.ConfigurationError(
+          'Cannot set service max instances when scaling mode is manual.'
+      )
+    result.append(
+        config_changes.SetAnnotationChange(
+            service.SERVICE_MAX_SCALE_ANNOTATION,
+            str(max_scale_value.instance_count),
+        )
+    )
+  if 'scaling' in args and args.scaling is not None:
+    scaling_val = args.scaling
+    # Automatic scaling mode
+    if scaling_val.auto_scaling:
+      # Remove manual instance count annotation
       result.append(
           config_changes.DeleteAnnotationChange(
-              service.SERVICE_MAX_SURGE_ANNOTATION
+              service.MANUAL_INSTANCE_COUNT_ANNOTATION
           )
       )
-    else:
       result.append(
           config_changes.SetAnnotationChange(
-              service.SERVICE_MAX_SURGE_ANNOTATION,
-              str(max_surge_value.surge_percent),
+              service.SERVICE_SCALING_MODE_ANNOTATION,
+              _SCALING_MODE_AUTOMATIC,
           )
       )
-  return result
-
-
-def _GetWorkerScalingChanges(args):
-  """Return the changes for engine-level scaling for Worker resources for the given args."""
-  result = []
-  # TODO(b/322180968): Once Worker API is ready, replace Service related
-  # references and switch max instance implementation to engine-level.
-  if 'min_instances' in args and args.min_instances is not None:
-    scale_value = args.min_instances
-    if scale_value.restore_default or scale_value.instance_count == 0:
+    # Manual scaling mode with flag value as an instance count.
+    else:
+      # Remove service min annotation
       result.append(
           config_changes.DeleteAnnotationChange(
               service.SERVICE_MIN_SCALE_ANNOTATION
           )
       )
-    else:
-      result.append(
-          config_changes.SetAnnotationChange(
-              service.SERVICE_MIN_SCALE_ANNOTATION,
-              str(scale_value.instance_count),
-          )
-      )
-  # Until Worker API is ready with engine-level max instance support,
-  # we go with version-level max scaling here.
-  if 'max_instances' in args and args.max_instances is not None:
-    scale_value = args.max_instances
-    if scale_value.restore_default:
-      result.append(
-          config_changes.DeleteTemplateAnnotationChange(
-              revision.MAX_SCALE_ANNOTATION
-          )
-      )
-    else:
-      result.append(
-          config_changes.SetTemplateAnnotationChange(
-              revision.MAX_SCALE_ANNOTATION, str(scale_value.instance_count)
-          )
-      )
-  if 'max_surge' in args and args.max_surge is not None:
-    max_surge_value = args.max_surge
-    if max_surge_value.restore_default or max_surge_value.surge_percent == 0:
+      # Remove service max annotation
       result.append(
           config_changes.DeleteAnnotationChange(
-              service.SERVICE_MAX_SURGE_ANNOTATION
+              service.SERVICE_MAX_SCALE_ANNOTATION
           )
       )
-    else:
+      # Add scaling mode 'manual' and manual instance count annotation
       result.append(
           config_changes.SetAnnotationChange(
-              service.SERVICE_MAX_SURGE_ANNOTATION,
-              str(max_surge_value.surge_percent),
+              service.SERVICE_SCALING_MODE_ANNOTATION,
+              _SCALING_MODE_MANUAL,
+          )
+      )
+      result.append(
+          config_changes.SetAnnotationChange(
+              service.MANUAL_INSTANCE_COUNT_ANNOTATION,
+              str(scaling_val.instance_count),
           )
       )
   return result
@@ -2212,7 +2445,7 @@ def _GetSecretsChanges(args, container_name=None):
   volume_kwargs = {}
   env_kwargs = {}
 
-  updates = _StripKeys(
+  updates = StripKeys(
       getattr(args, 'update_secrets', None) or args.set_secrets or {}
   )
   volume_kwargs['updates'] = {
@@ -2226,7 +2459,7 @@ def _GetSecretsChanges(args, container_name=None):
       if not _IsVolumeMountKey(k)
   }
 
-  removes = _MapLStrip(getattr(args, 'remove_secrets', None) or [])
+  removes = MapLStrip(getattr(args, 'remove_secrets', None) or [])
   volume_kwargs['removes'] = [k for k in removes if _IsVolumeMountKey(k)]
   env_kwargs['removes'] = [k for k in removes if not _IsVolumeMountKey(k)]
 
@@ -2255,7 +2488,7 @@ def _GetConfigMapsChanges(args):
   volume_kwargs = {}
   env_kwargs = {}
 
-  updates = _StripKeys(
+  updates = StripKeys(
       getattr(args, 'update_config_maps', None) or args.set_config_maps or {}
   )
   volume_kwargs['updates'] = {
@@ -2265,7 +2498,7 @@ def _GetConfigMapsChanges(args):
       k: v for k, v in updates.items() if not _IsVolumeMountKey(k)
   }
 
-  removes = _MapLStrip(getattr(args, 'remove_config_maps', None) or [])
+  removes = MapLStrip(getattr(args, 'remove_config_maps', None) or [])
   volume_kwargs['removes'] = [k for k in removes if _IsVolumeMountKey(k)]
   env_kwargs['removes'] = [k for k in removes if not _IsVolumeMountKey(k)]
 
@@ -2281,6 +2514,19 @@ def _GetConfigMapsChanges(args):
   if any(volume_kwargs.values()):
     config_maps_changes.append(
         config_changes.ConfigMapVolumeChanges(**volume_kwargs)
+    )
+  return config_maps_changes
+
+
+def _GetOverFlowScalingChanges(args):
+  """Return overflow scaling changes for given args."""
+  config_maps_changes = []
+  if FlagIsExplicitlySet(args, 'overflow_scaling'):
+    config_maps_changes.append(
+        config_changes.SetTemplateAnnotationChange(
+            revision.OVERFLOW_SCALING_ANNOTATION,
+            str(args.overflow_scaling).lower(),
+        )
     )
   return config_maps_changes
 
@@ -2313,7 +2559,7 @@ _CLOUD_SQL_API_SERVICE_TOKEN = 'sql-component.googleapis.com'
 _CLOUD_SQL_ADMIN_API_SERVICE_TOKEN = 'sqladmin.googleapis.com'
 
 
-def _CheckCloudSQLApiEnablement():
+def CheckCloudSQLApiEnablement():
   if not properties.VALUES.core.should_prompt_to_enable_api.GetBool():
     return
   try:
@@ -2355,26 +2601,6 @@ def _GetTrafficChanges(args):
       update_tags,
       remove_tags,
       clear_other_tags,
-  )
-
-
-# TODO(b/322180968): Once Worker API is added, use InstanceSplit message.
-def _GetInstanceSplitChanges(args):
-  """Returns a changes for instance split based on the flags."""
-  if args.to_latest:
-    # Mutually exclusive flag with to-revisions
-    new_percentages = {traffic.LATEST_REVISION_KEY: 100}
-  elif args.to_revisions:
-    new_percentages = args.to_revisions
-  else:
-    new_percentages = {}
-
-  return config_changes.TrafficChanges(
-      new_percentages,
-      False,  # by_tag
-      {},  # update_tags
-      [],  # remove_tags
-      False,  # clear_other_tags
   )
 
 
@@ -2457,16 +2683,16 @@ def _GetConfigurationChanges(args, release_track=base.ReleaseTrack.GA):
   if hasattr(args, 'image') and args.image is not None:
     changes.append(config_changes.ImageChange(args.image))
 
-  if _HasEnvChanges(args):
+  if HasEnvChanges(args):
     changes.append(_GetEnvChanges(args))
 
-  if _HasCloudSQLChanges(args):
+  if HasCloudSQLChanges(args):
     region = GetRegion(args)
     project = getattr(
         args, 'project', None
     ) or properties.VALUES.core.project.Get(required=True)
-    if _EnabledCloudSqlApiRequired(args):
-      _CheckCloudSQLApiEnablement()
+    if EnabledCloudSqlApiRequired(args):
+      CheckCloudSQLApiEnablement()
     changes.append(
         config_changes.CloudSQLChanges.FromArgs(
             project=project, region=region, args=args
@@ -2496,7 +2722,7 @@ def _GetConfigurationChanges(args, release_track=base.ReleaseTrack.GA):
             args.remove_volume, args.clear_volumes
         )
     )
-  if _HasSecretsChanges(args):
+  if HasSecretsChanges(args):
     changes.extend(_GetSecretsChanges(args))
   if FlagIsExplicitlySet(args, 'add_volume') and args.add_volume:
     changes.append(
@@ -2516,13 +2742,42 @@ def _GetConfigurationChanges(args, release_track=base.ReleaseTrack.GA):
     changes.append(config_changes.ResourceChanges(memory=args.memory))
   if 'gpu' in args and args.gpu:
     changes.append(config_changes.ResourceChanges(gpu=args.gpu))
+    if args.gpu == '0':
+      changes.append(config_changes.GpuTypeChange(gpu_type=''))
+  if FlagIsExplicitlySet(args, 'gpu_zonal_redundancy'):
+    changes.append(
+        config_changes.GpuZonalRedundancyChange(
+            gpu_zonal_redundancy=args.gpu_zonal_redundancy
+        )
+    )
+  if FlagIsExplicitlySet(args, 'startup_probe'):
+    if args.startup_probe:
+      changes.append(
+          config_changes.StartupProbeChanges(settings=args.startup_probe)
+      )
+    else:
+      changes.append(config_changes.StartupProbeChanges(clear=True))
+  if FlagIsExplicitlySet(args, 'liveness_probe'):
+    if args.liveness_probe:
+      changes.append(
+          config_changes.LivenessProbeChanges(settings=args.liveness_probe)
+      )
+    else:
+      changes.append(config_changes.LivenessProbeChanges(clear=True))
+  if FlagIsExplicitlySet(args, 'readiness_probe'):
+    if args.readiness_probe:
+      changes.append(
+          config_changes.ReadinessProbeChanges(settings=args.readiness_probe)
+      )
+    else:
+      changes.append(config_changes.ReadinessProbeChanges(clear=True))
   if 'service_account' in args and args.service_account:
     changes.append(
         config_changes.ServiceAccountChanges(
             service_account=args.service_account
         )
     )
-  if _HasLabelChanges(args):
+  if HasLabelChanges(args):
     additions = (
         args.labels
         if FlagIsExplicitlySet(args, 'labels')
@@ -2678,8 +2933,9 @@ def _GetConfigurationChanges(args, release_track=base.ReleaseTrack.GA):
   if FlagIsExplicitlySet(args, 'mesh'):
     if args.mesh:
       changes.append(
-          config_changes.SetTemplateAnnotationChange(
-              revision.MESH_ANNOTATION, args.mesh
+          config_changes.SetServiceMeshChange(
+              project=properties.VALUES.core.project.Get(required=True),
+              mesh_name=args.mesh,
           )
       )
     else:
@@ -2688,6 +2944,33 @@ def _GetConfigurationChanges(args, release_track=base.ReleaseTrack.GA):
               revision.MESH_ANNOTATION
           )
       )
+  if FlagIsExplicitlySet(args, 'identity'):
+    if args.identity:
+      changes.append(
+          config_changes.SetTemplateAnnotationChange(
+              revision.IDENTITY_ANNOTATION, args.identity
+          )
+      )
+    else:
+      changes.append(
+          config_changes.DeleteTemplateAnnotationChange(
+              revision.IDENTITY_ANNOTATION
+          )
+      )
+  if FlagIsExplicitlySet(args, 'enable_workload_certificate'):
+    changes.append(
+        config_changes.SetTemplateAnnotationChange(
+            revision.ENABLE_WORKLOAD_CERTIFICATE_ANNOTATION,
+            str(args.enable_workload_certificate).lower(),
+        )
+    )
+  if FlagIsExplicitlySet(args, 'mesh_dataplane'):
+    changes.append(
+        config_changes.SetTemplateAnnotationChange(
+            revision.MESH_DATAPLANE_ANNOTATION,
+            args.mesh_dataplane,
+        )
+    )
 
   if FlagIsExplicitlySet(args, 'base_image'):
     changes.append(
@@ -2701,7 +2984,19 @@ def _GetConfigurationChanges(args, release_track=base.ReleaseTrack.GA):
             base_image=None
         )
     )
+  if FlagIsExplicitlySet(args, 'preset'):
+    changes.append(
+        config_changes.PresetChange(
+            type=args.preset['name'], config=args.preset['params']
+        )
+    )
 
+  if FlagIsExplicitlySet(args, 'clear_presets'):
+    changes.append(
+        config_changes.RemovePresetsChange(
+            clear_presets=args.clear_presets
+        )
+    )
   return changes
 
 
@@ -2716,7 +3011,7 @@ def _GetContainerConfigurationChanges(container_args, container_name=None):
             container_args.image, container_name=container_name
         )
     )
-  if _HasEnvChanges(container_args):
+  if HasEnvChanges(container_args):
     changes.append(
         _GetEnvChanges(container_args, container_name=container_name)
     )
@@ -2732,6 +3027,48 @@ def _GetContainerConfigurationChanges(container_args, container_name=None):
             memory=container_args.memory, container_name=container_name
         )
     )
+  if FlagIsExplicitlySet(container_args, 'startup_probe'):
+    if container_args.startup_probe:
+      changes.append(
+          config_changes.StartupProbeChanges(
+              settings=container_args.startup_probe,
+              container_name=container_name,
+          )
+      )
+    else:
+      changes.append(
+          config_changes.StartupProbeChanges(
+              clear=True, container_name=container_name
+          )
+      )
+  if FlagIsExplicitlySet(container_args, 'liveness_probe'):
+    if container_args.liveness_probe:
+      changes.append(
+          config_changes.LivenessProbeChanges(
+              settings=container_args.liveness_probe,
+              container_name=container_name,
+          )
+      )
+    else:
+      changes.append(
+          config_changes.LivenessProbeChanges(
+              clear=True, container_name=container_name
+          )
+      )
+  if FlagIsExplicitlySet(container_args, 'readiness_probe'):
+    if container_args.readiness_probe:
+      changes.append(
+          config_changes.ReadinessProbeChanges(
+              settings=container_args.liveness_probe,
+              container_name=container_name,
+          )
+      )
+    else:
+      changes.append(
+          config_changes.ReadinessProbeChanges(
+              clear=True, container_name=container_name
+          )
+      )
   # TODO(b/332909160): Change to IsKnown when gpu flags goes GA
   if container_args.IsKnownAndSpecified('gpu'):
     changes.append(
@@ -2763,7 +3100,7 @@ def _GetContainerConfigurationChanges(container_args, container_name=None):
             container_name=container_name,
         )
     )
-  if _HasSecretsChanges(container_args):
+  if HasSecretsChanges(container_args):
     changes.extend(
         _GetSecretsChanges(container_args, container_name=container_name)
     )
@@ -2775,6 +3112,19 @@ def _GetContainerConfigurationChanges(container_args, container_name=None):
         )
     )
   return changes
+
+
+def _GetIapChanges(args):
+  """Returns the list of changes for IAP for given args."""
+  if getattr(args, 'iap', None) is None:
+    # flag not specified in the current command, carry over the existing value
+    # on the Service
+    return []
+
+  if args.iap:
+    return [config_changes.SetAnnotationChange(service.IAP_ANNOTATION, 'true')]
+  else:
+    return [config_changes.DeleteAnnotationChange(service.IAP_ANNOTATION)]
 
 
 def GetServiceConfigurationChanges(args, release_track=base.ReleaseTrack.GA):
@@ -2794,7 +3144,7 @@ def GetServiceConfigurationChanges(args, release_track=base.ReleaseTrack.GA):
   if 'update_annotations' in args and args.update_annotations:
     for key, value in args.update_annotations.items():
       changes.append(config_changes.SetAnnotationChange(key, value))
-  if 'revision_suffix' in args and args.revision_suffix:
+  if FlagIsExplicitlySet(args, 'revision_suffix'):
     changes.append(config_changes.RevisionNameChanges(args.revision_suffix))
   if 'connectivity' in args and args.connectivity:
     if args.connectivity == 'internal':
@@ -2807,7 +3157,7 @@ def GetServiceConfigurationChanges(args, release_track=base.ReleaseTrack.GA):
     changes.append(config_changes.ContainerPortChange(port=args.port))
   if FlagIsExplicitlySet(args, 'use_http2'):
     changes.append(config_changes.ContainerPortChange(use_http2=args.use_http2))
-  if FlagIsExplicitlySet(args, 'tag'):
+  if FlagIsExplicitlySet(args, 'tag') and args.tag:
     # MUST be after 'revision_suffix' change
     changes.append(config_changes.TagOnDeployChange(args.tag))
   if FlagIsExplicitlySet(args, 'cpu_throttling'):
@@ -2880,6 +3230,9 @@ def GetServiceConfigurationChanges(args, release_track=base.ReleaseTrack.GA):
     changes.append(
         config_changes.MultiRegionDomainNameChange(domain_name=args.domain)
     )
+
+  changes.extend(_GetIapChanges(args))
+  changes.extend(_GetOverFlowScalingChanges(args))
   return changes
 
 
@@ -2928,6 +3281,8 @@ def GetJobConfigurationChanges(args, release_track=base.ReleaseTrack.GA):
     changes.append(config_changes.JobMaxRetriesChange(args.max_retries))
   if FlagIsExplicitlySet(args, 'task_timeout'):
     changes.append(config_changes.JobTaskTimeoutChange(args.task_timeout))
+  if 'gpu_type' in args and args.gpu_type:
+    changes.append(config_changes.GpuTypeChange(gpu_type=args.gpu_type))
 
   _PrependClientNameAndVersionChange(args, changes)
 
@@ -2945,74 +3300,28 @@ def GetJobConfigurationChanges(args, release_track=base.ReleaseTrack.GA):
   return changes
 
 
-def GetRunJobConfigurationOverrides(args):
-  """Returns a list of overrides to the job config."""
-  overrides = []
+def GetExecutionOverridesChangesForValidation(args):
+  """Returns a list of config changes caused by overrides for validation."""
+  changes = []
+  # Include env var overrides to prevent from overriding secrets/config_maps
+  # that could also be mapped as env vars.
   if FlagIsExplicitlySet(args, 'update_env_vars'):
-    overrides.append(
+    changes.append(
         config_changes.EnvVarLiteralChanges(
-            updates=_StripKeys(getattr(args, 'update_env_vars', None) or {}),
+            updates=StripKeys(getattr(args, 'update_env_vars', None) or {}),
         )
     )
-  return overrides
-
-
-# TODO(b/322180968): There exist a few configurations that are "locked" while
-# calling Services API for Workers.
-# These will be done in the server side once Worker API is ready.
-def GetWorkerConfigurationChanges(
-    args, release_track=base.ReleaseTrack.ALPHA, for_update=False
-):
-  """Returns a list of changes to the worker config, based on the flags set."""
-  changes = []
-  # For private preview, Worker is CR Service configured in specific way.
-  # This "locked" configuration could just happen once when created,
-  # but unnecessary for following updates.
-  if not for_update:
-    # ingress = none
-    changes.append(
-        config_changes.SetAnnotationChange(service.INGRESS_ANNOTATION, 'none')
-    )
-    # cpu is always on
-    changes.append(config_changes.CpuThrottlingChange(throttling=False))
-    # healthcheck disabled by default
-    changes.append(config_changes.HealthCheckChange(health_check=False))
-    # disable default url
-    changes.append(config_changes.DefaultUrlChange(default_url=False))
-    changes.append(config_changes.SandboxChange('gen2'))
-
-  changes.extend(_GetConfigurationChanges(args, release_track=release_track))
-  changes.extend(_GetWorkerScalingChanges(args))
-  if _HasInstanceSplitChanges(args):
-    changes.append(_GetInstanceSplitChanges(args))
-  if 'no_promote' in args and args.no_promote:
-    changes.append(config_changes.NoPromoteChange())
-  if 'update_annotations' in args and args.update_annotations:
-    for key, value in args.update_annotations.items():
-      changes.append(config_changes.SetAnnotationChange(key, value))
-  if 'revision_suffix' in args and args.revision_suffix:
-    changes.append(config_changes.RevisionNameChanges(args.revision_suffix))
-  if 'gpu_type' in args and args.gpu_type:
-    changes.append(config_changes.GpuTypeChange(gpu_type=args.gpu_type))
-
-  _PrependClientNameAndVersionChange(args, changes)
-
-  if FlagIsExplicitlySet(args, 'depends_on'):
-    changes.append(
-        config_changes.ContainerDependenciesChange({'': args.depends_on})
-    )
-
   if FlagIsExplicitlySet(args, 'containers'):
-    dependency_changes = {
-        container_name: container_args.depends_on
-        for container_name, container_args in args.containers.items()
-        if container_args.IsSpecified('depends_on')
-    }
-    if dependency_changes:
-      changes.append(
-          config_changes.ContainerDependenciesChange(dependency_changes)
-      )
-
+    for container_name, container_args in args.containers.items():
+      if HasEnvChanges(container_args):
+        changes.append(
+            config_changes.EnvVarLiteralChanges(
+                updates=StripKeys(
+                    getattr(container_args, 'update_env_vars', None) or {}
+                ),
+                container_name=container_name,
+            )
+        )
   return changes
 
 
@@ -3080,6 +3389,17 @@ def GetMultiRegion(args):
   return regions
 
 
+def GetFirstRegion(args):
+  """Returns the first region if multi-region is defined. Empty otherwise."""
+  multi_region = GetMultiRegion(args)
+  if not multi_region:
+    return None
+  regions = multi_region.split(',')
+  if regions:
+    return regions[0]
+  return None
+
+
 def GetRegion(args, prompt=False, region_label=None):
   """Prompt for region if not provided.
 
@@ -3112,7 +3432,9 @@ def GetRegion(args, prompt=False, region_label=None):
       return region
 
 
-def GetAllowUnauthenticated(args, client=None, service_ref=None, prompt=False):
+def GetAllowUnauthenticated(
+    args, client=None, service_ref=None, prompt=False, region_override=None
+):
   """Return bool for the explicit intent to allow unauth invocations or None.
 
   If --[no-]allow-unauthenticated is set, return that value. If not set,
@@ -3125,15 +3447,13 @@ def GetAllowUnauthenticated(args, client=None, service_ref=None, prompt=False):
       serverless_operations.ServerlessOperations object
     service_ref: service resource reference (e.g. args.CONCEPTS.service.Parse())
     prompt: bool, whether to attempt to prompt.
+    region_override: If present, will use instead of currently selected region.
 
   Returns:
     bool indicating whether to allow/unallow unauthenticated or None if N/A
   """
   if getattr(args, 'allow_unauthenticated', None) is not None:
     return args.allow_unauthenticated
-
-  if FlagIsExplicitlySet(args, 'default_url') and not args.default_url:
-    return None
 
   if (
       FlagIsExplicitlySet(args, 'invoker_iam_check')
@@ -3143,7 +3463,9 @@ def GetAllowUnauthenticated(args, client=None, service_ref=None, prompt=False):
   if prompt:
     # Need to check if the user has permissions before we prompt
     assert client is not None and service_ref is not None
-    if client.CanSetIamPolicyBinding(service_ref):
+    if client.CanSetIamPolicyBinding(
+        service_ref, region_override=region_override
+    ):
       return console_io.PromptContinue(
           prompt_string='Allow unauthenticated invocations to [{}]'.format(
               service_ref.servicesId
@@ -3638,6 +3960,17 @@ def VerifyGKEFlags(args, release_track, product):
         )
     )
 
+  if FlagIsExplicitlySet(args, 'iap'):
+    raise serverless_exceptions.ConfigurationError(
+        error_msg.format(
+            flag='--iap',
+            platform=platforms.PLATFORM_MANAGED,
+            platform_desc=platforms.PLATFORM_SHORT_DESCRIPTIONS[
+                platforms.PLATFORM_MANAGED
+            ],
+        )
+    )
+
 
 def VerifyKubernetesFlags(args, release_track, product):
   """Raise ConfigurationError if args includes OnePlatform or GKE only arguments."""
@@ -3905,6 +4238,17 @@ def VerifyKubernetesFlags(args, release_track, product):
         )
     )
 
+  if FlagIsExplicitlySet(args, 'iap'):
+    raise serverless_exceptions.ConfigurationError(
+        error_msg.format(
+            flag='--iap',
+            platform=platforms.PLATFORM_MANAGED,
+            platform_desc=platforms.PLATFORM_SHORT_DESCRIPTIONS[
+                platforms.PLATFORM_MANAGED
+            ],
+        )
+    )
+
 
 def GetAndValidatePlatform(args, release_track, product):
   """Returns the platform to run on and validates specified flags.
@@ -3940,6 +4284,34 @@ def GetAndValidatePlatform(args, release_track, product):
         )
     )
   return platform
+
+
+def ValidateManagedPlatform(args, release_track, product):
+  """Validates the platform being 'managed' only and specified flags.
+
+  A given command only supports 'managed' platform, but not every flag is
+  supported by every platform. This method validates that platform set for the
+  given command is 'managed' and all specified flags
+  are supported by the 'managed' platform.
+
+  Args:
+    args: Namespace, The args namespace.
+    release_track: base.ReleaseTrack, calliope release track.
+    product: Product, which product the command was executed for (e.g. Run or
+      Events).
+
+  Raises:
+    ArgumentError if the platform type is not 'managed'.
+  """
+  platform = platforms.GetPlatform()
+  if platform != platforms.PLATFORM_MANAGED:
+    raise serverless_exceptions.ArgumentError(
+        'Invalid target platform specified: [{}].\n'
+        'This command is only supported for platform "managed".\n'.format(
+            platform
+        )
+    )
+  VerifyManagedFlags(args, release_track, product)
 
 
 def AddTaskFilterFlags(parser):
@@ -4049,15 +4421,30 @@ def SourceArg():
   )
 
 
-def AddSourceAndImageFlags(parser, image='gcr.io/cloudrun/hello:latest'):
-  """Add deploy source flags, an image or a source for build."""
-  SourceAndImageFlags(image=image).AddToParser(parser)
+def NoBuildArg():
+  return base.Argument(
+      '--no-build',
+      action='store_true',
+      default=False,
+      hidden=True,
+      help=(
+          'When set, the cloud build step will be skipped and the provided'
+          ' will be extracted directly on the base image.'
+      ),
+  )
 
 
-def SourceAndImageFlags(image='gcr.io/cloudrun/hello:latest'):
-  group = base.ArgumentGroup(mutex=True)
-  group.AddArgument(ImageArg(required=False, image=image))
+def SourceAndImageFlags(
+    image='us-docker.pkg.dev/cloudrun/container/hello:latest',
+    mutex=True,
+    release_track=base.ReleaseTrack.GA,
+):
+  """Returns a group of flags for deploy source, an image or source code."""
+  group = base.ArgumentGroup(mutex=mutex)
+  group.AddArgument(ImageArg(required=False, image=image, mutex=mutex))
   group.AddArgument(SourceArg())
+  if release_track == base.ReleaseTrack.ALPHA:
+    group.AddArgument(NoBuildArg())
   return group
 
 
@@ -4066,6 +4453,8 @@ def ContainerFlag():
 
   help_text = """
   Specifies a container by name. Flags following --container will apply to the specified container.
+
+  Flags that are not container-specific must be specified before --container.
   """
   return base.Argument(
       '--container',
@@ -4119,8 +4508,8 @@ def PromptForDefaultSource(container_name=None):
     source = console_io.PromptWithDefault(message=message, default=cwd)
 
     log.status.Print(
-        'Next time, use `gcloud run deploy --source .` '
-        'to deploy the current directory.\n'
+        'Next time, you can use `--source .` argument to deploy the current'
+        ' directory.\n'
     )
     return source
 
@@ -4152,11 +4541,32 @@ def AddDryRunFlag(parser):
   )
 
 
+def AddDevFlag(parser):
+  """Add --dev flag."""
+  parser.add_argument(
+      '--dev',
+      action='store_true',
+      default=False,
+      hidden=True,
+      help='If set to true, will execute the command in development mode.',
+  )
+
+
+def AddDebugFlag(parser):
+  """Add --debug or -d flag."""
+  parser.add_argument(
+      '-d',
+      '--debug',
+      action='store_true',
+      default=False,
+      help='If set to true, enables debug mode',
+  )
+
+
 def FunctionArg():
   """Specify that the deployed resource is a function."""
   return base.Argument(
       '--function',
-      hidden=True,
       help=(
           'Specifies that the deployed object is a function. If a value'
           ' is provided, that value is used as the entrypoint.'
@@ -4167,14 +4577,17 @@ def FunctionArg():
 # TODO(b/312784518) link to/list supported values
 def BaseImageArg():
   """Adds automatic base image update related flags."""
-  group = base.ArgumentGroup(mutex=True, hidden=True)
+  group = base.ArgumentGroup(mutex=True)
   group.AddArgument(
       base.Argument(
           '--base-image',
-          hidden=True,
           help=(
-              'Opts in to use automatic base image updates using the specified'
-              ' image.'
+              'Specifies the base image to be used for automatic base image'
+              ' updates. When deploying from source using the Google Cloud'
+              ' buildpacks, this flag will also override the base image used'
+              ' for the application image. See'
+              ' https://cloud.google.com/run/docs/configuring/services/automatic-base-image-updates'
+              ' for more details.'
           ),
       )
   )
@@ -4182,9 +4595,48 @@ def BaseImageArg():
       base.Argument(
           '--clear-base-image',
           action='store_true',
-          hidden=True,
-          help='Opts out of use of automatic base image updates.',
+          help='Opts out of automatic base image updates.',
       )
+  )
+  return group
+
+
+def AutomaticUpdatesFlag():
+  """Adds automatic base image update related flags."""
+  return base.Argument(
+      '--automatic-updates',
+      action=arg_parsers.StoreTrueFalseAction,
+      help=(
+          'Indicates whether automatic base image updates should be enabled for'
+          ' an image built from source.'
+      ),
+  )
+
+
+def BuildWorkerPoolMutexGroup():
+  """Add flags for specifying Cloud Build Custom Build Worker Pool."""
+  group = base.ArgumentGroup(mutex=True)
+  group.AddArgument(
+      base.Argument(
+          '--build-worker-pool',
+          help="""
+          Name of the Cloud Build Custom Worker Pool that should be used to build
+          the function. The format of this field is
+          `projects/${PROJECT}/locations/${LOCATION}/workerPools/${WORKERPOOL}`
+          where ${PROJECT} is the project id and ${LOCATION} is the location where
+          the worker pool is defined and ${WORKERPOOL} is the short name of the
+          worker pool.
+        """,
+      ),
+  )
+  group.AddArgument(
+      base.Argument(
+          '--clear-build-worker-pool',
+          action='store_true',
+          help="""
+          Clears the Cloud Build Custom Worker Pool field.
+        """,
+      ),
   )
   return group
 
@@ -4201,10 +4653,109 @@ def AddDelegateBuildsFlag(parser):
   """Adds flag to indicate using Build API for source deploy builds."""
   parser.add_argument(
       '--delegate-builds',
-      hidden=True,
       action='store_true',
       help="""\
       Specifies that the source deploy for run will use the Build API
       to submit the build.
       """,
+  )
+
+
+def BuildServiceAccountMutexGroup():
+  """Adds flags for configuring the build service account for Cloud Function."""
+  group = base.ArgumentGroup(mutex=True)
+  group.AddArgument(BuildServiceAccountFlag())
+  group.AddArgument(ClearBuildServiceAccountFlag())
+  return group
+
+
+def ServiceAccount(value: str):
+  """Define a Service acccount type which needs to follow the pattern projects/<projectId>/serviceAccounts/<serviceAccount>.
+
+  Args:
+    value: The service account provided by the user. Empty string is allowed
+      which means build service account will be cleared.
+
+  Returns:
+    The service account provided by the user after validation.
+  Raises:
+    ArgumentError if the service account value does not follow the pattern
+    projects/<projectId>/serviceAccounts/<serviceAccount>.
+  """
+  service_account_regex = re.compile(
+      r'^projects\/[^/]+\/serviceAccounts\/[^/]+$'
+  )
+  if value and not service_account_regex.match(value):
+    raise serverless_exceptions.ArgumentError(
+        'Invalid service account value [{}]. The service account value must '
+        'follow the pattern '
+        'projects/<projectId>/serviceAccounts/<serviceAccount>.'.format(value)
+    )
+  return value
+
+
+def BuildServiceAccountFlag():
+  """Adds flag to specify a service account to use for the build for source deploy builds."""
+  return base.Argument(
+      '--build-service-account',
+      type=ServiceAccount,
+      help="""\
+      Specifies the service account to use to execute the build. Applies only
+      to source deploy builds using the Build API.
+      """,
+  )
+
+
+def ClearBuildServiceAccountFlag():
+  """Adds flag to clear build service account."""
+  return base.Argument(
+      '--clear-build-service-account',
+      action='store_true',
+      help='Clears the Cloud Build service account field.',
+  )
+
+
+def ShouldRetryNoZonalRedundancy(args, error_message):
+  if (
+      serverless_exceptions.REDEPLOY_GPU_WITH_FLAG_MESSAGE not in error_message
+      or FlagIsExplicitlySet(args, 'gpu_zonal_redundancy')
+      or FlagIsExplicitlySet(args, 'quiet')
+  ):
+    return False
+  return console_io.PromptContinue(
+      prompt_string=error_message.replace(
+          serverless_exceptions.REDEPLOY_GPU_WITH_FLAG_MESSAGE,
+          'Would you like to deploy with no zonal redundancy instead?',
+      ),
+      default=True,
+      cancel_on_no=True,
+  )
+
+
+def AddPresetFlags(parser):
+  """Add the --preset flag and other preset related flags."""
+  group = parser.add_mutually_exclusive_group(hidden=True)
+  PresetFlag().AddToParser(group)
+  AddClearPresetFlag(group)
+
+
+def PresetFlag():
+  """Create a --preset flag."""
+  return base.Argument(
+      '--preset',
+      type=preset_arg.PresetArg(),
+      metavar='PRESET',
+      help='Specifies a preset to be used for the deployment.',
+      hidden=True,
+  )
+
+
+def AddClearPresetFlag(parser):
+  """Add the --clear-presets flag."""
+  parser.add_argument(
+      '--clear-presets',
+      help='Clears all presets from the deployment.',
+      action='store_true',
+      default=False,
+      hidden=True,
   )

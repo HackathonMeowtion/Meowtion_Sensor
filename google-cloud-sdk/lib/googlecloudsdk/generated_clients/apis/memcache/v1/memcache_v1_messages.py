@@ -103,6 +103,66 @@ class Empty(_messages.Message):
 
 
 
+class GetTagsRequest(_messages.Message):
+  r"""Request message for GetTags.
+
+  Fields:
+    name: Required. The full One Platform resource name of the service
+      resource.
+  """
+
+  name = _messages.StringField(1)
+
+
+class GetTagsResponse(_messages.Message):
+  r"""Response message for GetTags.
+
+  Messages:
+    TagsValue: Required. Tag keys/values directly bound to this resource. Each
+      item in the map must be expressed as " : ". For example:
+      "123/environment" : "production", "123/costCenter" : "marketing"
+
+  Fields:
+    name: Required. The full One Platform resource name of the service
+      resource.
+    tags: Required. Tag keys/values directly bound to this resource. Each item
+      in the map must be expressed as " : ". For example: "123/environment" :
+      "production", "123/costCenter" : "marketing"
+    tagsEtag: A checksum based on the current bindings. This field is always
+      set in server responses.
+  """
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class TagsValue(_messages.Message):
+    r"""Required. Tag keys/values directly bound to this resource. Each item
+    in the map must be expressed as " : ". For example: "123/environment" :
+    "production", "123/costCenter" : "marketing"
+
+    Messages:
+      AdditionalProperty: An additional property for a TagsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type TagsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a TagsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  name = _messages.StringField(1)
+  tags = _messages.MessageField('TagsValue', 2)
+  tagsEtag = _messages.StringField(3)
+
+
 class GoogleCloudMemcacheV1LocationMetadata(_messages.Message):
   r"""Metadata for the given google.cloud.location.Location.
 
@@ -280,6 +340,14 @@ class GoogleCloudSaasacceleratorManagementProvidersV1Instance(_messages.Message)
       service consumers do not recognize. This is a required field for tenants
       onboarding to Maintenance Window notifications (go/slm-rollout-
       maintenance-policies#prerequisites).
+    consumerProjectNumber: Optional. The consumer_project_number associated
+      with this Apigee instance. This field is added specifically to support
+      Apigee integration with SLM Rollout and UMM. It represents the numerical
+      project ID of the GCP project that consumes this Apigee instance. It is
+      used for SLM rollout notifications and UMM integration, enabling proper
+      mapping to customer projects and log delivery for Apigee instances. This
+      field complements consumer_project_id and may be used for specific
+      Apigee scenarios where the numerical ID is required.
     createTime: Output only. Timestamp when the resource was created.
     instanceType: Optional. The instance_type of this instance of format: proj
       ects/{project_number}/locations/{location_id}/instanceTypes/{instance_ty
@@ -526,22 +594,23 @@ class GoogleCloudSaasacceleratorManagementProvidersV1Instance(_messages.Message)
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
   consumerDefinedName = _messages.StringField(1)
-  createTime = _messages.StringField(2)
-  instanceType = _messages.StringField(3)
-  labels = _messages.MessageField('LabelsValue', 4)
-  maintenancePolicyNames = _messages.MessageField('MaintenancePolicyNamesValue', 5)
-  maintenanceSchedules = _messages.MessageField('MaintenanceSchedulesValue', 6)
-  maintenanceSettings = _messages.MessageField('GoogleCloudSaasacceleratorManagementProvidersV1MaintenanceSettings', 7)
-  name = _messages.StringField(8)
-  notificationParameters = _messages.MessageField('NotificationParametersValue', 9)
-  producerMetadata = _messages.MessageField('ProducerMetadataValue', 10)
-  provisionedResources = _messages.MessageField('GoogleCloudSaasacceleratorManagementProvidersV1ProvisionedResource', 11, repeated=True)
-  slmInstanceTemplate = _messages.StringField(12)
-  sloMetadata = _messages.MessageField('GoogleCloudSaasacceleratorManagementProvidersV1SloMetadata', 13)
-  softwareVersions = _messages.MessageField('SoftwareVersionsValue', 14)
-  state = _messages.EnumField('StateValueValuesEnum', 15)
-  tenantProjectId = _messages.StringField(16)
-  updateTime = _messages.StringField(17)
+  consumerProjectNumber = _messages.StringField(2)
+  createTime = _messages.StringField(3)
+  instanceType = _messages.StringField(4)
+  labels = _messages.MessageField('LabelsValue', 5)
+  maintenancePolicyNames = _messages.MessageField('MaintenancePolicyNamesValue', 6)
+  maintenanceSchedules = _messages.MessageField('MaintenanceSchedulesValue', 7)
+  maintenanceSettings = _messages.MessageField('GoogleCloudSaasacceleratorManagementProvidersV1MaintenanceSettings', 8)
+  name = _messages.StringField(9)
+  notificationParameters = _messages.MessageField('NotificationParametersValue', 10)
+  producerMetadata = _messages.MessageField('ProducerMetadataValue', 11)
+  provisionedResources = _messages.MessageField('GoogleCloudSaasacceleratorManagementProvidersV1ProvisionedResource', 12, repeated=True)
+  slmInstanceTemplate = _messages.StringField(13)
+  sloMetadata = _messages.MessageField('GoogleCloudSaasacceleratorManagementProvidersV1SloMetadata', 14)
+  softwareVersions = _messages.MessageField('SoftwareVersionsValue', 15)
+  state = _messages.EnumField('StateValueValuesEnum', 16)
+  tenantProjectId = _messages.StringField(17)
+  updateTime = _messages.StringField(18)
 
 
 class GoogleCloudSaasacceleratorManagementProvidersV1MaintenanceSchedule(_messages.Message):
@@ -806,6 +875,9 @@ class Instance(_messages.Message):
     LabelsValue: Resource labels to represent user-provided metadata. Refer to
       cloud documentation on labels for more details.
       https://cloud.google.com/compute/docs/labeling-resources
+    TagsValue: Optional. Tag keys/values directly bound to this resource. For
+      example: ``` "123/environment": "production", "123/costCenter":
+      "marketing" ```
 
   Fields:
     authorizedNetwork: The full name of the Google Compute Engine
@@ -849,7 +921,12 @@ class Instance(_messages.Message):
     reservedIpRangeId: Optional. Contains the id of allocated IP address
       ranges associated with the private service access connection for
       example, "test-default" associated with IP range 10.0.0.0/29.
+    satisfiesPzi: Optional. Output only. Reserved for future use.
+    satisfiesPzs: Optional. Output only. Reserved for future use.
     state: Output only. The state of this Memcached instance.
+    tags: Optional. Tag keys/values directly bound to this resource. For
+      example: ``` "123/environment": "production", "123/costCenter":
+      "marketing" ```
     updateTime: Output only. The time the instance was updated.
     zones: Zones in which Memcached nodes should be provisioned. Memcached
       nodes will be equally distributed across these zones. If not provided,
@@ -922,6 +999,32 @@ class Instance(_messages.Message):
 
     additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
 
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class TagsValue(_messages.Message):
+    r"""Optional. Tag keys/values directly bound to this resource. For
+    example: ``` "123/environment": "production", "123/costCenter":
+    "marketing" ```
+
+    Messages:
+      AdditionalProperty: An additional property for a TagsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type TagsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a TagsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
   authorizedNetwork = _messages.StringField(1)
   createTime = _messages.StringField(2)
   discoveryEndpoint = _messages.StringField(3)
@@ -938,9 +1041,12 @@ class Instance(_messages.Message):
   nodeCount = _messages.IntegerField(14, variant=_messages.Variant.INT32)
   parameters = _messages.MessageField('MemcacheParameters', 15)
   reservedIpRangeId = _messages.StringField(16, repeated=True)
-  state = _messages.EnumField('StateValueValuesEnum', 17)
-  updateTime = _messages.StringField(18)
-  zones = _messages.StringField(19, repeated=True)
+  satisfiesPzi = _messages.BooleanField(17)
+  satisfiesPzs = _messages.BooleanField(18)
+  state = _messages.EnumField('StateValueValuesEnum', 19)
+  tags = _messages.MessageField('TagsValue', 20)
+  updateTime = _messages.StringField(21)
+  zones = _messages.StringField(22, repeated=True)
 
 
 class InstanceMessage(_messages.Message):
@@ -1455,6 +1561,9 @@ class MemcacheProjectsLocationsListRequest(_messages.Message):
   r"""A MemcacheProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -1465,10 +1574,11 @@ class MemcacheProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class MemcacheProjectsLocationsOperationsCancelRequest(_messages.Message):
@@ -1806,6 +1916,111 @@ class Schedule(_messages.Message):
   startTime = _messages.MessageField('TimeOfDay', 3)
 
 
+class SetTagsRequest(_messages.Message):
+  r"""Request message for SetTags.
+
+  Messages:
+    TagsValue: Required. These bindings will override any bindings previously
+      set and will be effective immediately. Each item in the map must be
+      expressed as " : ". For example: "123/environment" : "production",
+      "123/costCenter" : "marketing"
+
+  Fields:
+    name: Required. The full One Platform resource name of the service
+      resource.
+    requestId: Optional. A unique identifier for this request. Must be a valid
+      UUID. This request is only idempotent if a `request_id` is provided.
+    tags: Required. These bindings will override any bindings previously set
+      and will be effective immediately. Each item in the map must be
+      expressed as " : ". For example: "123/environment" : "production",
+      "123/costCenter" : "marketing"
+    tagsEtag: Optional. A checksum based on the current bindings which can be
+      passed to prevent race conditions. If not passed, etag check would be
+      skipped.
+  """
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class TagsValue(_messages.Message):
+    r"""Required. These bindings will override any bindings previously set and
+    will be effective immediately. Each item in the map must be expressed as "
+    : ". For example: "123/environment" : "production", "123/costCenter" :
+    "marketing"
+
+    Messages:
+      AdditionalProperty: An additional property for a TagsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type TagsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a TagsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  name = _messages.StringField(1)
+  requestId = _messages.StringField(2)
+  tags = _messages.MessageField('TagsValue', 3)
+  tagsEtag = _messages.StringField(4)
+
+
+class SetTagsResponse(_messages.Message):
+  r"""Response message for SetTags.
+
+  Messages:
+    TagsValue: Required. Tag keys/values directly bound to this resource. Each
+      item in the map must be expressed as " : ". For example:
+      "123/environment" : "production", "123/costCenter" : "marketing"
+
+  Fields:
+    name: Required. The full One Platform resource name of the service
+      resource.
+    tags: Required. Tag keys/values directly bound to this resource. Each item
+      in the map must be expressed as " : ". For example: "123/environment" :
+      "production", "123/costCenter" : "marketing"
+    tagsEtag: A checksum based on the current bindings. This field is always
+      set in server responses.
+  """
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class TagsValue(_messages.Message):
+    r"""Required. Tag keys/values directly bound to this resource. Each item
+    in the map must be expressed as " : ". For example: "123/environment" :
+    "production", "123/costCenter" : "marketing"
+
+    Messages:
+      AdditionalProperty: An additional property for a TagsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type TagsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a TagsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  name = _messages.StringField(1)
+  tags = _messages.MessageField('TagsValue', 2)
+  tagsEtag = _messages.StringField(3)
+
+
 class StandardQueryParameters(_messages.Message):
   r"""Query parameters accepted by all methods.
 
@@ -1926,13 +2141,16 @@ class TimeOfDay(_messages.Message):
   seconds. Related types are google.type.Date and `google.protobuf.Timestamp`.
 
   Fields:
-    hours: Hours of day in 24 hour format. Should be from 0 to 23. An API may
-      choose to allow the value "24:00:00" for scenarios like business closing
-      time.
-    minutes: Minutes of hour of day. Must be from 0 to 59.
-    nanos: Fractions of seconds in nanoseconds. Must be from 0 to 999,999,999.
-    seconds: Seconds of minutes of the time. Must normally be from 0 to 59. An
-      API may allow the value 60 if it allows leap-seconds.
+    hours: Hours of a day in 24 hour format. Must be greater than or equal to
+      0 and typically must be less than or equal to 23. An API may choose to
+      allow the value "24:00:00" for scenarios like business closing time.
+    minutes: Minutes of an hour. Must be greater than or equal to 0 and less
+      than or equal to 59.
+    nanos: Fractions of seconds, in nanoseconds. Must be greater than or equal
+      to 0 and less than or equal to 999,999,999.
+    seconds: Seconds of a minute. Must be greater than or equal to 0 and
+      typically must be less than or equal to 59. An API may allow the value
+      60 if it allows leap-seconds.
   """
 
   hours = _messages.IntegerField(1, variant=_messages.Variant.INT32)

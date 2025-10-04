@@ -14,10 +14,10 @@
 # limitations under the License.
 """Interconnect Attachment."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+import copy
+import json
 
+from apitools.base.py import encoding
 from googlecloudsdk.core import log
 
 
@@ -37,6 +37,7 @@ class InterconnectAttachment(object):
       'bps-10g': 'BPS_10G',
       'bps-20g': 'BPS_20G',
       'bps-50g': 'BPS_50G',
+      'bps-100g': 'BPS_100G',
       '50m': 'BPS_50M',
       '100m': 'BPS_100M',
       '200m': 'BPS_200M',
@@ -49,7 +50,14 @@ class InterconnectAttachment(object):
       '10g': 'BPS_10G',
       '20g': 'BPS_20G',
       '50g': 'BPS_50G',
+      '100g': 'BPS_100G',
   }
+
+  _BANDWIDTH_CONVERSION_WITH_400G = copy.deepcopy(_BANDWIDTH_CONVERSION)
+  _BANDWIDTH_CONVERSION_WITH_400G.update({
+      'bps-400g': 'BPS_400G',
+      '400g': 'BPS_400G',
+  })
 
   _EDGE_AVAILABILITY_DOMAIN_CONVERSION = {
       'availability-domain-1': 'AVAILABILITY_DOMAIN_1',
@@ -93,6 +101,14 @@ class InterconnectAttachment(object):
       customer_router_ipv6_interface_id,
       subnet_length,
       multicast_enabled,
+      candidate_cloud_router_ip_address,
+      candidate_customer_router_ip_address,
+      candidate_cloud_router_ipv6_address,
+      candidate_customer_router_ipv6_address,
+      network,
+      geneve_vni,
+      default_appliance_ip_address,
+      tunnel_endpoint_ip_address,
   ):
     """Make an interconnect attachment insert request."""
     interconnect_self_link = None
@@ -125,18 +141,63 @@ class InterconnectAttachment(object):
       attachment.ipsecInternalAddresses = ipsec_internal_addresses
 
     if stack_type is not None:
-      attachment.stackType = self._messages.InterconnectAttachment.StackTypeValueValuesEnum(
-          stack_type)
+      attachment.stackType = (
+          self._messages.InterconnectAttachment.StackTypeValueValuesEnum(
+              stack_type
+          )
+      )
     if candidate_ipv6_subnets is not None:
       attachment.candidateIpv6Subnets = candidate_ipv6_subnets
     if cloud_router_ipv6_interface_id is not None:
       attachment.cloudRouterIpv6InterfaceId = cloud_router_ipv6_interface_id
     if customer_router_ipv6_interface_id is not None:
-      attachment.customerRouterIpv6InterfaceId = customer_router_ipv6_interface_id
+      attachment.customerRouterIpv6InterfaceId = (
+          customer_router_ipv6_interface_id
+      )
     if subnet_length is not None:
       attachment.subnetLength = subnet_length
     if multicast_enabled is not None:
       attachment.multicastEnabled = multicast_enabled
+    if candidate_cloud_router_ip_address is not None:
+      attachment.candidateCloudRouterIpAddress = (
+          candidate_cloud_router_ip_address
+      )
+    if candidate_customer_router_ip_address is not None:
+      attachment.candidateCustomerRouterIpAddress = (
+          candidate_customer_router_ip_address
+      )
+    if candidate_cloud_router_ipv6_address is not None:
+      attachment.candidateCloudRouterIpv6Address = (
+          candidate_cloud_router_ipv6_address
+      )
+    if candidate_customer_router_ipv6_address is not None:
+      attachment.candidateCustomerRouterIpv6Address = (
+          candidate_customer_router_ipv6_address
+      )
+    if network is not None:
+      if attachment.l2Forwarding is None:
+        attachment.l2Forwarding = (
+            self._messages.InterconnectAttachmentL2Forwarding()
+        )
+      attachment.l2Forwarding.network = network.SelfLink()
+    if tunnel_endpoint_ip_address is not None:
+      if attachment.l2Forwarding is None:
+        attachment.l2Forwarding = (
+            self._messages.InterconnectAttachmentL2Forwarding()
+        )
+      attachment.l2Forwarding.tunnelEndpointIpAddress = (
+          tunnel_endpoint_ip_address
+      )
+    if geneve_vni is not None:
+      attachment.l2Forwarding.geneveHeader = (
+          self._messages.InterconnectAttachmentL2ForwardingGeneveHeader(
+              vni=geneve_vni,
+          )
+      )
+    if default_appliance_ip_address is not None:
+      attachment.l2Forwarding.defaultApplianceIpAddress = (
+          default_appliance_ip_address
+      )
 
     if validate_only is not None:
       return (self._client.interconnectAttachments, 'Insert',
@@ -165,6 +226,10 @@ class InterconnectAttachment(object):
       labels=None,
       label_fingerprint=None,
       multicast_enabled=None,
+      candidate_cloud_router_ipv6_address=None,
+      candidate_customer_router_ipv6_address=None,
+      geneve_vni=None,
+      default_appliance_ip_address=None,
   ):
     """Make an interconnect attachment patch request."""
     interconnect_attachment = self._messages.InterconnectAttachment(
@@ -197,6 +262,32 @@ class InterconnectAttachment(object):
       )
     if multicast_enabled is not None:
       interconnect_attachment.multicastEnabled = multicast_enabled
+    if candidate_cloud_router_ipv6_address is not None:
+      interconnect_attachment.candidateCloudRouterIpv6Address = (
+          candidate_cloud_router_ipv6_address
+      )
+    if candidate_customer_router_ipv6_address is not None:
+      interconnect_attachment.candidateCustomerRouterIpv6Address = (
+          candidate_customer_router_ipv6_address
+      )
+    if geneve_vni is not None:
+      if interconnect_attachment.l2Forwarding is None:
+        interconnect_attachment.l2Forwarding = (
+            self._messages.InterconnectAttachmentL2Forwarding()
+        )
+        interconnect_attachment.l2Forwarding.geneveHeader = (
+            self._messages.InterconnectAttachmentL2ForwardingGeneveHeader(
+                vni=geneve_vni,
+            )
+        )
+    if default_appliance_ip_address is not None:
+      if interconnect_attachment.l2Forwarding is None:
+        interconnect_attachment.l2Forwarding = (
+            self._messages.InterconnectAttachmentL2Forwarding()
+        )
+      interconnect_attachment.l2Forwarding.defaultApplianceIpAddress = (
+          default_appliance_ip_address
+      )
     return (self._client.interconnectAttachments, 'Patch',
             self._messages.ComputeInterconnectAttachmentsPatchRequest(
                 project=self.ref.project,
@@ -217,6 +308,147 @@ class InterconnectAttachment(object):
                 project=self.ref.project,
                 region=self.ref.region,
                 interconnectAttachment=self.ref.Name()))
+
+  def _MakePatchMappingRequestTuple(
+      self,
+      vlan_key,
+      appliance_name,
+      appliance_ip_address,
+      inner_vlan_to_appliance_mappings,
+  ):
+    """Make an interconnect attachment patch request for L2 mappings."""
+    attachment = self._messages.InterconnectAttachment(
+        name=self.ref.Name(),
+        l2Forwarding=self._messages.InterconnectAttachmentL2Forwarding(
+            applianceMappings=self._messages.InterconnectAttachmentL2Forwarding.ApplianceMappingsValue(
+                additionalProperties=[
+                    self._messages.InterconnectAttachmentL2Forwarding.ApplianceMappingsValue.AdditionalProperty(
+                        key=vlan_key,
+                        value=self._messages.InterconnectAttachmentL2ForwardingApplianceMapping(
+                            applianceIpAddress=appliance_ip_address,
+                            innerVlanToApplianceMappings=[],
+                            name=appliance_name,
+                        ),
+                    )
+                ],
+            ),
+        ),
+    )
+
+    for inner_mapping in inner_vlan_to_appliance_mappings:
+      attachment.l2Forwarding.applianceMappings.additionalProperties[
+          0
+      ].value.innerVlanToApplianceMappings.append(
+          self._messages.InterconnectAttachmentL2ForwardingApplianceMappingInnerVlanToApplianceMapping(
+              innerVlanTags=inner_mapping.get('innerVlanTags', []),
+              innerApplianceIpAddress=inner_mapping.get(
+                  'innerApplianceIpAddress', ''
+              ),
+          )
+      )
+
+    return (
+        self._client.interconnectAttachments,
+        'Patch',
+        self._messages.ComputeInterconnectAttachmentsPatchRequest(
+            project=self.ref.project,
+            region=self.ref.region,
+            interconnectAttachment=self.ref.Name(),
+            interconnectAttachmentResource=attachment,
+        ),
+    )
+
+  def _MakeRemoveMappingRequestTuple(
+      self,
+      vlan_key,
+  ):
+    """Make an interconnect attachment patch request for L2 mappings."""
+    def _NullValueEncoder(message):
+      def _EncodeApplianceMappings(message):
+        mapping = {}
+
+        if message.applianceIpAddress is not None:
+          mapping['applianceIpAddress'] = message.applianceIpAddress
+        if message.name is not None:
+          mapping['name'] = message.name
+
+        mapping['innerVlanToApplianceMappings'] = []
+        for inner_mapping in message.innerVlanToApplianceMappings:
+          mapping['innerVlanToApplianceMappings'].append({
+              'innerVlanTags': list(inner_mapping.innerVlanTags),
+              'innerApplianceIpAddress': inner_mapping.innerApplianceIpAddress,
+          })
+
+        return mapping
+
+      return json.dumps({
+          property.key: (
+              _EncodeApplianceMappings(property.value)
+              if property.value
+              else None
+          )
+          for property in message.additionalProperties
+      })
+
+    def _NullValueDecoder(data):
+      def _DecodeApplianceMappings(data):
+        value = (
+            self._messages.InterconnectAttachmentL2ForwardingApplianceMapping(
+                applianceIpAddress=data.get('applianceIpAddress', None),
+                innerVlanToApplianceMappings=[],
+                name=data.get('name', None),
+            )
+        )
+        for inner_mapping in data.get('innerVlanToApplianceMappings', []):
+          value.innerVlanToApplianceMappings.append(
+              self._messages.InterconnectAttachmentL2ForwardingApplianceMappingInnerVlanToApplianceMapping(
+                  innerVlanTags=inner_mapping.get('innerVlanTags', []),
+                  innerApplianceIpAddress=inner_mapping.get(
+                      'innerApplianceIpAddress', ''
+                  ),
+              )
+          )
+        return value
+
+      py_object = json.loads(data)
+      return self._messages.InterconnectAttachmentL2Forwarding.ApplianceMappingsValue(
+          additionalProperties=[
+              self._messages.InterconnectAttachmentL2Forwarding.ApplianceMappingsValue.AdditionalProperty(
+                  key=key,
+                  value=_DecodeApplianceMappings(value) if value else None,
+              )
+              for key, value in py_object.items()
+          ]
+      )
+
+    encoding.RegisterCustomMessageCodec(
+        encoder=_NullValueEncoder, decoder=_NullValueDecoder
+    )(self._messages.InterconnectAttachmentL2Forwarding.ApplianceMappingsValue)
+
+    attachment = self._messages.InterconnectAttachment(
+        name=self.ref.Name(),
+        l2Forwarding=self._messages.InterconnectAttachmentL2Forwarding(
+            applianceMappings=self._messages.InterconnectAttachmentL2Forwarding.ApplianceMappingsValue(
+                additionalProperties=[
+                    self._messages.InterconnectAttachmentL2Forwarding.ApplianceMappingsValue.AdditionalProperty(
+                        key=vlan_key,
+                        value=None,
+                    )
+                ],
+            ),
+        ),
+    )
+
+    return (
+        self._client.interconnectAttachments,
+        'Patch',
+        self._messages.ComputeInterconnectAttachmentsPatchRequest(
+            project=self.ref.project,
+            region=self.ref.region,
+            interconnectAttachment=self.ref.Name(),
+            interconnectAttachmentResource=attachment,
+        ),
+    )
 
   def Create(
       self,
@@ -245,18 +477,32 @@ class InterconnectAttachment(object):
       multicast_enabled=None,
       only_generate_request=False,
       validate_only=None,
+      candidate_cloud_router_ip_address=None,
+      candidate_customer_router_ip_address=None,
+      candidate_cloud_router_ipv6_address=None,
+      candidate_customer_router_ipv6_address=None,
+      network=None,
+      geneve_vni=None,
+      default_appliance_ip_address=None,
+      tunnel_endpoint_ip_address=None,
+      supports_400g=False,
   ):
     """Create an interconnectAttachment."""
     if edge_availability_domain is not None:
-      edge_availability_domain = (
-          self._messages.InterconnectAttachment
-          .EdgeAvailabilityDomainValueValuesEnum(
-              self
-              ._EDGE_AVAILABILITY_DOMAIN_CONVERSION[edge_availability_domain]))
+      edge_availability_domain = self._messages.InterconnectAttachment.EdgeAvailabilityDomainValueValuesEnum(
+          self._EDGE_AVAILABILITY_DOMAIN_CONVERSION[edge_availability_domain]
+      )
     if bandwidth is not None:
+      bandwidth_options = (
+          self._BANDWIDTH_CONVERSION_WITH_400G
+          if supports_400g
+          else self._BANDWIDTH_CONVERSION
+      )
       bandwidth = (
           self._messages.InterconnectAttachment.BandwidthValueValuesEnum(
-              self._BANDWIDTH_CONVERSION[bandwidth]))
+              bandwidth_options[bandwidth]
+          )
+      )
     if attachment_type is not None:
       attachment_type = (
           self._messages.InterconnectAttachment.TypeValueValuesEnum(
@@ -295,6 +541,14 @@ class InterconnectAttachment(object):
             customer_router_ipv6_interface_id,
             subnet_length,
             multicast_enabled,
+            candidate_cloud_router_ip_address,
+            candidate_customer_router_ip_address,
+            candidate_cloud_router_ipv6_address,
+            candidate_customer_router_ipv6_address,
+            network,
+            geneve_vni,
+            default_appliance_ip_address,
+            tunnel_endpoint_ip_address,
         )
     ]
     if not only_generate_request:
@@ -321,12 +575,24 @@ class InterconnectAttachment(object):
       only_generate_request=False,
       mtu=None,
       multicast_enabled=None,
+      candidate_cloud_router_ipv6_address=None,
+      candidate_customer_router_ipv6_address=None,
+      geneve_vni=None,
+      default_appliance_ip_address=None,
+      supports_400g=False,
   ):
     """Patch an interconnectAttachment."""
     if bandwidth:
+      bandwidth_options = (
+          self._BANDWIDTH_CONVERSION_WITH_400G
+          if supports_400g
+          else self._BANDWIDTH_CONVERSION
+      )
       bandwidth = (
           self._messages.InterconnectAttachment.BandwidthValueValuesEnum(
-              self._BANDWIDTH_CONVERSION[bandwidth]))
+              bandwidth_options[bandwidth]
+          )
+      )
     if (partner_interconnect is not None or partner_name is not None or
         partner_portal_url is not None):
       partner_metadata = self._messages.InterconnectAttachmentPartnerMetadata(
@@ -349,6 +615,10 @@ class InterconnectAttachment(object):
             labels,
             label_fingerprint,
             multicast_enabled,
+            candidate_cloud_router_ipv6_address,
+            candidate_customer_router_ipv6_address,
+            geneve_vni,
+            default_appliance_ip_address,
         )
     ]
     if not only_generate_request:
@@ -363,8 +633,88 @@ class InterconnectAttachment(object):
       return resources[0]
     return requests
 
+  def DescribeMapping(self, vlan_key=None, only_generate_request=False):
+    """Describe an interconnect attachment L2 inner mapping."""
+    requests = [self._MakeDescribeRequestTuple()]
+    if only_generate_request:
+      return requests
+
+    l2_forwarding = getattr(
+        self._compute_client.MakeRequests(requests)[0], 'l2Forwarding', None
+    )
+    appliance_mapping = getattr(l2_forwarding, 'applianceMappings', None)
+    inner_mapping = getattr(appliance_mapping, 'additionalProperties', [])
+    if vlan_key is not None:
+      for mapping in inner_mapping:
+        if mapping.key == vlan_key:
+          return {mapping.key: mapping.value}
+    return {}
+
+  def ListMapping(self, is_json=False, only_generate_request=False,):
+    """List all interconnect attachment L2 inner mappings."""
+    requests = [self._MakeDescribeRequestTuple()]
+    if only_generate_request:
+      return requests
+    l2_forwarding = getattr(
+        self._compute_client.MakeRequests(requests)[0], 'l2Forwarding', None
+    )
+    appliance_mapping = getattr(l2_forwarding, 'applianceMappings', None)
+    inner_mapping = getattr(appliance_mapping, 'additionalProperties', [])
+
+    if is_json:
+      return inner_mapping
+
+    list_results = []
+    for mapping in inner_mapping:
+      list_results.append({
+          'key': mapping.key,
+          'name': mapping.value.name,
+          'innerApplianceIpAddress': mapping.value.applianceIpAddress,
+      })
+    return list_results
+
   def Delete(self, only_generate_request=False):
     requests = [self._MakeDeleteRequestTuple()]
     if not only_generate_request:
       return self._compute_client.MakeRequests(requests)
+    return requests
+
+  def UpdateMapping(
+      self,
+      vlan_key=None,
+      appliance_name=None,
+      appliance_ip_address=None,
+      inner_vlan_to_appliance_mappings=None,
+      only_generate_request=False,
+  ):
+    """Add an interconnectAttachmen L2 appliance mapping."""
+    if inner_vlan_to_appliance_mappings is None:
+      inner_vlan_to_appliance_mappings = []
+    requests = [
+        self._MakePatchMappingRequestTuple(
+            vlan_key,
+            appliance_name,
+            appliance_ip_address,
+            inner_vlan_to_appliance_mappings,
+        )
+    ]
+    if not only_generate_request:
+      resources = self._compute_client.MakeRequests(requests)
+      return resources[0]
+    return requests
+
+  def RemoveMapping(
+      self,
+      vlan_key=None,
+      only_generate_request=False,
+  ):
+    """Remove an interconnectAttachment L2 appliance mapping."""
+    requests = [
+        self._MakeRemoveMappingRequestTuple(
+            vlan_key,
+        )
+    ]
+    if not only_generate_request:
+      resources = self._compute_client.MakeRequests(requests)
+      return resources[0]
     return requests

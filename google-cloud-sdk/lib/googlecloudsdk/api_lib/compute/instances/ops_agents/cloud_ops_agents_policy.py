@@ -21,6 +21,8 @@ import sys
 from typing import Any, Mapping, Optional
 
 from apitools.base.py import encoding
+from googlecloudsdk.api_lib.compute.instances.ops_agents import cloud_ops_agents_exceptions as exceptions
+from googlecloudsdk.core.resource import resource_property
 from googlecloudsdk.generated_clients.apis.osconfig.v1 import osconfig_v1_messages
 
 
@@ -28,20 +30,27 @@ _StrEnum = (
     (enum.StrEnum,) if sys.version_info[:2] >= (3, 11) else (str, enum.Enum)
 )
 
-_OPS_AGENTS_POLICY_KEYS = frozenset({'agents_rule', 'instance_filter'})
-
 
 @dataclasses.dataclass(repr=False)
 class OpsAgentsPolicy(object):
-  """An Ops Agent policy encapsulates the underlying VMM Policy.
+  """An Ops Agents policy encapsulates the underlying VMM Policy.
 
   Attr:
+    policy_id: the unique identifier for the policy. This will be the value of
+      the OSPolicyAssignment's name.
     agents_rule: the agents rule to be applied to VMs.
     instance_filter:
       [InstanceFilter](https://cloud.google.com/compute/docs/osconfig/rest/v1/projects.locations.osPolicyAssignments#InstanceFilter)
       Filters to select target VMs for an assignment. Only Ops Agent supported
       [osShortName](https://cloud.google.com/compute/docs/osconfig/rest/v1/projects.locations.osPolicyAssignments#inventory)
       values are allowed.
+    rollout_state:
+      The state of the policy's rollout, as defined by the OSPolicyAssignment's
+      [rolloutState](https://cloud.google.com/compute/docs/osconfig/rest/v1/projects.locations.osPolicyAssignments#rolloutstate)
+    update_time:
+      The time of the last update to the policy object, in RFC3339 format.
+      This will be the value of the OSPolicyAssignment's
+      [revisionCreateTime](https://cloud.google.com/compute/docs/osconfig/rest/v1/projects.locations.osPolicyAssignments#resource:-ospolicyassignment)
   """
 
   @dataclasses.dataclass(repr=False)
@@ -67,19 +76,33 @@ class OpsAgentsPolicy(object):
     def ToJson(self) -> str:
       """JSON single line format string."""
 
+      key_camel_cased_dict = {
+          resource_property.ConvertToCamelCase(key): value
+          for key, value in self.__dict__.items()
+      }
+
       return json.dumps(
-          self.__dict__, separators=(',', ':'), default=str, sort_keys=True
+          key_camel_cased_dict,
+          separators=(',', ':'),
+          default=str,
+          sort_keys=True,
       )
 
+  policy_id: str
   agents_rule: AgentsRule
   instance_filter: osconfig_v1_messages.OSPolicyAssignmentInstanceFilter
+  update_time: Optional[str] = None
+  rollout_state: Optional[str] = None
 
   def __repr__(self) -> str:
     """JSON single line format string representation for testing."""
 
     policy_map = {
-        'agents_rule': self.agents_rule,
-        'instance_filter': encoding.MessageToPyValue(self.instance_filter),
+        'policyId': self.policy_id,
+        'agentsRule': self.agents_rule,
+        'instanceFilter': encoding.MessageToPyValue(self.instance_filter),
+        'updateTime': self.update_time,
+        'rolloutState': self.rollout_state,
     }
 
     return json.dumps(
@@ -89,46 +112,73 @@ class OpsAgentsPolicy(object):
         sort_keys=True,
     )
 
+  def ToPyValue(self):
+
+    policy_map = {
+        'policyId': self.policy_id,
+        # Converting enum to string.
+        'agentsRule': json.loads(self.agents_rule.ToJson()),
+        'instanceFilter': encoding.MessageToPyValue(self.instance_filter),
+        'updateTime': self.update_time,
+        'rolloutState': self.rollout_state,
+    }
+
+    return policy_map
+
+
+_OPS_AGENTS_POLICY_KEYS = frozenset(['agentsRule', 'instanceFilter'])
+
 
 def CreateAgentsRule(
-    agents_rule: Mapping[str, str]
+    agents_rule: Mapping[str, str],
 ) -> OpsAgentsPolicy.AgentsRule:
   """Create agents rule in ops agents policy.
 
   Args:
-    agents_rule: fields (version, package_state) describing agents rule from the
+    agents_rule: fields (version, packageState) describing agents rule from the
       command line.
 
   Returns:
     An OpsAgentPolicy.AgentsRule object.
   """
-  if not agents_rule or 'package_state' not in agents_rule:
-    raise ValueError('agents_rule must contain package_state')
+  if not agents_rule or 'packageState' not in agents_rule:
+    raise exceptions.PolicyValidationError(
+        'agentsRule must contain packageState'
+    )
   if (
-      agents_rule['package_state'] == 'installed'
+      agents_rule['packageState'] == 'installed'
       and 'version' not in agents_rule
   ):
-    raise ValueError('version is required when installing agents')
-  extra_keys = set(agents_rule) - {'package_state', 'version'}
-  if extra_keys:
-    raise ValueError('unknown keys in agents_rule: %s' % extra_keys)
+    raise exceptions.PolicyValidationError(
+        'version is required when installing agents'
+    )
+  unknown_keys = set(agents_rule) - {
+      resource_property.ConvertToCamelCase(f.name)
+      for f in dataclasses.fields(OpsAgentsPolicy.AgentsRule)
+  }
+  if unknown_keys:
+    raise exceptions.PolicyValidationError(
+        f'unknown OpsAgentsPolicy fields: {unknown_keys} in agentsRule'
+    )
 
   return OpsAgentsPolicy.AgentsRule(
       version=agents_rule.get('version'),
       package_state=OpsAgentsPolicy.AgentsRule.PackageState(
-          agents_rule['package_state']
+          agents_rule['packageState']
       ),
   )
 
 
 def CreateOpsAgentsPolicy(
+    policy_id: str,
     ops_agents_policy: Mapping[str, Any],
 ) -> OpsAgentsPolicy:
   """Create Ops Agent Policy.
 
   Args:
-    ops_agents_policy: fields (agents_rule, instance_filter) describing ops
-      agents policy from the command line.
+    policy_id: unique id for Cloud Ops Agents Policy.
+    ops_agents_policy: fields (agentsRule, instanceFilter) describing ops agents
+      policy from the command line.
 
   Returns:
     Ops agents policy.
@@ -138,15 +188,17 @@ def CreateOpsAgentsPolicy(
       not ops_agents_policy
       or ops_agents_policy.keys() != _OPS_AGENTS_POLICY_KEYS
   ):
-    raise ValueError(
-        'ops_agents_policy must contain agents_rule and instance_filter'
+    raise exceptions.PolicyValidationError(
+        'ops_agents_policy must contain '
+        + ' and '.join(sorted(_OPS_AGENTS_POLICY_KEYS))
     )
 
   return OpsAgentsPolicy(
-      agents_rule=CreateAgentsRule(ops_agents_policy['agents_rule']),
+      policy_id=policy_id,
+      agents_rule=CreateAgentsRule(ops_agents_policy['agentsRule']),
       instance_filter=encoding.PyValueToMessage(
           osconfig_v1_messages.OSPolicyAssignmentInstanceFilter,
-          ops_agents_policy['instance_filter'],
+          ops_agents_policy['instanceFilter'],
       ),
   )
 
@@ -169,17 +221,22 @@ def UpdateOpsAgentsPolicy(
     Updated ops agents policy.
   """
   if update_ops_agents_policy is None:
-    raise ValueError('update_ops_agents_policy cannot be None')
+    raise exceptions.PolicyError('update_ops_agents_policy cannot be None')
 
   unknown_keys = set(update_ops_agents_policy) - _OPS_AGENTS_POLICY_KEYS
   if unknown_keys:
-    raise ValueError(
+    raise exceptions.PolicyValidationError(
         f'unknown OpsAgentsPolicy fields: {unknown_keys} in'
         ' update_ops_agents_policy'
     )
 
-  agents_rule = update_ops_agents_policy.get('agents_rule')
-  instance_filter = update_ops_agents_policy.get('instance_filter')
+  agents_rule = update_ops_agents_policy.get('agentsRule')
+  instance_filter = update_ops_agents_policy.get('instanceFilter')
+
+  if not (agents_rule or instance_filter):
+    raise exceptions.PolicyError(
+        'update_ops_agents_policy must update at least one field'
+    )
 
   if agents_rule is not None:
     updated_agents_rule = CreateAgentsRule(agents_rule)
@@ -195,6 +252,7 @@ def UpdateOpsAgentsPolicy(
     updated_instance_filter = ops_agents_policy.instance_filter
 
   return OpsAgentsPolicy(
+      policy_id=ops_agents_policy.policy_id,
       instance_filter=updated_instance_filter,
       agents_rule=updated_agents_rule,
   )

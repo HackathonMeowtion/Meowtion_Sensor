@@ -41,41 +41,6 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
-  PROJECTS_LOCATIONS_CUSTOMHARDWAREINSTANCES = (
-      'projects.locations.customHardwareInstances',
-      '{+name}',
-      {
-          '':
-              'projects/{projectsId}/locations/{locationsId}/'
-              'customHardwareInstances/{customHardwareInstancesId}',
-      },
-      ['name'],
-      True
-  )
-  PROJECTS_LOCATIONS_CUSTOMHARDWARELINKATTACHMENTS = (
-      'projects.locations.customHardwareLinkAttachments',
-      '{+name}',
-      {
-          '':
-              'projects/{projectsId}/locations/{locationsId}/'
-              'customHardwareLinkAttachments/'
-              '{customHardwareLinkAttachmentsId}',
-      },
-      ['name'],
-      True
-  )
-  PROJECTS_LOCATIONS_CUSTOMHARDWARELINKCONNECTPAIRS = (
-      'projects.locations.customHardwareLinkConnectPairs',
-      '{+name}',
-      {
-          '':
-              'projects/{projectsId}/locations/{locationsId}/'
-              'customHardwareLinkConnectPairs/'
-              '{customHardwareLinkConnectPairsId}',
-      },
-      ['name'],
-      True
-  )
   PROJECTS_LOCATIONS_GLOBAL_HUBS = (
       'projects.locations.global.hubs',
       '{+name}',
@@ -119,6 +84,54 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_LOCATIONS_GLOBAL_POLICYBASEDROUTES = (
+      'projects.locations.global.policyBasedRoutes',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/global/policyBasedRoutes/'
+              '{policyBasedRoutesId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_MULTICLOUDDATATRANSFERCONFIGS = (
+      'projects.locations.multicloudDataTransferConfigs',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'multicloudDataTransferConfigs/'
+              '{multicloudDataTransferConfigsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_MULTICLOUDDATATRANSFERCONFIGS_DESTINATIONS = (
+      'projects.locations.multicloudDataTransferConfigs.destinations',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'multicloudDataTransferConfigs/'
+              '{multicloudDataTransferConfigsId}/destinations/'
+              '{destinationsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_MULTICLOUDDATATRANSFERSUPPORTEDSERVICES = (
+      'projects.locations.multicloudDataTransferSupportedServices',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'multicloudDataTransferSupportedServices/'
+              '{multicloudDataTransferSupportedServicesId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS_LOCATIONS_OPERATIONS = (
       'projects.locations.operations',
       '{+name}',
@@ -148,6 +161,17 @@ class Collections(enum.Enum):
           '':
               'projects/{projectsId}/locations/{locationsId}/spokes/'
               '{spokesId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_SPOKES_GATEWAYADVERTISEDROUTES = (
+      'projects.locations.spokes.gatewayAdvertisedRoutes',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/spokes/'
+              '{spokesId}/gatewayAdvertisedRoutes/{gatewayAdvertisedRoutesId}',
       },
       ['name'],
       True

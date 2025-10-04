@@ -19,7 +19,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
-import tempfile
 
 from googlecloudsdk.api_lib.artifacts import exceptions as ar_exceptions
 from googlecloudsdk.calliope import base
@@ -42,14 +41,26 @@ class Download(base.Command):
     To download version v0.1.0 of myfile.txt located in a repository in "us-central1" to /path/to/destination/:
 
         $ {command} --location=us-central1 --project=myproject --repository=myrepo \
-          --package=mypackage --version=v0.1.0 --destination=/path/to/destination/ \
-          --name=myfile.txt
+            --package=mypackage --version=v0.1.0 --destination=/path/to/destination/ \
+            --name=myfile.txt
+
+    To download version v0.1.0 of myfile.txt located in a repository in "us-central1" to /path/to/destination/ using parallel multipart download with 4 threads:
+
+        $ {command} --location=us-central1 --project=myproject --repository=myrepo \
+            --package=mypackage --version=v0.1.0 --destination=/path/to/destination/ \
+            --name=myfile.txt --parallelism=4
+
+    To download version v0.1.0 of myfile.txt in 8000 byte chunks located in a repository in "us-central1" to /path/to/destination/:
+
+        $ {command} --location=us-central1 --project=myproject --repository=myrepo \
+            --package=mypackage --version=v0.1.0 --destination=/path/to/destination/ \
+            --name=myfile.txt --chunk-size=8000
 
     To download all files of version v0.1.0 and package mypackage located in a repository in "us-central1" to /path/to/destination/
     while maintaining the folder hierarchy:
 
         $ {command} --location=us-central1 --project=myproject --repository=myrepo \
-          --package=mypackage --version=v0.1.0 --destination=/path/to/destination/
+            --package=mypackage --version=v0.1.0 --destination=/path/to/destination/
     """,
   }
 
@@ -61,6 +72,7 @@ class Download(base.Command):
       parser: An argparse.ArgumentParser.
     """
     flags.GetRequiredRepoFlag().AddToParser(parser)
+    flags.GetChunkSize().AddToParser(parser)
 
     parser.add_argument(
         '--destination',
@@ -84,6 +96,14 @@ class Download(base.Command):
         '--name',
         metavar='NAME',
         help='If specified, the file name within the artifact to download.'
+    )
+    parser.add_argument(
+        '--parallelism',
+        metavar='PARALLELISM',
+        help=(
+            'Specifies the number of threads to use for downloading the file in'
+            ' parallel.'
+        ),
     )
 
   def Run(self, args):
@@ -117,25 +137,24 @@ class Download(base.Command):
 
   def downloadGenericArtifact(self, args, repo_ref, file_id, file_name):
     final_path = os.path.join(args.destination, file_name)
-
-    if args.name:
-      tmp_path = os.path.join(tempfile.gettempdir(), file_name)
-    else:
-      tmp_path = final_path
-
     file_escaped = file_util.EscapeFileNameFromIDs(
         repo_ref.projectsId,
         repo_ref.locationsId,
         repo_ref.repositoriesId,
         file_id,
     )
+    default_chunk_size = 3 * 1024 * 1024
+    chunk_size = args.chunk_size or default_chunk_size
+    parallelism = args.parallelism or 1
 
     download_util.Download(
-        tmp_path,
         final_path,
         file_escaped.RelativeName(),
         file_name,
-        False)
+        False,
+        int(chunk_size),
+        int(parallelism),
+    )
     log.status.Print(
         'Successfully downloaded the file to {}'.format(args.destination)
     )

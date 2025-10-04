@@ -26,7 +26,10 @@ from googlecloudsdk.command_lib.compute.network_firewall_policies import flags
 from googlecloudsdk.command_lib.compute.network_firewall_policies import secure_tags_utils
 
 
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.UniverseCompatible
+@base.ReleaseTracks(
+    base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA, base.ReleaseTrack.GA
+)
 class Create(base.CreateCommand):
   r"""Creates a Compute Engine network firewall policy packet mirroring rule.
 
@@ -47,23 +50,13 @@ class Create(base.CreateCommand):
     flags.AddRulePriority(parser, operation='inserted')
     flags.AddSrcIpRanges(parser)
     flags.AddDestIpRanges(parser)
-    flags.AddLayer4Configs(parser)
+    flags.AddLayer4Configs(parser, required=True)
     flags.AddDirection(parser)
     flags.AddDisabled(parser)
-    flags.AddTargetServiceAccounts(parser)
     flags.AddDescription(parser)
     flags.AddGlobalFirewallPolicy(parser)
-    flags.AddSrcSecureTags(parser)
+    flags.AddMirroringSecurityProfileGroup(parser)
     flags.AddTargetSecureTags(parser)
-    flags.AddSrcAddressGroups(parser)
-    flags.AddDestAddressGroups(parser)
-    flags.AddSrcFqdns(parser)
-    flags.AddDestFqdns(parser)
-    flags.AddSrcRegionCodes(parser)
-    flags.AddDestRegionCodes(parser)
-    flags.AddSrcThreatIntelligence(parser)
-    flags.AddDestThreatIntelligence(parser)
-    flags.AddSecurityProfileGroup(parser)
 
     parser.display_info.AddCacheUpdater(flags.NetworkFirewallPoliciesCompleter)
 
@@ -81,33 +74,25 @@ class Create(base.CreateCommand):
     src_ip_ranges = []
     dest_ip_ranges = []
     layer4_configs = []
-    target_service_accounts = []
     security_profile_group = None
-    disabled = False
-    src_secure_tags = []
     target_secure_tags = []
+    disabled = False
     if args.IsSpecified('src_ip_ranges'):
       src_ip_ranges = args.src_ip_ranges
     if args.IsSpecified('dest_ip_ranges'):
       dest_ip_ranges = args.dest_ip_ranges
     if args.IsSpecified('layer4_configs'):
       layer4_configs = args.layer4_configs
-    if args.IsSpecified('target_service_accounts'):
-      target_service_accounts = args.target_service_accounts
     if args.IsSpecified('disabled'):
       disabled = args.disabled
-    if args.IsSpecified('src_secure_tags'):
-      src_secure_tags = secure_tags_utils.TranslateSecureTagsForFirewallPolicy(
-          holder.client, args.src_secure_tags
-      )
+    if args.IsSpecified('security_profile_group'):
+      security_profile_group = args.security_profile_group
     if args.IsSpecified('target_secure_tags'):
       target_secure_tags = (
           secure_tags_utils.TranslateSecureTagsForFirewallPolicy(
               holder.client, args.target_secure_tags
           )
       )
-    if args.IsSpecified('security_profile_group'):
-      security_profile_group = args.security_profile_group
 
     layer4_config_list = rule_utils.ParseLayer4Configs(
         layer4_configs, holder.client.messages
@@ -116,24 +101,7 @@ class Create(base.CreateCommand):
         srcIpRanges=src_ip_ranges,
         destIpRanges=dest_ip_ranges,
         layer4Configs=layer4_config_list,
-        srcSecureTags=src_secure_tags,
     )
-    if args.IsSpecified('src_address_groups'):
-      matcher.srcAddressGroups = args.src_address_groups
-    if args.IsSpecified('dest_address_groups'):
-      matcher.destAddressGroups = args.dest_address_groups
-    if args.IsSpecified('src_fqdns'):
-      matcher.srcFqdns = args.src_fqdns
-    if args.IsSpecified('dest_fqdns'):
-      matcher.destFqdns = args.dest_fqdns
-    if args.IsSpecified('src_region_codes'):
-      matcher.srcRegionCodes = args.src_region_codes
-    if args.IsSpecified('dest_region_codes'):
-      matcher.destRegionCodes = args.dest_region_codes
-    if args.IsSpecified('src_threat_intelligence'):
-      matcher.srcThreatIntelligences = args.src_threat_intelligence
-    if args.IsSpecified('dest_threat_intelligence'):
-      matcher.destThreatIntelligences = args.dest_threat_intelligence
     traffic_direct = (
         holder.client.messages.FirewallPolicyRule.DirectionValueValuesEnum.INGRESS
     )
@@ -152,11 +120,10 @@ class Create(base.CreateCommand):
         action=args.action,
         match=matcher,
         direction=traffic_direct,
-        targetServiceAccounts=target_service_accounts,
         description=args.description,
         disabled=disabled,
-        targetSecureTags=target_secure_tags,
         securityProfileGroup=security_profile_group,
+        targetSecureTags=target_secure_tags,
     )
 
     return network_firewall_policy_rule_client.CreateRule(

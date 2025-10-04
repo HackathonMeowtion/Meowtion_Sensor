@@ -169,17 +169,40 @@ class FunctionsClient(object):
     )
 
   @util_v1.CatchHTTPErrorRaiseHTTPException
-  def SetupFunctionUpgradeConfig(self, name: str) -> types.Operation:
+  def SetupFunctionUpgradeConfig(
+      self, name: str, trigger_service_account: str
+  ) -> types.Operation:
     """Sets up the function upgrade config for the given function.
 
     Args:
       name: str, GCFv2 function resource relative name.
+      trigger_service_account: str, The service account to use for the trigger.
 
     Returns:
       A long-running operation.
     """
     return self.client.projects_locations_functions.SetupFunctionUpgradeConfig(
         self.messages.CloudfunctionsProjectsLocationsFunctionsSetupFunctionUpgradeConfigRequest(
+            name=name,
+            setupFunctionUpgradeConfigRequest=self.messages.SetupFunctionUpgradeConfigRequest(
+                triggerServiceAccount=trigger_service_account
+            ),
+        )
+    )
+
+  @util_v1.CatchHTTPErrorRaiseHTTPException
+  def DetachFunction(self, name: str) -> types.Operation:
+    """Detach a GCF 2nd gen function from GCF and make it a native Cloud Run function.
+
+    Args:
+      name: str, GCFv2 function resource relative name which follows the format
+        of `projects/{project}/locations/{region}/functions/{function}`.
+
+    Returns:
+      A long-running operation.
+    """
+    return self.client.projects_locations_functions.DetachFunction(
+        self.messages.CloudfunctionsProjectsLocationsFunctionsDetachFunctionRequest(
             name=name
         )
     )

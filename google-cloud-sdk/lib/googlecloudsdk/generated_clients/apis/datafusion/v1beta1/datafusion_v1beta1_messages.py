@@ -21,33 +21,30 @@ package = 'datafusion'
 
 
 class Accelerator(_messages.Message):
-  r"""Identifies Data Fusion accelerators for an instance.
+  r"""Identifies Cloud Data Fusion accelerators for an instance.
 
   Enums:
     AcceleratorTypeValueValuesEnum: Optional. The type of an accelator for a
-      CDF instance.
+      Cloud Data Fusion instance.
     StateValueValuesEnum: Output only. The state of the accelerator.
 
   Fields:
-    acceleratorType: Optional. The type of an accelator for a CDF instance.
+    acceleratorType: Optional. The type of an accelator for a Cloud Data
+      Fusion instance.
     state: Output only. The state of the accelerator.
   """
 
   class AcceleratorTypeValueValuesEnum(_messages.Enum):
-    r"""Optional. The type of an accelator for a CDF instance.
+    r"""Optional. The type of an accelator for a Cloud Data Fusion instance.
 
     Values:
       ACCELERATOR_TYPE_UNSPECIFIED: Default value, if unspecified.
-      CDC: Change Data Capture accelerator for CDF.
-      HEALTHCARE: Cloud Healthcare accelerator for CDF. This accelerator is to
-        enable Cloud Healthcare specific CDF plugins developed by Healthcare
-        team.
+      CDC: Change Data Capture accelerator for Cloud Data Fusion.
+      HEALTHCARE: Reserved for internal use.
       CCAI_INSIGHTS: Contact Center AI Insights This accelerator is used to
         enable import and export pipelines custom built to streamline CCAI
         Insights processing.
-      CLOUDSEARCH: Cloud search accelerator for CDF. This accelerator is to
-        enable Cloud search specific CDF plugins developed by Cloudsearch
-        team.
+      CLOUDSEARCH: Reserved for internal use.
     """
     ACCELERATOR_TYPE_UNSPECIFIED = 0
     CDC = 1
@@ -234,40 +231,12 @@ class CryptoKeyConfig(_messages.Message):
   encryption keys (CMEK) feature.
 
   Fields:
-    keyReference: The name of the key which is used to encrypt/decrypt
-      customer data. For key in Cloud KMS, the key should be in the format of
-      `projects/*/locations/*/keyRings/*/cryptoKeys/*`.
+    keyReference: Optional. The name of the key which is used to
+      encrypt/decrypt customer data. For key in Cloud KMS, the key should be
+      in the format of `projects/*/locations/*/keyRings/*/cryptoKeys/*`.
   """
 
   keyReference = _messages.StringField(1)
-
-
-class DataResidencyAugmentedView(_messages.Message):
-  r"""Next tag: 7
-
-  Fields:
-    crGopoGuris: Cloud resource to Google owned production object mapping in
-      the form of GURIs. The GURIs should be available in DG KB storage/cns
-      tables. This is the preferred way of providing cloud resource mappings.
-      For further details please read go/cloud-resource-monitoring_sig
-    crGopoPrefixes: Cloud resource to Google owned production object mapping
-      in the form of prefixes. These should be available in DG KB storage/cns
-      tables. The entity type, which is the part of the string before the
-      first colon in the GURI, must be completely specified in prefix. For
-      details about GURI please read go/guri. For further details about the
-      field please read go/cloud-resource-monitoring_sig.
-    serviceData: Service-specific data. Only required for pre-determined
-      services. Generally used to bind a Cloud Resource to some a TI container
-      that uniquely specifies a customer. See milestone 2 of DRZ KR8 SIG for
-      more information.
-    tpIds: The list of project_id's of the tenant projects in the 'google.com'
-      org which serve the Cloud Resource. See go/drz-mst-sig for more details.
-  """
-
-  crGopoGuris = _messages.StringField(1, repeated=True)
-  crGopoPrefixes = _messages.StringField(2, repeated=True)
-  serviceData = _messages.MessageField('ServiceData', 3)
-  tpIds = _messages.StringField(4, repeated=True)
 
 
 class DatafusionProjectsLocationsGetRequest(_messages.Message):
@@ -302,11 +271,14 @@ class DatafusionProjectsLocationsInstancesDeleteRequest(_messages.Message):
   r"""A DatafusionProjectsLocationsInstancesDeleteRequest object.
 
   Fields:
+    force: Optional. If set to true, any nested resources from this instance
+      will also be deleted.
     name: Required. The instance resource name in the format
       projects/{project}/locations/{location}/instances/{instance}
   """
 
-  name = _messages.StringField(1, required=True)
+  force = _messages.BooleanField(1)
+  name = _messages.StringField(2, required=True)
 
 
 class DatafusionProjectsLocationsInstancesDnsPeeringsCreateRequest(_messages.Message):
@@ -607,11 +579,12 @@ class DatafusionProjectsLocationsListRequest(_messages.Message):
   r"""A DatafusionProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
-    includeUnrevealedLocations: If true, the returned list will include
-      locations which are not yet revealed.
     name: The resource that owns the locations collection, if applicable.
     pageSize: The maximum number of results to return. If not set, the service
       selects a default.
@@ -619,8 +592,8 @@ class DatafusionProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  includeUnrevealedLocations = _messages.BooleanField(2)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
   name = _messages.StringField(3, required=True)
   pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
   pageToken = _messages.StringField(5)
@@ -717,9 +690,9 @@ class DnsPeering(_messages.Message):
   Fields:
     description: Optional. Optional description of the dns zone.
     domain: Required. The dns name suffix of the zone.
-    name: Required. The resource name of the dns peering zone. Format: project
-      s/{project}/locations/{location}/instances/{instance}/dnsPeerings/{dns_p
-      eering}
+    name: Identifier. The resource name of the dns peering zone. Format: proje
+      cts/{project}/locations/{location}/instances/{instance}/dnsPeerings/{dns
+      _peering}
     targetNetwork: Optional. Optional target network to which dns peering
       should happen.
     targetProject: Optional. Optional target project to which dns peering
@@ -818,8 +791,11 @@ class Instance(_messages.Message):
     LabelsValue: The resource labels for instance to use to annotate any
       related underlying resources such as Compute Engine VMs. The character
       '=' is not allowed to be used within the labels.
-    OptionsValue: Map of additional options used to configure the behavior of
-      Data Fusion instance.
+    OptionsValue: Optional. Map of additional options used to configure the
+      behavior of Data Fusion instance.
+    TagsValue: Optional. Input only. Immutable. Tag keys/values directly bound
+      to this resource. For example: "123/environment": "production",
+      "123/costCenter": "marketing"
 
   Fields:
     accelerators: Output only. List of accelerators enabled for this CDF
@@ -828,41 +804,48 @@ class Instance(_messages.Message):
     availableVersion: Output only. Available versions that the instance can be
       upgraded to using UpdateInstanceRequest.
     createTime: Output only. The time the instance was created.
-    cryptoKeyConfig: The crypto key configuration. This field is used by the
-      Customer-Managed Encryption Keys (CMEK) feature.
+    cryptoKeyConfig: Optional. The crypto key configuration. This field is
+      used by the Customer-Managed Encryption Keys (CMEK) feature.
     dataplexDataLineageIntegrationEnabled: Optional. Option to enable the
       Dataplex Lineage Integration feature.
-    dataprocServiceAccount: User-managed service account to set on Dataproc
-      when Cloud Data Fusion creates Dataproc to run data processing
+    dataprocServiceAccount: Optional. User-managed service account to set on
+      Dataproc when Cloud Data Fusion creates Dataproc to run data processing
       pipelines. This allows users to have fine-grained access control on
       Dataproc's accesses to cloud resources.
-    description: A description of this instance.
+    description: Optional. A description of this instance.
     disabledReason: Output only. If the instance state is DISABLED, the reason
       for disabling the instance.
-    displayName: Display name for an instance.
-    enableRbac: Option to enable granular role-based access control.
-    enableStackdriverLogging: Option to enable Stackdriver Logging.
-    enableStackdriverMonitoring: Option to enable Stackdriver Monitoring.
-    enableZoneSeparation: Option to enable zone separation.
-    eventPublishConfig: Option to enable and pass metadata for event
+    displayName: Optional. Display name for an instance.
+    enableRbac: Optional. Option to enable granular role-based access control.
+    enableStackdriverLogging: Optional. Option to enable Dataproc Stackdriver
+      Logging.
+    enableStackdriverMonitoring: Optional. Option to enable Stackdriver
+      Monitoring.
+    enableZoneSeparation: Output only. Option to enable zone separation.
+    eventPublishConfig: Optional. Option to enable and pass metadata for event
       publishing.
     gcsBucket: Output only. Cloud Storage bucket generated by Data Fusion in
       the customer project.
     labels: The resource labels for instance to use to annotate any related
       underlying resources such as Compute Engine VMs. The character '=' is
       not allowed to be used within the labels.
+    loggingConfig: Optional. The logging configuration for this instance. This
+      field is supported only in CDF versions 6.11.0 and above.
+    maintenanceEvents: Output only. The maintenance events for this instance.
+    maintenancePolicy: Optional. Configure the maintenance policy for this
+      instance.
     name: Output only. The name of this instance is in the form of
       projects/{project}/locations/{location}/instances/{instance}.
-    networkConfig: Network configuration options. These are required when a
-      private Data Fusion instance is to be created.
-    options: Map of additional options used to configure the behavior of Data
-      Fusion instance.
-    p4ServiceAccount: Output only. P4 service account for the customer
-      project.
+    networkConfig: Optional. Network configuration options. These are required
+      when a private Data Fusion instance is to be created.
+    options: Optional. Map of additional options used to configure the
+      behavior of Data Fusion instance.
+    p4ServiceAccount: Output only. Service agent for the customer project.
     patchRevision: Optional. Current patch revision of the Data Fusion.
-    privateInstance: Specifies whether the Data Fusion instance should be
-      private. If set to true, all Data Fusion nodes will have private IP
-      addresses and will not be able to access the public internet.
+    privateInstance: Optional. Specifies whether the Data Fusion instance
+      should be private. If set to true, all Data Fusion nodes will have
+      private IP addresses and will not be able to access the public internet.
+    satisfiesPzi: Output only. Reserved for future use.
     satisfiesPzs: Output only. Reserved for future use.
     serviceAccount: Output only. Deprecated. Use tenant_project_id instead to
       extract the tenant project ID.
@@ -871,14 +854,17 @@ class Instance(_messages.Message):
     state: Output only. The current state of this Data Fusion instance.
     stateMessage: Output only. Additional information about the current state
       of this Data Fusion instance if available.
+    tags: Optional. Input only. Immutable. Tag keys/values directly bound to
+      this resource. For example: "123/environment": "production",
+      "123/costCenter": "marketing"
     tenantProjectId: Output only. The name of the tenant project.
     type: Required. Instance type.
     updateTime: Output only. The time the instance was last updated.
-    version: Current version of Data Fusion.
+    version: Optional. Current version of Data Fusion.
     workforceIdentityServiceEndpoint: Output only. Endpoint on which the Data
       Fusion UI is accessible to third-party users.
-    zone: Name of the zone in which the Data Fusion instance will be created.
-      Only DEVELOPER instances use this field.
+    zone: Optional. Name of the zone in which the Data Fusion instance will be
+      created. Only DEVELOPER instances use this field.
   """
 
   class DisabledReasonValueListEntryValuesEnum(_messages.Enum):
@@ -888,9 +874,11 @@ class Instance(_messages.Message):
       DISABLED_REASON_UNSPECIFIED: This is an unknown reason for disabling.
       KMS_KEY_ISSUE: The KMS key used by the instance is either revoked or
         denied access to
+      PROJECT_STATE_OFF: The consumer project is in a non-ACTIVE state.
     """
     DISABLED_REASON_UNSPECIFIED = 0
     KMS_KEY_ISSUE = 1
+    PROJECT_STATE_OFF = 2
 
   class StateValueValuesEnum(_messages.Enum):
     r"""Output only. The current state of this Data Fusion instance.
@@ -907,6 +895,7 @@ class Instance(_messages.Message):
       AUTO_UPDATING: Instance is being auto-updated
       AUTO_UPGRADING: Instance is being auto-upgraded
       DISABLED: Instance is disabled
+      ENABLING: Instance is being enabled.
     """
     STATE_UNSPECIFIED = 0
     CREATING = 1
@@ -919,6 +908,7 @@ class Instance(_messages.Message):
     AUTO_UPDATING = 8
     AUTO_UPGRADING = 9
     DISABLED = 10
+    ENABLING = 11
 
   class TypeValueValuesEnum(_messages.Enum):
     r"""Required. Instance type.
@@ -970,8 +960,8 @@ class Instance(_messages.Message):
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class OptionsValue(_messages.Message):
-    r"""Map of additional options used to configure the behavior of Data
-    Fusion instance.
+    r"""Optional. Map of additional options used to configure the behavior of
+    Data Fusion instance.
 
     Messages:
       AdditionalProperty: An additional property for a OptionsValue object.
@@ -982,6 +972,32 @@ class Instance(_messages.Message):
 
     class AdditionalProperty(_messages.Message):
       r"""An additional property for a OptionsValue object.
+
+      Fields:
+        key: Name of the additional property.
+        value: A string attribute.
+      """
+
+      key = _messages.StringField(1)
+      value = _messages.StringField(2)
+
+    additionalProperties = _messages.MessageField('AdditionalProperty', 1, repeated=True)
+
+  @encoding.MapUnrecognizedFields('additionalProperties')
+  class TagsValue(_messages.Message):
+    r"""Optional. Input only. Immutable. Tag keys/values directly bound to
+    this resource. For example: "123/environment": "production",
+    "123/costCenter": "marketing"
+
+    Messages:
+      AdditionalProperty: An additional property for a TagsValue object.
+
+    Fields:
+      additionalProperties: Additional properties of type TagsValue
+    """
+
+    class AdditionalProperty(_messages.Message):
+      r"""An additional property for a TagsValue object.
 
       Fields:
         key: Name of the additional property.
@@ -1010,23 +1026,28 @@ class Instance(_messages.Message):
   eventPublishConfig = _messages.MessageField('EventPublishConfig', 15)
   gcsBucket = _messages.StringField(16)
   labels = _messages.MessageField('LabelsValue', 17)
-  name = _messages.StringField(18)
-  networkConfig = _messages.MessageField('NetworkConfig', 19)
-  options = _messages.MessageField('OptionsValue', 20)
-  p4ServiceAccount = _messages.StringField(21)
-  patchRevision = _messages.StringField(22)
-  privateInstance = _messages.BooleanField(23)
-  satisfiesPzs = _messages.BooleanField(24)
-  serviceAccount = _messages.StringField(25)
-  serviceEndpoint = _messages.StringField(26)
-  state = _messages.EnumField('StateValueValuesEnum', 27)
-  stateMessage = _messages.StringField(28)
-  tenantProjectId = _messages.StringField(29)
-  type = _messages.EnumField('TypeValueValuesEnum', 30)
-  updateTime = _messages.StringField(31)
-  version = _messages.StringField(32)
-  workforceIdentityServiceEndpoint = _messages.StringField(33)
-  zone = _messages.StringField(34)
+  loggingConfig = _messages.MessageField('LoggingConfig', 18)
+  maintenanceEvents = _messages.MessageField('MaintenanceEvent', 19, repeated=True)
+  maintenancePolicy = _messages.MessageField('MaintenancePolicy', 20)
+  name = _messages.StringField(21)
+  networkConfig = _messages.MessageField('NetworkConfig', 22)
+  options = _messages.MessageField('OptionsValue', 23)
+  p4ServiceAccount = _messages.StringField(24)
+  patchRevision = _messages.StringField(25)
+  privateInstance = _messages.BooleanField(26)
+  satisfiesPzi = _messages.BooleanField(27)
+  satisfiesPzs = _messages.BooleanField(28)
+  serviceAccount = _messages.StringField(29)
+  serviceEndpoint = _messages.StringField(30)
+  state = _messages.EnumField('StateValueValuesEnum', 31)
+  stateMessage = _messages.StringField(32)
+  tags = _messages.MessageField('TagsValue', 33)
+  tenantProjectId = _messages.StringField(34)
+  type = _messages.EnumField('TypeValueValuesEnum', 35)
+  updateTime = _messages.StringField(36)
+  version = _messages.StringField(37)
+  workforceIdentityServiceEndpoint = _messages.StringField(38)
+  zone = _messages.StringField(39)
 
 
 class ListAvailableVersionsResponse(_messages.Message):
@@ -1034,12 +1055,15 @@ class ListAvailableVersionsResponse(_messages.Message):
 
   Fields:
     availableVersions: Represents a list of versions that are supported.
+      Deprecated: Use versions field instead.
     nextPageToken: Token to retrieve the next page of results or empty if
       there are no more results in the list.
+    versions: Represents a list of all versions.
   """
 
   availableVersions = _messages.MessageField('Version', 1, repeated=True)
   nextPageToken = _messages.StringField(2)
+  versions = _messages.MessageField('Version', 3, repeated=True)
 
 
 class ListDnsPeeringsResponse(_messages.Message):
@@ -1187,6 +1211,78 @@ class Location(_messages.Message):
   locationId = _messages.StringField(3)
   metadata = _messages.MessageField('MetadataValue', 4)
   name = _messages.StringField(5)
+
+
+class LoggingConfig(_messages.Message):
+  r"""Logging configuration for a Data Fusion instance.
+
+  Fields:
+    instanceCloudLoggingDisabled: Optional. Option to determine whether
+      instance logs should be written to Cloud Logging. By default, instance
+      logs are written to Cloud Logging.
+  """
+
+  instanceCloudLoggingDisabled = _messages.BooleanField(1)
+
+
+class MaintenanceEvent(_messages.Message):
+  r"""Represents a maintenance event.
+
+  Enums:
+    StateValueValuesEnum: Output only. The state of the maintenance event.
+
+  Fields:
+    endTime: Output only. The end time of the maintenance event provided in
+      [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format. Example:
+      "2024-01-02T12:04:06-06:00" This field will be empty if the maintenance
+      event is not yet complete.
+    startTime: Output only. The start time of the maintenance event provided
+      in [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format. Example:
+      "2024-01-01T12:04:06-04:00"
+    state: Output only. The state of the maintenance event.
+  """
+
+  class StateValueValuesEnum(_messages.Enum):
+    r"""Output only. The state of the maintenance event.
+
+    Values:
+      STATE_UNSPECIFIED: The state of the maintenance event is unspecified.
+      SCHEDULED: The maintenance is scheduled but has not started.
+      STARTED: The maintenance has been started.
+      COMPLETED: The maintenance has been completed.
+    """
+    STATE_UNSPECIFIED = 0
+    SCHEDULED = 1
+    STARTED = 2
+    COMPLETED = 3
+
+  endTime = _messages.StringField(1)
+  startTime = _messages.StringField(2)
+  state = _messages.EnumField('StateValueValuesEnum', 3)
+
+
+class MaintenancePolicy(_messages.Message):
+  r"""Maintenance policy of the instance.
+
+  Fields:
+    maintenanceExclusionWindow: Optional. The maintenance exclusion window of
+      the instance.
+    maintenanceWindow: Optional. The maintenance window of the instance.
+  """
+
+  maintenanceExclusionWindow = _messages.MessageField('TimeWindow', 1)
+  maintenanceWindow = _messages.MessageField('MaintenanceWindow', 2)
+
+
+class MaintenanceWindow(_messages.Message):
+  r"""Maintenance window of the instance.
+
+  Fields:
+    recurringTimeWindow: Required. The recurring time window of the
+      maintenance window.
+  """
+
+  recurringTimeWindow = _messages.MessageField('RecurringTimeWindow', 1)
 
 
 class Namespace(_messages.Message):
@@ -1434,34 +1530,6 @@ class OperationMetadata(_messages.Message):
   verb = _messages.StringField(8)
 
 
-class PersistentDiskData(_messages.Message):
-  r"""Persistent Disk service-specific Data. Contains information that may not
-  be appropriate for the generic DRZ Augmented View. This currently includes
-  LSV Colossus Roots and GCS Buckets.
-
-  Fields:
-    cfsRoots: Path to Colossus root for an LSV. NOTE: Unlike `cr_ti_guris` and
-      `cr_ti_prefixes`, the field `cfs_roots` below does not need to be a GUri
-      or GUri prefix. It can simply be any valid CFS or CFS2 Path. The DRZ KR8
-      SIG has more details overall, but generally the `cfs_roots` provided
-      here should be scoped to an individual Persistent Disk. An example for a
-      PD Disk with a disk ID 3277719120423414466, follows: * `cr_ti_guris`
-      could be '/cfs2/pj/pd-cloud-prod' as this is a valid GUri present in the
-      DG KB and contains enough information to perform location monitoring and
-      scope ownership of the Production Object. * `cfs_roots` would be:
-      '/cfs2/pj/pd-cloud-staging/lsv000001234@/
-      lsv/projects~773365403387~zones~2700~disks~3277719120423414466 ~bank-
-      blue-careful-3526-lsv00054DB1B7254BA3/' as this allows us to enumerate
-      the files on CFS2 that belong to an individual Disk.
-    gcsBucketNames: The GCS Buckets that back this snapshot or image. This is
-      required as `cr_ti_prefixes` and `cr_ti_guris` only accept TI resources.
-      This should be the globally unique bucket name.
-  """
-
-  cfsRoots = _messages.StringField(1, repeated=True)
-  gcsBucketNames = _messages.StringField(2, repeated=True)
-
-
 class Policy(_messages.Message):
   r"""An Identity and Access Management (IAM) policy, which specifies access
   controls for Google Cloud resources. A `Policy` is a collection of
@@ -1570,6 +1638,29 @@ class PrivateServiceConnectConfig(_messages.Message):
   unreachableCidrBlock = _messages.StringField(3)
 
 
+class RecurringTimeWindow(_messages.Message):
+  r"""Represents an arbitrary window of time that recurs.
+
+  Fields:
+    recurrence: Required. An RRULE with format
+      [RFC-5545](https://tools.ietf.org/html/rfc5545#section-3.8.5.3) for how
+      this window reccurs. They go on for the span of time between the start
+      and end time. The only supported FREQ value is "WEEKLY". To have
+      something repeat every weekday, use: "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR".
+      This specifies how frequently the window starts. To have a 9 am - 5 pm
+      UTC-4 window every weekday, use something like: ``` start time =
+      2019-01-01T09:00:00-0400 end time = 2019-01-01T17:00:00-0400 recurrence
+      = FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR ```
+    window: Required. The window representing the start and end time of
+      recurrences. This field ignores the date components of the provided
+      timestamps. Only the time of day and duration between start and end time
+      are relevant.
+  """
+
+  recurrence = _messages.StringField(1)
+  window = _messages.MessageField('TimeWindow', 2)
+
+
 class RemoveIamPolicyRequest(_messages.Message):
   r"""Request message for RemoveIamPolicy method."""
 
@@ -1580,19 +1671,6 @@ class RemoveIamPolicyResponse(_messages.Message):
 
 class RestartInstanceRequest(_messages.Message):
   r"""Request message for restarting a Data Fusion instance."""
-
-
-class ServiceData(_messages.Message):
-  r"""This message defines service-specific data that certain service teams
-  must provide as part of the Data Residency Augmented View for a resource.
-  Next ID: 2
-
-  Fields:
-    pd: Auxiliary data for the persistent disk pipeline provided to provide
-      the LSV Colossus Roots and GCS Buckets.
-  """
-
-  pd = _messages.MessageField('PersistentDiskData', 1)
 
 
 class SetIamPolicyRequest(_messages.Message):
@@ -1750,6 +1828,22 @@ class TestIamPermissionsResponse(_messages.Message):
   permissions = _messages.StringField(1, repeated=True)
 
 
+class TimeWindow(_messages.Message):
+  r"""Represents an arbitrary window of time.
+
+  Fields:
+    endTime: Required. The end time of the time window provided in [RFC
+      3339](https://www.ietf.org/rfc/rfc3339.txt) format. The end time should
+      take place after the start time. Example: "2024-01-02T12:04:06-06:00"
+    startTime: Required. The start time of the time window provided in [RFC
+      3339](https://www.ietf.org/rfc/rfc3339.txt) format. Example:
+      "2024-01-01T12:04:06-04:00"
+  """
+
+  endTime = _messages.StringField(1)
+  startTime = _messages.StringField(2)
+
+
 class UpgradeInstanceRequest(_messages.Message):
   r"""Request message for upgrading a Data Fusion instance. To change the
   instance properties, instance update should be used.
@@ -1780,12 +1874,13 @@ class Version(_messages.Message):
     Values:
       TYPE_UNSPECIFIED: Version does not have availability yet
       TYPE_PREVIEW: Version is under development and not considered stable
-      TYPE_GENERAL_AVAILABILITY: Version is available for public use Version
-        is under development and not considered stable
+      TYPE_GENERAL_AVAILABILITY: Version is available for public use
+      TYPE_DEPRECATED: Version is no longer supported.
     """
     TYPE_UNSPECIFIED = 0
     TYPE_PREVIEW = 1
     TYPE_GENERAL_AVAILABILITY = 2
+    TYPE_DEPRECATED = 3
 
   availableFeatures = _messages.StringField(1, repeated=True)
   defaultVersion = _messages.BooleanField(2)
@@ -1799,3 +1894,7 @@ encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_1', '1')
 encoding.AddCustomJsonEnumMapping(
     StandardQueryParameters.FXgafvValueValuesEnum, '_2', '2')
+encoding.AddCustomJsonFieldMapping(
+    DatafusionProjectsLocationsInstancesGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')
+encoding.AddCustomJsonFieldMapping(
+    DatafusionProjectsLocationsInstancesNamespacesGetIamPolicyRequest, 'options_requestedPolicyVersion', 'options.requestedPolicyVersion')

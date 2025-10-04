@@ -32,6 +32,41 @@ def MakeSnapshotArg(plural=False):
   )
 
 
+def MakeSnapshotArgForRegionalSnapshots(plural=False):
+  return compute_flags.ResourceArgument(
+      resource_name='snapshot',
+      name='snapshot_name',
+      completer=compute_completers.RoutesCompleter,
+      plural=plural,
+      regional_collection='compute.regionSnapshots',
+      global_collection='compute.snapshots',
+  )
+
+
+def AddScopeArg(parser):
+  """Adds scope flag to the parser.
+
+  Args:
+    parser: parser for command line arguments.
+  """
+  group = parser.add_group(
+      mutex=True,
+      help='Scope for snapshot.',
+  )
+
+  group.add_argument(
+      '--global',
+      action='store_true',
+      help='If set, the snapshot will be created in the global scope',
+  )
+
+  group.add_argument(
+      '--region',
+      help='If set, the snapshot will be created in the regional scope',
+      completer=compute_completers.RegionsCompleter,
+  )
+
+
 def AddChainArg(parser):
   parser.add_argument(
       '--chain-name',

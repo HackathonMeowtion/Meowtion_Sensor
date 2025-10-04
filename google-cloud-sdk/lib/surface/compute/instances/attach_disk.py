@@ -27,11 +27,12 @@ from googlecloudsdk.command_lib.compute.instances import flags
 
 MODE_OPTIONS = {
     'ro': 'Read-only.',
-    'rw': (
-        'Read-write. It is an error to attach a disk in read-write mode to '
-        'more than one instance. For details on how to share persistent '
-        'disks between multiple instances, refer to https://cloud.google.com/'
-        'compute/docs/disks/add-persistent-disk#use_multi_instances'),
+    'rw': 'Read-write.',
+}
+
+PD_INTERFACE_OPTIONS = {
+    'SCSI': 'SCSI',
+    'NVME': 'NVME',
 }
 
 DETAILED_HELP = {
@@ -47,6 +48,9 @@ DETAILED_HELP = {
         [format and mount](https://cloud.google.com/compute/docs/disks/add-persistent-disk#formatting)
         the disk so that the operating system can use the available storage
         space.
+        You can attach an existing non-boot disk to more than one instance. For
+        more information, see
+        [Share a disk between VMs](compute/docs/disks/add-persistent-disk#use_multi_instances).
         """,
     'EXAMPLES': """
         To attach a disk named 'my-disk' as a boot disk to an instance named
@@ -62,6 +66,7 @@ DETAILED_HELP = {
 }
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(
     base.ReleaseTrack.GA, base.ReleaseTrack.BETA, base.ReleaseTrack.ALPHA)
 class AttachDisk(base.SilentCommand):
@@ -94,6 +99,14 @@ class AttachDisk(base.SilentCommand):
         '--boot',
         action='store_true',
         help='Attach the disk to the instance as a boot disk.')
+
+    parser.add_argument(
+        '--interface',
+        choices=PD_INTERFACE_OPTIONS,
+        help="""
+        The interface of the disk.
+        """,
+    )
 
     flags.AddDiskScopeFlag(parser)
 
@@ -144,6 +157,13 @@ class AttachDisk(base.SilentCommand):
         source=disk_ref.SelfLink(),
         type=client.messages.AttachedDisk.TypeValueValuesEnum.PERSISTENT,
         diskEncryptionKey=disk_key_or_none)
+
+    if args.interface:
+      if args.interface == 'SCSI':
+        interface = client.messages.AttachedDisk.InterfaceValueValuesEnum.SCSI
+      else:
+        interface = client.messages.AttachedDisk.InterfaceValueValuesEnum.NVME
+      attached_disk.interface = interface
 
     if args.boot:
       attached_disk.boot = args.boot

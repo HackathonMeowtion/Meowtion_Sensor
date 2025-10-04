@@ -45,7 +45,10 @@ DETAILED_HELP = {
 }
 
 
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(
+    base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA, base.ReleaseTrack.GA
+)
 class Create(base.CreateCommand):
   """Create a Secure Source Manager instance."""
 
@@ -53,8 +56,8 @@ class Create(base.CreateCommand):
   def Args(parser):
     resource_args.AddInstanceResourceArg(parser, 'to create')
     flags.AddKmsKey(parser)
-    flags.AddCAPool(parser)
-    flags.AddIsPrivate(parser)
+    flags.AddPrivateConfigGroup(parser)
+    flags.AddEnableWorkforceIdentityFederation(parser)
     flags.AddMaxWait(parser, '60m')  # Default to 60 minutes wait.
     # Create --async flag and set default to be true.
     base.ASYNC_FLAG.AddToParser(parser)
@@ -66,6 +69,12 @@ class Create(base.CreateCommand):
     kms_key = args.kms_key
     is_private = args.is_private
     ca_pool = args.ca_pool
+    enable_workforce_identity_federation = (
+        args.enable_workforce_identity_federation
+    )
+    psc_allowed_projects = []
+    if args.IsSpecified('psc_allowed_projects'):
+      psc_allowed_projects = args.psc_allowed_projects
 
     # Get a long-running operation for this creation
     client = instances.InstancesClient()
@@ -77,8 +86,10 @@ class Create(base.CreateCommand):
           kms_key=kms_key,
           is_private=is_private,
           ca_pool=ca_pool,
+          enable_workforce_identity_federation=enable_workforce_identity_federation,
+          psc_allowed_projects=psc_allowed_projects,
       )
-    except exceptions.EnableServicePermissionDeniedException:
+    except exceptions.EnableServiceException:
       # Display a message indicating the special invitation only status of SSM
       # upon failure to enable the service.
       log.warning(

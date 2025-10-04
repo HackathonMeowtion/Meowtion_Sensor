@@ -21,6 +21,8 @@ from __future__ import unicode_literals
 from apitools.base.py import list_pager
 from googlecloudsdk.api_lib.compute.instances.ops_agents import ops_agents_policy as agent_policy
 from googlecloudsdk.api_lib.compute.instances.ops_agents.converters import guest_policy_to_ops_agents_policy_converter as converter
+from googlecloudsdk.api_lib.compute.instances.ops_agents.converters import os_policy_assignment_to_cloud_ops_agents_policy_converter as to_ops_agents_policy
+from googlecloudsdk.api_lib.compute.instances.ops_agents.validators import cloud_ops_agents_policy_validator
 from googlecloudsdk.api_lib.compute.instances.ops_agents.validators import guest_policy_validator
 from googlecloudsdk.api_lib.compute.os_config import utils as osconfig_api_utils
 from googlecloudsdk.calliope import base
@@ -55,7 +57,7 @@ def _Args(parser):
 
 
 @base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.ALPHA)
-class List(base.ListCommand):
+class ListAlphaBeta(base.ListCommand):
   """List Google Cloud's operations suite agents (Ops Agents) policies.
 
   {command} lists policies that facilitate agent management across Compute
@@ -127,5 +129,83 @@ class List(base.ListCommand):
             etag=None,
             name=guest_policy.name,
             update_time=guest_policy.updateTime,
-            create_time=guest_policy.createTime
+            create_time=guest_policy.createTime,
         )
+
+
+def _ArgsGA(parser):
+  """Parses input flags and sets up output formats."""
+  parser.add_argument(
+      '--zone',
+      required=True,
+      help="""\
+          Zone for which you want to list agent policies.""",
+  )
+  parser.display_info.AddFormat("""
+        table(
+          policy_id.basename(),
+          rollout_state,
+          update_time.date("%Y-%m-%dT%H:%M:%SZ")
+          )
+      """)
+
+
+@base.UniverseCompatible
+@base.ReleaseTracks(base.ReleaseTrack.GA)
+class List(base.ListCommand):
+  """List a Google Cloud Observability agents policy for the Ops Agent.
+
+  {command} lists policies that facilitate agent management across Compute
+  Engine instances based on user specified instance filters. These policies
+  install, specify versioning, and remove agents.
+
+  The command returns a list of policies, including the ``POLICY_ID'',
+  ``ROLLOUT_STATE'', and ``UPDATE_TIME'' for each policy. If no policies are
+  found, then the command returns an empty list. If policies were found but they
+  don't match as agents policies, then those policies won't be shown in the
+  list.
+  """
+
+  detailed_help = {
+      'DESCRIPTION': '{description}',
+      'EXAMPLES': """\
+      To list agents policies in the current project, run:
+
+      $ {command} --zone=ZONE
+      """,
+  }
+
+  @staticmethod
+  def Args(parser):
+    """See base class."""
+    _ArgsGA(parser)
+
+  def Run(self, args):
+    """See base class."""
+    release_track = self.ReleaseTrack()
+    client = osconfig_api_utils.GetClientInstance(release_track)
+    messages = osconfig_api_utils.GetClientMessages(release_track)
+
+    project = properties.VALUES.core.project.GetOrFail()
+    request = messages.OsconfigProjectsLocationsOsPolicyAssignmentsListRequest(
+        pageSize=args.page_size,
+        parent=osconfig_command_utils.GetProjectLocationUriPath(
+            project, args.zone
+        ),
+    )
+    service = client.projects_locations_osPolicyAssignments
+
+    for os_policy in list_pager.YieldFromList(
+        service,
+        request,
+        limit=args.limit,
+        predicate=cloud_ops_agents_policy_validator.IsCloudOpsAgentsPolicy,
+        batch_size=osconfig_command_utils.GetListBatchSize(args),
+        field='osPolicyAssignments',
+        batch_size_attribute='pageSize',
+    ):
+      yield (
+          to_ops_agents_policy.ConvertOsPolicyAssignmentToCloudOpsAgentsPolicy(
+              os_policy
+          )
+      )

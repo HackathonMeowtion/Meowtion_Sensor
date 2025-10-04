@@ -33,7 +33,8 @@ TASK_PRINTER_FORMAT = 'task'
 
 def _PluralizedWord(word, count):
   return '{count} {word}{plural}'.format(
-      count=count or 0, word=word, plural='' if count == 1 else 's')
+      count=count or 0, word=word, plural='' if count == 1 else 's'
+  )
 
 
 def FormatDurationShort(duration_seconds: int) -> str:
@@ -79,62 +80,7 @@ class JobPrinter(cp.CustomPrinterBase):
 
   @staticmethod
   def TransformSpec(record):
-    limits = container_util.GetLimits(record.template)
-    breakglass_value = k8s_util.GetBinAuthzBreakglass(record)
-    job_spec_annotations = {
-        field.key: field.value for field in
-        record.spec.template.metadata.annotations.additionalProperties
-    }
-    return cp.Labeled([
-        ('Image', record.template.image),
-        ('Tasks', record.task_count),
-        ('Command', ' '.join(record.template.container.command)),
-        ('Args', ' '.join(record.template.container.args)),
-        ('Binary Authorization', k8s_util.GetBinAuthzPolicy(record)),
-        # pylint: disable=g-explicit-bool-comparison
-        # Empty breakglass string is valid, space is used to force it showing
-        (
-            'Breakglass Justification',
-            ' ' if breakglass_value == '' else breakglass_value,
-        ),
-        ('Memory', limits['memory']),
-        ('CPU', limits['cpu']),
-        (
-            'Task Timeout',
-            FormatDurationShort(record.template.spec.timeoutSeconds)
-            if record.template.spec.timeoutSeconds
-            else None,
-        ),
-        (
-            'Max Retries',
-            '{}'.format(record.max_retries)
-            if record.max_retries is not None
-            else None,
-        ),
-        (
-            'Parallelism',
-            record.parallelism if record.parallelism else 'No limit',
-        ),
-        ('Service account', record.template.service_account),
-        (
-            'Env vars',
-            container_util.GetUserEnvironmentVariables(record.template),
-        ),
-        ('Secrets', container_util.GetSecrets(record.template.container)),
-        ('VPC access', k8s_util.GetVpcNetwork(job_spec_annotations)),
-        (
-            'SQL connections',
-            k8s_util.GetCloudSqlInstances(job_spec_annotations),
-        ),
-        (
-            'Volume Mounts',
-            container_util.GetVolumeMounts(record.template.container),
-        ),
-        (
-            'Volumes',
-            container_util.GetVolumes(record.template),
-        ),
-    ])
+    return ExecutionPrinter.TransformSpec(record.execution_template, record)
 
   @staticmethod
   def TransformStatus(record):
@@ -142,12 +88,16 @@ class JobPrinter(cp.CustomPrinterBase):
       return ''
     lines = [
         'Executed {}'.format(
-            _PluralizedWord('time', record.status.executionCount))
+            _PluralizedWord('time', record.status.executionCount)
+        )
     ]
     if record.status.latestCreatedExecution is not None:
-      lines.append('Last executed {} with execution {}'.format(
-          record.status.latestCreatedExecution.creationTimestamp,
-          record.status.latestCreatedExecution.name))
+      lines.append(
+          'Last executed {} with execution {}'.format(
+              record.status.latestCreatedExecution.creationTimestamp,
+              record.status.latestCreatedExecution.name,
+          )
+      )
     lines.append(k8s_util.LastUpdatedMessageForJob(record))
     return cp.Lines(lines)
 
@@ -189,15 +139,9 @@ class TaskPrinter(cp.CustomPrinterBase):
 
   @staticmethod
   def TransformSpec(record):
-    limits = container_util.GetLimits(record)
-    return cp.Labeled([
-        ('Image', record.image),
-        ('Command', ' '.join(record.container.command)),
-        ('Args', ' '.join(record.container.args)),
-        ('Memory', limits['memory']),
-        ('CPU', limits['cpu']),
+    labels = [
         (
-            'Timeout',
+            'Task Timeout',
             FormatDurationShort(record.spec.timeoutSeconds)
             if record.spec.timeoutSeconds
             else None,
@@ -209,31 +153,40 @@ class TaskPrinter(cp.CustomPrinterBase):
             else None,
         ),
         ('Service account', record.service_account),
-        ('Env vars', container_util.GetUserEnvironmentVariables(record)),
-        ('Secrets', container_util.GetSecrets(record.container)),
         ('VPC access', k8s_util.GetVpcNetwork(record.annotations)),
         ('SQL connections', k8s_util.GetCloudSqlInstances(record.annotations)),
-        (
-            'Volume Mounts',
-            container_util.GetVolumeMounts(record.container),
-        ),
         (
             'Volumes',
             container_util.GetVolumes(record),
         ),
-    ])
+    ]
+    return cp.Lines([container_util.GetContainers(record), cp.Labeled(labels)])
 
   @staticmethod
   def TransformStatus(record):
-    return cp.Lines(['Running state: {}'.format(record.running_state)])
+    status = [
+        ('Running state', record.running_state),
+    ]
+    if record.last_exit_code is not None:
+      status.extend([
+          (
+              'Last Attempt Result',
+              cp.Labeled([
+                  ('Exit Code', record.last_exit_code),
+                  ('Message', record.last_exit_message),
+              ]),
+          ),
+      ])
+    return cp.Labeled(status)
 
   def Transform(self, record):
     """Transform a job into the output structure of marker classes."""
     return cp.Lines([
         k8s_util.BuildHeader(record),
-        self.TransformStatus(record), ' ',
+        self.TransformStatus(record),
+        ' ',
         self.TransformSpec(record),
-        k8s_util.FormatReadyMessage(record)
+        k8s_util.FormatReadyMessage(record),
     ])
 
 
@@ -245,52 +198,44 @@ class ExecutionPrinter(cp.CustomPrinterBase):
   """
 
   @staticmethod
-  def TransformSpec(record):
-    limits = container_util.GetLimits(record.template)
-    breakglass_value = k8s_util.GetBinAuthzBreakglass(record)
-    return cp.Labeled([
-        ('Image', record.template.image),
-        ('Tasks', record.spec.taskCount),
-        ('Command', ' '.join(record.template.container.command)),
-        ('Args', ' '.join(record.template.container.args)),
-        ('Binary Authorization', k8s_util.GetBinAuthzPolicy(record)),
-        # pylint: disable=g-explicit-bool-comparison
-        # Empty breakglass string is valid, space is used to force it showing
-        (
-            'Breakglass Justification',
-            ' ' if breakglass_value == '' else breakglass_value,
-        ),
-        ('Memory', limits['memory']),
-        ('CPU', limits['cpu']),
-        (
-            'Task Timeout',
-            FormatDurationShort(record.template.spec.timeoutSeconds)
-            if record.template.spec.timeoutSeconds
-            else None,
-        ),
-        (
-            'Max Retries',
-            '{}'.format(record.template.spec.maxRetries)
-            if record.template.spec.maxRetries is not None
-            else None,
-        ),
-        ('Parallelism', record.parallelism),
-        ('Service account', record.template.service_account),
-        (
-            'Env vars',
-            container_util.GetUserEnvironmentVariables(record.template),
-        ),
-        ('Secrets', container_util.GetSecrets(record.template.container)),
-        ('VPC access', k8s_util.GetVpcNetwork(record.annotations)),
-        ('SQL connections', k8s_util.GetCloudSqlInstances(record.annotations)),
-        (
-            'Volume Mounts',
-            container_util.GetVolumeMounts(record.template.container),
-        ),
-        (
-            'Volumes',
-            container_util.GetVolumes(record.template),
-        ),
+  def TransformSpec(record, record_for_annotations):
+    """Transforms the execution spec into a custom human-readable format.
+
+    Args:
+      record: The execution or execution template to transform.
+      record_for_annotations: The resource whose annotations should be used to
+        extract Cloud Run feature settings. It should be an execution or a job.
+
+    Returns:
+      A custom printer Marker class for a list of lines.
+    """
+    breakglass_value = k8s_util.GetBinAuthzBreakglass(record_for_annotations)
+    return cp.Lines([
+        cp.Labeled([
+            ('Tasks', record.spec.taskCount),
+            (
+                'Parallelism',
+                record.parallelism if record.parallelism else 'No limit',
+            ),
+        ]),
+        TaskPrinter.TransformSpec(record.template),
+        cp.Labeled([
+            (
+                'Binary Authorization',
+                k8s_util.GetBinAuthzPolicy(record_for_annotations),
+            ),
+            # pylint: disable=g-explicit-bool-comparison
+            # Empty breakglass string is valid, space is used to force it
+            # showing
+            (
+                'Breakglass Justification',
+                ' ' if breakglass_value == '' else breakglass_value,
+            ),
+            (
+                'Threat Detection',
+                k8s_util.GetThreatDetectionEnabled(record_for_annotations),
+            ),
+        ]),
     ])
 
   @staticmethod
@@ -299,13 +244,22 @@ class ExecutionPrinter(cp.CustomPrinterBase):
       return ''
     lines = []
     if record.ready_condition['status'] is None:
-      lines.append('{} currently running'.format(
-          _PluralizedWord('task', record.status.runningCount)))
-    lines.append('{} completed successfully'.format(
-        _PluralizedWord('task', record.status.succeededCount)))
+      lines.append(
+          '{} currently running'.format(
+              _PluralizedWord('task', record.status.runningCount)
+          )
+      )
+    lines.append(
+        '{} completed successfully'.format(
+            _PluralizedWord('task', record.status.succeededCount)
+        )
+    )
     if record.status.failedCount is not None and record.status.failedCount > 0:
-      lines.append('{} failed to complete'.format(
-          _PluralizedWord('task', record.status.failedCount)))
+      lines.append(
+          '{} failed to complete'.format(
+              _PluralizedWord('task', record.status.failedCount)
+          )
+      )
     if (
         record.status.cancelledCount is not None
         and record.status.cancelledCount > 0
@@ -319,8 +273,12 @@ class ExecutionPrinter(cp.CustomPrinterBase):
         record.status.completionTime is not None
         and record.creation_timestamp is not None
     ):
-      lines.append('Elapsed time: ' + ExecutionPrinter._elapsedTime(
-          record.creation_timestamp, record.status.completionTime))
+      lines.append(
+          'Elapsed time: '
+          + ExecutionPrinter._elapsedTime(
+              record.creation_timestamp, record.status.completionTime
+          )
+      )
     if record.status.logUri is not None:
       # adding a blank line before Log URI
       lines.append(' ')
@@ -330,7 +288,8 @@ class ExecutionPrinter(cp.CustomPrinterBase):
   @staticmethod
   def _elapsedTime(start, end):
     duration = datetime.timedelta(
-        seconds=time_util.Strptime(end) - time_util.Strptime(start)).seconds
+        seconds=time_util.Strptime(end) - time_util.Strptime(start)
+    ).seconds
     hours = duration // 3600
     duration = duration % 3600
     minutes = duration // 60
@@ -338,11 +297,12 @@ class ExecutionPrinter(cp.CustomPrinterBase):
     if hours > 0:
       # Only hours and minutes for short message
       return '{} and {}'.format(
-          _PluralizedWord('hour', hours), _PluralizedWord('minute', minutes))
+          _PluralizedWord('hour', hours), _PluralizedWord('minute', minutes)
+      )
     if minutes > 0:
       return '{} and {}'.format(
-          _PluralizedWord('minute', minutes),
-          _PluralizedWord('second', seconds))
+          _PluralizedWord('minute', minutes), _PluralizedWord('second', seconds)
+      )
     return _PluralizedWord('second', seconds)
 
   @staticmethod
@@ -351,7 +311,7 @@ class ExecutionPrinter(cp.CustomPrinterBase):
     header = k8s_util.BuildHeader(record)
     status = ExecutionPrinter.TransformStatus(record)
     labels = k8s_util.GetLabels(record.labels)
-    spec = ExecutionPrinter.TransformSpec(record)
+    spec = ExecutionPrinter.TransformSpec(record, record)
     ready_message = k8s_util.FormatReadyMessage(record)
     if header:
       output.append(header)

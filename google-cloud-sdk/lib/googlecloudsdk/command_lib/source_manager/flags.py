@@ -23,7 +23,7 @@ from googlecloudsdk.calliope import arg_parsers
 
 def AddAllowMissing(
     parser,
-    help_text="If set to true, and the repository is not found, the request will succeed but no action will be taken on the server.",
+    help_text="If set to true, and the resource is not found, the request will succeed but no action will be taken on the server.",
 ):
   parser.add_argument(
       "--allow-missing",
@@ -35,9 +35,25 @@ def AddAllowMissing(
   )
 
 
+def AddValidateOnly(
+    parser,
+    help_text=(
+        "If set to true, the request is validated and the user is provided with"
+        " an expected result, but no actual change is made."
+    ),
+):
+  parser.add_argument(
+      "--validate-only",
+      dest="validate_only",
+      action="store_true",
+      required=False,
+      help=help_text,
+  )
+
+
 def AddInstance(
     parser,
-    help_text="Secure Source Manager instance used to create the repo",
+    help_text="A Secure Source Manager instance ID.",
 ):
   parser.add_argument(
       "--instance", dest="instance", required=True, help=help_text
@@ -115,29 +131,46 @@ def AddMaxWait(
       type=arg_parsers.Duration(),
   )
 
-def AddIsPrivate(parser, help_text="Bool indicator for private instance."):
-  parser.add_argument(
+
+def AddPrivateConfigGroup(parser, help_text="Private instance configuration."):
+  """Add flags for private config."""
+  group = parser.add_group(required=False, help=help_text)
+  group.add_argument(
       "--is-private",
       dest="is_private",
-      action="store_true",
+      # Disables autogeneration of the inverted --no-is-private flag.
+      action="store_const",
+      const=True,
+      required=True,
+      help="Bool indicator for private instance.",
+  )
+  group.add_argument(
+      "--ca-pool",
+      dest="ca_pool",
       required=False,
-      help=help_text,
+      help="CA Pool path for private instance.",
+  )
+  group.add_argument(
+      "--psc-allowed-projects",
+      dest="psc_allowed_projects",
+      required=False,
+      metavar="PROJECTS",
+      type=arg_parsers.ArgList(),
+      help=(
+          "List of additional projects allowed to connect to the instance via"
+          " private service connect."
+      ),
   )
 
-def AddCAPool(parser, help_text="CA Pool path for private instance."):
-  parser.add_argument(
-      "--ca-pool", dest="ca_pool", required=False, help=help_text
-  )
 
-
-def AddPageToken(
+def AddEnableWorkforceIdentityFederation(
     parser,
-    help_text="Token identifying a page of results the server should return.",
+    help_text="Bool indicator for workforce identity federation instance.",
 ):
   parser.add_argument(
-      "--page-token",
-      dest="page_token",
+      "--enable-workforce-identity-federation",
+      dest="enable_workforce_identity_federation",
+      action="store_true",
       required=False,
-      default=None,
       help=help_text,
   )

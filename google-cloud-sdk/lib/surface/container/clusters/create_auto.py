@@ -23,6 +23,10 @@ from googlecloudsdk.command_lib.container import flags
 from surface.container.clusters import create
 
 # Select which flags are auto flags
+# Arguments for "clusters create-auto" should also be added to "clusters create"
+# Unless there is a good reason to exclude them because features should support
+# both GKE Standard and Autopilot.
+# LINT.IfChange(auto_flags)
 auto_flags = [
     'args',
     'clusterversion',
@@ -44,17 +48,35 @@ auto_flags = [
     'autoprovisioningEnableKubeletReadonlyPort',
     'dataplanev2obs',
     'enableK8sBetaApis',
+    'compliance',
+    'complianceStandards',
     'securityPosture',
     'workloadVulnerabilityScanning',
     'enableRuntimeVulnerabilityInsight',
     'masterglobalaccess',
-    'enableDnsEndpoint',
+    'enableDnsAccess',
     'workloadPolicies',
     'containerdConfig',
     'labels',
     'secretManagerConfig',
     'enableCiliumClusterwideNetworkPolicy',
+    'cpDiskEncryptionKey',
+    'disableL4LbFirewallReconciliation',
+    'hpaprofile',
+    'enableIpAccess',
+    'enableAuthorizedNetworksOnPrivateEndpoint',
+    'enableAutoIpam',
+    'enableK8sTokensViaDns',
+    'enableDefaultComputeClass',
+    'enableK8sCertsViaDns',
+    'membershipType',
+    'secretSyncConfig',
+    'controlPlaneEgress',
+    'tag_bindings',
+    'managedOTelScope',
+    'autopilotPrivilegedAdmission',
 ]
+# LINT.ThenChange()
 
 # Change default flag values in create-auto
 flag_overrides = {
@@ -80,13 +102,25 @@ def AddAutoFlags(parser, release_track):
   flags.AddReleaseChannelFlag(parser, autopilot=True)
   flags.AddEnableBackupRestoreFlag(parser)
   flags.AddAutoprovisioningResourceManagerTagsCreate(parser)
-  flags.AddAdditiveVPCScopeFlags(parser, release_track=release_track)
+  flags.AddAdditiveVPCScopeFlags(parser)
   flags.AddIPAliasRelatedFlags(parser, autopilot=True)
-  flags.AddEnableConfidentialNodesFlag(parser, hidden=True)
-  flags.AddEnableRayOperatorFlag(parser, hidden=True)
+  flags.AddEnableConfidentialNodesFlag(parser)
+  flags.AddEnableLustreCSIDriverFlag(parser, hidden=False)
+  flags.AddEnableRayOperatorFlag(parser, hidden=False)
+  flags.AddEnableRayClusterMonitoring(parser, hidden=False)
+  flags.AddEnableRayClusterLogging(parser, hidden=False)
+  flags.AddInsecureRBACBindingFlags(parser, hidden=False)
+  flags.AddEnableMultiNetworkingFlag(parser, hidden=False)
+  flags.AddControlPlaneKeysFlags(parser)
+  flags.AddAutoMonitoringScopeFlags(parser, hidden=False)
+  flags.AddClusterTierFlag(parser)
+  flags.AddKubecontextOverrideFlag(parser)
+  flags.AddAnonymousAuthenticationConfigFlag(parser)
+  flags.AddEnableLegacyLustrePortFlag(parser, hidden=False)
 
 
 @base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.DefaultUniverseOnly
 class Create(create.Create):
   """Create an Autopilot cluster for running containers."""
 
@@ -100,6 +134,7 @@ class Create(create.Create):
 
 
 @base.ReleaseTracks(base.ReleaseTrack.BETA)
+@base.DefaultUniverseOnly
 class CreateBeta(create.CreateBeta):
   """Create an Autopilot cluster for running containers."""
 
@@ -113,6 +148,7 @@ class CreateBeta(create.CreateBeta):
 
 
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.DefaultUniverseOnly
 class CreateAlpha(create.CreateAlpha):
   """Create an Autopilot cluster for running containers."""
 

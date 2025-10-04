@@ -39,11 +39,18 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         default_global_params=default_global_params,
         additional_http_headers=additional_http_headers,
         response_encoding=response_encoding)
+    self.batchPredictionJobs = self.BatchPredictionJobsService(self)
+    self.datasets_datasetVersions = self.DatasetsDatasetVersionsService(self)
+    self.datasets = self.DatasetsService(self)
+    self.endpoints_chat = self.EndpointsChatService(self)
+    self.endpoints = self.EndpointsService(self)
+    self.media = self.MediaService(self)
     self.projects_locations_agents_operations = self.ProjectsLocationsAgentsOperationsService(self)
     self.projects_locations_agents = self.ProjectsLocationsAgentsService(self)
     self.projects_locations_apps_operations = self.ProjectsLocationsAppsOperationsService(self)
     self.projects_locations_apps = self.ProjectsLocationsAppsService(self)
     self.projects_locations_batchPredictionJobs = self.ProjectsLocationsBatchPredictionJobsService(self)
+    self.projects_locations_cachedContents = self.ProjectsLocationsCachedContentsService(self)
     self.projects_locations_customJobs_operations = self.ProjectsLocationsCustomJobsOperationsService(self)
     self.projects_locations_customJobs = self.ProjectsLocationsCustomJobsService(self)
     self.projects_locations_dataLabelingJobs_operations = self.ProjectsLocationsDataLabelingJobsOperationsService(self)
@@ -63,8 +70,15 @@ class AiplatformV1beta1(base_api.BaseApiClient):
     self.projects_locations_deploymentResourcePools = self.ProjectsLocationsDeploymentResourcePoolsService(self)
     self.projects_locations_edgeDevices_operations = self.ProjectsLocationsEdgeDevicesOperationsService(self)
     self.projects_locations_edgeDevices = self.ProjectsLocationsEdgeDevicesService(self)
+    self.projects_locations_endpoints_chat = self.ProjectsLocationsEndpointsChatService(self)
     self.projects_locations_endpoints_operations = self.ProjectsLocationsEndpointsOperationsService(self)
     self.projects_locations_endpoints = self.ProjectsLocationsEndpointsService(self)
+    self.projects_locations_evaluationItems_operations = self.ProjectsLocationsEvaluationItemsOperationsService(self)
+    self.projects_locations_evaluationItems = self.ProjectsLocationsEvaluationItemsService(self)
+    self.projects_locations_evaluationRuns_operations = self.ProjectsLocationsEvaluationRunsOperationsService(self)
+    self.projects_locations_evaluationRuns = self.ProjectsLocationsEvaluationRunsService(self)
+    self.projects_locations_evaluationSets_operations = self.ProjectsLocationsEvaluationSetsOperationsService(self)
+    self.projects_locations_evaluationSets = self.ProjectsLocationsEvaluationSetsService(self)
     self.projects_locations_evaluationTasks_operations = self.ProjectsLocationsEvaluationTasksOperationsService(self)
     self.projects_locations_evaluationTasks = self.ProjectsLocationsEvaluationTasksService(self)
     self.projects_locations_exampleStores_operations = self.ProjectsLocationsExampleStoresOperationsService(self)
@@ -73,6 +87,9 @@ class AiplatformV1beta1(base_api.BaseApiClient):
     self.projects_locations_extensionControllers = self.ProjectsLocationsExtensionControllersService(self)
     self.projects_locations_extensions_operations = self.ProjectsLocationsExtensionsOperationsService(self)
     self.projects_locations_extensions = self.ProjectsLocationsExtensionsService(self)
+    self.projects_locations_featureGroups_featureMonitors_featureMonitorJobs = self.ProjectsLocationsFeatureGroupsFeatureMonitorsFeatureMonitorJobsService(self)
+    self.projects_locations_featureGroups_featureMonitors_operations = self.ProjectsLocationsFeatureGroupsFeatureMonitorsOperationsService(self)
+    self.projects_locations_featureGroups_featureMonitors = self.ProjectsLocationsFeatureGroupsFeatureMonitorsService(self)
     self.projects_locations_featureGroups_features_operations = self.ProjectsLocationsFeatureGroupsFeaturesOperationsService(self)
     self.projects_locations_featureGroups_features = self.ProjectsLocationsFeatureGroupsFeaturesService(self)
     self.projects_locations_featureGroups_operations = self.ProjectsLocationsFeatureGroupsOperationsService(self)
@@ -117,8 +134,11 @@ class AiplatformV1beta1(base_api.BaseApiClient):
     self.projects_locations_models = self.ProjectsLocationsModelsService(self)
     self.projects_locations_nasJobs_nasTrialDetails = self.ProjectsLocationsNasJobsNasTrialDetailsService(self)
     self.projects_locations_nasJobs = self.ProjectsLocationsNasJobsService(self)
+    self.projects_locations_notebookExecutionJobs_operations = self.ProjectsLocationsNotebookExecutionJobsOperationsService(self)
     self.projects_locations_notebookExecutionJobs = self.ProjectsLocationsNotebookExecutionJobsService(self)
+    self.projects_locations_notebookRuntimeTemplates_operations = self.ProjectsLocationsNotebookRuntimeTemplatesOperationsService(self)
     self.projects_locations_notebookRuntimeTemplates = self.ProjectsLocationsNotebookRuntimeTemplatesService(self)
+    self.projects_locations_notebookRuntimes_operations = self.ProjectsLocationsNotebookRuntimesOperationsService(self)
     self.projects_locations_notebookRuntimes = self.ProjectsLocationsNotebookRuntimesService(self)
     self.projects_locations_operations = self.ProjectsLocationsOperationsService(self)
     self.projects_locations_persistentResources_operations = self.ProjectsLocationsPersistentResourcesOperationsService(self)
@@ -131,10 +151,22 @@ class AiplatformV1beta1(base_api.BaseApiClient):
     self.projects_locations_ragCorpora_ragFiles_operations = self.ProjectsLocationsRagCorporaRagFilesOperationsService(self)
     self.projects_locations_ragCorpora_ragFiles = self.ProjectsLocationsRagCorporaRagFilesService(self)
     self.projects_locations_ragCorpora = self.ProjectsLocationsRagCorporaService(self)
+    self.projects_locations_ragEngineConfig_operations = self.ProjectsLocationsRagEngineConfigOperationsService(self)
+    self.projects_locations_ragEngineConfig = self.ProjectsLocationsRagEngineConfigService(self)
+    self.projects_locations_reasoningEngines_examples_operations = self.ProjectsLocationsReasoningEnginesExamplesOperationsService(self)
+    self.projects_locations_reasoningEngines_examples = self.ProjectsLocationsReasoningEnginesExamplesService(self)
+    self.projects_locations_reasoningEngines_memories_operations = self.ProjectsLocationsReasoningEnginesMemoriesOperationsService(self)
+    self.projects_locations_reasoningEngines_memories = self.ProjectsLocationsReasoningEnginesMemoriesService(self)
     self.projects_locations_reasoningEngines_operations = self.ProjectsLocationsReasoningEnginesOperationsService(self)
+    self.projects_locations_reasoningEngines_sandboxEnvironments_operations = self.ProjectsLocationsReasoningEnginesSandboxEnvironmentsOperationsService(self)
+    self.projects_locations_reasoningEngines_sandboxEnvironments = self.ProjectsLocationsReasoningEnginesSandboxEnvironmentsService(self)
+    self.projects_locations_reasoningEngines_sessions_events = self.ProjectsLocationsReasoningEnginesSessionsEventsService(self)
+    self.projects_locations_reasoningEngines_sessions_operations = self.ProjectsLocationsReasoningEnginesSessionsOperationsService(self)
+    self.projects_locations_reasoningEngines_sessions = self.ProjectsLocationsReasoningEnginesSessionsService(self)
     self.projects_locations_reasoningEngines = self.ProjectsLocationsReasoningEnginesService(self)
     self.projects_locations_schedules_operations = self.ProjectsLocationsSchedulesOperationsService(self)
     self.projects_locations_schedules = self.ProjectsLocationsSchedulesService(self)
+    self.projects_locations_serverlessRayJobs = self.ProjectsLocationsServerlessRayJobsService(self)
     self.projects_locations_solvers_operations = self.ProjectsLocationsSolversOperationsService(self)
     self.projects_locations_solvers = self.ProjectsLocationsSolversService(self)
     self.projects_locations_specialistPools_operations = self.ProjectsLocationsSpecialistPoolsOperationsService(self)
@@ -153,10 +185,706 @@ class AiplatformV1beta1(base_api.BaseApiClient):
     self.projects_locations_tensorboards = self.ProjectsLocationsTensorboardsService(self)
     self.projects_locations_trainingPipelines_operations = self.ProjectsLocationsTrainingPipelinesOperationsService(self)
     self.projects_locations_trainingPipelines = self.ProjectsLocationsTrainingPipelinesService(self)
+    self.projects_locations_tuningJobs_operations = self.ProjectsLocationsTuningJobsOperationsService(self)
+    self.projects_locations_tuningJobs = self.ProjectsLocationsTuningJobsService(self)
     self.projects_locations = self.ProjectsLocationsService(self)
+    self.projects_modelGardenEula = self.ProjectsModelGardenEulaService(self)
     self.projects = self.ProjectsService(self)
     self.publishers_models = self.PublishersModelsService(self)
     self.publishers = self.PublishersService(self)
+    self.reasoningEngines_memories = self.ReasoningEnginesMemoriesService(self)
+    self.reasoningEngines_sessions_events = self.ReasoningEnginesSessionsEventsService(self)
+    self.reasoningEngines_sessions = self.ReasoningEnginesSessionsService(self)
+    self.reasoningEngines = self.ReasoningEnginesService(self)
+
+  class BatchPredictionJobsService(base_api.BaseApiService):
+    """Service class for the batchPredictionJobs resource."""
+
+    _NAME = 'batchPredictionJobs'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.BatchPredictionJobsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a BatchPredictionJob. A BatchPredictionJob once created will right away be attempted to start.
+
+      Args:
+        request: (AiplatformBatchPredictionJobsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1BatchPredictionJob) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='aiplatform.batchPredictionJobs.create',
+        ordered_params=[],
+        path_params=[],
+        query_params=['parent'],
+        relative_path='v1beta1/batchPredictionJobs',
+        request_field='googleCloudAiplatformV1beta1BatchPredictionJob',
+        request_type_name='AiplatformBatchPredictionJobsCreateRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1BatchPredictionJob',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets a BatchPredictionJob.
+
+      Args:
+        request: (AiplatformBatchPredictionJobsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1BatchPredictionJob) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/batchPredictionJobs/{batchPredictionJobsId}',
+        http_method='GET',
+        method_id='aiplatform.batchPredictionJobs.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformBatchPredictionJobsGetRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1BatchPredictionJob',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists BatchPredictionJobs in a Location.
+
+      Args:
+        request: (AiplatformBatchPredictionJobsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ListBatchPredictionJobsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='aiplatform.batchPredictionJobs.list',
+        ordered_params=[],
+        path_params=[],
+        query_params=['filter', 'pageSize', 'pageToken', 'parent', 'readMask'],
+        relative_path='v1beta1/batchPredictionJobs',
+        request_field='',
+        request_type_name='AiplatformBatchPredictionJobsListRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ListBatchPredictionJobsResponse',
+        supports_download=False,
+    )
+
+  class DatasetsDatasetVersionsService(base_api.BaseApiService):
+    """Service class for the datasets_datasetVersions resource."""
+
+    _NAME = 'datasets_datasetVersions'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.DatasetsDatasetVersionsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Create a version from a Dataset.
+
+      Args:
+        request: (AiplatformDatasetsDatasetVersionsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/datasets/{datasetsId}/datasetVersions',
+        http_method='POST',
+        method_id='aiplatform.datasets.datasetVersions.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/datasetVersions',
+        request_field='googleCloudAiplatformV1beta1DatasetVersion',
+        request_type_name='AiplatformDatasetsDatasetVersionsCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a Dataset version.
+
+      Args:
+        request: (AiplatformDatasetsDatasetVersionsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/datasets/{datasetsId}/datasetVersions/{datasetVersionsId}',
+        http_method='DELETE',
+        method_id='aiplatform.datasets.datasetVersions.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformDatasetsDatasetVersionsDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets a Dataset version.
+
+      Args:
+        request: (AiplatformDatasetsDatasetVersionsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1DatasetVersion) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/datasets/{datasetsId}/datasetVersions/{datasetVersionsId}',
+        http_method='GET',
+        method_id='aiplatform.datasets.datasetVersions.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['readMask'],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformDatasetsDatasetVersionsGetRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1DatasetVersion',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists DatasetVersions in a Dataset.
+
+      Args:
+        request: (AiplatformDatasetsDatasetVersionsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ListDatasetVersionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/datasets/{datasetsId}/datasetVersions',
+        http_method='GET',
+        method_id='aiplatform.datasets.datasetVersions.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken', 'readMask'],
+        relative_path='v1beta1/{+parent}/datasetVersions',
+        request_field='',
+        request_type_name='AiplatformDatasetsDatasetVersionsListRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ListDatasetVersionsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates a DatasetVersion.
+
+      Args:
+        request: (AiplatformDatasetsDatasetVersionsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1DatasetVersion) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/datasets/{datasetsId}/datasetVersions/{datasetVersionsId}',
+        http_method='PATCH',
+        method_id='aiplatform.datasets.datasetVersions.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1beta1/{+name}',
+        request_field='googleCloudAiplatformV1beta1DatasetVersion',
+        request_type_name='AiplatformDatasetsDatasetVersionsPatchRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1DatasetVersion',
+        supports_download=False,
+    )
+
+    def Restore(self, request, global_params=None):
+      r"""Restores a dataset version.
+
+      Args:
+        request: (AiplatformDatasetsDatasetVersionsRestoreRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Restore')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Restore.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/datasets/{datasetsId}/datasetVersions/{datasetVersionsId}:restore',
+        http_method='GET',
+        method_id='aiplatform.datasets.datasetVersions.restore',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:restore',
+        request_field='',
+        request_type_name='AiplatformDatasetsDatasetVersionsRestoreRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+  class DatasetsService(base_api.BaseApiService):
+    """Service class for the datasets resource."""
+
+    _NAME = 'datasets'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.DatasetsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a Dataset.
+
+      Args:
+        request: (AiplatformDatasetsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='aiplatform.datasets.create',
+        ordered_params=[],
+        path_params=[],
+        query_params=['parent'],
+        relative_path='v1beta1/datasets',
+        request_field='googleCloudAiplatformV1beta1Dataset',
+        request_type_name='AiplatformDatasetsCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a Dataset.
+
+      Args:
+        request: (AiplatformDatasetsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/datasets/{datasetsId}',
+        http_method='DELETE',
+        method_id='aiplatform.datasets.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformDatasetsDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets a Dataset.
+
+      Args:
+        request: (AiplatformDatasetsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1Dataset) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/datasets/{datasetsId}',
+        http_method='GET',
+        method_id='aiplatform.datasets.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['readMask'],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformDatasetsGetRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1Dataset',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists Datasets in a Location.
+
+      Args:
+        request: (AiplatformDatasetsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ListDatasetsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='aiplatform.datasets.list',
+        ordered_params=[],
+        path_params=[],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken', 'parent', 'readMask'],
+        relative_path='v1beta1/datasets',
+        request_field='',
+        request_type_name='AiplatformDatasetsListRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ListDatasetsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates a Dataset.
+
+      Args:
+        request: (AiplatformDatasetsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1Dataset) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/datasets/{datasetsId}',
+        http_method='PATCH',
+        method_id='aiplatform.datasets.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1beta1/{+name}',
+        request_field='googleCloudAiplatformV1beta1Dataset',
+        request_type_name='AiplatformDatasetsPatchRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1Dataset',
+        supports_download=False,
+    )
+
+  class EndpointsChatService(base_api.BaseApiService):
+    """Service class for the endpoints_chat resource."""
+
+    _NAME = 'endpoints_chat'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.EndpointsChatService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Completions(self, request, global_params=None):
+      r"""Exposes an OpenAI-compatible endpoint for chat completions.
+
+      Args:
+        request: (AiplatformEndpointsChatCompletionsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleApiHttpBody) The response message.
+      """
+      config = self.GetMethodConfig('Completions')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Completions.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/endpoints/{endpointsId}/chat/completions',
+        http_method='POST',
+        method_id='aiplatform.endpoints.chat.completions',
+        ordered_params=['endpoint'],
+        path_params=['endpoint'],
+        query_params=[],
+        relative_path='v1beta1/{+endpoint}/chat/completions',
+        request_field='googleApiHttpBody',
+        request_type_name='AiplatformEndpointsChatCompletionsRequest',
+        response_type_name='GoogleApiHttpBody',
+        supports_download=False,
+    )
+
+  class EndpointsService(base_api.BaseApiService):
+    """Service class for the endpoints resource."""
+
+    _NAME = 'endpoints'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.EndpointsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def ComputeTokens(self, request, global_params=None):
+      r"""Return a list of tokens based on the input text.
+
+      Args:
+        request: (AiplatformEndpointsComputeTokensRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ComputeTokensResponse) The response message.
+      """
+      config = self.GetMethodConfig('ComputeTokens')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ComputeTokens.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/endpoints/{endpointsId}:computeTokens',
+        http_method='POST',
+        method_id='aiplatform.endpoints.computeTokens',
+        ordered_params=['endpoint'],
+        path_params=['endpoint'],
+        query_params=[],
+        relative_path='v1beta1/{+endpoint}:computeTokens',
+        request_field='googleCloudAiplatformV1beta1ComputeTokensRequest',
+        request_type_name='AiplatformEndpointsComputeTokensRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ComputeTokensResponse',
+        supports_download=False,
+    )
+
+    def CountTokens(self, request, global_params=None):
+      r"""Perform a token counting.
+
+      Args:
+        request: (AiplatformEndpointsCountTokensRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1CountTokensResponse) The response message.
+      """
+      config = self.GetMethodConfig('CountTokens')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    CountTokens.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/endpoints/{endpointsId}:countTokens',
+        http_method='POST',
+        method_id='aiplatform.endpoints.countTokens',
+        ordered_params=['endpoint'],
+        path_params=['endpoint'],
+        query_params=[],
+        relative_path='v1beta1/{+endpoint}:countTokens',
+        request_field='googleCloudAiplatformV1beta1CountTokensRequest',
+        request_type_name='AiplatformEndpointsCountTokensRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1CountTokensResponse',
+        supports_download=False,
+    )
+
+    def FetchPredictOperation(self, request, global_params=None):
+      r"""Fetch an asynchronous online prediction operation.
+
+      Args:
+        request: (AiplatformEndpointsFetchPredictOperationRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('FetchPredictOperation')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    FetchPredictOperation.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/endpoints/{endpointsId}:fetchPredictOperation',
+        http_method='POST',
+        method_id='aiplatform.endpoints.fetchPredictOperation',
+        ordered_params=['endpoint'],
+        path_params=['endpoint'],
+        query_params=[],
+        relative_path='v1beta1/{+endpoint}:fetchPredictOperation',
+        request_field='googleCloudAiplatformV1beta1FetchPredictOperationRequest',
+        request_type_name='AiplatformEndpointsFetchPredictOperationRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def GenerateContent(self, request, global_params=None):
+      r"""Generate content with multimodal inputs.
+
+      Args:
+        request: (AiplatformEndpointsGenerateContentRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1GenerateContentResponse) The response message.
+      """
+      config = self.GetMethodConfig('GenerateContent')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GenerateContent.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/endpoints/{endpointsId}:generateContent',
+        http_method='POST',
+        method_id='aiplatform.endpoints.generateContent',
+        ordered_params=['model'],
+        path_params=['model'],
+        query_params=[],
+        relative_path='v1beta1/{+model}:generateContent',
+        request_field='googleCloudAiplatformV1beta1GenerateContentRequest',
+        request_type_name='AiplatformEndpointsGenerateContentRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1GenerateContentResponse',
+        supports_download=False,
+    )
+
+    def Predict(self, request, global_params=None):
+      r"""Perform an online prediction.
+
+      Args:
+        request: (AiplatformEndpointsPredictRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1PredictResponse) The response message.
+      """
+      config = self.GetMethodConfig('Predict')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Predict.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/endpoints/{endpointsId}:predict',
+        http_method='POST',
+        method_id='aiplatform.endpoints.predict',
+        ordered_params=['endpoint'],
+        path_params=['endpoint'],
+        query_params=[],
+        relative_path='v1beta1/{+endpoint}:predict',
+        request_field='googleCloudAiplatformV1beta1PredictRequest',
+        request_type_name='AiplatformEndpointsPredictRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1PredictResponse',
+        supports_download=False,
+    )
+
+    def PredictLongRunning(self, request, global_params=None):
+      r"""PredictLongRunning method for the endpoints service.
+
+      Args:
+        request: (AiplatformEndpointsPredictLongRunningRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('PredictLongRunning')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    PredictLongRunning.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/endpoints/{endpointsId}:predictLongRunning',
+        http_method='POST',
+        method_id='aiplatform.endpoints.predictLongRunning',
+        ordered_params=['endpoint'],
+        path_params=['endpoint'],
+        query_params=[],
+        relative_path='v1beta1/{+endpoint}:predictLongRunning',
+        request_field='googleCloudAiplatformV1beta1PredictLongRunningRequest',
+        request_type_name='AiplatformEndpointsPredictLongRunningRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def StreamGenerateContent(self, request, global_params=None):
+      r"""Generate content with multimodal inputs with streaming support.
+
+      Args:
+        request: (AiplatformEndpointsStreamGenerateContentRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1GenerateContentResponse) The response message.
+      """
+      config = self.GetMethodConfig('StreamGenerateContent')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    StreamGenerateContent.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/endpoints/{endpointsId}:streamGenerateContent',
+        http_method='POST',
+        method_id='aiplatform.endpoints.streamGenerateContent',
+        ordered_params=['model'],
+        path_params=['model'],
+        query_params=[],
+        relative_path='v1beta1/{+model}:streamGenerateContent',
+        request_field='googleCloudAiplatformV1beta1GenerateContentRequest',
+        request_type_name='AiplatformEndpointsStreamGenerateContentRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1GenerateContentResponse',
+        supports_download=False,
+    )
+
+  class MediaService(base_api.BaseApiService):
+    """Service class for the media resource."""
+
+    _NAME = 'media'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.MediaService, self).__init__(client)
+      self._upload_configs = {
+          'Upload': base_api.ApiUploadInfo(
+              accept=['*/*'],
+              max_size=None,
+              resumable_multipart=None,
+              resumable_path=None,
+              simple_multipart=True,
+              simple_path='/upload/v1beta1/{+parent}/ragFiles:upload',
+          ),
+          }
+
+    def Upload(self, request, global_params=None, upload=None):
+      r"""Upload a file into a RagCorpus.
+
+      Args:
+        request: (AiplatformMediaUploadRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+        upload: (Upload, default: None) If present, upload
+            this stream with the request.
+      Returns:
+        (GoogleCloudAiplatformV1beta1UploadRagFileResponse) The response message.
+      """
+      config = self.GetMethodConfig('Upload')
+      upload_config = self.GetUploadConfig('Upload')
+      return self._RunMethod(
+          config, request, global_params=global_params,
+          upload=upload, upload_config=upload_config)
+
+    Upload.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/ragCorpora/{ragCorporaId}/ragFiles:upload',
+        http_method='POST',
+        method_id='aiplatform.media.upload',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/ragFiles:upload',
+        request_field='googleCloudAiplatformV1beta1UploadRagFileRequest',
+        request_type_name='AiplatformMediaUploadRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1UploadRagFileResponse',
+        supports_download=False,
+    )
 
   class ProjectsLocationsAgentsOperationsService(base_api.BaseApiService):
     """Service class for the projects_locations_agents_operations resource."""
@@ -169,7 +897,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsAgentsOperationsCancelRequest) input message
@@ -324,7 +1052,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsAppsOperationsCancelRequest) input message
@@ -613,6 +1341,151 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+  class ProjectsLocationsCachedContentsService(base_api.BaseApiService):
+    """Service class for the projects_locations_cachedContents resource."""
+
+    _NAME = 'projects_locations_cachedContents'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsCachedContentsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates cached content, this call will initialize the cached content in the data storage, and users need to pay for the cache data storage.
+
+      Args:
+        request: (AiplatformProjectsLocationsCachedContentsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1CachedContent) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/cachedContents',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.cachedContents.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/cachedContents',
+        request_field='googleCloudAiplatformV1beta1CachedContent',
+        request_type_name='AiplatformProjectsLocationsCachedContentsCreateRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1CachedContent',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes cached content.
+
+      Args:
+        request: (AiplatformProjectsLocationsCachedContentsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/cachedContents/{cachedContentsId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.cachedContents.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsCachedContentsDeleteRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets cached content configurations.
+
+      Args:
+        request: (AiplatformProjectsLocationsCachedContentsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1CachedContent) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/cachedContents/{cachedContentsId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.cachedContents.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsCachedContentsGetRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1CachedContent',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists cached contents in a project.
+
+      Args:
+        request: (AiplatformProjectsLocationsCachedContentsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ListCachedContentsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/cachedContents',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.cachedContents.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['pageSize', 'pageToken'],
+        relative_path='v1beta1/{+parent}/cachedContents',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsCachedContentsListRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ListCachedContentsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates cached content configurations.
+
+      Args:
+        request: (AiplatformProjectsLocationsCachedContentsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1CachedContent) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/cachedContents/{cachedContentsId}',
+        http_method='PATCH',
+        method_id='aiplatform.projects.locations.cachedContents.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1beta1/{+name}',
+        request_field='googleCloudAiplatformV1beta1CachedContent',
+        request_type_name='AiplatformProjectsLocationsCachedContentsPatchRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1CachedContent',
+        supports_download=False,
+    )
+
   class ProjectsLocationsCustomJobsOperationsService(base_api.BaseApiService):
     """Service class for the projects_locations_customJobs_operations resource."""
 
@@ -624,7 +1497,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsCustomJobsOperationsCancelRequest) input message
@@ -914,7 +1787,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsDataLabelingJobsOperationsCancelRequest) input message
@@ -1204,7 +2077,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsDatasetsAnnotationSpecsOperationsCancelRequest) input message
@@ -1386,7 +2259,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsDatasetsDataItemsAnnotationsOperationsCancelRequest) input message
@@ -1568,7 +2441,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsDatasetsDataItemsOperationsCancelRequest) input message
@@ -1857,6 +2730,33 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def Patch(self, request, global_params=None):
+      r"""Updates a DatasetVersion.
+
+      Args:
+        request: (AiplatformProjectsLocationsDatasetsDatasetVersionsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1DatasetVersion) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/datasets/{datasetsId}/datasetVersions/{datasetVersionsId}',
+        http_method='PATCH',
+        method_id='aiplatform.projects.locations.datasets.datasetVersions.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1beta1/{+name}',
+        request_field='googleCloudAiplatformV1beta1DatasetVersion',
+        request_type_name='AiplatformProjectsLocationsDatasetsDatasetVersionsPatchRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1DatasetVersion',
+        supports_download=False,
+    )
+
     def Restore(self, request, global_params=None):
       r"""Restores a dataset version.
 
@@ -1895,7 +2795,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsDatasetsOperationsCancelRequest) input message
@@ -2040,7 +2940,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsDatasetsSavedQueriesOperationsCancelRequest) input message
@@ -2247,6 +3147,60 @@ class AiplatformV1beta1(base_api.BaseApiClient):
       super(AiplatformV1beta1.ProjectsLocationsDatasetsService, self).__init__(client)
       self._upload_configs = {
           }
+
+    def Assemble(self, request, global_params=None):
+      r"""Assembles each row of a multimodal dataset and writes the result into a BigQuery table.
+
+      Args:
+        request: (AiplatformProjectsLocationsDatasetsAssembleRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Assemble')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Assemble.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/datasets/{datasetsId}:assemble',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.datasets.assemble',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:assemble',
+        request_field='googleCloudAiplatformV1beta1AssembleDataRequest',
+        request_type_name='AiplatformProjectsLocationsDatasetsAssembleRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Assess(self, request, global_params=None):
+      r"""Assesses the state or validity of the dataset with respect to a given use case.
+
+      Args:
+        request: (AiplatformProjectsLocationsDatasetsAssessRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Assess')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Assess.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/datasets/{datasetsId}:assess',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.datasets.assess',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:assess',
+        request_field='googleCloudAiplatformV1beta1AssessDataRequest',
+        request_type_name='AiplatformProjectsLocationsDatasetsAssessRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
 
     def Create(self, request, global_params=None):
       r"""Creates a Dataset.
@@ -2475,7 +3429,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsDeploymentResourcePoolsOperationsCancelRequest) input message
@@ -2727,6 +3681,33 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def Patch(self, request, global_params=None):
+      r"""Update a DeploymentResourcePool.
+
+      Args:
+        request: (AiplatformProjectsLocationsDeploymentResourcePoolsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/deploymentResourcePools/{deploymentResourcePoolsId}',
+        http_method='PATCH',
+        method_id='aiplatform.projects.locations.deploymentResourcePools.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1beta1/{+name}',
+        request_field='googleCloudAiplatformV1beta1DeploymentResourcePool',
+        request_type_name='AiplatformProjectsLocationsDeploymentResourcePoolsPatchRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
     def QueryDeployedModels(self, request, global_params=None):
       r"""List DeployedModels that have been deployed on this DeploymentResourcePool.
 
@@ -2765,7 +3746,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsEdgeDevicesOperationsCancelRequest) input message
@@ -2909,6 +3890,43 @@ class AiplatformV1beta1(base_api.BaseApiClient):
       self._upload_configs = {
           }
 
+  class ProjectsLocationsEndpointsChatService(base_api.BaseApiService):
+    """Service class for the projects_locations_endpoints_chat resource."""
+
+    _NAME = 'projects_locations_endpoints_chat'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsEndpointsChatService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Completions(self, request, global_params=None):
+      r"""Exposes an OpenAI-compatible endpoint for chat completions.
+
+      Args:
+        request: (AiplatformProjectsLocationsEndpointsChatCompletionsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleApiHttpBody) The response message.
+      """
+      config = self.GetMethodConfig('Completions')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Completions.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/endpoints/{endpointsId}/chat/completions',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.endpoints.chat.completions',
+        ordered_params=['endpoint'],
+        path_params=['endpoint'],
+        query_params=[],
+        relative_path='v1beta1/{+endpoint}/chat/completions',
+        request_field='googleApiHttpBody',
+        request_type_name='AiplatformProjectsLocationsEndpointsChatCompletionsRequest',
+        response_type_name='GoogleApiHttpBody',
+        supports_download=False,
+    )
+
   class ProjectsLocationsEndpointsOperationsService(base_api.BaseApiService):
     """Service class for the projects_locations_endpoints_operations resource."""
 
@@ -2920,7 +3938,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsEndpointsOperationsCancelRequest) input message
@@ -3280,6 +4298,33 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def FetchPredictOperation(self, request, global_params=None):
+      r"""Fetch an asynchronous online prediction operation.
+
+      Args:
+        request: (AiplatformProjectsLocationsEndpointsFetchPredictOperationRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('FetchPredictOperation')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    FetchPredictOperation.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/endpoints/{endpointsId}:fetchPredictOperation',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.endpoints.fetchPredictOperation',
+        ordered_params=['endpoint'],
+        path_params=['endpoint'],
+        query_params=[],
+        relative_path='v1beta1/{+endpoint}:fetchPredictOperation',
+        request_field='googleCloudAiplatformV1beta1FetchPredictOperationRequest',
+        request_type_name='AiplatformProjectsLocationsEndpointsFetchPredictOperationRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
     def GenerateContent(self, request, global_params=None):
       r"""Generate content with multimodal inputs.
 
@@ -3380,7 +4425,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         method_id='aiplatform.projects.locations.endpoints.list',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['filter', 'pageSize', 'pageToken', 'readMask'],
+        query_params=['filter', 'gdcZone', 'pageSize', 'pageToken', 'readMask'],
         relative_path='v1beta1/{+parent}/endpoints',
         request_field='',
         request_type_name='AiplatformProjectsLocationsEndpointsListRequest',
@@ -3389,7 +4434,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
     )
 
     def MutateDeployedModel(self, request, global_params=None):
-      r"""Updates an existing deployed model. Updatable fields include `min_replica_count`, `max_replica_count`, `autoscaling_metric_specs`, `disable_container_logging` (v1 only), and `enable_container_logging` (v1beta1 only).
+      r"""Updates an existing deployed model. Updatable fields include `min_replica_count`, `max_replica_count`, `required_replica_count`, `autoscaling_metric_specs`, `disable_container_logging` (v1 only), and `enable_container_logging` (v1beta1 only).
 
       Args:
         request: (AiplatformProjectsLocationsEndpointsMutateDeployedModelRequest) input message
@@ -3466,6 +4511,33 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         request_field='googleCloudAiplatformV1beta1PredictRequest',
         request_type_name='AiplatformProjectsLocationsEndpointsPredictRequest',
         response_type_name='GoogleCloudAiplatformV1beta1PredictResponse',
+        supports_download=False,
+    )
+
+    def PredictLongRunning(self, request, global_params=None):
+      r"""PredictLongRunning method for the projects_locations_endpoints service.
+
+      Args:
+        request: (AiplatformProjectsLocationsEndpointsPredictLongRunningRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('PredictLongRunning')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    PredictLongRunning.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/endpoints/{endpointsId}:predictLongRunning',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.endpoints.predictLongRunning',
+        ordered_params=['endpoint'],
+        path_params=['endpoint'],
+        query_params=[],
+        relative_path='v1beta1/{+endpoint}:predictLongRunning',
+        request_field='googleCloudAiplatformV1beta1PredictLongRunningRequest',
+        request_type_name='AiplatformProjectsLocationsEndpointsPredictLongRunningRequest',
+        response_type_name='GoogleLongrunningOperation',
         supports_download=False,
     )
 
@@ -3577,6 +4649,33 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def StreamRawPredict(self, request, global_params=None):
+      r"""Perform a streaming online prediction with an arbitrary HTTP payload.
+
+      Args:
+        request: (AiplatformProjectsLocationsEndpointsStreamRawPredictRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleApiHttpBody) The response message.
+      """
+      config = self.GetMethodConfig('StreamRawPredict')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    StreamRawPredict.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/endpoints/{endpointsId}:streamRawPredict',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.endpoints.streamRawPredict',
+        ordered_params=['endpoint'],
+        path_params=['endpoint'],
+        query_params=[],
+        relative_path='v1beta1/{+endpoint}:streamRawPredict',
+        request_field='googleCloudAiplatformV1beta1StreamRawPredictRequest',
+        request_type_name='AiplatformProjectsLocationsEndpointsStreamRawPredictRequest',
+        response_type_name='GoogleApiHttpBody',
+        supports_download=False,
+    )
+
     def TestIamPermissions(self, request, global_params=None):
       r"""Returns permissions that a caller has on the specified resource. If the resource does not exist, this will return an empty set of permissions, not a `NOT_FOUND` error. Note: This operation is designed to be used for building permission-aware UIs and command-line tools, not for authorization checking. This operation may "fail open" without warning.
 
@@ -3628,6 +4727,795 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         request_field='googleCloudAiplatformV1beta1UndeployModelRequest',
         request_type_name='AiplatformProjectsLocationsEndpointsUndeployModelRequest',
         response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Update(self, request, global_params=None):
+      r"""Updates an Endpoint with a long running operation.
+
+      Args:
+        request: (AiplatformProjectsLocationsEndpointsUpdateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Update')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Update.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/endpoints/{endpointsId}:update',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.endpoints.update',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:update',
+        request_field='googleCloudAiplatformV1beta1UpdateEndpointLongRunningRequest',
+        request_type_name='AiplatformProjectsLocationsEndpointsUpdateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsEvaluationItemsOperationsService(base_api.BaseApiService):
+    """Service class for the projects_locations_evaluationItems_operations resource."""
+
+    _NAME = 'projects_locations_evaluationItems_operations'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsEvaluationItemsOperationsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a long-running operation. This method indicates that the client is no longer interested in the operation result. It does not cancel the operation. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationItemsOperationsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationItems/{evaluationItemsId}/operations/{operationsId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.evaluationItems.operations.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsEvaluationItemsOperationsDeleteRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets the latest state of a long-running operation. Clients can use this method to poll the operation result at intervals as recommended by the API service.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationItemsOperationsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationItems/{evaluationItemsId}/operations/{operationsId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.evaluationItems.operations.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsEvaluationItemsOperationsGetRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists operations that match the specified filter in the request. If the server doesn't support this method, it returns `UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationItemsOperationsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningListOperationsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationItems/{evaluationItemsId}/operations',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.evaluationItems.operations.list',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+name}/operations',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsEvaluationItemsOperationsListRequest',
+        response_type_name='GoogleLongrunningListOperationsResponse',
+        supports_download=False,
+    )
+
+    def Wait(self, request, global_params=None):
+      r"""Waits until the specified long-running operation is done or reaches at most a specified timeout, returning the latest state. If the operation is already done, the latest state is immediately returned. If the timeout specified is greater than the default HTTP/RPC timeout, the HTTP/RPC timeout is used. If the server does not support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Note that this method is on a best-effort basis. It may return the latest state before the specified timeout (including immediately), meaning even an immediate response is no guarantee that the operation is done.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationItemsOperationsWaitRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Wait')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Wait.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationItems/{evaluationItemsId}/operations/{operationsId}:wait',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.evaluationItems.operations.wait',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['timeout'],
+        relative_path='v1beta1/{+name}:wait',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsEvaluationItemsOperationsWaitRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsEvaluationItemsService(base_api.BaseApiService):
+    """Service class for the projects_locations_evaluationItems resource."""
+
+    _NAME = 'projects_locations_evaluationItems'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsEvaluationItemsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates an Evaluation Item.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationItemsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1EvaluationItem) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationItems',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.evaluationItems.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/evaluationItems',
+        request_field='googleCloudAiplatformV1beta1EvaluationItem',
+        request_type_name='AiplatformProjectsLocationsEvaluationItemsCreateRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1EvaluationItem',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes an Evaluation Item.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationItemsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationItems/{evaluationItemsId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.evaluationItems.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsEvaluationItemsDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets an Evaluation Item.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationItemsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1EvaluationItem) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationItems/{evaluationItemsId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.evaluationItems.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsEvaluationItemsGetRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1EvaluationItem',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists Evaluation Items.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationItemsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ListEvaluationItemsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationItems',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.evaluationItems.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+parent}/evaluationItems',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsEvaluationItemsListRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ListEvaluationItemsResponse',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsEvaluationRunsOperationsService(base_api.BaseApiService):
+    """Service class for the projects_locations_evaluationRuns_operations resource."""
+
+    _NAME = 'projects_locations_evaluationRuns_operations'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsEvaluationRunsOperationsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a long-running operation. This method indicates that the client is no longer interested in the operation result. It does not cancel the operation. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationRunsOperationsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationRuns/{evaluationRunsId}/operations/{operationsId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.evaluationRuns.operations.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsEvaluationRunsOperationsDeleteRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets the latest state of a long-running operation. Clients can use this method to poll the operation result at intervals as recommended by the API service.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationRunsOperationsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationRuns/{evaluationRunsId}/operations/{operationsId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.evaluationRuns.operations.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsEvaluationRunsOperationsGetRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists operations that match the specified filter in the request. If the server doesn't support this method, it returns `UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationRunsOperationsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningListOperationsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationRuns/{evaluationRunsId}/operations',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.evaluationRuns.operations.list',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+name}/operations',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsEvaluationRunsOperationsListRequest',
+        response_type_name='GoogleLongrunningListOperationsResponse',
+        supports_download=False,
+    )
+
+    def Wait(self, request, global_params=None):
+      r"""Waits until the specified long-running operation is done or reaches at most a specified timeout, returning the latest state. If the operation is already done, the latest state is immediately returned. If the timeout specified is greater than the default HTTP/RPC timeout, the HTTP/RPC timeout is used. If the server does not support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Note that this method is on a best-effort basis. It may return the latest state before the specified timeout (including immediately), meaning even an immediate response is no guarantee that the operation is done.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationRunsOperationsWaitRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Wait')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Wait.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationRuns/{evaluationRunsId}/operations/{operationsId}:wait',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.evaluationRuns.operations.wait',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['timeout'],
+        relative_path='v1beta1/{+name}:wait',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsEvaluationRunsOperationsWaitRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsEvaluationRunsService(base_api.BaseApiService):
+    """Service class for the projects_locations_evaluationRuns resource."""
+
+    _NAME = 'projects_locations_evaluationRuns'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsEvaluationRunsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Cancel(self, request, global_params=None):
+      r"""Cancels an Evaluation Run. Attempts to cancel a running Evaluation Run asynchronously. Status of run can be checked via GetEvaluationRun.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationRunsCancelRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Cancel')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Cancel.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationRuns/{evaluationRunsId}:cancel',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.evaluationRuns.cancel',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:cancel',
+        request_field='googleCloudAiplatformV1beta1CancelEvaluationRunRequest',
+        request_type_name='AiplatformProjectsLocationsEvaluationRunsCancelRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Create(self, request, global_params=None):
+      r"""Creates an Evaluation Run.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationRunsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1EvaluationRun) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationRuns',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.evaluationRuns.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/evaluationRuns',
+        request_field='googleCloudAiplatformV1beta1EvaluationRun',
+        request_type_name='AiplatformProjectsLocationsEvaluationRunsCreateRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1EvaluationRun',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes an Evaluation Run.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationRunsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationRuns/{evaluationRunsId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.evaluationRuns.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsEvaluationRunsDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets an Evaluation Run.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationRunsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1EvaluationRun) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationRuns/{evaluationRunsId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.evaluationRuns.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsEvaluationRunsGetRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1EvaluationRun',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists Evaluation Runs.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationRunsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ListEvaluationRunsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationRuns',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.evaluationRuns.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+parent}/evaluationRuns',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsEvaluationRunsListRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ListEvaluationRunsResponse',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsEvaluationSetsOperationsService(base_api.BaseApiService):
+    """Service class for the projects_locations_evaluationSets_operations resource."""
+
+    _NAME = 'projects_locations_evaluationSets_operations'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsEvaluationSetsOperationsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a long-running operation. This method indicates that the client is no longer interested in the operation result. It does not cancel the operation. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationSetsOperationsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationSets/{evaluationSetsId}/operations/{operationsId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.evaluationSets.operations.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsEvaluationSetsOperationsDeleteRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets the latest state of a long-running operation. Clients can use this method to poll the operation result at intervals as recommended by the API service.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationSetsOperationsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationSets/{evaluationSetsId}/operations/{operationsId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.evaluationSets.operations.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsEvaluationSetsOperationsGetRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists operations that match the specified filter in the request. If the server doesn't support this method, it returns `UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationSetsOperationsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningListOperationsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationSets/{evaluationSetsId}/operations',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.evaluationSets.operations.list',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+name}/operations',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsEvaluationSetsOperationsListRequest',
+        response_type_name='GoogleLongrunningListOperationsResponse',
+        supports_download=False,
+    )
+
+    def Wait(self, request, global_params=None):
+      r"""Waits until the specified long-running operation is done or reaches at most a specified timeout, returning the latest state. If the operation is already done, the latest state is immediately returned. If the timeout specified is greater than the default HTTP/RPC timeout, the HTTP/RPC timeout is used. If the server does not support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Note that this method is on a best-effort basis. It may return the latest state before the specified timeout (including immediately), meaning even an immediate response is no guarantee that the operation is done.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationSetsOperationsWaitRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Wait')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Wait.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationSets/{evaluationSetsId}/operations/{operationsId}:wait',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.evaluationSets.operations.wait',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['timeout'],
+        relative_path='v1beta1/{+name}:wait',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsEvaluationSetsOperationsWaitRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsEvaluationSetsService(base_api.BaseApiService):
+    """Service class for the projects_locations_evaluationSets resource."""
+
+    _NAME = 'projects_locations_evaluationSets'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsEvaluationSetsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates an Evaluation Set.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationSetsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1EvaluationSet) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationSets',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.evaluationSets.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/evaluationSets',
+        request_field='googleCloudAiplatformV1beta1EvaluationSet',
+        request_type_name='AiplatformProjectsLocationsEvaluationSetsCreateRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1EvaluationSet',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes an Evaluation Set.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationSetsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationSets/{evaluationSetsId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.evaluationSets.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsEvaluationSetsDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets an Evaluation Set.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationSetsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1EvaluationSet) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationSets/{evaluationSetsId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.evaluationSets.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsEvaluationSetsGetRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1EvaluationSet',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists Evaluation Sets.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationSetsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ListEvaluationSetsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationSets',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.evaluationSets.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+parent}/evaluationSets',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsEvaluationSetsListRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ListEvaluationSetsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates an Evaluation Set.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluationSetsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1EvaluationSet) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/evaluationSets/{evaluationSetsId}',
+        http_method='PATCH',
+        method_id='aiplatform.projects.locations.evaluationSets.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1beta1/{+name}',
+        request_field='googleCloudAiplatformV1beta1EvaluationSet',
+        request_type_name='AiplatformProjectsLocationsEvaluationSetsPatchRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1EvaluationSet',
         supports_download=False,
     )
 
@@ -3770,7 +5658,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsExampleStoresOperationsCancelRequest) input message
@@ -3914,6 +5802,249 @@ class AiplatformV1beta1(base_api.BaseApiClient):
       self._upload_configs = {
           }
 
+    def Create(self, request, global_params=None):
+      r"""Create an ExampleStore.
+
+      Args:
+        request: (AiplatformProjectsLocationsExampleStoresCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/exampleStores:create',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.exampleStores.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['exampleStore_createTime', 'exampleStore_description', 'exampleStore_displayName', 'exampleStore_exampleStoreConfig_vertexEmbeddingModel', 'exampleStore_name', 'exampleStore_updateTime'],
+        relative_path='v1beta1/{+parent}/exampleStores:create',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsExampleStoresCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Delete an ExampleStore.
+
+      Args:
+        request: (AiplatformProjectsLocationsExampleStoresDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/exampleStores/{exampleStoresId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.exampleStores.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsExampleStoresDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def FetchExamples(self, request, global_params=None):
+      r"""Get Examples from the Example Store.
+
+      Args:
+        request: (AiplatformProjectsLocationsExampleStoresFetchExamplesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1FetchExamplesResponse) The response message.
+      """
+      config = self.GetMethodConfig('FetchExamples')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    FetchExamples.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/exampleStores/{exampleStoresId}:fetchExamples',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.exampleStores.fetchExamples',
+        ordered_params=['exampleStore'],
+        path_params=['exampleStore'],
+        query_params=[],
+        relative_path='v1beta1/{+exampleStore}:fetchExamples',
+        request_field='googleCloudAiplatformV1beta1FetchExamplesRequest',
+        request_type_name='AiplatformProjectsLocationsExampleStoresFetchExamplesRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1FetchExamplesResponse',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Get an ExampleStore.
+
+      Args:
+        request: (AiplatformProjectsLocationsExampleStoresGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ExampleStore) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/exampleStores/{exampleStoresId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.exampleStores.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsExampleStoresGetRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ExampleStore',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""List ExampleStores in a Location.
+
+      Args:
+        request: (AiplatformProjectsLocationsExampleStoresListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ListExampleStoresResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/exampleStores',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.exampleStores.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+parent}/exampleStores',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsExampleStoresListRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ListExampleStoresResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Update an ExampleStore.
+
+      Args:
+        request: (AiplatformProjectsLocationsExampleStoresPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/exampleStores/{exampleStoresId}',
+        http_method='PATCH',
+        method_id='aiplatform.projects.locations.exampleStores.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1beta1/{+name}',
+        request_field='googleCloudAiplatformV1beta1ExampleStore',
+        request_type_name='AiplatformProjectsLocationsExampleStoresPatchRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def RemoveExamples(self, request, global_params=None):
+      r"""Remove Examples from the Example Store.
+
+      Args:
+        request: (AiplatformProjectsLocationsExampleStoresRemoveExamplesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1RemoveExamplesResponse) The response message.
+      """
+      config = self.GetMethodConfig('RemoveExamples')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    RemoveExamples.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/exampleStores/{exampleStoresId}:removeExamples',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.exampleStores.removeExamples',
+        ordered_params=['exampleStore'],
+        path_params=['exampleStore'],
+        query_params=[],
+        relative_path='v1beta1/{+exampleStore}:removeExamples',
+        request_field='googleCloudAiplatformV1beta1RemoveExamplesRequest',
+        request_type_name='AiplatformProjectsLocationsExampleStoresRemoveExamplesRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1RemoveExamplesResponse',
+        supports_download=False,
+    )
+
+    def SearchExamples(self, request, global_params=None):
+      r"""Search for similar Examples for given selection criteria.
+
+      Args:
+        request: (AiplatformProjectsLocationsExampleStoresSearchExamplesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1SearchExamplesResponse) The response message.
+      """
+      config = self.GetMethodConfig('SearchExamples')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SearchExamples.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/exampleStores/{exampleStoresId}:searchExamples',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.exampleStores.searchExamples',
+        ordered_params=['exampleStore'],
+        path_params=['exampleStore'],
+        query_params=[],
+        relative_path='v1beta1/{+exampleStore}:searchExamples',
+        request_field='googleCloudAiplatformV1beta1SearchExamplesRequest',
+        request_type_name='AiplatformProjectsLocationsExampleStoresSearchExamplesRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1SearchExamplesResponse',
+        supports_download=False,
+    )
+
+    def UpsertExamples(self, request, global_params=None):
+      r"""Create or update Examples in the Example Store.
+
+      Args:
+        request: (AiplatformProjectsLocationsExampleStoresUpsertExamplesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1UpsertExamplesResponse) The response message.
+      """
+      config = self.GetMethodConfig('UpsertExamples')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    UpsertExamples.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/exampleStores/{exampleStoresId}:upsertExamples',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.exampleStores.upsertExamples',
+        ordered_params=['exampleStore'],
+        path_params=['exampleStore'],
+        query_params=[],
+        relative_path='v1beta1/{+exampleStore}:upsertExamples',
+        request_field='googleCloudAiplatformV1beta1UpsertExamplesRequest',
+        request_type_name='AiplatformProjectsLocationsExampleStoresUpsertExamplesRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1UpsertExamplesResponse',
+        supports_download=False,
+    )
+
   class ProjectsLocationsExtensionControllersOperationsService(base_api.BaseApiService):
     """Service class for the projects_locations_extensionControllers_operations resource."""
 
@@ -3925,7 +6056,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsExtensionControllersOperationsCancelRequest) input message
@@ -4080,7 +6211,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsExtensionsOperationsCancelRequest) input message
@@ -4413,6 +6544,360 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+  class ProjectsLocationsFeatureGroupsFeatureMonitorsFeatureMonitorJobsService(base_api.BaseApiService):
+    """Service class for the projects_locations_featureGroups_featureMonitors_featureMonitorJobs resource."""
+
+    _NAME = 'projects_locations_featureGroups_featureMonitors_featureMonitorJobs'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsFeatureGroupsFeatureMonitorsFeatureMonitorJobsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new feature monitor job.
+
+      Args:
+        request: (AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsFeatureMonitorJobsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1FeatureMonitorJob) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/featureGroups/{featureGroupsId}/featureMonitors/{featureMonitorsId}/featureMonitorJobs',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.featureGroups.featureMonitors.featureMonitorJobs.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['featureMonitorJobId'],
+        relative_path='v1beta1/{+parent}/featureMonitorJobs',
+        request_field='googleCloudAiplatformV1beta1FeatureMonitorJob',
+        request_type_name='AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsFeatureMonitorJobsCreateRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1FeatureMonitorJob',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Get a feature monitor job.
+
+      Args:
+        request: (AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsFeatureMonitorJobsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1FeatureMonitorJob) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/featureGroups/{featureGroupsId}/featureMonitors/{featureMonitorsId}/featureMonitorJobs/{featureMonitorJobsId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.featureGroups.featureMonitors.featureMonitorJobs.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsFeatureMonitorJobsGetRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1FeatureMonitorJob',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""List feature monitor jobs.
+
+      Args:
+        request: (AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsFeatureMonitorJobsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ListFeatureMonitorJobsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/featureGroups/{featureGroupsId}/featureMonitors/{featureMonitorsId}/featureMonitorJobs',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.featureGroups.featureMonitors.featureMonitorJobs.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+parent}/featureMonitorJobs',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsFeatureMonitorJobsListRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ListFeatureMonitorJobsResponse',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsFeatureGroupsFeatureMonitorsOperationsService(base_api.BaseApiService):
+    """Service class for the projects_locations_featureGroups_featureMonitors_operations resource."""
+
+    _NAME = 'projects_locations_featureGroups_featureMonitors_operations'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsFeatureGroupsFeatureMonitorsOperationsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a long-running operation. This method indicates that the client is no longer interested in the operation result. It does not cancel the operation. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsOperationsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/featureGroups/{featureGroupsId}/featureMonitors/{featureMonitorsId}/operations/{operationsId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.featureGroups.featureMonitors.operations.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsOperationsDeleteRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets the latest state of a long-running operation. Clients can use this method to poll the operation result at intervals as recommended by the API service.
+
+      Args:
+        request: (AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsOperationsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/featureGroups/{featureGroupsId}/featureMonitors/{featureMonitorsId}/operations/{operationsId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.featureGroups.featureMonitors.operations.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsOperationsGetRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists operations that match the specified filter in the request. If the server doesn't support this method, it returns `UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsOperationsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningListOperationsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/featureGroups/{featureGroupsId}/featureMonitors/{featureMonitorsId}/operations',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.featureGroups.featureMonitors.operations.list',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+name}/operations',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsOperationsListRequest',
+        response_type_name='GoogleLongrunningListOperationsResponse',
+        supports_download=False,
+    )
+
+    def Wait(self, request, global_params=None):
+      r"""Waits until the specified long-running operation is done or reaches at most a specified timeout, returning the latest state. If the operation is already done, the latest state is immediately returned. If the timeout specified is greater than the default HTTP/RPC timeout, the HTTP/RPC timeout is used. If the server does not support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Note that this method is on a best-effort basis. It may return the latest state before the specified timeout (including immediately), meaning even an immediate response is no guarantee that the operation is done.
+
+      Args:
+        request: (AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsOperationsWaitRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Wait')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Wait.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/featureGroups/{featureGroupsId}/featureMonitors/{featureMonitorsId}/operations/{operationsId}:wait',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.featureGroups.featureMonitors.operations.wait',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['timeout'],
+        relative_path='v1beta1/{+name}:wait',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsOperationsWaitRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsFeatureGroupsFeatureMonitorsService(base_api.BaseApiService):
+    """Service class for the projects_locations_featureGroups_featureMonitors resource."""
+
+    _NAME = 'projects_locations_featureGroups_featureMonitors'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsFeatureGroupsFeatureMonitorsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new FeatureMonitor in a given project, location and FeatureGroup.
+
+      Args:
+        request: (AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/featureGroups/{featureGroupsId}/featureMonitors',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.featureGroups.featureMonitors.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['featureMonitorId'],
+        relative_path='v1beta1/{+parent}/featureMonitors',
+        request_field='googleCloudAiplatformV1beta1FeatureMonitor',
+        request_type_name='AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a single FeatureMonitor.
+
+      Args:
+        request: (AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/featureGroups/{featureGroupsId}/featureMonitors/{featureMonitorsId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.featureGroups.featureMonitors.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets details of a single FeatureMonitor.
+
+      Args:
+        request: (AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1FeatureMonitor) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/featureGroups/{featureGroupsId}/featureMonitors/{featureMonitorsId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.featureGroups.featureMonitors.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsGetRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1FeatureMonitor',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists FeatureGroups in a given project and location.
+
+      Args:
+        request: (AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ListFeatureMonitorsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/featureGroups/{featureGroupsId}/featureMonitors',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.featureGroups.featureMonitors.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+parent}/featureMonitors',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsListRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ListFeatureMonitorsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates the parameters of a single FeatureMonitor.
+
+      Args:
+        request: (AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/featureGroups/{featureGroupsId}/featureMonitors/{featureMonitorsId}',
+        http_method='PATCH',
+        method_id='aiplatform.projects.locations.featureGroups.featureMonitors.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1beta1/{+name}',
+        request_field='googleCloudAiplatformV1beta1FeatureMonitor',
+        request_type_name='AiplatformProjectsLocationsFeatureGroupsFeatureMonitorsPatchRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
   class ProjectsLocationsFeatureGroupsFeaturesOperationsService(base_api.BaseApiService):
     """Service class for the projects_locations_featureGroups_features_operations resource."""
 
@@ -4541,6 +7026,33 @@ class AiplatformV1beta1(base_api.BaseApiClient):
       self._upload_configs = {
           }
 
+    def BatchCreate(self, request, global_params=None):
+      r"""Creates a batch of Features in a given FeatureGroup.
+
+      Args:
+        request: (AiplatformProjectsLocationsFeatureGroupsFeaturesBatchCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('BatchCreate')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    BatchCreate.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/featureGroups/{featureGroupsId}/features:batchCreate',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.featureGroups.features.batchCreate',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/features:batchCreate',
+        request_field='googleCloudAiplatformV1beta1BatchCreateFeaturesRequest',
+        request_type_name='AiplatformProjectsLocationsFeatureGroupsFeaturesBatchCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
     def Create(self, request, global_params=None):
       r"""Creates a new Feature in a given FeatureGroup.
 
@@ -4614,7 +7126,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         method_id='aiplatform.projects.locations.featureGroups.features.get',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=[],
+        query_params=['featureStatsAndAnomalySpec_latestStatsCount', 'featureStatsAndAnomalySpec_statsTimeRange_endTime', 'featureStatsAndAnomalySpec_statsTimeRange_startTime'],
         relative_path='v1beta1/{+name}',
         request_field='',
         request_type_name='AiplatformProjectsLocationsFeatureGroupsFeaturesGetRequest',
@@ -4885,6 +7397,33 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def GetIamPolicy(self, request, global_params=None):
+      r"""Gets the access control policy for a resource. Returns an empty policy if the resource exists and does not have a policy set.
+
+      Args:
+        request: (AiplatformProjectsLocationsFeatureGroupsGetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleIamV1Policy) The response message.
+      """
+      config = self.GetMethodConfig('GetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/featureGroups/{featureGroupsId}:getIamPolicy',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.featureGroups.getIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=['options_requestedPolicyVersion'],
+        relative_path='v1beta1/{+resource}:getIamPolicy',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsFeatureGroupsGetIamPolicyRequest',
+        response_type_name='GoogleIamV1Policy',
+        supports_download=False,
+    )
+
     def List(self, request, global_params=None):
       r"""Lists FeatureGroups in a given project and location.
 
@@ -4936,6 +7475,60 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         request_field='googleCloudAiplatformV1beta1FeatureGroup',
         request_type_name='AiplatformProjectsLocationsFeatureGroupsPatchRequest',
         response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def SetIamPolicy(self, request, global_params=None):
+      r"""Sets the access control policy on the specified resource. Replaces any existing policy. Can return `NOT_FOUND`, `INVALID_ARGUMENT`, and `PERMISSION_DENIED` errors.
+
+      Args:
+        request: (AiplatformProjectsLocationsFeatureGroupsSetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleIamV1Policy) The response message.
+      """
+      config = self.GetMethodConfig('SetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/featureGroups/{featureGroupsId}:setIamPolicy',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.featureGroups.setIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v1beta1/{+resource}:setIamPolicy',
+        request_field='googleIamV1SetIamPolicyRequest',
+        request_type_name='AiplatformProjectsLocationsFeatureGroupsSetIamPolicyRequest',
+        response_type_name='GoogleIamV1Policy',
+        supports_download=False,
+    )
+
+    def TestIamPermissions(self, request, global_params=None):
+      r"""Returns permissions that a caller has on the specified resource. If the resource does not exist, this will return an empty set of permissions, not a `NOT_FOUND` error. Note: This operation is designed to be used for building permission-aware UIs and command-line tools, not for authorization checking. This operation may "fail open" without warning.
+
+      Args:
+        request: (AiplatformProjectsLocationsFeatureGroupsTestIamPermissionsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleIamV1TestIamPermissionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('TestIamPermissions')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    TestIamPermissions.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/featureGroups/{featureGroupsId}:testIamPermissions',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.featureGroups.testIamPermissions',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=['permissions'],
+        relative_path='v1beta1/{+resource}:testIamPermissions',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsFeatureGroupsTestIamPermissionsRequest',
+        response_type_name='GoogleIamV1TestIamPermissionsResponse',
         supports_download=False,
     )
 
@@ -5182,6 +7775,33 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         request_field='',
         request_type_name='AiplatformProjectsLocationsFeatureOnlineStoresFeatureViewsDeleteRequest',
         response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def DirectWrite(self, request, global_params=None):
+      r"""Bidirectional streaming RPC to directly write to feature values in a feature view. Requests may not have a one-to-one mapping to responses and responses may be returned out-of-order to reduce latency.
+
+      Args:
+        request: (AiplatformProjectsLocationsFeatureOnlineStoresFeatureViewsDirectWriteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1FeatureViewDirectWriteResponse) The response message.
+      """
+      config = self.GetMethodConfig('DirectWrite')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    DirectWrite.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/featureOnlineStores/{featureOnlineStoresId}/featureViews/{featureViewsId}:directWrite',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.featureOnlineStores.featureViews.directWrite',
+        ordered_params=['featureView'],
+        path_params=['featureView'],
+        query_params=[],
+        relative_path='v1beta1/{+featureView}:directWrite',
+        request_field='googleCloudAiplatformV1beta1FeatureViewDirectWriteRequest',
+        request_type_name='AiplatformProjectsLocationsFeatureOnlineStoresFeatureViewsDirectWriteRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1FeatureViewDirectWriteResponse',
         supports_download=False,
     )
 
@@ -5810,7 +8430,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsFeaturestoresEntityTypesFeaturesOperationsCancelRequest) input message
@@ -6054,7 +8674,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         method_id='aiplatform.projects.locations.featurestores.entityTypes.features.get',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=[],
+        query_params=['featureStatsAndAnomalySpec_latestStatsCount', 'featureStatsAndAnomalySpec_statsTimeRange_endTime', 'featureStatsAndAnomalySpec_statsTimeRange_startTime'],
         relative_path='v1beta1/{+name}',
         request_field='',
         request_type_name='AiplatformProjectsLocationsFeaturestoresEntityTypesFeaturesGetRequest',
@@ -6127,7 +8747,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsFeaturestoresEntityTypesOperationsCancelRequest) input message
@@ -6660,7 +9280,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsFeaturestoresOperationsCancelRequest) input message
@@ -7085,7 +9705,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsHyperparameterTuningJobsOperationsCancelRequest) input message
@@ -7375,7 +9995,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsIndexEndpointsOperationsCancelRequest) input message
@@ -7574,7 +10194,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
     )
 
     def DeployIndex(self, request, global_params=None):
-      r"""Deploys an Index into this IndexEndpoint, creating a DeployedIndex within it. Only non-empty Indexes can be deployed.
+      r"""Deploys an Index into this IndexEndpoint, creating a DeployedIndex within it.
 
       Args:
         request: (AiplatformProjectsLocationsIndexEndpointsDeployIndexRequest) input message
@@ -7800,7 +10420,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsIndexesOperationsCancelRequest) input message
@@ -8025,6 +10645,33 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def Import(self, request, global_params=None):
+      r"""Imports an Index from an external source (e.g., BigQuery).
+
+      Args:
+        request: (AiplatformProjectsLocationsIndexesImportRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Import')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Import.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/indexes/{indexesId}:import',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.indexes.import',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:import',
+        request_field='googleCloudAiplatformV1beta1ImportIndexRequest',
+        request_type_name='AiplatformProjectsLocationsIndexesImportRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
     def List(self, request, global_params=None):
       r"""Lists Indexes in a Location.
 
@@ -8144,7 +10791,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsMetadataStoresArtifactsOperationsCancelRequest) input message
@@ -8488,7 +11135,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsMetadataStoresContextsOperationsCancelRequest) input message
@@ -8913,7 +11560,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsMetadataStoresExecutionsOperationsCancelRequest) input message
@@ -9375,7 +12022,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsMetadataStoresOperationsCancelRequest) input message
@@ -9638,7 +12285,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsMigratableResourcesOperationsCancelRequest) input message
@@ -9847,7 +12494,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsModelDeploymentMonitoringJobsOperationsCancelRequest) input message
@@ -10336,7 +12983,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsModelMonitorsOperationsCancelRequest) input message
@@ -10680,7 +13327,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsModelsEvaluationsOperationsCancelRequest) input message
@@ -11007,7 +13654,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsModelsOperationsCancelRequest) input message
@@ -11337,6 +13984,33 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         request_field='',
         request_type_name='AiplatformProjectsLocationsModelsListRequest',
         response_type_name='GoogleCloudAiplatformV1beta1ListModelsResponse',
+        supports_download=False,
+    )
+
+    def ListCheckpoints(self, request, global_params=None):
+      r"""Lists checkpoints of the specified model version.
+
+      Args:
+        request: (AiplatformProjectsLocationsModelsListCheckpointsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ListModelVersionCheckpointsResponse) The response message.
+      """
+      config = self.GetMethodConfig('ListCheckpoints')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ListCheckpoints.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/models/{modelsId}:listCheckpoints',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.models.listCheckpoints',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['pageSize', 'pageToken'],
+        relative_path='v1beta1/{+name}:listCheckpoints',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsModelsListCheckpointsRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ListModelVersionCheckpointsResponse',
         supports_download=False,
     )
 
@@ -11738,6 +14412,151 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+  class ProjectsLocationsNotebookExecutionJobsOperationsService(base_api.BaseApiService):
+    """Service class for the projects_locations_notebookExecutionJobs_operations resource."""
+
+    _NAME = 'projects_locations_notebookExecutionJobs_operations'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsNotebookExecutionJobsOperationsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Cancel(self, request, global_params=None):
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsNotebookExecutionJobsOperationsCancelRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Cancel')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Cancel.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/notebookExecutionJobs/{notebookExecutionJobsId}/operations/{operationsId}:cancel',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.notebookExecutionJobs.operations.cancel',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:cancel',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsNotebookExecutionJobsOperationsCancelRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a long-running operation. This method indicates that the client is no longer interested in the operation result. It does not cancel the operation. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsNotebookExecutionJobsOperationsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/notebookExecutionJobs/{notebookExecutionJobsId}/operations/{operationsId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.notebookExecutionJobs.operations.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsNotebookExecutionJobsOperationsDeleteRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets the latest state of a long-running operation. Clients can use this method to poll the operation result at intervals as recommended by the API service.
+
+      Args:
+        request: (AiplatformProjectsLocationsNotebookExecutionJobsOperationsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/notebookExecutionJobs/{notebookExecutionJobsId}/operations/{operationsId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.notebookExecutionJobs.operations.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsNotebookExecutionJobsOperationsGetRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists operations that match the specified filter in the request. If the server doesn't support this method, it returns `UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsNotebookExecutionJobsOperationsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningListOperationsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/notebookExecutionJobs/{notebookExecutionJobsId}/operations',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.notebookExecutionJobs.operations.list',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+name}/operations',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsNotebookExecutionJobsOperationsListRequest',
+        response_type_name='GoogleLongrunningListOperationsResponse',
+        supports_download=False,
+    )
+
+    def Wait(self, request, global_params=None):
+      r"""Waits until the specified long-running operation is done or reaches at most a specified timeout, returning the latest state. If the operation is already done, the latest state is immediately returned. If the timeout specified is greater than the default HTTP/RPC timeout, the HTTP/RPC timeout is used. If the server does not support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Note that this method is on a best-effort basis. It may return the latest state before the specified timeout (including immediately), meaning even an immediate response is no guarantee that the operation is done.
+
+      Args:
+        request: (AiplatformProjectsLocationsNotebookExecutionJobsOperationsWaitRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Wait')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Wait.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/notebookExecutionJobs/{notebookExecutionJobsId}/operations/{operationsId}:wait',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.notebookExecutionJobs.operations.wait',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['timeout'],
+        relative_path='v1beta1/{+name}:wait',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsNotebookExecutionJobsOperationsWaitRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
   class ProjectsLocationsNotebookExecutionJobsService(base_api.BaseApiService):
     """Service class for the projects_locations_notebookExecutionJobs resource."""
 
@@ -11747,6 +14566,33 @@ class AiplatformV1beta1(base_api.BaseApiClient):
       super(AiplatformV1beta1.ProjectsLocationsNotebookExecutionJobsService, self).__init__(client)
       self._upload_configs = {
           }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a NotebookExecutionJob.
+
+      Args:
+        request: (AiplatformProjectsLocationsNotebookExecutionJobsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/notebookExecutionJobs',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.notebookExecutionJobs.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['notebookExecutionJobId'],
+        relative_path='v1beta1/{+parent}/notebookExecutionJobs',
+        request_field='googleCloudAiplatformV1beta1NotebookExecutionJob',
+        request_type_name='AiplatformProjectsLocationsNotebookExecutionJobsCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
 
     def Delete(self, request, global_params=None):
       r"""Deletes a NotebookExecutionJob.
@@ -11880,6 +14726,151 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         request_field='googleCloudAiplatformV1beta1ReportExecutionEventRequest',
         request_type_name='AiplatformProjectsLocationsNotebookExecutionJobsReportEventRequest',
         response_type_name='GoogleCloudAiplatformV1beta1ReportExecutionEventResponse',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsNotebookRuntimeTemplatesOperationsService(base_api.BaseApiService):
+    """Service class for the projects_locations_notebookRuntimeTemplates_operations resource."""
+
+    _NAME = 'projects_locations_notebookRuntimeTemplates_operations'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsNotebookRuntimeTemplatesOperationsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Cancel(self, request, global_params=None):
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsNotebookRuntimeTemplatesOperationsCancelRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Cancel')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Cancel.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/notebookRuntimeTemplates/{notebookRuntimeTemplatesId}/operations/{operationsId}:cancel',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.notebookRuntimeTemplates.operations.cancel',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:cancel',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsNotebookRuntimeTemplatesOperationsCancelRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a long-running operation. This method indicates that the client is no longer interested in the operation result. It does not cancel the operation. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsNotebookRuntimeTemplatesOperationsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/notebookRuntimeTemplates/{notebookRuntimeTemplatesId}/operations/{operationsId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.notebookRuntimeTemplates.operations.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsNotebookRuntimeTemplatesOperationsDeleteRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets the latest state of a long-running operation. Clients can use this method to poll the operation result at intervals as recommended by the API service.
+
+      Args:
+        request: (AiplatformProjectsLocationsNotebookRuntimeTemplatesOperationsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/notebookRuntimeTemplates/{notebookRuntimeTemplatesId}/operations/{operationsId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.notebookRuntimeTemplates.operations.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsNotebookRuntimeTemplatesOperationsGetRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists operations that match the specified filter in the request. If the server doesn't support this method, it returns `UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsNotebookRuntimeTemplatesOperationsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningListOperationsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/notebookRuntimeTemplates/{notebookRuntimeTemplatesId}/operations',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.notebookRuntimeTemplates.operations.list',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+name}/operations',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsNotebookRuntimeTemplatesOperationsListRequest',
+        response_type_name='GoogleLongrunningListOperationsResponse',
+        supports_download=False,
+    )
+
+    def Wait(self, request, global_params=None):
+      r"""Waits until the specified long-running operation is done or reaches at most a specified timeout, returning the latest state. If the operation is already done, the latest state is immediately returned. If the timeout specified is greater than the default HTTP/RPC timeout, the HTTP/RPC timeout is used. If the server does not support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Note that this method is on a best-effort basis. It may return the latest state before the specified timeout (including immediately), meaning even an immediate response is no guarantee that the operation is done.
+
+      Args:
+        request: (AiplatformProjectsLocationsNotebookRuntimeTemplatesOperationsWaitRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Wait')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Wait.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/notebookRuntimeTemplates/{notebookRuntimeTemplatesId}/operations/{operationsId}:wait',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.notebookRuntimeTemplates.operations.wait',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['timeout'],
+        relative_path='v1beta1/{+name}:wait',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsNotebookRuntimeTemplatesOperationsWaitRequest',
+        response_type_name='GoogleLongrunningOperation',
         supports_download=False,
     )
 
@@ -12028,6 +15019,33 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def Patch(self, request, global_params=None):
+      r"""Updates a NotebookRuntimeTemplate.
+
+      Args:
+        request: (AiplatformProjectsLocationsNotebookRuntimeTemplatesPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1NotebookRuntimeTemplate) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/notebookRuntimeTemplates/{notebookRuntimeTemplatesId}',
+        http_method='PATCH',
+        method_id='aiplatform.projects.locations.notebookRuntimeTemplates.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1beta1/{+name}',
+        request_field='googleCloudAiplatformV1beta1NotebookRuntimeTemplate',
+        request_type_name='AiplatformProjectsLocationsNotebookRuntimeTemplatesPatchRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1NotebookRuntimeTemplate',
+        supports_download=False,
+    )
+
     def SetIamPolicy(self, request, global_params=None):
       r"""Sets the access control policy on the specified resource. Replaces any existing policy. Can return `NOT_FOUND`, `INVALID_ARGUMENT`, and `PERMISSION_DENIED` errors.
 
@@ -12079,6 +15097,151 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         request_field='',
         request_type_name='AiplatformProjectsLocationsNotebookRuntimeTemplatesTestIamPermissionsRequest',
         response_type_name='GoogleIamV1TestIamPermissionsResponse',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsNotebookRuntimesOperationsService(base_api.BaseApiService):
+    """Service class for the projects_locations_notebookRuntimes_operations resource."""
+
+    _NAME = 'projects_locations_notebookRuntimes_operations'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsNotebookRuntimesOperationsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Cancel(self, request, global_params=None):
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsNotebookRuntimesOperationsCancelRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Cancel')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Cancel.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/notebookRuntimes/{notebookRuntimesId}/operations/{operationsId}:cancel',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.notebookRuntimes.operations.cancel',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:cancel',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsNotebookRuntimesOperationsCancelRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a long-running operation. This method indicates that the client is no longer interested in the operation result. It does not cancel the operation. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsNotebookRuntimesOperationsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/notebookRuntimes/{notebookRuntimesId}/operations/{operationsId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.notebookRuntimes.operations.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsNotebookRuntimesOperationsDeleteRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets the latest state of a long-running operation. Clients can use this method to poll the operation result at intervals as recommended by the API service.
+
+      Args:
+        request: (AiplatformProjectsLocationsNotebookRuntimesOperationsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/notebookRuntimes/{notebookRuntimesId}/operations/{operationsId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.notebookRuntimes.operations.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsNotebookRuntimesOperationsGetRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists operations that match the specified filter in the request. If the server doesn't support this method, it returns `UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsNotebookRuntimesOperationsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningListOperationsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/notebookRuntimes/{notebookRuntimesId}/operations',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.notebookRuntimes.operations.list',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+name}/operations',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsNotebookRuntimesOperationsListRequest',
+        response_type_name='GoogleLongrunningListOperationsResponse',
+        supports_download=False,
+    )
+
+    def Wait(self, request, global_params=None):
+      r"""Waits until the specified long-running operation is done or reaches at most a specified timeout, returning the latest state. If the operation is already done, the latest state is immediately returned. If the timeout specified is greater than the default HTTP/RPC timeout, the HTTP/RPC timeout is used. If the server does not support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Note that this method is on a best-effort basis. It may return the latest state before the specified timeout (including immediately), meaning even an immediate response is no guarantee that the operation is done.
+
+      Args:
+        request: (AiplatformProjectsLocationsNotebookRuntimesOperationsWaitRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Wait')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Wait.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/notebookRuntimes/{notebookRuntimesId}/operations/{operationsId}:wait',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.notebookRuntimes.operations.wait',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['timeout'],
+        relative_path='v1beta1/{+name}:wait',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsNotebookRuntimesOperationsWaitRequest',
+        response_type_name='GoogleLongrunningOperation',
         supports_download=False,
     )
 
@@ -12281,6 +15444,33 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def Stop(self, request, global_params=None):
+      r"""Stops a NotebookRuntime.
+
+      Args:
+        request: (AiplatformProjectsLocationsNotebookRuntimesStopRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Stop')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Stop.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/notebookRuntimes/{notebookRuntimesId}:stop',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.notebookRuntimes.stop',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:stop',
+        request_field='googleCloudAiplatformV1beta1StopNotebookRuntimeRequest',
+        request_type_name='AiplatformProjectsLocationsNotebookRuntimesStopRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
     def Upgrade(self, request, global_params=None):
       r"""Upgrades a NotebookRuntime.
 
@@ -12319,7 +15509,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsOperationsCancelRequest) input message
@@ -12464,7 +15654,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsPersistentResourcesOperationsCancelRequest) input message
@@ -12781,7 +15971,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsPipelineJobsOperationsCancelRequest) input message
@@ -13178,6 +16368,87 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def Export(self, request, global_params=None):
+      r"""Exports a publisher model to a user provided Google Cloud Storage bucket.
+
+      Args:
+        request: (AiplatformProjectsLocationsPublishersModelsExportRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Export')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Export.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/publishers/{publishersId}/models/{modelsId}:export',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.publishers.models.export',
+        ordered_params=['parent', 'name'],
+        path_params=['name', 'parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/{+name}:export',
+        request_field='googleCloudAiplatformV1beta1ExportPublisherModelRequest',
+        request_type_name='AiplatformProjectsLocationsPublishersModelsExportRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def FetchPredictOperation(self, request, global_params=None):
+      r"""Fetch an asynchronous online prediction operation.
+
+      Args:
+        request: (AiplatformProjectsLocationsPublishersModelsFetchPredictOperationRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('FetchPredictOperation')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    FetchPredictOperation.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/publishers/{publishersId}/models/{modelsId}:fetchPredictOperation',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.publishers.models.fetchPredictOperation',
+        ordered_params=['endpoint'],
+        path_params=['endpoint'],
+        query_params=[],
+        relative_path='v1beta1/{+endpoint}:fetchPredictOperation',
+        request_field='googleCloudAiplatformV1beta1FetchPredictOperationRequest',
+        request_type_name='AiplatformProjectsLocationsPublishersModelsFetchPredictOperationRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def FetchPublisherModelConfig(self, request, global_params=None):
+      r"""Fetches the configs of publisher models.
+
+      Args:
+        request: (AiplatformProjectsLocationsPublishersModelsFetchPublisherModelConfigRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1PublisherModelConfig) The response message.
+      """
+      config = self.GetMethodConfig('FetchPublisherModelConfig')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    FetchPublisherModelConfig.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/publishers/{publishersId}/models/{modelsId}:fetchPublisherModelConfig',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.publishers.models.fetchPublisherModelConfig',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:fetchPublisherModelConfig',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsPublishersModelsFetchPublisherModelConfigRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1PublisherModelConfig',
+        supports_download=False,
+    )
+
     def GenerateContent(self, request, global_params=None):
       r"""Generate content with multimodal inputs.
 
@@ -13259,6 +16530,33 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def PredictLongRunning(self, request, global_params=None):
+      r"""PredictLongRunning method for the projects_locations_publishers_models service.
+
+      Args:
+        request: (AiplatformProjectsLocationsPublishersModelsPredictLongRunningRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('PredictLongRunning')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    PredictLongRunning.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/publishers/{publishersId}/models/{modelsId}:predictLongRunning',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.publishers.models.predictLongRunning',
+        ordered_params=['endpoint'],
+        path_params=['endpoint'],
+        query_params=[],
+        relative_path='v1beta1/{+endpoint}:predictLongRunning',
+        request_field='googleCloudAiplatformV1beta1PredictLongRunningRequest',
+        request_type_name='AiplatformProjectsLocationsPublishersModelsPredictLongRunningRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
     def RawPredict(self, request, global_params=None):
       r"""Perform an online prediction with an arbitrary HTTP payload. The response includes the following HTTP headers: * `X-Vertex-AI-Endpoint-Id`: ID of the Endpoint that served this prediction. * `X-Vertex-AI-Deployed-Model-Id`: ID of the Endpoint's DeployedModel that served this prediction.
 
@@ -13313,6 +16611,33 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def SetPublisherModelConfig(self, request, global_params=None):
+      r"""Sets (creates or updates) configs of publisher models. For example, sets the request/response logging config.
+
+      Args:
+        request: (AiplatformProjectsLocationsPublishersModelsSetPublisherModelConfigRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('SetPublisherModelConfig')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetPublisherModelConfig.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/publishers/{publishersId}/models/{modelsId}:setPublisherModelConfig',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.publishers.models.setPublisherModelConfig',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:setPublisherModelConfig',
+        request_field='googleCloudAiplatformV1beta1SetPublisherModelConfigRequest',
+        request_type_name='AiplatformProjectsLocationsPublishersModelsSetPublisherModelConfigRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
     def StreamGenerateContent(self, request, global_params=None):
       r"""Generate content with multimodal inputs with streaming support.
 
@@ -13340,6 +16665,33 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def StreamRawPredict(self, request, global_params=None):
+      r"""Perform a streaming online prediction with an arbitrary HTTP payload.
+
+      Args:
+        request: (AiplatformProjectsLocationsPublishersModelsStreamRawPredictRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleApiHttpBody) The response message.
+      """
+      config = self.GetMethodConfig('StreamRawPredict')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    StreamRawPredict.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/publishers/{publishersId}/models/{modelsId}:streamRawPredict',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.publishers.models.streamRawPredict',
+        ordered_params=['endpoint'],
+        path_params=['endpoint'],
+        query_params=[],
+        relative_path='v1beta1/{+endpoint}:streamRawPredict',
+        request_field='googleCloudAiplatformV1beta1StreamRawPredictRequest',
+        request_type_name='AiplatformProjectsLocationsPublishersModelsStreamRawPredictRequest',
+        response_type_name='GoogleApiHttpBody',
+        supports_download=False,
+    )
+
   class ProjectsLocationsPublishersService(base_api.BaseApiService):
     """Service class for the projects_locations_publishers resource."""
 
@@ -13361,7 +16713,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsRagCorporaOperationsCancelRequest) input message
@@ -13506,7 +16858,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsRagCorporaRagFilesOperationsCancelRequest) input message
@@ -13650,6 +17002,114 @@ class AiplatformV1beta1(base_api.BaseApiClient):
       self._upload_configs = {
           }
 
+    def Delete(self, request, global_params=None):
+      r"""Deletes a RagFile.
+
+      Args:
+        request: (AiplatformProjectsLocationsRagCorporaRagFilesDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/ragCorpora/{ragCorporaId}/ragFiles/{ragFilesId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.ragCorpora.ragFiles.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['forceDelete'],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsRagCorporaRagFilesDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets a RagFile.
+
+      Args:
+        request: (AiplatformProjectsLocationsRagCorporaRagFilesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1RagFile) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/ragCorpora/{ragCorporaId}/ragFiles/{ragFilesId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.ragCorpora.ragFiles.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsRagCorporaRagFilesGetRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1RagFile',
+        supports_download=False,
+    )
+
+    def Import(self, request, global_params=None):
+      r"""Import files from Google Cloud Storage or Google Drive into a RagCorpus.
+
+      Args:
+        request: (AiplatformProjectsLocationsRagCorporaRagFilesImportRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Import')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Import.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/ragCorpora/{ragCorporaId}/ragFiles:import',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.ragCorpora.ragFiles.import',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/ragFiles:import',
+        request_field='googleCloudAiplatformV1beta1ImportRagFilesRequest',
+        request_type_name='AiplatformProjectsLocationsRagCorporaRagFilesImportRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists RagFiles in a RagCorpus.
+
+      Args:
+        request: (AiplatformProjectsLocationsRagCorporaRagFilesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ListRagFilesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/ragCorpora/{ragCorporaId}/ragFiles',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.ragCorpora.ragFiles.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['pageSize', 'pageToken'],
+        relative_path='v1beta1/{+parent}/ragFiles',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsRagCorporaRagFilesListRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ListRagFilesResponse',
+        supports_download=False,
+    )
+
   class ProjectsLocationsRagCorporaService(base_api.BaseApiService):
     """Service class for the projects_locations_ragCorpora resource."""
 
@@ -13659,6 +17119,768 @@ class AiplatformV1beta1(base_api.BaseApiClient):
       super(AiplatformV1beta1.ProjectsLocationsRagCorporaService, self).__init__(client)
       self._upload_configs = {
           }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a RagCorpus.
+
+      Args:
+        request: (AiplatformProjectsLocationsRagCorporaCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/ragCorpora',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.ragCorpora.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/ragCorpora',
+        request_field='googleCloudAiplatformV1beta1RagCorpus',
+        request_type_name='AiplatformProjectsLocationsRagCorporaCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a RagCorpus.
+
+      Args:
+        request: (AiplatformProjectsLocationsRagCorporaDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/ragCorpora/{ragCorporaId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.ragCorpora.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['force'],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsRagCorporaDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets a RagCorpus.
+
+      Args:
+        request: (AiplatformProjectsLocationsRagCorporaGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1RagCorpus) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/ragCorpora/{ragCorporaId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.ragCorpora.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsRagCorporaGetRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1RagCorpus',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists RagCorpora in a Location.
+
+      Args:
+        request: (AiplatformProjectsLocationsRagCorporaListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ListRagCorporaResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/ragCorpora',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.ragCorpora.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['pageSize', 'pageToken'],
+        relative_path='v1beta1/{+parent}/ragCorpora',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsRagCorporaListRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ListRagCorporaResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates a RagCorpus.
+
+      Args:
+        request: (GoogleCloudAiplatformV1beta1RagCorpus) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/ragCorpora/{ragCorporaId}',
+        http_method='PATCH',
+        method_id='aiplatform.projects.locations.ragCorpora.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='<request>',
+        request_type_name='GoogleCloudAiplatformV1beta1RagCorpus',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsRagEngineConfigOperationsService(base_api.BaseApiService):
+    """Service class for the projects_locations_ragEngineConfig_operations resource."""
+
+    _NAME = 'projects_locations_ragEngineConfig_operations'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsRagEngineConfigOperationsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Cancel(self, request, global_params=None):
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsRagEngineConfigOperationsCancelRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Cancel')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Cancel.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/ragEngineConfig/operations/{operationsId}:cancel',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.ragEngineConfig.operations.cancel',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:cancel',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsRagEngineConfigOperationsCancelRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a long-running operation. This method indicates that the client is no longer interested in the operation result. It does not cancel the operation. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsRagEngineConfigOperationsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/ragEngineConfig/operations/{operationsId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.ragEngineConfig.operations.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsRagEngineConfigOperationsDeleteRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets the latest state of a long-running operation. Clients can use this method to poll the operation result at intervals as recommended by the API service.
+
+      Args:
+        request: (AiplatformProjectsLocationsRagEngineConfigOperationsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/ragEngineConfig/operations/{operationsId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.ragEngineConfig.operations.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsRagEngineConfigOperationsGetRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists operations that match the specified filter in the request. If the server doesn't support this method, it returns `UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsRagEngineConfigOperationsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningListOperationsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/ragEngineConfig/operations',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.ragEngineConfig.operations.list',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+name}/operations',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsRagEngineConfigOperationsListRequest',
+        response_type_name='GoogleLongrunningListOperationsResponse',
+        supports_download=False,
+    )
+
+    def Wait(self, request, global_params=None):
+      r"""Waits until the specified long-running operation is done or reaches at most a specified timeout, returning the latest state. If the operation is already done, the latest state is immediately returned. If the timeout specified is greater than the default HTTP/RPC timeout, the HTTP/RPC timeout is used. If the server does not support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Note that this method is on a best-effort basis. It may return the latest state before the specified timeout (including immediately), meaning even an immediate response is no guarantee that the operation is done.
+
+      Args:
+        request: (AiplatformProjectsLocationsRagEngineConfigOperationsWaitRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Wait')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Wait.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/ragEngineConfig/operations/{operationsId}:wait',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.ragEngineConfig.operations.wait',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['timeout'],
+        relative_path='v1beta1/{+name}:wait',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsRagEngineConfigOperationsWaitRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsRagEngineConfigService(base_api.BaseApiService):
+    """Service class for the projects_locations_ragEngineConfig resource."""
+
+    _NAME = 'projects_locations_ragEngineConfig'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsRagEngineConfigService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+  class ProjectsLocationsReasoningEnginesExamplesOperationsService(base_api.BaseApiService):
+    """Service class for the projects_locations_reasoningEngines_examples_operations resource."""
+
+    _NAME = 'projects_locations_reasoningEngines_examples_operations'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsReasoningEnginesExamplesOperationsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Cancel(self, request, global_params=None):
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesExamplesOperationsCancelRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Cancel')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Cancel.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/examples/{examplesId}/operations/{operationsId}:cancel',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.reasoningEngines.examples.operations.cancel',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:cancel',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesExamplesOperationsCancelRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a long-running operation. This method indicates that the client is no longer interested in the operation result. It does not cancel the operation. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesExamplesOperationsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/examples/{examplesId}/operations/{operationsId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.reasoningEngines.examples.operations.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesExamplesOperationsDeleteRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets the latest state of a long-running operation. Clients can use this method to poll the operation result at intervals as recommended by the API service.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesExamplesOperationsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/examples/{examplesId}/operations/{operationsId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.reasoningEngines.examples.operations.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesExamplesOperationsGetRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Wait(self, request, global_params=None):
+      r"""Waits until the specified long-running operation is done or reaches at most a specified timeout, returning the latest state. If the operation is already done, the latest state is immediately returned. If the timeout specified is greater than the default HTTP/RPC timeout, the HTTP/RPC timeout is used. If the server does not support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Note that this method is on a best-effort basis. It may return the latest state before the specified timeout (including immediately), meaning even an immediate response is no guarantee that the operation is done.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesExamplesOperationsWaitRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Wait')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Wait.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/examples/{examplesId}/operations/{operationsId}:wait',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.reasoningEngines.examples.operations.wait',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['timeout'],
+        relative_path='v1beta1/{+name}:wait',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesExamplesOperationsWaitRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsReasoningEnginesExamplesService(base_api.BaseApiService):
+    """Service class for the projects_locations_reasoningEngines_examples resource."""
+
+    _NAME = 'projects_locations_reasoningEngines_examples'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsReasoningEnginesExamplesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+  class ProjectsLocationsReasoningEnginesMemoriesOperationsService(base_api.BaseApiService):
+    """Service class for the projects_locations_reasoningEngines_memories_operations resource."""
+
+    _NAME = 'projects_locations_reasoningEngines_memories_operations'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsReasoningEnginesMemoriesOperationsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Cancel(self, request, global_params=None):
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesMemoriesOperationsCancelRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Cancel')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Cancel.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/memories/{memoriesId}/operations/{operationsId}:cancel',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.reasoningEngines.memories.operations.cancel',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:cancel',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesMemoriesOperationsCancelRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a long-running operation. This method indicates that the client is no longer interested in the operation result. It does not cancel the operation. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesMemoriesOperationsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/memories/{memoriesId}/operations/{operationsId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.reasoningEngines.memories.operations.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesMemoriesOperationsDeleteRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets the latest state of a long-running operation. Clients can use this method to poll the operation result at intervals as recommended by the API service.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesMemoriesOperationsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/memories/{memoriesId}/operations/{operationsId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.reasoningEngines.memories.operations.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesMemoriesOperationsGetRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists operations that match the specified filter in the request. If the server doesn't support this method, it returns `UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesMemoriesOperationsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningListOperationsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/memories/{memoriesId}/operations',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.reasoningEngines.memories.operations.list',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+name}/operations',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesMemoriesOperationsListRequest',
+        response_type_name='GoogleLongrunningListOperationsResponse',
+        supports_download=False,
+    )
+
+    def Wait(self, request, global_params=None):
+      r"""Waits until the specified long-running operation is done or reaches at most a specified timeout, returning the latest state. If the operation is already done, the latest state is immediately returned. If the timeout specified is greater than the default HTTP/RPC timeout, the HTTP/RPC timeout is used. If the server does not support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Note that this method is on a best-effort basis. It may return the latest state before the specified timeout (including immediately), meaning even an immediate response is no guarantee that the operation is done.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesMemoriesOperationsWaitRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Wait')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Wait.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/memories/{memoriesId}/operations/{operationsId}:wait',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.reasoningEngines.memories.operations.wait',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['timeout'],
+        relative_path='v1beta1/{+name}:wait',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesMemoriesOperationsWaitRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsReasoningEnginesMemoriesService(base_api.BaseApiService):
+    """Service class for the projects_locations_reasoningEngines_memories resource."""
+
+    _NAME = 'projects_locations_reasoningEngines_memories'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsReasoningEnginesMemoriesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Create a Memory.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesMemoriesCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/memories',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.reasoningEngines.memories.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/memories',
+        request_field='googleCloudAiplatformV1beta1Memory',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesMemoriesCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Delete a Memory.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesMemoriesDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/memories/{memoriesId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.reasoningEngines.memories.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesMemoriesDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Generate(self, request, global_params=None):
+      r"""Generate memories.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesMemoriesGenerateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Generate')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Generate.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/memories:generate',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.reasoningEngines.memories.generate',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/memories:generate',
+        request_field='googleCloudAiplatformV1beta1GenerateMemoriesRequest',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesMemoriesGenerateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Get a Memory.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesMemoriesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1Memory) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/memories/{memoriesId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.reasoningEngines.memories.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesMemoriesGetRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1Memory',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""List Memories.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesMemoriesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ListMemoriesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/memories',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.reasoningEngines.memories.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+parent}/memories',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesMemoriesListRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ListMemoriesResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Update a Memory.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesMemoriesPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/memories/{memoriesId}',
+        http_method='PATCH',
+        method_id='aiplatform.projects.locations.reasoningEngines.memories.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1beta1/{+name}',
+        request_field='googleCloudAiplatformV1beta1Memory',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesMemoriesPatchRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Retrieve(self, request, global_params=None):
+      r"""Retrieve memories.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesMemoriesRetrieveRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1RetrieveMemoriesResponse) The response message.
+      """
+      config = self.GetMethodConfig('Retrieve')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Retrieve.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/memories:retrieve',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.reasoningEngines.memories.retrieve',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/memories:retrieve',
+        request_field='googleCloudAiplatformV1beta1RetrieveMemoriesRequest',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesMemoriesRetrieveRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1RetrieveMemoriesResponse',
+        supports_download=False,
+    )
 
   class ProjectsLocationsReasoningEnginesOperationsService(base_api.BaseApiService):
     """Service class for the projects_locations_reasoningEngines_operations resource."""
@@ -13671,7 +17893,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsReasoningEnginesOperationsCancelRequest) input message
@@ -13805,6 +18027,650 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+  class ProjectsLocationsReasoningEnginesSandboxEnvironmentsOperationsService(base_api.BaseApiService):
+    """Service class for the projects_locations_reasoningEngines_sandboxEnvironments_operations resource."""
+
+    _NAME = 'projects_locations_reasoningEngines_sandboxEnvironments_operations'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsReasoningEnginesSandboxEnvironmentsOperationsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Cancel(self, request, global_params=None):
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesSandboxEnvironmentsOperationsCancelRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Cancel')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Cancel.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/sandboxEnvironments/{sandboxEnvironmentsId}/operations/{operationsId}:cancel',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.reasoningEngines.sandboxEnvironments.operations.cancel',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:cancel',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesSandboxEnvironmentsOperationsCancelRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a long-running operation. This method indicates that the client is no longer interested in the operation result. It does not cancel the operation. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesSandboxEnvironmentsOperationsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/sandboxEnvironments/{sandboxEnvironmentsId}/operations/{operationsId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.reasoningEngines.sandboxEnvironments.operations.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesSandboxEnvironmentsOperationsDeleteRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets the latest state of a long-running operation. Clients can use this method to poll the operation result at intervals as recommended by the API service.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesSandboxEnvironmentsOperationsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/sandboxEnvironments/{sandboxEnvironmentsId}/operations/{operationsId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.reasoningEngines.sandboxEnvironments.operations.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesSandboxEnvironmentsOperationsGetRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists operations that match the specified filter in the request. If the server doesn't support this method, it returns `UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesSandboxEnvironmentsOperationsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningListOperationsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/sandboxEnvironments/{sandboxEnvironmentsId}/operations',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.reasoningEngines.sandboxEnvironments.operations.list',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+name}/operations',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesSandboxEnvironmentsOperationsListRequest',
+        response_type_name='GoogleLongrunningListOperationsResponse',
+        supports_download=False,
+    )
+
+    def Wait(self, request, global_params=None):
+      r"""Waits until the specified long-running operation is done or reaches at most a specified timeout, returning the latest state. If the operation is already done, the latest state is immediately returned. If the timeout specified is greater than the default HTTP/RPC timeout, the HTTP/RPC timeout is used. If the server does not support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Note that this method is on a best-effort basis. It may return the latest state before the specified timeout (including immediately), meaning even an immediate response is no guarantee that the operation is done.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesSandboxEnvironmentsOperationsWaitRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Wait')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Wait.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/sandboxEnvironments/{sandboxEnvironmentsId}/operations/{operationsId}:wait',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.reasoningEngines.sandboxEnvironments.operations.wait',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['timeout'],
+        relative_path='v1beta1/{+name}:wait',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesSandboxEnvironmentsOperationsWaitRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsReasoningEnginesSandboxEnvironmentsService(base_api.BaseApiService):
+    """Service class for the projects_locations_reasoningEngines_sandboxEnvironments resource."""
+
+    _NAME = 'projects_locations_reasoningEngines_sandboxEnvironments'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsReasoningEnginesSandboxEnvironmentsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a SandboxEnvironment in a given reasoning engine.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesSandboxEnvironmentsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/sandboxEnvironments',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.reasoningEngines.sandboxEnvironments.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/sandboxEnvironments',
+        request_field='googleCloudAiplatformV1beta1SandboxEnvironment',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesSandboxEnvironmentsCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes the specific SandboxEnvironment.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesSandboxEnvironmentsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/sandboxEnvironments/{sandboxEnvironmentsId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.reasoningEngines.sandboxEnvironments.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesSandboxEnvironmentsDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Execute(self, request, global_params=None):
+      r"""Executes using a sandbox environment.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesSandboxEnvironmentsExecuteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ExecuteSandboxEnvironmentResponse) The response message.
+      """
+      config = self.GetMethodConfig('Execute')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Execute.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/sandboxEnvironments/{sandboxEnvironmentsId}:execute',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.reasoningEngines.sandboxEnvironments.execute',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:execute',
+        request_field='googleCloudAiplatformV1beta1ExecuteSandboxEnvironmentRequest',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesSandboxEnvironmentsExecuteRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ExecuteSandboxEnvironmentResponse',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets details of the specific SandboxEnvironment.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesSandboxEnvironmentsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1SandboxEnvironment) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/sandboxEnvironments/{sandboxEnvironmentsId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.reasoningEngines.sandboxEnvironments.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesSandboxEnvironmentsGetRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1SandboxEnvironment',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists SandboxEnvironments in a given reasoning engine.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesSandboxEnvironmentsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ListSandboxEnvironmentsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/sandboxEnvironments',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.reasoningEngines.sandboxEnvironments.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+parent}/sandboxEnvironments',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesSandboxEnvironmentsListRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ListSandboxEnvironmentsResponse',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsReasoningEnginesSessionsEventsService(base_api.BaseApiService):
+    """Service class for the projects_locations_reasoningEngines_sessions_events resource."""
+
+    _NAME = 'projects_locations_reasoningEngines_sessions_events'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsReasoningEnginesSessionsEventsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def List(self, request, global_params=None):
+      r"""Lists Events in a given session.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesSessionsEventsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ListEventsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/sessions/{sessionsId}/events',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.reasoningEngines.sessions.events.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+parent}/events',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesSessionsEventsListRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ListEventsResponse',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsReasoningEnginesSessionsOperationsService(base_api.BaseApiService):
+    """Service class for the projects_locations_reasoningEngines_sessions_operations resource."""
+
+    _NAME = 'projects_locations_reasoningEngines_sessions_operations'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsReasoningEnginesSessionsOperationsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Cancel(self, request, global_params=None):
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesSessionsOperationsCancelRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Cancel')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Cancel.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/sessions/{sessionsId}/operations/{operationsId}:cancel',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.reasoningEngines.sessions.operations.cancel',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:cancel',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesSessionsOperationsCancelRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a long-running operation. This method indicates that the client is no longer interested in the operation result. It does not cancel the operation. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesSessionsOperationsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/sessions/{sessionsId}/operations/{operationsId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.reasoningEngines.sessions.operations.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesSessionsOperationsDeleteRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets the latest state of a long-running operation. Clients can use this method to poll the operation result at intervals as recommended by the API service.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesSessionsOperationsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/sessions/{sessionsId}/operations/{operationsId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.reasoningEngines.sessions.operations.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesSessionsOperationsGetRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists operations that match the specified filter in the request. If the server doesn't support this method, it returns `UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesSessionsOperationsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningListOperationsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/sessions/{sessionsId}/operations',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.reasoningEngines.sessions.operations.list',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+name}/operations',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesSessionsOperationsListRequest',
+        response_type_name='GoogleLongrunningListOperationsResponse',
+        supports_download=False,
+    )
+
+    def Wait(self, request, global_params=None):
+      r"""Waits until the specified long-running operation is done or reaches at most a specified timeout, returning the latest state. If the operation is already done, the latest state is immediately returned. If the timeout specified is greater than the default HTTP/RPC timeout, the HTTP/RPC timeout is used. If the server does not support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Note that this method is on a best-effort basis. It may return the latest state before the specified timeout (including immediately), meaning even an immediate response is no guarantee that the operation is done.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesSessionsOperationsWaitRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Wait')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Wait.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/sessions/{sessionsId}/operations/{operationsId}:wait',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.reasoningEngines.sessions.operations.wait',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['timeout'],
+        relative_path='v1beta1/{+name}:wait',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesSessionsOperationsWaitRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsReasoningEnginesSessionsService(base_api.BaseApiService):
+    """Service class for the projects_locations_reasoningEngines_sessions resource."""
+
+    _NAME = 'projects_locations_reasoningEngines_sessions'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsReasoningEnginesSessionsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def AppendEvent(self, request, global_params=None):
+      r"""Appends an event to a given session.
+
+      Args:
+        request: (GoogleCloudAiplatformV1beta1SessionEvent) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1AppendEventResponse) The response message.
+      """
+      config = self.GetMethodConfig('AppendEvent')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    AppendEvent.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/sessions/{sessionsId}:appendEvent',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.reasoningEngines.sessions.appendEvent',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:appendEvent',
+        request_field='<request>',
+        request_type_name='GoogleCloudAiplatformV1beta1SessionEvent',
+        response_type_name='GoogleCloudAiplatformV1beta1AppendEventResponse',
+        supports_download=False,
+    )
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new Session.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesSessionsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/sessions',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.reasoningEngines.sessions.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/sessions',
+        request_field='googleCloudAiplatformV1beta1Session',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesSessionsCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes details of the specific Session.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesSessionsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/sessions/{sessionsId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.reasoningEngines.sessions.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesSessionsDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets details of the specific Session.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesSessionsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1Session) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/sessions/{sessionsId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.reasoningEngines.sessions.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesSessionsGetRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1Session',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists Sessions in a given reasoning engine.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesSessionsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ListSessionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/sessions',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.reasoningEngines.sessions.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+parent}/sessions',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesSessionsListRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ListSessionsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates the specific Session.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesSessionsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1Session) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}/sessions/{sessionsId}',
+        http_method='PATCH',
+        method_id='aiplatform.projects.locations.reasoningEngines.sessions.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1beta1/{+name}',
+        request_field='googleCloudAiplatformV1beta1Session',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesSessionsPatchRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1Session',
+        supports_download=False,
+    )
+
   class ProjectsLocationsReasoningEnginesService(base_api.BaseApiService):
     """Service class for the projects_locations_reasoningEngines resource."""
 
@@ -13861,7 +18727,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         method_id='aiplatform.projects.locations.reasoningEngines.delete',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=[],
+        query_params=['force'],
         relative_path='v1beta1/{+name}',
         request_field='',
         request_type_name='AiplatformProjectsLocationsReasoningEnginesDeleteRequest',
@@ -13923,6 +18789,33 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def Patch(self, request, global_params=None):
+      r"""Updates a reasoning engine.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}',
+        http_method='PATCH',
+        method_id='aiplatform.projects.locations.reasoningEngines.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1beta1/{+name}',
+        request_field='googleCloudAiplatformV1beta1ReasoningEngine',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesPatchRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
     def Query(self, request, global_params=None):
       r"""Queries using a reasoning engine.
 
@@ -13950,6 +18843,33 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def StreamQuery(self, request, global_params=None):
+      r"""Streams queries using a reasoning engine.
+
+      Args:
+        request: (AiplatformProjectsLocationsReasoningEnginesStreamQueryRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleApiHttpBody) The response message.
+      """
+      config = self.GetMethodConfig('StreamQuery')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    StreamQuery.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/reasoningEngines/{reasoningEnginesId}:streamQuery',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.reasoningEngines.streamQuery',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:streamQuery',
+        request_field='googleCloudAiplatformV1beta1StreamQueryReasoningEngineRequest',
+        request_type_name='AiplatformProjectsLocationsReasoningEnginesStreamQueryRequest',
+        response_type_name='GoogleApiHttpBody',
+        supports_download=False,
+    )
+
   class ProjectsLocationsSchedulesOperationsService(base_api.BaseApiService):
     """Service class for the projects_locations_schedules_operations resource."""
 
@@ -13961,7 +18881,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsSchedulesOperationsCancelRequest) input message
@@ -14268,7 +19188,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
     )
 
     def Resume(self, request, global_params=None):
-      r"""Resumes a paused Schedule to start scheduling new runs. Will mark Schedule.state to 'ACTIVE'. Only paused Schedule can be resumed. When the Schedule is resumed, new runs will be scheduled starting from the next execution time after the current time based on the time_specification in the Schedule. If Schedule.catchUp is set up true, all missed runs will be scheduled for backfill first.
+      r"""Resumes a paused Schedule to start scheduling new runs. Will mark Schedule.state to 'ACTIVE'. Only paused Schedule can be resumed. When the Schedule is resumed, new runs will be scheduled starting from the next execution time after the current time based on the time_specification in the Schedule. If Schedule.catch_up is set up true, all missed runs will be scheduled for backfill first.
 
       Args:
         request: (AiplatformProjectsLocationsSchedulesResumeRequest) input message
@@ -14291,6 +19211,151 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         request_field='googleCloudAiplatformV1beta1ResumeScheduleRequest',
         request_type_name='AiplatformProjectsLocationsSchedulesResumeRequest',
         response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsServerlessRayJobsService(base_api.BaseApiService):
+    """Service class for the projects_locations_serverlessRayJobs resource."""
+
+    _NAME = 'projects_locations_serverlessRayJobs'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsServerlessRayJobsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Cancel(self, request, global_params=None):
+      r"""Cancels a ServerlessRayJob. Starts asynchronous cancellation on the ServerlessRayJob. Clients can use JobService.GetServerlessRayJob or other methods to check job cancellation status.
+
+      Args:
+        request: (AiplatformProjectsLocationsServerlessRayJobsCancelRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1CancelServerlessRayJobResponse) The response message.
+      """
+      config = self.GetMethodConfig('Cancel')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Cancel.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/serverlessRayJobs/{serverlessRayJobsId}:cancel',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.serverlessRayJobs.cancel',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:cancel',
+        request_field='googleCloudAiplatformV1beta1CancelServerlessRayJobRequest',
+        request_type_name='AiplatformProjectsLocationsServerlessRayJobsCancelRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1CancelServerlessRayJobResponse',
+        supports_download=False,
+    )
+
+    def Create(self, request, global_params=None):
+      r"""Creates a ServerlessRayJob.
+
+      Args:
+        request: (AiplatformProjectsLocationsServerlessRayJobsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ServerlessRayJob) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/serverlessRayJobs',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.serverlessRayJobs.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/serverlessRayJobs',
+        request_field='googleCloudAiplatformV1beta1ServerlessRayJob',
+        request_type_name='AiplatformProjectsLocationsServerlessRayJobsCreateRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ServerlessRayJob',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a ServerlessRayJob.
+
+      Args:
+        request: (AiplatformProjectsLocationsServerlessRayJobsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/serverlessRayJobs/{serverlessRayJobsId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.serverlessRayJobs.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsServerlessRayJobsDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets a ServerlessRayJob.
+
+      Args:
+        request: (AiplatformProjectsLocationsServerlessRayJobsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ServerlessRayJob) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/serverlessRayJobs/{serverlessRayJobsId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.serverlessRayJobs.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsServerlessRayJobsGetRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ServerlessRayJob',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists ServerlessRayJobs in a Location.
+
+      Args:
+        request: (AiplatformProjectsLocationsServerlessRayJobsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ListServerlessRayJobsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/serverlessRayJobs',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.serverlessRayJobs.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+parent}/serverlessRayJobs',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsServerlessRayJobsListRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ListServerlessRayJobsResponse',
         supports_download=False,
     )
 
@@ -14406,7 +19471,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsSpecialistPoolsOperationsCancelRequest) input message
@@ -14696,7 +19761,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsStudiesOperationsCancelRequest) input message
@@ -14841,7 +19906,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsStudiesTrialsOperationsCancelRequest) input message
@@ -15411,7 +20476,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsTensorboardsExperimentsOperationsCancelRequest) input message
@@ -15556,7 +20621,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsTensorboardsExperimentsRunsOperationsCancelRequest) input message
@@ -15701,7 +20766,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsTensorboardsExperimentsRunsTimeSeriesOperationsCancelRequest) input message
@@ -16470,7 +21535,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsTensorboardsOperationsCancelRequest) input message
@@ -16841,7 +21906,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (AiplatformProjectsLocationsTrainingPipelinesOperationsCancelRequest) input message
@@ -17120,6 +22185,215 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+  class ProjectsLocationsTuningJobsOperationsService(base_api.BaseApiService):
+    """Service class for the projects_locations_tuningJobs_operations resource."""
+
+    _NAME = 'projects_locations_tuningJobs_operations'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsTuningJobsOperationsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a long-running operation. This method indicates that the client is no longer interested in the operation result. It does not cancel the operation. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsTuningJobsOperationsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/tuningJobs/{tuningJobsId}/operations/{operationsId}',
+        http_method='DELETE',
+        method_id='aiplatform.projects.locations.tuningJobs.operations.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsTuningJobsOperationsDeleteRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+  class ProjectsLocationsTuningJobsService(base_api.BaseApiService):
+    """Service class for the projects_locations_tuningJobs resource."""
+
+    _NAME = 'projects_locations_tuningJobs'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsLocationsTuningJobsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Cancel(self, request, global_params=None):
+      r"""Cancels a TuningJob. Starts asynchronous cancellation on the TuningJob. The server makes a best effort to cancel the job, but success is not guaranteed. Clients can use GenAiTuningService.GetTuningJob or other methods to check whether the cancellation succeeded or whether the job completed despite cancellation. On successful cancellation, the TuningJob is not deleted; instead it becomes a job with a TuningJob.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`, and TuningJob.state is set to `CANCELLED`.
+
+      Args:
+        request: (AiplatformProjectsLocationsTuningJobsCancelRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleProtobufEmpty) The response message.
+      """
+      config = self.GetMethodConfig('Cancel')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Cancel.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/tuningJobs/{tuningJobsId}:cancel',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.tuningJobs.cancel',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:cancel',
+        request_field='googleCloudAiplatformV1beta1CancelTuningJobRequest',
+        request_type_name='AiplatformProjectsLocationsTuningJobsCancelRequest',
+        response_type_name='GoogleProtobufEmpty',
+        supports_download=False,
+    )
+
+    def Create(self, request, global_params=None):
+      r"""Creates a TuningJob. A created TuningJob right away will be attempted to be run.
+
+      Args:
+        request: (AiplatformProjectsLocationsTuningJobsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1TuningJob) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/tuningJobs',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.tuningJobs.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/tuningJobs',
+        request_field='googleCloudAiplatformV1beta1TuningJob',
+        request_type_name='AiplatformProjectsLocationsTuningJobsCreateRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1TuningJob',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets a TuningJob.
+
+      Args:
+        request: (AiplatformProjectsLocationsTuningJobsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1TuningJob) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/tuningJobs/{tuningJobsId}',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.tuningJobs.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsTuningJobsGetRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1TuningJob',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists TuningJobs in a Location.
+
+      Args:
+        request: (AiplatformProjectsLocationsTuningJobsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ListTuningJobsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/tuningJobs',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.tuningJobs.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+parent}/tuningJobs',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsTuningJobsListRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ListTuningJobsResponse',
+        supports_download=False,
+    )
+
+    def OptimizePrompt(self, request, global_params=None):
+      r"""Optimizes a prompt.
+
+      Args:
+        request: (AiplatformProjectsLocationsTuningJobsOptimizePromptRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1OptimizePromptResponse) The response message.
+      """
+      config = self.GetMethodConfig('OptimizePrompt')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    OptimizePrompt.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/tuningJobs:optimizePrompt',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.tuningJobs.optimizePrompt',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/tuningJobs:optimizePrompt',
+        request_field='googleCloudAiplatformV1beta1OptimizePromptRequest',
+        request_type_name='AiplatformProjectsLocationsTuningJobsOptimizePromptRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1OptimizePromptResponse',
+        supports_download=False,
+    )
+
+    def RebaseTunedModel(self, request, global_params=None):
+      r"""Rebase a TunedModel.
+
+      Args:
+        request: (AiplatformProjectsLocationsTuningJobsRebaseTunedModelRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('RebaseTunedModel')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    RebaseTunedModel.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/tuningJobs:rebaseTunedModel',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.tuningJobs.rebaseTunedModel',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/tuningJobs:rebaseTunedModel',
+        request_field='googleCloudAiplatformV1beta1RebaseTunedModelRequest',
+        request_type_name='AiplatformProjectsLocationsTuningJobsRebaseTunedModelRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
   class ProjectsLocationsService(base_api.BaseApiService):
     """Service class for the projects_locations resource."""
 
@@ -17129,6 +22403,141 @@ class AiplatformV1beta1(base_api.BaseApiClient):
       super(AiplatformV1beta1.ProjectsLocationsService, self).__init__(client)
       self._upload_configs = {
           }
+
+    def AugmentPrompt(self, request, global_params=None):
+      r"""Given an input prompt, it returns augmented prompt from vertex rag store to guide LLM towards generating grounded responses.
+
+      Args:
+        request: (AiplatformProjectsLocationsAugmentPromptRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1AugmentPromptResponse) The response message.
+      """
+      config = self.GetMethodConfig('AugmentPrompt')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    AugmentPrompt.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}:augmentPrompt',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.augmentPrompt',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}:augmentPrompt',
+        request_field='googleCloudAiplatformV1beta1AugmentPromptRequest',
+        request_type_name='AiplatformProjectsLocationsAugmentPromptRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1AugmentPromptResponse',
+        supports_download=False,
+    )
+
+    def CorroborateContent(self, request, global_params=None):
+      r"""Given an input text, it returns a score that evaluates the factuality of the text. It also extracts and returns claims from the text and provides supporting facts.
+
+      Args:
+        request: (AiplatformProjectsLocationsCorroborateContentRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1CorroborateContentResponse) The response message.
+      """
+      config = self.GetMethodConfig('CorroborateContent')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    CorroborateContent.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}:corroborateContent',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.corroborateContent',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}:corroborateContent',
+        request_field='googleCloudAiplatformV1beta1CorroborateContentRequest',
+        request_type_name='AiplatformProjectsLocationsCorroborateContentRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1CorroborateContentResponse',
+        supports_download=False,
+    )
+
+    def Deploy(self, request, global_params=None):
+      r"""Deploys a model to a new endpoint.
+
+      Args:
+        request: (AiplatformProjectsLocationsDeployRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Deploy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Deploy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}:deploy',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.deploy',
+        ordered_params=['destination'],
+        path_params=['destination'],
+        query_params=[],
+        relative_path='v1beta1/{+destination}:deploy',
+        request_field='googleCloudAiplatformV1beta1DeployRequest',
+        request_type_name='AiplatformProjectsLocationsDeployRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def DeployPublisherModel(self, request, global_params=None):
+      r"""Deploys publisher models.
+
+      Args:
+        request: (AiplatformProjectsLocationsDeployPublisherModelRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('DeployPublisherModel')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    DeployPublisherModel.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}:deployPublisherModel',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.deployPublisherModel',
+        ordered_params=['destination'],
+        path_params=['destination'],
+        query_params=[],
+        relative_path='v1beta1/{+destination}:deployPublisherModel',
+        request_field='googleCloudAiplatformV1beta1DeployPublisherModelRequest',
+        request_type_name='AiplatformProjectsLocationsDeployPublisherModelRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def EvaluateDataset(self, request, global_params=None):
+      r"""Evaluates a dataset based on a set of given metrics.
+
+      Args:
+        request: (AiplatformProjectsLocationsEvaluateDatasetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('EvaluateDataset')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    EvaluateDataset.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}:evaluateDataset',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.evaluateDataset',
+        ordered_params=['location'],
+        path_params=['location'],
+        query_params=[],
+        relative_path='v1beta1/{+location}:evaluateDataset',
+        request_field='googleCloudAiplatformV1beta1EvaluateDatasetRequest',
+        request_type_name='AiplatformProjectsLocationsEvaluateDatasetRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
 
     def EvaluateInstances(self, request, global_params=None):
       r"""Evaluates instances based on a given metric.
@@ -17154,6 +22563,60 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         request_field='googleCloudAiplatformV1beta1EvaluateInstancesRequest',
         request_type_name='AiplatformProjectsLocationsEvaluateInstancesRequest',
         response_type_name='GoogleCloudAiplatformV1beta1EvaluateInstancesResponse',
+        supports_download=False,
+    )
+
+    def GenerateInstanceRubrics(self, request, global_params=None):
+      r"""Generates rubrics for a given prompt. A rubric represents a single testable criterion for evaluation. One input prompt could have multiple rubrics This RPC allows users to get suggested rubrics based on provided prompt, which can then be reviewed and used for subsequent evaluations.
+
+      Args:
+        request: (AiplatformProjectsLocationsGenerateInstanceRubricsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1GenerateInstanceRubricsResponse) The response message.
+      """
+      config = self.GetMethodConfig('GenerateInstanceRubrics')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GenerateInstanceRubrics.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}:generateInstanceRubrics',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.generateInstanceRubrics',
+        ordered_params=['location'],
+        path_params=['location'],
+        query_params=[],
+        relative_path='v1beta1/{+location}:generateInstanceRubrics',
+        request_field='googleCloudAiplatformV1beta1GenerateInstanceRubricsRequest',
+        request_type_name='AiplatformProjectsLocationsGenerateInstanceRubricsRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1GenerateInstanceRubricsResponse',
+        supports_download=False,
+    )
+
+    def GenerateSyntheticData(self, request, global_params=None):
+      r"""Generates synthetic data based on the provided configuration.
+
+      Args:
+        request: (AiplatformProjectsLocationsGenerateSyntheticDataRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1GenerateSyntheticDataResponse) The response message.
+      """
+      config = self.GetMethodConfig('GenerateSyntheticData')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GenerateSyntheticData.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}:generateSyntheticData',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.generateSyntheticData',
+        ordered_params=['location'],
+        path_params=['location'],
+        query_params=[],
+        relative_path='v1beta1/{+location}:generateSyntheticData',
+        request_field='googleCloudAiplatformV1beta1GenerateSyntheticDataRequest',
+        request_type_name='AiplatformProjectsLocationsGenerateSyntheticDataRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1GenerateSyntheticDataResponse',
         supports_download=False,
     )
 
@@ -17184,6 +22647,33 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def GetRagEngineConfig(self, request, global_params=None):
+      r"""Gets a RagEngineConfig.
+
+      Args:
+        request: (AiplatformProjectsLocationsGetRagEngineConfigRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1RagEngineConfig) The response message.
+      """
+      config = self.GetMethodConfig('GetRagEngineConfig')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetRagEngineConfig.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/ragEngineConfig',
+        http_method='GET',
+        method_id='aiplatform.projects.locations.getRagEngineConfig',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformProjectsLocationsGetRagEngineConfigRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1RagEngineConfig',
+        supports_download=False,
+    )
+
     def List(self, request, global_params=None):
       r"""Lists information about the supported locations for this service.
 
@@ -17203,11 +22693,156 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         method_id='aiplatform.projects.locations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['extraLocationTypes', 'filter', 'pageSize', 'pageToken'],
         relative_path='v1beta1/{+name}/locations',
         request_field='',
         request_type_name='AiplatformProjectsLocationsListRequest',
         response_type_name='GoogleCloudLocationListLocationsResponse',
+        supports_download=False,
+    )
+
+    def RecommendSpec(self, request, global_params=None):
+      r"""Gets a Model's spec recommendations. This API is called by UI, SDK, and internal.
+
+      Args:
+        request: (AiplatformProjectsLocationsRecommendSpecRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1RecommendSpecResponse) The response message.
+      """
+      config = self.GetMethodConfig('RecommendSpec')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    RecommendSpec.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}:recommendSpec',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.recommendSpec',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}:recommendSpec',
+        request_field='googleCloudAiplatformV1beta1RecommendSpecRequest',
+        request_type_name='AiplatformProjectsLocationsRecommendSpecRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1RecommendSpecResponse',
+        supports_download=False,
+    )
+
+    def RetrieveContexts(self, request, global_params=None):
+      r"""Retrieves relevant contexts for a query.
+
+      Args:
+        request: (AiplatformProjectsLocationsRetrieveContextsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1RetrieveContextsResponse) The response message.
+      """
+      config = self.GetMethodConfig('RetrieveContexts')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    RetrieveContexts.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}:retrieveContexts',
+        http_method='POST',
+        method_id='aiplatform.projects.locations.retrieveContexts',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}:retrieveContexts',
+        request_field='googleCloudAiplatformV1beta1RetrieveContextsRequest',
+        request_type_name='AiplatformProjectsLocationsRetrieveContextsRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1RetrieveContextsResponse',
+        supports_download=False,
+    )
+
+    def UpdateRagEngineConfig(self, request, global_params=None):
+      r"""Updates a RagEngineConfig.
+
+      Args:
+        request: (GoogleCloudAiplatformV1beta1RagEngineConfig) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('UpdateRagEngineConfig')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    UpdateRagEngineConfig.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/ragEngineConfig',
+        http_method='PATCH',
+        method_id='aiplatform.projects.locations.updateRagEngineConfig',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='<request>',
+        request_type_name='GoogleCloudAiplatformV1beta1RagEngineConfig',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+  class ProjectsModelGardenEulaService(base_api.BaseApiService):
+    """Service class for the projects_modelGardenEula resource."""
+
+    _NAME = 'projects_modelGardenEula'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ProjectsModelGardenEulaService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Accept(self, request, global_params=None):
+      r"""Accepts the EULA acceptance status of a publisher model.
+
+      Args:
+        request: (AiplatformProjectsModelGardenEulaAcceptRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1PublisherModelEulaAcceptance) The response message.
+      """
+      config = self.GetMethodConfig('Accept')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Accept.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/modelGardenEula:accept',
+        http_method='POST',
+        method_id='aiplatform.projects.modelGardenEula.accept',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/modelGardenEula:accept',
+        request_field='googleCloudAiplatformV1beta1AcceptPublisherModelEulaRequest',
+        request_type_name='AiplatformProjectsModelGardenEulaAcceptRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1PublisherModelEulaAcceptance',
+        supports_download=False,
+    )
+
+    def Check(self, request, global_params=None):
+      r"""Checks the EULA acceptance status of a publisher model.
+
+      Args:
+        request: (AiplatformProjectsModelGardenEulaCheckRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1PublisherModelEulaAcceptance) The response message.
+      """
+      config = self.GetMethodConfig('Check')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Check.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/modelGardenEula:check',
+        http_method='POST',
+        method_id='aiplatform.projects.modelGardenEula.check',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/modelGardenEula:check',
+        request_field='googleCloudAiplatformV1beta1CheckPublisherModelEulaAcceptanceRequest',
+        request_type_name='AiplatformProjectsModelGardenEulaCheckRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1PublisherModelEulaAcceptance',
         supports_download=False,
     )
 
@@ -17220,6 +22855,33 @@ class AiplatformV1beta1(base_api.BaseApiClient):
       super(AiplatformV1beta1.ProjectsService, self).__init__(client)
       self._upload_configs = {
           }
+
+    def FetchPublisherModelConfig(self, request, global_params=None):
+      r"""Fetches the configs of publisher models.
+
+      Args:
+        request: (AiplatformProjectsFetchPublisherModelConfigRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1PublisherModelConfig) The response message.
+      """
+      config = self.GetMethodConfig('FetchPublisherModelConfig')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    FetchPublisherModelConfig.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}:fetchPublisherModelConfig',
+        http_method='GET',
+        method_id='aiplatform.projects.fetchPublisherModelConfig',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:fetchPublisherModelConfig',
+        request_field='',
+        request_type_name='AiplatformProjectsFetchPublisherModelConfigRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1PublisherModelConfig',
+        supports_download=False,
+    )
 
     def GetCacheConfig(self, request, global_params=None):
       r"""Gets a GenAI cache config.
@@ -17245,6 +22907,33 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         request_field='',
         request_type_name='AiplatformProjectsGetCacheConfigRequest',
         response_type_name='GoogleCloudAiplatformV1beta1CacheConfig',
+        supports_download=False,
+    )
+
+    def SetPublisherModelConfig(self, request, global_params=None):
+      r"""Sets (creates or updates) configs of publisher models. For example, sets the request/response logging config.
+
+      Args:
+        request: (AiplatformProjectsSetPublisherModelConfigRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('SetPublisherModelConfig')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetPublisherModelConfig.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}:setPublisherModelConfig',
+        http_method='POST',
+        method_id='aiplatform.projects.setPublisherModelConfig',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:setPublisherModelConfig',
+        request_field='googleCloudAiplatformV1beta1SetPublisherModelConfigRequest',
+        request_type_name='AiplatformProjectsSetPublisherModelConfigRequest',
+        response_type_name='GoogleLongrunningOperation',
         supports_download=False,
     )
 
@@ -17285,6 +22974,114 @@ class AiplatformV1beta1(base_api.BaseApiClient):
       self._upload_configs = {
           }
 
+    def ComputeTokens(self, request, global_params=None):
+      r"""Return a list of tokens based on the input text.
+
+      Args:
+        request: (AiplatformPublishersModelsComputeTokensRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ComputeTokensResponse) The response message.
+      """
+      config = self.GetMethodConfig('ComputeTokens')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ComputeTokens.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/publishers/{publishersId}/models/{modelsId}:computeTokens',
+        http_method='POST',
+        method_id='aiplatform.publishers.models.computeTokens',
+        ordered_params=['endpoint'],
+        path_params=['endpoint'],
+        query_params=[],
+        relative_path='v1beta1/{+endpoint}:computeTokens',
+        request_field='googleCloudAiplatformV1beta1ComputeTokensRequest',
+        request_type_name='AiplatformPublishersModelsComputeTokensRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ComputeTokensResponse',
+        supports_download=False,
+    )
+
+    def CountTokens(self, request, global_params=None):
+      r"""Perform a token counting.
+
+      Args:
+        request: (AiplatformPublishersModelsCountTokensRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1CountTokensResponse) The response message.
+      """
+      config = self.GetMethodConfig('CountTokens')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    CountTokens.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/publishers/{publishersId}/models/{modelsId}:countTokens',
+        http_method='POST',
+        method_id='aiplatform.publishers.models.countTokens',
+        ordered_params=['endpoint'],
+        path_params=['endpoint'],
+        query_params=[],
+        relative_path='v1beta1/{+endpoint}:countTokens',
+        request_field='googleCloudAiplatformV1beta1CountTokensRequest',
+        request_type_name='AiplatformPublishersModelsCountTokensRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1CountTokensResponse',
+        supports_download=False,
+    )
+
+    def FetchPredictOperation(self, request, global_params=None):
+      r"""Fetch an asynchronous online prediction operation.
+
+      Args:
+        request: (AiplatformPublishersModelsFetchPredictOperationRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('FetchPredictOperation')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    FetchPredictOperation.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/publishers/{publishersId}/models/{modelsId}:fetchPredictOperation',
+        http_method='POST',
+        method_id='aiplatform.publishers.models.fetchPredictOperation',
+        ordered_params=['endpoint'],
+        path_params=['endpoint'],
+        query_params=[],
+        relative_path='v1beta1/{+endpoint}:fetchPredictOperation',
+        request_field='googleCloudAiplatformV1beta1FetchPredictOperationRequest',
+        request_type_name='AiplatformPublishersModelsFetchPredictOperationRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def GenerateContent(self, request, global_params=None):
+      r"""Generate content with multimodal inputs.
+
+      Args:
+        request: (AiplatformPublishersModelsGenerateContentRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1GenerateContentResponse) The response message.
+      """
+      config = self.GetMethodConfig('GenerateContent')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GenerateContent.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/publishers/{publishersId}/models/{modelsId}:generateContent',
+        http_method='POST',
+        method_id='aiplatform.publishers.models.generateContent',
+        ordered_params=['model'],
+        path_params=['model'],
+        query_params=[],
+        relative_path='v1beta1/{+model}:generateContent',
+        request_field='googleCloudAiplatformV1beta1GenerateContentRequest',
+        request_type_name='AiplatformPublishersModelsGenerateContentRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1GenerateContentResponse',
+        supports_download=False,
+    )
+
     def Get(self, request, global_params=None):
       r"""Gets a Model Garden publisher model.
 
@@ -17304,7 +23101,7 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         method_id='aiplatform.publishers.models.get',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['languageCode', 'view'],
+        query_params=['huggingFaceToken', 'includeEquivalentModelGardenModelDeploymentConfigs', 'isHuggingFaceModel', 'languageCode', 'view'],
         relative_path='v1beta1/{+name}',
         request_field='',
         request_type_name='AiplatformPublishersModelsGetRequest',
@@ -17331,11 +23128,92 @@ class AiplatformV1beta1(base_api.BaseApiClient):
         method_id='aiplatform.publishers.models.list',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['filter', 'languageCode', 'orderBy', 'pageSize', 'pageToken', 'view'],
+        query_params=['filter', 'languageCode', 'listAllVersions', 'orderBy', 'pageSize', 'pageToken', 'view'],
         relative_path='v1beta1/{+parent}/models',
         request_field='',
         request_type_name='AiplatformPublishersModelsListRequest',
         response_type_name='GoogleCloudAiplatformV1beta1ListPublisherModelsResponse',
+        supports_download=False,
+    )
+
+    def Predict(self, request, global_params=None):
+      r"""Perform an online prediction.
+
+      Args:
+        request: (AiplatformPublishersModelsPredictRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1PredictResponse) The response message.
+      """
+      config = self.GetMethodConfig('Predict')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Predict.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/publishers/{publishersId}/models/{modelsId}:predict',
+        http_method='POST',
+        method_id='aiplatform.publishers.models.predict',
+        ordered_params=['endpoint'],
+        path_params=['endpoint'],
+        query_params=[],
+        relative_path='v1beta1/{+endpoint}:predict',
+        request_field='googleCloudAiplatformV1beta1PredictRequest',
+        request_type_name='AiplatformPublishersModelsPredictRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1PredictResponse',
+        supports_download=False,
+    )
+
+    def PredictLongRunning(self, request, global_params=None):
+      r"""PredictLongRunning method for the publishers_models service.
+
+      Args:
+        request: (AiplatformPublishersModelsPredictLongRunningRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('PredictLongRunning')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    PredictLongRunning.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/publishers/{publishersId}/models/{modelsId}:predictLongRunning',
+        http_method='POST',
+        method_id='aiplatform.publishers.models.predictLongRunning',
+        ordered_params=['endpoint'],
+        path_params=['endpoint'],
+        query_params=[],
+        relative_path='v1beta1/{+endpoint}:predictLongRunning',
+        request_field='googleCloudAiplatformV1beta1PredictLongRunningRequest',
+        request_type_name='AiplatformPublishersModelsPredictLongRunningRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def StreamGenerateContent(self, request, global_params=None):
+      r"""Generate content with multimodal inputs with streaming support.
+
+      Args:
+        request: (AiplatformPublishersModelsStreamGenerateContentRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1GenerateContentResponse) The response message.
+      """
+      config = self.GetMethodConfig('StreamGenerateContent')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    StreamGenerateContent.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/publishers/{publishersId}/models/{modelsId}:streamGenerateContent',
+        http_method='POST',
+        method_id='aiplatform.publishers.models.streamGenerateContent',
+        ordered_params=['model'],
+        path_params=['model'],
+        query_params=[],
+        relative_path='v1beta1/{+model}:streamGenerateContent',
+        request_field='googleCloudAiplatformV1beta1GenerateContentRequest',
+        request_type_name='AiplatformPublishersModelsStreamGenerateContentRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1GenerateContentResponse',
         supports_download=False,
     )
 
@@ -17348,3 +23226,608 @@ class AiplatformV1beta1(base_api.BaseApiClient):
       super(AiplatformV1beta1.PublishersService, self).__init__(client)
       self._upload_configs = {
           }
+
+  class ReasoningEnginesMemoriesService(base_api.BaseApiService):
+    """Service class for the reasoningEngines_memories resource."""
+
+    _NAME = 'reasoningEngines_memories'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ReasoningEnginesMemoriesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Create a Memory.
+
+      Args:
+        request: (AiplatformReasoningEnginesMemoriesCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/reasoningEngines/{reasoningEnginesId}/memories',
+        http_method='POST',
+        method_id='aiplatform.reasoningEngines.memories.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/memories',
+        request_field='googleCloudAiplatformV1beta1Memory',
+        request_type_name='AiplatformReasoningEnginesMemoriesCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Delete a Memory.
+
+      Args:
+        request: (AiplatformReasoningEnginesMemoriesDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/reasoningEngines/{reasoningEnginesId}/memories/{memoriesId}',
+        http_method='DELETE',
+        method_id='aiplatform.reasoningEngines.memories.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformReasoningEnginesMemoriesDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Generate(self, request, global_params=None):
+      r"""Generate memories.
+
+      Args:
+        request: (AiplatformReasoningEnginesMemoriesGenerateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Generate')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Generate.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/reasoningEngines/{reasoningEnginesId}/memories:generate',
+        http_method='POST',
+        method_id='aiplatform.reasoningEngines.memories.generate',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/memories:generate',
+        request_field='googleCloudAiplatformV1beta1GenerateMemoriesRequest',
+        request_type_name='AiplatformReasoningEnginesMemoriesGenerateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Get a Memory.
+
+      Args:
+        request: (AiplatformReasoningEnginesMemoriesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1Memory) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/reasoningEngines/{reasoningEnginesId}/memories/{memoriesId}',
+        http_method='GET',
+        method_id='aiplatform.reasoningEngines.memories.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformReasoningEnginesMemoriesGetRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1Memory',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""List Memories.
+
+      Args:
+        request: (AiplatformReasoningEnginesMemoriesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ListMemoriesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/reasoningEngines/{reasoningEnginesId}/memories',
+        http_method='GET',
+        method_id='aiplatform.reasoningEngines.memories.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+parent}/memories',
+        request_field='',
+        request_type_name='AiplatformReasoningEnginesMemoriesListRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ListMemoriesResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Update a Memory.
+
+      Args:
+        request: (AiplatformReasoningEnginesMemoriesPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/reasoningEngines/{reasoningEnginesId}/memories/{memoriesId}',
+        http_method='PATCH',
+        method_id='aiplatform.reasoningEngines.memories.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1beta1/{+name}',
+        request_field='googleCloudAiplatformV1beta1Memory',
+        request_type_name='AiplatformReasoningEnginesMemoriesPatchRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Retrieve(self, request, global_params=None):
+      r"""Retrieve memories.
+
+      Args:
+        request: (AiplatformReasoningEnginesMemoriesRetrieveRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1RetrieveMemoriesResponse) The response message.
+      """
+      config = self.GetMethodConfig('Retrieve')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Retrieve.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/reasoningEngines/{reasoningEnginesId}/memories:retrieve',
+        http_method='POST',
+        method_id='aiplatform.reasoningEngines.memories.retrieve',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/memories:retrieve',
+        request_field='googleCloudAiplatformV1beta1RetrieveMemoriesRequest',
+        request_type_name='AiplatformReasoningEnginesMemoriesRetrieveRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1RetrieveMemoriesResponse',
+        supports_download=False,
+    )
+
+  class ReasoningEnginesSessionsEventsService(base_api.BaseApiService):
+    """Service class for the reasoningEngines_sessions_events resource."""
+
+    _NAME = 'reasoningEngines_sessions_events'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ReasoningEnginesSessionsEventsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def List(self, request, global_params=None):
+      r"""Lists Events in a given session.
+
+      Args:
+        request: (AiplatformReasoningEnginesSessionsEventsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ListEventsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/reasoningEngines/{reasoningEnginesId}/sessions/{sessionsId}/events',
+        http_method='GET',
+        method_id='aiplatform.reasoningEngines.sessions.events.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+parent}/events',
+        request_field='',
+        request_type_name='AiplatformReasoningEnginesSessionsEventsListRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ListEventsResponse',
+        supports_download=False,
+    )
+
+  class ReasoningEnginesSessionsService(base_api.BaseApiService):
+    """Service class for the reasoningEngines_sessions resource."""
+
+    _NAME = 'reasoningEngines_sessions'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ReasoningEnginesSessionsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def AppendEvent(self, request, global_params=None):
+      r"""Appends an event to a given session.
+
+      Args:
+        request: (GoogleCloudAiplatformV1beta1SessionEvent) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1AppendEventResponse) The response message.
+      """
+      config = self.GetMethodConfig('AppendEvent')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    AppendEvent.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/reasoningEngines/{reasoningEnginesId}/sessions/{sessionsId}:appendEvent',
+        http_method='POST',
+        method_id='aiplatform.reasoningEngines.sessions.appendEvent',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:appendEvent',
+        request_field='<request>',
+        request_type_name='GoogleCloudAiplatformV1beta1SessionEvent',
+        response_type_name='GoogleCloudAiplatformV1beta1AppendEventResponse',
+        supports_download=False,
+    )
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new Session.
+
+      Args:
+        request: (AiplatformReasoningEnginesSessionsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/reasoningEngines/{reasoningEnginesId}/sessions',
+        http_method='POST',
+        method_id='aiplatform.reasoningEngines.sessions.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=[],
+        relative_path='v1beta1/{+parent}/sessions',
+        request_field='googleCloudAiplatformV1beta1Session',
+        request_type_name='AiplatformReasoningEnginesSessionsCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes details of the specific Session.
+
+      Args:
+        request: (AiplatformReasoningEnginesSessionsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/reasoningEngines/{reasoningEnginesId}/sessions/{sessionsId}',
+        http_method='DELETE',
+        method_id='aiplatform.reasoningEngines.sessions.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformReasoningEnginesSessionsDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets details of the specific Session.
+
+      Args:
+        request: (AiplatformReasoningEnginesSessionsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1Session) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/reasoningEngines/{reasoningEnginesId}/sessions/{sessionsId}',
+        http_method='GET',
+        method_id='aiplatform.reasoningEngines.sessions.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformReasoningEnginesSessionsGetRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1Session',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists Sessions in a given reasoning engine.
+
+      Args:
+        request: (AiplatformReasoningEnginesSessionsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ListSessionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/reasoningEngines/{reasoningEnginesId}/sessions',
+        http_method='GET',
+        method_id='aiplatform.reasoningEngines.sessions.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        relative_path='v1beta1/{+parent}/sessions',
+        request_field='',
+        request_type_name='AiplatformReasoningEnginesSessionsListRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ListSessionsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates the specific Session.
+
+      Args:
+        request: (AiplatformReasoningEnginesSessionsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1Session) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/reasoningEngines/{reasoningEnginesId}/sessions/{sessionsId}',
+        http_method='PATCH',
+        method_id='aiplatform.reasoningEngines.sessions.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1beta1/{+name}',
+        request_field='googleCloudAiplatformV1beta1Session',
+        request_type_name='AiplatformReasoningEnginesSessionsPatchRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1Session',
+        supports_download=False,
+    )
+
+  class ReasoningEnginesService(base_api.BaseApiService):
+    """Service class for the reasoningEngines resource."""
+
+    _NAME = 'reasoningEngines'
+
+    def __init__(self, client):
+      super(AiplatformV1beta1.ReasoningEnginesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a reasoning engine.
+
+      Args:
+        request: (AiplatformReasoningEnginesCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='POST',
+        method_id='aiplatform.reasoningEngines.create',
+        ordered_params=[],
+        path_params=[],
+        query_params=['parent'],
+        relative_path='v1beta1/reasoningEngines',
+        request_field='googleCloudAiplatformV1beta1ReasoningEngine',
+        request_type_name='AiplatformReasoningEnginesCreateRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a reasoning engine.
+
+      Args:
+        request: (AiplatformReasoningEnginesDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/reasoningEngines/{reasoningEnginesId}',
+        http_method='DELETE',
+        method_id='aiplatform.reasoningEngines.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['force'],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformReasoningEnginesDeleteRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets a reasoning engine.
+
+      Args:
+        request: (AiplatformReasoningEnginesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ReasoningEngine) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/reasoningEngines/{reasoningEnginesId}',
+        http_method='GET',
+        method_id='aiplatform.reasoningEngines.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}',
+        request_field='',
+        request_type_name='AiplatformReasoningEnginesGetRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ReasoningEngine',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists reasoning engines in a location.
+
+      Args:
+        request: (AiplatformReasoningEnginesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1ListReasoningEnginesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        http_method='GET',
+        method_id='aiplatform.reasoningEngines.list',
+        ordered_params=[],
+        path_params=[],
+        query_params=['filter', 'pageSize', 'pageToken', 'parent'],
+        relative_path='v1beta1/reasoningEngines',
+        request_field='',
+        request_type_name='AiplatformReasoningEnginesListRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1ListReasoningEnginesResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates a reasoning engine.
+
+      Args:
+        request: (AiplatformReasoningEnginesPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleLongrunningOperation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/reasoningEngines/{reasoningEnginesId}',
+        http_method='PATCH',
+        method_id='aiplatform.reasoningEngines.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v1beta1/{+name}',
+        request_field='googleCloudAiplatformV1beta1ReasoningEngine',
+        request_type_name='AiplatformReasoningEnginesPatchRequest',
+        response_type_name='GoogleLongrunningOperation',
+        supports_download=False,
+    )
+
+    def Query(self, request, global_params=None):
+      r"""Queries using a reasoning engine.
+
+      Args:
+        request: (AiplatformReasoningEnginesQueryRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleCloudAiplatformV1beta1QueryReasoningEngineResponse) The response message.
+      """
+      config = self.GetMethodConfig('Query')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Query.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/reasoningEngines/{reasoningEnginesId}:query',
+        http_method='POST',
+        method_id='aiplatform.reasoningEngines.query',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:query',
+        request_field='googleCloudAiplatformV1beta1QueryReasoningEngineRequest',
+        request_type_name='AiplatformReasoningEnginesQueryRequest',
+        response_type_name='GoogleCloudAiplatformV1beta1QueryReasoningEngineResponse',
+        supports_download=False,
+    )
+
+    def StreamQuery(self, request, global_params=None):
+      r"""Streams queries using a reasoning engine.
+
+      Args:
+        request: (AiplatformReasoningEnginesStreamQueryRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (GoogleApiHttpBody) The response message.
+      """
+      config = self.GetMethodConfig('StreamQuery')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    StreamQuery.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/reasoningEngines/{reasoningEnginesId}:streamQuery',
+        http_method='POST',
+        method_id='aiplatform.reasoningEngines.streamQuery',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:streamQuery',
+        request_field='googleCloudAiplatformV1beta1StreamQueryReasoningEngineRequest',
+        request_type_name='AiplatformReasoningEnginesStreamQueryRequest',
+        response_type_name='GoogleApiHttpBody',
+        supports_download=False,
+    )

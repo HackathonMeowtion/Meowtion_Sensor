@@ -186,6 +186,19 @@ class CloudcommerceconsumerprocurementBillingAccountsOrdersGetAuditLogRequest(_m
   name = _messages.StringField(1, required=True)
 
 
+class CloudcommerceconsumerprocurementBillingAccountsOrdersGetLicensePoolRequest(_messages.Message):
+  r"""A
+  CloudcommerceconsumerprocurementBillingAccountsOrdersGetLicensePoolRequest
+  object.
+
+  Fields:
+    name: Required. The name of the license pool to get. Format:
+      `billingAccounts/{billing_account}/orders/{order}/licensePool`
+  """
+
+  name = _messages.StringField(1, required=True)
+
+
 class CloudcommerceconsumerprocurementBillingAccountsOrdersGetRequest(_messages.Message):
   r"""A CloudcommerceconsumerprocurementBillingAccountsOrdersGetRequest
   object.
@@ -195,6 +208,54 @@ class CloudcommerceconsumerprocurementBillingAccountsOrdersGetRequest(_messages.
   """
 
   name = _messages.StringField(1, required=True)
+
+
+class CloudcommerceconsumerprocurementBillingAccountsOrdersLicensePoolAssignRequest(_messages.Message):
+  r"""A CloudcommerceconsumerprocurementBillingAccountsOrdersLicensePoolAssign
+  Request object.
+
+  Fields:
+    googleCloudCommerceConsumerProcurementV1alpha1AssignRequest: A
+      GoogleCloudCommerceConsumerProcurementV1alpha1AssignRequest resource to
+      be passed as the request body.
+    parent: Required. License pool name.
+  """
+
+  googleCloudCommerceConsumerProcurementV1alpha1AssignRequest = _messages.MessageField('GoogleCloudCommerceConsumerProcurementV1alpha1AssignRequest', 1)
+  parent = _messages.StringField(2, required=True)
+
+
+class CloudcommerceconsumerprocurementBillingAccountsOrdersLicensePoolEnumerateLicensedUsersRequest(_messages.Message):
+  r"""A CloudcommerceconsumerprocurementBillingAccountsOrdersLicensePoolEnumer
+  ateLicensedUsersRequest object.
+
+  Fields:
+    pageSize: Optional. The maximum number of users to return. The service may
+      return fewer than this value.
+    pageToken: Optional. A page token, received from a previous
+      `EnumerateLicensedUsers` call. Provide this to retrieve the subsequent
+      page.
+    parent: Required. License pool name.
+  """
+
+  pageSize = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(2)
+  parent = _messages.StringField(3, required=True)
+
+
+class CloudcommerceconsumerprocurementBillingAccountsOrdersLicensePoolUnassignRequest(_messages.Message):
+  r"""A CloudcommerceconsumerprocurementBillingAccountsOrdersLicensePoolUnassi
+  gnRequest object.
+
+  Fields:
+    googleCloudCommerceConsumerProcurementV1alpha1UnassignRequest: A
+      GoogleCloudCommerceConsumerProcurementV1alpha1UnassignRequest resource
+      to be passed as the request body.
+    parent: Required. License pool name.
+  """
+
+  googleCloudCommerceConsumerProcurementV1alpha1UnassignRequest = _messages.MessageField('GoogleCloudCommerceConsumerProcurementV1alpha1UnassignRequest', 1)
+  parent = _messages.StringField(2, required=True)
 
 
 class CloudcommerceconsumerprocurementBillingAccountsOrdersListRequest(_messages.Message):
@@ -315,6 +376,24 @@ class CloudcommerceconsumerprocurementBillingAccountsOrdersPlaceRequest(_message
 
   googleCloudCommerceConsumerProcurementV1alpha1PlaceOrderRequest = _messages.MessageField('GoogleCloudCommerceConsumerProcurementV1alpha1PlaceOrderRequest', 1)
   parent = _messages.StringField(2, required=True)
+
+
+class CloudcommerceconsumerprocurementBillingAccountsOrdersUpdateLicensePoolRequest(_messages.Message):
+  r"""A CloudcommerceconsumerprocurementBillingAccountsOrdersUpdateLicensePool
+  Request object.
+
+  Fields:
+    googleCloudCommerceConsumerProcurementV1alpha1LicensePool: A
+      GoogleCloudCommerceConsumerProcurementV1alpha1LicensePool resource to be
+      passed as the request body.
+    name: Identifier. Format:
+      `billingAccounts/{billing_account}/orders/{order}/licensePool`
+    updateMask: Required. The list of fields to update.
+  """
+
+  googleCloudCommerceConsumerProcurementV1alpha1LicensePool = _messages.MessageField('GoogleCloudCommerceConsumerProcurementV1alpha1LicensePool', 1)
+  name = _messages.StringField(2, required=True)
+  updateMask = _messages.StringField(3)
 
 
 class CloudcommerceconsumerprocurementProjectsCheckEntitlementsRequest(_messages.Message):
@@ -631,6 +710,52 @@ class GoogleCloudCommerceConsumerProcurementV1alpha1AddOnDetails(_messages.Messa
   isAddOn = _messages.BooleanField(1)
 
 
+class GoogleCloudCommerceConsumerProcurementV1alpha1AssignRequest(_messages.Message):
+  r"""Request message for LicenseManagementService.Assign.
+
+  Fields:
+    usernames: Required. Username. Format: `name@domain.com`.
+  """
+
+  usernames = _messages.StringField(1, repeated=True)
+
+
+class GoogleCloudCommerceConsumerProcurementV1alpha1AssignResponse(_messages.Message):
+  r"""Response message for LicenseManagementService.Assign."""
+
+
+class GoogleCloudCommerceConsumerProcurementV1alpha1AssignmentProtocol(_messages.Message):
+  r"""Assignment protocol for a license pool.
+
+  Fields:
+    autoAssignmentType: Allow automatic assignments triggered by data plane
+      operations.
+    manualAssignmentType: Allow manual assignments triggered by administrative
+      operations only.
+  """
+
+  autoAssignmentType = _messages.MessageField('GoogleCloudCommerceConsumerProcurementV1alpha1AssignmentProtocolAutoAssignmentType', 1)
+  manualAssignmentType = _messages.MessageField('GoogleCloudCommerceConsumerProcurementV1alpha1AssignmentProtocolManualAssignmentType', 2)
+
+
+class GoogleCloudCommerceConsumerProcurementV1alpha1AssignmentProtocolAutoAssignmentType(_messages.Message):
+  r"""Configuration for automatic assignments handled by data plane
+  operations.
+
+  Fields:
+    inactiveLicenseTtl: Optional. The time to live for an inactive license.
+      After this time has passed, the license will be automatically unassigned
+      from the user. Must be at least 7 days, if set. If unset, the license
+      will never expire.
+  """
+
+  inactiveLicenseTtl = _messages.StringField(1)
+
+
+class GoogleCloudCommerceConsumerProcurementV1alpha1AssignmentProtocolManualAssignmentType(_messages.Message):
+  r"""Allow manual assignments triggered by administrative operations only."""
+
+
 class GoogleCloudCommerceConsumerProcurementV1alpha1AuditLog(_messages.Message):
   r"""Consumer Procurement Order Audit Log To be deprecated
 
@@ -693,17 +818,18 @@ class GoogleCloudCommerceConsumerProcurementV1alpha1CancelOrderRequest(_messages
   r"""Request message for ConsumerProcurementService.CancelOrder.
 
   Enums:
-    CancellationPolicyValueValuesEnum: Cancellation policy of this request.
+    CancellationPolicyValueValuesEnum: Optional. Cancellation policy of this
+      request.
 
   Fields:
-    cancellationPolicy: Cancellation policy of this request.
-    etag: The weak etag, which can be optionally populated, of the order that
-      this cancel request is based on. Validation checking will only happen if
-      the invoker supplies this field.
+    cancellationPolicy: Optional. Cancellation policy of this request.
+    etag: Optional. The weak etag, which can be optionally populated, of the
+      order that this cancel request is based on. Validation checking will
+      only happen if the invoker supplies this field.
   """
 
   class CancellationPolicyValueValuesEnum(_messages.Enum):
-    r"""Cancellation policy of this request.
+    r"""Optional. Cancellation policy of this request.
 
     Values:
       CANCELLATION_POLICY_UNSPECIFIED: If unspecified, cancellation will try
@@ -881,7 +1007,7 @@ class GoogleCloudCommerceConsumerProcurementV1alpha1Entitlement(_messages.Messag
   associated with the same billing account as the order, for all
   products/services procured in the order. Users can enable/disable
   Entitlements to allow/disallow using the product/service in a project. Next
-  Id: 26
+  Id: 27
 
   Enums:
     StateValueValuesEnum: Output only. The state of the entitlement.
@@ -1046,6 +1172,19 @@ class GoogleCloudCommerceConsumerProcurementV1alpha1EntitlementInfo(_messages.Me
   services = _messages.StringField(2, repeated=True)
 
 
+class GoogleCloudCommerceConsumerProcurementV1alpha1EnumerateLicensedUsersResponse(_messages.Message):
+  r"""Response message for LicenseManagementService.EnumerateLicensedUsers.
+
+  Fields:
+    licensedUsers: The list of licensed users.
+    nextPageToken: A token that can be sent as `page_token` to retrieve the
+      next page. If this field is omitted, there are no subsequent pages.
+  """
+
+  licensedUsers = _messages.MessageField('GoogleCloudCommerceConsumerProcurementV1alpha1LicensedUser', 1, repeated=True)
+  nextPageToken = _messages.StringField(2)
+
+
 class GoogleCloudCommerceConsumerProcurementV1alpha1Event(_messages.Message):
   r"""Consumer Procurement Order Event
 
@@ -1150,6 +1289,42 @@ class GoogleCloudCommerceConsumerProcurementV1alpha1GrantConsentRequest(_message
 
   consent = _messages.MessageField('GoogleCloudCommerceConsumerProcurementV1alpha1Consent', 1)
   validateOnly = _messages.BooleanField(2)
+
+
+class GoogleCloudCommerceConsumerProcurementV1alpha1LicensePool(_messages.Message):
+  r"""A license pool represents a pool of licenses that can be assigned to
+  users.
+
+  Fields:
+    availableLicenseCount: Output only. Licenses count that are available to
+      be assigned.
+    licenseAssignmentProtocol: Required. Assignment protocol for the license
+      pool.
+    name: Identifier. Format:
+      `billingAccounts/{billing_account}/orders/{order}/licensePool`
+    totalLicenseCount: Output only. Total number of licenses in the pool.
+  """
+
+  availableLicenseCount = _messages.IntegerField(1, variant=_messages.Variant.INT32)
+  licenseAssignmentProtocol = _messages.MessageField('GoogleCloudCommerceConsumerProcurementV1alpha1AssignmentProtocol', 2)
+  name = _messages.StringField(3)
+  totalLicenseCount = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+
+
+class GoogleCloudCommerceConsumerProcurementV1alpha1LicensedUser(_messages.Message):
+  r"""A licensed user.
+
+  Fields:
+    assignTime: Output only. Timestamp when the license was assigned.
+    recentUsageTime: Output only. Timestamp when the license was recently
+      used. This may not be the most recent usage time, and will be updated
+      regularly (within 24 hours).
+    username: Username. Format: `name@domain.com`.
+  """
+
+  assignTime = _messages.StringField(1)
+  recentUsageTime = _messages.StringField(2)
+  username = _messages.StringField(3)
 
 
 class GoogleCloudCommerceConsumerProcurementV1alpha1LineItem(_messages.Message):
@@ -1279,12 +1454,15 @@ class GoogleCloudCommerceConsumerProcurementV1alpha1LineItemChange(_messages.Mes
         item.
       LINE_ITEM_CHANGE_TYPE_REVERT_CANCELLATION: The change is to revert a
         cancellation.
+      LINE_ITEM_CHANGE_TYPE_DISABLE_FREE_TRIAL: The change is to disable free
+        trial on this order.
     """
     LINE_ITEM_CHANGE_TYPE_UNSPECIFIED = 0
     LINE_ITEM_CHANGE_TYPE_CREATE = 1
     LINE_ITEM_CHANGE_TYPE_UPDATE = 2
     LINE_ITEM_CHANGE_TYPE_CANCEL = 3
     LINE_ITEM_CHANGE_TYPE_REVERT_CANCELLATION = 4
+    LINE_ITEM_CHANGE_TYPE_DISABLE_FREE_TRIAL = 5
 
   changeEffectiveTime = _messages.StringField(1)
   changeId = _messages.StringField(2)
@@ -1454,21 +1632,21 @@ class GoogleCloudCommerceConsumerProcurementV1alpha1ModifyOrderMetadata(_message
 
 
 class GoogleCloudCommerceConsumerProcurementV1alpha1ModifyOrderRequest(_messages.Message):
-  r"""Request message for ConsumerProcurementService.ModifyOrder. Next Id: 10
+  r"""Request message for ConsumerProcurementService.ModifyOrder.
 
   Fields:
     displayName: Optional. Updated display name of the order, leave as empty
       if you do not want to update current display name.
-    etag: The weak etag, which can be optionally populated, of the order that
-      this modify request is based on. Validation checking will only happen if
-      the invoker supplies this field.
+    etag: Optional. The weak etag, which can be optionally populated, of the
+      order that this modify request is based on. Validation checking will
+      only happen if the invoker supplies this field.
     modifications: Optional. Modifications for an existing Order created by an
       Offer. Required when Offer based Order is being modified, except for
       when going from an offer to a public plan.
-    modifyProductsOrderRequest: Required. Modifies an existing non-quote
+    modifyProductsOrderRequest: Optional. Modifies an existing non-quote
       order. Should only be used for offer-based orders when going from an
       offer to a public plan.
-    modifyQuoteOrderRequest: Required. Modifies an existing order for quote.
+    modifyQuoteOrderRequest: Optional. Modifies an existing order for quote.
   """
 
   displayName = _messages.StringField(1)
@@ -1482,30 +1660,32 @@ class GoogleCloudCommerceConsumerProcurementV1alpha1ModifyOrderRequestModificati
   r"""Modifications to make on the order.
 
   Enums:
-    AutoRenewalBehaviorValueValuesEnum: Auto renewal behavior of the
+    AutoRenewalBehaviorValueValuesEnum: Optional. Auto renewal behavior of the
       subscription for the update. Applied when change_type is
       [LineItemChangeType.LINE_ITEM_CHANGE_TYPE_UPDATE]. Follows plan default
       config when this field is not specified.
     ChangeTypeValueValuesEnum: Required. Type of change to make.
 
   Fields:
-    autoRenewalBehavior: Auto renewal behavior of the subscription for the
-      update. Applied when change_type is
+    autoRenewalBehavior: Optional. Auto renewal behavior of the subscription
+      for the update. Applied when change_type is
       [LineItemChangeType.LINE_ITEM_CHANGE_TYPE_UPDATE]. Follows plan default
       config when this field is not specified.
     changeType: Required. Type of change to make.
-    lineItemId: ID of the existing line item to make change to. Required when
-      change type is [LineItemChangeType.LINE_ITEM_CHANGE_TYPE_UPDATE] or
+    lineItemId: Required. ID of the existing line item to make change to.
+      Required when change type is
+      [LineItemChangeType.LINE_ITEM_CHANGE_TYPE_UPDATE] or
       [LineItemChangeType.LINE_ITEM_CHANGE_TYPE_CANCEL].
-    newLineItemInfo: The line item to update to. Required when change_type is
-      [LineItemChangeType.LINE_ITEM_CHANGE_TYPE_CREATE] or
+    newLineItemInfo: Optional. The line item to update to. Required when
+      change_type is [LineItemChangeType.LINE_ITEM_CHANGE_TYPE_CREATE] or
       [LineItemChangeType.LINE_ITEM_CHANGE_TYPE_UPDATE].
   """
 
   class AutoRenewalBehaviorValueValuesEnum(_messages.Enum):
-    r"""Auto renewal behavior of the subscription for the update. Applied when
-    change_type is [LineItemChangeType.LINE_ITEM_CHANGE_TYPE_UPDATE]. Follows
-    plan default config when this field is not specified.
+    r"""Optional. Auto renewal behavior of the subscription for the update.
+    Applied when change_type is
+    [LineItemChangeType.LINE_ITEM_CHANGE_TYPE_UPDATE]. Follows plan default
+    config when this field is not specified.
 
     Values:
       AUTO_RENEWAL_BEHAVIOR_UNSPECIFIED: If unspecified, the auto renewal
@@ -1531,12 +1711,15 @@ class GoogleCloudCommerceConsumerProcurementV1alpha1ModifyOrderRequestModificati
         item.
       LINE_ITEM_CHANGE_TYPE_REVERT_CANCELLATION: The change is to revert a
         cancellation.
+      LINE_ITEM_CHANGE_TYPE_DISABLE_FREE_TRIAL: The change is to disable free
+        trial on this order.
     """
     LINE_ITEM_CHANGE_TYPE_UNSPECIFIED = 0
     LINE_ITEM_CHANGE_TYPE_CREATE = 1
     LINE_ITEM_CHANGE_TYPE_UPDATE = 2
     LINE_ITEM_CHANGE_TYPE_CANCEL = 3
     LINE_ITEM_CHANGE_TYPE_REVERT_CANCELLATION = 4
+    LINE_ITEM_CHANGE_TYPE_DISABLE_FREE_TRIAL = 5
 
   autoRenewalBehavior = _messages.EnumField('AutoRenewalBehaviorValueValuesEnum', 1)
   changeType = _messages.EnumField('ChangeTypeValueValuesEnum', 2)
@@ -1605,12 +1788,15 @@ class GoogleCloudCommerceConsumerProcurementV1alpha1ModifyProductsOrderRequestMo
         item.
       LINE_ITEM_CHANGE_TYPE_REVERT_CANCELLATION: The change is to revert a
         cancellation.
+      LINE_ITEM_CHANGE_TYPE_DISABLE_FREE_TRIAL: The change is to disable free
+        trial on this order.
     """
     LINE_ITEM_CHANGE_TYPE_UNSPECIFIED = 0
     LINE_ITEM_CHANGE_TYPE_CREATE = 1
     LINE_ITEM_CHANGE_TYPE_UPDATE = 2
     LINE_ITEM_CHANGE_TYPE_CANCEL = 3
     LINE_ITEM_CHANGE_TYPE_REVERT_CANCELLATION = 4
+    LINE_ITEM_CHANGE_TYPE_DISABLE_FREE_TRIAL = 5
 
   autoRenewalBehavior = _messages.EnumField('AutoRenewalBehaviorValueValuesEnum', 1)
   changeType = _messages.EnumField('ChangeTypeValueValuesEnum', 2)
@@ -1685,7 +1871,15 @@ class GoogleCloudCommerceConsumerProcurementV1alpha1Order(_messages.Message):
   later, if the product allows.
 
   Enums:
-    OrderStateValueValuesEnum: Output only. The state of the order.
+    OrderStateValueValuesEnum: Output only. The state of the entire Order.
+      This is different from the state of the line items in the Order. Orders
+      are in the OrderState.ORDER_STATE_ACTIVE state when created, although
+      line items may not be activated yet. Order state changes to
+      OrderState.ORDER_STATE_PENDING_CANCELLATION after activation if the
+      Order will be cancelled after the current term. The line item and its
+      state might evolve independently, such as switching to another line
+      item, without impacting the Order state until the entire Order is
+      cancelled.
 
   Fields:
     account: The resource name of the account that this order is based on.
@@ -1698,7 +1892,15 @@ class GoogleCloudCommerceConsumerProcurementV1alpha1Order(_messages.Message):
     lineItems: Output only. The items being purchased.
     name: Output only. The resource name of the order. Has the form
       `billingAccounts/{billing_account}/orders/{order}`.
-    orderState: Output only. The state of the order.
+    orderState: Output only. The state of the entire Order. This is different
+      from the state of the line items in the Order. Orders are in the
+      OrderState.ORDER_STATE_ACTIVE state when created, although line items
+      may not be activated yet. Order state changes to
+      OrderState.ORDER_STATE_PENDING_CANCELLATION after activation if the
+      Order will be cancelled after the current term. The line item and its
+      state might evolve independently, such as switching to another line
+      item, without impacting the Order state until the entire Order is
+      cancelled.
     provider: Provider of the products being purchased. Provider has the
       format of `providers/{provider}`.
     stateReason: Output only. An explanation for the order's state. Mainly
@@ -1708,7 +1910,14 @@ class GoogleCloudCommerceConsumerProcurementV1alpha1Order(_messages.Message):
   """
 
   class OrderStateValueValuesEnum(_messages.Enum):
-    r"""Output only. The state of the order.
+    r"""Output only. The state of the entire Order. This is different from the
+    state of the line items in the Order. Orders are in the
+    OrderState.ORDER_STATE_ACTIVE state when created, although line items may
+    not be activated yet. Order state changes to
+    OrderState.ORDER_STATE_PENDING_CANCELLATION after activation if the Order
+    will be cancelled after the current term. The line item and its state
+    might evolve independently, such as switching to another line item,
+    without impacting the Order state until the entire Order is cancelled.
 
     Values:
       ORDER_STATE_UNSPECIFIED: Sentinel value. Do not use.
@@ -1835,9 +2044,9 @@ class GoogleCloudCommerceConsumerProcurementV1alpha1PlaceOrderRequest(_messages.
       specified. TODO(b/241564581) Hide provider id in the consumer API.
     requestId: Optional. A unique identifier for this request. The server will
       ignore subsequent requests that provide a duplicate request ID for at
-      least 120 minutes after the first request. The request ID must be a
-      valid [UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier
-      #Format).
+      least 24 hours after the first request. The request ID must be a valid [
+      UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier#Format
+      ).
     testConfig: Optional. Test configuration for the to-be-placed order.
       Placing test order is only allowed if the parent is a testing billing
       account for the service.
@@ -1918,6 +2127,20 @@ class GoogleCloudCommerceConsumerProcurementV1alpha1TestConfig(_messages.Message
   """
 
   isTesting = _messages.BooleanField(1)
+
+
+class GoogleCloudCommerceConsumerProcurementV1alpha1UnassignRequest(_messages.Message):
+  r"""Request message for LicenseManagementService.Unassign.
+
+  Fields:
+    usernames: Required. Username. Format: `name@domain.com`.
+  """
+
+  usernames = _messages.StringField(1, repeated=True)
+
+
+class GoogleCloudCommerceConsumerProcurementV1alpha1UnassignResponse(_messages.Message):
+  r"""Response message for LicenseManagementService.Unassign."""
 
 
 class GoogleCloudCommerceConsumerProcurementV1alpha1UpdateOrderAttributionMetadata(_messages.Message):

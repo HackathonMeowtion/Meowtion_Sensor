@@ -1,13 +1,62 @@
 #!/usr/bin/env python
 """Utility functions for BQ CLI logging."""
 
+import datetime
 import logging
+import os
 import sys
-from typing import Optional, TextIO
+from typing import Optional, TextIO, Union
 
 from absl import flags
 from absl import logging as absl_logging
 from googleapiclient import model
+
+_UNIQUE_SUFFIX: str = ''
+
+
+def GetUniqueSuffix() -> str:
+  global _UNIQUE_SUFFIX
+  if not _UNIQUE_SUFFIX:
+    _UNIQUE_SUFFIX = datetime.datetime.now().strftime('%z_%Y%m%d_%H%M%S.%f')
+  return _UNIQUE_SUFFIX
+
+
+def GetLogDirectory(apilog: Optional[str] = None) -> Optional[str]:
+  """Returns a directory to log to."""
+  if apilog and os.path.isdir(apilog):
+    full_path = apilog
+  # If this is a blaze test put the logs in a directory that will be seen in the
+  # artifact tab in the sponge UI.
+  elif 'TEST_UNDECLARED_OUTPUTS_DIR' in os.environ:
+    full_path = os.path.join(
+        os.environ['TEST_UNDECLARED_OUTPUTS_DIR'], 'bq_logs'
+    )
+  # If this is a Kokoro test put the logs in a directory that will be seen in
+  # the artifact tab in the sponge UI.
+  elif 'KOKORO_ARTIFACTS_DIR' in os.environ:
+    full_path = os.path.join(os.environ['KOKORO_ARTIFACTS_DIR'], 'bq_logs')
+  else:
+    return None
+  os.makedirs(full_path, exist_ok=True)
+  return full_path
+
+
+def SaveStringToLogDirectoryIfAvailable(
+    file_prefix: str,
+    content: Union[str, bytes],
+    apilog: Optional[str] = None,
+) -> None:
+  """Saves string content to a file in the log directory."""
+  log_dir = GetLogDirectory(apilog)
+  if not log_dir:
+    return
+
+  if isinstance(content, bytes):
+    content = content.decode('utf-8')
+  filename = f'{file_prefix}_{GetUniqueSuffix()}.log'
+  path = os.path.join(log_dir, filename)
+  with open(path, 'w') as f:
+    f.write(content)
 
 
 def _SetLogFile(logfile: TextIO):
@@ -27,6 +76,13 @@ def ConfigurePythonLogger(apilog: Optional[str] = None):
       log to sys.stderr, specify 'stderr'. To log to a file, specify the file
       path. Specify None to disable logging.
   """
+  log_messages = []
+  if apilog is None:
+    apilog = GetLogDirectory()
+    log_messages.append(
+        'No logging set and we are in a test environment, logs will be in a'
+        ' directory based on the test environment.'
+    )
   if apilog is None:
     # Effectively turn off logging.
     logging.debug(
@@ -39,7 +95,13 @@ def ConfigurePythonLogger(apilog: Optional[str] = None):
     elif apilog == 'stderr':
       _SetLogFile(sys.stderr)
     elif apilog:
-      _SetLogFile(open(apilog, 'w'))
+      if os.path.isdir(apilog):
+        log_messages.append(f'Logging to directory: {apilog}')
+        apilog = os.path.join(
+            apilog,
+            f'bq_cli_{GetUniqueSuffix()}.log',
+        )
+      _SetLogFile(open(apilog, 'a'))
     else:
       logging.basicConfig(level=logging.INFO)
     # Turn on apiclient logging of http requests and responses. (Here
@@ -49,6 +111,8 @@ def ConfigurePythonLogger(apilog: Optional[str] = None):
       flags.FLAGS.dump_request_response = True
     else:
       model.dump_request_response = True
+  for log in log_messages:
+    logging.info(log)
 
 
 def EncodeForPrinting(o: object) -> str:

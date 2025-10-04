@@ -22,19 +22,20 @@ from googlecloudsdk.command_lib.util.concepts import concept_parsers
 _DETAILED_HELP = {
     'DESCRIPTION': '{description}',
     'EXAMPLES': """ \
-        To suspend Rollout ``20240318'' for ``cert-manager-app'' in ``us-central1'', run:
+        To suspend Rollout `20240318` for `cert-manager-app` in `us-central1`, run:
 
           $ {command} 20240318 --fleet-package=cert-manager-app --location=us-central1
         """,
 }
 
 
-@base.Hidden
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.GA)
 class Suspend(base.Command):
   """Suspend in-progress Rollout."""
 
   detailed_help = _DETAILED_HELP
+  _api_version = 'v1'
 
   @staticmethod
   def Args(parser):
@@ -51,7 +52,7 @@ class Suspend(base.Command):
 
   def Run(self, args):
     """Run the suspend command."""
-    client = apis.RolloutsClient()
+    client = apis.RolloutsClient(self._api_version)
     return client.Suspend(
         project=flags.GetProject(args),
         location=flags.GetLocation(args),
@@ -59,3 +60,19 @@ class Suspend(base.Command):
         rollout=args.rollout,
         reason=args.reason,
     )
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.BETA)
+class SuspendBeta(Suspend):
+  """Suspend in-progress Rollout."""
+
+  _api_version = 'v1beta'
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class SuspendAlpha(Suspend):
+  """Suspend in-progress Rollout."""
+
+  _api_version = 'v1alpha'

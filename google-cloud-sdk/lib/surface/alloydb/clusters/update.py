@@ -29,6 +29,10 @@ from googlecloudsdk.core import properties
 from googlecloudsdk.core import resources
 
 
+# TODO: b/312466999 - Change @base.DefaultUniverseOnly to
+# @base.UniverseCompatible once b/312466999 is fixed.
+# See go/gcloud-cli-running-tpc-tests.
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Update(base.UpdateCommand):
   """Update an AlloyDB cluster within a given project and region."""
@@ -75,6 +79,8 @@ class Update(base.UpdateCommand):
         parser, cls.ReleaseTrack(), update=True
     )
     flags.AddMaintenanceWindow(parser, alloydb_messages, update=True)
+    flags.AddDenyMaintenancePeriod(parser, alloydb_messages, update=True)
+    flags.AddSubscriptionType(parser, alloydb_messages)
 
   def ConstructPatchRequestFromArgs(self, alloydb_messages, cluster_ref, args):
     return cluster_helper.ConstructPatchRequestFromArgsGA(
@@ -120,8 +126,7 @@ class UpdateBeta(Update):
   @classmethod
   def Args(cls, parser):
     super(UpdateBeta, UpdateBeta).Args(parser)
-    alloydb_messages = api_util.GetMessagesModule(cls.ReleaseTrack())
-    flags.AddDenyMaintenancePeriod(parser, alloydb_messages, update=True)
+    flags.AddMaintenanceVersion(parser)
 
   def ConstructPatchRequestFromArgs(self, alloydb_messages, cluster_ref, args):
     return cluster_helper.ConstructPatchRequestFromArgsBeta(

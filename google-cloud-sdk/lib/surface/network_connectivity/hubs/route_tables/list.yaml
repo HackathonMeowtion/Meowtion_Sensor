@@ -1,4 +1,4 @@
-- release_tracks: [GA]
+- release_tracks: [BETA, GA]
 
   help_text:
     brief: List route tables.
@@ -11,15 +11,18 @@
 
       To list all route tables in hub `my-hub`, run:
 
-        ${command} --hub=my-hub
+        $ {command} --hub=my-hub
 
   arguments:
     resource:
-      spec: !REF googlecloudsdk.command_lib.network_connectivity.resources:hub
+      spec: !REF googlecloudsdk.command_lib.network_connectivity.resources:hubDefaultAll
       help_text: Parent hub of the route tables to display.
 
   request: &request
-    api_version: v1
+    BETA:
+      api_version: v1beta
+    GA:
+      api_version: v1
     collection: networkconnectivity.projects.locations.global.hubs.routeTables
 
   output:

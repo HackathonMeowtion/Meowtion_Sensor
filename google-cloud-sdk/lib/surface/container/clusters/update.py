@@ -19,7 +19,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from apitools.base.py import exceptions as apitools_exceptions
-
 from googlecloudsdk.api_lib.container import api_adapter
 from googlecloudsdk.api_lib.container import kubeconfig as kconfig
 from googlecloudsdk.api_lib.container import util
@@ -27,6 +26,7 @@ from googlecloudsdk.calliope import actions
 from googlecloudsdk.calliope import arg_parsers
 from googlecloudsdk.calliope import base
 from googlecloudsdk.calliope import exceptions
+from googlecloudsdk.command_lib.container import constants
 from googlecloudsdk.command_lib.container import container_command_util
 from googlecloudsdk.command_lib.container import flags
 from googlecloudsdk.core import log
@@ -39,8 +39,10 @@ class InvalidAddonValueError(util.Error):
   """A class for invalid --update-addons input."""
 
   def __init__(self, value):
-    message = ('invalid --update-addons value {0}; '
-               'must be ENABLED or DISABLED.'.format(value))
+    message = (
+        'invalid --update-addons value {0}; '
+        'must be ENABLED or DISABLED.'.format(value)
+    )
     super(InvalidAddonValueError, self).__init__(message)
 
 
@@ -68,7 +70,8 @@ def _AddCommonArgs(parser):
       capture some information, but behaves like an ArgumentParser.
   """
   parser.add_argument(
-      'name', metavar='NAME', help='The name of the cluster to update.')
+      'name', metavar='NAME', help='The name of the cluster to update.'
+  )
   parser.add_argument('--node-pool', help='Node pool to be updated.')
   # Timeout in seconds for the operation, default 3600 seconds (60 minutes)
   parser.add_argument(
@@ -76,7 +79,8 @@ def _AddCommonArgs(parser):
       type=int,
       default=3600,
       hidden=True,
-      help='Timeout (seconds) for waiting on the operation to complete.')
+      help='Timeout (seconds) for waiting on the operation to complete.',
+  )
   flags.AddAsyncFlag(parser)
 
 
@@ -102,11 +106,14 @@ def _AddMutuallyExclusiveArgs(mutex_group, release_track):
                     api_adapter.GCSFUSECSIDRIVER: _ParseAddonDisabled,
                     api_adapter.STATEFULHA: _ParseAddonDisabled,
                     api_adapter.PARALLELSTORECSIDRIVER: _ParseAddonDisabled,
+                    api_adapter.HIGHSCALECHECKPOINTING: _ParseAddonDisabled,
+                    api_adapter.LUSTRECSIDRIVER: _ParseAddonDisabled,
                     api_adapter.CONFIGCONNECTOR: _ParseAddonDisabled,
                     api_adapter.RAYOPERATOR: _ParseAddonDisabled,
                 },
-                **{k: _ParseAddonDisabled for k in api_adapter.CLOUDRUN_ADDONS
-                  }),),
+                **{k: _ParseAddonDisabled for k in api_adapter.CLOUDRUN_ADDONS}
+            ),
+        ),
         dest='disable_addons',
         metavar='ADDON=ENABLED|DISABLED',
         help="""Cluster addons to enable or disable. Options are
@@ -123,20 +130,21 @@ def _AddMutuallyExclusiveArgs(mutex_group, release_track):
 {gcepdcsidriver}=ENABLED|DISABLED
 {gcpfilestoredriver}=ENABLED|DISABLED
 {gcsfusecsidriver}=ENABLED|DISABLED""".format(
-    hpa=api_adapter.HPA,
-    ingress=api_adapter.INGRESS,
-    dashboard=api_adapter.DASHBOARD,
-    network_policy=api_adapter.NETWORK_POLICY,
-    istio=api_adapter.ISTIO,
-    backuprestore=api_adapter.BACKUPRESTORE,
-    cloudrun=api_adapter.CLOUDRUN_ADDONS[0],
-    cloudbuild=api_adapter.CLOUDBUILD,
-    configconnector=api_adapter.CONFIGCONNECTOR,
-    nodelocaldns=api_adapter.NODELOCALDNS,
-    gcepdcsidriver=api_adapter.GCEPDCSIDRIVER,
-    gcpfilestoredriver=api_adapter.GCPFILESTORECSIDRIVER,
-    gcsfusecsidriver=api_adapter.GCSFUSECSIDRIVER,
-    ))
+            hpa=api_adapter.HPA,
+            ingress=api_adapter.INGRESS,
+            dashboard=api_adapter.DASHBOARD,
+            network_policy=api_adapter.NETWORK_POLICY,
+            istio=api_adapter.ISTIO,
+            backuprestore=api_adapter.BACKUPRESTORE,
+            cloudrun=api_adapter.CLOUDRUN_ADDONS[0],
+            cloudbuild=api_adapter.CLOUDBUILD,
+            configconnector=api_adapter.CONFIGCONNECTOR,
+            nodelocaldns=api_adapter.NODELOCALDNS,
+            gcepdcsidriver=api_adapter.GCEPDCSIDRIVER,
+            gcpfilestoredriver=api_adapter.GCPFILESTORECSIDRIVER,
+            gcsfusecsidriver=api_adapter.GCSFUSECSIDRIVER,
+        ),
+    )
 
   elif release_track == base.ReleaseTrack.BETA:
     mutex_group.add_argument(
@@ -157,11 +165,14 @@ def _AddMutuallyExclusiveArgs(mutex_group, release_track):
                     api_adapter.GCSFUSECSIDRIVER: _ParseAddonDisabled,
                     api_adapter.STATEFULHA: _ParseAddonDisabled,
                     api_adapter.PARALLELSTORECSIDRIVER: _ParseAddonDisabled,
+                    api_adapter.HIGHSCALECHECKPOINTING: _ParseAddonDisabled,
+                    api_adapter.LUSTRECSIDRIVER: _ParseAddonDisabled,
                     api_adapter.CONFIGCONNECTOR: _ParseAddonDisabled,
                     api_adapter.RAYOPERATOR: _ParseAddonDisabled,
                 },
-                **{k: _ParseAddonDisabled for k in api_adapter.CLOUDRUN_ADDONS
-                  }),),
+                **{k: _ParseAddonDisabled for k in api_adapter.CLOUDRUN_ADDONS}
+            ),
+        ),
         dest='disable_addons',
         metavar='ADDON=ENABLED|DISABLED',
         help="""Cluster addons to enable or disable. Options are
@@ -177,19 +188,20 @@ def _AddMutuallyExclusiveArgs(mutex_group, release_track):
 {gcepdcsidriver}=ENABLED|DISABLED
 {gcpfilestoredriver}=ENABLED|DISABLED
 {gcsfusecsidriver}=ENABLED|DISABLED""".format(
-    hpa=api_adapter.HPA,
-    ingress=api_adapter.INGRESS,
-    dashboard=api_adapter.DASHBOARD,
-    network_policy=api_adapter.NETWORK_POLICY,
-    istio=api_adapter.ISTIO,
-    backuprestore=api_adapter.BACKUPRESTORE,
-    cloudrun=api_adapter.CLOUDRUN_ADDONS[0],
-    configconnector=api_adapter.CONFIGCONNECTOR,
-    nodelocaldns=api_adapter.NODELOCALDNS,
-    gcepdcsidriver=api_adapter.GCEPDCSIDRIVER,
-    gcpfilestoredriver=api_adapter.GCPFILESTORECSIDRIVER,
-    gcsfusecsidriver=api_adapter.GCSFUSECSIDRIVER,
-    ))
+            hpa=api_adapter.HPA,
+            ingress=api_adapter.INGRESS,
+            dashboard=api_adapter.DASHBOARD,
+            network_policy=api_adapter.NETWORK_POLICY,
+            istio=api_adapter.ISTIO,
+            backuprestore=api_adapter.BACKUPRESTORE,
+            cloudrun=api_adapter.CLOUDRUN_ADDONS[0],
+            configconnector=api_adapter.CONFIGCONNECTOR,
+            nodelocaldns=api_adapter.NODELOCALDNS,
+            gcepdcsidriver=api_adapter.GCEPDCSIDRIVER,
+            gcpfilestoredriver=api_adapter.GCPFILESTORECSIDRIVER,
+            gcsfusecsidriver=api_adapter.GCSFUSECSIDRIVER,
+        ),
+    )
 
   else:
     mutex_group.add_argument(
@@ -209,10 +221,13 @@ def _AddMutuallyExclusiveArgs(mutex_group, release_track):
                     api_adapter.GCSFUSECSIDRIVER: _ParseAddonDisabled,
                     api_adapter.STATEFULHA: _ParseAddonDisabled,
                     api_adapter.PARALLELSTORECSIDRIVER: _ParseAddonDisabled,
+                    api_adapter.HIGHSCALECHECKPOINTING: _ParseAddonDisabled,
+                    api_adapter.LUSTRECSIDRIVER: _ParseAddonDisabled,
                     api_adapter.RAYOPERATOR: _ParseAddonDisabled,
                 },
-                **{k: _ParseAddonDisabled for k in api_adapter.CLOUDRUN_ADDONS
-                  }),),
+                **{k: _ParseAddonDisabled for k in api_adapter.CLOUDRUN_ADDONS}
+            ),
+        ),
         dest='disable_addons',
         metavar='ADDON=ENABLED|DISABLED',
         help="""Cluster addons to enable or disable. Options are
@@ -228,31 +243,38 @@ def _AddMutuallyExclusiveArgs(mutex_group, release_track):
 {gcpfilestoredriver}=ENABLED|DISABLED
 {gcsfusecsidriver}=ENABLED|DISABLED
 """.format(
-    hpa=api_adapter.HPA,
-    ingress=api_adapter.INGRESS,
-    dashboard=api_adapter.DASHBOARD,
-    network_policy=api_adapter.NETWORK_POLICY,
-    backuprestore=api_adapter.BACKUPRESTORE,
-    cloudrun=api_adapter.CLOUDRUN_ADDONS[0],
-    configconnector=api_adapter.CONFIGCONNECTOR,
-    nodelocaldns=api_adapter.NODELOCALDNS,
-    gcepdcsidriver=api_adapter.GCEPDCSIDRIVER,
-    gcpfilestoredriver=api_adapter.GCPFILESTORECSIDRIVER,
-    gcsfusecsidriver=api_adapter.GCSFUSECSIDRIVER,
-    ))
+            hpa=api_adapter.HPA,
+            ingress=api_adapter.INGRESS,
+            dashboard=api_adapter.DASHBOARD,
+            network_policy=api_adapter.NETWORK_POLICY,
+            backuprestore=api_adapter.BACKUPRESTORE,
+            cloudrun=api_adapter.CLOUDRUN_ADDONS[0],
+            configconnector=api_adapter.CONFIGCONNECTOR,
+            nodelocaldns=api_adapter.NODELOCALDNS,
+            gcepdcsidriver=api_adapter.GCEPDCSIDRIVER,
+            gcpfilestoredriver=api_adapter.GCPFILESTORECSIDRIVER,
+            gcsfusecsidriver=api_adapter.GCSFUSECSIDRIVER,
+        ),
+    )
 
   mutex_group.add_argument(
       '--generate-password',
       action='store_true',
       default=None,
-      help='Ask the server to generate a secure password and use that as the '
-      'basic auth password, keeping the existing username.')
+      help=(
+          'Ask the server to generate a secure password and use that as the '
+          'basic auth password, keeping the existing username.'
+      ),
+  )
   mutex_group.add_argument(
       '--set-password',
       action='store_true',
       default=None,
-      help='Set the basic auth password to the specified value, keeping the '
-      'existing username.')
+      help=(
+          'Set the basic auth password to the specified value, keeping the '
+          'existing username.'
+      ),
+  )
 
   flags.AddBasicAuthFlags(mutex_group)
 
@@ -262,8 +284,11 @@ def _AddAdditionalZonesArg(mutex_group, deprecated=True):
   if deprecated:
     action = actions.DeprecationAction(
         'additional-zones',
-        warn='This flag is deprecated. '
-        'Use --node-locations=PRIMARY_ZONE,[ZONE,...] instead.')
+        warn=(
+            'This flag is deprecated. '
+            'Use --node-locations=PRIMARY_ZONE,[ZONE,...] instead.'
+        ),
+    )
   mutex_group.add_argument(
       '--additional-zones',
       type=arg_parsers.ArgList(),
@@ -285,18 +310,18 @@ To remove all zones other than the cluster's primary zone, pass the empty string
 to the flag. For example:
 
   $ {command} example-cluster --zone us-central1-a --additional-zones ""
-""")
+""",
+  )
 
 
 @base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.UniverseCompatible
 class Update(base.UpdateCommand):
   """Update cluster settings for an existing container cluster."""
 
   detailed_help = {
-      'DESCRIPTION':
-          '{description}',
-      'EXAMPLES':
-          """\
+      'DESCRIPTION': '{description}',
+      'EXAMPLES': """\
           To enable autoscaling for an existing cluster, run:
 
             $ {command} sample-cluster --enable-autoscaling
@@ -317,8 +342,6 @@ class Update(base.UpdateCommand):
     _AddMutuallyExclusiveArgs(group, base.ReleaseTrack.GA)
     flags.AddNodeLocationsFlag(group_locations)
     flags.AddClusterAutoscalingFlags(parser, group)
-    flags.AddMasterAuthorizedNetworksFlags(
-        parser, enable_group_for_update=group)
     flags.AddEnableLegacyAuthorizationFlag(group)
     flags.AddStartIpRotationFlag(group)
     flags.AddStartCredentialRotationFlag(group)
@@ -337,6 +360,9 @@ class Update(base.UpdateCommand):
     flags.AddLoggingFlag(group_logging_monitoring_config)
     flags.AddMonitoringFlag(group_logging_monitoring_config)
     flags.AddManagedPrometheusFlags(group_logging_monitoring_config)
+    flags.AddAutoMonitoringScopeFlags(
+        group_logging_monitoring_config, hidden=False
+    )
     flags.AddBinauthzFlags(group, release_track=base.ReleaseTrack.GA)
     flags.AddEnableStackdriverKubernetesFlag(group)
     flags.AddDailyMaintenanceWindowFlag(group, add_unset_text=True)
@@ -352,8 +378,8 @@ class Update(base.UpdateCommand):
     flags.AddVerticalPodAutoscalingFlags(group)
     flags.AddAutoprovisioningFlags(group)
     flags.AddAutoscalingProfilesFlag(group)
+    flags.AddHPAProfilesFlag(group)
     flags.AddEnableShieldedNodesFlags(group)
-    flags.AddMasterGlobalAccessFlag(group)
     flags.AddPrivateIpv6GoogleAccessTypeFlag('v1', group, hidden=False)
     flags.AddNotificationConfigFlag(group)
     flags.AddDisableAutopilotFlag(group)
@@ -364,12 +390,8 @@ class Update(base.UpdateCommand):
     group_dataplane_v2_observability = group.add_group()
     flags.AddDataplaneV2MetricsFlag(group_dataplane_v2_observability)
     flags.AddDataplaneV2ObservabilityFlags(group_dataplane_v2_observability)
-    flags.AddClusterDNSFlags(
-        group, release_track=base.ReleaseTrack.GA, hidden=False
-    )
+    flags.AddClusterDNSFlags(group, hidden=False)
     flags.AddEnableServiceExternalIPs(group)
-    flags.AddEnablePrivateEndpoint(group)
-    flags.AddEnableGoogleCloudAccess(group)
     flags.AddLoggingVariantFlag(group)
     group_add_pod_ipv4_ranges = group.add_group(hidden=False)
     flags.AddAdditionalPodIpv4RangesFlag(group_add_pod_ipv4_ranges)
@@ -377,6 +399,7 @@ class Update(base.UpdateCommand):
     flags.AddStackTypeFlag(group)
     flags.AddCostManagementConfigFlag(group, is_update=True)
     flags.AddGatewayFlags(group, hidden=False)
+    flags.AddComplianceFlags(group, hidden=True)
     flags.AddSecurityPostureFlag(group)
     flags.AddClusterNetworkPerformanceConfigFlags(group)
     flags.AddEnableK8sBetaAPIs(group)
@@ -384,7 +407,9 @@ class Update(base.UpdateCommand):
     flags.AddWorkloadVulnScanningEnumFlag(group)
     flags.AddRuntimeVulnerabilityInsightFlag(group)
     flags.AddWorkloadPoliciesFlag(group)
+    flags.AddAutopilotWorkloadPoliciesFlag(group)
     flags.AddRemoveWorkloadPoliciesFlag(group)
+    flags.AddRemoveAutopilotWorkloadPoliciesFlag(group)
     flags.AddEnableMultiNetworkingFlag(group)
     flags.AddContainerdConfigFlag(group)
     flags.AddAutoprovisioningResourceManagerTagsUpdate(group)
@@ -394,6 +419,42 @@ class Update(base.UpdateCommand):
     flags.AddEnableFqdnNetworkPolicyFlag(group)
     flags.AddEnableKubeletReadonlyPortFlag(group)
     flags.AddAutoprovisioningEnableKubeletReadonlyPortFlag(group)
+    flags.AddEnableRayClusterLogging(group, is_update=True)
+    flags.AddEnableRayClusterMonitoring(group, is_update=True)
+    flags.AddSecretManagerEnableFlagGroup(group, is_update=True)
+    flags.AddInsecureRBACBindingFlags(group, hidden=False)
+    group_add_additional_ip_ranges = group.add_group()
+    flags.AddAdditionalIpRangesFlag(group_add_additional_ip_ranges)
+    flags.AddRemoveAdditionalIpRangesFlag(group_add_additional_ip_ranges)
+    flags.AddClusterEnablePrivateNodesFlag(group)
+    flags.AddDisableL4LbFirewallReconciliationFlag(group, is_update=True)
+    flags.AddClusterTierFlag(group)
+    flags.AddAutoprovisioningCgroupModeFlag(group)
+    flags.AddEnableAutopilotCompatibilityAuditingFlag(group)
+    flags.AddAnonymousAuthenticationConfigFlag(group)
+
+    group_for_control_plane_endpoints = group.add_group()
+    flags.AddMasterAuthorizedNetworksFlags(group_for_control_plane_endpoints)
+    flags.AddEnableIPAccessFlag(group_for_control_plane_endpoints)
+    flags.AddMasterGlobalAccessFlag(group_for_control_plane_endpoints)
+    flags.AddEnablePrivateEndpoint(group_for_control_plane_endpoints)
+    flags.AddEnableGoogleCloudAccess(group_for_control_plane_endpoints)
+    flags.AddAauthorizedNetworksOnPrivateEndpointFlag(
+        group_for_control_plane_endpoints
+    )
+    flags.AddEnableDNSAccessFlag(group_for_control_plane_endpoints)
+    flags.AddEnableK8sTokensViaDnsFlag(group_for_control_plane_endpoints)
+    flags.AddEnableK8sCertsViaDnsFlag(group_for_control_plane_endpoints)
+    flags.AddServiceAccountVerificationKeysFlag(group)
+    flags.AddServiceAccountSigningKeysFlag(group)
+    flags.AddControlPlaneDiskEncryptionKeyFlag(group)
+    flags.AddPatchUpdateFlag(group)
+    flags.AddAutoIpamFlag(group, is_update=True)
+    flags.AddEnableLegacyLustrePortFlag(group, hidden=False)
+    flags.AddEnableDefaultComputeClassFlag(group)
+    flags.AddNetworkTierFlag(group)
+    flags.AddControlPlaneEgressFlag(group)
+    flags.AddAutopilotPrivilegedAdmissionFlag(group, hidden=True)
 
   def ParseUpdateOptions(self, args, locations):
     get_default = lambda key: getattr(args, key)
@@ -401,37 +462,46 @@ class Update(base.UpdateCommand):
     flags.WarnForEnablingBetaAPIs(args)
     opts = container_command_util.ParseUpdateOptionsBase(args, locations)
     opts.resource_usage_bigquery_dataset = args.resource_usage_bigquery_dataset
-    opts.clear_resource_usage_bigquery_dataset = \
-        args.clear_resource_usage_bigquery_dataset
+    opts.clear_resource_usage_bigquery_dataset = (
+        args.clear_resource_usage_bigquery_dataset)
     opts.enable_network_egress_metering = args.enable_network_egress_metering
-    opts.enable_resource_consumption_metering = \
-        args.enable_resource_consumption_metering
+    opts.enable_resource_consumption_metering = (
+        args.enable_resource_consumption_metering)
     opts.enable_intra_node_visibility = args.enable_intra_node_visibility
     opts.enable_l4_ilb_subsetting = args.enable_l4_ilb_subsetting
     if opts.enable_l4_ilb_subsetting:
       console_io.PromptContinue(
-          message='Enabling L4 ILB Subsetting is a one-way operation.'
-          'Once enabled, this configuration cannot be disabled.'
-          'Existing ILB services should be recreated to use Subsetting.',
-          cancel_on_no=True)
+          message=(
+              'Enabling L4 ILB Subsetting is a one-way operation.'
+              'Once enabled, this configuration cannot be disabled.'
+              'Existing ILB services should be recreated to use Subsetting.'
+          ),
+          cancel_on_no=True,
+      )
     opts.enable_master_global_access = args.enable_master_global_access
     opts.enable_shielded_nodes = args.enable_shielded_nodes
     opts.release_channel = args.release_channel
     opts.autoscaling_profile = args.autoscaling_profile
+    opts.hpa_profile = args.hpa_profile
     opts.disable_autopilot = args.disable_autopilot
-    opts.cloud_run_config = flags.GetLegacyCloudRunFlag('{}_config', args,
-                                                        get_default)
-    flags.ValidateCloudRunConfigUpdateArgs(opts.cloud_run_config,
-                                           args.disable_addons)
+    opts.cloud_run_config = flags.GetLegacyCloudRunFlag(
+        '{}_config', args, get_default
+    )
+    flags.ValidateCloudRunConfigUpdateArgs(
+        opts.cloud_run_config, args.disable_addons
+    )
     if args.disable_addons and api_adapter.NODELOCALDNS in args.disable_addons:
       # NodeLocalDNS is being enabled or disabled
       console_io.PromptContinue(
-          message='Enabling/Disabling NodeLocal DNSCache causes a re-creation '
-          'of all cluster nodes at versions 1.15 or above. '
-          'This operation is long-running and will block other '
-          'operations on the cluster (including delete) until it has run '
-          'to completion.',
-          cancel_on_no=True)
+          message=(
+              'Enabling/Disabling NodeLocal DNSCache causes a re-creation '
+              'of all cluster nodes at versions 1.15 or above. '
+              'This operation is long-running and will block other '
+              'operations on the cluster (including delete) until it has run '
+              'to completion.'
+          ),
+          cancel_on_no=True,
+      )
     opts.disable_default_snat = args.disable_default_snat
     opts.notification_config = args.notification_config
     opts.security_group = args.security_group
@@ -449,13 +519,8 @@ class Update(base.UpdateCommand):
     opts.cluster_dns = args.cluster_dns
     opts.cluster_dns_scope = args.cluster_dns_scope
     opts.cluster_dns_domain = args.cluster_dns_domain
-    if opts.cluster_dns and opts.cluster_dns.lower() == 'clouddns':
-      console_io.PromptContinue(
-          message='All the node-pools in the cluster need to be re-created '
-          'by the user to start using Cloud DNS for DNS lookups. It is '
-          'highly recommended to complete this step shortly after '
-          'enabling Cloud DNS.',
-          cancel_on_no=True)
+    opts.disable_additive_vpc_scope = args.disable_additive_vpc_scope
+    opts.additive_vpc_scope_dns_domain = args.additive_vpc_scope_dns_domain
     opts.enable_service_externalips = args.enable_service_externalips
     opts.enable_identity_service = args.enable_identity_service
     opts.enable_private_endpoint = args.enable_private_endpoint
@@ -467,18 +532,24 @@ class Update(base.UpdateCommand):
     opts.removed_additional_pod_ipv4_ranges = (
         args.remove_additional_pod_ipv4_ranges
     )
+    opts.additional_ip_ranges = args.additional_ip_ranges
+    opts.remove_additional_ip_ranges = args.remove_additional_ip_ranges
     opts.stack_type = args.stack_type
     opts.enable_cost_allocation = args.enable_cost_allocation
     opts.gateway_api = args.gateway_api
     opts.enable_managed_prometheus = args.enable_managed_prometheus
     opts.disable_managed_prometheus = args.disable_managed_prometheus
+    opts.auto_monitoring_scope = args.auto_monitoring_scope
     opts.enable_security_posture = args.enable_security_posture
     opts.network_performance_config = args.network_performance_configs
     opts.enable_k8s_beta_apis = args.enable_kubernetes_unstable_apis
+    opts.compliance = args.compliance
+    opts.compliance_standards = args.compliance_standards
     opts.security_posture = args.security_posture
     opts.workload_vulnerability_scanning = args.workload_vulnerability_scanning
     opts.enable_runtime_vulnerability_insight = (
-        args.enable_runtime_vulnerability_insight)
+        args.enable_runtime_vulnerability_insight
+    )
     opts.workload_policies = args.workload_policies
     opts.remove_workload_policies = args.remove_workload_policies
     opts.enable_multi_networking = args.enable_multi_networking
@@ -495,6 +566,55 @@ class Update(base.UpdateCommand):
     )
     opts.autoprovisioning_enable_insecure_kubelet_readonly_port = (
         args.autoprovisioning_enable_insecure_kubelet_readonly_port
+    )
+    opts.enable_ray_cluster_logging = args.enable_ray_cluster_logging
+    opts.enable_ray_cluster_monitoring = args.enable_ray_cluster_monitoring
+    opts.enable_secret_manager = args.enable_secret_manager
+    opts.enable_secret_manager_rotation = args.enable_secret_manager_rotation
+    opts.secret_manager_rotation_interval = (
+        args.secret_manager_rotation_interval
+    )
+    opts.enable_insecure_binding_system_authenticated = (
+        args.enable_insecure_binding_system_authenticated
+    )
+    opts.enable_insecure_binding_system_unauthenticated = (
+        args.enable_insecure_binding_system_unauthenticated
+    )
+    opts.enable_private_nodes = args.enable_private_nodes
+    opts.enable_dns_access = args.enable_dns_access
+    opts.disable_l4_lb_firewall_reconciliation = (
+        args.disable_l4_lb_firewall_reconciliation
+    )
+    opts.enable_l4_lb_firewall_reconciliation = (
+        args.enable_l4_lb_firewall_reconciliation
+    )
+    opts.tier = args.tier
+    opts.enable_ip_access = args.enable_ip_access
+    opts.enable_authorized_networks_on_private_endpoint = (
+        args.enable_authorized_networks_on_private_endpoint
+    )
+    opts.enable_autopilot_compatibility_auditing = (
+        args.enable_autopilot_compatibility_auditing
+    )
+    opts.service_account_verification_keys = (
+        args.service_account_verification_keys
+    )
+    opts.service_account_signing_keys = args.service_account_signing_keys
+    opts.control_plane_disk_encryption_key = (
+        args.control_plane_disk_encryption_key
+    )
+    opts.anonymous_authentication_config = args.anonymous_authentication_config
+    opts.patch_update = args.patch_update
+    opts.enable_auto_ipam = args.enable_auto_ipam
+    opts.disable_auto_ipam = args.disable_auto_ipam
+    opts.enable_k8s_tokens_via_dns = args.enable_k8s_tokens_via_dns
+    opts.enable_k8s_certs_via_dns = args.enable_k8s_certs_via_dns
+    opts.enable_legacy_lustre_port = args.enable_legacy_lustre_port
+    opts.enable_default_compute_class = args.enable_default_compute_class
+    opts.network_tier = args.network_tier
+    opts.control_plane_egress_mode = args.control_plane_egress
+    opts.autopilot_privileged_admission = (
+        args.autopilot_privileged_admission
     )
     return opts
 
@@ -524,13 +644,19 @@ class Update(base.UpdateCommand):
       cluster_name = cluster.name
       cluster_node_count = cluster.currentNodeCount
       cluster_zone = cluster.zone
-    except (exceptions.HttpException, apitools_exceptions.HttpForbiddenError,
-            util.Error) as error:
+    except (
+        exceptions.HttpException,
+        apitools_exceptions.HttpForbiddenError,
+        util.Error,
+    ) as error:
       if cluster_is_required:
         raise
-      log.warning(('Problem loading details of cluster to update:\n\n{}\n\n'
-                   'You can still attempt updates to the cluster.\n').format(
-                       console_attr.SafeText(error)))
+      log.warning(
+          (
+              'Problem loading details of cluster to update:\n\n{}\n\n'
+              'You can still attempt updates to the cluster.\n'
+          ).format(console_attr.SafeText(error))
+      )
 
     if getattr(args, 'enable_pod_security_policy', None):
       log.status.Print(
@@ -539,6 +665,9 @@ class Update(base.UpdateCommand):
           'with this feature enabled. For additional details, please refer to '
           'https://cloud.google.com/kubernetes-engine/docs/how-to/pod-security-policies'
       )
+
+    container_command_util.CheckReleaseChannel(args)
+
     # locations will be None if additional-zones was specified, an empty list
     # if it was specified with no argument, or a populated list if zones were
     # provided. We want to distinguish between the case where it isn't
@@ -557,26 +686,32 @@ class Update(base.UpdateCommand):
       options = api_adapter.SetMasterAuthOptions(
           action=api_adapter.SetMasterAuthOptions.SET_USERNAME,
           username=args.username,
-          password=args.password)
+          password=args.password,
+      )
 
       try:
         op_ref = adapter.SetMasterAuth(cluster_ref, options)
       except apitools_exceptions.HttpError as error:
         raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
-    elif (args.generate_password or args.set_password or
-          args.IsSpecified('password')):
+    elif (
+        args.generate_password
+        or args.set_password
+        or args.IsSpecified('password')
+    ):
       if args.generate_password:
         password = ''
         options = api_adapter.SetMasterAuthOptions(
             action=api_adapter.SetMasterAuthOptions.GENERATE_PASSWORD,
-            password=password)
+            password=password,
+        )
       else:
         password = args.password
         if not args.IsSpecified('password'):
           password = input('Please enter the new password:')
         options = api_adapter.SetMasterAuthOptions(
             action=api_adapter.SetMasterAuthOptions.SET_PASSWORD,
-            password=password)
+            password=password,
+        )
 
       try:
         op_ref = adapter.SetMasterAuth(cluster_ref, options)
@@ -588,14 +723,18 @@ class Update(base.UpdateCommand):
         raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
     elif args.enable_network_policy is not None:
       console_io.PromptContinue(
-          message='Enabling/Disabling Network Policy causes a rolling '
-          'update of all cluster nodes, similar to performing a cluster '
-          'upgrade.  This operation is long-running and will block other '
-          'operations on the cluster (including delete) until it has run '
-          'to completion.',
-          cancel_on_no=True)
+          message=(
+              'Enabling/Disabling Network Policy causes a rolling '
+              'update of all cluster nodes, similar to performing a cluster '
+              'upgrade.  This operation is long-running and will block other '
+              'operations on the cluster (including delete) until it has run '
+              'to completion.'
+          ),
+          cancel_on_no=True,
+      )
       options = api_adapter.SetNetworkPolicyOptions(
-          enabled=args.enable_network_policy)
+          enabled=args.enable_network_policy
+      )
       try:
         op_ref = adapter.SetNetworkPolicy(cluster_ref, options)
       except apitools_exceptions.HttpError as error:
@@ -627,11 +766,14 @@ completion."""
       console_io.PromptContinue(
           message=msg_tmpl.format(
               name=cluster_name,
-              num_nodes=cluster_node_count if cluster_node_count else '?'),
-          cancel_on_no=True)
+              num_nodes=cluster_node_count if cluster_node_count else '?',
+          ),
+          cancel_on_no=True,
+      )
       try:
         op_ref = adapter.StartIpRotation(
-            cluster_ref, rotate_credentials=rotate_credentials)
+            cluster_ref, rotate_credentials=rotate_credentials
+        )
       except apitools_exceptions.HttpError as error:
         raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
     elif args.complete_ip_rotation or args.complete_credential_rotation:
@@ -664,8 +806,10 @@ to completion."""
           message=msg_tmpl.format(
               name=cluster_name,
               project=cluster_ref.projectId,
-              zone=cluster_zone),
-          cancel_on_no=True)
+              zone=cluster_zone,
+          ),
+          cancel_on_no=True,
+      )
       try:
         op_ref = adapter.CompleteIpRotation(cluster_ref)
       except apitools_exceptions.HttpError as error:
@@ -687,40 +831,48 @@ to completion."""
         raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
     elif args.maintenance_window is not None:
       try:
-        op_ref = adapter.SetDailyMaintenanceWindow(cluster_ref,
-                                                   cluster.maintenancePolicy,
-                                                   args.maintenance_window)
+        op_ref = adapter.SetDailyMaintenanceWindow(
+            cluster_ref, cluster.maintenancePolicy, args.maintenance_window
+        )
       except apitools_exceptions.HttpError as error:
         raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
     elif getattr(args, 'maintenance_window_start', None) is not None:
       try:
         op_ref = adapter.SetRecurringMaintenanceWindow(
-            cluster_ref, cluster.maintenancePolicy,
-            args.maintenance_window_start, args.maintenance_window_end,
-            args.maintenance_window_recurrence)
+            cluster_ref,
+            cluster.maintenancePolicy,
+            args.maintenance_window_start,
+            args.maintenance_window_end,
+            args.maintenance_window_recurrence,
+        )
       except apitools_exceptions.HttpError as error:
         raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
     elif getattr(args, 'clear_maintenance_window', None):
       try:
-        op_ref = adapter.RemoveMaintenanceWindow(cluster_ref,
-                                                 cluster.maintenancePolicy)
+        op_ref = adapter.RemoveMaintenanceWindow(
+            cluster_ref, cluster.maintenancePolicy
+        )
       except apitools_exceptions.HttpError as error:
         raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
     elif getattr(args, 'add_maintenance_exclusion_end', None) is not None:
       try:
         op_ref = adapter.AddMaintenanceExclusion(
-            cluster_ref, cluster.maintenancePolicy,
+            cluster_ref,
+            cluster.maintenancePolicy,
             args.add_maintenance_exclusion_name,
             args.add_maintenance_exclusion_start,
             args.add_maintenance_exclusion_end,
-            args.add_maintenance_exclusion_scope)
+            args.add_maintenance_exclusion_scope,
+        )
       except apitools_exceptions.HttpError as error:
         raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
     elif getattr(args, 'remove_maintenance_exclusion', None) is not None:
       try:
         op_ref = adapter.RemoveMaintenanceExclusion(
-            cluster_ref, cluster.maintenancePolicy,
-            args.remove_maintenance_exclusion)
+            cluster_ref,
+            cluster.maintenancePolicy,
+            args.remove_maintenance_exclusion,
+        )
       except apitools_exceptions.HttpError as error:
         raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
     elif getattr(args, 'add_cross_connect_subnetworks', None) is not None:
@@ -728,7 +880,8 @@ to completion."""
         op_ref = adapter.ModifyCrossConnectSubnetworks(
             cluster_ref,
             cluster.privateClusterConfig.crossConnectConfig,
-            add_subnetworks=args.add_cross_connect_subnetworks)
+            add_subnetworks=args.add_cross_connect_subnetworks,
+        )
       except apitools_exceptions.HttpError as error:
         raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
     elif getattr(args, 'remove_cross_connect_subnetworks', None) is not None:
@@ -736,7 +889,8 @@ to completion."""
         op_ref = adapter.ModifyCrossConnectSubnetworks(
             cluster_ref,
             cluster.privateClusterConfig.crossConnectConfig,
-            remove_subnetworks=args.remove_cross_connect_subnetworks)
+            remove_subnetworks=args.remove_cross_connect_subnetworks,
+        )
 
       except apitools_exceptions.HttpError as error:
         raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
@@ -745,7 +899,8 @@ to completion."""
         op_ref = adapter.ModifyCrossConnectSubnetworks(
             cluster_ref,
             cluster.privateClusterConfig.crossConnectConfig,
-            clear_all_subnetworks=True)
+            clear_all_subnetworks=True,
+        )
       except apitools_exceptions.HttpError as error:
         raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
     elif (
@@ -774,14 +929,6 @@ to completion."""
       except apitools_exceptions.HttpError as error:
         raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
 
-    elif getattr(args, 'enable_google_cloud_access', None) is not None:
-      try:
-        op_ref = adapter.ModifyGoogleCloudAccess(
-            cluster_ref, cluster.masterAuthorizedNetworksConfig,
-            args.enable_google_cloud_access)
-      except apitools_exceptions.HttpError as error:
-        raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
-
     elif getattr(args, 'complete_convert_to_autopilot', None) is not None:
       try:
         op_ref = adapter.CompleteConvertToAutopilot(cluster_ref)
@@ -804,10 +951,73 @@ to completion."""
         )
       except apitools_exceptions.HttpError as error:
         raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
+    elif getattr(args, 'enable_ray_cluster_logging', None) is not None:
+      try:
+        op_ref = adapter.ModifyRayClusterLoggingConfig(
+            cluster_ref,
+            args.enable_ray_cluster_logging,
+        )
+      except apitools_exceptions.HttpError as error:
+        raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
+    elif getattr(args, 'enable_ray_cluster_monitoring', None) is not None:
+      try:
+        op_ref = adapter.ModifyRayClusterMonitoringConfig(
+            cluster_ref,
+            args.enable_ray_cluster_monitoring,
+        )
+      except apitools_exceptions.HttpError as error:
+        raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
+    elif getattr(args, 'enable_legacy_lustre_port', None) is not None:
+      try:
+        op_ref = adapter.ModifyLegacyLustrePortEnabled(
+            cluster_ref,
+            args.enable_legacy_lustre_port,
+        )
+      except apitools_exceptions.HttpError as error:
+        raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
+    elif (
+        getattr(args, 'enable_insecure_binding_system_authenticated', None)
+        is not None
+        or getattr(args, 'enable_insecure_binding_system_unauthenticated', None)
+        is not None
+    ):
+      try:
+        op_ref = adapter.ModifyRBACBindingConfig(
+            cluster_ref,
+            args.enable_insecure_binding_system_authenticated,
+            args.enable_insecure_binding_system_unauthenticated,
+        )
+      except apitools_exceptions.HttpError as error:
+        raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
+    elif getattr(args, 'autoprovisioning_cgroup_mode', None) is not None:
+      try:
+        op_ref = adapter.ModifyAutoprovisioningCgroupMode(
+            cluster_ref,
+            args.autoprovisioning_cgroup_mode,
+        )
+      except apitools_exceptions.HttpError as error:
+        raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
+    elif getattr(args, 'anonymous_authentication_config', None) is not None:
+      try:
+        op_ref = adapter.ModifyAnonymousAuthenticationConfig(
+            cluster_ref,
+            args.anonymous_authentication_config,
+        )
+      except apitools_exceptions.HttpError as error:
+        raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
+    elif getattr(args, 'control_plane_egress', None) is not None:
+      try:
+        op_ref = adapter.ModifyControlPlaneEgress(
+            cluster_ref,
+            args.control_plane_egress,
+        )
+      except apitools_exceptions.HttpError as error:
+        raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
     else:
       if args.enable_legacy_authorization is not None:
         op_ref = adapter.SetLegacyAuthorization(
-            cluster_ref, args.enable_legacy_authorization)
+            cluster_ref, args.enable_legacy_authorization
+        )
       else:
         options = self.ParseUpdateOptions(args, locations)
 
@@ -816,7 +1026,26 @@ to completion."""
         # Checking whether the API has been enabled, and warning if not.
         if options.enable_image_streaming:
           util.CheckForContainerFileSystemApiEnablementWithPrompt(
-              cluster_ref.projectId)
+              cluster_ref.projectId
+          )
+
+        if options.logging == ['NONE']:
+          if console_io.CanPrompt():
+            console_io.PromptContinue(
+                message=constants.LOGGING_DISABLED_WARNING,
+                cancel_on_no=True,
+            )
+          else:
+            log.status.Print(constants.LOGGING_DISABLED_WARNING)
+
+        if options.monitoring == ['NONE']:
+          if console_io.CanPrompt():
+            console_io.PromptContinue(
+                message=constants.MONITORING_DISABLED_WARNING,
+                cancel_on_no=True,
+            )
+          else:
+            log.status.Print(constants.MONITORING_DISABLED_WARNING)
 
         op_ref = adapter.UpdateCluster(cluster_ref, options)
 
@@ -824,32 +1053,56 @@ to completion."""
       adapter.WaitForOperation(
           op_ref,
           'Updating {0}'.format(cluster_ref.clusterId),
-          timeout_s=args.timeout)
+          timeout_s=args.timeout,
+      )
 
       log.UpdatedResource(cluster_ref)
       cluster_url = util.GenerateClusterUrl(cluster_ref)
-      log.status.Print('To inspect the contents of your cluster, go to: ' +
-                       cluster_url)
+      log.status.Print(
+          'To inspect the contents of your cluster, go to: ' + cluster_url
+      )
 
-      if (args.start_ip_rotation or args.complete_ip_rotation or
-          args.start_credential_rotation or args.complete_credential_rotation):
+      if (
+          args.start_ip_rotation
+          or args.complete_ip_rotation
+          or args.start_credential_rotation
+          or args.complete_credential_rotation
+      ):
         cluster = adapter.GetCluster(cluster_ref)
         try:
           util.ClusterConfig.Persist(cluster, cluster_ref.projectId)
         except kconfig.MissingEnvVarError as error:
           log.warning(error)
+        for node_pool in cluster.nodePools:
+          util.CheckForCgroupModeV1(node_pool)
+      else:
+        try:
+          cluster = adapter.GetCluster(cluster_ref)
+          for node_pool in cluster.nodePools:
+            util.CheckForCgroupModeV1(node_pool)
+        except (
+            exceptions.HttpException,
+            apitools_exceptions.HttpForbiddenError,
+            util.Error,
+        ) as error:
+          log.warning(
+              util.CGROUPV1_CHECKING_FAILURE_MSG.format(
+                  console_attr.SafeText(error)
+              )
+          )
 
   def IsClusterRequired(self, args):
     """Returns if failure getting the cluster should be an error."""
     return bool(
-        getattr(args, 'maintenance_window_end', False) or
-        getattr(args, 'clear_maintenance_window', False) or
-        getattr(args, 'add_maintenance_exclusion_end', False) or
-        getattr(args, 'remove_maintenance_exclusion', False) or
-        getattr(args, 'add_cross_connect_subnetworks', False) or
-        getattr(args, 'remove_cross_connect_subnetworks', False) or
-        getattr(args, 'clear_cross_connect_subnetworks', False) or
-        getattr(args, 'enable_google_cloud_access', False))
+        getattr(args, 'maintenance_window_end', False)
+        or getattr(args, 'clear_maintenance_window', False)
+        or getattr(args, 'add_maintenance_exclusion_end', False)
+        or getattr(args, 'remove_maintenance_exclusion', False)
+        or getattr(args, 'add_cross_connect_subnetworks', False)
+        or getattr(args, 'remove_cross_connect_subnetworks', False)
+        or getattr(args, 'clear_cross_connect_subnetworks', False)
+        or getattr(args, 'enable_google_cloud_access', False)
+    )
 
 
 @base.ReleaseTracks(base.ReleaseTrack.BETA)
@@ -872,12 +1125,14 @@ class UpdateBeta(Update):
     flags.AddLoggingFlag(group_logging_monitoring_config)
     flags.AddMonitoringFlag(group_logging_monitoring_config)
     flags.AddManagedPrometheusFlags(group_logging_monitoring_config)
+    flags.AddAutoMonitoringScopeFlags(
+        group_logging_monitoring_config, hidden=False
+    )
+    flags.AddManagedOTelScopeFlags(group_logging_monitoring_config, hidden=True)
     flags.AddEnableStackdriverKubernetesFlag(group)
     flags.AddEnableLoggingMonitoringSystemOnlyFlag(group)
     flags.AddEnableWorkloadMonitoringEapFlag(group)
     flags.AddEnableMasterSignalsFlags(group)
-    flags.AddMasterAuthorizedNetworksFlags(
-        parser, enable_group_for_update=group)
     flags.AddEnableLegacyAuthorizationFlag(group)
     flags.AddStartIpRotationFlag(group)
     flags.AddStartCredentialRotationFlag(group)
@@ -890,7 +1145,7 @@ class UpdateBeta(Update):
     flags.AddRecurringMaintenanceWindowFlags(group, is_update=True)
     flags.AddPodSecurityPolicyFlag(group)
     flags.AddBinauthzFlags(group, release_track=base.ReleaseTrack.BETA)
-    flags.AddAutoprovisioningFlags(group)
+    flags.AddAutoprovisioningFlags(group, napless=True)
     flags.AddAutoscalingProfilesFlag(group)
     flags.AddVerticalPodAutoscalingFlags(group, experimental=True)
     flags.AddResourceUsageExportFlags(group, is_update=True)
@@ -909,16 +1164,13 @@ class UpdateBeta(Update):
     flags.AddReleaseChannelFlag(group, is_update=True, hidden=False)
     flags.AddEnableShieldedNodesFlags(group)
     flags.AddTpuFlags(group, enable_tpu_service_networking=True)
-    flags.AddMasterGlobalAccessFlag(group)
     flags.AddDisableDefaultSnatFlag(group, for_cluster_create=False)
     flags.AddNotificationConfigFlag(group)
     flags.AddPrivateIpv6GoogleAccessTypeFlag('v1beta1', group, hidden=False)
     flags.AddKubernetesObjectsExportConfig(group)
     flags.AddDisableAutopilotFlag(group)
     flags.AddILBSubsettingFlags(group, hidden=False)
-    flags.AddClusterDNSFlags(
-        group, release_track=base.ReleaseTrack.BETA, hidden=False
-    )
+    flags.AddClusterDNSFlags(group, hidden=False)
     flags.AddCrossConnectSubnetworksMutationFlags(group)
     flags.AddEnableServiceExternalIPs(group)
     flags.AddAuthenticatorSecurityGroupFlags(group)
@@ -931,10 +1183,8 @@ class UpdateBeta(Update):
     flags.AddDataplaneV2MetricsFlag(group_dataplane_v2_observability)
     flags.AddDataplaneV2ObservabilityFlags(group_dataplane_v2_observability)
     flags.AddWorkloadConfigAuditFlag(group)
-    flags.AddPodAutoscalingDirectMetricsOptInFlag(group)
+    flags.AddHPAProfilesFlag(group)
     flags.AddWorkloadVulnScanningFlag(group)
-    flags.AddEnablePrivateEndpoint(group)
-    flags.AddEnableGoogleCloudAccess(group)
     flags.AddCostManagementConfigFlag(group, is_update=True)
     flags.AddStackTypeFlag(group)
     flags.AddLoggingVariantFlag(group)
@@ -942,7 +1192,7 @@ class UpdateBeta(Update):
     flags.AddAdditionalPodIpv4RangesFlag(group_add_pod_ipv4_ranges)
     flags.AddRemoveAdditionalPodIpv4RangesFlag(group_add_pod_ipv4_ranges)
     flags.AddGatewayFlags(group, hidden=False)
-    flags.AddFleetProjectFlag(group, is_update=True)
+    flags.AddComplianceFlags(group, hidden=True)
     flags.AddSecurityPostureFlag(group)
     flags.AddClusterNetworkPerformanceConfigFlags(group)
     flags.AddEnableK8sBetaAPIs(group)
@@ -950,7 +1200,9 @@ class UpdateBeta(Update):
     flags.AddWorkloadVulnScanningEnumFlag(group)
     flags.AddRuntimeVulnerabilityInsightFlag(group)
     flags.AddWorkloadPoliciesFlag(group)
+    flags.AddAutopilotWorkloadPoliciesFlag(group)
     flags.AddRemoveWorkloadPoliciesFlag(group)
+    flags.AddRemoveAutopilotWorkloadPoliciesFlag(group)
     flags.AddEnableFqdnNetworkPolicyFlag(group)
     flags.AddHostMaintenanceIntervalFlag(group)
     flags.AddInTransitEncryptionFlag(group)
@@ -960,10 +1212,49 @@ class UpdateBeta(Update):
     flags.AddConvertToAutopilotFlag(group)
     flags.AddCompleteConvertToAutopilotFlag(group)
     flags.AddConvertToStandardFlag(group)
-    flags.AddSecretManagerEnableFlag(group, hidden=False)
+    flags.AddSecretManagerEnableFlagGroup(group, is_update=True)
+    flags.AddSecretSyncFlagGroup(group, hidden=True, is_update=True)
     flags.AddEnableCiliumClusterwideNetworkPolicyFlag(group, is_update=True)
     flags.AddEnableKubeletReadonlyPortFlag(group)
     flags.AddAutoprovisioningEnableKubeletReadonlyPortFlag(group)
+    flags.AddEnableRayClusterLogging(group, is_update=True)
+    flags.AddEnableRayClusterMonitoring(group, is_update=True)
+    flags.AddInsecureRBACBindingFlags(group, hidden=False)
+    group_add_additional_ip_ranges = group.add_group()
+    flags.AddAdditionalIpRangesFlag(group_add_additional_ip_ranges)
+    flags.AddRemoveAdditionalIpRangesFlag(group_add_additional_ip_ranges)
+    flags.AddClusterEnablePrivateNodesFlag(group)
+    flags.AddDisableL4LbFirewallReconciliationFlag(group, is_update=True)
+    flags.AddClusterTierFlag(group)
+    flags.AddAutoprovisioningCgroupModeFlag(group)
+    flags.AddEnableAutopilotCompatibilityAuditingFlag(group)
+    flags.AddAnonymousAuthenticationConfigFlag(group)
+
+    group_for_control_plane_endpoints = group.add_group()
+    flags.AddMasterAuthorizedNetworksFlags(group_for_control_plane_endpoints)
+    flags.AddEnableIPAccessFlag(group_for_control_plane_endpoints)
+    flags.AddMasterGlobalAccessFlag(group_for_control_plane_endpoints)
+    flags.AddEnablePrivateEndpoint(group_for_control_plane_endpoints)
+    flags.AddEnableGoogleCloudAccess(group_for_control_plane_endpoints)
+    flags.AddAauthorizedNetworksOnPrivateEndpointFlag(
+        group_for_control_plane_endpoints
+    )
+    flags.AddEnableDNSAccessFlag(group_for_control_plane_endpoints)
+    flags.AddEnableK8sTokensViaDnsFlag(group_for_control_plane_endpoints)
+    flags.AddEnableK8sCertsViaDnsFlag(group_for_control_plane_endpoints)
+    flags.AddServiceAccountVerificationKeysFlag(group)
+    flags.AddServiceAccountSigningKeysFlag(group)
+    flags.AddControlPlaneDiskEncryptionKeyFlag(group)
+    flags.AddPatchUpdateFlag(group)
+    flags.AddAutoIpamFlag(group, is_update=True)
+    flags.AddEnableLegacyLustrePortFlag(group, hidden=False)
+    flags.AddEnableDefaultComputeClassFlag(group)
+    group_fleet_flags = group.add_group()
+    flags.AddFleetProjectFlag(group_fleet_flags, is_update=True)
+    flags.AddMembershipTypeFlags(group_fleet_flags, is_update=True)
+    flags.AddNetworkTierFlag(group)
+    flags.AddControlPlaneEgressFlag(group)
+    flags.AddAutopilotPrivilegedAdmissionFlag(group, hidden=True)
 
   def ParseUpdateOptions(self, args, locations):
     get_default = lambda key: getattr(args, key)
@@ -1040,26 +1331,23 @@ class UpdateBeta(Update):
     opts.enable_workload_monitoring_eap = args.enable_workload_monitoring_eap
     opts.enable_managed_prometheus = args.enable_managed_prometheus
     opts.disable_managed_prometheus = args.disable_managed_prometheus
+    opts.auto_monitoring_scope = args.auto_monitoring_scope
     opts.disable_autopilot = args.disable_autopilot
     opts.enable_l4_ilb_subsetting = args.enable_l4_ilb_subsetting
     if opts.enable_l4_ilb_subsetting:
       console_io.PromptContinue(
-          message='Enabling L4 ILB Subsetting is a one-way operation.'
-          'Once enabled, this configuration cannot be disabled.'
-          'Existing ILB services should be recreated to use Subsetting.',
-          cancel_on_no=True)
+          message=(
+              'Enabling L4 ILB Subsetting is a one-way operation.'
+              'Once enabled, this configuration cannot be disabled.'
+              'Existing ILB services should be recreated to use Subsetting.'
+          ),
+          cancel_on_no=True,
+      )
     opts.cluster_dns = args.cluster_dns
     opts.cluster_dns_scope = args.cluster_dns_scope
     opts.cluster_dns_domain = args.cluster_dns_domain
     opts.disable_additive_vpc_scope = args.disable_additive_vpc_scope
     opts.additive_vpc_scope_dns_domain = args.additive_vpc_scope_dns_domain
-    if opts.cluster_dns and opts.cluster_dns.lower() == 'clouddns':
-      console_io.PromptContinue(
-          message='All the node-pools in the cluster need to be re-created '
-          'by the user to start using Cloud DNS for DNS lookups. It is '
-          'highly recommended to complete this step shortly after '
-          'enabling Cloud DNS.',
-          cancel_on_no=True)
     opts.enable_service_externalips = args.enable_service_externalips
     opts.security_group = args.security_group
     opts.enable_gcfs = args.enable_gcfs
@@ -1077,9 +1365,7 @@ class UpdateBeta(Update):
     )
     opts.dataplane_v2_observability_mode = args.dataplane_v2_observability_mode
     opts.enable_workload_config_audit = args.enable_workload_config_audit
-    opts.pod_autoscaling_direct_metrics_opt_in = (
-        args.pod_autoscaling_direct_metrics_opt_in
-    )
+    opts.hpa_profile = args.hpa_profile
     opts.enable_workload_vulnerability_scanning = (
         args.enable_workload_vulnerability_scanning
     )
@@ -1094,13 +1380,19 @@ class UpdateBeta(Update):
     opts.removed_additional_pod_ipv4_ranges = (
         args.remove_additional_pod_ipv4_ranges
     )
+    opts.additional_ip_ranges = args.additional_ip_ranges
+    opts.remove_additional_ip_ranges = args.remove_additional_ip_ranges
     opts.gateway_api = args.gateway_api
     opts.fleet_project = args.fleet_project
     opts.enable_fleet = args.enable_fleet
+    opts.membership_type = args.membership_type
+    opts.unset_membership_type = args.unset_membership_type
     opts.clear_fleet_project = args.clear_fleet_project
     opts.enable_security_posture = args.enable_security_posture
     opts.network_performance_config = args.network_performance_configs
     opts.enable_k8s_beta_apis = args.enable_kubernetes_unstable_apis
+    opts.compliance = args.compliance
+    opts.compliance_standards = args.compliance_standards
     opts.security_posture = args.security_posture
     opts.workload_vulnerability_scanning = args.workload_vulnerability_scanning
     opts.enable_runtime_vulnerability_insight = (
@@ -1116,6 +1408,13 @@ class UpdateBeta(Update):
     opts.complete_convert_to_autopilot = args.complete_convert_to_autopilot
     opts.convert_to_standard = args.convert_to_standard
     opts.enable_secret_manager = args.enable_secret_manager
+    opts.enable_secret_manager_rotation = args.enable_secret_manager_rotation
+    opts.secret_manager_rotation_interval = (
+        args.secret_manager_rotation_interval
+    )
+    opts.enable_secret_sync = args.enable_secret_sync
+    opts.enable_secret_sync_rotation = args.enable_secret_sync_rotation
+    opts.secret_sync_rotation_interval = args.secret_sync_rotation_interval
     opts.enable_cilium_clusterwide_network_policy = (
         args.enable_cilium_clusterwide_network_policy
     )
@@ -1124,6 +1423,51 @@ class UpdateBeta(Update):
     )
     opts.autoprovisioning_enable_insecure_kubelet_readonly_port = (
         args.autoprovisioning_enable_insecure_kubelet_readonly_port
+    )
+    opts.enable_ray_cluster_logging = args.enable_ray_cluster_logging
+    opts.enable_ray_cluster_monitoring = args.enable_ray_cluster_monitoring
+    opts.enable_insecure_binding_system_authenticated = (
+        args.enable_insecure_binding_system_authenticated
+    )
+    opts.enable_insecure_binding_system_unauthenticated = (
+        args.enable_insecure_binding_system_unauthenticated
+    )
+    opts.enable_private_nodes = args.enable_private_nodes
+    opts.enable_dns_access = args.enable_dns_access
+    opts.disable_l4_lb_firewall_reconciliation = (
+        args.disable_l4_lb_firewall_reconciliation
+    )
+    opts.enable_l4_lb_firewall_reconciliation = (
+        args.enable_l4_lb_firewall_reconciliation
+    )
+    opts.tier = args.tier
+    opts.enable_ip_access = args.enable_ip_access
+    opts.enable_authorized_networks_on_private_endpoint = (
+        args.enable_authorized_networks_on_private_endpoint
+    )
+    opts.enable_autopilot_compatibility_auditing = (
+        args.enable_autopilot_compatibility_auditing
+    )
+    opts.service_account_verification_keys = (
+        args.service_account_verification_keys
+    )
+    opts.service_account_signing_keys = args.service_account_signing_keys
+    opts.control_plane_disk_encryption_key = (
+        args.control_plane_disk_encryption_key
+    )
+    opts.anonymous_authentication_config = args.anonymous_authentication_config
+    opts.patch_update = args.patch_update
+    opts.enable_auto_ipam = args.enable_auto_ipam
+    opts.disable_auto_ipam = args.disable_auto_ipam
+    opts.enable_k8s_tokens_via_dns = args.enable_k8s_tokens_via_dns
+    opts.enable_k8s_certs_via_dns = args.enable_k8s_certs_via_dns
+    opts.enable_legacy_lustre_port = args.enable_legacy_lustre_port
+    opts.enable_default_compute_class = args.enable_default_compute_class
+    opts.network_tier = args.network_tier
+    opts.control_plane_egress_mode = args.control_plane_egress
+    opts.managed_otel_scope = args.managed_otel_scope
+    opts.autopilot_privileged_admission = (
+        args.autopilot_privileged_admission
     )
     return opts
 
@@ -1148,12 +1492,14 @@ class UpdateAlpha(Update):
     flags.AddLoggingFlag(group_logging_monitoring_config)
     flags.AddMonitoringFlag(group_logging_monitoring_config)
     flags.AddManagedPrometheusFlags(group_logging_monitoring_config)
+    flags.AddAutoMonitoringScopeFlags(
+        group_logging_monitoring_config, hidden=False
+    )
+    flags.AddManagedOTelScopeFlags(group_logging_monitoring_config, hidden=True)
     flags.AddEnableStackdriverKubernetesFlag(group)
     flags.AddEnableLoggingMonitoringSystemOnlyFlag(group)
     flags.AddEnableWorkloadMonitoringEapFlag(group)
     flags.AddEnableMasterSignalsFlags(group)
-    flags.AddMasterAuthorizedNetworksFlags(
-        parser, enable_group_for_update=group)
     flags.AddEnableLegacyAuthorizationFlag(group)
     flags.AddStartIpRotationFlag(group)
     flags.AddStartCredentialRotationFlag(group)
@@ -1162,7 +1508,7 @@ class UpdateAlpha(Update):
     flags.AddUpdateLabelsFlag(group)
     flags.AddRemoveLabelsFlag(group)
     flags.AddNetworkPolicyFlags(group)
-    flags.AddAutoprovisioningFlags(group, hidden=False)
+    flags.AddAutoprovisioningFlags(group, hidden=False, napless=True)
     flags.AddAutoscalingProfilesFlag(group)
     flags.AddDailyMaintenanceWindowFlag(group, add_unset_text=True)
     flags.AddRecurringMaintenanceWindowFlags(group, is_update=True)
@@ -1188,15 +1534,12 @@ class UpdateAlpha(Update):
     flags.AddReleaseChannelFlag(group, is_update=True, hidden=False)
     flags.AddEnableShieldedNodesFlags(group)
     flags.AddTpuFlags(group, enable_tpu_service_networking=True)
-    flags.AddMasterGlobalAccessFlag(group)
     flags.AddNotificationConfigFlag(group)
     flags.AddPrivateIpv6GoogleAccessTypeFlag('v1alpha1', group, hidden=False)
     flags.AddKubernetesObjectsExportConfig(group)
     flags.AddDisableAutopilotFlag(group)
     flags.AddILBSubsettingFlags(group, hidden=False)
-    flags.AddClusterDNSFlags(
-        group, release_track=base.ReleaseTrack.ALPHA, hidden=False
-    )
+    flags.AddClusterDNSFlags(group, hidden=False)
     flags.AddCrossConnectSubnetworksMutationFlags(group)
     flags.AddEnableServiceExternalIPs(group)
     flags.AddAuthenticatorSecurityGroupFlags(group)
@@ -1209,17 +1552,15 @@ class UpdateAlpha(Update):
     flags.AddDataplaneV2MetricsFlag(group_dataplane_v2_observability)
     flags.AddDataplaneV2ObservabilityFlags(group_dataplane_v2_observability)
     flags.AddWorkloadConfigAuditFlag(group)
-    flags.AddPodAutoscalingDirectMetricsOptInFlag(group)
+    flags.AddHPAProfilesFlag(group)
     flags.AddWorkloadVulnScanningFlag(group)
-    flags.AddEnablePrivateEndpoint(group)
-    flags.AddEnableGoogleCloudAccess(group)
     flags.AddStackTypeFlag(group)
     flags.AddGatewayFlags(group, hidden=False)
     flags.AddLoggingVariantFlag(group)
     group_add_pod_ipv4_ranges = group.add_group(hidden=False)
     flags.AddAdditionalPodIpv4RangesFlag(group_add_pod_ipv4_ranges)
     flags.AddRemoveAdditionalPodIpv4RangesFlag(group_add_pod_ipv4_ranges)
-    flags.AddFleetProjectFlag(group, is_update=True)
+    flags.AddComplianceFlags(group, hidden=True)
     flags.AddSecurityPostureFlag(group)
     flags.AddClusterNetworkPerformanceConfigFlags(group)
     flags.AddEnableK8sBetaAPIs(group)
@@ -1227,7 +1568,9 @@ class UpdateAlpha(Update):
     flags.AddWorkloadVulnScanningEnumFlag(group)
     flags.AddRuntimeVulnerabilityInsightFlag(group)
     flags.AddWorkloadPoliciesFlag(group)
+    flags.AddAutopilotWorkloadPoliciesFlag(group)
     flags.AddRemoveWorkloadPoliciesFlag(group)
+    flags.AddRemoveAutopilotWorkloadPoliciesFlag(group)
     flags.AddEnableFqdnNetworkPolicyFlag(group)
     flags.AddHostMaintenanceIntervalFlag(group)
     flags.AddInTransitEncryptionFlag(group)
@@ -1237,10 +1580,49 @@ class UpdateAlpha(Update):
     flags.AddConvertToAutopilotFlag(group)
     flags.AddCompleteConvertToAutopilotFlag(group)
     flags.AddConvertToStandardFlag(group)
-    flags.AddSecretManagerEnableFlag(group, hidden=False)
+    flags.AddSecretManagerEnableFlagGroup(group, is_update=True)
+    flags.AddSecretSyncFlagGroup(group, hidden=True, is_update=True)
     flags.AddEnableCiliumClusterwideNetworkPolicyFlag(group, is_update=True)
     flags.AddEnableKubeletReadonlyPortFlag(group)
     flags.AddAutoprovisioningEnableKubeletReadonlyPortFlag(group)
+    flags.AddEnableRayClusterLogging(group, is_update=True)
+    flags.AddEnableRayClusterMonitoring(group, is_update=True)
+    flags.AddInsecureRBACBindingFlags(group, hidden=False)
+    group_add_additional_ip_ranges = group.add_group()
+    flags.AddAdditionalIpRangesFlag(group_add_additional_ip_ranges)
+    flags.AddRemoveAdditionalIpRangesFlag(group_add_additional_ip_ranges)
+    flags.AddClusterEnablePrivateNodesFlag(group)
+    flags.AddDisableL4LbFirewallReconciliationFlag(group, is_update=True)
+    flags.AddClusterTierFlag(group)
+    flags.AddAutoprovisioningCgroupModeFlag(group)
+    flags.AddEnableAutopilotCompatibilityAuditingFlag(group)
+    flags.AddAnonymousAuthenticationConfigFlag(group)
+
+    group_for_control_plane_endpoints = group.add_group()
+    flags.AddMasterAuthorizedNetworksFlags(group_for_control_plane_endpoints)
+    flags.AddEnableIPAccessFlag(group_for_control_plane_endpoints)
+    flags.AddMasterGlobalAccessFlag(group_for_control_plane_endpoints)
+    flags.AddEnablePrivateEndpoint(group_for_control_plane_endpoints)
+    flags.AddEnableGoogleCloudAccess(group_for_control_plane_endpoints)
+    flags.AddAauthorizedNetworksOnPrivateEndpointFlag(
+        group_for_control_plane_endpoints
+    )
+    flags.AddEnableDNSAccessFlag(group_for_control_plane_endpoints)
+    flags.AddEnableK8sTokensViaDnsFlag(group_for_control_plane_endpoints)
+    flags.AddEnableK8sCertsViaDnsFlag(group_for_control_plane_endpoints)
+    flags.AddServiceAccountVerificationKeysFlag(group)
+    flags.AddServiceAccountSigningKeysFlag(group)
+    flags.AddControlPlaneDiskEncryptionKeyFlag(group)
+    flags.AddPatchUpdateFlag(group)
+    flags.AddAutoIpamFlag(group, is_update=True)
+    flags.AddEnableLegacyLustrePortFlag(group, hidden=False)
+    flags.AddEnableDefaultComputeClassFlag(group)
+    group_fleet_flags = group.add_group()
+    flags.AddFleetProjectFlag(group_fleet_flags, is_update=True)
+    flags.AddMembershipTypeFlags(group_fleet_flags, is_update=True)
+    flags.AddNetworkTierFlag(group)
+    flags.AddControlPlaneEgressFlag(group)
+    flags.AddAutopilotPrivilegedAdmissionFlag(group, hidden=True)
 
   def ParseUpdateOptions(self, args, locations):
     get_default = lambda key: getattr(args, key)
@@ -1314,25 +1696,23 @@ class UpdateAlpha(Update):
     opts.enable_workload_monitoring_eap = args.enable_workload_monitoring_eap
     opts.enable_managed_prometheus = args.enable_managed_prometheus
     opts.disable_managed_prometheus = args.disable_managed_prometheus
+    opts.auto_monitoring_scope = args.auto_monitoring_scope
     opts.disable_autopilot = args.disable_autopilot
     opts.enable_l4_ilb_subsetting = args.enable_l4_ilb_subsetting
     if opts.enable_l4_ilb_subsetting:
       console_io.PromptContinue(
-          message='Enabling L4 ILB Subsetting is a one-way operation.'
-          'Once enabled, this configuration cannot be disabled.'
-          'Existing ILB services should be recreated to use Subsetting.',
-          cancel_on_no=True)
+          message=(
+              'Enabling L4 ILB Subsetting is a one-way operation.'
+              'Once enabled, this configuration cannot be disabled.'
+              'Existing ILB services should be recreated to use Subsetting.'
+          ),
+          cancel_on_no=True,
+      )
     opts.cluster_dns = args.cluster_dns
     opts.cluster_dns_scope = args.cluster_dns_scope
     opts.cluster_dns_domain = args.cluster_dns_domain
     opts.disable_additive_vpc_scope = args.disable_additive_vpc_scope
     opts.additive_vpc_scope_dns_domain = args.additive_vpc_scope_dns_domain
-    if opts.cluster_dns and opts.cluster_dns.lower() == 'clouddns':
-      console_io.PromptContinue(
-          message='All the node-pools in the cluster need to be re-created by '
-          'the user to start using Cloud DNS for DNS lookups. It is highly '
-          'recommended to complete this step shortly after enabling Cloud DNS.',
-          cancel_on_no=True)
     opts.enable_service_externalips = args.enable_service_externalips
     opts.security_group = args.security_group
     opts.enable_gcfs = args.enable_gcfs
@@ -1350,9 +1730,7 @@ class UpdateAlpha(Update):
     )
     opts.dataplane_v2_observability_mode = args.dataplane_v2_observability_mode
     opts.enable_workload_config_audit = args.enable_workload_config_audit
-    opts.pod_autoscaling_direct_metrics_opt_in = (
-        args.pod_autoscaling_direct_metrics_opt_in
-    )
+    opts.hpa_profile = args.hpa_profile
     opts.enable_workload_vulnerability_scanning = (
         args.enable_workload_vulnerability_scanning
     )
@@ -1367,12 +1745,18 @@ class UpdateAlpha(Update):
     opts.removed_additional_pod_ipv4_ranges = (
         args.remove_additional_pod_ipv4_ranges
     )
+    opts.additional_ip_ranges = args.additional_ip_ranges
+    opts.remove_additional_ip_ranges = args.remove_additional_ip_ranges
     opts.fleet_project = args.fleet_project
     opts.enable_fleet = args.enable_fleet
+    opts.membership_type = args.membership_type
+    opts.unset_membership_type = args.unset_membership_type
     opts.clear_fleet_project = args.clear_fleet_project
     opts.enable_security_posture = args.enable_security_posture
     opts.network_performance_config = args.network_performance_configs
     opts.enable_k8s_beta_apis = args.enable_kubernetes_unstable_apis
+    opts.compliance = args.compliance
+    opts.compliance_standards = args.compliance_standards
     opts.security_posture = args.security_posture
     opts.workload_vulnerability_scanning = args.workload_vulnerability_scanning
     opts.enable_runtime_vulnerability_insight = (
@@ -1388,6 +1772,13 @@ class UpdateAlpha(Update):
     opts.complete_convert_to_autopilot = args.complete_convert_to_autopilot
     opts.convert_to_standard = args.convert_to_standard
     opts.enable_secret_manager = args.enable_secret_manager
+    opts.enable_secret_manager_rotation = args.enable_secret_manager_rotation
+    opts.secret_manager_rotation_interval = (
+        args.secret_manager_rotation_interval
+    )
+    opts.enable_secret_sync = args.enable_secret_sync
+    opts.enable_secret_sync_rotation = args.enable_secret_sync_rotation
+    opts.secret_sync_rotation_interval = args.secret_sync_rotation_interval
     opts.enable_cilium_clusterwide_network_policy = (
         args.enable_cilium_clusterwide_network_policy
     )
@@ -1396,5 +1787,50 @@ class UpdateAlpha(Update):
     )
     opts.autoprovisioning_enable_insecure_kubelet_readonly_port = (
         args.autoprovisioning_enable_insecure_kubelet_readonly_port
+    )
+    opts.enable_ray_cluster_logging = args.enable_ray_cluster_logging
+    opts.enable_ray_cluster_monitoring = args.enable_ray_cluster_monitoring
+    opts.enable_insecure_binding_system_authenticated = (
+        args.enable_insecure_binding_system_authenticated
+    )
+    opts.enable_insecure_binding_system_unauthenticated = (
+        args.enable_insecure_binding_system_unauthenticated
+    )
+    opts.enable_private_nodes = args.enable_private_nodes
+    opts.enable_dns_access = args.enable_dns_access
+    opts.disable_l4_lb_firewall_reconciliation = (
+        args.disable_l4_lb_firewall_reconciliation
+    )
+    opts.enable_l4_lb_firewall_reconciliation = (
+        args.enable_l4_lb_firewall_reconciliation
+    )
+    opts.tier = args.tier
+    opts.enable_ip_access = args.enable_ip_access
+    opts.enable_authorized_networks_on_private_endpoint = (
+        args.enable_authorized_networks_on_private_endpoint
+    )
+    opts.enable_autopilot_compatibility_auditing = (
+        args.enable_autopilot_compatibility_auditing
+    )
+    opts.service_account_verification_keys = (
+        args.service_account_verification_keys
+    )
+    opts.service_account_signing_keys = args.service_account_signing_keys
+    opts.control_plane_disk_encryption_key = (
+        args.control_plane_disk_encryption_key
+    )
+    opts.anonymous_authentication_config = args.anonymous_authentication_config
+    opts.patch_update = args.patch_update
+    opts.enable_auto_ipam = args.enable_auto_ipam
+    opts.disable_auto_ipam = args.disable_auto_ipam
+    opts.enable_k8s_tokens_via_dns = args.enable_k8s_tokens_via_dns
+    opts.enable_k8s_certs_via_dns = args.enable_k8s_certs_via_dns
+    opts.enable_legacy_lustre_port = args.enable_legacy_lustre_port
+    opts.enable_default_compute_class = args.enable_default_compute_class
+    opts.network_tier = args.network_tier
+    opts.control_plane_egress_mode = args.control_plane_egress
+    opts.managed_otel_scope = args.managed_otel_scope
+    opts.autopilot_privileged_admission = (
+        args.autopilot_privileged_admission
     )
     return opts

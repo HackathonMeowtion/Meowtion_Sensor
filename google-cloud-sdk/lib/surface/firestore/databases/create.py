@@ -12,11 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Command to create Cloud Firestore Database in Native mode."""
+"""Command to create a Cloud Firestore Database."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
+
+import textwrap
 
 from googlecloudsdk.api_lib.firestore import api_utils
 from googlecloudsdk.api_lib.firestore import databases
@@ -25,17 +27,27 @@ from googlecloudsdk.command_lib.firestore import flags
 from googlecloudsdk.core import properties
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(
-    base.ReleaseTrack.BETA, base.ReleaseTrack.GA
+    base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA, base.ReleaseTrack.GA
 )
 class CreateFirestoreAPI(base.Command):
   """Create a Google Cloud Firestore database via Firestore API.
 
   ## EXAMPLES
 
+  To create a Firestore Enterprise database named `foo` in `nam5` for use with
+  MongoDB Compatibility.
+
+      $ {command} --database=foo --edition=enterprise --location=nam5
+
   To create a Firestore Native database in `nam5`.
 
       $ {command} --location=nam5
+
+  To create a Firestore Native database in `us-central1` with tags.
+
+      $ {command} --location=us-central1 --tags=key1=value1,key2=value2
 
   To create a Datastore Mode database in `us-east1`.
 
@@ -54,6 +66,13 @@ class CreateFirestoreAPI(base.Command):
   (PITR) enabled.
 
       $ {command} --location=nam5 --enable-pitr
+
+  To create a Firestore Native database in `nam5` encrypted by a
+  Customer-managed encryption key (CMEK).
+
+      $ {command}
+      --location=nam5
+      --kms-key-name=projects/PROJECT_ID/locations/us/keyRings/KEY_RING_ID/cryptoKeys/CRYPTO_KEY_ID
   """
 
   def DatabaseType(self, database_type):
@@ -67,6 +86,18 @@ class CreateFirestoreAPI(base.Command):
       )
     else:
       raise ValueError('invalid database type: {}'.format(database_type))
+
+  def DatabaseEdition(self, database_edition):
+    if database_edition == 'standard':
+      return (
+          api_utils.GetMessages().GoogleFirestoreAdminV1Database.DatabaseEditionValueValuesEnum.STANDARD
+      )
+    elif database_edition == 'enterprise':
+      return (
+          api_utils.GetMessages().GoogleFirestoreAdminV1Database.DatabaseEditionValueValuesEnum.ENTERPRISE
+      )
+    else:
+      raise ValueError('invalid database edition: {}'.format(database_edition))
 
   def DatabaseDeleteProtectionState(self, enable_delete_protection):
     if enable_delete_protection:
@@ -91,9 +122,11 @@ class CreateFirestoreAPI(base.Command):
     )
 
   def DatabaseCmekConfig(self, args):
-    return (
-        api_utils.GetMessages().GoogleFirestoreAdminV1CmekConfig()
-    )
+    if args.kms_key_name is not None:
+      return api_utils.GetMessages().GoogleFirestoreAdminV1CmekConfig(
+          kmsKeyName=args.kms_key_name
+      )
+    return api_utils.GetMessages().GoogleFirestoreAdminV1CmekConfig()
 
   def Run(self, args):
     project = properties.VALUES.core.project.Get(required=True)
@@ -102,15 +135,23 @@ class CreateFirestoreAPI(base.Command):
         args.location,
         args.database,
         self.DatabaseType(args.type),
+        self.DatabaseEdition(args.edition),
         self.DatabaseDeleteProtectionState(args.delete_protection),
         self.DatabasePitrState(args.enable_pitr),
         self.DatabaseCmekConfig(args),
+        args.tags,
     )
 
   @classmethod
   def Args(cls, parser):
     flags.AddLocationFlag(
         parser, required=True, suggestion_aliases=['--region']
+    )
+    parser.add_argument(
+        '--edition',
+        help='The edition of the database.',
+        default='standard',
+        choices=['standard', 'enterprise'],
     )
     parser.add_argument(
         '--type',
@@ -120,100 +161,42 @@ class CreateFirestoreAPI(base.Command):
     )
     parser.add_argument(
         '--database',
-        help="""The ID to use for the database, which will become the final
-        component of the database's resource name. If database ID is not
-        provided, (default) will be used as database ID.
+        help=textwrap.dedent("""\
+            The ID to use for the database, which will become the final
+            component of the database's resource name. If database ID is not
+            provided, (default) will be used as database ID.
 
-        This value should be 4-63 characters. Valid characters are /[a-z][0-9]-/
-        with first character a letter and the last a letter or a number. Must
-        not be UUID-like /[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}/.
+            This value should be 4-63 characters. Valid characters are /[a-z][0-9]-/
+            with first character a letter and the last a letter or a number. Must
+            not be UUID-like /[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}/.
 
-        Using "(default)" database ID is also allowed.
-        """,
+            Using "(default)" database ID is also allowed.
+            """),
         type=str,
         default='(default)',
     )
     parser.add_argument(
         '--delete-protection',
-        help="""Whether to enable delete protection on the created database.
+        help=textwrap.dedent("""\
+            Whether to enable delete protection on the created database.
 
-        If set to true, delete protection of the new database will be enabled
-        and delete operations will fail unless delete protection is disabled.
+            If set to true, delete protection of the new database will be enabled
+            and delete operations will fail unless delete protection is disabled.
 
-        Default to false.
-        """,
+            Default to false.
+            """),
         action='store_true',
         default=False,
     )
     parser.add_argument(
         '--enable-pitr',
-        help="""Whether to enable Point In Time Recovery (PITR) on the created
-        database.
+        help=textwrap.dedent("""\
+            Whether to enable Point In Time Recovery (PITR) on the created database.
 
-        If set to true, PITR on the new database will be enabled. By default,
-        this feature is not enabled.
-        """,
+            If set to true, PITR on the new database will be enabled. By default, this feature is not enabled.
+            """),
         action='store_true',
         default=None,
     )
-
-
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
-class CreateFirestoreAPIWithCmekConfig(CreateFirestoreAPI):
-  r"""Create a Google Cloud Firestore database via Firestore API.
-
-  ## EXAMPLES
-
-  To create a Firestore Native database in `nam5`.
-
-      $ {command} --location=nam5
-
-  To create a Datastore Mode database in `us-east1`.
-
-      $ {command} --location=us-east1 --type=datastore-mode
-
-  To create a Datastore Mode database in `us-east1` with a databaseId `foo`.
-
-      $ {command} --database=foo --location=us-east1 --type=datastore-mode
-
-  To create a Firestore Native database in `nam5` with delete protection
-  enabled.
-
-      $ {command} --location=nam5 --delete-protection
-
-  To create a Firestore Native database in `nam5` with Point In Time Recovery
-  (PITR) enabled.
-
-      $ {command} --location=nam5 --enable-pitr
-  """
-
-  def DatabaseCmekConfig(self, args):
-    if args.kms_key_name is not None:
-      return api_utils.GetMessages().GoogleFirestoreAdminV1CmekConfig(
-          kmsKeyName=args.kms_key_name
-      )
-    return api_utils.GetMessages().GoogleFirestoreAdminV1CmekConfig()
-
-  @classmethod
-  def Args(cls, parser):
-    super(CreateFirestoreAPIWithCmekConfig, cls).Args(parser)
-    parser.add_argument(
-        '--kms-key-name',
-        help="""The resource ID of a Cloud KMS key. If set, the database created will
-        be a Customer-managed Encryption Key (CMEK) database encrypted with
-        this key. This feature is allowlist only in initial launch.
-
-        Only the key in the same location as this database is allowed to be
-        used for encryption.
-
-        For Firestore's nam5 multi-region, this corresponds to Cloud KMS
-        location us. For Firestore's eur3 multi-region, this corresponds to
-        Cloud KMS location europe. See https://cloud.google.com/kms/docs/locations.
-
-        This value should be the KMS key resource ID in the format of
-        `projects/{project_id}/locations/{kms_location}/keyRings/{key_ring}/cryptoKeys/{crypto_key}`.
-        How to retrive this resource ID is listed at https://cloud.google.com/kms/docs/getting-resource-ids#getting_the_id_for_a_key_and_version.
-        """,
-        type=str,
-        default=None,
-    )
+    flags.AddKmsKeyNameFlag(parser)
+    flags.AddTags(parser, 'database')

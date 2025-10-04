@@ -48,6 +48,11 @@ def _GetIngress(record):
     return service.INGRESS_ALL
 
 
+def _GetIap(record):
+  """Gets the IAP traffic allowed to call the service."""
+  return record.annotations.get(service.IAP_ANNOTATION)
+
+
 def _GetTagAndStatus(tag):
   """Returns the tag with padding and an adding/removing indicator if needed."""
   if tag.inSpec and not tag.inStatus:
@@ -65,13 +70,18 @@ def _TransformTrafficPair(pair):
           cp.Table([('', _GetTagAndStatus(t), t.url) for t in pair.tags]))
 
 
-def _TransformTrafficPairs(traffic_pairs, service_url, service_ingress=None):
+def _TransformTrafficPairs(
+    traffic_pairs, service_url, service_ingress=None, service_iap=None
+):
   """Transforms a List[TrafficTargetPair] into a marker class structure."""
   traffic_section = cp.Section(
-      [cp.Table(_TransformTrafficPair(p) for p in traffic_pairs)])
+      [cp.Table(_TransformTrafficPair(p) for p in traffic_pairs)]
+  )
   route_section = [cp.Labeled([('URL', service_url)])]
   if service_ingress is not None:
     route_section.append(cp.Labeled([('Ingress', service_ingress)]))
+  if service_iap is not None:
+    route_section.append(cp.Labeled([('Iap Enabled', service_iap)]))
   route_section.append(cp.Labeled([('Traffic', traffic_section)]))
   return cp.Section(route_section, max_column_width=60)
 
@@ -94,9 +104,12 @@ def TransformRouteFields(service_record):
       service_record.is_managed,
       (_INGRESS_UNSPECIFIED
        if no_status else service_record.status.latestReadyRevisionName))
-  return _TransformTrafficPairs(traffic_pairs,
-                                '' if no_status else service_record.status.url,
-                                _GetIngress(service_record))
+  return _TransformTrafficPairs(
+      traffic_pairs,
+      '' if no_status else service_record.domain,
+      _GetIngress(service_record),
+      _GetIap(service_record),
+  )
 
 
 class TrafficPrinter(cp.CustomPrinterBase):

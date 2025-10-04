@@ -415,12 +415,20 @@ def AddNewNameArgToParser(parser, obj_name):
       required=True)
 
 
-def AddInstanceOsImageToParser(parser, hidden):
+def AddInstanceOsImageToParser(parser, hidden, required):
   parser.add_argument(
       '--os-image',
       type=str,
-      help="""OS image to install on the server.""",
-      hidden=hidden)
+      help="""
+              OS image to install on the server.
+
+              To list all OS image codes supported by BMS, run:
+
+                  $ gcloud bms os-images list
+        """,
+      hidden=hidden,
+      required=required,
+  )
 
 
 def AddInstanceEnableHyperthreadingToParser(parser, hidden):

@@ -17,8 +17,27 @@
 from googlecloudsdk.calliope import base
 
 
-@base.Hidden
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.GA)
 class ResourceBundles(base.Group):
+  """Commands for managing Package Rollouts Resource Bundles.
+
+  See `gcloud container fleet packages resource-bundles --help` for help.
+  """
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.BETA)
+class ResourceBundlesBeta(ResourceBundles):
+  """Commands for managing Package Rollouts Resource Bundles.
+
+  See `gcloud beta container fleet packages resource-bundles --help` for help.
+  """
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class ResourceBundlesAlpha(ResourceBundles):
   """Commands for managing Package Rollouts Resource Bundles.
 
   See `gcloud alpha container fleet packages resource-bundles --help` for help.

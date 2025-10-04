@@ -22,12 +22,12 @@ import functools
 import string
 
 from apitools.base.py import exceptions as apitools_exceptions
-
 from googlecloudsdk.api_lib.compute import metadata_utils
 from googlecloudsdk.api_lib.compute import utils
 from googlecloudsdk.api_lib.container import api_adapter
 from googlecloudsdk.api_lib.container import kubeconfig as kconfig
 from googlecloudsdk.api_lib.container import util
+from googlecloudsdk.api_lib.functions import api_enablement
 from googlecloudsdk.calliope import actions
 from googlecloudsdk.calliope import arg_parsers
 from googlecloudsdk.calliope import base
@@ -44,8 +44,11 @@ def _AddAdditionalZonesFlag(parser, deprecated=True):
   if deprecated:
     action = actions.DeprecationAction(
         'additional-zones',
-        warn='This flag is deprecated. '
-        'Use --node-locations=PRIMARY_ZONE,[ZONE,...] instead.')
+        warn=(
+            'This flag is deprecated. '
+            'Use --node-locations=PRIMARY_ZONE,[ZONE,...] instead.'
+        ),
+    )
   parser.add_argument(
       '--additional-zones',
       type=arg_parsers.ArgList(min_length=1),
@@ -63,7 +66,8 @@ specify `--num-nodes=4` and choose one additional zone, 8 nodes will be created.
 Multiple locations can be specified, separated by commas. For example:
 
   $ {command} example-cluster --zone us-central1-a --additional-zones us-central1-b,us-central1-c
-""")
+""",
+  )
 
 
 def _AddAdditionalZonesGroup(parser):
@@ -96,14 +100,16 @@ The name of the cluster to create.
 The name may contain only lowercase alphanumerics and '-', must start with a
 letter and end with an alphanumeric, and must be no longer than 40
 characters.
-""")
+""",
+  )
   # Timeout in seconds for operation
   parser.add_argument(
       '--timeout',
       type=int,
       default=3600,
       hidden=True,
-      help='Timeout (seconds) for waiting on the operation to complete.')
+      help='Timeout (seconds) for waiting on the operation to complete.',
+  )
   flags.AddAsyncFlag(parser)
 
   parser.add_argument(
@@ -114,12 +120,16 @@ The Google Compute Engine subnetwork
 connected. The subnetwork must belong to the network specified by --network.
 
 Cannot be used with the "--create-subnetwork" option.
-""")
+""",
+  )
   parser.add_argument(
       '--network',
-      help='The Compute Engine Network that the cluster will connect to. '
-      'Google Kubernetes Engine will use this network when creating routes '
-      'and firewalls for the clusters. Defaults to the \'default\' network.')
+      help=(
+          'The Compute Engine Network that the cluster will connect to. '
+          'Google Kubernetes Engine will use this network when creating routes '
+          "and firewalls for the clusters. Defaults to the 'default' network."
+      ),
+  )
   parser.add_argument(
       '--cluster-ipv4-cidr',
       help="""\
@@ -136,7 +146,8 @@ You should specify `--cluster-ipv4-cidr` to prevent conflicts.
 
 This field is not applicable in a Shared VPC setup where the IP address range
 for the pods must be specified with `--cluster-secondary-range-name`
-""")
+""",
+  )
 
   parser.display_info.AddFormat(util.CLUSTERS_FORMAT)
 
@@ -155,24 +166,36 @@ cloudNatTemplate = string.Template(
     '--network default --project=$PROJECT_ID \n'
     'gcloud beta compute routers nats create nat --router=my-router '
     '--region=$REGION --auto-allocate-nat-external-ips '
-    '--nat-all-subnet-ip-ranges --project=$PROJECT_ID')
+    '--nat-all-subnet-ip-ranges --project=$PROJECT_ID'
+)
 
 
 def MaybeLogCloudNatHelpText(args, is_autopilot, location, project_id):
-  if is_autopilot and (getattr(args, 'enable_private_nodes', False) and
-                       (hasattr(args, 'network') or hasattr('subnetwork'))):
+  if (
+      is_autopilot
+      and getattr(args, 'enable_private_nodes', False)
+      and (hasattr(args, 'network') or hasattr(args, 'subnetwork'))
+  ):
     log.status.Print(
-        cloudNatTemplate.substitute(REGION=location, PROJECT_ID=project_id))
+        cloudNatTemplate.substitute(REGION=location, PROJECT_ID=project_id)
+    )
 
 
-def ParseCreateOptionsBase(args, is_autopilot, get_default, location,
-                           project_id):
+def ParseCreateOptionsBase(
+    args, is_autopilot, get_default, location, project_id
+):
   """Parses the flags provided with the cluster creation command."""
   flags.MungeBasicAuthFlags(args)
 
-  enable_ip_alias = get_default('enable_ip_alias')
-  if hasattr(args, 'enable_ip_alias'):
-    flags.WarnForUnspecifiedIpAllocationPolicy(args)
+  # The readonly port has been disabled by default since 02/2025. We should only
+  # alert users to the risk of this port if they explicitly enable it.
+  enable_insecure_roport = get_default('enable_insecure_kubelet_readonly_port')
+  autoprovisioning_enable_insecure_roport = get_default(
+      'autoprovisioning_enable_insecure_kubelet_readonly_port'
+  )
+  if enable_insecure_roport or autoprovisioning_enable_insecure_roport:
+    flags.WarnForUnspecifiedKubeletReadonlyPort()
+
   flags.WarnForEnablingBetaAPIs(args)
   enable_autorepair = None
   if hasattr(args, 'enable_autorepair'):
@@ -181,11 +204,13 @@ def ParseCreateOptionsBase(args, is_autopilot, get_default, location,
       flags.WarnForNodeModification(args, enable_autorepair)
 
   metadata = metadata_utils.ConstructMetadataDict(
-      get_default('metadata'), get_default('metadata_from_file'))
+      get_default('metadata'), get_default('metadata_from_file')
+  )
 
   cloud_run_config = flags.GetLegacyCloudRunFlag('{}_config', args, get_default)
-  flags.ValidateCloudRunConfigCreateArgs(cloud_run_config,
-                                         get_default('addons'))
+  flags.ValidateCloudRunConfigCreateArgs(
+      cloud_run_config, get_default('addons')
+  )
 
   MaybeLogCloudNatHelpText(args, is_autopilot, location, project_id)
 
@@ -202,22 +227,25 @@ def ParseCreateOptionsBase(args, is_autopilot, get_default, location,
   local_nvme_ssd_block = None
   if args.IsKnownAndSpecified('local_nvme_ssd_block'):
     local_nvme_ssd_block = (
-        []
-        if args.local_nvme_ssd_block is None
-        else args.local_nvme_ssd_block
+        [] if args.local_nvme_ssd_block is None else args.local_nvme_ssd_block
     )
 
   addons = get_default('addons')
   if getattr(args, 'enable_backup_restore', None):
     if addons is None:
-      addons = api_adapter.BACKUPRESTORE
+      addons = {api_adapter.BACKUPRESTORE: True}
     else:
-      addons += api_adapter.BACKUPRESTORE
+      addons[api_adapter.BACKUPRESTORE] = True
   if getattr(args, 'enable_ray_operator', None):
     if addons is None:
-      addons = api_adapter.RAYOPERATOR
+      addons = {api_adapter.RAYOPERATOR: True}
     else:
-      addons += api_adapter.RAYOPERATOR
+      addons[api_adapter.RAYOPERATOR] = True
+  if getattr(args, 'enable_lustre_csi_driver', None):
+    if addons is None:
+      addons = {api_adapter.LUSTRECSIDRIVER: True}
+    else:
+      addons[api_adapter.LUSTRECSIDRIVER] = True
 
   return api_adapter.CreateClusterOptions(
       accelerators=get_default('accelerator'),
@@ -229,6 +257,7 @@ def ParseCreateOptionsBase(args, is_autopilot, get_default, location,
       additive_vpc_scope_dns_domain=get_default(
           'additive_vpc_scope_dns_domain'
       ),
+      tag_bindings=get_default('tag_bindings'),
       disable_additive_vpc_scope=get_default('disable_additive_vpc_scope'),
       cluster_dns_domain=get_default('cluster_dns_domain'),
       cluster_ipv4_cidr=get_default('cluster_ipv4_cidr'),
@@ -279,7 +308,7 @@ def ParseCreateOptionsBase(args, is_autopilot, get_default, location,
       logging=get_default('logging'),
       monitoring=get_default('monitoring'),
       enable_l4_ilb_subsetting=get_default('enable_l4_ilb_subsetting'),
-      enable_ip_alias=enable_ip_alias,
+      enable_ip_alias=get_default('enable_ip_alias'),
       enable_intra_node_visibility=get_default('enable_intra_node_visibility'),
       enable_kubernetes_alpha=get_default('enable_kubernetes_alpha'),
       alpha_cluster_feature_gates=get_default('alpha_cluster_feature_gates'),
@@ -288,6 +317,7 @@ def ParseCreateOptionsBase(args, is_autopilot, get_default, location,
       ),
       enable_legacy_authorization=get_default('enable_legacy_authorization'),
       enable_managed_prometheus=get_default('enable_managed_prometheus'),
+      auto_monitoring_scope=get_default('auto_monitoring_scope'),
       enable_master_authorized_networks=get_default(
           'enable_master_authorized_networks'
       ),
@@ -299,6 +329,7 @@ def ParseCreateOptionsBase(args, is_autopilot, get_default, location,
       enable_gke_oidc=getattr(args, 'enable_gke_oidc', None),
       enable_identity_service=getattr(args, 'enable_identity_service', None),
       ephemeral_storage_local_ssd=(ephemeral_storage_local_ssd),
+      gpudirect_strategy=get_default('gpudirect_strategy'),
       image_type=get_default('image_type'),
       image=get_default('image'),
       image_project=get_default('image_project'),
@@ -331,6 +362,7 @@ def ParseCreateOptionsBase(args, is_autopilot, get_default, location,
       node_taints=get_default('node_taints'),
       notification_config=get_default('notification_config'),
       autoscaling_profile=getattr(args, 'autoscaling_profile', None),
+      hpa_profile=get_default('hpa_profile'),
       num_nodes=get_default('num_nodes'),
       password=get_default('password'),
       preemptible=get_default('preemptible'),
@@ -350,6 +382,7 @@ def ParseCreateOptionsBase(args, is_autopilot, get_default, location,
       autoprovisioning_network_tags=get_default(
           'autoprovisioning_network_tags'
       ),
+      performance_monitoring_unit=get_default('performance_monitoring_unit'),
       threads_per_core=get_default('threads_per_core'),
       user=get_default('username'),
       metadata=metadata,
@@ -411,6 +444,9 @@ def ParseCreateOptionsBase(args, is_autopilot, get_default, location,
       autoprovisioning_min_cpu_platform=get_default(
           'autoprovisioning_min_cpu_platform'
       ),
+      autopilot_privileged_admission=get_default(
+          'autopilot_privileged_admission'
+      ),
       min_cpu=get_default('min_cpu'),
       max_cpu=get_default('max_cpu'),
       min_memory=get_default('min_memory'),
@@ -431,8 +467,11 @@ def ParseCreateOptionsBase(args, is_autopilot, get_default, location,
       autopilot=is_autopilot,
       gvnic=get_default('enable_gvnic'),
       enable_confidential_nodes=get_default('enable_confidential_nodes'),
+      confidential_node_type=get_default('confidential_node_type'),
       enable_confidential_storage=get_default('enable_confidential_storage'),
       storage_pools=get_default('storage_pools'),
+      local_ssd_encryption_mode=get_default('local_ssd_encryption_mode'),
+      data_cache_count=get_default('data_cache_count'),
       enable_image_streaming=get_default('enable_image_streaming'),
       spot=get_default('spot'),
       enable_service_externalips=get_default('enable_service_externalips'),
@@ -449,14 +488,12 @@ def ParseCreateOptionsBase(args, is_autopilot, get_default, location,
       enable_multi_networking=get_default('enable_multi_networking'),
       placement_type=get_default('placement_type'),
       placement_policy=get_default('placement_policy'),
+      compliance=get_default('compliance'),
+      compliance_standards=get_default('compliance_standards'),
       enable_security_posture=get_default('enable_security_posture'),
       network_performance_config=get_default('network_performance_configs'),
-      enable_insecure_kubelet_readonly_port=get_default(
-          'enable_insecure_kubelet_readonly_port'
-      ),
-      autoprovisioning_enable_insecure_kubelet_readonly_port=get_default(
-          'autoprovisioning_enable_insecure_kubelet_readonly_port'
-      ),
+      enable_insecure_kubelet_readonly_port=enable_insecure_roport,
+      autoprovisioning_enable_insecure_kubelet_readonly_port=autoprovisioning_enable_insecure_roport,
       enable_k8s_beta_apis=getattr(args, 'enable_kubernetes_unstable_apis'),
       security_posture=get_default('security_posture'),
       workload_vulnerability_scanning=get_default(
@@ -470,7 +507,19 @@ def ParseCreateOptionsBase(args, is_autopilot, get_default, location,
       containerd_config_from_file=get_default('containerd_config_from_file'),
       fleet_project=get_default('fleet_project'),
       enable_fleet=get_default('enable_fleet'),
+      membership_type=get_default('membership_type'),
       enable_secret_manager=get_default('enable_secret_manager'),
+      enable_secret_manager_rotation=get_default(
+          'enable_secret_manager_rotation'
+      ),
+      secret_manager_rotation_interval=get_default(
+          'secret_manager_rotation_interval'
+      ),
+      enable_secret_sync=get_default('enable_secret_sync'),
+      enable_secret_sync_rotation=get_default('enable_secret_sync_rotation'),
+      secret_sync_rotation_interval=get_default(
+          'secret_sync_rotation_interval'
+      ),
       enable_cilium_clusterwide_network_policy=get_default(
           'enable_cilium_clusterwide_network_policy'
       ),
@@ -480,8 +529,55 @@ def ParseCreateOptionsBase(args, is_autopilot, get_default, location,
       ),
       enable_fqdn_network_policy=get_default('enable_fqdn_network_policy'),
       enable_nested_virtualization=get_default('enable_nested_virtualization'),
+      enable_ray_cluster_logging=get_default('enable_ray_cluster_logging'),
+      enable_ray_cluster_monitoring=get_default(
+          'enable_ray_cluster_monitoring'
+      ),
+      enable_insecure_binding_system_authenticated=get_default(
+          'enable_insecure_binding_system_authenticated'
+      ),
+      enable_insecure_binding_system_unauthenticated=get_default(
+          'enable_insecure_binding_system_unauthenticated'
+      ),
+      enable_dns_access=get_default('enable_dns_access'),
+      cluster_ca=get_default('cluster_ca'),
+      aggregation_ca=get_default('aggregation_ca'),
+      etcd_api_ca=get_default('etcd_api_ca'),
+      etcd_peer_ca=get_default('etcd_peer_ca'),
+      service_account_verification_keys=get_default(
+          'service_account_verification_keys'
+      ),
+      service_account_signing_keys=get_default('service_account_signing_keys'),
+      control_plane_disk_encryption_key=get_default(
+          'control_plane_disk_encryption_key'
+      ),
+      gkeops_etcd_backup_encryption_key=get_default(
+          'gkeops_etcd_backup_encryption_key'
+      ),
+      disable_l4_lb_firewall_reconciliation=get_default(
+          'disable_l4_lb_firewall_reconciliation'
+      ),
+      tier=get_default('tier'),
+      enable_ip_access=get_default('enable_ip_access'),
+      enable_authorized_networks_on_private_endpoint=get_default(
+          'enable_authorized_networks_on_private_endpoint'
+      ),
+      patch_update=get_default('patch_update'),
+      anonymous_authentication_config=get_default(
+          'anonymous_authentication_config'
+      ),
+      enable_auto_ipam=get_default('enable_auto_ipam'),
+      enable_k8s_tokens_via_dns=get_default('enable_k8s_tokens_via_dns'),
+      enable_legacy_lustre_port=get_default('enable_legacy_lustre_port'),
+      enable_default_compute_class=get_default('enable_default_compute_class'),
+      enable_k8s_certs_via_dns=get_default('enable_k8s_certs_via_dns'),
+      boot_disk_provisioned_iops=get_default('boot_disk_provisioned_iops'),
+      boot_disk_provisioned_throughput=get_default(
+          'boot_disk_provisioned_throughput'
+      ),
+      network_tier=get_default('network_tier'),
+      control_plane_egress_mode=get_default('control_plane_egress'),
   )
-
 
 GA = 'ga'
 BETA = 'beta'
@@ -495,15 +591,21 @@ def AddAutoRepair(parser):
 def AddPrivateClusterDeprecated(parser, default=None):
   default_value = {} if default is None else default
   flags.AddPrivateClusterFlags(
-      parser, default=default_value, with_deprecated=True)
+      parser, default=default_value, with_deprecated=True
+  )
 
 
 def AddEnableAutoUpgradeWithDefault(parser):
   flags.AddEnableAutoUpgradeFlag(parser, default=True)
 
 
-def AddAutoprovisioning(parser):
-  flags.AddAutoprovisioningFlags(parser, hidden=False, for_create=True)
+def AddAutoprovisioning(parser, napless=False):
+  flags.AddAutoprovisioningFlags(
+      parser,
+      hidden=False,
+      for_create=True,
+      napless=napless,
+  )
 
 
 def AddTpuWithServiceNetworking(parser):
@@ -552,6 +654,10 @@ def AttrValue(args, flagname, flag_defaults):
   return getattr(args, flagname, DefaultAttribute(flagname, flag_defaults))
 
 
+# Flags for "clusters create" should also be added to "clusters create-auto"
+# Unless there is a good reason to exclude them because features should support
+# both GKE Standard and Autopilot.
+# LINT.IfChange(flags_to_add)
 flags_to_add = {
     GA: {
         'accelerator': lambda p: AddAcceleratorFlag(p, True, True, False, True),
@@ -560,7 +666,9 @@ flags_to_add = {
         'autorepair': AddAutoRepair,
         'autoprovisioning': AddAutoprovisioning,
         'autoscalingprofiles': flags.AddAutoscalingProfilesFlag,
+        'hpaprofile': flags.AddHPAProfilesFlag,
         'autoupgrade': AddEnableAutoUpgradeWithDefault,
+        'autopilotworkloadpolicies': flags.AddAutopilotWorkloadPoliciesFlag,
         'authenticatorsecurity': flags.AddAuthenticatorSecurityGroupFlags,
         'args': _Args,
         'basicauth': flags.AddBasicAuthFlags,
@@ -568,6 +676,7 @@ flags_to_add = {
             p, release_track=base.ReleaseTrack.GA
         ),
         'bootdiskkms': flags.AddBootDiskKmsKeyFlag,
+        'bootdisk': flags.AddBootDiskConfigFlags,
         'cloudlogging': flags.AddEnableCloudLogging,
         'cloudmonitoring': flags.AddEnableCloudMonitoring,
         'cloudrunalpha': flags.AddEnableCloudRunAlphaFlag,
@@ -575,11 +684,12 @@ flags_to_add = {
         'clusterautoscaling': functools.partial(
             flags.AddClusterAutoscalingFlags
         ),
-        'clusterdns': lambda p: flags.AddClusterDNSFlags(
-            p, release_track=base.ReleaseTrack.GA
-        ),
+        'clusterdns': flags.AddClusterDNSFlags,
         'clusterversion': flags.AddClusterVersionFlag,
         'confidentialnodes': flags.AddEnableConfidentialNodesFlag,
+        'confidentialnodetype': flags.AddConfidentialNodeTypeFlag,
+        'enableconfidentialstorage': flags.AddEnableConfidentialStorageFlag,
+        'dataCacheCount': flags.AddDataCacheCountFlag,
         'costmanagementconfig': flags.AddCostManagementConfigFlag,
         'disabledefaultsnat': AddDisableDefaultSnatFlagForClusterCreate,
         'databaseencryption': flags.AddDatabaseEncryptionFlag,
@@ -598,7 +708,9 @@ flags_to_add = {
         'issueclientcert': flags.AddIssueClientCertificateFlag,
         'gatewayapi': flags.AddGatewayFlags,
         'gvnic': flags.AddEnableGvnicFlag,
+        'gpudirectstrategy': flags.AddGpuDirectStrategyFlag,
         'kubernetesalpha': flags.AddEnableKubernetesAlphaFlag,
+        'alphaclusterfeaturegates': flags.AddAlphaClusterFeatureGatesFlags,
         'labels': flags.AddLabelsFlag,
         'legacyauth': flags.AddEnableLegacyAuthorizationFlag,
         'localssds': flags.AddLocalSSDsGAFlags,
@@ -607,6 +719,9 @@ flags_to_add = {
         'maintenancewindow': flags.AddMaintenanceWindowGroup,
         'managedprometheus': lambda p: flags.AddManagedPrometheusFlags(
             p, for_create=True
+        ),
+        'autoMonitoringScope': lambda p: flags.AddAutoMonitoringScopeFlags(
+            p, hidden=False
         ),
         'masterauth': flags.AddMasterAuthorizedNetworksFlags,
         'masterglobalaccess': flags.AddMasterGlobalAccessFlag,
@@ -625,6 +740,9 @@ flags_to_add = {
         'nodeversion': flags.AddNodeVersionFlag,
         'notificationconfig': flags.AddNotificationConfigFlag,
         'num_nodes': flags.AddNumNodes,
+        'performancemonitoringunit': (
+            lambda p: flags.AddPerformanceMonitoringUnit(p, hidden=False)
+        ),
         'placementtype': flags.AddPlacementTypeFlag,
         'placementpolicy': flags.AddPlacementPolicyFlag,
         'preemptible': flags.AddPreemptibleFlag,
@@ -644,8 +762,10 @@ flags_to_add = {
         'systemconfig': lambda p: flags.AddSystemConfigFlag(p, hidden=False),
         'stackdriver': flags.AddEnableStackdriverKubernetesFlag,
         'stacktype': flags.AddStackTypeFlag,
+        'storagePools': flags.AddStoragePoolsFlag,
         'ipv6accesstype': flags.AddIpv6AccessTypeFlag,
         'tags': flags.AddTagsCreate,
+        'tag_bindings': flags.AddTagBindingsCreate,
         'threads_per_core': flags.AddThreadsPerCore,
         'autoprovisioning_network_tags': (
             flags.AddAutoprovisioningNetworkTagsCreate
@@ -672,12 +792,14 @@ flags_to_add = {
             flags.AddAutoprovisioningEnableKubeletReadonlyPortFlag
         ),
         'enableK8sBetaApis': flags.AddEnableK8sBetaAPIs,
+        'compliance': lambda p: flags.AddComplianceFlags(p, hidden=True),
         'securityPosture': flags.AddSecurityPostureEnumFlag,
         'workloadVulnerabilityScanning': flags.AddWorkloadVulnScanningEnumFlag,
         'enableRuntimeVulnerabilityInsight': (
             flags.AddRuntimeVulnerabilityInsightFlag
         ),
         'containerdConfig': flags.AddContainerdConfigFlag,
+        'secretManagerConfig': flags.AddSecretManagerEnableFlagGroup,
         'InTransitEncryption': flags.AddInTransitEncryptionFlag,
         'enableCiliumClusterwideNetworkPolicy': (
             flags.AddEnableCiliumClusterwideNetworkPolicyFlag
@@ -685,6 +807,37 @@ flags_to_add = {
         'enableFqdnNetworkPolicy': flags.AddEnableFqdnNetworkPolicyFlag,
         'nestedvirtualization': (
             lambda p: flags.AddEnableNestedVirtualizationFlag(p, hidden=False)
+        ),
+        'enableRayClusterLogging': flags.AddEnableRayClusterLogging,
+        'enableRayClusterMonitoring': flags.AddEnableRayClusterMonitoring,
+        'userManagedKeysConfig': flags.AddControlPlaneKeysFlags,
+        'insecureRBACBinding': lambda p: flags.AddInsecureRBACBindingFlags(
+            p, hidden=False
+        ),
+        'cpDiskEncryptionKey': flags.AddCPDiskEncryptionKeyFlag,
+        'enableDnsAccess': flags.AddEnableDNSAccessFlag,
+        'disableL4LbFirewallReconciliation': (
+            flags.AddDisableL4LbFirewallReconciliationFlag
+        ),
+        'tier': flags.AddClusterTierFlag,
+        'enableIpAccess': flags.AddEnableIPAccessFlag,
+        'enableAuthorizedNetworksOnPrivateEndpoint': (
+            flags.AddAauthorizedNetworksOnPrivateEndpointFlag
+        ),
+        'kubecontextOverride': flags.AddKubecontextOverrideFlag,
+        'patchUpdate': flags.AddPatchUpdateFlag,
+        'anonymousAuthenticationConfig': (
+            flags.AddAnonymousAuthenticationConfigFlag
+        ),
+        'enableAutoIpam': flags.AddAutoIpamFlag,
+        'enableK8sTokensViaDns': flags.AddEnableK8sTokensViaDnsFlag,
+        'enableLegacyLustrePort': flags.AddEnableLegacyLustrePortFlag,
+        'enableDefaultComputeClass': flags.AddEnableDefaultComputeClassFlag,
+        'enableK8sCertsViaDns': flags.AddEnableK8sCertsViaDnsFlag,
+        'networkTier': flags.AddNetworkTierFlag,
+        'controlPlaneEgress': flags.AddControlPlaneEgressFlag,
+        'autopilotPrivilegedAdmission': (
+            lambda p: flags.AddAutopilotPrivilegedAdmissionFlag(p, hidden=True)
         ),
     },
     BETA: {
@@ -694,15 +847,17 @@ flags_to_add = {
         'allowrouteoverlap': flags.AddAllowRouteOverlapFlag,
         'args': _Args,
         'autorepair': AddAutoRepair,
-        'autoprovisioning': AddAutoprovisioning,
+        'autoprovisioning': lambda p: AddAutoprovisioning(p, napless=True),
         'autoscalingprofiles': flags.AddAutoscalingProfilesFlag,
         'authenticatorsecurity': flags.AddAuthenticatorSecurityGroupFlags,
         'autoupgrade': AddEnableAutoUpgradeWithDefault,
+        'autopilotworkloadpolicies': flags.AddAutopilotWorkloadPoliciesFlag,
         'basicauth': flags.AddBasicAuthFlags,
         'binauthz': lambda p: flags.AddBinauthzFlags(
             p, release_track=base.ReleaseTrack.BETA
         ),
         'bootdiskkms': flags.AddBootDiskKmsKeyFlag,
+        'bootdisk': flags.AddBootDiskConfigFlags,
         'cloudlogging': flags.AddEnableCloudLogging,
         'cloudmonitoring': flags.AddEnableCloudMonitoring,
         'cloudrunalpha': flags.AddEnableCloudRunAlphaFlag,
@@ -710,14 +865,13 @@ flags_to_add = {
         'clusterautoscaling': functools.partial(
             flags.AddClusterAutoscalingFlags
         ),
-        'clusterdns': lambda p: flags.AddClusterDNSFlags(
-            p, release_track=base.ReleaseTrack.BETA
-        ),
+        'clusterdns': flags.AddClusterDNSFlags,
         'clusterversion': flags.AddClusterVersionFlag,
         'costmanagementconfig': flags.AddCostManagementConfigFlag,
         'placementtype': flags.AddPlacementTypeFlag,
         'placementpolicy': flags.AddPlacementPolicyFlag,
         'confidentialnodes': flags.AddEnableConfidentialNodesFlag,
+        'confidentialnodetype': flags.AddConfidentialNodeTypeFlag,
         'enableconfidentialstorage': flags.AddEnableConfidentialStorageFlag,
         'databaseencryption': flags.AddDatabaseEncryptionFlag,
         'datapath': lambda p: flags.AddDatapathProviderFlag(p, hidden=True),
@@ -737,11 +891,10 @@ flags_to_add = {
         'issueclientcert': flags.AddIssueClientCertificateFlag,
         'istioconfig': flags.AddIstioConfigFlag,
         'kubernetesalpha': flags.AddEnableKubernetesAlphaFlag,
-        'alphaclusterfeaturegates': (
-            lambda p: flags.AddAlphaClusterFeatureGatesFlags(p, hidden=True)
-        ),
+        'alphaclusterfeaturegates': flags.AddAlphaClusterFeatureGatesFlags,
         'kubernetesobjectsexport': AddKubernetesObjectsExportFlag,
         'gvnic': flags.AddEnableGvnicFlag,
+        'gpudirectstrategy': flags.AddGpuDirectStrategyFlag,
         'gkeoidc': flags.AddGkeOidcFlag,
         'hostmaintenanceinterval': flags.AddHostMaintenanceIntervalFlag,
         'identityservice': flags.AddIdentityServiceFlag,
@@ -755,6 +908,9 @@ flags_to_add = {
         'maintenancewindow': flags.AddMaintenanceWindowGroup,
         'managedprometheus': lambda p: flags.AddManagedPrometheusFlags(
             p, for_create=True
+        ),
+        'autoMonitoringScope': lambda p: flags.AddAutoMonitoringScopeFlags(
+            p, hidden=False
         ),
         'masterglobalaccess': flags.AddMasterGlobalAccessFlag,
         'masterauth': flags.AddMasterAuthorizedNetworksFlags,
@@ -779,6 +935,9 @@ flags_to_add = {
         'nodelabels': flags.AddNodeLabelsFlag,
         'notificationconfig': flags.AddNotificationConfigFlag,
         'num_nodes': flags.AddNumNodes,
+        'performancemonitoringunit': (
+            lambda p: flags.AddPerformanceMonitoringUnit(p, hidden=False)
+        ),
         'podsecuritypolicy': flags.AddPodSecurityPolicyFlag,
         'preemptible': flags.AddPreemptibleFlag,
         'privatecluster': AddPrivateClusterDeprecated,
@@ -794,12 +953,17 @@ flags_to_add = {
         'shieldednodes': flags.AddEnableShieldedNodesFlags,
         'spot': flags.AddSpotFlag,
         'stackdriver': flags.AddEnableStackdriverKubernetesFlag,
-        'stacktype': flags.AddStackTypeFlag,
+        'stacktype': lambda parser: flags.AddStackTypeFlag(
+            parser, release_track=base.ReleaseTrack.BETA
+        ),
         'storagePools': flags.AddStoragePoolsFlag,
+        'localSsdEncryptionMode': flags.AddLocalSsdEncryptionModeFlag,
+        'dataCacheCount': flags.AddDataCacheCountFlag,
         'ipv6accesstype': flags.AddIpv6AccessTypeFlag,
         'surgeupgrade': lambda p: flags.AddSurgeUpgradeFlag(p, default=1),
         'systemconfig': lambda p: flags.AddSystemConfigFlag(p, hidden=False),
         'tags': flags.AddTagsCreate,
+        'tag_bindings': flags.AddTagBindingsCreate,
         'autoprovisioning_network_tags': (
             flags.AddAutoprovisioningNetworkTagsCreate
         ),
@@ -821,12 +985,11 @@ flags_to_add = {
         'disablepodcidroverprovision': flags.AddDisablePodCIDROverprovisionFlag,
         'enableworkloadconfigaudit': flags.AddWorkloadConfigAuditFlag,
         'enableworkloadvulnscanning': flags.AddWorkloadVulnScanningFlag,
-        'podautoscalingdirectmetricsoptin': (
-            flags.AddPodAutoscalingDirectMetricsOptInFlag
-        ),
+        'hpaprofile': flags.AddHPAProfilesFlag,
         'enableGoogleCloudAccess': flags.AddEnableGoogleCloudAccess,
         'managedConfig': flags.AddManagedConfigFlag,
         'fleetProject': flags.AddFleetProjectFlag,
+        'membershipType': flags.AddMembershipTypeFlags,
         'loggingvariant': flags.AddLoggingVariantFlag,
         'enableMultiNetworking': flags.AddEnableMultiNetworkingFlag,
         'enableSecurityPosture': flags.AddSecurityPostureFlag,
@@ -838,20 +1001,53 @@ flags_to_add = {
             flags.AddAutoprovisioningEnableKubeletReadonlyPortFlag
         ),
         'enableK8sBetaApis': flags.AddEnableK8sBetaAPIs,
+        'compliance': lambda p: flags.AddComplianceFlags(p, hidden=True),
         'securityPosture': flags.AddSecurityPostureEnumFlag,
         'workloadVulnerabilityScanning': flags.AddWorkloadVulnScanningEnumFlag,
         'enableRuntimeVulnerabilityInsight': (
             flags.AddRuntimeVulnerabilityInsightFlag
         ),
-        'enableDnsEndpoint': flags.AddEnableDNSEndpoint,
         'enableFqdnNetworkPolicy': flags.AddEnableFqdnNetworkPolicyFlag,
         'InTransitEncryption': flags.AddInTransitEncryptionFlag,
         'containerdConfig': flags.AddContainerdConfigFlag,
-        'secretManagerConfig': lambda p: flags.AddSecretManagerEnableFlag(
-            p, hidden=False
-        ),
+        'secretManagerConfig': flags.AddSecretManagerEnableFlagGroup,
+        'secretSyncConfig': flags.AddSecretSyncFlagGroup,
         'enableCiliumClusterwideNetworkPolicy': (
             flags.AddEnableCiliumClusterwideNetworkPolicyFlag
+        ),
+        'enableRayClusterLogging': flags.AddEnableRayClusterLogging,
+        'enableRayClusterMonitoring': flags.AddEnableRayClusterMonitoring,
+        'userManagedKeysConfig': flags.AddControlPlaneKeysFlags,
+        'insecureRBACBinding': lambda p: flags.AddInsecureRBACBindingFlags(
+            p, hidden=False
+        ),
+        'cpDiskEncryptionKey': flags.AddCPDiskEncryptionKeyFlag,
+        'enableDnsAccess': flags.AddEnableDNSAccessFlag,
+        'disableL4LbFirewallReconciliation': (
+            flags.AddDisableL4LbFirewallReconciliationFlag
+        ),
+        'tier': flags.AddClusterTierFlag,
+        'enableIpAccess': flags.AddEnableIPAccessFlag,
+        'enableAuthorizedNetworksOnPrivateEndpoint': (
+            flags.AddAauthorizedNetworksOnPrivateEndpointFlag
+        ),
+        'kubecontextOverride': flags.AddKubecontextOverrideFlag,
+        'patchUpdate': flags.AddPatchUpdateFlag,
+        'anonymousAuthenticationConfig': (
+            flags.AddAnonymousAuthenticationConfigFlag
+        ),
+        'enableAutoIpam': flags.AddAutoIpamFlag,
+        'enableK8sTokensViaDns': flags.AddEnableK8sTokensViaDnsFlag,
+        'enableLegacyLustrePort': flags.AddEnableLegacyLustrePortFlag,
+        'enableDefaultComputeClass': flags.AddEnableDefaultComputeClassFlag,
+        'enableK8sCertsViaDns': flags.AddEnableK8sCertsViaDnsFlag,
+        'networkTier': flags.AddNetworkTierFlag,
+        'controlPlaneEgress': flags.AddControlPlaneEgressFlag,
+        'managedOTelScope': lambda p: flags.AddManagedOTelScopeFlags(
+            p, hidden=True
+        ),
+        'autopilotPrivilegedAdmission': (
+            lambda p: flags.AddAutopilotPrivilegedAdmissionFlag(p, hidden=True)
         ),
     },
     ALPHA: {
@@ -861,9 +1057,11 @@ flags_to_add = {
         'allowrouteoverlap': flags.AddAllowRouteOverlapFlag,
         'args': _Args,
         'authenticatorsecurity': flags.AddAuthenticatorSecurityGroupFlags,
-        'autoprovisioning': AddAutoprovisioning,
+        'autoprovisioning': lambda p: AddAutoprovisioning(p, napless=True),
         'autorepair': AddAutoRepair,
         'autoscalingprofiles': flags.AddAutoscalingProfilesFlag,
+        'autopilotworkloadpolicies': flags.AddAutopilotWorkloadPoliciesFlag,
+        'hpaprofile': flags.AddHPAProfilesFlag,
         'basicauth': flags.AddBasicAuthFlags,
         'cloudlogging': flags.AddEnableCloudLogging,
         'clusterversion': flags.AddClusterVersionFlag,
@@ -872,18 +1070,18 @@ flags_to_add = {
             p, release_track=base.ReleaseTrack.ALPHA
         ),
         'bootdiskkms': flags.AddBootDiskKmsKeyFlag,
+        'bootdisk': flags.AddBootDiskConfigFlags,
         'cloudmonitoring': flags.AddEnableCloudMonitoring,
         'cloudrunalpha': flags.AddEnableCloudRunAlphaFlag,
         'cloudrunconfig': flags.AddCloudRunConfigFlag,
         'clusterautoscaling': functools.partial(
             flags.AddClusterAutoscalingFlags
         ),
-        'clusterdns': lambda p: flags.AddClusterDNSFlags(
-            p, release_track=base.ReleaseTrack.ALPHA
-        ),
+        'clusterdns': flags.AddClusterDNSFlags,
         'placementtype': flags.AddPlacementTypeFlag,
         'placementpolicy': flags.AddPlacementPolicyFlag,
         'confidentialnodes': flags.AddEnableConfidentialNodesFlag,
+        'confidentialnodetype': flags.AddConfidentialNodeTypeFlag,
         'enableconfidentialstorage': flags.AddEnableConfidentialStorageFlag,
         'costmanagementconfig': flags.AddCostManagementConfigFlag,
         'databaseencryption': flags.AddDatabaseEncryptionFlag,
@@ -899,6 +1097,7 @@ flags_to_add = {
         'imagestreaming': flags.AddEnableImageStreamingFlag,
         'gkeoidc': flags.AddGkeOidcFlag,
         'gvnic': flags.AddEnableGvnicFlag,
+        'gpudirectstrategy': flags.AddGpuDirectStrategyFlag,
         'hostmaintenanceinterval': flags.AddHostMaintenanceIntervalFlag,
         'identityservice': flags.AddIdentityServiceFlag,
         'ilbsubsetting': flags.AddILBSubsettingFlags,
@@ -909,9 +1108,7 @@ flags_to_add = {
         'issueclientcert': flags.AddIssueClientCertificateFlag,
         'istioconfig': flags.AddIstioConfigFlag,
         'kubernetesalpha': flags.AddEnableKubernetesAlphaFlag,
-        'alphaclusterfeaturegates': (
-            lambda p: flags.AddAlphaClusterFeatureGatesFlags(p, hidden=True)
-        ),
+        'alphaclusterfeaturegates': flags.AddAlphaClusterFeatureGatesFlags,
         'labels': flags.AddLabelsFlag,
         'legacyauth': flags.AddEnableLegacyAuthorizationFlag,
         'linuxsysctl': flags.AddLinuxSysctlFlags,
@@ -934,6 +1131,9 @@ flags_to_add = {
         'managedprometheus': lambda p: flags.AddManagedPrometheusFlags(
             p, for_create=True
         ),
+        'autoMonitoringScope': lambda p: flags.AddAutoMonitoringScopeFlags(
+            p, hidden=False
+        ),
         'masterauth': flags.AddMasterAuthorizedNetworksFlags,
         'mastersignals': AddMasterSignalsFlag,
         'meshcertificates': flags.AddMeshCertificatesFlags,
@@ -949,7 +1149,7 @@ flags_to_add = {
         'notificationconfig': flags.AddNotificationConfigFlag,
         'num_nodes': flags.AddNumNodes,
         'performancemonitoringunit': (
-            lambda p: flags.AddPerformanceMonitoringUnit(p, hidden=True)
+            lambda p: flags.AddPerformanceMonitoringUnit(p, hidden=False)
         ),
         'podsecuritypolicy': flags.AddPodSecurityPolicyFlag,
         'preemptible': flags.AddPreemptibleFlag,
@@ -970,12 +1170,17 @@ flags_to_add = {
         'spot': flags.AddSpotFlag,
         'stackdriver': flags.AddEnableStackdriverKubernetesFlag,
         'securityprofile': flags.AddSecurityProfileForCreateFlags,
-        'stacktype': flags.AddStackTypeFlag,
+        'stacktype': lambda p: flags.AddStackTypeFlag(
+            p, release_track=base.ReleaseTrack.ALPHA
+        ),
         'storagePools': flags.AddStoragePoolsFlag,
+        'localSsdEncryptionMode': flags.AddLocalSsdEncryptionModeFlag,
+        'dataCacheCount': flags.AddDataCacheCountFlag,
         'ipv6accesstype': flags.AddIpv6AccessTypeFlag,
         'surgeupgrade': lambda p: flags.AddSurgeUpgradeFlag(p, default=1),
         'systemconfig': lambda p: flags.AddSystemConfigFlag(p, hidden=False),
         'tags': flags.AddTagsCreate,
+        'tag_bindings': flags.AddTagBindingsCreate,
         'autoprovisioning_network_tags': (
             flags.AddAutoprovisioningNetworkTagsCreate
         ),
@@ -997,12 +1202,10 @@ flags_to_add = {
         'disablepodcidroverprovision': flags.AddDisablePodCIDROverprovisionFlag,
         'enableworkloadconfigaudit': flags.AddWorkloadConfigAuditFlag,
         'enableworkloadvulnscanning': flags.AddWorkloadVulnScanningFlag,
-        'podautoscalingdirectmetricsoptin': (
-            flags.AddPodAutoscalingDirectMetricsOptInFlag
-        ),
         'enableGoogleCloudAccess': flags.AddEnableGoogleCloudAccess,
         'managedConfig': flags.AddManagedConfigFlag,
         'fleetProject': flags.AddFleetProjectFlag,
+        'membershipType': flags.AddMembershipTypeFlags,
         'loggingvariant': flags.AddLoggingVariantFlag,
         'enableMultiNetworking': flags.AddEnableMultiNetworkingFlag,
         'enableSecurityPosture': flags.AddSecurityPostureFlag,
@@ -1014,23 +1217,57 @@ flags_to_add = {
             flags.AddAutoprovisioningEnableKubeletReadonlyPortFlag
         ),
         'enableK8sBetaApis': flags.AddEnableK8sBetaAPIs,
+        'compliance': lambda p: flags.AddComplianceFlags(p, hidden=True),
         'securityPosture': flags.AddSecurityPostureEnumFlag,
         'workloadVulnerabilityScanning': flags.AddWorkloadVulnScanningEnumFlag,
         'enableRuntimeVulnerabilityInsight': (
             flags.AddRuntimeVulnerabilityInsightFlag
         ),
-        'enableDnsEndpoint': flags.AddEnableDNSEndpoint,
         'enableFqdnNetworkPolicy': flags.AddEnableFqdnNetworkPolicyFlag,
         'InTransitEncryption': flags.AddInTransitEncryptionFlag,
         'containerdConfig': flags.AddContainerdConfigFlag,
-        'secretManagerConfig': lambda p: flags.AddSecretManagerEnableFlag(
-            p, hidden=False
-        ),
+        'secretManagerConfig': flags.AddSecretManagerEnableFlagGroup,
+        'secretSyncConfig': flags.AddSecretSyncFlagGroup,
         'enableCiliumClusterwideNetworkPolicy': (
             flags.AddEnableCiliumClusterwideNetworkPolicyFlag
         ),
+        'enableRayClusterLogging': flags.AddEnableRayClusterLogging,
+        'enableRayClusterMonitoring': flags.AddEnableRayClusterMonitoring,
+        'userManagedKeysConfig': flags.AddControlPlaneKeysFlags,
+        'insecureRBACBinding': lambda p: flags.AddInsecureRBACBindingFlags(
+            p, hidden=False
+        ),
+        'cpDiskEncryptionKey': flags.AddCPDiskEncryptionKeyFlag,
+        'enableDnsAccess': flags.AddEnableDNSAccessFlag,
+        'disableL4LbFirewallReconciliation': (
+            flags.AddDisableL4LbFirewallReconciliationFlag
+        ),
+        'tier': flags.AddClusterTierFlag,
+        'enableIpAccess': flags.AddEnableIPAccessFlag,
+        'enableAuthorizedNetworksOnPrivateEndpoint': (
+            flags.AddAauthorizedNetworksOnPrivateEndpointFlag
+        ),
+        'kubecontextOverride': flags.AddKubecontextOverrideFlag,
+        'patchUpdate': flags.AddPatchUpdateFlag,
+        'anonymousAuthenticationConfig': (
+            flags.AddAnonymousAuthenticationConfigFlag
+        ),
+        'enableAutoIpam': flags.AddAutoIpamFlag,
+        'enableK8sTokensViaDns': flags.AddEnableK8sTokensViaDnsFlag,
+        'enableLegacyLustrePort': flags.AddEnableLegacyLustrePortFlag,
+        'enableDefaultComputeClass': flags.AddEnableDefaultComputeClassFlag,
+        'enableK8sCertsViaDns': flags.AddEnableK8sCertsViaDnsFlag,
+        'networkTier': flags.AddNetworkTierFlag,
+        'controlPlaneEgress': flags.AddControlPlaneEgressFlag,
+        'managedOTelScope': lambda p: flags.AddManagedOTelScopeFlags(
+            p, hidden=True
+        ),
+        'autopilotPrivilegedAdmission': (
+            lambda p: flags.AddAutopilotPrivilegedAdmissionFlag(p, hidden=True)
+        ),
     },
 }
+# LINT.ThenChange(create_auto.py:auto_flags)
 
 
 def AddFlags(channel, parser, flag_defaults, allowlist=None):
@@ -1058,14 +1295,13 @@ base_flag_defaults = {
 
 
 @base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.UniverseCompatible
 class Create(base.CreateCommand):
   """Create a cluster for running containers."""
 
   detailed_help = {
-      'DESCRIPTION':
-          '{description}',
-      'EXAMPLES':
-          """\
+      'DESCRIPTION': '{description}',
+      'EXAMPLES': """\
           To create a cluster with the default configuration, run:
 
             $ {command} sample-cluster
@@ -1081,8 +1317,9 @@ class Create(base.CreateCommand):
 
   def ParseCreateOptions(self, args, location, project_id):
     get_default = lambda key: AttrValue(args, key, self.default_flag_values)
-    return ParseCreateOptionsBase(args, self.autopilot, get_default, location,
-                                  project_id)
+    return ParseCreateOptionsBase(
+        args, self.autopilot, get_default, location, project_id
+    )
 
   def Run(self, args):
     """This is what gets called when the user runs this command.
@@ -1110,8 +1347,9 @@ class Create(base.CreateCommand):
     options = self.ParseCreateOptions(args, location, cluster_ref.projectId)
 
     if options.private_cluster and not (
-        options.enable_master_authorized_networks or
-        options.master_authorized_networks):
+        options.enable_master_authorized_networks
+        or options.master_authorized_networks
+    ):
       log.status.Print(
           'Note: `--private-cluster` makes the master inaccessible from '
           'cluster-external IP addresses, by design. To allow limited '
@@ -1120,17 +1358,20 @@ class Create(base.CreateCommand):
           'https://cloud.google.com/kubernetes-engine/docs/how-to/private-clusters'
       )
 
-    if not options.enable_ip_alias:
+    if not options.enable_ip_alias and not options.enable_auto_ipam:
       max_node_number = util.CalculateMaxNodeNumberByPodRange(
-          options.cluster_ipv4_cidr)
+          options.cluster_ipv4_cidr
+      )
       if max_node_number > 0:
         log.status.Print(
             'Note: Your Pod address range (`--cluster-ipv4-cidr`) can '
-            'accommodate at most %d node(s).' % max_node_number)
+            'accommodate at most %d node(s).' % max_node_number
+        )
 
     if options.enable_l4_ilb_subsetting:
       log.status.Print(
-          'Note: Once enabled, L4 ILB Subsetting cannot be disabled.')
+          'Note: Once enabled, L4 ILB Subsetting cannot be disabled.'
+      )
 
     if options.enable_pod_security_policy:
       log.status.Print(
@@ -1141,22 +1382,57 @@ class Create(base.CreateCommand):
           'https://cloud.google.com/kubernetes-engine/docs/how-to/pod-security-policies'
       )
 
+    cmd_util.CheckReleaseChannel(args)
+
     if options.enable_kubernetes_alpha:
       console_io.PromptContinue(
           message=constants.KUBERNETES_ALPHA_PROMPT,
           throw_if_unattended=True,
-          cancel_on_no=True)
+          cancel_on_no=True,
+      )
 
     if options.accelerators is not None:
       log.status.Print('Note: ' + constants.KUBERNETES_GPU_LIMITATION_MSG)
-      log.status.Print('Note: ' +
-                       constants.KUBERNETES_GPU_DRIVER_AUTO_INSTALL_MSG)
+      log.status.Print(
+          'Note: ' + constants.KUBERNETES_GPU_DRIVER_AUTO_INSTALL_MSG
+      )
+      # gpu-driver-version: The NVIDIA driver version to install. It must be one
+      # of: default, latest, disabled.
+      # https://cloud.google.com/sdk/gcloud/reference/container/clusters/create
+      gpu_driver_version = options.accelerators.get('gpu-driver-version', None)
+      # disabled: Skip automatic driver installation. User must manually install
+      # a driver after creating the cluster.
+      if gpu_driver_version == 'disabled':
+        log.status.Print(
+            'Note: '
+            + constants.KUBERNETES_GPU_DRIVER_DISABLED_NEEDS_MANUAL_INSTALL_MSG
+        )
 
     # image streaming feature requires Container File System API to be enabled.
     # Checking whether the API has been enabled, and warning if not.
     if options.enable_image_streaming:
       util.CheckForContainerFileSystemApiEnablementWithPrompt(
           cluster_ref.projectId)
+
+    if options.logging == ['NONE']:
+      if console_io.CanPrompt():
+        console_io.PromptContinue(
+            message=constants.LOGGING_DISABLED_WARNING,
+            cancel_on_no=True,
+        )
+      else:
+        log.status.Print(constants.LOGGING_DISABLED_WARNING)
+
+    if options.monitoring == ['NONE']:
+      if console_io.CanPrompt():
+        console_io.PromptContinue(
+            message=constants.MONITORING_DISABLED_WARNING,
+            cancel_on_no=True,
+        )
+      else:
+        log.status.Print(constants.MONITORING_DISABLED_WARNING)
+    # container API is mandatory for cluster creation.
+    api_enablement.PromptToEnableApiIfDisabled('container.googleapis.com')
 
     operation = None
     try:
@@ -1166,24 +1442,34 @@ class Create(base.CreateCommand):
 
       operation = adapter.WaitForOperation(
           operation_ref,
-          'Creating cluster {0} in {1}'.format(cluster_ref.clusterId,
-                                               cluster_ref.zone),
-          timeout_s=args.timeout)
+          'Creating cluster {0} in {1}'.format(
+              cluster_ref.clusterId, cluster_ref.zone
+          ),
+          timeout_s=args.timeout,
+      )
       cluster = adapter.GetCluster(cluster_ref)
+      for node_pool in cluster.nodePools:
+        util.CheckForCgroupModeV1(node_pool)
+
     except apitools_exceptions.HttpError as error:
       raise exceptions.HttpException(error, util.HTTP_ERROR_FORMAT)
 
     log.CreatedResource(cluster_ref)
     cluster_url = util.GenerateClusterUrl(cluster_ref)
-    log.status.Print('To inspect the contents of your cluster, go to: ' +
-                     cluster_url)
+    log.status.Print(
+        'To inspect the contents of your cluster, go to: ' + cluster_url
+    )
     if operation.detail:
       # Non-empty detail on a DONE create operation should be surfaced as
       # a warning to end user.
       log.warning(operation.detail)
 
     try:
-      util.ClusterConfig.Persist(cluster, cluster_ref.projectId)
+      util.ClusterConfig.Persist(
+          cluster,
+          cluster_ref.projectId,
+          kubecontext_override=args.kubecontext_override,
+      )
     except kconfig.MissingEnvVarError as error:
       log.warning(error)
 
@@ -1191,6 +1477,7 @@ class Create(base.CreateCommand):
 
 
 @base.ReleaseTracks(base.ReleaseTrack.BETA)
+@base.DefaultUniverseOnly
 class CreateBeta(Create):
   """Create a cluster for running containers."""
 
@@ -1200,16 +1487,15 @@ class CreateBeta(Create):
 
   def ParseCreateOptions(self, args, location, project_id):
     get_default = lambda key: AttrValue(args, key, self.default_flag_values)
-    ops = ParseCreateOptionsBase(args, self.autopilot, get_default, location,
-                                 project_id)
+    ops = ParseCreateOptionsBase(
+        args, self.autopilot, get_default, location, project_id
+    )
     flags.WarnForNodeVersionAutoUpgrade(args)
     flags.ValidateSurgeUpgradeSettings(args)
     ephemeral_storage = None
     if args.IsKnownAndSpecified('ephemeral_storage'):
       ephemeral_storage = (
-          []
-          if args.ephemeral_storage is None
-          else args.ephemeral_storage
+          [] if args.ephemeral_storage is None else args.ephemeral_storage
       )
     ops.boot_disk_kms_key = get_default('boot_disk_kms_key')
     ops.min_cpu_platform = get_default('min_cpu_platform')
@@ -1219,17 +1505,19 @@ class CreateBeta(Create):
     ops.private_cluster = get_default('private_cluster')
     ops.istio_config = get_default('istio_config')
     ops.enable_vertical_pod_autoscaling = get_default(
-        'enable_vertical_pod_autoscaling')
+        'enable_vertical_pod_autoscaling'
+    )
     ops.enable_experimental_vertical_pod_autoscaling = get_default(
-        'enable_experimental_vertical_pod_autoscaling')
+        'enable_experimental_vertical_pod_autoscaling'
+    )
     ops.security_group = get_default('security_group')
     ops.max_surge_upgrade = get_default('max_surge_upgrade')
     ops.max_unavailable_upgrade = get_default('max_unavailable_upgrade')
     ops.autoscaling_profile = get_default('autoscaling_profile')
-    ops.enable_tpu_service_networking = \
-        get_default('enable_tpu_service_networking')
-    ops.enable_logging_monitoring_system_only = \
-        get_default('enable_logging_monitoring_system_only')
+    ops.enable_tpu_service_networking = (
+        get_default('enable_tpu_service_networking'))
+    ops.enable_logging_monitoring_system_only = (
+        get_default('enable_logging_monitoring_system_only'))
     ops.gvnic = get_default('enable_gvnic')
     ops.system_config_from_file = get_default('system_config_from_file')
     ops.datapath_provider = get_default('datapath_provider')
@@ -1237,66 +1525,113 @@ class CreateBeta(Create):
     ops.enable_master_metrics = get_default('enable_master_metrics')
     ops.master_logs = get_default('master_logs')
     ops.enable_confidential_nodes = get_default('enable_confidential_nodes')
+    ops.confidential_node_type = get_default('confidential_node_type')
     ops.enable_nested_virtualization = get_default(
         'enable_nested_virtualization')
-    ops.kubernetes_objects_changes_target = \
-        getattr(args, 'kubernetes_objects_changes_target', None)
-    ops.kubernetes_objects_snapshots_target = \
-        getattr(args, 'kubernetes_objects_snapshots_target', None)
+    ops.kubernetes_objects_changes_target = (
+        getattr(args, 'kubernetes_objects_changes_target', None))
+    ops.kubernetes_objects_snapshots_target = (
+        getattr(args, 'kubernetes_objects_snapshots_target', None))
     ops.enable_gcfs = get_default('enable_gcfs')
     ops.enable_image_streaming = get_default('enable_image_streaming')
-    ops.enable_workload_certificates = getattr(args,
-                                               'enable_workload_certificates',
-                                               None)
+    ops.enable_workload_certificates = getattr(
+        args, 'enable_workload_certificates', None
+    )
     ops.enable_alts = getattr(args, 'enable_alts', None)
     ops.ephemeral_storage = ephemeral_storage
-    ops.enable_workload_monitoring_eap = \
-      get_default('enable_workload_monitoring_eap')
-    ops.private_endpoint_subnetwork = \
-        get_default('private_endpoint_subnetwork')
-    ops.cross_connect_subnetworks = \
-        get_default('cross_connect_subnetworks')
+    ops.enable_workload_monitoring_eap = (
+        get_default('enable_workload_monitoring_eap'))
+    ops.private_endpoint_subnetwork = (
+        get_default('private_endpoint_subnetwork'))
+    ops.cross_connect_subnetworks = (
+        get_default('cross_connect_subnetworks'))
     ops.enable_service_externalips = get_default('enable_service_externalips')
     ops.enable_managed_prometheus = get_default('enable_managed_prometheus')
+    ops.auto_monitoring_scope = get_default('auto_monitoring_scope')
     ops.spot = get_default('spot')
     ops.maintenance_interval = get_default('maintenance_interval')
     ops.disable_pod_cidr_overprovision = get_default(
-        'disable_pod_cidr_overprovision')
+        'disable_pod_cidr_overprovision'
+    )
     ops.stack_type = get_default('stack_type')
     ops.ipv6_access_type = get_default('ipv6_access_type')
     ops.enable_workload_config_audit = get_default(
-        'enable_workload_config_audit')
-    ops.pod_autoscaling_direct_metrics_opt_in = get_default(
-        'pod_autoscaling_direct_metrics_opt_in')
+        'enable_workload_config_audit'
+    )
+    ops.performance_monitoring_unit = get_default('performance_monitoring_unit')
+    ops.hpa_profile = get_default('hpa_profile')
     ops.enable_workload_vulnerability_scanning = get_default(
-        'enable_workload_vulnerability_scanning')
+        'enable_workload_vulnerability_scanning'
+    )
     ops.enable_cost_allocation = get_default('enable_cost_allocation')
     ops.managed_config = get_default('managed_config')
     ops.fleet_project = get_default('fleet_project')
     ops.enable_fleet = get_default('enable_fleet')
+    ops.membership_type = get_default('membership_type')
     ops.enable_multi_networking = get_default('enable_multi_networking')
+    ops.compliance = get_default('compliance')
+    ops.compliance_standards = get_default('compliance_standards')
     ops.enable_security_posture = get_default('enable_security_posture')
     ops.security_posture = get_default('security_posture')
     ops.workload_vulnerability_scanning = get_default(
         'workload_vulnerability_scanning'
     )
+    ops.patch_update = get_default('patch_update')
     ops.enable_runtime_vulnerability_insight = get_default(
-        'enable_runtime_vulnerability_insight')
-    ops.enable_dns_endpoint = get_default('enable_dns_endpoint')
+        'enable_runtime_vulnerability_insight'
+    )
     ops.host_maintenance_interval = get_default('host_maintenance_interval')
     ops.containerd_config_from_file = get_default(
         'containerd_config_from_file',
     )
     ops.enable_confidential_storage = get_default('enable_confidential_storage')
     ops.storage_pools = get_default('storage_pools')
+    ops.local_ssd_encryption_mode = get_default('local_ssd_encryption_mode')
+    ops.data_cache_count = get_default('data_cache_count')
     ops.enable_secret_manager = get_default('enable_secret_manager')
+    ops.enable_secret_manager_rotation = get_default(
+        'enable_secret_manager_rotation'
+    )
+    ops.secret_manager_rotation_interval = get_default(
+        'secret_manager_rotation_interval'
+    )
     ops.enable_cilium_clusterwide_networkpolicy = get_default(
         'enable_cilium_clusterwide_networkpolicy'
     )
+    ops.enable_ray_cluster_logging = get_default('enable_ray_cluster_logging')
+    ops.enable_ray_cluster_monitoring = get_default(
+        'enable_ray_cluster_monitoring'
+    )
+    ops.enable_insecure_binding_system_authenticated = get_default(
+        'enable_insecure_binding_system_authenticated'
+    )
+    ops.enable_insecure_binding_system_unauthenticated = get_default(
+        'enable_insecure_binding_system_unauthenticated'
+    )
+    ops.enable_dns_access = get_default('enable_dns_access')
+    ops.cp_disk_encryption_key = get_default('cp_disk_encryption_key')
+    ops.disable_l4_lb_firewall_reconciliation = get_default(
+        'disable_l4_lb_firewall_reconciliation'
+    )
+    ops.tier = get_default('tier')
+    ops.anonymous_authentication_config = get_default(
+        'anonymous_authentication_config'
+    )
+    ops.enable_auto_ipam = get_default('enable_auto_ipam')
+    ops.enable_k8s_tokens_via_dns = get_default('enable_k8s_tokens_via_dns')
+    ops.enable_legacy_lustre_port = get_default('enable_legacy_lustre_port')
+    ops.enable_default_compute_class = get_default(
+        'enable_default_compute_class'
+    )
+    ops.enable_k8s_certs_via_dns = get_default('enable_k8s_certs_via_dns')
+    ops.control_plane_egress_mode = get_default('control_plane_egress')
+    ops.gpudirect_strategy = get_default('gpudirect_strategy')
+    ops.managed_otel_scope = get_default('managed_otel_scope')
     return ops
 
 
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.DefaultUniverseOnly
 class CreateAlpha(Create):
   """Create a cluster for running containers."""
 
@@ -1306,16 +1641,15 @@ class CreateAlpha(Create):
 
   def ParseCreateOptions(self, args, location, project_id):
     get_default = lambda key: AttrValue(args, key, self.default_flag_values)
-    ops = ParseCreateOptionsBase(args, self.autopilot, get_default, location,
-                                 project_id)
+    ops = ParseCreateOptionsBase(
+        args, self.autopilot, get_default, location, project_id
+    )
     flags.WarnForNodeVersionAutoUpgrade(args)
     flags.ValidateSurgeUpgradeSettings(args)
     ephemeral_storage = None
     if args.IsKnownAndSpecified('ephemeral_storage'):
       ephemeral_storage = (
-          []
-          if args.ephemeral_storage is None
-          else args.ephemeral_storage
+          [] if args.ephemeral_storage is None else args.ephemeral_storage
       )
     ops.boot_disk_kms_key = get_default('boot_disk_kms_key')
     ops.autoscaling_profile = get_default('autoscaling_profile')
@@ -1327,22 +1661,23 @@ class CreateAlpha(Create):
     ops.enable_private_nodes = get_default('enable_private_nodes')
     ops.enable_private_endpoint = get_default('enable_private_endpoint')
     ops.master_ipv4_cidr = get_default('master_ipv4_cidr')
-    ops.enable_tpu_service_networking = \
-        get_default('enable_tpu_service_networking')
+    ops.enable_tpu_service_networking = (
+        get_default('enable_tpu_service_networking'))
     ops.istio_config = get_default('istio_config')
     ops.security_group = get_default('security_group')
-    ops.enable_vertical_pod_autoscaling = \
-        get_default('enable_vertical_pod_autoscaling')
+    ops.enable_vertical_pod_autoscaling = (
+        get_default('enable_vertical_pod_autoscaling'))
     ops.enable_experimental_vertical_pod_autoscaling = get_default(
-        'enable_experimental_vertical_pod_autoscaling')
+        'enable_experimental_vertical_pod_autoscaling'
+    )
     ops.security_profile = get_default('security_profile')
-    ops.security_profile_runtime_rules = \
-        get_default('security_profile_runtime_rules')
+    ops.security_profile_runtime_rules = (
+        get_default('security_profile_runtime_rules'))
     ops.node_pool_name = get_default('node_pool_name')
-    ops.enable_network_egress_metering = \
-        get_default('enable_network_egress_metering')
-    ops.enable_resource_consumption_metering = \
-        get_default('enable_resource_consumption_metering')
+    ops.enable_network_egress_metering = (
+        get_default('enable_network_egress_metering'))
+    ops.enable_resource_consumption_metering = (
+        get_default('enable_resource_consumption_metering'))
     ops.enable_private_ipv6_access = get_default('enable_private_ipv6_access')
     ops.max_surge_upgrade = get_default('max_surge_upgrade')
     ops.max_unavailable_upgrade = get_default('max_unavailable_upgrade')
@@ -1350,50 +1685,57 @@ class CreateAlpha(Create):
     ops.disable_default_snat = get_default('disable_default_snat')
     ops.system_config_from_file = get_default('system_config_from_file')
     ops.enable_cost_allocation = get_default('enable_cost_allocation')
-    ops.enable_logging_monitoring_system_only = \
-        get_default('enable_logging_monitoring_system_only')
+    ops.enable_logging_monitoring_system_only = (
+        get_default('enable_logging_monitoring_system_only'))
     ops.datapath_provider = get_default('datapath_provider')
     ops.gvnic = get_default('enable_gvnic')
     ops.enable_master_metrics = get_default('enable_master_metrics')
     ops.master_logs = get_default('master_logs')
     ops.enable_confidential_nodes = get_default('enable_confidential_nodes')
+    ops.confidential_node_type = get_default('confidential_node_type')
     ops.enable_nested_virtualization = get_default(
         'enable_nested_virtualization')
-    ops.kubernetes_objects_changes_target = \
-        getattr(args, 'kubernetes_objects_changes_target', None)
-    ops.kubernetes_objects_snapshots_target = \
-        getattr(args, 'kubernetes_objects_snapshots_target', None)
+    ops.kubernetes_objects_changes_target = (
+        getattr(args, 'kubernetes_objects_changes_target', None))
+    ops.kubernetes_objects_snapshots_target = (
+        getattr(args, 'kubernetes_objects_snapshots_target', None))
     ops.enable_gcfs = get_default('enable_gcfs')
     ops.enable_image_streaming = get_default('enable_image_streaming')
-    ops.enable_workload_certificates = getattr(args,
-                                               'enable_workload_certificates',
-                                               None)
+    ops.enable_workload_certificates = getattr(
+        args, 'enable_workload_certificates', None
+    )
     ops.enable_alts = getattr(args, 'enable_alts', None)
-    ops.enable_workload_monitoring_eap = \
-      get_default('enable_workload_monitoring_eap')
-    ops.private_endpoint_subnetwork = \
-        get_default('private_endpoint_subnetwork')
-    ops.cross_connect_subnetworks = \
-        get_default('cross_connect_subnetworks')
+    ops.enable_workload_monitoring_eap = (
+        get_default('enable_workload_monitoring_eap'))
+    ops.private_endpoint_subnetwork = (
+        get_default('private_endpoint_subnetwork'))
+    ops.cross_connect_subnetworks = (
+        get_default('cross_connect_subnetworks'))
     ops.enable_service_externalips = get_default('enable_service_externalips')
     ops.enable_managed_prometheus = get_default('enable_managed_prometheus')
+    ops.auto_monitoring_scope = get_default('auto_monitoring_scope')
     ops.spot = get_default('spot')
     ops.maintenance_interval = get_default('maintenance_interval')
     ops.disable_pod_cidr_overprovision = get_default(
-        'disable_pod_cidr_overprovision')
+        'disable_pod_cidr_overprovision'
+    )
     ops.stack_type = get_default('stack_type')
     ops.ipv6_access_type = get_default('ipv6_access_type')
     ops.enable_workload_config_audit = get_default(
-        'enable_workload_config_audit')
+        'enable_workload_config_audit'
+    )
     ops.performance_monitoring_unit = get_default('performance_monitoring_unit')
-    ops.pod_autoscaling_direct_metrics_opt_in = get_default(
-        'pod_autoscaling_direct_metrics_opt_in')
+    ops.hpa_profile = get_default('hpa_profile')
     ops.enable_workload_vulnerability_scanning = get_default(
-        'enable_workload_vulnerability_scanning')
+        'enable_workload_vulnerability_scanning'
+    )
     ops.managed_config = get_default('managed_config')
     ops.fleet_project = get_default('fleet_project')
     ops.enable_fleet = get_default('enable_fleet')
+    ops.membership_type = get_default('membership_type')
     ops.enable_multi_networking = get_default('enable_multi_networking')
+    ops.compliance = get_default('compliance')
+    ops.compliance_standards = get_default('compliance_standards')
     ops.enable_security_posture = get_default('enable_security_posture')
     ops.security_posture = get_default('security_posture')
     ops.workload_vulnerability_scanning = get_default(
@@ -1402,13 +1744,50 @@ class CreateAlpha(Create):
     ops.enable_runtime_vulnerability_insight = get_default(
         'enable_runtime_vulnerability_insight'
     )
-    ops.enable_dns_endpoint = get_default('enable_dns_endpoint')
+    ops.patch_update = get_default('patch_update')
     ops.host_maintenance_interval = get_default('host_maintenance_interval')
     ops.contianerd_config_from_file = get_default('contianerd_config_from_file')
     ops.enable_confidential_storage = get_default('enable_confidential_storage')
     ops.storage_pools = get_default('storage_pools')
+    ops.local_ssd_encryption_mode = get_default('local_ssd_encryption_mode')
+    ops.data_cache_count = get_default('data_cache_count')
     ops.enable_secret_manager = get_default('enable_secret_manager')
+    ops.enable_secret_manager_rotation = get_default(
+        'enable_secret_manager_rotation'
+    )
+    ops.secret_manager_rotation_interval = get_default(
+        'secret_manager_rotation_interval'
+    )
     ops.enable_cilium_clusterwide_networkpolicy = get_default(
         'enable_cilium_clusterwide_networkpolicy'
     )
+    ops.enable_ray_cluster_logging = get_default('enable_ray_cluster_logging')
+    ops.enable_ray_cluster_monitoring = get_default(
+        'enable_ray_cluster_monitoring'
+    )
+    ops.enable_insecure_binding_system_authenticated = get_default(
+        'enable_insecure_binding_system_authenticated'
+    )
+    ops.enable_insecure_binding_system_unauthenticated = get_default(
+        'enable_insecure_binding_system_unauthenticated'
+    )
+    ops.enable_dns_access = get_default('enable_dns_access')
+    ops.cp_disk_encryption_key = get_default('cp_disk_encryption_key')
+    ops.disable_l4_lb_firewall_reconciliation = get_default(
+        'disable_l4_lb_firewall_reconciliation'
+    )
+    ops.tier = get_default('tier')
+    ops.anonymous_authentication_config = get_default(
+        'anonymous_authentication_config'
+    )
+    ops.enable_auto_ipam = get_default('enable_auto_ipam')
+    ops.enable_k8s_tokens_via_dns = get_default('enable_k8s_tokens_via_dns')
+    ops.enable_legacy_lustre_port = get_default('enable_legacy_lustre_port')
+    ops.enable_default_compute_class = get_default(
+        'enable_default_compute_class'
+    )
+    ops.enable_k8s_certs_via_dns = get_default('enable_k8s_certs_via_dns')
+    ops.control_plane_egress_mode = get_default('control_plane_egress')
+    ops.gpudirect_strategy = get_default('gpudirect_strategy')
+    ops.managed_otel_scope = get_default('managed_otel_scope')
     return ops

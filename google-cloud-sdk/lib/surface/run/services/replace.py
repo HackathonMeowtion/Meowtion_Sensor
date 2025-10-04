@@ -43,6 +43,7 @@ from googlecloudsdk.core import resources
 from googlecloudsdk.core.console import progress_tracker
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.GA)
 class Replace(base.Command):
   """Create or replace a service from a YAML service specification."""
@@ -64,15 +65,15 @@ class Replace(base.Command):
   @classmethod
   def CommonArgs(cls, parser):
     # Flags specific to connecting to a cluster
-    cluster_group = flags.GetClusterArgGroup(parser)
     namespace_presentation = presentation_specs.ResourcePresentationSpec(
         '--namespace',
         resource_args.GetNamespaceResourceSpec(),
         'Namespace to replace service.',
         required=True,
-        prefixes=False)
+        prefixes=False,
+        hidden=True)
     concept_parsers.ConceptParser([namespace_presentation
-                                  ]).AddToParser(cluster_group)
+                                  ]).AddToParser(parser)
 
     # Flags not specific to any platform
     flags.AddAsyncFlag(parser)
@@ -97,10 +98,42 @@ class Replace(base.Command):
         args, flags.Product.RUN, self.ReleaseTrack(), region_label=region_label
     )
 
+  def _GetBaseChanges(
+      self, new_service, args):  # used by child - pylint: disable=unused-argument
+    return [
+        config_changes.ReplaceServiceChange(new_service),
+        config_changes.SetLaunchStageAnnotationChange(self.ReleaseTrack()),
+    ]
+
+  def _GetMultiRegionRegions(self, args, new_service, changes):  # used by child - pylint: disable=unused-argument
+    return None
+
+  def _PrintSuccessMessage(self, service_obj, dry_run, args):
+    if args.async_:
+      pretty_print.Success(
+          'New configuration for [{{bold}}{serv}{{reset}}] is being applied '
+          'asynchronously.'.format(serv=service_obj.name)
+      )
+    elif dry_run:
+      pretty_print.Success(
+          'New configuration has been validated for service '
+          '[{{bold}}{serv}{{reset}}].'.format(serv=service_obj.name)
+      )
+    else:
+      pretty_print.Success(
+          'New configuration has been applied to service '
+          '[{{bold}}{serv}{{reset}}].\n'
+          'URL: {{bold}}{url}{{reset}}'.format(
+              serv=service_obj.name, url=service_obj.domain
+          )
+      )
+
   def Run(self, args):
     """Create or Update service from YAML."""
-    run_messages = apis.GetMessagesModule(global_methods.SERVERLESS_API_NAME,
-                                          global_methods.SERVERLESS_API_VERSION)
+    run_messages = apis.GetMessagesModule(
+        global_methods.SERVERLESS_API_NAME,
+        global_methods.SERVERLESS_API_VERSION,
+    )
     service_dict = dict(args.FILE)
     # Clear the status to make migration from k8s deployments easier.
     # Since a Deployment status will have several fields that Cloud Run doesn't
@@ -148,10 +181,7 @@ class Replace(base.Command):
               'Cloud Run (fully managed).'.format(project, project_number))
     new_service.metadata.namespace = namespace
 
-    changes = [
-        config_changes.ReplaceServiceChange(new_service),
-        config_changes.SetLaunchStageAnnotationChange(self.ReleaseTrack())
-    ]
+    changes = self._GetBaseChanges(new_service, args)
     service_ref = resources.REGISTRY.Parse(
         new_service.metadata.name,
         params={'namespacesId': new_service.metadata.namespace},
@@ -170,6 +200,7 @@ class Replace(base.Command):
 
     with serverless_operations.Connect(conn_context) as client:
       service_obj = client.GetService(service_ref)
+      regions = self._GetMultiRegionRegions(args, new_service, changes)
 
       pretty_print.Info(
           run_messages_util.GetStartDeployMessage(
@@ -177,7 +208,7 @@ class Replace(base.Command):
           )
       )
 
-      deployment_stages = stages.ServiceStages()
+      deployment_stages = stages.ServiceStages(regions_list=regions)
       header = ('Deploying...' if service_obj else 'Deploying new service...')
       if dry_run:
         header = 'Validating...'
@@ -196,21 +227,9 @@ class Replace(base.Command):
             allow_unauthenticated=None,
             for_replace=True,
             dry_run=dry_run,
+            multiregion_regions=regions,
         )
-      if args.async_:
-        pretty_print.Success(
-            'New configuration for [{{bold}}{serv}{{reset}}] is being applied '
-            'asynchronously.'.format(serv=service_obj.name))
-      elif dry_run:
-        pretty_print.Success(
-            'New configuration has been validated for service '
-            '[{{bold}}{serv}{{reset}}].'.format(serv=service_obj.name)
-        )
-      else:
-        pretty_print.Success('New configuration has been applied to service '
-                             '[{{bold}}{serv}{{reset}}].\n'
-                             'URL: {{bold}}{url}{{reset}}'.format(
-                                 serv=service_obj.name, url=service_obj.domain))
+      self._PrintSuccessMessage(service_obj, dry_run, args)
       return service_obj
 
 

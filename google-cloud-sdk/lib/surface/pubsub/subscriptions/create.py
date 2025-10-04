@@ -65,6 +65,9 @@ def _Run(
   use_table_schema = getattr(args, 'use_table_schema', None)
   write_metadata = getattr(args, 'write_metadata', None)
   drop_unknown_fields = getattr(args, 'drop_unknown_fields', None)
+  bigquery_service_account_email = getattr(
+      args, 'bigquery_service_account_email', None
+  )
   cloud_storage_bucket = getattr(args, 'cloud_storage_bucket', None)
   cloud_storage_file_prefix = getattr(args, 'cloud_storage_file_prefix', None)
   cloud_storage_file_suffix = getattr(args, 'cloud_storage_file_suffix', None)
@@ -73,6 +76,7 @@ def _Run(
   )
   cloud_storage_max_bytes = getattr(args, 'cloud_storage_max_bytes', None)
   cloud_storage_max_duration = getattr(args, 'cloud_storage_max_duration', None)
+  cloud_storage_max_messages = getattr(args, 'cloud_storage_max_messages', None)
   if args.IsSpecified('cloud_storage_max_duration'):
     cloud_storage_max_duration = util.FormatDuration(cloud_storage_max_duration)
   cloud_storage_output_format_list = getattr(
@@ -81,13 +85,20 @@ def _Run(
   cloud_storage_output_format = None
   if cloud_storage_output_format_list:
     cloud_storage_output_format = cloud_storage_output_format_list[0]
+  cloud_storage_use_topic_schema = getattr(
+      args, 'cloud_storage_use_topic_schema', None
+  )
   cloud_storage_write_metadata = getattr(
       args, 'cloud_storage_write_metadata', None
+  )
+  cloud_storage_service_account_email = getattr(
+      args, 'cloud_storage_service_account_email', None
   )
   pubsub_export_topic = (
       getattr(args, 'pubsub_export_topic', None) if enable_push_to_cps else None
   )
   pubsub_export_topic_region = getattr(args, 'pubsub_export_topic_region', None)
+  message_transforms_file = getattr(args, 'message_transforms_file', None)
 
   no_expiration = False
   expiration_period = getattr(args, 'expiration_period', None)
@@ -109,6 +120,8 @@ def _Run(
     labels = labels_util.ParseCreateArgs(
         args, client.messages.Subscription.LabelsValue
     )
+
+  tags = flags.GetTagsMessage(args, client.messages.Subscription.TagsValue)
 
   failed = []
   for subscription_ref in args.CONCEPTS.subscription.Parse():
@@ -135,16 +148,22 @@ def _Run(
           use_table_schema=use_table_schema,
           write_metadata=write_metadata,
           drop_unknown_fields=drop_unknown_fields,
+          bigquery_service_account_email=bigquery_service_account_email,
           cloud_storage_bucket=cloud_storage_bucket,
           cloud_storage_file_prefix=cloud_storage_file_prefix,
           cloud_storage_file_suffix=cloud_storage_file_suffix,
           cloud_storage_file_datetime_format=cloud_storage_file_datetime_format,
           cloud_storage_max_bytes=cloud_storage_max_bytes,
           cloud_storage_max_duration=cloud_storage_max_duration,
+          cloud_storage_max_messages=cloud_storage_max_messages,
           cloud_storage_output_format=cloud_storage_output_format,
+          cloud_storage_use_topic_schema=cloud_storage_use_topic_schema,
           cloud_storage_write_metadata=cloud_storage_write_metadata,
+          cloud_storage_service_account_email=cloud_storage_service_account_email,
           pubsub_export_topic=pubsub_export_topic,
           pubsub_export_topic_region=pubsub_export_topic_region,
+          message_transforms_file=message_transforms_file,
+          tags=tags,
       )
     except api_ex.HttpError as error:
       exc = exceptions.HttpException(error)
@@ -166,6 +185,7 @@ def _Run(
     raise util.RequestsFailedError(failed, 'create')
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class Create(base.CreateCommand):
   """Creates one or more Cloud Pub/Sub subscriptions."""
@@ -190,13 +210,14 @@ class Create(base.CreateCommand):
     resource_args.AddResourceArgs(parser, [topic, subscription])
     flags.AddSubscriptionSettingsFlags(parser)
     labels_util.AddCreateLabelsFlags(parser)
+    flags.AddMessageTransformsFlags(parser)
 
   def Run(self, args):
     flags.ValidateFilterString(args)
     return _Run(args, enable_labels=True)
 
 
-@base.ReleaseTracks(base.ReleaseTrack.BETA, base.ReleaseTrack.ALPHA)
+@base.ReleaseTracks(base.ReleaseTrack.BETA)
 class CreateBeta(Create):
   """Creates one or more Cloud Pub/Sub subscriptions."""
 
@@ -218,9 +239,9 @@ class CreateBeta(Create):
         enable_push_to_cps=True,
     )
     labels_util.AddCreateLabelsFlags(parser)
+    flags.AddMessageTransformsFlags(parser)
 
   def Run(self, args):
-    flags.ValidateSubscriptionArgsUseUniverseSupportedFeatures(args)
     flags.ValidateFilterString(args)
     legacy_output = properties.VALUES.pubsub.legacy_output.GetBool()
     return _Run(
@@ -229,3 +250,13 @@ class CreateBeta(Create):
         legacy_output=legacy_output,
         enable_push_to_cps=True,
     )
+
+
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class CreateAlpha(CreateBeta):
+  """Creates one or more Cloud Pub/Sub subscriptions."""
+
+  @classmethod
+  def Args(cls, parser):
+    super(CreateAlpha, cls).Args(parser)
+    flags.AddTagsFlag(parser)

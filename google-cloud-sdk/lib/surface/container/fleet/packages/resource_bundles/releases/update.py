@@ -17,24 +17,24 @@
 from googlecloudsdk.api_lib.container.fleet.packages import releases as apis
 from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.container.fleet.packages import flags
-from googlecloudsdk.command_lib.container.fleet.packages import utils
 
 _DETAILED_HELP = {
     'DESCRIPTION': '{description}',
     'EXAMPLES': """ \
-        To update Release ``v1.0.0'' of ``cert-manager'' in ``us-central1'', run:
+        To update Release `v1.0.0` for Resource Bundle `my-bundle` in `us-central1`, run:
 
-          $ {command} v1.0.0 --location=us-central1 --resource-bundle=cert-manager --lifecycle=published --variants=variant-*.yaml
+          $ {command} --version=v1.0.0 --resource-bundle=my-bundle --lifecycle=PUBLISHED
         """,
 }
 
 
-@base.Hidden
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.GA)
 class Update(base.UpdateCommand):
   """Update Package Rollouts Release."""
 
   detailed_help = _DETAILED_HELP
+  _api_version = 'v1'
 
   @staticmethod
   def Args(parser):
@@ -42,21 +42,15 @@ class Update(base.UpdateCommand):
     flags.AddLocationFlag(parser)
     flags.AddResourceBundleFlag(parser)
     flags.AddLifecycleFlag(parser)
-    parser.add_argument(
-        '--variants',
-        required=False,
-        help='Glob pattern to variants of the Release.',
-    )
-    parser.add_argument(
-        '--update-mask',
-        required=False,
-        help='Mask denoting which fields to update.',
-    )
 
   def Run(self, args):
     """Run the update command."""
-    client = apis.ReleasesClient()
-    variants = utils.VariantsFromGlobPattern(args.variants)
+    client = apis.ReleasesClient(self._api_version)
+    update_mask_attrs = []
+
+    if args.lifecycle:
+      update_mask_attrs.append('lifecycle')
+    update_mask = ','.join(update_mask_attrs)
 
     return client.Update(
         release=args.release,
@@ -64,6 +58,21 @@ class Update(base.UpdateCommand):
         location=flags.GetLocation(args),
         resource_bundle=args.resource_bundle,
         lifecycle=args.lifecycle,
-        variants=variants,
-        update_mask=args.update_mask,
+        update_mask=update_mask,
     )
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.BETA)
+class UpdateBeta(Update):
+  """Update Package Rollouts Release."""
+
+  _api_version = 'v1beta'
+
+
+@base.DefaultUniverseOnly
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA)
+class UpdateAlpha(Update):
+  """Update Package Rollouts Release."""
+
+  _api_version = 'v1alpha'

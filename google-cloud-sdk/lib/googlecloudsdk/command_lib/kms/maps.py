@@ -28,13 +28,17 @@ DIGESTS = {'sha256', 'sha384', 'sha512'}
 ALGORITHM_ENUM = MESSAGES.CryptoKeyVersionTemplate.AlgorithmValueValuesEnum
 ALGORITHM_MAPPER = arg_utils.ChoiceEnumMapper('algorithm_enum', ALGORITHM_ENUM)
 
-ALGORITHM_ENUM_FOR_IMPORT = MESSAGES.ImportCryptoKeyVersionRequest.AlgorithmValueValuesEnum
+ALGORITHM_ENUM_FOR_IMPORT = (
+    MESSAGES.ImportCryptoKeyVersionRequest.AlgorithmValueValuesEnum
+)
 ALGORITHM_MAPPER_FOR_IMPORT = arg_utils.ChoiceEnumMapper(
-    'algorithm_enum_for_import', ALGORITHM_ENUM_FOR_IMPORT)
+    'algorithm_enum_for_import', ALGORITHM_ENUM_FOR_IMPORT
+)
 
 IMPORT_METHOD_ENUM = MESSAGES.ImportJob.ImportMethodValueValuesEnum
-IMPORT_METHOD_MAPPER = arg_utils.ChoiceEnumMapper('import_method_enum',
-                                                  IMPORT_METHOD_ENUM)
+IMPORT_METHOD_MAPPER = arg_utils.ChoiceEnumMapper(
+    'import_method_enum', IMPORT_METHOD_ENUM
+)
 
 PURPOSE_ENUM = MESSAGES.CryptoKey.PurposeValueValuesEnum
 PURPOSE_MAP = {
@@ -43,16 +47,19 @@ PURPOSE_MAP = {
     'asymmetric-signing': PURPOSE_ENUM.ASYMMETRIC_SIGN,
     'asymmetric-encryption': PURPOSE_ENUM.ASYMMETRIC_DECRYPT,
     'mac': PURPOSE_ENUM.MAC,
+    'key-encapsulation': PURPOSE_ENUM.KEY_ENCAPSULATION,
 }
 
 PROTECTION_LEVEL_ENUM = (
-    MESSAGES.CryptoKeyVersionTemplate.ProtectionLevelValueValuesEnum)
-PROTECTION_LEVEL_MAPPER = arg_utils.ChoiceEnumMapper('protection_level_enum',
-                                                     PROTECTION_LEVEL_ENUM)
-IMPORT_PROTECTION_LEVEL_ENUM = (
-    MESSAGES.ImportJob.ProtectionLevelValueValuesEnum)
+    MESSAGES.CryptoKeyVersionTemplate.ProtectionLevelValueValuesEnum
+)
+PROTECTION_LEVEL_MAPPER = arg_utils.ChoiceEnumMapper(
+    'protection_level_enum', PROTECTION_LEVEL_ENUM
+)
+IMPORT_PROTECTION_LEVEL_ENUM = MESSAGES.ImportJob.ProtectionLevelValueValuesEnum
 IMPORT_PROTECTION_LEVEL_MAPPER = arg_utils.ChoiceEnumMapper(
-    'protection_level_enum', IMPORT_PROTECTION_LEVEL_ENUM)
+    'protection_level_enum', IMPORT_PROTECTION_LEVEL_ENUM
+)
 
 # Add new algorithms according to their purposes here.
 VALID_ALGORITHMS_MAP = {
@@ -69,6 +76,7 @@ VALID_ALGORITHMS_MAP = {
         'aes-256-ctr',
     ],
     PURPOSE_ENUM.ASYMMETRIC_SIGN: [
+        'ec-sign-ed25519',
         'ec-sign-p256-sha256',
         'ec-sign-p384-sha384',
         'ec-sign-secp256k1-sha256',
@@ -83,6 +91,9 @@ VALID_ALGORITHMS_MAP = {
         'rsa-sign-raw-pkcs1-2048',
         'rsa-sign-raw-pkcs1-3072',
         'rsa-sign-raw-pkcs1-4096',
+        'pq-sign-ml-dsa-65',
+        'pq-sign-slh-dsa-sha2-128s',
+        'pq-sign-hash-slh-dsa-sha2-128s-sha256',
     ],
     PURPOSE_ENUM.ASYMMETRIC_DECRYPT: [
         'rsa-decrypt-oaep-2048-sha1',
@@ -99,13 +110,19 @@ VALID_ALGORITHMS_MAP = {
         'hmac-sha256',
         'hmac-sha384',
         'hmac-sha512',
-    ]
+    ],
+    PURPOSE_ENUM.KEY_ENCAPSULATION: [
+        'ml-kem-768',
+        'ml-kem-1024',
+        'kem-xwing',
+    ],
 }
 
 # Derive available algorithms from VALID_ALGORITHMS_MAP.
 ALL_ALGORITHMS = frozenset({
     # pylint: disable=g-complex-comprehension
-    algorithm for algorithms in VALID_ALGORITHMS_MAP.values()
+    algorithm
+    for algorithms in VALID_ALGORITHMS_MAP.values()
     for algorithm in algorithms
 })
 
@@ -113,11 +130,26 @@ ALGORITHMS_FOR_IMPORT = ALL_ALGORITHMS - {'external-symmetric-encryption'}
 
 CRYPTO_KEY_VERSION_STATE_ENUM = MESSAGES.CryptoKeyVersion.StateValueValuesEnum
 CRYPTO_KEY_VERSION_STATE_MAPPER = arg_utils.ChoiceEnumMapper(
-    'crypto_key_version_state_enum', CRYPTO_KEY_VERSION_STATE_ENUM)
+    'crypto_key_version_state_enum', CRYPTO_KEY_VERSION_STATE_ENUM
+)
 
 KEY_MANAGEMENT_MODE_ENUM = (
     MESSAGES.EkmConnection.KeyManagementModeValueValuesEnum
 )
 KEY_MANAGEMENT_MODE_MAPPER = arg_utils.ChoiceEnumMapper(
     'key_management_mode', KEY_MANAGEMENT_MODE_ENUM
+)
+
+ACCESS_REASON_ENUM = (
+    MESSAGES.KeyAccessJustificationsPolicy.AllowedAccessReasonsValueListEntryValuesEnum
+)
+ACCESS_REASON_MAPPER = arg_utils.ChoiceEnumMapper(
+    'access_reason_enum', ACCESS_REASON_ENUM
+)
+
+PUBLIC_KEY_FORMAT_ENUM = (
+    MESSAGES.CloudkmsProjectsLocationsKeyRingsCryptoKeysCryptoKeyVersionsGetPublicKeyRequest.PublicKeyFormatValueValuesEnum
+)
+PUBLIC_KEY_FORMAT_MAPPER = arg_utils.ChoiceEnumMapper(
+    'public_key_format_enum', PUBLIC_KEY_FORMAT_ENUM
 )

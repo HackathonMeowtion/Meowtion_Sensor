@@ -26,9 +26,12 @@ class Collections(enum.Enum):
 
   APPS = (
       'apps',
-      'apps/{appsId}',
-      {},
-      ['appsId'],
+      '{+name}',
+      {
+          '':
+              'apps/{appsId}',
+      },
+      ['name'],
       True
   )
   APPS_AUTHORIZEDCERTIFICATES = (
@@ -72,6 +75,37 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  APPS_SERVICES = (
+      'apps.services',
+      '{+name}',
+      {
+          '':
+              'apps/{appsId}/services/{servicesId}',
+      },
+      ['name'],
+      True
+  )
+  APPS_SERVICES_VERSIONS = (
+      'apps.services.versions',
+      '{+name}',
+      {
+          '':
+              'apps/{appsId}/services/{servicesId}/versions/{versionsId}',
+      },
+      ['name'],
+      True
+  )
+  APPS_SERVICES_VERSIONS_INSTANCES = (
+      'apps.services.versions.instances',
+      '{+name}',
+      {
+          '':
+              'apps/{appsId}/services/{servicesId}/versions/{versionsId}/'
+              'instances/{instancesId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS = (
       'projects',
       'projects/{projectsId}',
@@ -85,6 +119,37 @@ class Collections(enum.Enum):
       {
           '':
               'projects/{projectsId}/locations/{locationsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_APPLICATIONS = (
+      'projects.locations.applications',
+      'projects/{projectsId}/locations/{locationsId}/applications/'
+      '{applicationsId}',
+      {},
+      ['projectsId', 'locationsId', 'applicationsId'],
+      True
+  )
+  PROJECTS_LOCATIONS_APPLICATIONS_AUTHORIZEDCERTIFICATES = (
+      'projects.locations.applications.authorizedCertificates',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/applications/'
+              '{applicationsId}/authorizedCertificates/'
+              '{authorizedCertificatesId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_APPLICATIONS_DOMAINMAPPINGS = (
+      'projects.locations.applications.domainMappings',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/applications/'
+              '{applicationsId}/domainMappings/{domainMappingsId}',
       },
       ['name'],
       True

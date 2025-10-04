@@ -55,6 +55,8 @@ class VpnGatewayHelper(object):
       vpn_interfaces_with_interconnect_attachments,
       stack_type=None,
       gateway_ip_version=None,
+      params=None,
+      support_tagging_at_creation=False,
   ):
     """Returns the VpnGateway message for an insert request.
 
@@ -70,6 +72,10 @@ class VpnGatewayHelper(object):
       stack_type: Enum presenting the stack type of the vpn gateway resource.
       gateway_ip_version: Enum presenting the gateway IP version of the vpn
         gateway resource.
+      params: Dict representing the resource manager tags for the VPN gateway
+        resource.
+      support_tagging_at_creation: Boolean representing whether tagging is
+        supported at creation time.
 
     Returns:
       The VpnGateway message object that can be used in an insert request.
@@ -87,44 +93,33 @@ class VpnGatewayHelper(object):
           )
       )
 
+    vpn_gateway_args = {
+        'name': name,
+        'description': description,
+        'network': network,
+        'stackType': target_stack_type,
+        'gatewayIpVersion': target_gateway_ip_version,
+    }
+
     if vpn_interfaces_with_interconnect_attachments is not None:
       vpn_interfaces = []
       for key, value in sorted(
-          vpn_interfaces_with_interconnect_attachments.items()):
+          vpn_interfaces_with_interconnect_attachments.items()
+      ):
         vpn_interfaces.append(
             self._messages.VpnGatewayVpnGatewayInterface(
-                id=int(key), interconnectAttachment=six.text_type(value)))
-      if gateway_ip_version is not None:
-        return self._messages.VpnGateway(
-            name=name,
-            description=description,
-            network=network,
-            vpnInterfaces=vpn_interfaces,
-            stackType=target_stack_type,
-            gatewayIpVersion=target_gateway_ip_version,
+                id=int(key), interconnectAttachment=six.text_type(value)
+            )
         )
-      return self._messages.VpnGateway(
-          name=name,
-          description=description,
-          network=network,
-          vpnInterfaces=vpn_interfaces,
-          stackType=target_stack_type,
-      )
-    else:
-      if gateway_ip_version is not None:
-        return self._messages.VpnGateway(
-            name=name,
-            description=description,
-            network=network,
-            stackType=target_stack_type,
-            gatewayIpVersion=target_gateway_ip_version,
-        )
-      return self._messages.VpnGateway(
-          name=name,
-          description=description,
-          network=network,
-          stackType=target_stack_type,
-      )
+      vpn_gateway_args['vpnInterfaces'] = vpn_interfaces
+
+    if (
+        support_tagging_at_creation
+        and params is not None
+    ):
+      vpn_gateway_args['params'] = params
+
+    return self._messages.VpnGateway(**vpn_gateway_args)
 
   def WaitForOperation(self, vpn_gateway_ref, operation_ref, wait_message):
     """Waits for the specified operation to complete and returns the target.
@@ -185,20 +180,43 @@ class VpnGatewayHelper(object):
     return self._resources.Parse(
         operation.selfLink, collection='compute.regionOperations')
 
-  def List(self, project, filter_expr):
+  def List(self, project, filter_expr, regions=None):
     """Yields a VPN Gateway resource from the list of VPN Gateways.
 
     Sends an AggregatedList request to obtain the list of VPN Gateways and
     yields the next VPN Gateway in this list.
 
+    Sends a List request to obtain the list of VPN Gateways in the specified
+    regions and yields the next VPN Gateway in this list.
+
     Args:
       project: String representing the project to use for the request.
       filter_expr: The expression used to filter the results.
+      regions: List of regions to use for the request.
     """
+    if regions:
+      for region in regions:
+        next_page_token = None
+        while True:
+          request = self._messages.ComputeVpnGatewaysListRequest(
+              project=project,
+              region=region,
+              filter=filter_expr,
+              pageToken=next_page_token,
+              returnPartialSuccess=True,
+          )
+          response = self._service.List(request)
+          next_page_token = response.nextPageToken
+          for vpn_gateway in response.items:
+            yield vpn_gateway
+          if not next_page_token:
+            break
+      return
     next_page_token = None
     while True:
       request = self._messages.ComputeVpnGatewaysAggregatedListRequest(
-          project=project, filter=filter_expr, pageToken=next_page_token)
+          project=project, filter=filter_expr, pageToken=next_page_token,
+          returnPartialSuccess=True)
       response = self._service.AggregatedList(request)
       next_page_token = response.nextPageToken
       for scoped_vpn_gateways in response.items.additionalProperties:

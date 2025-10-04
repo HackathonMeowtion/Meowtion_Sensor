@@ -21,9 +21,12 @@ from __future__ import unicode_literals
 from googlecloudsdk.api_lib.container import api_adapter
 from googlecloudsdk.calliope import exceptions as calliope_exceptions
 from googlecloudsdk.core import exceptions
+from googlecloudsdk.core import log
 from googlecloudsdk.core import properties
 from googlecloudsdk.core.console import console_io
+from googlecloudsdk.core.util import iso_duration
 from googlecloudsdk.core.util import text
+from googlecloudsdk.core.util import times
 
 
 class Error(exceptions.Error):
@@ -75,6 +78,44 @@ def _MasterUpgradeMessage(name, server_conf, cluster, new_version):
 
   return ('Master of cluster [{}] will be upgraded from {} to {}.'.format(
       name, version_message, new_version_message))
+
+
+def _RollbackSafeUpgradeMessage(
+    name, server_conf, cluster, new_version, control_plane_soak_duration
+):
+  """Returns the prompt message during a rollback safe upgrade.
+
+  Args:
+    name: str, the name of the cluster being upgraded.
+    server_conf: the server config object.
+    cluster: the cluster object.
+    new_version: str, the name of the new version, if given.
+    control_plane_soak_duration: int, the soak duration in seconds for the
+      control plane upgrade.
+  """
+  if cluster:
+    version_message = 'version [{}]'.format(cluster.currentMasterVersion)
+  else:
+    version_message = 'its current version'
+
+  if not new_version and server_conf:
+    new_version = server_conf.defaultClusterVersion
+
+  if new_version:
+    new_version_message = 'version [{}]'.format(new_version)
+  else:
+    new_version_message = 'the default cluster version'
+
+  soak_duration = times.FormatDurationForJson(
+      iso_duration.Duration(seconds=control_plane_soak_duration)
+  )
+  return (
+      'Control plane of cluster [{}] will be upgraded from {} to {} with a'
+      ' soak duration of {}. You can rollback the cluster to previous version'
+      ' within the soak duration.'.format(
+          name, version_message, new_version_message, soak_duration
+      )
+  )
 
 
 def _NodeUpgradeMessage(name, cluster, node_pool_name, new_version,
@@ -177,6 +218,7 @@ def ClusterUpgradeMessage(name,
                           server_conf=None,
                           cluster=None,
                           master=False,
+                          control_plane_soak_duration=None,
                           node_pool_name=None,
                           new_version=None,
                           new_image_type=None,
@@ -190,6 +232,8 @@ def ClusterUpgradeMessage(name,
     server_conf: the server config object.
     cluster: the cluster object.
     master: bool, if the upgrade applies to the master version.
+    control_plane_soak_duration: int, the soak duration for the control plane
+      upgrade.
     node_pool_name: str, the name of the node pool if the upgrade is for a
       specific node pool.
     new_version: str, the name of the new version, if given.
@@ -206,9 +250,14 @@ def ClusterUpgradeMessage(name,
         to which version.
   """
   if master:
-    upgrade_message = _MasterUpgradeMessage(
-        name, server_conf, cluster, new_version
-    )
+    if control_plane_soak_duration:
+      upgrade_message = _RollbackSafeUpgradeMessage(
+          name, server_conf, cluster, new_version, control_plane_soak_duration
+      )
+    else:
+      upgrade_message = _MasterUpgradeMessage(
+          name, server_conf, cluster, new_version
+      )
   else:
     upgrade_message = _NodeUpgradeMessage(
         name,
@@ -222,16 +271,15 @@ def ClusterUpgradeMessage(name,
     )
 
   return (
-      '{} This operation is long-running and will block other operations '
-      'on the cluster (including delete) until it has run to completion.'
-      .format(upgrade_message)
+      '{} This operation is long-running and will block other operations on'
+      ' the cluster (except other node pool upgrades) until it has run to'
+      ' completion.'.format(upgrade_message)
   )
 
 
-def GetZoneOrRegion(args,
-                    ignore_property=False,
-                    required=True,
-                    is_autopilot=False):
+def GetZoneOrRegion(
+    args, ignore_property=False, required=True, is_autopilot=False
+):
   """Get a location (zone or region) from argument or property.
 
   Args:
@@ -298,6 +346,26 @@ def GetAutoRepair(args):
   ]
 
 
+def CheckReleaseChannel(args):
+  """Checks if the release_channel argument is 'extended' and prints a message.
+
+  Args:
+    args: An object (e.g., from argparse) containing command-line arguments.
+  """
+
+  release_channel = getattr(args, 'release_channel', None)
+
+  if release_channel is None:
+    return
+
+  if release_channel.lower() == 'extended':
+    log.status.Print(
+        'Note: For GKE Standard edition, pay-per-use costs apply when your '
+        'cluster is enrolled in the Extended release channel and your '
+        'cluster\'s minor version enters the extended support period.'
+        )
+
+
 def ParseUpdateOptionsBase(args, locations):
   """Helper function to build ClusterUpdateOptions object from args.
 
@@ -339,25 +407,35 @@ def ParseUpdateOptionsBase(args, locations):
       autoprovisioning_scopes=args.autoprovisioning_scopes,
       autoprovisioning_locations=args.autoprovisioning_locations,
       autoprovisioning_max_surge_upgrade=getattr(
-          args, 'autoprovisioning_max_surge_upgrade', None),
+          args, 'autoprovisioning_max_surge_upgrade', None
+      ),
       autoprovisioning_max_unavailable_upgrade=getattr(
-          args, 'autoprovisioning_max_unavailable_upgrade', None),
+          args, 'autoprovisioning_max_unavailable_upgrade', None
+      ),
       enable_autoprovisioning_surge_upgrade=getattr(
-          args, 'enable_autoprovisioning_surge_upgrade', None),
+          args, 'enable_autoprovisioning_surge_upgrade', None
+      ),
       enable_autoprovisioning_blue_green_upgrade=getattr(
-          args, 'enable_autoprovisioning_blue_green_upgrade', None),
+          args, 'enable_autoprovisioning_blue_green_upgrade', None
+      ),
       autoprovisioning_standard_rollout_policy=getattr(
-          args, 'autoprovisioning_standard_rollout_policy', None),
+          args, 'autoprovisioning_standard_rollout_policy', None
+      ),
       autoprovisioning_node_pool_soak_duration=getattr(
-          args, 'autoprovisioning_node_pool_soak_duration', None),
+          args, 'autoprovisioning_node_pool_soak_duration', None
+      ),
       enable_autoprovisioning_autorepair=getattr(
-          args, 'enable_autoprovisioning_autorepair', None),
+          args, 'enable_autoprovisioning_autorepair', None
+      ),
       enable_autoprovisioning_autoupgrade=getattr(
-          args, 'enable_autoprovisioning_autoupgrade', None),
+          args, 'enable_autoprovisioning_autoupgrade', None
+      ),
       autoprovisioning_min_cpu_platform=getattr(
-          args, 'autoprovisioning_min_cpu_platform', None),
-      autoprovisioning_image_type=getattr(args, 'autoprovisioning_image_type',
-                                          None),
+          args, 'autoprovisioning_min_cpu_platform', None
+      ),
+      autoprovisioning_image_type=getattr(
+          args, 'autoprovisioning_image_type', None
+      ),
       min_cpu=args.min_cpu,
       max_cpu=args.max_cpu,
       min_memory=args.min_memory,
@@ -367,8 +445,20 @@ def ParseUpdateOptionsBase(args, locations):
       logging_variant=args.logging_variant,
       in_transit_encryption=getattr(args, 'in_transit_encryption', None),
       autoprovisioning_resource_manager_tags=(
-          args.autoprovisioning_resource_manager_tags),
-      )
+          args.autoprovisioning_resource_manager_tags
+      ),
+      service_account_verification_keys=(
+          args.service_account_verification_keys
+      ),
+      service_account_signing_keys=args.service_account_signing_keys,
+      control_plane_disk_encryption_key=args.control_plane_disk_encryption_key,
+      boot_disk_provisioned_iops=getattr(
+          args, 'boot_disk_provisioned_iops', None
+      ),
+      boot_disk_provisioned_throughput=getattr(
+          args, 'boot_disk_provisioned_throughput', None
+      ),
+  )
 
   if (args.disable_addons and
       api_adapter.GCEPDCSIDRIVER in args.disable_addons):
@@ -428,4 +518,27 @@ def ParseUpdateOptionsBase(args, locations):
           'PersistentVolumes will also fail to start.',
           cancel_on_no=True)
 
+  if (args.disable_addons and
+      api_adapter.HIGHSCALECHECKPOINTING in args.disable_addons):
+    highscalecheckpointing_disabled = args.disable_addons[
+        api_adapter.HIGHSCALECHECKPOINTING]
+    if highscalecheckpointing_disabled:
+      console_io.PromptContinue(
+          message='If the High Scale Checkpointing is disabled, then any '
+          'pods currently using Volumes owned by the driver '
+          'will fail to terminate. Any new pods that try to use those '
+          'Volumes will also fail to start.',
+          cancel_on_no=True)
+
+  if (args.disable_addons and
+      api_adapter.LUSTRECSIDRIVER in args.disable_addons):
+    lustrecsi_disabled = args.disable_addons[
+        api_adapter.LUSTRECSIDRIVER]
+    if lustrecsi_disabled:
+      console_io.PromptContinue(
+          message='If the Lustre CSI Driver is disabled, then any '
+          'pods currently using PersistentVolumes owned by the driver '
+          'will fail to terminate. Any new pods that try to use those '
+          'PersistentVolumes will also fail to start.',
+          cancel_on_no=True)
   return opts

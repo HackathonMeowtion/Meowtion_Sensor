@@ -19,17 +19,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import contextlib
 import hashlib
-import itertools
 import os
-import pathlib
 import shutil
 import subprocess
 import sys
 import textwrap
-
-import certifi
 
 from googlecloudsdk.core import argv_utils
 from googlecloudsdk.core import config
@@ -43,15 +38,16 @@ from googlecloudsdk.core.console import console_attr
 from googlecloudsdk.core.console import console_io
 from googlecloudsdk.core.console import progress_tracker
 from googlecloudsdk.core.resource import resource_printer
+from googlecloudsdk.core.universe_descriptor import universe_descriptor
 from googlecloudsdk.core.updater import installers
 from googlecloudsdk.core.updater import local_state
+from googlecloudsdk.core.updater import python_manager
 from googlecloudsdk.core.updater import release_notes
 from googlecloudsdk.core.updater import snapshots
 from googlecloudsdk.core.updater import update_check
 from googlecloudsdk.core.util import encoding
 from googlecloudsdk.core.util import files as file_utils
 from googlecloudsdk.core.util import platforms
-
 import six
 from six.moves import map  # pylint: disable=redefined-builtin
 
@@ -105,6 +101,11 @@ BUNDLED_PYTHON_REMOVAL_WARNING = (
     'If you remove it, you may have no way to run this command.\n'
 )
 
+_DONT_CANCEL_MESSAGE = (
+    'Once started, canceling this operation may leave your SDK '
+    'installation in an inconsistent state.'
+)
+
 
 def _HaltIfBundledPythonUnix():
   current_os = platforms.OperatingSystem.Current()
@@ -119,19 +120,6 @@ def _HaltIfBundledPythonUnix():
 def _ContainsBundledPython(components):
   """Return true if components list contains 'bundled python' component(s)."""
   return len(list(set(BUNDLED_PYTHON_COMPONENTS) & set(components))) >= 1
-
-
-@contextlib.contextmanager
-def _EnsureCaCertsRestoredIfDeleted(ca_certs_path):
-  """Restores CA certs to their original location if deleted during update."""
-  original_contents = file_utils.ReadBinaryFileContents(ca_certs_path)
-  try:
-    yield
-  finally:
-    # Recreate the file at its original location if it got deleted.
-    if not os.path.exists(ca_certs_path):
-      file_utils.WriteBinaryFileContents(
-          ca_certs_path, original_contents, create_path=True)
 
 
 def _GetVersionString(component, installed_components):
@@ -368,10 +356,15 @@ class UpdateManager(object):
 
     if not url:
       url = properties.VALUES.component_manager.snapshot_url.Get()
-    if url:
-      if warn:
-        log.warning('You are using an overridden snapshot URL: [%s]', url)
-    else:
+
+    if url and warn:
+      log.warning('You are using an overridden snapshot URL: [%s]', url)
+
+    universe_domain = properties.GetUniverseDomain()
+    if not url and not properties.IsDefaultUniverse():
+      url = self.GetUniverseSnapshotURL(universe_domain)
+
+    if not url:
       url = properties.VALUES.component_manager.original_snapshot_url.Get()
     if not url:
       raise MissingUpdateURLError()
@@ -389,6 +382,11 @@ class UpdateManager(object):
     fixed_version = properties.VALUES.component_manager.fixed_sdk_version.Get()
     self.__fixed_version = fixed_version
     self.__skip_compile_python = skip_compile_python
+
+  def GetUniverseSnapshotURL(self, universe_domain):
+    """Get the snapshot URL based on the current universe domain."""
+    address = 'https://storage.googleapis.com/cloud-cli-release/release/components-2.json'
+    return address.replace('googleapis.com', universe_domain)
 
   def _EnableFallback(self):
     # pylint: disable=line-too-long
@@ -410,36 +408,20 @@ class UpdateManager(object):
     stream.write(msg + '\n')
     stream.flush()
 
-  def _ShouldDoFastUpdate(self, allow_no_backup=False,
-                          fast_mode_impossible=False,
-                          has_components_to_remove=False):
-    """Determine whether we should do an in-place fast update or make a backup.
-
-    This method also ensures the CWD is valid for the mode we are going to use.
+  def _CheckCWD(self, in_place=True, has_components_to_remove=False):
+    """Ensures that the CWD is valid for the update being performed.
 
     Args:
-      allow_no_backup: bool, True if we want to allow the updater to run
-        without creating a backup.  This lets us be in the root directory of the
-        SDK and still do an update.  It is more fragile if there is a failure,
-        so we only do it if necessary.
-      fast_mode_impossible: bool, True if we can't do a fast update for this
-        particular operation (overrides forced fast mode).
+      in_place: bool, Whether we're performing an in-place update vs. replacing
+        with another install state.
       has_components_to_remove: bool, Whether the update operation involves
         removing any components. Affects whether we can perform an in-place
         update from inside the root dir.
 
-    Returns:
-      bool, True if allow_no_backup was True and we are under the SDK root (so
-        we should do a no backup update).
-
     Raises:
       InvalidCWDError: If the command is run from a directory within the SDK
-        root.
+        root that would cause problems when updating.
     """
-    force_fast = properties.VALUES.experimental.fast_component_update.GetBool()
-    if fast_mode_impossible:
-      force_fast = False
-
     cwd = None
     try:
       cwd = os.path.realpath(file_utils.GetCWD())
@@ -448,14 +430,14 @@ class UpdateManager(object):
                 'under SDK root.')
     if not (cwd and file_utils.IsDirAncestorOf(self.__sdk_root, cwd)):
       # Outside of the root entirely, this is always fine.
-      return force_fast
+      return
 
     # We are somewhere under the install root.
-    if ((allow_no_backup or force_fast) and not has_components_to_remove):
-      # If backups are disabled, we can update in place as long as the current
-      # working directory in the install doesn't get deleted out from underneath
-      # us. We know this will be safe if we're not removing any components.
-      return True
+    if in_place and not has_components_to_remove:
+      # We can update in place as long as the current working directory in the
+      # install doesn't get deleted out from underneath us. We know this will be
+      # safe if we're not removing any components.
+      return
 
     # 1) On linux it usually works ok, but then your CWD ends up being in the
     #    backup directory of the SDK, and not in the actual SDK anymore.
@@ -468,21 +450,6 @@ class UpdateManager(object):
         'Your current working directory is inside the Google Cloud CLI install root:'
         ' {root}.  In order to perform this update, run the command from '
         'outside of this directory.'.format(root=self.__sdk_root))
-
-  def _GetDontCancelMessage(self, disable_backup):
-    """Get the message to print before udpates.
-
-    Args:
-      disable_backup: bool, True if we are doing an in place update.
-
-    Returns:
-      str, The message to print, or None.
-    """
-    if disable_backup:
-      return ('Once started, canceling this operation may leave your SDK '
-              'installation in an inconsistent state.')
-    else:
-      return None
 
   def _GetMappingFile(self, filename):
     """Checks if mapping files are present and loads them for further use.
@@ -795,6 +762,12 @@ version [{1}].  To clear your fixed version setting, run:
     if not show_hidden:
       to_print = [c for c in to_print if not c.is_hidden]
 
+    if (
+        properties.VALUES.core.universe_domain.Get()
+        != properties.VALUES.core.universe_domain.default
+    ):
+      to_print = [c for c in to_print if not c.gdu_only]
+
     return to_print, current_version, latest_version
 
   def _GetPrintListOnlyLocal(self):
@@ -922,33 +895,41 @@ version [{1}].  To clear your fixed version setting, run:
         takes a single argument which is the component id.
       first: bool, True if this is the first stacked ProgressBar group.
       last: bool, True if this is the last stacked ProgressBar group.
+
+    Returns:
+      dict, Map of component ID to result of action_func for each component.
     """
+    results_map = {}
     for index, component in enumerate(components):
       label = '{action}: {name}'.format(action=action,
                                         name=component.details.display_name)
       with console_io.ProgressBar(
           label=label, stream=log.status, first=first,
           last=last and index == len(components) - 1) as pb:
-        action_func(component.id, progress_callback=pb.SetProgress)
+        result = action_func(component.id, progress_callback=pb.SetProgress)
+        results_map[component.id] = result
       first = False
+    return results_map
 
-  def _InstallFunction(self, install_state, diff):
+  def _DownloadFunction(self, install_state, diff):
     def Inner(component_id, progress_callback):
-      return install_state.Install(diff.latest, component_id,
-                                   progress_callback=progress_callback,
-                                   command_path='components.update')
+      return install_state.Download(
+          diff.latest, component_id, progress_callback=progress_callback,
+          command_path='components.update')
     return Inner
 
-  def Install(self, components, allow_no_backup=False,
-              throw_if_unattended=False, restart_args=None):
+  def _InstallFunction(self, install_state, diff, downloads_map):
+    def Inner(component_id, progress_callback):
+      return install_state.Install(
+          diff.latest, component_id, downloads_map[component_id],
+          progress_callback=progress_callback)
+    return Inner
+
+  def Install(self, components, throw_if_unattended=False, restart_args=None):
     """Installs the given components at the version you are current on.
 
     Args:
       components: [str], A list of component ids to install.
-      allow_no_backup: bool, True if we want to allow the updater to run
-        without creating a backup.  This lets us be in the root directory of the
-        SDK and still do an update.  It is more fragile if there is a failure,
-        so we only do it if necessary.
       throw_if_unattended: bool, True to throw an exception on prompts when
         not running in interactive mode.
       restart_args: list of str or None. If given, this gcloud command should be
@@ -973,13 +954,12 @@ version [{1}].  To clear your fixed version setting, run:
 
     return self.Update(
         components,
-        allow_no_backup=allow_no_backup,
         throw_if_unattended=throw_if_unattended,
         version=version,
         restart_args=restart_args)
 
-  def Update(self, update_seed=None, allow_no_backup=False,
-             throw_if_unattended=False, version=None, restart_args=None):
+  def Update(self, update_seed=None, throw_if_unattended=False, version=None,
+             restart_args=None):
     """Performs an update of the given components.
 
     If no components are provided, it will attempt to update everything you have
@@ -987,10 +967,6 @@ version [{1}].  To clear your fixed version setting, run:
 
     Args:
       update_seed: list of str, A list of component ids to update.
-      allow_no_backup: bool, True if we want to allow the updater to run
-        without creating a backup.  This lets us be in the root directory of the
-        SDK and still do an update.  It is more fragile if there is a failure,
-        so we only do it if necessary.
       throw_if_unattended: bool, True to throw an exception on prompts when
         not running in interactive mode.
       version: str, The SDK version to update to instead of latest.
@@ -1059,9 +1035,7 @@ version [{1}].  To clear your fixed version setting, run:
     current_version, _ = self._PrintVersions(
         diff, latest_msg=latest_msg)
 
-    disable_backup = self._ShouldDoFastUpdate(
-        allow_no_backup=allow_no_backup,
-        has_components_to_remove=bool(to_remove))
+    self._CheckCWD(in_place=True, has_components_to_remove=bool(to_remove))
     self._PrintPendingAction(
         FilterMetaComponents(
             diff.DetailsForCurrent(to_remove - to_install)), 'removed')
@@ -1078,9 +1052,8 @@ version [{1}].  To clear your fixed version setting, run:
         config.INSTALLATION_CONFIG.version,
         diff.latest.version)
 
-    message = self._GetDontCancelMessage(disable_backup)
     if not console_io.PromptContinue(
-        message=message, throw_if_unattended=throw_if_unattended):
+        message=_DONT_CANCEL_MESSAGE, throw_if_unattended=throw_if_unattended):
       return False
 
     components_to_install = diff.DetailsForLatest(to_install)
@@ -1089,48 +1062,29 @@ version [{1}].  To clear your fixed version setting, run:
     for c in components_to_install:
       metrics.Installs(c.id, c.version.version_string)
 
-    if disable_backup:
-      with execution_utils.UninterruptibleSection(stream=log.status):
-        self.__Write(log.status, 'Performing in place update...\n')
-        # For the in-place update, we're free to delete any Python files as long
-        # as the ones we need have already been imported and loaded into memory.
-        # However, we have to be careful to save the CA certs file in the
-        # gcloud-deps component if it gets removed during the uninstall, since
-        # it's needed to make HTTP requests during the subsequent install. We do
-        # this by restoring the path prior to Install if it was deleted during
-        # Uninstall, then cleaning it up after Install if it's no longer needed
-        # (which could happen if e.g. certifi changes the path in the future).
-        with self._EnsureCaCertsCleanedUpIfObsoleted() as ca_certs_path:
-          with _EnsureCaCertsRestoredIfDeleted(ca_certs_path):
-            self._UpdateWithProgressBar(components_to_remove, 'Uninstalling',
-                                        install_state.Uninstall,
-                                        first=True,
-                                        last=not components_to_install)
-          # CA certs are now restored to their original path (they may get
-          # overwritten during the install).
-          self._UpdateWithProgressBar(components_to_install, 'Installing',
-                                      self._InstallFunction(
-                                          install_state, diff),
-                                      first=not components_to_remove,
-                                      last=True)
-    else:
-      with console_io.ProgressBar(
-          label='Creating update staging area', stream=log.status,
-          last=False) as pb:
-        staging_state = install_state.CloneToStaging(pb.SetProgress)
-      self._UpdateWithProgressBar(components_to_remove, 'Uninstalling',
-                                  staging_state.Uninstall, first=False,
-                                  last=False)
-      self._UpdateWithProgressBar(components_to_install, 'Installing',
-                                  self._InstallFunction(staging_state, diff),
-                                  first=False, last=False)
-      with console_io.ProgressBar(
-          label='Creating backup and activating new installation',
-          stream=log.status, first=False) as pb:
-        install_state.ReplaceWith(staging_state, pb.SetProgress)
+    with execution_utils.UninterruptibleSection(stream=log.status):
+      self.__Write(log.status, 'Performing in place update...\n')
+      downloads_map = self._UpdateWithProgressBar(
+          components_to_install, 'Downloading',
+          self._DownloadFunction(install_state, diff),
+          first=True, last=False)
+      self._UpdateWithProgressBar(
+          components_to_remove, 'Uninstalling',
+          install_state.Uninstall,
+          first=not components_to_install, last=not components_to_install)
+      self._UpdateWithProgressBar(
+          components_to_install, 'Installing',
+          self._InstallFunction(install_state, diff, downloads_map),
+          first=False, last=True)
 
     # Clear deprecated directories for new state
     install_state.ClearDeprecatedDirs()
+    # Older versions of gcloud (< 483.0.0) would save a backup of the previous
+    # install when updating. Since this is no longer the case, explicitly clean
+    # up this directory in case it was left over when updating from an older
+    # such version (otherwise the obsolete backup would stick around
+    # indefinitely).
+    install_state.ClearBackup()
 
     with update_check.UpdateCheckData() as last_update_check:
       # Need to create a new diff because we just updated the SDK and we need
@@ -1141,6 +1095,18 @@ version [{1}].  To clear your fixed version setting, run:
           new_diff.latest, bool(new_diff.AvailableUpdates()), force=True)
 
     self._PostProcess(snapshot=diff.latest)
+
+    try:
+      universe_descriptor_data = universe_descriptor.UniverseDescriptor()
+      universe_descriptor_data.UpdateAllDescriptors()
+    except Exception as e:  # pylint: disable=broad-except
+      log.warning(
+          'Failed to update universe descriptors: %s',
+          e,
+      )
+
+    # Install Python on Mac if not already installed.
+    python_manager.PromptAndInstallPythonOnMac()
 
     sha256dict2 = self._HashRcfiles(_SHELL_RCFILES)
     if sha256dict1 != sha256dict2:
@@ -1182,70 +1148,6 @@ To revert your CLI to the previously installed version, you may run:
   """.format('\n  '.join(duplicate_commands)))
 
     return True
-
-  @contextlib.contextmanager
-  def _EnsureCaCertsCleanedUpIfObsoleted(self):
-    """Context manager that cleans up CA certs file upon exit if it's obsolete.
-
-    When performing an in-place update, we restore the CA certs file to its
-    original location if the component containing it needed to be removed. It's
-    possible, however, that a newer version of gcloud gets the CA certs file
-    from a different path (e.g. if there's a change to certifi or gcloud's
-    directory structure at some point in the future). In that case, we want to
-    ensure we clean up the old path once it's no longer needed to make requests
-    (i.e. just after installing the new components), rather than have it lying
-    around forever in the install dir. This context manager takes care of that.
-
-    Yields:
-      str, Path to the existing CA certs file.
-    """
-    ca_certs_path = (
-        properties.VALUES.core.custom_ca_certs_file.Get() or certifi.where())
-    # We compare the installed paths before/after the update to determine if the
-    # original CA certs path was removed from the manifests. Technically we need
-    # only look at the final state manifests, but doing it this way provides a
-    # greater assurance that we're dealing with the right path since we'll know
-    # it was present initially and then absent subsequently, vs. just looking at
-    # the final state and mistakenly removing the file if it appears absent due
-    # to some faulty relative path comparison or whatever (this would result in
-    # bricked installs and would be very bad, so we're more defensive here).
-    initial_state = self._GetInstallState()
-    initial_components = initial_state.InstalledComponents()
-    initial_paths = set(
-        itertools.chain.from_iterable(
-            manifest.InstalledPaths()
-            for manifest in initial_components.values()))
-    try:
-      yield ca_certs_path
-    finally:
-      current_state = self._GetInstallState()
-      current_components = current_state.InstalledComponents()
-      current_paths = set(
-          itertools.chain.from_iterable(
-              manifest.InstalledPaths()
-              for manifest in current_components.values()))
-      removed_paths = initial_paths - current_paths
-      # We want to compare this to the paths stored in the manifests, which are
-      # relative to the install dir and use Posix representations.
-      try:
-        relative_ca_certs_path = (
-            pathlib.Path(ca_certs_path).resolve()
-            .relative_to(pathlib.Path(self.__sdk_root).resolve())
-            .as_posix())
-      except ValueError:
-        # CA certs are not relative to SDK root, no need to do anything further.
-        pass  # Pass instead of return to avoid swallowing 'with' exceptions.
-      else:
-        if relative_ca_certs_path in removed_paths:
-          os.remove(ca_certs_path)
-          # Also clean up any parent folders that we might have created when
-          # restoring the CA certs file if they're now empty.
-          dir_path = os.path.dirname(os.path.normpath(relative_ca_certs_path))
-          full_dir_path = os.path.join(self.__sdk_root, dir_path)
-          while dir_path and not os.listdir(full_dir_path):
-            os.rmdir(full_dir_path)
-            dir_path = os.path.dirname(dir_path)
-            full_dir_path = os.path.join(self.__sdk_root, dir_path)
 
   def _HandleBadComponentInstallState(self, update_seed, to_install):
     """Deal with bad install state of kubectl component on darwin-arm machines.
@@ -1376,15 +1278,11 @@ To revert your CLI to the previously installed version, you may run:
     """
     return self._FindToolsOnPath(path=path, duplicates=True, other=False)
 
-  def Remove(self, ids, allow_no_backup=False):
+  def Remove(self, ids):
     """Uninstalls the given components.
 
     Args:
       ids: list of str, The component ids to uninstall.
-      allow_no_backup: bool, True if we want to allow the updater to run
-        without creating a backup.  This lets us be in the root directory of the
-        SDK and still do an update.  It is more fragile if there is a failure,
-        so we only do it if necessary.
 
     Raises:
       InvalidComponentError: If any of the given component ids are not
@@ -1422,8 +1320,7 @@ To revert your CLI to the previously installed version, you may run:
       self.__Write(log.status, 'No components to remove.\n')
       return
 
-    disable_backup = self._ShouldDoFastUpdate(
-        allow_no_backup=allow_no_backup, has_components_to_remove=True)
+    self._CheckCWD(in_place=True, has_components_to_remove=True)
     components_to_remove = sorted(snapshot.ComponentsFromIds(to_remove),
                                   key=lambda c: c.details.display_name)
     components_to_display = FilterMetaComponents(
@@ -1440,28 +1337,14 @@ To revert your CLI to the previously installed version, you may run:
       log.warning(BUNDLED_PYTHON_REMOVAL_WARNING)
     self._RestartIfUsingBundledPython()
 
-    message = self._GetDontCancelMessage(disable_backup)
-    if not console_io.PromptContinue(message):
+    if not console_io.PromptContinue(_DONT_CANCEL_MESSAGE):
       return
 
-    if disable_backup:
-      with execution_utils.UninterruptibleSection(stream=log.status):
-        self.__Write(log.status, 'Performing in place update...\n')
-        self._UpdateWithProgressBar(components_to_remove, 'Uninstalling',
-                                    install_state.Uninstall, first=True,
-                                    last=True)
-    else:
-      with console_io.ProgressBar(
-          label='Creating update staging area', stream=log.status,
-          last=False) as pb:
-        staging_state = install_state.CloneToStaging(pb.SetProgress)
+    with execution_utils.UninterruptibleSection(stream=log.status):
+      self.__Write(log.status, 'Performing in place update...\n')
       self._UpdateWithProgressBar(components_to_remove, 'Uninstalling',
-                                  staging_state.Uninstall, first=False,
-                                  last=False)
-      with console_io.ProgressBar(
-          label='Creating backup and activating new installation',
-          stream=log.status, first=False) as pb:
-        install_state.ReplaceWith(staging_state, pb.SetProgress)
+                                  install_state.Uninstall, first=True,
+                                  last=True)
 
     self._PostProcess()
 
@@ -1478,9 +1361,7 @@ To revert your CLI to the previously installed version, you may run:
     if not install_state.HasBackup():
       raise NoBackupError('There is currently no backup to restore.')
 
-    self._ShouldDoFastUpdate(
-        allow_no_backup=False, fast_mode_impossible=True,
-        has_components_to_remove=False)
+    self._CheckCWD(in_place=False, has_components_to_remove=False)
     # Ensure we have the rights to update the SDK now that we know an update is
     # necessary.
     config.EnsureSDKWriteAccess(self.__sdk_root)
@@ -1570,9 +1451,7 @@ To revert your CLI to the previously installed version, you may run:
     if not answer:
       return False
 
-    self._ShouldDoFastUpdate(
-        allow_no_backup=False, fast_mode_impossible=True,
-        has_components_to_remove=False)
+    self._CheckCWD(in_place=False, has_components_to_remove=False)
     install_state = self._GetInstallState()
 
     try:
@@ -1741,58 +1620,10 @@ prompt, or run:
           log.debug('Post-processing command exited non-zero')
           raise PostProcessingError()
     except PostProcessingError:
-      log.warning('Post processing failed.  Run `gcloud info --show-log` '
-                  'to view the failures.')
-      self._LegacyPostProcess(snapshot)
-
-  def _LegacyPostProcess(self, snapshot=None):
-    """Runs the gcloud command to post process the update.
-
-    This runs gcloud as a subprocess so that the new version of gcloud (the one
-    we just updated to) is run instead of the old code (which is running here).
-    We do this so the new code can say how to correctly post process itself.
-
-    Args:
-      snapshot: ComponentSnapshot, The component snapshot for the version
-        we are updating do. The location of gcloud and the command to run can
-        change from version to version, which is why we try to pull this
-        information from the latest snapshot.  For a restore operation, we don't
-        have that information so we fall back to a best effort default.
-    """
-    log.debug('Legacy post-processing...')
-    command = None
-    gcloud_path = None
-    if snapshot:
-      if snapshot.sdk_definition.post_processing_command:
-        command = snapshot.sdk_definition.post_processing_command.split(' ')
-      if snapshot.sdk_definition.gcloud_rel_path:
-        gcloud_path = os.path.join(self.__sdk_root,
-                                   snapshot.sdk_definition.gcloud_rel_path)
-    command = command or ['components', 'post-process']
-    if self.__skip_compile_python:
-      command.append('--no-compile-python')
-    gcloud_path = gcloud_path or config.GcloudPath()
-
-    args = execution_utils.ArgsForPythonTool(gcloud_path, *command)
-    try:
-      with progress_tracker.ProgressTracker(
-          message='Performing post processing steps', tick_delay=.25):
-        # Raise PostProcessingError for all failures so the progress tracker
-        # will report the failure.
-        try:
-          ret_val = execution_utils.Exec(args, no_exit=True,
-                                         out_func=log.file_only_logger.debug,
-                                         err_func=log.file_only_logger.debug)
-        except (OSError, execution_utils.InvalidCommandError,
-                execution_utils.PermissionError):
-          log.debug('Failed to execute post-processing command', exc_info=True)
-          raise PostProcessingError()
-        if ret_val:
-          log.debug('Post-processing command exited non-zero')
-          raise PostProcessingError()
-    except PostProcessingError:
-      log.warning('Post processing failed.  Run `gcloud info --show-log` '
-                  'to view the failures.')
+      log.warning(
+          'Post processing failed.  Run `gcloud info --show-log` '
+          'to view the failures.'
+      )
 
 
 def CopyPython():

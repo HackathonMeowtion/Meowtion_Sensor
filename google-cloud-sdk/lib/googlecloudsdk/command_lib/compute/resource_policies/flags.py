@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*- #
-# Copyright 2018 Google LLC. All Rights Reserved.
+# Copyright 2024 Google LLC. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ from __future__ import unicode_literals
 
 from googlecloudsdk.calliope import arg_parsers
 from googlecloudsdk.calliope import base
+from googlecloudsdk.command_lib.compute import completers as compute_completers
 from googlecloudsdk.command_lib.compute import flags as compute_flags
 from googlecloudsdk.command_lib.util.apis import arg_utils
 from googlecloudsdk.command_lib.util.args import labels_util
@@ -137,6 +138,71 @@ def AddCommonArgs(parser):
       help='An optional, textual description for the backend.')
 
 
+def AddTypeArgsForWorkloadPolicy(parser):
+  """Set arguments for workload-type for workload policies."""
+  choices = {
+      'HIGH_AVAILABILITY': (
+          'For workloads that aim to be highly available. Common examples'
+          ' are web / ML serving, or distributed database clusters. Compute'
+          ' Engine spreads VMs at best-effort to improve reliability of the'
+          ' distributed infrastructure.'
+      ),
+      'HIGH_THROUGHPUT': (
+          'For high throughput distributed workloads eg. HPC or ML'
+          ' training. Compute Engine collocates VMs at best-effort to'
+          ' reduce network latency between VMs.'
+      ),
+  }
+
+  parser.add_argument(
+      '--type',
+      required=True,
+      choices=choices,
+      type=arg_utils.ChoiceToEnumName,
+      help=(
+          'Type of the workload policy defining the high-level intent of the'
+          ' cluster.'
+      ),
+  )
+
+
+def AddMaxTopologyDistanceAndAcceleratorTopologyArgsForWorkloadPolicy(parser):
+  """Set arguments for max-topology-distance and accelerator-topology for workload policies."""
+  group = parser.add_mutually_exclusive_group()
+  group.add_argument(
+      '--accelerator-topology',
+      type=str,
+      help=(
+          'Specifies the topology of placement and interconnection performance'
+          ' required to create a slice of VMs with interconnected accelerators.'
+      ),
+  )
+  choices = {
+      'CLUSTER': (
+          'VMs are placed within the same cluster of capacity with improved'
+          ' latency between them.'
+      ),
+      'BLOCK': (
+          'VMs are placed within the same block of capacity with improved'
+          ' latency compared to Cluster.'
+      ),
+      'SUBBLOCK': (
+          'Tightest collocation of VMs that provides minimized network'
+          ' latency. VMs are placed within the same rack of capacity with'
+          ' improved latency compared to Block.'
+      ),
+  }
+  group.add_argument(
+      '--max-topology-distance',
+      choices=choices,
+      type=arg_utils.ChoiceToEnumName,
+      help=(
+          'Specifies the topology of placement and interconnection network'
+          ' performance of the group of VMs (MIG / Multi-MIGs).'
+      ),
+  )
+
+
 def GetOnSourceDiskDeleteFlagMapper(messages):
   return arg_utils.ChoiceEnumMapper(
       '--on-source-disk-delete',
@@ -157,7 +223,7 @@ def GetOnSourceDiskDeleteFlagMapper(messages):
       'source disk deletion.')
 
 
-def AddSnapshotScheduleArgs(parser, messages):
+def AddSnapshotScheduleArgs(parser, messages, support_snapshot_region=False):
   """Adds flags specific to snapshot schedule resource policies."""
   AddSnapshotMaxRetentionDaysArgs(parser)
   AddOnSourceDiskDeleteArgs(parser, messages)
@@ -168,7 +234,53 @@ def AddSnapshotScheduleArgs(parser, messages):
       action='store_true',
       help='Create an application consistent snapshot by informing the OS to '
            'prepare for the snapshot process.')
-  compute_flags.AddStorageLocationFlag(snapshot_properties_group, 'snapshot')
+  snapshot_location_group = snapshot_properties_group.add_group(
+      mutex=True,
+  )
+  compute_flags.AddStorageLocationFlag(snapshot_location_group, 'snapshot')
+  if support_snapshot_region:
+    snapshot_location_group.add_argument(
+        '--snapshot-region',
+        help='Region where the snapshot is scoped to.',
+        completer=compute_completers.RegionsCompleter,
+    )
+
+
+def AddInstanceScheduleArgs(parser):
+  """Adds flags specific to instance schedule resource policies."""
+  parser.add_argument(
+      '--timezone',
+      help="""
+      Timezone used in interpreting schedule. The value of this field must be
+      a time zone name from the tz database
+      http://en.wikipedia.org/wiki/Tz_database
+    """,
+  )
+  parser.add_argument(
+      '--vm-start-schedule',
+      help="""
+      Schedule for starting the instance, specified using standard CRON format.
+    """,
+  )
+  parser.add_argument(
+      '--vm-stop-schedule',
+      help="""
+      Schedule for stopping the instance, specified using standard CRON format.
+    """,
+  )
+  parser.add_argument(
+      '--initiation-date',
+      type=arg_parsers.Datetime.Parse,
+      help="""
+     The start time of the schedule policy. The timestamp must be
+     an RFC3339 valid string.""",
+  )
+  parser.add_argument(
+      '--end-date',
+      type=arg_parsers.Datetime.Parse,
+      help="""The expiration time of the schedule policy. The timestamp must be
+        an RFC3339 valid string.""",
+  )
 
 
 def AddSnapshotMaxRetentionDaysArgs(parser, required=True):
@@ -221,6 +333,14 @@ def AddGroupPlacementArgs(parser, messages, track):
         type=arg_parsers.BoundedInt(lower_bound=1, upper_bound=3),
         help='Specifies the number of max logical switches between VMs.'
     )
+  parser.add_argument(
+      '--gpu-topology',
+      type=str,
+      help=(
+          'Specifies the shape of the GPU slice, in slice based GPU families'
+          ' eg. A4X.'
+      ),
+  )
 
 
 def GetCollocationFlagMapper(messages, track):

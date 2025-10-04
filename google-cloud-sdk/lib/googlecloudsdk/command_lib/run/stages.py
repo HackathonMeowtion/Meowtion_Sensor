@@ -23,11 +23,14 @@ from googlecloudsdk.core.console import progress_tracker
 
 READY = 'Ready'
 SERVICE_IAM_POLICY_SET = 'IamPolicySet'
+SERVICE_IAP_ENABLE = 'IapEnable'
 SERVICE_ROUTES_READY = 'RoutesReady'
 SERVICE_CONFIGURATIONS_READY = 'ConfigurationsReady'
+MULTI_REGION_READY_PREFIX = 'MultiRegionReady/'
 BUILD_READY = 'BuildReady'
 UPLOAD_SOURCE = 'UploadSource'
 CREATE_REPO = 'CreateRepo'
+VALIDATE_SERVICE = 'ValidateService'
 
 _RESOURCES_AVAILABLE = 'ResourcesAvailable'
 _STARTED = 'Started'
@@ -38,6 +41,10 @@ def _CreateRepoStage():
   return progress_tracker.Stage(
       'Creating Container Repository...', key=CREATE_REPO
   )
+
+
+def _ValidateServiceStage():
+  return progress_tracker.Stage('Validating Service...', key=VALIDATE_SERVICE)
 
 
 def _UploadSourceStage():
@@ -74,24 +81,40 @@ def UpdateInstanceSplitStages():
 def ServiceStages(
     include_iam_policy_set=False,
     include_route=True,
+    include_validate_service=False,
+    include_upload_source=False,
     include_build=False,
     include_create_repo=False,
     include_create_revision=True,
+    include_iap=False,
+    regions_list=None,
 ):
   """Return the progress tracker Stages for conditions of a Service."""
   stages = []
   if include_create_repo:
     stages.append(_CreateRepoStage())
-  if include_build:
+  if include_validate_service:
+    stages.append(_ValidateServiceStage())
+  if include_upload_source:
     stages.append(_UploadSourceStage())
+  if include_build:
     stages.append(_BuildContainerStage())
   if include_create_revision:
-    stages.append(
-        progress_tracker.Stage(
-            'Creating Revision...', key=SERVICE_CONFIGURATIONS_READY
+    if not regions_list:
+      stages.append(
+          progress_tracker.Stage(
+              'Creating Revision...', key=SERVICE_CONFIGURATIONS_READY
+          )
+      )
+    else:
+      for region in regions_list:
+        stages.append(
+            progress_tracker.Stage(
+                'Creating Revision in region: ' + region,
+                key=MULTI_REGION_READY_PREFIX + region,
+            )
         )
-    )
-  if include_route:
+  if include_route and not regions_list:
     stages.append(_NewRoutingTrafficStage())
   if include_iam_policy_set:
     stages.append(
@@ -99,11 +122,22 @@ def ServiceStages(
             'Setting IAM Policy...', key=SERVICE_IAM_POLICY_SET
         )
     )
+  if include_iap:
+    stages.append(
+        progress_tracker.Stage(
+            'Setting IAP service agent...', key=SERVICE_IAP_ENABLE
+        )
+    )
   return stages
 
 
-def ServiceDependencies():
+def ServiceDependencies(regions_list):
   """Dependencies for the Service resource, for passing to ConditionPoller."""
+  if regions_list:
+    return {
+        MULTI_REGION_READY_PREFIX + region: {SERVICE_CONFIGURATIONS_READY}
+        for region in regions_list
+    }
   return {SERVICE_ROUTES_READY: {SERVICE_CONFIGURATIONS_READY}}
 
 
@@ -148,14 +182,12 @@ def ExecutionDependencies():
   return {_STARTED: {_RESOURCES_AVAILABLE}, _COMPLETED: {_STARTED}}
 
 
-# TODO(b/322180315): Once Worker's API is ready,
-# replace Service/Configuration related references.
-def WorkerStages(
+def WorkerPoolStages(
     include_build=False,
     include_create_repo=False,
     include_create_revision=True,
 ):
-  """Return the progress tracker Stages for conditions of a Worker."""
+  """Return the progress tracker Stages for conditions of a Worker Pool."""
   stages = []
   if include_create_repo:
     stages.append(_CreateRepoStage())
@@ -163,9 +195,5 @@ def WorkerStages(
     stages.append(_UploadSourceStage())
     stages.append(_BuildContainerStage())
   if include_create_revision:
-    stages.append(
-        progress_tracker.Stage(
-            'Creating Revision...', key=SERVICE_CONFIGURATIONS_READY
-        )
-    )
+    stages.append(progress_tracker.Stage('Creating Revision...', key=READY))
   return stages

@@ -18,27 +18,62 @@ class CancelOperationRequest(_messages.Message):
 
 
 class DestinationGcsBucket(_messages.Message):
-  r"""Google Cloud Storage as a destination.
+  r"""Cloud Storage as the destination of a data transfer.
 
   Fields:
-    uri: Required. URI to a Cloud Storage object in format: 'gs:///'.
+    uri: Required. URI to a Cloud Storage bucket in the format: `gs:///`. The
+      path inside the bucket is optional.
   """
 
   uri = _messages.StringField(1)
 
 
 class DestinationParallelstore(_messages.Message):
-  r"""Parallelstore as a destination.
+  r"""Parallelstore as the destination of a data transfer.
 
   Fields:
     path: Optional. Root directory path to the Paralellstore filesystem,
-      starting with '/'. Defaults to '/' if unset.
+      starting with `/`. Defaults to `/` if unset.
   """
 
   path = _messages.StringField(1)
 
 
-class Empty(_messages.Message):
+class ExportDataRequest(_messages.Message):
+  r"""Export data from Parallelstore to Cloud Storage.
+
+  Fields:
+    destinationGcsBucket: Cloud Storage destination.
+    metadataOptions: Optional. The metadata options for the export data.
+    requestId: Optional. An optional request ID to identify requests. Specify
+      a unique request ID so that if you must retry your request, the server
+      will know to ignore the request if it has already been completed. The
+      server will guarantee that for at least 60 minutes since the first
+      request. For example, consider a situation where you make an initial
+      request and the request times out. If you make the request again with
+      the same request ID, the server can check if original operation with the
+      same request ID was received, and if so, will ignore the second request.
+      This prevents clients from accidentally creating duplicate commitments.
+      The request ID must be a valid UUID with the exception that zero UUID is
+      not supported (00000000-0000-0000-0000-000000000000).
+    serviceAccount: Optional. User-specified Service Account (SA) credentials
+      to be used when performing the transfer. Use one of the following
+      formats: * `{EMAIL_ADDRESS_OR_UNIQUE_ID}` * `projects/{PROJECT_ID_OR_NUM
+      BER}/serviceAccounts/{EMAIL_ADDRESS_OR_UNIQUE_ID}` *
+      `projects/-/serviceAccounts/{EMAIL_ADDRESS_OR_UNIQUE_ID}` If
+      unspecified, the Parallelstore service agent is used: `service-@gcp-sa-
+      parallelstore.iam.gserviceaccount.com`
+    sourceParallelstore: Parallelstore source.
+  """
+
+  destinationGcsBucket = _messages.MessageField('DestinationGcsBucket', 1)
+  metadataOptions = _messages.MessageField('TransferMetadataOptions', 2)
+  requestId = _messages.StringField(3)
+  serviceAccount = _messages.StringField(4)
+  sourceParallelstore = _messages.MessageField('SourceParallelstore', 5)
+
+
+class GoogleProtobufEmpty(_messages.Message):
   r"""A generic empty message that you can re-use to avoid defining duplicated
   empty messages in your APIs. A typical example is to use it as the request
   or the response type of an API method. For instance: service Foo { rpc
@@ -47,127 +82,171 @@ class Empty(_messages.Message):
 
 
 
-class ExportDataRequest(_messages.Message):
-  r"""Message representing the request exporting data from Cloud Storage to
-  parallelstore.
-
-  Fields:
-    destinationGcsBucket: Cloud Storage destination.
-    requestId: Optional. An optional request ID to identify requests. Specify
-      a unique request ID so that if you must retry your request, the server
-      will know to ignore the request if it has already been completed. The
-      server will guarantee that for at least 60 minutes since the first
-      request. For example, consider a situation where you make an initial
-      request and t he request times out. If you make the request again with
-      the same request ID, the server can check if original operation with the
-      same request ID was received, and if so, will ignore the second request.
-      This prevents clients from accidentally creating duplicate commitments.
-      The request ID must be a valid UUID with the exception that zero UUID is
-      not supported (00000000-0000-0000-0000-000000000000).
-    sourceParallelstore: Parallelstore source.
-  """
-
-  destinationGcsBucket = _messages.MessageField('DestinationGcsBucket', 1)
-  requestId = _messages.StringField(2)
-  sourceParallelstore = _messages.MessageField('SourceParallelstore', 3)
-
-
 class ImportDataRequest(_messages.Message):
-  r"""Message representing the request importing data from parallelstore to
-  Cloud Storage.
+  r"""Import data from Cloud Storage into a Parallelstore instance.
 
   Fields:
     destinationParallelstore: Parallelstore destination.
+    metadataOptions: Optional. The transfer metadata options for the import
+      data.
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
       will know to ignore the request if it has already been completed. The
       server will guarantee that for at least 60 minutes since the first
       request. For example, consider a situation where you make an initial
-      request and t he request times out. If you make the request again with
+      request and the request times out. If you make the request again with
       the same request ID, the server can check if original operation with the
       same request ID was received, and if so, will ignore the second request.
       This prevents clients from accidentally creating duplicate commitments.
       The request ID must be a valid UUID with the exception that zero UUID is
       not supported (00000000-0000-0000-0000-000000000000).
-    sourceGcsBucket: Cloud Storage source.
+    serviceAccount: Optional. User-specified service account credentials to be
+      used when performing the transfer. Use one of the following formats: *
+      `{EMAIL_ADDRESS_OR_UNIQUE_ID}` * `projects/{PROJECT_ID_OR_NUMBER}/servic
+      eAccounts/{EMAIL_ADDRESS_OR_UNIQUE_ID}` *
+      `projects/-/serviceAccounts/{EMAIL_ADDRESS_OR_UNIQUE_ID}` If
+      unspecified, the Parallelstore service agent is used: `service-@gcp-sa-
+      parallelstore.iam.gserviceaccount.com`
+    sourceGcsBucket: The Cloud Storage source bucket and, optionally, path
+      inside the bucket.
   """
 
   destinationParallelstore = _messages.MessageField('DestinationParallelstore', 1)
-  requestId = _messages.StringField(2)
-  sourceGcsBucket = _messages.MessageField('SourceGcsBucket', 3)
+  metadataOptions = _messages.MessageField('TransferMetadataOptions', 2)
+  requestId = _messages.StringField(3)
+  serviceAccount = _messages.StringField(4)
+  sourceGcsBucket = _messages.MessageField('SourceGcsBucket', 5)
 
 
 class Instance(_messages.Message):
   r"""A Parallelstore instance.
 
   Enums:
+    DeploymentTypeValueValuesEnum: Optional. Immutable. The deployment type of
+      the instance. Allowed values are: * `SCRATCH`: the instance is a scratch
+      instance. * `PERSISTENT`: the instance is a persistent instance.
+    DirectoryStripeLevelValueValuesEnum: Optional. Immutable. Stripe level for
+      directories. Allowed values are: * `DIRECTORY_STRIPE_LEVEL_MIN`:
+      recommended when directories contain a small number of files. *
+      `DIRECTORY_STRIPE_LEVEL_BALANCED`: balances performance for workloads
+      involving a mix of small and large directories. *
+      `DIRECTORY_STRIPE_LEVEL_MAX`: recommended for directories with a large
+      number of files.
+    FileStripeLevelValueValuesEnum: Optional. Immutable. Stripe level for
+      files. Allowed values are: * `FILE_STRIPE_LEVEL_MIN`: offers the best
+      performance for small size files. * `FILE_STRIPE_LEVEL_BALANCED`:
+      balances performance for workloads involving a mix of small and large
+      files. * `FILE_STRIPE_LEVEL_MAX`: higher throughput performance for
+      larger files.
     StateValueValuesEnum: Output only. The instance state.
 
   Messages:
     LabelsValue: Optional. Cloud Labels are a flexible and lightweight
       mechanism for organizing cloud resources into groups that reflect a
-      customer's organizational needs and deployment strategies. Cloud Labels
-      can be used to filter collections of resources. They can be used to
-      control how resource metrics are aggregated. And they can be used as
-      arguments to policy management rules (e.g. route, firewall, load
-      balancing, etc.). * Label keys must be between 1 and 63 characters long
-      and must conform to the following regular expression: `a-z{0,62}`. *
-      Label values must be between 0 and 63 characters long and must conform
-      to the regular expression `[a-z0-9_-]{0,63}`. * No more than 64 labels
-      can be associated with a given resource. See https://goo.gl/xmQnxf for
-      more information on and examples of labels. If you plan to use labels in
-      your own code, please note that additional characters may be allowed in
-      the future. Therefore, you are advised to use an internal label
-      representation, such as JSON, which doesn't rely upon specific
-      characters being disallowed. For example, representing labels as the
-      string: name + "_" + value would prove problematic if we were to allow
-      "_" in a future release.
+      customer's organizational needs and deployment strategies. See
+      https://cloud.google.com/resource-manager/docs/labels-overview for
+      details.
 
   Fields:
-    accessPoints: Output only. List of access_points. Contains a list of IPv4
-      addresses used for client side configuration.
-    capacityGib: Required. Immutable. Storage capacity of Parallelstore
-      instance in Gibibytes (GiB).
+    accessPoints: Output only. A list of IPv4 addresses used for client side
+      configuration.
+    capacityGib: Required. Immutable. The instance's storage capacity in
+      Gibibytes (GiB). Allowed values are between 12000 and 100000, in
+      multiples of 4000; e.g., 12000, 16000, 20000, ...
     createTime: Output only. The time when the instance was created.
-    daosVersion: Output only. The version of DAOS software running in the
-      instance
+    daosVersion: Output only. Deprecated: The version of DAOS software running
+      in the instance.
+    deploymentType: Optional. Immutable. The deployment type of the instance.
+      Allowed values are: * `SCRATCH`: the instance is a scratch instance. *
+      `PERSISTENT`: the instance is a persistent instance.
     description: Optional. The description of the instance. 2048 characters or
       less.
-    effectiveReservedIpRange: Output only. Immutable. Contains the id of the
-      allocated IP address range associated with the private service access
-      connection for example, "test-default" associated with IP range
-      10.0.0.0/29. This field is populated by the service and and contains the
-      value currently used by the service.
+    directoryStripeLevel: Optional. Immutable. Stripe level for directories.
+      Allowed values are: * `DIRECTORY_STRIPE_LEVEL_MIN`: recommended when
+      directories contain a small number of files. *
+      `DIRECTORY_STRIPE_LEVEL_BALANCED`: balances performance for workloads
+      involving a mix of small and large directories. *
+      `DIRECTORY_STRIPE_LEVEL_MAX`: recommended for directories with a large
+      number of files.
+    effectiveReservedIpRange: Output only. Immutable. The ID of the IP address
+      range being used by the instance's VPC network. This field is populated
+      by the service and contains the value currently used by the service.
+    fileStripeLevel: Optional. Immutable. Stripe level for files. Allowed
+      values are: * `FILE_STRIPE_LEVEL_MIN`: offers the best performance for
+      small size files. * `FILE_STRIPE_LEVEL_BALANCED`: balances performance
+      for workloads involving a mix of small and large files. *
+      `FILE_STRIPE_LEVEL_MAX`: higher throughput performance for larger files.
     labels: Optional. Cloud Labels are a flexible and lightweight mechanism
       for organizing cloud resources into groups that reflect a customer's
-      organizational needs and deployment strategies. Cloud Labels can be used
-      to filter collections of resources. They can be used to control how
-      resource metrics are aggregated. And they can be used as arguments to
-      policy management rules (e.g. route, firewall, load balancing, etc.). *
-      Label keys must be between 1 and 63 characters long and must conform to
-      the following regular expression: `a-z{0,62}`. * Label values must be
-      between 0 and 63 characters long and must conform to the regular
-      expression `[a-z0-9_-]{0,63}`. * No more than 64 labels can be
-      associated with a given resource. See https://goo.gl/xmQnxf for more
-      information on and examples of labels. If you plan to use labels in your
-      own code, please note that additional characters may be allowed in the
-      future. Therefore, you are advised to use an internal label
-      representation, such as JSON, which doesn't rely upon specific
-      characters being disallowed. For example, representing labels as the
-      string: name + "_" + value would prove problematic if we were to allow
-      "_" in a future release.
+      organizational needs and deployment strategies. See
+      https://cloud.google.com/resource-manager/docs/labels-overview for
+      details.
     name: Identifier. The resource name of the instance, in the format
-      `projects/{project}/locations/{location}/instances/{instance_id}`
-    network: Optional. Immutable. The name of the Google Compute Engine [VPC
+      `projects/{project}/locations/{location}/instances/{instance_id}`.
+    network: Optional. Immutable. The name of the Compute Engine [VPC
       network](https://cloud.google.com/vpc/docs/vpc) to which the instance is
       connected.
-    reservedIpRange: Optional. Immutable. Contains the id of the allocated IP
-      address range associated with the private service access connection for
-      example, "test-default" associated with IP range 10.0.0.0/29. If no
-      range id is provided all ranges will be considered.
+    reservedIpRange: Optional. Immutable. The ID of the IP address range being
+      used by the instance's VPC network. See [Configure a VPC network](https:
+      //cloud.google.com/parallelstore/docs/vpc#create_and_configure_the_vpc).
+      If no ID is provided, all ranges are considered.
     state: Output only. The instance state.
     updateTime: Output only. The time when the instance was updated.
   """
+
+  class DeploymentTypeValueValuesEnum(_messages.Enum):
+    r"""Optional. Immutable. The deployment type of the instance. Allowed
+    values are: * `SCRATCH`: the instance is a scratch instance. *
+    `PERSISTENT`: the instance is a persistent instance.
+
+    Values:
+      DEPLOYMENT_TYPE_UNSPECIFIED: Default Deployment Type It is equivalent to
+        SCRATCH
+      SCRATCH: Scratch
+      PERSISTENT: Persistent
+    """
+    DEPLOYMENT_TYPE_UNSPECIFIED = 0
+    SCRATCH = 1
+    PERSISTENT = 2
+
+  class DirectoryStripeLevelValueValuesEnum(_messages.Enum):
+    r"""Optional. Immutable. Stripe level for directories. Allowed values are:
+    * `DIRECTORY_STRIPE_LEVEL_MIN`: recommended when directories contain a
+    small number of files. * `DIRECTORY_STRIPE_LEVEL_BALANCED`: balances
+    performance for workloads involving a mix of small and large directories.
+    * `DIRECTORY_STRIPE_LEVEL_MAX`: recommended for directories with a large
+    number of files.
+
+    Values:
+      DIRECTORY_STRIPE_LEVEL_UNSPECIFIED: If not set, DirectoryStripeLevel
+        will default to DIRECTORY_STRIPE_LEVEL_MAX
+      DIRECTORY_STRIPE_LEVEL_MIN: Minimum directory striping
+      DIRECTORY_STRIPE_LEVEL_BALANCED: Medium directory striping
+      DIRECTORY_STRIPE_LEVEL_MAX: Maximum directory striping
+    """
+    DIRECTORY_STRIPE_LEVEL_UNSPECIFIED = 0
+    DIRECTORY_STRIPE_LEVEL_MIN = 1
+    DIRECTORY_STRIPE_LEVEL_BALANCED = 2
+    DIRECTORY_STRIPE_LEVEL_MAX = 3
+
+  class FileStripeLevelValueValuesEnum(_messages.Enum):
+    r"""Optional. Immutable. Stripe level for files. Allowed values are: *
+    `FILE_STRIPE_LEVEL_MIN`: offers the best performance for small size files.
+    * `FILE_STRIPE_LEVEL_BALANCED`: balances performance for workloads
+    involving a mix of small and large files. * `FILE_STRIPE_LEVEL_MAX`:
+    higher throughput performance for larger files.
+
+    Values:
+      FILE_STRIPE_LEVEL_UNSPECIFIED: If not set, FileStripeLevel will default
+        to FILE_STRIPE_LEVEL_BALANCED
+      FILE_STRIPE_LEVEL_MIN: Minimum file striping
+      FILE_STRIPE_LEVEL_BALANCED: Medium file striping
+      FILE_STRIPE_LEVEL_MAX: Maximum file striping
+    """
+    FILE_STRIPE_LEVEL_UNSPECIFIED = 0
+    FILE_STRIPE_LEVEL_MIN = 1
+    FILE_STRIPE_LEVEL_BALANCED = 2
+    FILE_STRIPE_LEVEL_MAX = 3
 
   class StateValueValuesEnum(_messages.Enum):
     r"""Output only. The instance state.
@@ -178,32 +257,25 @@ class Instance(_messages.Message):
       ACTIVE: The instance is available for use.
       DELETING: The instance is being deleted.
       FAILED: The instance is not usable.
+      UPGRADING: The instance is being upgraded.
+      REPAIRING: The instance is being repaired. This should only be used by
+        instances using the `PERSISTENT` deployment type.
     """
     STATE_UNSPECIFIED = 0
     CREATING = 1
     ACTIVE = 2
     DELETING = 3
     FAILED = 4
+    UPGRADING = 5
+    REPAIRING = 6
 
   @encoding.MapUnrecognizedFields('additionalProperties')
   class LabelsValue(_messages.Message):
     r"""Optional. Cloud Labels are a flexible and lightweight mechanism for
     organizing cloud resources into groups that reflect a customer's
-    organizational needs and deployment strategies. Cloud Labels can be used
-    to filter collections of resources. They can be used to control how
-    resource metrics are aggregated. And they can be used as arguments to
-    policy management rules (e.g. route, firewall, load balancing, etc.). *
-    Label keys must be between 1 and 63 characters long and must conform to
-    the following regular expression: `a-z{0,62}`. * Label values must be
-    between 0 and 63 characters long and must conform to the regular
-    expression `[a-z0-9_-]{0,63}`. * No more than 64 labels can be associated
-    with a given resource. See https://goo.gl/xmQnxf for more information on
-    and examples of labels. If you plan to use labels in your own code, please
-    note that additional characters may be allowed in the future. Therefore,
-    you are advised to use an internal label representation, such as JSON,
-    which doesn't rely upon specific characters being disallowed. For example,
-    representing labels as the string: name + "_" + value would prove
-    problematic if we were to allow "_" in a future release.
+    organizational needs and deployment strategies. See
+    https://cloud.google.com/resource-manager/docs/labels-overview for
+    details.
 
     Messages:
       AdditionalProperty: An additional property for a LabelsValue object.
@@ -229,21 +301,24 @@ class Instance(_messages.Message):
   capacityGib = _messages.IntegerField(2)
   createTime = _messages.StringField(3)
   daosVersion = _messages.StringField(4)
-  description = _messages.StringField(5)
-  effectiveReservedIpRange = _messages.StringField(6)
-  labels = _messages.MessageField('LabelsValue', 7)
-  name = _messages.StringField(8)
-  network = _messages.StringField(9)
-  reservedIpRange = _messages.StringField(10)
-  state = _messages.EnumField('StateValueValuesEnum', 11)
-  updateTime = _messages.StringField(12)
+  deploymentType = _messages.EnumField('DeploymentTypeValueValuesEnum', 5)
+  description = _messages.StringField(6)
+  directoryStripeLevel = _messages.EnumField('DirectoryStripeLevelValueValuesEnum', 7)
+  effectiveReservedIpRange = _messages.StringField(8)
+  fileStripeLevel = _messages.EnumField('FileStripeLevelValueValuesEnum', 9)
+  labels = _messages.MessageField('LabelsValue', 10)
+  name = _messages.StringField(11)
+  network = _messages.StringField(12)
+  reservedIpRange = _messages.StringField(13)
+  state = _messages.EnumField('StateValueValuesEnum', 14)
+  updateTime = _messages.StringField(15)
 
 
 class ListInstancesResponse(_messages.Message):
-  r"""Message for response to listing Instances
+  r"""Response from ListInstances.
 
   Fields:
-    instances: The list of Parallelstore Instances
+    instances: The list of Parallelstore instances.
     nextPageToken: A token identifying a page of results the server should
       return.
     unreachable: Locations that could not be reached.
@@ -469,7 +544,7 @@ class Operation(_messages.Message):
 
 
 class OperationMetadata(_messages.Message):
-  r"""Represents the metadata of the long-running operation.
+  r"""Long-running operation metadata.
 
   Fields:
     apiVersion: Output only. API version used to start the operation.
@@ -510,20 +585,19 @@ class ParallelstoreProjectsLocationsInstancesCreateRequest(_messages.Message):
 
   Fields:
     instance: A Instance resource to be passed as the request body.
-    instanceId: Required. The logical name of the Parallelstore instance in
-      the user project with the following restrictions: * Must contain only
-      lowercase letters, numbers, and hyphens. * Must start with a letter. *
-      Must be between 1-63 characters. * Must end with a number or a letter. *
-      Must be unique within the customer project / location
+    instanceId: Required. The name of the Parallelstore instance. * Must
+      contain only lowercase letters, numbers, and hyphens. * Must start with
+      a letter. * Must be between 1-63 characters. * Must end with a number or
+      a letter. * Must be unique within the customer project / location
     parent: Required. The instance's project and location, in the format
       `projects/{project}/locations/{location}`. Locations map to Google Cloud
-      zones, for example **us-west1-b**.
+      zones; for example, `us-west1-b`.
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
       will know to ignore the request if it has already been completed. The
       server will guarantee that for at least 60 minutes since the first
       request. For example, consider a situation where you make an initial
-      request and t he request times out. If you make the request again with
+      request and the request times out. If you make the request again with
       the same request ID, the server can check if original operation with the
       same request ID was received, and if so, will ignore the second request.
       This prevents clients from accidentally creating duplicate commitments.
@@ -547,7 +621,7 @@ class ParallelstoreProjectsLocationsInstancesDeleteRequest(_messages.Message):
       will know to ignore the request if it has already been completed. The
       server will guarantee that for at least 60 minutes after the first
       request. For example, consider a situation where you make an initial
-      request and t he request times out. If you make the request again with
+      request and the request times out. If you make the request again with
       the same request ID, the server can check if original operation with the
       same request ID was received, and if so, will ignore the second request.
       This prevents clients from accidentally creating duplicate commitments.
@@ -600,17 +674,17 @@ class ParallelstoreProjectsLocationsInstancesListRequest(_messages.Message):
   r"""A ParallelstoreProjectsLocationsInstancesListRequest object.
 
   Fields:
-    filter: Optional. Filtering results
-    orderBy: Optional. Hint for how to order the results
+    filter: Optional. Filtering results.
+    orderBy: Optional. Hint for how to order the results.
     pageSize: Optional. Requested page size. Server may return fewer items
-      than requested. If unspecified, server will pick an appropriate default.
+      than requested. If unspecified, the server will pick an appropriate
+      default.
     pageToken: Optional. A token identifying a page of results the server
       should return.
     parent: Required. The project and location for which to retrieve instance
       information, in the format `projects/{project_id}/locations/{location}`.
-      For Parallelstore locations map to Google Cloud zones, for example **us-
-      central1-a**. To retrieve instance information for all locations, use
-      "-" for the `{location}` value.
+      To retrieve instance information for all locations, use "-" as the value
+      of `{location}`.
   """
 
   filter = _messages.StringField(1)
@@ -626,19 +700,19 @@ class ParallelstoreProjectsLocationsInstancesPatchRequest(_messages.Message):
   Fields:
     instance: A Instance resource to be passed as the request body.
     name: Identifier. The resource name of the instance, in the format
-      `projects/{project}/locations/{location}/instances/{instance_id}`
+      `projects/{project}/locations/{location}/instances/{instance_id}`.
     requestId: Optional. An optional request ID to identify requests. Specify
       a unique request ID so that if you must retry your request, the server
       will know to ignore the request if it has already been completed. The
       server will guarantee that for at least 60 minutes since the first
       request. For example, consider a situation where you make an initial
-      request and t he request times out. If you make the request again with
+      request and the request times out. If you make the request again with
       the same request ID, the server can check if original operation with the
       same request ID was received, and if so, will ignore the second request.
       This prevents clients from accidentally creating duplicate commitments.
       The request ID must be a valid UUID with the exception that zero UUID is
       not supported (00000000-0000-0000-0000-000000000000).
-    updateMask: Required. Mask of fields to update .Field mask is used to
+    updateMask: Required. Mask of fields to update. Field mask is used to
       specify the fields to be overwritten in the Instance resource by the
       update. At least one path must be supplied in this field. The fields
       specified in the update_mask are relative to the resource, not the full
@@ -655,6 +729,9 @@ class ParallelstoreProjectsLocationsListRequest(_messages.Message):
   r"""A ParallelstoreProjectsLocationsListRequest object.
 
   Fields:
+    extraLocationTypes: Optional. Do not use this field. It is unsupported and
+      is ignored unless explicitly documented otherwise. This is primarily for
+      internal usage.
     filter: A filter to narrow down results to a preferred subset. The
       filtering language accepts strings like `"displayName=tokyo"`, and is
       documented in more detail in [AIP-160](https://google.aip.dev/160).
@@ -665,10 +742,11 @@ class ParallelstoreProjectsLocationsListRequest(_messages.Message):
       response. Send that page token to receive the subsequent page.
   """
 
-  filter = _messages.StringField(1)
-  name = _messages.StringField(2, required=True)
-  pageSize = _messages.IntegerField(3, variant=_messages.Variant.INT32)
-  pageToken = _messages.StringField(4)
+  extraLocationTypes = _messages.StringField(1, repeated=True)
+  filter = _messages.StringField(2)
+  name = _messages.StringField(3, required=True)
+  pageSize = _messages.IntegerField(4, variant=_messages.Variant.INT32)
+  pageToken = _messages.StringField(5)
 
 
 class ParallelstoreProjectsLocationsOperationsCancelRequest(_messages.Message):
@@ -720,22 +798,56 @@ class ParallelstoreProjectsLocationsOperationsListRequest(_messages.Message):
   pageToken = _messages.StringField(4)
 
 
-class SourceGcsBucket(_messages.Message):
-  r"""Google Cloud Storage as a source.
+class ReconciliationOperationMetadata(_messages.Message):
+  r"""Operation metadata returned by the CLH during resource state
+  reconciliation.
+
+  Enums:
+    ExclusiveActionValueValuesEnum: Excluisive action returned by the CLH.
 
   Fields:
-    uri: Required. URI to a Cloud Storage object in format: 'gs:///'.
+    deleteResource: DEPRECATED. Use exclusive_action instead.
+    exclusiveAction: Excluisive action returned by the CLH.
+  """
+
+  class ExclusiveActionValueValuesEnum(_messages.Enum):
+    r"""Excluisive action returned by the CLH.
+
+    Values:
+      UNKNOWN_REPAIR_ACTION: Unknown repair action.
+      DELETE: The resource has to be deleted. When using this bit, the CLH
+        should fail the operation. DEPRECATED. Instead use DELETE_RESOURCE
+        OperationSignal in SideChannel.
+      RETRY: This resource could not be repaired but the repair should be
+        tried again at a later time. This can happen if there is a dependency
+        that needs to be resolved first- e.g. if a parent resource must be
+        repaired before a child resource.
+    """
+    UNKNOWN_REPAIR_ACTION = 0
+    DELETE = 1
+    RETRY = 2
+
+  deleteResource = _messages.BooleanField(1)
+  exclusiveAction = _messages.EnumField('ExclusiveActionValueValuesEnum', 2)
+
+
+class SourceGcsBucket(_messages.Message):
+  r"""Cloud Storage as the source of a data transfer.
+
+  Fields:
+    uri: Required. URI to a Cloud Storage bucket in the format: `gs:///`. The
+      path inside the bucket is optional.
   """
 
   uri = _messages.StringField(1)
 
 
 class SourceParallelstore(_messages.Message):
-  r"""Pa as a source.
+  r"""Parallelstore as the source of a data transfer.
 
   Fields:
     path: Optional. Root directory path to the Paralellstore filesystem,
-      starting with '/'. Defaults to '/' if unset.
+      starting with `/`. Defaults to `/` if unset.
   """
 
   path = _messages.StringField(1)
@@ -853,6 +965,63 @@ class Status(_messages.Message):
   code = _messages.IntegerField(1, variant=_messages.Variant.INT32)
   details = _messages.MessageField('DetailsValueListEntry', 2, repeated=True)
   message = _messages.StringField(3)
+
+
+class TransferMetadataOptions(_messages.Message):
+  r"""Transfer metadata options for the instance.
+
+  Enums:
+    GidValueValuesEnum: Optional. The GID preservation behavior.
+    ModeValueValuesEnum: Optional. The mode preservation behavior.
+    UidValueValuesEnum: Optional. The UID preservation behavior.
+
+  Fields:
+    gid: Optional. The GID preservation behavior.
+    mode: Optional. The mode preservation behavior.
+    uid: Optional. The UID preservation behavior.
+  """
+
+  class GidValueValuesEnum(_messages.Enum):
+    r"""Optional. The GID preservation behavior.
+
+    Values:
+      GID_UNSPECIFIED: default is GID_NUMBER_PRESERVE.
+      GID_SKIP: Do not preserve GID during a transfer job.
+      GID_NUMBER_PRESERVE: Preserve GID that is in number format during a
+        transfer job.
+    """
+    GID_UNSPECIFIED = 0
+    GID_SKIP = 1
+    GID_NUMBER_PRESERVE = 2
+
+  class ModeValueValuesEnum(_messages.Enum):
+    r"""Optional. The mode preservation behavior.
+
+    Values:
+      MODE_UNSPECIFIED: default is MODE_PRESERVE.
+      MODE_SKIP: Do not preserve mode during a transfer job.
+      MODE_PRESERVE: Preserve mode during a transfer job.
+    """
+    MODE_UNSPECIFIED = 0
+    MODE_SKIP = 1
+    MODE_PRESERVE = 2
+
+  class UidValueValuesEnum(_messages.Enum):
+    r"""Optional. The UID preservation behavior.
+
+    Values:
+      UID_UNSPECIFIED: default is UID_NUMBER_PRESERVE.
+      UID_SKIP: Do not preserve UID during a transfer job.
+      UID_NUMBER_PRESERVE: Preserve UID that is in number format during a
+        transfer job.
+    """
+    UID_UNSPECIFIED = 0
+    UID_SKIP = 1
+    UID_NUMBER_PRESERVE = 2
+
+  gid = _messages.EnumField('GidValueValuesEnum', 1)
+  mode = _messages.EnumField('ModeValueValuesEnum', 2)
+  uid = _messages.EnumField('UidValueValuesEnum', 3)
 
 
 encoding.AddCustomJsonFieldMapping(

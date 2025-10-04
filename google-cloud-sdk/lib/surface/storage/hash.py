@@ -83,6 +83,7 @@ def _get_resource_iterator(url_strings):
     raise errors.InvalidUrlError('No URLS matched.')
 
 
+@base.UniverseCompatible
 class Hash(base.Command):
   """Calculates hashes on local or cloud files."""
 
@@ -136,6 +137,7 @@ class Hash(base.Command):
     flags.add_additional_headers_flag(parser)
 
   def Run(self, args):
+
     encryption_util.initialize_key_store(args)
     if not args.skip_crc32c:
       if fast_crc32c_util.should_use_gcloud_crc32c():
@@ -170,18 +172,19 @@ class Hash(base.Command):
         if not args.skip_md5:
           output_dict[_MD5_HASH_KEY] = format_cloud_digest(resource.md5_hash)
       else:  # FileObjectResource
-        output_dict[_URL_KEY] = resource.storage_url.object_name
+        output_dict[_URL_KEY] = resource.storage_url.resource_name
         if not args.skip_crc32c:
           output_dict[_CRC32C_HASH_KEY] = format_file_hash_object(
               hash_util.get_hash_from_file(
-                  resource.storage_url.object_name,
+                  resource.storage_url.resource_name,
                   hash_util.HashAlgorithm.CRC32C,
               )
           )
         if not args.skip_md5:
           output_dict[_MD5_HASH_KEY] = format_file_hash_object(
               hash_util.get_hash_from_file(
-                  resource.storage_url.object_name, hash_util.HashAlgorithm.MD5
+                  resource.storage_url.resource_name,
+                  hash_util.HashAlgorithm.MD5,
               )
           )
       yield output_dict

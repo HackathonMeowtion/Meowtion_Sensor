@@ -33,6 +33,14 @@ properties:
       cannot be automatically restarted. By default, this is set to true so an
       instance is automatically restarted if it is terminated by Compute Engine.
     type: boolean
+  availabilityDomain:
+    description: |-
+      Specifies the availability domain (AD), which this instance should be
+      scheduled on. The AD belongs to the spread GroupPlacementPolicy resource
+      policy that has been assigned to the instance. Specify a value between
+      1-max count of availability domains in your GroupPlacementPolicy. See
+      go/placement-policy-extension for more details.
+    type: integer
   instanceTerminationAction:
     description: Specifies the termination action for the instance.
     type: string
@@ -53,6 +61,12 @@ properties:
       resources. This field is for use by internal tools that use the public
       API.
     type: string
+  maxRunDuration:
+    description: |-
+      Specifies the max run duration for the given instance. If specified, the
+      instance termination action will be performed at the end of the run
+      duration.
+    $ref: Duration.yaml
   minNodeCpus:
     description: |-
       The minimum number of virtual CPUs this instance will consume when running
@@ -76,6 +90,11 @@ properties:
     enum:
     - MIGRATE
     - TERMINATE
+  onInstanceStopAction:
+    description: |-
+        Defines the behaviour for instances at termination timestamp when used with auto termination
+        and instance_termination_action STOP
+    $ref: OnInstanceStopAction.yaml
   preemptible:
     description: |-
       Defines whether the instance is preemptible. This can only be set
@@ -89,3 +108,15 @@ properties:
     enum:
     - SPOT
     - STANDARD
+  terminationTime:
+    description: |-
+      Specifies the timestamp, when the instance will be terminated, in
+      RFC3339 text format. If specified, the instance termination action
+      will be performed at the termination time.
+    type: string
+  hostErrorTimeoutSeconds:
+    description: |-
+      The timeout in seconds for host error detection. The value must be
+      within the range of [90, 330] in increments of 30. If unset, the
+      default behavior of host error recovery will be used.
+    type: integer

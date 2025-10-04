@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ __protobuf__ = proto.module(
         'IndexConfig',
         'LogBucket',
         'LogView',
+        'LogScope',
         'LogExclusion',
         'BigQueryOptions',
         'LogSink',
@@ -56,6 +57,12 @@ __protobuf__ = proto.module(
         'CreateViewRequest',
         'UpdateViewRequest',
         'DeleteViewRequest',
+        'ListLogScopesRequest',
+        'ListLogScopesResponse',
+        'GetLogScopeRequest',
+        'CreateLogScopeRequest',
+        'UpdateLogScopeRequest',
+        'DeleteLogScopeRequest',
         'ListExclusionsRequest',
         'ListExclusionsResponse',
         'GetExclusionRequest',
@@ -79,7 +86,9 @@ __protobuf__ = proto.module(
         'UpdateSettingsRequest',
         'ListSavedQueriesRequest',
         'ListSavedQueriesResponse',
+        'GetSavedQueryRequest',
         'CreateSavedQueryRequest',
+        'UpdateSavedQueryRequest',
         'DeleteSavedQueryRequest',
         'ListRecentQueriesRequest',
         'ListRecentQueriesResponse',
@@ -187,7 +196,7 @@ class IndexConfig(proto.Message):
 
             Note that some paths are automatically indexed, and other
             paths are not eligible for indexing. See `indexing
-            documentation <https://cloud.google.com/logging/docs/view/advanced-queries#indexed-fields>`__
+            documentation <https://cloud.google.com/logging/docs/analyze/custom-index>`__
             for details.
 
             For example: ``jsonPayload.request.status``
@@ -218,8 +227,6 @@ class IndexConfig(proto.Message):
 
 class LogBucket(proto.Message):
     r"""Describes a repository in which log entries are stored.
-
-    .. _oneof: https://proto-plus-python.readthedocs.io/en/stable/fields.html#oneofs-mutually-exclusive-fields
 
     Attributes:
         name (str):
@@ -262,12 +269,10 @@ class LogBucket(proto.Message):
         lifecycle_state (googlecloudsdk.generated_clients.gapic_clients.logging_v2.types.LifecycleState):
             Output only. The bucket lifecycle state.
         analytics_enabled (bool):
-            Whether log analytics is enabled for this
-            bucket.
+            Optional. Whether log analytics is enabled
+            for this bucket.
             Once enabled, log analytics features cannot be
             disabled.
-
-            This field is a member of `oneof`_ ``_analytics_enabled``.
         restricted_fields (MutableSequence[str]):
             Optional. Log entry field paths that are denied access in
             this bucket.
@@ -326,7 +331,6 @@ class LogBucket(proto.Message):
     analytics_enabled: bool = proto.Field(
         proto.BOOL,
         number=14,
-        optional=True,
     )
     restricted_fields: MutableSequence[str] = proto.RepeatedField(
         proto.STRING,
@@ -407,6 +411,65 @@ class LogView(proto.Message):
     )
 
 
+class LogScope(proto.Message):
+    r"""Describes a group of resources to read log entries from.
+
+    Attributes:
+        name (str):
+            Output only. The resource name of the log scope.
+
+            Log scopes are only available in the ``global`` location.
+            For example:
+
+            ``projects/my-project/locations/global/logScopes/my-log-scope``
+        resource_names (MutableSequence[str]):
+            Required. Names of one or more parent resources:
+
+            -  ``projects/[PROJECT_ID]``
+
+            May alternatively be one or more views:
+
+            -  ``projects/[PROJECT_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]/views/[VIEW_ID]``
+
+            A log scope can include a maximum of 5 projects and a
+            maximum of 100 resources in total.
+        description (str):
+            Optional. Describes this log scope.
+
+            The maximum length of the description is 8000
+            characters.
+        create_time (google.protobuf.timestamp_pb2.Timestamp):
+            Output only. The creation timestamp of the
+            log scope.
+        update_time (google.protobuf.timestamp_pb2.Timestamp):
+            Output only. The last update timestamp of the
+            log scope.
+    """
+
+    name: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    resource_names: MutableSequence[str] = proto.RepeatedField(
+        proto.STRING,
+        number=2,
+    )
+    description: str = proto.Field(
+        proto.STRING,
+        number=3,
+    )
+    create_time: timestamp_pb2.Timestamp = proto.Field(
+        proto.MESSAGE,
+        number=4,
+        message=timestamp_pb2.Timestamp,
+    )
+    update_time: timestamp_pb2.Timestamp = proto.Field(
+        proto.MESSAGE,
+        number=5,
+        message=timestamp_pb2.Timestamp,
+    )
+
+
 class LogExclusion(proto.Message):
     r"""Specifies a set of log entries that are filtered out by a sink. If
     your Google Cloud resource receives a large volume of log entries,
@@ -417,7 +480,7 @@ class LogExclusion(proto.Message):
 
     Attributes:
         name (str):
-            Output only. A client-assigned identifier, such as
+            Optional. A client-assigned identifier, such as
             ``"load-balancer-exclusion"``. Identifiers are limited to
             100 characters and can include only letters, digits,
             underscores, hyphens, and periods. First character has to be
@@ -537,8 +600,8 @@ class LogSink(proto.Message):
 
     Attributes:
         name (str):
-            Output only. The client-assigned sink identifier, unique
-            within the project.
+            Optional. The client-assigned sink identifier, unique within
+            the project.
 
             For example: ``"my-syslog-errors-to-pubsub"``.
 
@@ -600,7 +663,7 @@ class LogSink(proto.Message):
             filters will not be exported.
 
             If a log entry is matched by both ``filter`` and one of
-            ``exclusion_filters`` it will not be exported.
+            ``exclusions`` it will not be exported.
         output_version_format (googlecloudsdk.generated_clients.gapic_clients.logging_v2.types.LogSink.VersionFormat):
             Deprecated. This field is unused.
         writer_identity (str):
@@ -1740,8 +1803,7 @@ class CreateViewRequest(proto.Message):
         view_id (str):
             Required. A client-assigned identifier such as
             ``"my-view"``. Identifiers are limited to 100 characters and
-            can include only letters, digits, underscores, hyphens, and
-            periods.
+            can include only letters, digits, underscores, and hyphens.
         view (googlecloudsdk.generated_clients.gapic_clients.logging_v2.types.LogView):
             Required. The new view.
     """
@@ -1821,6 +1883,190 @@ class DeleteViewRequest(proto.Message):
             ::
 
                `"projects/my-project/locations/global/buckets/my-bucket/views/my-view"`
+    """
+
+    name: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+
+
+class ListLogScopesRequest(proto.Message):
+    r"""The parameters to ``ListLogScopes``.
+
+    Attributes:
+        parent (str):
+            Required. The parent resource whose log scopes are to be
+            listed:
+
+            ::
+
+                "projects/[PROJECT_ID]/locations/[LOCATION_ID]".
+        page_token (str):
+            Optional. If present, then retrieve the next batch of
+            results from the preceding call to this method.
+            ``pageToken`` must be the value of ``nextPageToken`` from
+            the previous response. The values of other method parameters
+            should be identical to those in the previous call.
+        page_size (int):
+            Optional. The maximum number of results to return from this
+            request.
+
+            Non-positive values are ignored. The presence of
+            ``nextPageToken`` in the response indicates that more
+            results might be available.
+    """
+
+    parent: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    page_token: str = proto.Field(
+        proto.STRING,
+        number=2,
+    )
+    page_size: int = proto.Field(
+        proto.INT32,
+        number=3,
+    )
+
+
+class ListLogScopesResponse(proto.Message):
+    r"""The response from ``ListLogScopes``. Every project has a
+    ``_Default`` log scope that cannot be modified or deleted.
+
+    Attributes:
+        log_scopes (MutableSequence[googlecloudsdk.generated_clients.gapic_clients.logging_v2.types.LogScope]):
+            A list of log scopes.
+        next_page_token (str):
+            If there might be more results than appear in this response,
+            then ``nextPageToken`` is included. To get the next set of
+            results, call the same method again using the value of
+            ``nextPageToken`` as ``pageToken``.
+    """
+
+    @property
+    def raw_page(self):
+        return self
+
+    log_scopes: MutableSequence['LogScope'] = proto.RepeatedField(
+        proto.MESSAGE,
+        number=1,
+        message='LogScope',
+    )
+    next_page_token: str = proto.Field(
+        proto.STRING,
+        number=2,
+    )
+
+
+class GetLogScopeRequest(proto.Message):
+    r"""The parameters to ``GetLogScope``.
+
+    Attributes:
+        name (str):
+            Required. The resource name of the log scope:
+
+            ::
+
+                "projects/[PROJECT_ID]/locations/[LOCATION_ID]/logScopes/[LOG_SCOPE_ID]"
+
+            For example:
+
+            ``"projects/my-project/locations/global/logScopes/my-log-scope"``
+    """
+
+    name: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+
+
+class CreateLogScopeRequest(proto.Message):
+    r"""The parameters to ``CreateLogScope``.
+
+    Attributes:
+        parent (str):
+            Required. The parent project in which to create the log
+            scope
+
+            ::
+
+                "projects/[PROJECT_ID]/locations/[LOCATION_ID]"
+
+            For example:
+
+            ``"projects/my-project/locations/global"``
+        log_scope_id (str):
+            Required. A client-assigned identifier such as
+            ``"log-scope"``. Identifiers are limited to 100 characters
+            and can include only letters, digits, underscores, hyphens,
+            and periods. First character has to be alphanumeric.
+        log_scope (googlecloudsdk.generated_clients.gapic_clients.logging_v2.types.LogScope):
+            Required. The new log scope.
+    """
+
+    parent: str = proto.Field(
+        proto.STRING,
+        number=1,
+    )
+    log_scope_id: str = proto.Field(
+        proto.STRING,
+        number=2,
+    )
+    log_scope: 'LogScope' = proto.Field(
+        proto.MESSAGE,
+        number=3,
+        message='LogScope',
+    )
+
+
+class UpdateLogScopeRequest(proto.Message):
+    r"""The parameters to ``UpdateLogScope``. The ``_Default`` log scope
+    cannot be modified.
+
+    Attributes:
+        log_scope (googlecloudsdk.generated_clients.gapic_clients.logging_v2.types.LogScope):
+            Required. The updated log scope.
+        update_mask (google.protobuf.field_mask_pb2.FieldMask):
+            Optional. Field mask that specifies the fields in
+            ``log_scope`` that need an update. A field will be
+            overwritten if, and only if, it is in the update mask.
+            ``name`` and output only fields cannot be updated.
+
+            For a detailed ``FieldMask`` definition, see
+            https://developers.google.com/protocol-buffers/docs/reference/google.protobuf#google.protobuf.FieldMask
+
+            For example: ``updateMask=description``
+    """
+
+    log_scope: 'LogScope' = proto.Field(
+        proto.MESSAGE,
+        number=2,
+        message='LogScope',
+    )
+    update_mask: field_mask_pb2.FieldMask = proto.Field(
+        proto.MESSAGE,
+        number=4,
+        message=field_mask_pb2.FieldMask,
+    )
+
+
+class DeleteLogScopeRequest(proto.Message):
+    r"""The parameters to ``DeleteLogScope``. The ``_Default`` log scope
+    cannot be deleted.
+
+    Attributes:
+        name (str):
+            Required. The resource name of the log scope to delete:
+
+            ::
+
+                "projects/[PROJECT_ID]/locations/[LOCATION_ID]/logScopes/[LOG_SCOPE_ID]"
+
+            For example:
+
+            ``"projects/my-project/locations/global/logScopes/my-log-scope"``
     """
 
     name: str = proto.Field(
@@ -2185,12 +2431,12 @@ class CreateSinkRequest(proto.Message):
             information, see ``writer_identity`` in
             [LogSink][google.logging.v2.LogSink].
         custom_writer_identity (str):
-            Optional. A service account provided by the caller that will
-            be used to write the log entries. The format must be
+            Optional. The service account provided by the caller that
+            will be used to write the log entries. The format must be
             ``serviceAccount:some@email``. This field can only be
-            specified if you are routing logs to a destination outside
-            this sink's project. If not specified, a Logging service
-            account will automatically be generated.
+            specified when you are routing logs to a log bucket that is
+            in a different project than the sink. When not specified, a
+            Logging service account will automatically be generated.
     """
 
     parent: str = proto.Field(
@@ -2251,12 +2497,12 @@ class UpdateSinkRequest(proto.Message):
             -  It is an error if the old value is true and the new value
                is set to false or defaulted to false.
         custom_writer_identity (str):
-            Optional. A service account provided by the caller that will
-            be used to write the log entries. The format must be
+            Optional. The service account provided by the caller that
+            will be used to write the log entries. The format must be
             ``serviceAccount:some@email``. This field can only be
-            specified if you are routing logs to a destination outside
-            this sink's project. If not specified, a Logging service
-            account will automatically be generated.
+            specified when you are routing logs to a log bucket that is
+            in a different project than the sink. When not specified, a
+            Logging service account will automatically be generated.
         update_mask (google.protobuf.field_mask_pb2.FieldMask):
             Optional. Field mask that specifies the fields in ``sink``
             that need an update. A sink field will be overwritten if,
@@ -2423,10 +2669,7 @@ class CreateLinkRequest(proto.Message):
 
             ::
 
-                "projects/[PROJECT_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]"
-                "organizations/[ORGANIZATION_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]"
-                "billingAccounts/[BILLING_ACCOUNT_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]"
-                "folders/[FOLDER_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]".
+                "projects/[PROJECT_ID]/locations/[LOCATION_ID]/buckets/[BUCKET_ID]".
         link (googlecloudsdk.generated_clients.gapic_clients.logging_v2.types.Link):
             Required. The new link.
         link_id (str):
@@ -2615,6 +2858,7 @@ class UpdateSettingsRequest(proto.Message):
             ::
 
                 "organizations/[ORGANIZATION_ID]/settings"
+                "folders/[FOLDER_ID]/settings"
 
             For example:
 
@@ -2693,6 +2937,30 @@ class ListSavedQueriesRequest(proto.Message):
             Non-positive values are ignored. The presence of
             ``nextPageToken`` in the response indicates that more
             results might be available.
+        filter (str):
+            Optional. Specifies the type ("Logging" or "OpsAnalytics")
+            and the visibility (PRIVATE or SHARED) of the saved queries
+            to list. If provided, the filter must contain either the
+            ``type`` function or a ``visibility`` token, or both. If
+            both are chosen, they can be placed in any order, but they
+            must be joined by the AND operator or the empty character.
+
+            The two supported ``type`` function calls are:
+
+            -  ``type("Logging")``
+            -  ``type("OpsAnalytics")``
+
+            The two supported ``visibility`` tokens are:
+
+            -  ``visibility = PRIVATE``
+            -  ``visibility = SHARED``
+
+            For example:
+
+            ``type("Logging") AND visibility = PRIVATE``
+            ``visibility=SHARED type("OpsAnalytics")``
+            ``type("OpsAnalytics)"`` ``visibility = PRIVATE``
+            ``visibility = SHARED``
     """
 
     parent: str = proto.Field(
@@ -2706,6 +2974,10 @@ class ListSavedQueriesRequest(proto.Message):
     page_size: int = proto.Field(
         proto.INT32,
         number=3,
+    )
+    filter: str = proto.Field(
+        proto.STRING,
+        number=5,
     )
 
 
@@ -2758,6 +3030,33 @@ class ListSavedQueriesResponse(proto.Message):
     unreachable: MutableSequence[str] = proto.RepeatedField(
         proto.STRING,
         number=3,
+    )
+
+
+class GetSavedQueryRequest(proto.Message):
+    r"""The parameters to 'GetSavedQuery'
+
+    Attributes:
+        name (str):
+            Required. The resource name of the saved query.
+
+            ::
+
+                "projects/[PROJECT_ID]/locations/[LOCATION_ID]/savedQueries/[QUERY_ID]"
+                "organizations/[ORGANIZATION_ID]/locations/[LOCATION_ID]/savedQueries/[QUERY_ID]"
+                "billingAccounts/[BILLING_ACCOUNT_ID]/locations/[LOCATION_ID]/savedQueries/[QUERY_ID]"
+                "folders/[FOLDER_ID]/locations/[LOCATION_ID]/savedQueries/[QUERY_ID]"
+
+            For example:
+
+            ::
+
+                "projects/my-project/locations/global/savedQueries/my-saved-query".
+    """
+
+    name: str = proto.Field(
+        proto.STRING,
+        number=1,
     )
 
 
@@ -2815,6 +3114,51 @@ class CreateSavedQueryRequest(proto.Message):
         proto.MESSAGE,
         number=2,
         message='SavedQuery',
+    )
+
+
+class UpdateSavedQueryRequest(proto.Message):
+    r"""The parameters to 'UpdateSavedQuery'.
+
+    Attributes:
+        saved_query (googlecloudsdk.generated_clients.gapic_clients.logging_v2.types.SavedQuery):
+            Required. The updated value for the query.
+
+            The ``saved_query``'s ``name`` field is used to identify the
+            saved query to update. Format:
+
+            ::
+
+                "projects/[PROJECT_ID]/locations/[LOCATION_ID]/savedQueries/[QUERY_ID]"
+                "organizations/[ORGANIZATION_ID]/locations/[LOCATION_ID]/savedQueries/[QUERY_ID]"
+                "billingAccounts/[BILLING_ACCOUNT_ID]/locations/[LOCATION_ID]/savedQueries/[QUERY_ID]"
+                "folders/[FOLDER_ID]/locations/[LOCATION_ID]/savedQueries/[QUERY_ID]".
+        update_mask (google.protobuf.field_mask_pb2.FieldMask):
+            Required. A non-empty list of fields to change in the
+            existing saved query. Fields are relative to the
+            ``saved_query`` and new values for the fields are taken from
+            the corresponding fields in the
+            [SavedQuery][google.logging.v2.SavedQuery] included in this
+            request. Fields not mentioned in ``update_mask`` are not
+            changed and are ignored in the request.
+
+            To update all mutable fields, specify an ``update_mask`` of
+            ``*``.
+
+            For example, to change the description and query filter text
+            of a saved query, specify an ``update_mask`` of
+            ``"description, query.filter"``.
+    """
+
+    saved_query: 'SavedQuery' = proto.Field(
+        proto.MESSAGE,
+        number=1,
+        message='SavedQuery',
+    )
+    update_mask: field_mask_pb2.FieldMask = proto.Field(
+        proto.MESSAGE,
+        number=2,
+        message=field_mask_pb2.FieldMask,
     )
 
 
@@ -2878,6 +3222,14 @@ class ListRecentQueriesRequest(proto.Message):
             request. Non-positive values are ignored. The presence of
             ``nextPageToken`` in the response indicates that more
             results might be available.
+        filter (str):
+            Optional. Specifies the type ("Logging" or "OpsAnalytics")
+            of the recent queries to list. The only valid value for this
+            field is one of the two allowable ``type`` function calls,
+            which are the following:
+
+            -  ``type("Logging")``
+            -  ``type("OpsAnalytics")``
     """
 
     parent: str = proto.Field(
@@ -2891,6 +3243,10 @@ class ListRecentQueriesRequest(proto.Message):
     page_size: int = proto.Field(
         proto.INT32,
         number=3,
+    )
+    filter: str = proto.Field(
+        proto.STRING,
+        number=5,
     )
 
 
@@ -2960,8 +3316,8 @@ class CopyLogEntriesRequest(proto.Message):
             20k characters. An empty filter matches all log
             entries.
         destination (str):
-            Required. Destination to which to copy log
-            entries.
+            Required. Destination to which to copy log entries. For
+            example: "storage.googleapis.com/[GCS_BUCKET]".
     """
 
     name: str = proto.Field(

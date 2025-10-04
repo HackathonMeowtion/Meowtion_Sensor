@@ -13,13 +13,13 @@ package = 'dns'
 
 
 class Change(_messages.Message):
-  r"""A Change represents a set of ResourceRecordSet additions and deletions
+  r"""A Change represents a set of `ResourceRecordSet` additions and deletions
   applied atomically to a ManagedZone. ResourceRecordSets within a ManagedZone
   are modified by creating a new Change element in the Changes collection. In
   turn the Changes collection also records the past modifications to the
-  ResourceRecordSets in a ManagedZone. The current state of the ManagedZone is
-  the sum effect of applying all Change elements in the Changes collection in
-  sequence.
+  `ResourceRecordSets` in a `ManagedZone`. The current state of the
+  `ManagedZone` is the sum effect of applying all `Change` elements in the
+  `Changes` collection in sequence.
 
   Enums:
     StatusValueValuesEnum: Status of the operation (output only). A status of
@@ -68,23 +68,20 @@ class ChangesListResponse(_messages.Message):
 
   Fields:
     changes: The requested changes.
-    header: A ResponseHeader attribute.
     kind: Type of resource.
-    nextPageToken: The presence of this field indicates that there exist more
-      results following your last page of results in pagination order. To
-      fetch them, make another list request using this value as your
-      pagination token. This lets you retrieve the complete contents of even
-      very large collections one page at a time. However, if the contents of
-      the collection change between the first and last paginated list request,
-      the set of all elements returned are an inconsistent view of the
-      collection. You cannot retrieve a "snapshot" of collections larger than
-      the maximum page size.
+    nextPageToken: This field indicates that more results are available beyond
+      the last page displayed. To fetch the results, make another list request
+      and use this value as your page token. This lets you retrieve the
+      complete contents of a very large collection one page at a time.
+      However, if the contents of the collection change between the first and
+      last paginated list request, the set of all elements returned are an
+      inconsistent view of the collection. You can't retrieve a consistent
+      snapshot of a collection larger than the maximum page size.
   """
 
   changes = _messages.MessageField('Change', 1, repeated=True)
-  header = _messages.MessageField('ResponseHeader', 2)
-  kind = _messages.StringField(3, default='dns#changesListResponse')
-  nextPageToken = _messages.StringField(4)
+  kind = _messages.StringField(2, default='dns#changesListResponse')
+  nextPageToken = _messages.StringField(3)
 
 
 class DnsActivePeeringZonesDeactivateRequest(_messages.Message):
@@ -446,23 +443,20 @@ class DnsKeysListResponse(_messages.Message):
 
   Fields:
     dnsKeys: The requested resources.
-    header: A ResponseHeader attribute.
     kind: Type of resource.
-    nextPageToken: The presence of this field indicates that there exist more
-      results following your last page of results in pagination order. To
-      fetch them, make another list request using this value as your
-      pagination token. In this way you can retrieve the complete contents of
-      even very large collections one page at a time. However, if the contents
-      of the collection change between the first and last paginated list
-      request, the set of all elements returned are an inconsistent view of
-      the collection. There is no way to retrieve a "snapshot" of collections
-      larger than the maximum page size.
+    nextPageToken: This field indicates that more results are available beyond
+      the last page displayed. To fetch the results, make another list request
+      and use this value as your page token. This lets you retrieve the
+      complete contents of a very large collection one page at a time.
+      However, if the contents of the collection change between the first and
+      last paginated list request, the set of all elements returned are an
+      inconsistent view of the collection. You can't retrieve a consistent
+      snapshot of a collection larger than the maximum page size.
   """
 
   dnsKeys = _messages.MessageField('DnsKey', 1, repeated=True)
-  header = _messages.MessageField('ResponseHeader', 2)
-  kind = _messages.StringField(3, default='dns#dnsKeysListResponse')
-  nextPageToken = _messages.StringField(4)
+  kind = _messages.StringField(2, default='dns#dnsKeysListResponse')
+  nextPageToken = _messages.StringField(3)
 
 
 class DnsManagedZoneOperationsGetRequest(_messages.Message):
@@ -873,12 +867,13 @@ class DnsResourceRecordSetsListRequest(_messages.Message):
     maxResults: Optional. Maximum number of results to be returned. If
       unspecified, the server decides how many results to return.
     name: Restricts the list to return only records with this fully qualified
-      domain name.
+      domain name. Mutually exclusive with the {@code filter} field.
     pageToken: Optional. A tag returned by a previous list request that was
       truncated. Use this parameter to continue a previous list request.
     project: Identifies the project addressed by this request.
     type: Restricts the list to return only records of this type. If present,
-      the "name" parameter must also be present.
+      the "name" parameter must also be present. Mutually exclusive with the
+      {@code filter} field.
   """
 
   managedZone = _messages.StringField(1, required=True)
@@ -1550,8 +1545,11 @@ class ManagedZone(_messages.Message):
     private zones are visible only to Virtual Private Cloud resources.
 
     Values:
-      public: <no description>
-      private: <no description>
+      public: Indicates that records in this zone can be queried from the
+        public internet.
+      private: Indicates that records in this zone cannot be queried from the
+        public internet. Access to private zones depends on the zone
+        configuration.
     """
     public = 0
     private = 1
@@ -1636,8 +1634,12 @@ class ManagedZoneDnsSecConfig(_messages.Message):
     responses. Can only be changed while the state is OFF.
 
     Values:
-      nsec: <no description>
-      nsec3: <no description>
+      nsec: Indicates that Cloud DNS will sign records in the managed zone
+        according to RFC 4034 and respond with NSEC records for names that do
+        not exist.
+      nsec3: Indicates that Cloud DNS will sign records in the managed zone
+        according to RFC 5155 and respond with NSEC3 records for names that do
+        not exist.
     """
     nsec = 0
     nsec3 = 1
@@ -1684,6 +1686,7 @@ class ManagedZoneForwardingConfigNameServerTarget(_messages.Message):
       always sends queries through the VPC network for this target.
 
   Fields:
+    domainName: Fully qualified domain name for the forwarding target.
     forwardingPath: Forwarding path for this NameServerTarget. If unset or set
       to DEFAULT, Cloud DNS makes forwarding decisions based on IP address
       ranges; that is, RFC1918 addresses go to the VPC network, non-RFC1918
@@ -1712,34 +1715,32 @@ class ManagedZoneForwardingConfigNameServerTarget(_messages.Message):
     default = 0
     private = 1
 
-  forwardingPath = _messages.EnumField('ForwardingPathValueValuesEnum', 1)
-  ipv4Address = _messages.StringField(2)
-  ipv6Address = _messages.StringField(3)
-  kind = _messages.StringField(4, default='dns#managedZoneForwardingConfigNameServerTarget')
+  domainName = _messages.StringField(1)
+  forwardingPath = _messages.EnumField('ForwardingPathValueValuesEnum', 2)
+  ipv4Address = _messages.StringField(3)
+  ipv6Address = _messages.StringField(4)
+  kind = _messages.StringField(5, default='dns#managedZoneForwardingConfigNameServerTarget')
 
 
 class ManagedZoneOperationsListResponse(_messages.Message):
   r"""A ManagedZoneOperationsListResponse object.
 
   Fields:
-    header: A ResponseHeader attribute.
     kind: Type of resource.
-    nextPageToken: The presence of this field indicates that there exist more
-      results following your last page of results in pagination order. To
-      fetch them, make another list request using this value as your page
-      token. This lets you retrieve the complete contents of even very large
-      collections one page at a time. However, if the contents of the
-      collection change between the first and last paginated list request, the
-      set of all elements returned are an inconsistent view of the collection.
-      You cannot retrieve a consistent snapshot of a collection larger than
-      the maximum page size.
+    nextPageToken: This field indicates that more results are available beyond
+      the last page displayed. To fetch the results, make another list request
+      and use this value as your page token. This lets you retrieve the
+      complete contents of a very large collection one page at a time.
+      However, if the contents of the collection change between the first and
+      last paginated list request, the set of all elements returned are an
+      inconsistent view of the collection. You can't retrieve a consistent
+      snapshot of a collection larger than the maximum page size.
     operations: The operation resources.
   """
 
-  header = _messages.MessageField('ResponseHeader', 1)
-  kind = _messages.StringField(2, default='dns#managedZoneOperationsListResponse')
-  nextPageToken = _messages.StringField(3)
-  operations = _messages.MessageField('Operation', 4, repeated=True)
+  kind = _messages.StringField(1, default='dns#managedZoneOperationsListResponse')
+  nextPageToken = _messages.StringField(2)
+  operations = _messages.MessageField('Operation', 3, repeated=True)
 
 
 class ManagedZonePeeringConfig(_messages.Message):
@@ -1765,8 +1766,8 @@ class ManagedZonePeeringConfigTargetNetwork(_messages.Message):
       is deleted. Output only.
     kind: A string attribute.
     networkUrl: The fully qualified URL of the VPC network to forward queries
-      to. This should be formatted like https://www.googleapis.com/compute/v1/
-      projects/{project}/global/networks/{network}
+      to. This should be formatted like `https://www.googleapis.com/compute/v1
+      /projects/{project}/global/networks/{network}`
   """
 
   deactivateTime = _messages.StringField(1)
@@ -1812,8 +1813,8 @@ class ManagedZonePrivateVisibilityConfigNetwork(_messages.Message):
   Fields:
     kind: A string attribute.
     networkUrl: The fully qualified URL of the VPC network to bind to. Format
-      this URL like https://www.googleapis.com/compute/v1/projects/{project}/g
-      lobal/networks/{network}
+      this URL like `https://www.googleapis.com/compute/v1/projects/{project}/
+      global/networks/{network}`
   """
 
   kind = _messages.StringField(1, default='dns#managedZonePrivateVisibilityConfigNetwork')
@@ -1852,8 +1853,8 @@ class ManagedZoneServiceDirectoryConfigNamespace(_messages.Message):
       Output only.
     kind: A string attribute.
     namespaceUrl: The fully qualified URL of the namespace associated with the
-      zone. Format must be https://servicedirectory.googleapis.com/v1/projects
-      /{project}/locations/{location}/namespaces/{namespace}
+      zone. Format must be `https://servicedirectory.googleapis.com/v1/project
+      s/{project}/locations/{location}/namespaces/{namespace}`
   """
 
   deletionTime = _messages.StringField(1)
@@ -1865,24 +1866,21 @@ class ManagedZonesListResponse(_messages.Message):
   r"""A ManagedZonesListResponse object.
 
   Fields:
-    header: A ResponseHeader attribute.
     kind: Type of resource.
     managedZones: The managed zone resources.
-    nextPageToken: The presence of this field indicates that there exist more
-      results following your last page of results in pagination order. To
-      fetch them, make another list request using this value as your page
-      token. This lets you the complete contents of even very large
-      collections one page at a time. However, if the contents of the
-      collection change between the first and last paginated list request, the
-      set of all elements returned are an inconsistent view of the collection.
-      You cannot retrieve a consistent snapshot of a collection larger than
-      the maximum page size.
+    nextPageToken: This field indicates that more results are available beyond
+      the last page displayed. To fetch the results, make another list request
+      and use this value as your page token. This lets you retrieve the
+      complete contents of a very large collection one page at a time.
+      However, if the contents of the collection change between the first and
+      last paginated list request, the set of all elements returned are an
+      inconsistent view of the collection. You can't retrieve a consistent
+      snapshot of a collection larger than the maximum page size.
   """
 
-  header = _messages.MessageField('ResponseHeader', 1)
-  kind = _messages.StringField(2, default='dns#managedZonesListResponse')
-  managedZones = _messages.MessageField('ManagedZone', 3, repeated=True)
-  nextPageToken = _messages.StringField(4)
+  kind = _messages.StringField(1, default='dns#managedZonesListResponse')
+  managedZones = _messages.MessageField('ManagedZone', 2, repeated=True)
+  nextPageToken = _messages.StringField(3)
 
 
 class Operation(_messages.Message):
@@ -1974,18 +1972,15 @@ class PeeringZoneDeactivateResponse(_messages.Message):
     deactivateSucceeded: True if the zone is deactivated by this request,
       false if the zone exists and is of type peering zone but was already
       deactivated.
-    header: A ResponseHeader attribute.
   """
 
   deactivateSucceeded = _messages.BooleanField(1)
-  header = _messages.MessageField('ResponseHeader', 2)
 
 
 class PeeringZonesListResponse(_messages.Message):
   r"""A PeeringZonesListResponse object.
 
   Fields:
-    header: A ResponseHeader attribute.
     kind: A string attribute.
     nextPageToken: The presence of this field indicates that there exist more
       results following your last page of results in pagination order. To
@@ -2000,58 +1995,50 @@ class PeeringZonesListResponse(_messages.Message):
       ManagedZone has only the id field set.
   """
 
-  header = _messages.MessageField('ResponseHeader', 1)
-  kind = _messages.StringField(2, default='dns#peeringZonesListResponse')
-  nextPageToken = _messages.StringField(3)
-  peeringZones = _messages.MessageField('ManagedZone', 4, repeated=True)
+  kind = _messages.StringField(1, default='dns#peeringZonesListResponse')
+  nextPageToken = _messages.StringField(2)
+  peeringZones = _messages.MessageField('ManagedZone', 3, repeated=True)
 
 
 class PoliciesListResponse(_messages.Message):
   r"""A PoliciesListResponse object.
 
   Fields:
-    header: A ResponseHeader attribute.
     kind: Type of resource.
-    nextPageToken: The presence of this field indicates that there exist more
-      results following your last page of results in pagination order. To
-      fetch them, make another list request using this value as your page
-      token. This lets you the complete contents of even very large
-      collections one page at a time. However, if the contents of the
-      collection change between the first and last paginated list request, the
-      set of all elements returned are an inconsistent view of the collection.
-      You cannot retrieve a consistent snapshot of a collection larger than
-      the maximum page size.
+    nextPageToken: This field indicates that more results are available beyond
+      the last page displayed. To fetch the results, make another list request
+      and use this value as your page token. This lets you retrieve the
+      complete contents of a very large collection one page at a time.
+      However, if the contents of the collection change between the first and
+      last paginated list request, the set of all elements returned are an
+      inconsistent view of the collection. You can't retrieve a consistent
+      snapshot of a collection larger than the maximum page size.
     policies: The policy resources.
   """
 
-  header = _messages.MessageField('ResponseHeader', 1)
-  kind = _messages.StringField(2, default='dns#policiesListResponse')
-  nextPageToken = _messages.StringField(3)
-  policies = _messages.MessageField('Policy', 4, repeated=True)
+  kind = _messages.StringField(1, default='dns#policiesListResponse')
+  nextPageToken = _messages.StringField(2)
+  policies = _messages.MessageField('Policy', 3, repeated=True)
 
 
 class PoliciesPatchResponse(_messages.Message):
   r"""A PoliciesPatchResponse object.
 
   Fields:
-    header: A ResponseHeader attribute.
     policy: A Policy attribute.
   """
 
-  header = _messages.MessageField('ResponseHeader', 1)
-  policy = _messages.MessageField('Policy', 2)
+  policy = _messages.MessageField('Policy', 1)
 
 
 class PoliciesUpdateResponse(_messages.Message):
   r"""A PoliciesUpdateResponse object.
 
   Fields:
-    header: A ResponseHeader attribute.
     policy: A Policy attribute.
   """
 
-  header = _messages.MessageField('ResponseHeader', 1)
-  policy = _messages.MessageField('Policy', 2)
+  policy = _messages.MessageField('Policy', 1)
 
 
 class Policy(_messages.Message):
@@ -2066,6 +2053,7 @@ class Policy(_messages.Message):
     description: A mutable string of at most 1024 characters associated with
       this resource for the user's convenience. Has no effect on the policy's
       function.
+    dns64Config: Configurations related to DNS64 for this policy.
     enableInboundForwarding: Allows networks bound to this policy to receive
       DNS queries sent by VMs or applications over VPN connections. When
       enabled, a virtual IP address is allocated from each of the subnetworks
@@ -2082,12 +2070,13 @@ class Policy(_messages.Message):
 
   alternativeNameServerConfig = _messages.MessageField('PolicyAlternativeNameServerConfig', 1)
   description = _messages.StringField(2)
-  enableInboundForwarding = _messages.BooleanField(3)
-  enableLogging = _messages.BooleanField(4)
-  id = _messages.IntegerField(5, variant=_messages.Variant.UINT64)
-  kind = _messages.StringField(6, default='dns#policy')
-  name = _messages.StringField(7)
-  networks = _messages.MessageField('PolicyNetwork', 8, repeated=True)
+  dns64Config = _messages.MessageField('PolicyDns64Config', 3)
+  enableInboundForwarding = _messages.BooleanField(4)
+  enableLogging = _messages.BooleanField(5)
+  id = _messages.IntegerField(6, variant=_messages.Variant.UINT64)
+  kind = _messages.StringField(7, default='dns#policy')
+  name = _messages.StringField(8)
+  networks = _messages.MessageField('PolicyNetwork', 9, repeated=True)
 
 
 class PolicyAlternativeNameServerConfig(_messages.Message):
@@ -2116,6 +2105,7 @@ class PolicyAlternativeNameServerConfigTargetNameServer(_messages.Message):
       always sends queries through the VPC network for this target.
 
   Fields:
+    domainName: Fully qualified domain name for the forwarding target.
     forwardingPath: Forwarding path for this TargetNameServer. If unset or set
       to DEFAULT, Cloud DNS makes forwarding decisions based on address
       ranges; that is, RFC1918 addresses go to the VPC network, non-RFC1918
@@ -2143,10 +2133,36 @@ class PolicyAlternativeNameServerConfigTargetNameServer(_messages.Message):
     default = 0
     private = 1
 
-  forwardingPath = _messages.EnumField('ForwardingPathValueValuesEnum', 1)
-  ipv4Address = _messages.StringField(2)
-  ipv6Address = _messages.StringField(3)
-  kind = _messages.StringField(4, default='dns#policyAlternativeNameServerConfigTargetNameServer')
+  domainName = _messages.StringField(1)
+  forwardingPath = _messages.EnumField('ForwardingPathValueValuesEnum', 2)
+  ipv4Address = _messages.StringField(3)
+  ipv6Address = _messages.StringField(4)
+  kind = _messages.StringField(5, default='dns#policyAlternativeNameServerConfigTargetNameServer')
+
+
+class PolicyDns64Config(_messages.Message):
+  r"""DNS64 policies
+
+  Fields:
+    kind: A string attribute.
+    scope: The scope to which DNS64 config will be applied to.
+  """
+
+  kind = _messages.StringField(1, default='dns#policyDns64Config')
+  scope = _messages.MessageField('PolicyDns64ConfigScope', 2)
+
+
+class PolicyDns64ConfigScope(_messages.Message):
+  r"""A PolicyDns64ConfigScope object.
+
+  Fields:
+    allQueries: Controls whether DNS64 is enabled globally for all networks
+      bound to the policy.
+    kind: A string attribute.
+  """
+
+  allQueries = _messages.BooleanField(1)
+  kind = _messages.StringField(2, default='dns#policyDns64ConfigScope')
 
 
 class PolicyNetwork(_messages.Message):
@@ -2166,7 +2182,7 @@ class PolicyNetwork(_messages.Message):
 class Project(_messages.Message):
   r"""A project resource. The project is a top level container for resources
   including Cloud DNS ManagedZones. Projects can be created only in the APIs
-  console. Next tag: 7.
+  console.
 
   Fields:
     id: User assigned unique identifier for the resource (output only).
@@ -2195,6 +2211,7 @@ class Quota(_messages.Message):
     gkeClustersPerPolicy: Maximum allowed number of GKE clusters per policy.
     gkeClustersPerResponsePolicy: Maximum allowed number of GKE clusters per
       response policy.
+    internetHealthChecksPerManagedZone: A integer attribute.
     itemsPerRoutingPolicy: Maximum allowed number of items per routing policy.
     kind: A string attribute.
     managedZones: Maximum allowed number of managed zones in the project.
@@ -2237,27 +2254,28 @@ class Quota(_messages.Message):
   gkeClustersPerManagedZone = _messages.IntegerField(2, variant=_messages.Variant.INT32)
   gkeClustersPerPolicy = _messages.IntegerField(3, variant=_messages.Variant.INT32)
   gkeClustersPerResponsePolicy = _messages.IntegerField(4, variant=_messages.Variant.INT32)
-  itemsPerRoutingPolicy = _messages.IntegerField(5, variant=_messages.Variant.INT32)
-  kind = _messages.StringField(6, default='dns#quota')
-  managedZones = _messages.IntegerField(7, variant=_messages.Variant.INT32)
-  managedZonesPerGkeCluster = _messages.IntegerField(8, variant=_messages.Variant.INT32)
-  managedZonesPerNetwork = _messages.IntegerField(9, variant=_messages.Variant.INT32)
-  nameserversPerDelegation = _messages.IntegerField(10, variant=_messages.Variant.INT32)
-  networksPerManagedZone = _messages.IntegerField(11, variant=_messages.Variant.INT32)
-  networksPerPolicy = _messages.IntegerField(12, variant=_messages.Variant.INT32)
-  networksPerResponsePolicy = _messages.IntegerField(13, variant=_messages.Variant.INT32)
-  peeringZonesPerTargetNetwork = _messages.IntegerField(14, variant=_messages.Variant.INT32)
-  policies = _messages.IntegerField(15, variant=_messages.Variant.INT32)
-  resourceRecordsPerRrset = _messages.IntegerField(16, variant=_messages.Variant.INT32)
-  responsePolicies = _messages.IntegerField(17, variant=_messages.Variant.INT32)
-  responsePolicyRulesPerResponsePolicy = _messages.IntegerField(18, variant=_messages.Variant.INT32)
-  rrsetAdditionsPerChange = _messages.IntegerField(19, variant=_messages.Variant.INT32)
-  rrsetDeletionsPerChange = _messages.IntegerField(20, variant=_messages.Variant.INT32)
-  rrsetsPerManagedZone = _messages.IntegerField(21, variant=_messages.Variant.INT32)
-  targetNameServersPerManagedZone = _messages.IntegerField(22, variant=_messages.Variant.INT32)
-  targetNameServersPerPolicy = _messages.IntegerField(23, variant=_messages.Variant.INT32)
-  totalRrdataSizePerChange = _messages.IntegerField(24, variant=_messages.Variant.INT32)
-  whitelistedKeySpecs = _messages.MessageField('DnsKeySpec', 25, repeated=True)
+  internetHealthChecksPerManagedZone = _messages.IntegerField(5, variant=_messages.Variant.INT32)
+  itemsPerRoutingPolicy = _messages.IntegerField(6, variant=_messages.Variant.INT32)
+  kind = _messages.StringField(7, default='dns#quota')
+  managedZones = _messages.IntegerField(8, variant=_messages.Variant.INT32)
+  managedZonesPerGkeCluster = _messages.IntegerField(9, variant=_messages.Variant.INT32)
+  managedZonesPerNetwork = _messages.IntegerField(10, variant=_messages.Variant.INT32)
+  nameserversPerDelegation = _messages.IntegerField(11, variant=_messages.Variant.INT32)
+  networksPerManagedZone = _messages.IntegerField(12, variant=_messages.Variant.INT32)
+  networksPerPolicy = _messages.IntegerField(13, variant=_messages.Variant.INT32)
+  networksPerResponsePolicy = _messages.IntegerField(14, variant=_messages.Variant.INT32)
+  peeringZonesPerTargetNetwork = _messages.IntegerField(15, variant=_messages.Variant.INT32)
+  policies = _messages.IntegerField(16, variant=_messages.Variant.INT32)
+  resourceRecordsPerRrset = _messages.IntegerField(17, variant=_messages.Variant.INT32)
+  responsePolicies = _messages.IntegerField(18, variant=_messages.Variant.INT32)
+  responsePolicyRulesPerResponsePolicy = _messages.IntegerField(19, variant=_messages.Variant.INT32)
+  rrsetAdditionsPerChange = _messages.IntegerField(20, variant=_messages.Variant.INT32)
+  rrsetDeletionsPerChange = _messages.IntegerField(21, variant=_messages.Variant.INT32)
+  rrsetsPerManagedZone = _messages.IntegerField(22, variant=_messages.Variant.INT32)
+  targetNameServersPerManagedZone = _messages.IntegerField(23, variant=_messages.Variant.INT32)
+  targetNameServersPerPolicy = _messages.IntegerField(24, variant=_messages.Variant.INT32)
+  totalRrdataSizePerChange = _messages.IntegerField(25, variant=_messages.Variant.INT32)
+  whitelistedKeySpecs = _messages.MessageField('DnsKeySpec', 26, repeated=True)
 
 
 class RRSetRoutingPolicy(_messages.Message):
@@ -2268,6 +2286,10 @@ class RRSetRoutingPolicy(_messages.Message):
   Fields:
     geo: A RRSetRoutingPolicyGeoPolicy attribute.
     geoPolicy: A RRSetRoutingPolicyGeoPolicy attribute.
+    healthCheck: The fully qualified URL of the HealthCheck to use for this
+      RRSetRoutingPolicy. Format this URL like `https://www.googleapis.com/com
+      pute/v1/projects/{project}/global/healthChecks/{healthCheck}`.
+      https://cloud.google.com/compute/docs/reference/rest/v1/healthChecks
     kind: A string attribute.
     primaryBackup: A RRSetRoutingPolicyPrimaryBackupPolicy attribute.
     wrr: A RRSetRoutingPolicyWrrPolicy attribute.
@@ -2276,15 +2298,16 @@ class RRSetRoutingPolicy(_messages.Message):
 
   geo = _messages.MessageField('RRSetRoutingPolicyGeoPolicy', 1)
   geoPolicy = _messages.MessageField('RRSetRoutingPolicyGeoPolicy', 2)
-  kind = _messages.StringField(3, default='dns#rRSetRoutingPolicy')
-  primaryBackup = _messages.MessageField('RRSetRoutingPolicyPrimaryBackupPolicy', 4)
-  wrr = _messages.MessageField('RRSetRoutingPolicyWrrPolicy', 5)
-  wrrPolicy = _messages.MessageField('RRSetRoutingPolicyWrrPolicy', 6)
+  healthCheck = _messages.StringField(3)
+  kind = _messages.StringField(4, default='dns#rRSetRoutingPolicy')
+  primaryBackup = _messages.MessageField('RRSetRoutingPolicyPrimaryBackupPolicy', 5)
+  wrr = _messages.MessageField('RRSetRoutingPolicyWrrPolicy', 6)
+  wrrPolicy = _messages.MessageField('RRSetRoutingPolicyWrrPolicy', 7)
 
 
 class RRSetRoutingPolicyGeoPolicy(_messages.Message):
-  r"""Configures a RRSetRoutingPolicy that routes based on the geo location of
-  the querying user.
+  r"""Configures a `RRSetRoutingPolicy` that routes based on the geo location
+  of the querying user.
 
   Fields:
     enableFencing: Without fencing, if health check fails for all configured
@@ -2310,15 +2333,15 @@ class RRSetRoutingPolicyGeoPolicyGeoPolicyItem(_messages.Message):
   Fields:
     healthCheckedTargets: For A and AAAA types only. Endpoints to return in
       the query result only if they are healthy. These can be specified along
-      with rrdata within this item.
+      with `rrdata` within this item.
     kind: A string attribute.
     location: The geo-location granularity is a GCP region. This location
       string should correspond to a GCP region. e.g. "us-east1",
       "southamerica-east1", "asia-east1", etc.
     rrdatas: A string attribute.
-    signatureRrdatas: DNSSEC generated signatures for all the rrdata within
-      this item. If health checked targets are provided for DNSSEC enabled
-      zones, there's a restriction of 1 IP address per item.
+    signatureRrdatas: DNSSEC generated signatures for all the `rrdata` within
+      this item. When using health-checked targets for DNSSEC-enabled zones,
+      you can only use at most one health-checked IP address per item.
   """
 
   healthCheckedTargets = _messages.MessageField('RRSetRoutingPolicyHealthCheckTargets', 1)
@@ -2331,15 +2354,19 @@ class RRSetRoutingPolicyGeoPolicyGeoPolicyItem(_messages.Message):
 class RRSetRoutingPolicyHealthCheckTargets(_messages.Message):
   r"""HealthCheckTargets describes endpoints to health-check when responding
   to Routing Policy queries. Only the healthy endpoints will be included in
-  the response. Only one of internal_load_balancer and external_endpoints
-  should be set.
+  the response. Set either `internal_load_balancer` or `external_endpoints`.
+  Do not set both.
 
   Fields:
+    externalEndpoints: The Internet IP addresses to be health checked. The
+      format matches the format of ResourceRecordSet.rrdata as defined in RFC
+      1035 (section 5) and RFC 1034 (section 3.6.1)
     internalLoadBalancers: Configuration for internal load balancers to be
       health checked.
   """
 
-  internalLoadBalancers = _messages.MessageField('RRSetRoutingPolicyLoadBalancerTarget', 1, repeated=True)
+  externalEndpoints = _messages.StringField(1, repeated=True)
+  internalLoadBalancers = _messages.MessageField('RRSetRoutingPolicyLoadBalancerTarget', 2, repeated=True)
 
 
 class RRSetRoutingPolicyLoadBalancerTarget(_messages.Message):
@@ -2368,8 +2395,8 @@ class RRSetRoutingPolicyLoadBalancerTarget(_messages.Message):
       Balancer. - *globalL7ilb*: for a global internal Application Load
       Balancer.
     networkUrl: The fully qualified URL of the network that the load balancer
-      is attached to. This should be formatted like https://www.googleapis.com
-      /compute/v1/projects/{project}/global/networks/{network} .
+      is attached to. This should be formatted like `https://www.googleapis.co
+      m/compute/v1/projects/{project}/global/networks/{network}`.
     port: The configured port of the load balancer.
     project: The project ID in which the load balancer is located.
     region: The region in which the load balancer is located.
@@ -2380,8 +2407,8 @@ class RRSetRoutingPolicyLoadBalancerTarget(_messages.Message):
 
     Values:
       undefined: <no description>
-      tcp: <no description>
-      udp: <no description>
+      tcp: Indicates the load balancer is accessible via TCP.
+      udp: Indicates the load balancer is accessible via UDP.
     """
     undefined = 0
     tcp = 1
@@ -2398,9 +2425,12 @@ class RRSetRoutingPolicyLoadBalancerTarget(_messages.Message):
 
     Values:
       none: <no description>
-      globalL7ilb: <no description>
-      regionalL4ilb: <no description>
-      regionalL7ilb: <no description>
+      globalL7ilb: Indicates the load balancer is a Cross-Region Application
+        Load Balancer.
+      regionalL4ilb: Indicates the load balancer is a Regional Network
+        Passthrough Load Balancer.
+      regionalL7ilb: Indicates the load balancer is a Regional Application
+        Load Balancer.
     """
     none = 0
     globalL7ilb = 1
@@ -2424,14 +2454,14 @@ class RRSetRoutingPolicyPrimaryBackupPolicy(_messages.Message):
 
   Fields:
     backupGeoTargets: Backup targets provide a regional failover policy for
-      the otherwise global primary targets. If serving state is set to BACKUP,
-      this policy essentially becomes a geo routing policy.
+      the otherwise global primary targets. If serving state is set to
+      `BACKUP`, this policy essentially becomes a geo routing policy.
     kind: A string attribute.
     primaryTargets: Endpoints that are health checked before making the
       routing decision. Unhealthy endpoints are omitted from the results. If
       all endpoints are unhealthy, we serve a response based on the
-      backup_geo_targets.
-    trickleTraffic: When serving state is PRIMARY, this field provides the
+      `backup_geo_targets`.
+    trickleTraffic: When serving state is `PRIMARY`, this field provides the
       option of sending a small percentage of the traffic to the backup
       targets.
   """
@@ -2463,16 +2493,16 @@ class RRSetRoutingPolicyWrrPolicyWrrPolicyItem(_messages.Message):
       routing decision. The unhealthy endpoints are omitted from the result.
       If all endpoints within a bucket are unhealthy, we choose a different
       bucket (sampled with respect to its weight) for responding. If DNSSEC is
-      enabled for this zone, only one of rrdata or health_checked_targets can
-      be set.
+      enabled for this zone, only one of `rrdata` or `health_checked_targets`
+      can be set.
     kind: A string attribute.
     rrdatas: A string attribute.
-    signatureRrdatas: DNSSEC generated signatures for all the rrdata within
-      this item. Note that if health checked targets are provided for DNSSEC
-      enabled zones, there's a restriction of 1 IP address per item.
-    weight: The weight corresponding to this WrrPolicyItem object. When
-      multiple WrrPolicyItem objects are configured, the probability of
-      returning an WrrPolicyItem object's data is proportional to its weight
+    signatureRrdatas: DNSSEC generated signatures for all the `rrdata` within
+      this item. When using health-checked targets for DNSSEC-enabled zones,
+      you can only use at most one health-checked IP address per item.
+    weight: The weight corresponding to this `WrrPolicyItem` object. When
+      multiple `WrrPolicyItem` objects are configured, the probability of
+      returning an `WrrPolicyItem` object's data is proportional to its weight
       relative to the sum of weights configured for all items. This weight
       must be non-negative.
   """
@@ -2492,12 +2522,12 @@ class ResourceRecordSet(_messages.Message):
     name: For example, www.example.com.
     routingPolicy: Configures dynamic query responses based on either the geo
       location of the querying user or a weighted round robin based routing
-      policy. A valid ResourceRecordSet contains only rrdata (for static
-      resolution) or a routing_policy (for dynamic resolution).
+      policy. A valid `ResourceRecordSet` contains only `rrdata` (for static
+      resolution) or a `routing_policy` (for dynamic resolution).
     rrdatas: As defined in RFC 1035 (section 5) and RFC 1034 (section 3.6.1)
       -- see examples.
     signatureRrdatas: As defined in RFC 4034 (section 3.2).
-    ttl: Number of seconds that this ResourceRecordSet can be cached by
+    ttl: Number of seconds that this `ResourceRecordSet` can be cached by
       resolvers.
     type: The identifier of a supported record type. See the list of Supported
       DNS record types.
@@ -2516,81 +2546,60 @@ class ResourceRecordSetsListResponse(_messages.Message):
   r"""A ResourceRecordSetsListResponse object.
 
   Fields:
-    header: A ResponseHeader attribute.
     kind: Type of resource.
-    nextPageToken: The presence of this field indicates that there exist more
-      results following your last page of results in pagination order. To
-      fetch them, make another list request using this value as your
-      pagination token. This lets you retrieve the complete contents of even
-      larger collections, one page at a time. However, if the collection
-      changes between paginated list requests, the set of elements returned is
-      an inconsistent view of the collection. You cannot retrieve a consistent
+    nextPageToken: This field indicates that more results are available beyond
+      the last page displayed. To fetch the results, make another list request
+      and use this value as your page token. This lets you retrieve the
+      complete contents of a very large collection one page at a time.
+      However, if the contents of the collection change between the first and
+      last paginated list request, the set of all elements returned are an
+      inconsistent view of the collection. You can't retrieve a consistent
       snapshot of a collection larger than the maximum page size.
     rrsets: The resource record set resources.
   """
 
-  header = _messages.MessageField('ResponseHeader', 1)
-  kind = _messages.StringField(2, default='dns#resourceRecordSetsListResponse')
-  nextPageToken = _messages.StringField(3)
-  rrsets = _messages.MessageField('ResourceRecordSet', 4, repeated=True)
-
-
-class ResponseHeader(_messages.Message):
-  r"""Elements common to every response.
-
-  Fields:
-    operationId: For mutating operation requests that completed successfully.
-      This is the client_operation_id if the client specified it, otherwise it
-      is generated by the server (output only).
-  """
-
-  operationId = _messages.StringField(1)
+  kind = _messages.StringField(1, default='dns#resourceRecordSetsListResponse')
+  nextPageToken = _messages.StringField(2)
+  rrsets = _messages.MessageField('ResourceRecordSet', 3, repeated=True)
 
 
 class ResponsePoliciesListResponse(_messages.Message):
   r"""A ResponsePoliciesListResponse object.
 
   Fields:
-    header: A ResponseHeader attribute.
-    nextPageToken: The presence of this field indicates that more results
-      exist following your last page of results in pagination order. To fetch
-      them, make another list request by using this value as your page token.
-      This lets you view the complete contents of even very large collections
-      one page at a time. However, if the contents of the collection change
-      between the first and last paginated list request, the set of all
-      elements returned are an inconsistent view of the collection. You cannot
-      retrieve a consistent snapshot of a collection larger than the maximum
-      page size.
+    nextPageToken: This field indicates that more results are available beyond
+      the last page displayed. To fetch the results, make another list request
+      and use this value as your page token. This lets you retrieve the
+      complete contents of a very large collection one page at a time.
+      However, if the contents of the collection change between the first and
+      last paginated list request, the set of all elements returned are an
+      inconsistent view of the collection. You can't retrieve a consistent
+      snapshot of a collection larger than the maximum page size.
     responsePolicies: The Response Policy resources.
   """
 
-  header = _messages.MessageField('ResponseHeader', 1)
-  nextPageToken = _messages.StringField(2)
-  responsePolicies = _messages.MessageField('ResponsePolicy', 3, repeated=True)
+  nextPageToken = _messages.StringField(1)
+  responsePolicies = _messages.MessageField('ResponsePolicy', 2, repeated=True)
 
 
 class ResponsePoliciesPatchResponse(_messages.Message):
   r"""A ResponsePoliciesPatchResponse object.
 
   Fields:
-    header: A ResponseHeader attribute.
     responsePolicy: A ResponsePolicy attribute.
   """
 
-  header = _messages.MessageField('ResponseHeader', 1)
-  responsePolicy = _messages.MessageField('ResponsePolicy', 2)
+  responsePolicy = _messages.MessageField('ResponsePolicy', 1)
 
 
 class ResponsePoliciesUpdateResponse(_messages.Message):
   r"""A ResponsePoliciesUpdateResponse object.
 
   Fields:
-    header: A ResponseHeader attribute.
     responsePolicy: A ResponsePolicy attribute.
   """
 
-  header = _messages.MessageField('ResponseHeader', 1)
-  responsePolicy = _messages.MessageField('ResponsePolicy', 2)
+  responsePolicy = _messages.MessageField('ResponsePolicy', 1)
 
 
 class ResponsePolicy(_messages.Message):
@@ -2669,8 +2678,8 @@ class ResponsePolicyNetwork(_messages.Message):
   Fields:
     kind: A string attribute.
     networkUrl: The fully qualified URL of the VPC network to bind to. This
-      should be formatted like https://www.googleapis.com/compute/v1/projects/
-      {project}/global/networks/{network}
+      should be formatted like `https://www.googleapis.com/compute/v1/projects
+      /{project}/global/networks/{network}`
   """
 
   kind = _messages.StringField(1, default='dns#responsePolicyNetwork')
@@ -2706,19 +2715,19 @@ class ResponsePolicyRule(_messages.Message):
 
     Values:
       behaviorUnspecified: <no description>
-      bypassResponsePolicy: Skip a less-specific ResponsePolicyRule and
-        continue normal query logic. This can be used with a less-specific
-        wildcard selector to exempt a subset of the wildcard
-        ResponsePolicyRule from the ResponsePolicy behavior and query the
-        public Internet instead. For instance, if these rules exist:
-        *.example.com -> LocalData 1.2.3.4 foo.example.com -> Behavior
-        'bypassResponsePolicy' Then a query for 'foo.example.com' skips the
-        wildcard. This additionally functions to facilitate the allowlist
-        feature. RPZs can be applied to multiple levels in the (eventually
-        org, folder, project, network) hierarchy. If a rule is applied at a
-        higher level of the hierarchy, adding a passthru rule at a lower level
-        will supersede that, and a query from an affected vm to that domain
-        will be exempt from the RPZ and proceed to normal resolution behavior.
+      bypassResponsePolicy: Skip a less-specific Response Policy Rule and let
+        the query logic continue. This mechanism, when used with wildcard
+        selectors, lets you exempt specific subdomains from a broader Response
+        Policy Rule and direct the queries to the public internet instead. For
+        example, if the following rules exist: ``` *.example.com -> LocalData
+        1.2.3.4 foo.example.com -> Behavior 'passthrough' ``` A query for
+        foo.example.com skips the wildcard rule. This functionality also
+        facilitates allowlisting. Response Policy Zones (RPZs) can be applied
+        at multiple levels within the hierarchy: for example, an organization,
+        a folder, a project, or a VPC network. If an RPZ rule is applied at a
+        higher level, adding a `passthrough` rule at a lower level will
+        override it. Queries from affected virtual machines (VMs) to that
+        domain bypass the RPZ and proceed with normal resolution.
     """
     behaviorUnspecified = 0
     bypassResponsePolicy = 1
@@ -2745,46 +2754,39 @@ class ResponsePolicyRulesListResponse(_messages.Message):
   r"""A ResponsePolicyRulesListResponse object.
 
   Fields:
-    header: A ResponseHeader attribute.
-    nextPageToken: The presence of this field indicates that there exist more
-      results following your last page of results in pagination order. To
-      fetch them, make another list request using this value as your page
-      token. This lets you the complete contents of even very large
-      collections one page at a time. However, if the contents of the
-      collection change between the first and last paginated list request, the
-      set of all elements returned are an inconsistent view of the collection.
-      You cannot retrieve a consistent snapshot of a collection larger than
-      the maximum page size.
+    nextPageToken: This field indicates that more results are available beyond
+      the last page displayed. To fetch the results, make another list request
+      and use this value as your page token. This lets you retrieve the
+      complete contents of a very large collection one page at a time.
+      However, if the contents of the collection change between the first and
+      last paginated list request, the set of all elements returned are an
+      inconsistent view of the collection. You can't retrieve a consistent
+      snapshot of a collection larger than the maximum page size.
     responsePolicyRules: The Response Policy Rule resources.
   """
 
-  header = _messages.MessageField('ResponseHeader', 1)
-  nextPageToken = _messages.StringField(2)
-  responsePolicyRules = _messages.MessageField('ResponsePolicyRule', 3, repeated=True)
+  nextPageToken = _messages.StringField(1)
+  responsePolicyRules = _messages.MessageField('ResponsePolicyRule', 2, repeated=True)
 
 
 class ResponsePolicyRulesPatchResponse(_messages.Message):
   r"""A ResponsePolicyRulesPatchResponse object.
 
   Fields:
-    header: A ResponseHeader attribute.
     responsePolicyRule: A ResponsePolicyRule attribute.
   """
 
-  header = _messages.MessageField('ResponseHeader', 1)
-  responsePolicyRule = _messages.MessageField('ResponsePolicyRule', 2)
+  responsePolicyRule = _messages.MessageField('ResponsePolicyRule', 1)
 
 
 class ResponsePolicyRulesUpdateResponse(_messages.Message):
   r"""A ResponsePolicyRulesUpdateResponse object.
 
   Fields:
-    header: A ResponseHeader attribute.
     responsePolicyRule: A ResponsePolicyRule attribute.
   """
 
-  header = _messages.MessageField('ResponseHeader', 1)
-  responsePolicyRule = _messages.MessageField('ResponsePolicyRule', 2)
+  responsePolicyRule = _messages.MessageField('ResponsePolicyRule', 1)
 
 
 class StandardQueryParameters(_messages.Message):

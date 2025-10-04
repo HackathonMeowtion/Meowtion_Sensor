@@ -32,6 +32,10 @@ class AccessApprovalServiceAccount(_messages.Message):
 class AccessApprovalSettings(_messages.Message):
   r"""Settings on a Project/Folder/Organization related to Access Approval.
 
+  Enums:
+    RequestScopeMaxWidthPreferenceValueValuesEnum: Optional. A setting to
+      indicate the maximum width of an Access Approval request.
+
   Fields:
     activeKeyVersion: The asymmetric crypto key version to use for signing
       approval requests. Empty active_key_version indicates that a Google-
@@ -43,6 +47,10 @@ class AccessApprovalSettings(_messages.Message):
       that indicates that an ancestor of this Project or Folder has set
       active_key_version (this field will always be unset for the organization
       since organizations do not have ancestors).
+    approvalPolicy: Optional. Policy for approval. This contains all policies.
+    effectiveApprovalPolicy: Output only. Policy for approval included
+      inherited settings to understand the exact policy applied to this
+      resource. This is a read-only field.
     enrolledAncestor: Output only. This field is read only (not settable via
       UpdateAccessApprovalSettings method). If the field is true, that
       indicates that at least one service is enrolled for Access Approval in
@@ -83,21 +91,45 @@ class AccessApprovalSettings(_messages.Message):
     preferredRequestExpirationDays: This preference is shared with Google
       personnel, but can be overridden if said personnel deems necessary. The
       approver ultimately can set the expiration at approval time.
+    requestScopeMaxWidthPreference: Optional. A setting to indicate the
+      maximum width of an Access Approval request.
     requireCustomerVisibleJustification: Optional. A setting to require
       approval request justifications to be customer visible.
   """
 
+  class RequestScopeMaxWidthPreferenceValueValuesEnum(_messages.Enum):
+    r"""Optional. A setting to indicate the maximum width of an Access
+    Approval request.
+
+    Values:
+      REQUEST_SCOPE_MAX_WIDTH_PREFERENCE_UNSPECIFIED: Default value for proto,
+        shouldn't be used.
+      ORGANIZATION: This is the widest scope possible. It means the customer
+        has no scope restriction when it comes to Access Approval requests.
+      FOLDER: Customer allows the scope of Access Approval requests as broad
+        as the Folder level.
+      PROJECT: Customer allows the scope of Access Approval requests as broad
+        as the Project level.
+    """
+    REQUEST_SCOPE_MAX_WIDTH_PREFERENCE_UNSPECIFIED = 0
+    ORGANIZATION = 1
+    FOLDER = 2
+    PROJECT = 3
+
   activeKeyVersion = _messages.StringField(1)
   ancestorHasActiveKeyVersion = _messages.BooleanField(2)
-  enrolledAncestor = _messages.BooleanField(3)
-  enrolledServices = _messages.MessageField('EnrolledService', 4, repeated=True)
-  invalidKeyVersion = _messages.BooleanField(5)
-  name = _messages.StringField(6)
-  notificationEmails = _messages.StringField(7, repeated=True)
-  notificationPubsubTopic = _messages.StringField(8)
-  preferNoBroadApprovalRequests = _messages.BooleanField(9)
-  preferredRequestExpirationDays = _messages.IntegerField(10, variant=_messages.Variant.INT32)
-  requireCustomerVisibleJustification = _messages.BooleanField(11)
+  approvalPolicy = _messages.MessageField('CustomerApprovalApprovalPolicy', 3)
+  effectiveApprovalPolicy = _messages.MessageField('CustomerApprovalApprovalPolicy', 4)
+  enrolledAncestor = _messages.BooleanField(5)
+  enrolledServices = _messages.MessageField('EnrolledService', 6, repeated=True)
+  invalidKeyVersion = _messages.BooleanField(7)
+  name = _messages.StringField(8)
+  notificationEmails = _messages.StringField(9, repeated=True)
+  notificationPubsubTopic = _messages.StringField(10)
+  preferNoBroadApprovalRequests = _messages.BooleanField(11)
+  preferredRequestExpirationDays = _messages.IntegerField(12, variant=_messages.Variant.INT32)
+  requestScopeMaxWidthPreference = _messages.EnumField('RequestScopeMaxWidthPreferenceValueValuesEnum', 13)
+  requireCustomerVisibleJustification = _messages.BooleanField(14)
 
 
 class AccessLocations(_messages.Message):
@@ -574,6 +606,8 @@ class ApprovalRequest(_messages.Message):
     name: The resource name of the request. Format is "{projects|folders|organ
       izations}/{id}/approvalRequests/{approval_request}".
     requestTime: The time at which approval was requested.
+    requestedAugmentedInfo: This field contains the augmented information of
+      the request.
     requestedDuration: The requested access duration.
     requestedExpiration: The original requested expiration for the approval.
       Calculated by adding the requested_duration to the request_time.
@@ -594,12 +628,13 @@ class ApprovalRequest(_messages.Message):
   dismiss = _messages.MessageField('DismissDecision', 2)
   name = _messages.StringField(3)
   requestTime = _messages.StringField(4)
-  requestedDuration = _messages.StringField(5)
-  requestedExpiration = _messages.StringField(6)
-  requestedLocations = _messages.MessageField('AccessLocations', 7)
-  requestedReason = _messages.MessageField('AccessReason', 8)
-  requestedResourceName = _messages.StringField(9)
-  requestedResourceProperties = _messages.MessageField('ResourceProperties', 10)
+  requestedAugmentedInfo = _messages.MessageField('AugmentedInfo', 5)
+  requestedDuration = _messages.StringField(6)
+  requestedExpiration = _messages.StringField(7)
+  requestedLocations = _messages.MessageField('AccessLocations', 8)
+  requestedReason = _messages.MessageField('AccessReason', 9)
+  requestedResourceName = _messages.StringField(10)
+  requestedResourceProperties = _messages.MessageField('ResourceProperties', 11)
 
 
 class ApproveApprovalRequestMessage(_messages.Message):
@@ -621,6 +656,8 @@ class ApproveDecision(_messages.Message):
     expireTime: The time at which the approval expires.
     invalidateTime: If set, denotes the timestamp at which the approval is
       invalidated.
+    policyApproved: True when the request has been approved by the customer's
+      defined policy.
     signatureInfo: The signature for the ApprovalRequest and details on how it
       was signed.
   """
@@ -629,7 +666,56 @@ class ApproveDecision(_messages.Message):
   autoApproved = _messages.BooleanField(2)
   expireTime = _messages.StringField(3)
   invalidateTime = _messages.StringField(4)
-  signatureInfo = _messages.MessageField('SignatureInfo', 5)
+  policyApproved = _messages.BooleanField(5)
+  signatureInfo = _messages.MessageField('SignatureInfo', 6)
+
+
+class AugmentedInfo(_messages.Message):
+  r"""This field contains the augmented information of the request.
+
+  Fields:
+    command: For command-line tools, the full command-line exactly as entered
+      by the actor without adding any additional characters (such as quotation
+      marks).
+  """
+
+  command = _messages.StringField(1)
+
+
+class CustomerApprovalApprovalPolicy(_messages.Message):
+  r"""Represents all the policies that can be set for Customer Approval.
+
+  Enums:
+    JustificationBasedApprovalPolicyValueValuesEnum: Optional. Policy for
+      approval based on the justification given.
+
+  Fields:
+    justificationBasedApprovalPolicy: Optional. Policy for approval based on
+      the justification given.
+  """
+
+  class JustificationBasedApprovalPolicyValueValuesEnum(_messages.Enum):
+    r"""Optional. Policy for approval based on the justification given.
+
+    Values:
+      JUSTIFICATION_BASED_APPROVAL_POLICY_UNSPECIFIED: Default value for
+        proto.
+      JUSTIFICATION_BASED_APPROVAL_ENABLED_ALL: Instant approval is enabled
+        for all accesses.
+      JUSTIFICATION_BASED_APPROVAL_ENABLED_EXTERNAL_JUSTIFICATIONS: Instant
+        approval is enabled for external justifications.
+      JUSTIFICATION_BASED_APPROVAL_NOT_ENABLED: Instant approval is not
+        enabled for any accesses.
+      JUSTIFICATION_BASED_APPROVAL_INHERITED: Instant approval is inherited
+        from the parent.
+    """
+    JUSTIFICATION_BASED_APPROVAL_POLICY_UNSPECIFIED = 0
+    JUSTIFICATION_BASED_APPROVAL_ENABLED_ALL = 1
+    JUSTIFICATION_BASED_APPROVAL_ENABLED_EXTERNAL_JUSTIFICATIONS = 2
+    JUSTIFICATION_BASED_APPROVAL_NOT_ENABLED = 3
+    JUSTIFICATION_BASED_APPROVAL_INHERITED = 4
+
+  justificationBasedApprovalPolicy = _messages.EnumField('JustificationBasedApprovalPolicyValueValuesEnum', 1)
 
 
 class DismissApprovalRequestMessage(_messages.Message):
@@ -815,6 +901,8 @@ class SignatureInfo(_messages.Message):
         curve is only supported for HSM protection level. Other hash functions
         can also be used: https://cloud.google.com/kms/docs/create-validate-
         signatures#ecdsa_support_for_other_hash_algorithms
+      EC_SIGN_ED25519: EdDSA on the Curve25519 in pure mode (taking data as
+        input).
       HMAC_SHA256: HMAC-SHA256 signing with a 256 bit key.
       HMAC_SHA1: HMAC-SHA1 signing with a 160 bit key.
       HMAC_SHA384: HMAC-SHA384 signing with a 384 bit key.
@@ -822,6 +910,17 @@ class SignatureInfo(_messages.Message):
       HMAC_SHA224: HMAC-SHA224 signing with a 224 bit key.
       EXTERNAL_SYMMETRIC_ENCRYPTION: Algorithm representing symmetric
         encryption by an external key manager.
+      ML_KEM_768: ML-KEM-768 (FIPS 203)
+      ML_KEM_1024: ML-KEM-1024 (FIPS 203)
+      KEM_XWING: X-Wing hybrid KEM combining ML-KEM-768 with X25519 following
+        datatracker.ietf.org/doc/draft-connolly-cfrg-xwing-kem/.
+      PQ_SIGN_ML_DSA_65: The post-quantum Module-Lattice-Based Digital
+        Signature Algorithm, at security level 3. Randomized version.
+      PQ_SIGN_SLH_DSA_SHA2_128S: The post-quantum stateless hash-based digital
+        signature algorithm, at security level 1. Randomized version.
+      PQ_SIGN_HASH_SLH_DSA_SHA2_128S_SHA256: The post-quantum stateless hash-
+        based digital signature algorithm, at security level 1. Randomized
+        pre-hash version supporting SHA256 digests.
     """
     CRYPTO_KEY_VERSION_ALGORITHM_UNSPECIFIED = 0
     GOOGLE_SYMMETRIC_ENCRYPTION = 1
@@ -852,12 +951,19 @@ class SignatureInfo(_messages.Message):
     EC_SIGN_P256_SHA256 = 26
     EC_SIGN_P384_SHA384 = 27
     EC_SIGN_SECP256K1_SHA256 = 28
-    HMAC_SHA256 = 29
-    HMAC_SHA1 = 30
-    HMAC_SHA384 = 31
-    HMAC_SHA512 = 32
-    HMAC_SHA224 = 33
-    EXTERNAL_SYMMETRIC_ENCRYPTION = 34
+    EC_SIGN_ED25519 = 29
+    HMAC_SHA256 = 30
+    HMAC_SHA1 = 31
+    HMAC_SHA384 = 32
+    HMAC_SHA512 = 33
+    HMAC_SHA224 = 34
+    EXTERNAL_SYMMETRIC_ENCRYPTION = 35
+    ML_KEM_768 = 36
+    ML_KEM_1024 = 37
+    KEM_XWING = 38
+    PQ_SIGN_ML_DSA_65 = 39
+    PQ_SIGN_SLH_DSA_SHA2_128S = 40
+    PQ_SIGN_HASH_SLH_DSA_SHA2_128S_SHA256 = 41
 
   customerKmsKeyVersion = _messages.StringField(1)
   googleKeyAlgorithm = _messages.EnumField('GoogleKeyAlgorithmValueValuesEnum', 2)

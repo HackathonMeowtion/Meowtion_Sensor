@@ -35,6 +35,7 @@ _DETAILED_HELP = {
 
 
 @base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.DefaultUniverseOnly
 class Delete(base.DeleteCommand):
   """Delete an Eventarc trigger."""
 
@@ -47,25 +48,9 @@ class Delete(base.DeleteCommand):
 
   def Run(self, args):
     """Run the delete command."""
-    client = triggers.CreateTriggersClient(self.ReleaseTrack())
+    client = triggers.TriggersClientV1()
     trigger_ref = args.CONCEPTS.trigger.Parse()
     operation = client.Delete(trigger_ref)
     if args.async_:
       return operation
     return client.WaitFor(operation, 'Deleting', trigger_ref)
-
-
-@base.Deprecate(
-    is_removed=True,
-    warning=(
-        'This command is deprecated. '
-        'Please use `gcloud eventarc triggers delete` instead.'
-    ),
-    error=(
-        'This command has been removed. '
-        'Please use `gcloud eventarc triggers delete` instead.'
-    ),
-)
-@base.ReleaseTracks(base.ReleaseTrack.BETA)
-class DeleteBeta(Delete):
-  """Delete an Eventarc trigger."""

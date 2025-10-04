@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -75,7 +75,7 @@ class StorageGrpcTransport(StorageTransport):
             credentials: Optional[ga_credentials.Credentials] = None,
             credentials_file: Optional[str] = None,
             scopes: Optional[Sequence[str]] = None,
-            channel: Optional[grpc.Channel] = None,
+            channel: Optional[Union[grpc.Channel, Callable[..., grpc.Channel]]] = None,
             api_mtls_endpoint: Optional[str] = None,
             client_cert_source: Optional[Callable[[], Tuple[bytes, bytes]]] = None,
             ssl_channel_credentials: Optional[grpc.ChannelCredentials] = None,
@@ -89,20 +89,23 @@ class StorageGrpcTransport(StorageTransport):
 
         Args:
             host (Optional[str]):
-                 The hostname to connect to.
+                 The hostname to connect to (default: 'storage.googleapis.com').
             credentials (Optional[google.auth.credentials.Credentials]): The
                 authorization credentials to attach to requests. These
                 credentials identify the application to the service; if none
                 are specified, the client will attempt to ascertain the
                 credentials from the environment.
-                This argument is ignored if ``channel`` is provided.
+                This argument is ignored if a ``channel`` instance is provided.
             credentials_file (Optional[str]): A file with credentials that can
                 be loaded with :func:`google.auth.load_credentials_from_file`.
-                This argument is ignored if ``channel`` is provided.
+                This argument is ignored if a ``channel`` instance is provided.
             scopes (Optional(Sequence[str])): A list of scopes. This argument is
-                ignored if ``channel`` is provided.
-            channel (Optional[grpc.Channel]): A ``Channel`` instance through
-                which to make calls.
+                ignored if a ``channel`` instance is provided.
+            channel (Optional[Union[grpc.Channel, Callable[..., grpc.Channel]]]):
+                A ``Channel`` instance through which to make calls, or a Callable
+                that constructs and returns one. If set to None, ``self.create_channel``
+                is used to create the channel. If a Callable is given, it will be called
+                with the same arguments as used in ``self.create_channel``.
             api_mtls_endpoint (Optional[str]): Deprecated. The mutual TLS endpoint.
                 If provided, it overrides the ``host`` argument and tries to create
                 a mutual TLS channel with client SSL credentials from
@@ -112,11 +115,11 @@ class StorageGrpcTransport(StorageTransport):
                 private key bytes, both in PEM format. It is ignored if
                 ``api_mtls_endpoint`` is None.
             ssl_channel_credentials (grpc.ChannelCredentials): SSL credentials
-                for the grpc channel. It is ignored if ``channel`` is provided.
+                for the grpc channel. It is ignored if a ``channel`` instance is provided.
             client_cert_source_for_mtls (Optional[Callable[[], Tuple[bytes, bytes]]]):
                 A callback to provide client certificate bytes and private key bytes,
                 both in PEM format. It is used to configure a mutual TLS channel. It is
-                ignored if ``channel`` or ``ssl_channel_credentials`` is provided.
+                ignored if a ``channel`` instance or ``ssl_channel_credentials`` is provided.
             quota_project_id (Optional[str]): An optional project to use for billing
                 and quota.
             client_info (google.api_core.gapic_v1.client_info.ClientInfo):
@@ -142,7 +145,7 @@ class StorageGrpcTransport(StorageTransport):
         if client_cert_source:
             warnings.warn("client_cert_source is deprecated", DeprecationWarning)
 
-        if channel:
+        if isinstance(channel, grpc.Channel):
             # Ignore credentials if a channel was passed.
             credentials = False
             # If a channel was explicitly provided, set it.
@@ -183,7 +186,9 @@ class StorageGrpcTransport(StorageTransport):
         )
 
         if not self._grpc_channel:
-            self._grpc_channel = type(self).create_channel(
+            # initialize with the provided callable or the default channel
+            channel_init = channel or type(self).create_channel
+            self._grpc_channel = channel_init(
                 self._host,
                 # use the credentials which are saved
                 credentials=self._credentials,
@@ -390,7 +395,10 @@ class StorageGrpcTransport(StorageTransport):
         r"""Return a callable for the get iam policy method over gRPC.
 
         Gets the IAM policy for a specified bucket. The ``resource``
-        field in the request should be ``projects/_/buckets/{bucket}``.
+        field in the request should be ``projects/_/buckets/{bucket}``
+        for a bucket, or
+        ``projects/_/buckets/{bucket}/managedFolders/{managedFolder}``
+        for a managed folder.
 
         Returns:
             Callable[[~.GetIamPolicyRequest],
@@ -417,7 +425,10 @@ class StorageGrpcTransport(StorageTransport):
         r"""Return a callable for the set iam policy method over gRPC.
 
         Updates an IAM policy for the specified bucket. The ``resource``
-        field in the request should be ``projects/_/buckets/{bucket}``.
+        field in the request should be ``projects/_/buckets/{bucket}``
+        for a bucket, or
+        ``projects/_/buckets/{bucket}/managedFolders/{managedFolder}``
+        for a managed folder.
 
         Returns:
             Callable[[~.SetIamPolicyRequest],
@@ -530,13 +541,28 @@ class StorageGrpcTransport(StorageTransport):
             empty_pb2.Empty]:
         r"""Return a callable for the delete object method over gRPC.
 
-        Deletes an object and its metadata.
+        Deletes an object and its metadata. Deletions are permanent if
+        versioning is not enabled for the bucket, or if the generation
+        parameter is used, or if `soft
+        delete <https://cloud.google.com/storage/docs/soft-delete>`__ is
+        not enabled for the bucket. When this API is used to delete an
+        object from a bucket that has soft delete policy enabled, the
+        object becomes soft deleted, and the ``softDeleteTime`` and
+        ``hardDeleteTime`` properties are set on the object. This API
+        cannot be used to permanently delete soft-deleted objects.
+        Soft-deleted objects are permanently deleted according to their
+        ``hardDeleteTime``.
 
-        Deletions are normally permanent when versioning is
-        disabled or whenever the generation parameter is used.
-        However, if soft delete is enabled for the bucket,
-        deleted objects can be restored using RestoreObject
-        until the soft delete retention period has passed.
+        You can use the
+        [``RestoreObject``][google.storage.v2.Storage.RestoreObject] API
+        to restore soft-deleted objects until the soft delete retention
+        period has passed.
+
+        **IAM Permissions**:
+
+        Requires ``storage.objects.delete`` `IAM
+        permission <https://cloud.google.com/iam/docs/overview#permissions>`__
+        on the bucket.
 
         Returns:
             Callable[[~.DeleteObjectRequest],
@@ -622,7 +648,14 @@ class StorageGrpcTransport(StorageTransport):
             storage.Object]:
         r"""Return a callable for the get object method over gRPC.
 
-        Retrieves an object's metadata.
+        Retrieves object metadata.
+
+        **IAM Permissions**:
+
+        Requires ``storage.objects.get`` `IAM
+        permission <https://cloud.google.com/iam/docs/overview#permissions>`__
+        on the bucket. To return object ACLs, the authenticated user
+        must also have the ``storage.objects.getIamPolicy`` permission.
 
         Returns:
             Callable[[~.GetObjectRequest],
@@ -648,7 +681,13 @@ class StorageGrpcTransport(StorageTransport):
             storage.ReadObjectResponse]:
         r"""Return a callable for the read object method over gRPC.
 
-        Reads an object's data.
+        Retrieves object data.
+
+        **IAM Permissions**:
+
+        Requires ``storage.objects.get`` `IAM
+        permission <https://cloud.google.com/iam/docs/overview#permissions>`__
+        on the bucket.
 
         Returns:
             Callable[[~.ReadObjectRequest],
@@ -667,6 +706,52 @@ class StorageGrpcTransport(StorageTransport):
                 response_deserializer=storage.ReadObjectResponse.deserialize,
             )
         return self._stubs['read_object']
+
+    @property
+    def bidi_read_object(self) -> Callable[
+            [storage.BidiReadObjectRequest],
+            storage.BidiReadObjectResponse]:
+        r"""Return a callable for the bidi read object method over gRPC.
+
+        Reads an object's data.
+
+        This is a bi-directional API with the added support for reading
+        multiple ranges within one stream both within and across
+        multiple messages. If the server encountered an error for any of
+        the inputs, the stream will be closed with the relevant error
+        code. Because the API allows for multiple outstanding requests,
+        when the stream is closed the error response will contain a
+        BidiReadObjectRangesError proto in the error extension
+        describing the error for each outstanding read_id.
+
+        **IAM Permissions**:
+
+        Requires ``storage.objects.get``
+
+        `IAM
+        permission <https://cloud.google.com/iam/docs/overview#permissions>`__
+        on the bucket.
+
+        This API is currently in preview and is not yet available for
+        general use.
+
+        Returns:
+            Callable[[~.BidiReadObjectRequest],
+                    ~.BidiReadObjectResponse]:
+                A function that, when called, will call the underlying RPC
+                on the server.
+        """
+        # Generate a "stub function" on-the-fly which will actually make
+        # the request.
+        # gRPC handles serialization and deserialization, so we just need
+        # to pass in the functions for each.
+        if 'bidi_read_object' not in self._stubs:
+            self._stubs['bidi_read_object'] = self.grpc_channel.stream_stream(
+                '/google.storage.v2.Storage/BidiReadObject',
+                request_serializer=storage.BidiReadObjectRequest.serialize,
+                response_deserializer=storage.BidiReadObjectResponse.deserialize,
+            )
+        return self._stubs['bidi_read_object']
 
     @property
     def update_object(self) -> Callable[
@@ -763,12 +848,18 @@ class StorageGrpcTransport(StorageTransport):
         whether the service views the object as complete.
 
         Attempting to resume an already finalized object will result in
-        an OK status, with a WriteObjectResponse containing the
+        an OK status, with a ``WriteObjectResponse`` containing the
         finalized object's metadata.
 
         Alternatively, the BidiWriteObject operation may be used to
         write an object with controls over flushing and the ability to
         fetch the ability to determine the current persisted size.
+
+        **IAM Permissions**:
+
+        Requires ``storage.objects.create`` `IAM
+        permission <https://cloud.google.com/iam/docs/overview#permissions>`__
+        on the bucket.
 
         Returns:
             Callable[[~.WriteObjectRequest],
@@ -838,6 +929,14 @@ class StorageGrpcTransport(StorageTransport):
 
         Retrieves a list of objects matching the criteria.
 
+        **IAM Permissions**:
+
+        The authenticated user requires ``storage.objects.list`` `IAM
+        permission <https://cloud.google.com/iam/docs/overview#permissions>`__
+        to use this method. To return object ACLs, the authenticated
+        user must also have the ``storage.objects.getIamPolicy``
+        permission.
+
         Returns:
             Callable[[~.ListObjectsRequest],
                     ~.ListObjectsResponse]:
@@ -889,9 +988,19 @@ class StorageGrpcTransport(StorageTransport):
             storage.StartResumableWriteResponse]:
         r"""Return a callable for the start resumable write method over gRPC.
 
-        Starts a resumable write. How long the write
-        operation remains valid, and what happens when the write
-        operation becomes invalid, are service-dependent.
+        Starts a resumable write operation. This method is part of the
+        `Resumable
+        upload <https://cloud.google.com/storage/docs/resumable-uploads>`__
+        feature. This allows you to upload large objects in multiple
+        chunks, which is more resilient to network interruptions than a
+        single upload. The validity duration of the write operation, and
+        the consequences of it becoming invalid, are service-dependent.
+
+        **IAM Permissions**:
+
+        Requires ``storage.objects.create`` `IAM
+        permission <https://cloud.google.com/iam/docs/overview#permissions>`__
+        on the bucket.
 
         Returns:
             Callable[[~.StartResumableWriteRequest],
@@ -917,20 +1026,23 @@ class StorageGrpcTransport(StorageTransport):
             storage.QueryWriteStatusResponse]:
         r"""Return a callable for the query write status method over gRPC.
 
-        Determines the ``persisted_size`` for an object that is being
-        written, which can then be used as the ``write_offset`` for the
-        next ``Write()`` call.
+        Determines the ``persisted_size`` of an object that is being
+        written. This method is part of the `resumable
+        upload <https://cloud.google.com/storage/docs/resumable-uploads>`__
+        feature. The returned value is the size of the object that has
+        been persisted so far. The value can be used as the
+        ``write_offset`` for the next ``Write()`` call.
 
-        If the object does not exist (i.e., the object has been deleted,
-        or the first ``Write()`` has not yet reached the service), this
-        method returns the error ``NOT_FOUND``.
+        If the object does not exist, meaning if it was deleted, or the
+        first ``Write()`` has not yet reached the service, this method
+        returns the error ``NOT_FOUND``.
 
-        The client **may** call ``QueryWriteStatus()`` at any time to
-        determine how much data has been processed for this object. This
-        is useful if the client is buffering data and needs to know
-        which data can be safely evicted. For any sequence of
+        This method is useful for clients that buffer data and need to
+        know which data can be safely evicted. The client can call
+        ``QueryWriteStatus()`` at any time to determine how much data
+        has been logged for this object. For any sequence of
         ``QueryWriteStatus()`` calls for a given object name, the
-        sequence of returned ``persisted_size`` values will be
+        sequence of returned ``persisted_size`` values are
         non-decreasing.
 
         Returns:
@@ -952,17 +1064,17 @@ class StorageGrpcTransport(StorageTransport):
         return self._stubs['query_write_status']
 
     @property
-    def get_service_account(self) -> Callable[
-            [storage.GetServiceAccountRequest],
-            storage.ServiceAccount]:
-        r"""Return a callable for the get service account method over gRPC.
+    def move_object(self) -> Callable[
+            [storage.MoveObjectRequest],
+            storage.Object]:
+        r"""Return a callable for the move object method over gRPC.
 
-        Retrieves the name of a project's Google Cloud
-        Storage service account.
+        Moves the source object to the destination object in
+        the same bucket.
 
         Returns:
-            Callable[[~.GetServiceAccountRequest],
-                    ~.ServiceAccount]:
+            Callable[[~.MoveObjectRequest],
+                    ~.Object]:
                 A function that, when called, will call the underlying RPC
                 on the server.
         """
@@ -970,254 +1082,13 @@ class StorageGrpcTransport(StorageTransport):
         # the request.
         # gRPC handles serialization and deserialization, so we just need
         # to pass in the functions for each.
-        if 'get_service_account' not in self._stubs:
-            self._stubs['get_service_account'] = self.grpc_channel.unary_unary(
-                '/google.storage.v2.Storage/GetServiceAccount',
-                request_serializer=storage.GetServiceAccountRequest.serialize,
-                response_deserializer=storage.ServiceAccount.deserialize,
+        if 'move_object' not in self._stubs:
+            self._stubs['move_object'] = self.grpc_channel.unary_unary(
+                '/google.storage.v2.Storage/MoveObject',
+                request_serializer=storage.MoveObjectRequest.serialize,
+                response_deserializer=storage.Object.deserialize,
             )
-        return self._stubs['get_service_account']
-
-    @property
-    def create_hmac_key(self) -> Callable[
-            [storage.CreateHmacKeyRequest],
-            storage.CreateHmacKeyResponse]:
-        r"""Return a callable for the create hmac key method over gRPC.
-
-        Creates a new HMAC key for the given service account.
-
-        Returns:
-            Callable[[~.CreateHmacKeyRequest],
-                    ~.CreateHmacKeyResponse]:
-                A function that, when called, will call the underlying RPC
-                on the server.
-        """
-        # Generate a "stub function" on-the-fly which will actually make
-        # the request.
-        # gRPC handles serialization and deserialization, so we just need
-        # to pass in the functions for each.
-        if 'create_hmac_key' not in self._stubs:
-            self._stubs['create_hmac_key'] = self.grpc_channel.unary_unary(
-                '/google.storage.v2.Storage/CreateHmacKey',
-                request_serializer=storage.CreateHmacKeyRequest.serialize,
-                response_deserializer=storage.CreateHmacKeyResponse.deserialize,
-            )
-        return self._stubs['create_hmac_key']
-
-    @property
-    def delete_hmac_key(self) -> Callable[
-            [storage.DeleteHmacKeyRequest],
-            empty_pb2.Empty]:
-        r"""Return a callable for the delete hmac key method over gRPC.
-
-        Deletes a given HMAC key.  Key must be in an INACTIVE
-        state.
-
-        Returns:
-            Callable[[~.DeleteHmacKeyRequest],
-                    ~.Empty]:
-                A function that, when called, will call the underlying RPC
-                on the server.
-        """
-        # Generate a "stub function" on-the-fly which will actually make
-        # the request.
-        # gRPC handles serialization and deserialization, so we just need
-        # to pass in the functions for each.
-        if 'delete_hmac_key' not in self._stubs:
-            self._stubs['delete_hmac_key'] = self.grpc_channel.unary_unary(
-                '/google.storage.v2.Storage/DeleteHmacKey',
-                request_serializer=storage.DeleteHmacKeyRequest.serialize,
-                response_deserializer=empty_pb2.Empty.FromString,
-            )
-        return self._stubs['delete_hmac_key']
-
-    @property
-    def get_hmac_key(self) -> Callable[
-            [storage.GetHmacKeyRequest],
-            storage.HmacKeyMetadata]:
-        r"""Return a callable for the get hmac key method over gRPC.
-
-        Gets an existing HMAC key metadata for the given id.
-
-        Returns:
-            Callable[[~.GetHmacKeyRequest],
-                    ~.HmacKeyMetadata]:
-                A function that, when called, will call the underlying RPC
-                on the server.
-        """
-        # Generate a "stub function" on-the-fly which will actually make
-        # the request.
-        # gRPC handles serialization and deserialization, so we just need
-        # to pass in the functions for each.
-        if 'get_hmac_key' not in self._stubs:
-            self._stubs['get_hmac_key'] = self.grpc_channel.unary_unary(
-                '/google.storage.v2.Storage/GetHmacKey',
-                request_serializer=storage.GetHmacKeyRequest.serialize,
-                response_deserializer=storage.HmacKeyMetadata.deserialize,
-            )
-        return self._stubs['get_hmac_key']
-
-    @property
-    def list_hmac_keys(self) -> Callable[
-            [storage.ListHmacKeysRequest],
-            storage.ListHmacKeysResponse]:
-        r"""Return a callable for the list hmac keys method over gRPC.
-
-        Lists HMAC keys under a given project with the
-        additional filters provided.
-
-        Returns:
-            Callable[[~.ListHmacKeysRequest],
-                    ~.ListHmacKeysResponse]:
-                A function that, when called, will call the underlying RPC
-                on the server.
-        """
-        # Generate a "stub function" on-the-fly which will actually make
-        # the request.
-        # gRPC handles serialization and deserialization, so we just need
-        # to pass in the functions for each.
-        if 'list_hmac_keys' not in self._stubs:
-            self._stubs['list_hmac_keys'] = self.grpc_channel.unary_unary(
-                '/google.storage.v2.Storage/ListHmacKeys',
-                request_serializer=storage.ListHmacKeysRequest.serialize,
-                response_deserializer=storage.ListHmacKeysResponse.deserialize,
-            )
-        return self._stubs['list_hmac_keys']
-
-    @property
-    def update_hmac_key(self) -> Callable[
-            [storage.UpdateHmacKeyRequest],
-            storage.HmacKeyMetadata]:
-        r"""Return a callable for the update hmac key method over gRPC.
-
-        Updates a given HMAC key state between ACTIVE and
-        INACTIVE.
-
-        Returns:
-            Callable[[~.UpdateHmacKeyRequest],
-                    ~.HmacKeyMetadata]:
-                A function that, when called, will call the underlying RPC
-                on the server.
-        """
-        # Generate a "stub function" on-the-fly which will actually make
-        # the request.
-        # gRPC handles serialization and deserialization, so we just need
-        # to pass in the functions for each.
-        if 'update_hmac_key' not in self._stubs:
-            self._stubs['update_hmac_key'] = self.grpc_channel.unary_unary(
-                '/google.storage.v2.Storage/UpdateHmacKey',
-                request_serializer=storage.UpdateHmacKeyRequest.serialize,
-                response_deserializer=storage.HmacKeyMetadata.deserialize,
-            )
-        return self._stubs['update_hmac_key']
-
-    @property
-    def delete_notification_config(self) -> Callable[
-            [storage.DeleteNotificationConfigRequest],
-            empty_pb2.Empty]:
-        r"""Return a callable for the delete notification config method over gRPC.
-
-        Permanently deletes a NotificationConfig.
-
-        Returns:
-            Callable[[~.DeleteNotificationConfigRequest],
-                    ~.Empty]:
-                A function that, when called, will call the underlying RPC
-                on the server.
-        """
-        # Generate a "stub function" on-the-fly which will actually make
-        # the request.
-        # gRPC handles serialization and deserialization, so we just need
-        # to pass in the functions for each.
-        if 'delete_notification_config' not in self._stubs:
-            self._stubs['delete_notification_config'] = self.grpc_channel.unary_unary(
-                '/google.storage.v2.Storage/DeleteNotificationConfig',
-                request_serializer=storage.DeleteNotificationConfigRequest.serialize,
-                response_deserializer=empty_pb2.Empty.FromString,
-            )
-        return self._stubs['delete_notification_config']
-
-    @property
-    def get_notification_config(self) -> Callable[
-            [storage.GetNotificationConfigRequest],
-            storage.NotificationConfig]:
-        r"""Return a callable for the get notification config method over gRPC.
-
-        View a NotificationConfig.
-
-        Returns:
-            Callable[[~.GetNotificationConfigRequest],
-                    ~.NotificationConfig]:
-                A function that, when called, will call the underlying RPC
-                on the server.
-        """
-        # Generate a "stub function" on-the-fly which will actually make
-        # the request.
-        # gRPC handles serialization and deserialization, so we just need
-        # to pass in the functions for each.
-        if 'get_notification_config' not in self._stubs:
-            self._stubs['get_notification_config'] = self.grpc_channel.unary_unary(
-                '/google.storage.v2.Storage/GetNotificationConfig',
-                request_serializer=storage.GetNotificationConfigRequest.serialize,
-                response_deserializer=storage.NotificationConfig.deserialize,
-            )
-        return self._stubs['get_notification_config']
-
-    @property
-    def create_notification_config(self) -> Callable[
-            [storage.CreateNotificationConfigRequest],
-            storage.NotificationConfig]:
-        r"""Return a callable for the create notification config method over gRPC.
-
-        Creates a NotificationConfig for a given bucket.
-        These NotificationConfigs, when triggered, publish
-        messages to the specified Pub/Sub topics. See
-        https://cloud.google.com/storage/docs/pubsub-notifications.
-
-        Returns:
-            Callable[[~.CreateNotificationConfigRequest],
-                    ~.NotificationConfig]:
-                A function that, when called, will call the underlying RPC
-                on the server.
-        """
-        # Generate a "stub function" on-the-fly which will actually make
-        # the request.
-        # gRPC handles serialization and deserialization, so we just need
-        # to pass in the functions for each.
-        if 'create_notification_config' not in self._stubs:
-            self._stubs['create_notification_config'] = self.grpc_channel.unary_unary(
-                '/google.storage.v2.Storage/CreateNotificationConfig',
-                request_serializer=storage.CreateNotificationConfigRequest.serialize,
-                response_deserializer=storage.NotificationConfig.deserialize,
-            )
-        return self._stubs['create_notification_config']
-
-    @property
-    def list_notification_configs(self) -> Callable[
-            [storage.ListNotificationConfigsRequest],
-            storage.ListNotificationConfigsResponse]:
-        r"""Return a callable for the list notification configs method over gRPC.
-
-        Retrieves a list of NotificationConfigs for a given
-        bucket.
-
-        Returns:
-            Callable[[~.ListNotificationConfigsRequest],
-                    ~.ListNotificationConfigsResponse]:
-                A function that, when called, will call the underlying RPC
-                on the server.
-        """
-        # Generate a "stub function" on-the-fly which will actually make
-        # the request.
-        # gRPC handles serialization and deserialization, so we just need
-        # to pass in the functions for each.
-        if 'list_notification_configs' not in self._stubs:
-            self._stubs['list_notification_configs'] = self.grpc_channel.unary_unary(
-                '/google.storage.v2.Storage/ListNotificationConfigs',
-                request_serializer=storage.ListNotificationConfigsRequest.serialize,
-                response_deserializer=storage.ListNotificationConfigsResponse.deserialize,
-            )
-        return self._stubs['list_notification_configs']
+        return self._stubs['move_object']
 
     def close(self):
         self.grpc_channel.close()

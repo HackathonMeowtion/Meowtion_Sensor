@@ -46,7 +46,10 @@ class BigtableadminV2(base_api.BaseApiClient):
     self.projects_instances_clusters_backups = self.ProjectsInstancesClustersBackupsService(self)
     self.projects_instances_clusters_hotTablets = self.ProjectsInstancesClustersHotTabletsService(self)
     self.projects_instances_clusters = self.ProjectsInstancesClustersService(self)
+    self.projects_instances_logicalViews = self.ProjectsInstancesLogicalViewsService(self)
+    self.projects_instances_materializedViews = self.ProjectsInstancesMaterializedViewsService(self)
     self.projects_instances_tables_authorizedViews = self.ProjectsInstancesTablesAuthorizedViewsService(self)
+    self.projects_instances_tables_schemaBundles = self.ProjectsInstancesTablesSchemaBundlesService(self)
     self.projects_instances_tables = self.ProjectsInstancesTablesService(self)
     self.projects_instances = self.ProjectsInstancesService(self)
     self.projects_locations = self.ProjectsLocationsService(self)
@@ -662,6 +665,33 @@ class BigtableadminV2(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def GetMemoryLayer(self, request, global_params=None):
+      r"""Gets information about the memory layer of a cluster.
+
+      Args:
+        request: (BigtableadminProjectsInstancesClustersGetMemoryLayerRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (MemoryLayer) The response message.
+      """
+      config = self.GetMethodConfig('GetMemoryLayer')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetMemoryLayer.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/clusters/{clustersId}/memoryLayer',
+        http_method='GET',
+        method_id='bigtableadmin.projects.instances.clusters.getMemoryLayer',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v2/{+name}',
+        request_field='',
+        request_type_name='BigtableadminProjectsInstancesClustersGetMemoryLayerRequest',
+        response_type_name='MemoryLayer',
+        supports_download=False,
+    )
+
     def List(self, request, global_params=None):
       r"""Lists information about clusters in an instance.
 
@@ -740,6 +770,485 @@ class BigtableadminV2(base_api.BaseApiClient):
         request_field='<request>',
         request_type_name='Cluster',
         response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def UpdateMemoryLayer(self, request, global_params=None):
+      r"""Updates the memory layer of a cluster. To enable the memory layer, set the memory_config. To disable the memory layer, unset the memory_config.
+
+      Args:
+        request: (BigtableadminProjectsInstancesClustersUpdateMemoryLayerRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('UpdateMemoryLayer')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    UpdateMemoryLayer.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/clusters/{clustersId}/memoryLayer',
+        http_method='PATCH',
+        method_id='bigtableadmin.projects.instances.clusters.updateMemoryLayer',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v2/{+name}',
+        request_field='memoryLayer',
+        request_type_name='BigtableadminProjectsInstancesClustersUpdateMemoryLayerRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+  class ProjectsInstancesLogicalViewsService(base_api.BaseApiService):
+    """Service class for the projects_instances_logicalViews resource."""
+
+    _NAME = 'projects_instances_logicalViews'
+
+    def __init__(self, client):
+      super(BigtableadminV2.ProjectsInstancesLogicalViewsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a logical view within an instance.
+
+      Args:
+        request: (BigtableadminProjectsInstancesLogicalViewsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/logicalViews',
+        http_method='POST',
+        method_id='bigtableadmin.projects.instances.logicalViews.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['logicalViewId'],
+        relative_path='v2/{+parent}/logicalViews',
+        request_field='logicalView',
+        request_type_name='BigtableadminProjectsInstancesLogicalViewsCreateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a logical view from an instance.
+
+      Args:
+        request: (BigtableadminProjectsInstancesLogicalViewsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Empty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/logicalViews/{logicalViewsId}',
+        http_method='DELETE',
+        method_id='bigtableadmin.projects.instances.logicalViews.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['etag'],
+        relative_path='v2/{+name}',
+        request_field='',
+        request_type_name='BigtableadminProjectsInstancesLogicalViewsDeleteRequest',
+        response_type_name='Empty',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets information about a logical view.
+
+      Args:
+        request: (BigtableadminProjectsInstancesLogicalViewsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (LogicalView) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/logicalViews/{logicalViewsId}',
+        http_method='GET',
+        method_id='bigtableadmin.projects.instances.logicalViews.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v2/{+name}',
+        request_field='',
+        request_type_name='BigtableadminProjectsInstancesLogicalViewsGetRequest',
+        response_type_name='LogicalView',
+        supports_download=False,
+    )
+
+    def GetIamPolicy(self, request, global_params=None):
+      r"""Gets the access control policy for an instance resource. Returns an empty policy if an instance exists but does not have a policy set.
+
+      Args:
+        request: (BigtableadminProjectsInstancesLogicalViewsGetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Policy) The response message.
+      """
+      config = self.GetMethodConfig('GetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/logicalViews/{logicalViewsId}:getIamPolicy',
+        http_method='POST',
+        method_id='bigtableadmin.projects.instances.logicalViews.getIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v2/{+resource}:getIamPolicy',
+        request_field='getIamPolicyRequest',
+        request_type_name='BigtableadminProjectsInstancesLogicalViewsGetIamPolicyRequest',
+        response_type_name='Policy',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists information about logical views in an instance.
+
+      Args:
+        request: (BigtableadminProjectsInstancesLogicalViewsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListLogicalViewsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/logicalViews',
+        http_method='GET',
+        method_id='bigtableadmin.projects.instances.logicalViews.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['pageSize', 'pageToken'],
+        relative_path='v2/{+parent}/logicalViews',
+        request_field='',
+        request_type_name='BigtableadminProjectsInstancesLogicalViewsListRequest',
+        response_type_name='ListLogicalViewsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates a logical view within an instance.
+
+      Args:
+        request: (BigtableadminProjectsInstancesLogicalViewsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/logicalViews/{logicalViewsId}',
+        http_method='PATCH',
+        method_id='bigtableadmin.projects.instances.logicalViews.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v2/{+name}',
+        request_field='logicalView',
+        request_type_name='BigtableadminProjectsInstancesLogicalViewsPatchRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def SetIamPolicy(self, request, global_params=None):
+      r"""Sets the access control policy on an instance resource. Replaces any existing policy.
+
+      Args:
+        request: (BigtableadminProjectsInstancesLogicalViewsSetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Policy) The response message.
+      """
+      config = self.GetMethodConfig('SetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/logicalViews/{logicalViewsId}:setIamPolicy',
+        http_method='POST',
+        method_id='bigtableadmin.projects.instances.logicalViews.setIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v2/{+resource}:setIamPolicy',
+        request_field='setIamPolicyRequest',
+        request_type_name='BigtableadminProjectsInstancesLogicalViewsSetIamPolicyRequest',
+        response_type_name='Policy',
+        supports_download=False,
+    )
+
+    def TestIamPermissions(self, request, global_params=None):
+      r"""Returns permissions that the caller has on the specified instance resource.
+
+      Args:
+        request: (BigtableadminProjectsInstancesLogicalViewsTestIamPermissionsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (TestIamPermissionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('TestIamPermissions')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    TestIamPermissions.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/logicalViews/{logicalViewsId}:testIamPermissions',
+        http_method='POST',
+        method_id='bigtableadmin.projects.instances.logicalViews.testIamPermissions',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v2/{+resource}:testIamPermissions',
+        request_field='testIamPermissionsRequest',
+        request_type_name='BigtableadminProjectsInstancesLogicalViewsTestIamPermissionsRequest',
+        response_type_name='TestIamPermissionsResponse',
+        supports_download=False,
+    )
+
+  class ProjectsInstancesMaterializedViewsService(base_api.BaseApiService):
+    """Service class for the projects_instances_materializedViews resource."""
+
+    _NAME = 'projects_instances_materializedViews'
+
+    def __init__(self, client):
+      super(BigtableadminV2.ProjectsInstancesMaterializedViewsService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a materialized view within an instance.
+
+      Args:
+        request: (BigtableadminProjectsInstancesMaterializedViewsCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/materializedViews',
+        http_method='POST',
+        method_id='bigtableadmin.projects.instances.materializedViews.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['materializedViewId'],
+        relative_path='v2/{+parent}/materializedViews',
+        request_field='materializedView',
+        request_type_name='BigtableadminProjectsInstancesMaterializedViewsCreateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a materialized view from an instance.
+
+      Args:
+        request: (BigtableadminProjectsInstancesMaterializedViewsDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Empty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/materializedViews/{materializedViewsId}',
+        http_method='DELETE',
+        method_id='bigtableadmin.projects.instances.materializedViews.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['etag'],
+        relative_path='v2/{+name}',
+        request_field='',
+        request_type_name='BigtableadminProjectsInstancesMaterializedViewsDeleteRequest',
+        response_type_name='Empty',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets information about a materialized view.
+
+      Args:
+        request: (BigtableadminProjectsInstancesMaterializedViewsGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (MaterializedView) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/materializedViews/{materializedViewsId}',
+        http_method='GET',
+        method_id='bigtableadmin.projects.instances.materializedViews.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v2/{+name}',
+        request_field='',
+        request_type_name='BigtableadminProjectsInstancesMaterializedViewsGetRequest',
+        response_type_name='MaterializedView',
+        supports_download=False,
+    )
+
+    def GetIamPolicy(self, request, global_params=None):
+      r"""Gets the access control policy for an instance resource. Returns an empty policy if an instance exists but does not have a policy set.
+
+      Args:
+        request: (BigtableadminProjectsInstancesMaterializedViewsGetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Policy) The response message.
+      """
+      config = self.GetMethodConfig('GetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/materializedViews/{materializedViewsId}:getIamPolicy',
+        http_method='POST',
+        method_id='bigtableadmin.projects.instances.materializedViews.getIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v2/{+resource}:getIamPolicy',
+        request_field='getIamPolicyRequest',
+        request_type_name='BigtableadminProjectsInstancesMaterializedViewsGetIamPolicyRequest',
+        response_type_name='Policy',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists information about materialized views in an instance.
+
+      Args:
+        request: (BigtableadminProjectsInstancesMaterializedViewsListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListMaterializedViewsResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/materializedViews',
+        http_method='GET',
+        method_id='bigtableadmin.projects.instances.materializedViews.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['pageSize', 'pageToken'],
+        relative_path='v2/{+parent}/materializedViews',
+        request_field='',
+        request_type_name='BigtableadminProjectsInstancesMaterializedViewsListRequest',
+        response_type_name='ListMaterializedViewsResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates a materialized view within an instance.
+
+      Args:
+        request: (BigtableadminProjectsInstancesMaterializedViewsPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/materializedViews/{materializedViewsId}',
+        http_method='PATCH',
+        method_id='bigtableadmin.projects.instances.materializedViews.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['updateMask'],
+        relative_path='v2/{+name}',
+        request_field='materializedView',
+        request_type_name='BigtableadminProjectsInstancesMaterializedViewsPatchRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def SetIamPolicy(self, request, global_params=None):
+      r"""Sets the access control policy on an instance resource. Replaces any existing policy.
+
+      Args:
+        request: (BigtableadminProjectsInstancesMaterializedViewsSetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Policy) The response message.
+      """
+      config = self.GetMethodConfig('SetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/materializedViews/{materializedViewsId}:setIamPolicy',
+        http_method='POST',
+        method_id='bigtableadmin.projects.instances.materializedViews.setIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v2/{+resource}:setIamPolicy',
+        request_field='setIamPolicyRequest',
+        request_type_name='BigtableadminProjectsInstancesMaterializedViewsSetIamPolicyRequest',
+        response_type_name='Policy',
+        supports_download=False,
+    )
+
+    def TestIamPermissions(self, request, global_params=None):
+      r"""Returns permissions that the caller has on the specified instance resource.
+
+      Args:
+        request: (BigtableadminProjectsInstancesMaterializedViewsTestIamPermissionsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (TestIamPermissionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('TestIamPermissions')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    TestIamPermissions.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/materializedViews/{materializedViewsId}:testIamPermissions',
+        http_method='POST',
+        method_id='bigtableadmin.projects.instances.materializedViews.testIamPermissions',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v2/{+resource}:testIamPermissions',
+        request_field='testIamPermissionsRequest',
+        request_type_name='BigtableadminProjectsInstancesMaterializedViewsTestIamPermissionsRequest',
+        response_type_name='TestIamPermissionsResponse',
         supports_download=False,
     )
 
@@ -965,6 +1474,232 @@ class BigtableadminV2(base_api.BaseApiClient):
         relative_path='v2/{+resource}:testIamPermissions',
         request_field='testIamPermissionsRequest',
         request_type_name='BigtableadminProjectsInstancesTablesAuthorizedViewsTestIamPermissionsRequest',
+        response_type_name='TestIamPermissionsResponse',
+        supports_download=False,
+    )
+
+  class ProjectsInstancesTablesSchemaBundlesService(base_api.BaseApiService):
+    """Service class for the projects_instances_tables_schemaBundles resource."""
+
+    _NAME = 'projects_instances_tables_schemaBundles'
+
+    def __init__(self, client):
+      super(BigtableadminV2.ProjectsInstancesTablesSchemaBundlesService, self).__init__(client)
+      self._upload_configs = {
+          }
+
+    def Create(self, request, global_params=None):
+      r"""Creates a new schema bundle in the specified table.
+
+      Args:
+        request: (BigtableadminProjectsInstancesTablesSchemaBundlesCreateRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Create')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Create.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/tables/{tablesId}/schemaBundles',
+        http_method='POST',
+        method_id='bigtableadmin.projects.instances.tables.schemaBundles.create',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['schemaBundleId'],
+        relative_path='v2/{+parent}/schemaBundles',
+        request_field='schemaBundle',
+        request_type_name='BigtableadminProjectsInstancesTablesSchemaBundlesCreateRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Delete(self, request, global_params=None):
+      r"""Deletes a schema bundle in the specified table.
+
+      Args:
+        request: (BigtableadminProjectsInstancesTablesSchemaBundlesDeleteRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Empty) The response message.
+      """
+      config = self.GetMethodConfig('Delete')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Delete.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/tables/{tablesId}/schemaBundles/{schemaBundlesId}',
+        http_method='DELETE',
+        method_id='bigtableadmin.projects.instances.tables.schemaBundles.delete',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['etag'],
+        relative_path='v2/{+name}',
+        request_field='',
+        request_type_name='BigtableadminProjectsInstancesTablesSchemaBundlesDeleteRequest',
+        response_type_name='Empty',
+        supports_download=False,
+    )
+
+    def Get(self, request, global_params=None):
+      r"""Gets metadata information about the specified schema bundle.
+
+      Args:
+        request: (BigtableadminProjectsInstancesTablesSchemaBundlesGetRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (SchemaBundle) The response message.
+      """
+      config = self.GetMethodConfig('Get')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Get.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/tables/{tablesId}/schemaBundles/{schemaBundlesId}',
+        http_method='GET',
+        method_id='bigtableadmin.projects.instances.tables.schemaBundles.get',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v2/{+name}',
+        request_field='',
+        request_type_name='BigtableadminProjectsInstancesTablesSchemaBundlesGetRequest',
+        response_type_name='SchemaBundle',
+        supports_download=False,
+    )
+
+    def GetIamPolicy(self, request, global_params=None):
+      r"""Gets the access control policy for a Bigtable resource. Returns an empty policy if the resource exists but does not have a policy set.
+
+      Args:
+        request: (BigtableadminProjectsInstancesTablesSchemaBundlesGetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Policy) The response message.
+      """
+      config = self.GetMethodConfig('GetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    GetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/tables/{tablesId}/schemaBundles/{schemaBundlesId}:getIamPolicy',
+        http_method='POST',
+        method_id='bigtableadmin.projects.instances.tables.schemaBundles.getIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v2/{+resource}:getIamPolicy',
+        request_field='getIamPolicyRequest',
+        request_type_name='BigtableadminProjectsInstancesTablesSchemaBundlesGetIamPolicyRequest',
+        response_type_name='Policy',
+        supports_download=False,
+    )
+
+    def List(self, request, global_params=None):
+      r"""Lists all schema bundles associated with the specified table.
+
+      Args:
+        request: (BigtableadminProjectsInstancesTablesSchemaBundlesListRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (ListSchemaBundlesResponse) The response message.
+      """
+      config = self.GetMethodConfig('List')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    List.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/tables/{tablesId}/schemaBundles',
+        http_method='GET',
+        method_id='bigtableadmin.projects.instances.tables.schemaBundles.list',
+        ordered_params=['parent'],
+        path_params=['parent'],
+        query_params=['pageSize', 'pageToken', 'view'],
+        relative_path='v2/{+parent}/schemaBundles',
+        request_field='',
+        request_type_name='BigtableadminProjectsInstancesTablesSchemaBundlesListRequest',
+        response_type_name='ListSchemaBundlesResponse',
+        supports_download=False,
+    )
+
+    def Patch(self, request, global_params=None):
+      r"""Updates a schema bundle in the specified table.
+
+      Args:
+        request: (BigtableadminProjectsInstancesTablesSchemaBundlesPatchRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Patch')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Patch.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/tables/{tablesId}/schemaBundles/{schemaBundlesId}',
+        http_method='PATCH',
+        method_id='bigtableadmin.projects.instances.tables.schemaBundles.patch',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['ignoreWarnings', 'updateMask'],
+        relative_path='v2/{+name}',
+        request_field='schemaBundle',
+        request_type_name='BigtableadminProjectsInstancesTablesSchemaBundlesPatchRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def SetIamPolicy(self, request, global_params=None):
+      r"""Sets the access control policy on a Bigtable resource. Replaces any existing policy.
+
+      Args:
+        request: (BigtableadminProjectsInstancesTablesSchemaBundlesSetIamPolicyRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Policy) The response message.
+      """
+      config = self.GetMethodConfig('SetIamPolicy')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SetIamPolicy.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/tables/{tablesId}/schemaBundles/{schemaBundlesId}:setIamPolicy',
+        http_method='POST',
+        method_id='bigtableadmin.projects.instances.tables.schemaBundles.setIamPolicy',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v2/{+resource}:setIamPolicy',
+        request_field='setIamPolicyRequest',
+        request_type_name='BigtableadminProjectsInstancesTablesSchemaBundlesSetIamPolicyRequest',
+        response_type_name='Policy',
+        supports_download=False,
+    )
+
+    def TestIamPermissions(self, request, global_params=None):
+      r"""Returns permissions that the caller has on the specified Bigtable resource.
+
+      Args:
+        request: (BigtableadminProjectsInstancesTablesSchemaBundlesTestIamPermissionsRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (TestIamPermissionsResponse) The response message.
+      """
+      config = self.GetMethodConfig('TestIamPermissions')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    TestIamPermissions.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v2/projects/{projectsId}/instances/{instancesId}/tables/{tablesId}/schemaBundles/{schemaBundlesId}:testIamPermissions',
+        http_method='POST',
+        method_id='bigtableadmin.projects.instances.tables.schemaBundles.testIamPermissions',
+        ordered_params=['resource'],
+        path_params=['resource'],
+        query_params=[],
+        relative_path='v2/{+resource}:testIamPermissions',
+        request_field='testIamPermissionsRequest',
+        request_type_name='BigtableadminProjectsInstancesTablesSchemaBundlesTestIamPermissionsRequest',
         response_type_name='TestIamPermissionsResponse',
         supports_download=False,
     )
@@ -1241,7 +1976,7 @@ class BigtableadminV2(base_api.BaseApiClient):
         method_id='bigtableadmin.projects.instances.tables.patch',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['updateMask'],
+        query_params=['ignoreWarnings', 'updateMask'],
         relative_path='v2/{+name}',
         request_field='table',
         request_type_name='BigtableadminProjectsInstancesTablesPatchRequest',
@@ -1639,7 +2374,7 @@ class BigtableadminV2(base_api.BaseApiClient):
         method_id='bigtableadmin.projects.locations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'pageSize', 'pageToken'],
+        query_params=['extraLocationTypes', 'filter', 'pageSize', 'pageToken'],
         relative_path='v2/{+name}/locations',
         request_field='',
         request_type_name='BigtableadminProjectsLocationsListRequest',

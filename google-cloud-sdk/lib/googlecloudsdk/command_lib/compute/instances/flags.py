@@ -21,6 +21,7 @@ from __future__ import unicode_literals
 import copy
 import functools
 import ipaddress
+import textwrap
 
 from googlecloudsdk.api_lib.compute import constants
 from googlecloudsdk.api_lib.compute import containers_utils
@@ -39,12 +40,12 @@ from googlecloudsdk.command_lib.compute import completers as compute_completers
 from googlecloudsdk.command_lib.compute import exceptions as compute_exceptions
 from googlecloudsdk.command_lib.compute import flags as compute_flags
 from googlecloudsdk.command_lib.compute import scope as compute_scope
-from googlecloudsdk.command_lib.compute.kms import resource_args as kms_resource_args
+from googlecloudsdk.command_lib.kms import resource_args as kms_resource_args
 from googlecloudsdk.command_lib.util.apis import arg_utils
+from googlecloudsdk.command_lib.util.args import labels_util
 from googlecloudsdk.core import log
 from googlecloudsdk.core import properties
 from googlecloudsdk.core import resources as core_resources
-
 import six
 
 ZONE_PROPERTY_EXPLANATION = """\
@@ -79,6 +80,7 @@ MIGRATION_OPTIONS = {
 }
 
 LOCAL_SSD_INTERFACES = ['NVME', 'SCSI']
+PD_INTERFACES = ['NVME', 'SCSI']
 
 DISK_METAVAR = ('name=NAME [mode={ro,rw}] [device-name=DEVICE_NAME] ')
 
@@ -106,13 +108,23 @@ table(
             networkInterfaces[].ipv6AccessConfigs[0].externalIpv6.notnull().list():label=EXTERNAL_IPV6,
             networkInterfaces[].ipv6Address.notnull().list():label=INTERNAL_IPV6)"""
 
+# Due to limitations of resource projection parser, we must make sure each
+# column maps to a different projection node (i.e. has a different key),
+# otherwise there may be undefined behaviors with sorting by column name. The
+# key of a projection node is determined by the resource field path before a
+# transform. For example, in the below list, the keys are ['name'], ['zone'],
+# ['machineType'], ['scheduling', 'preemptible'], ['networkInterfaces'], and [].
+# Though for INTERNAL_IP and EXTERNAL_IP columns, the transformation is similar,
+# we choose to implement it differently so that they have different keys to make
+# sure sorting by these column names work.
+# See b/370564874 for an example of the undefined behavior before the fix.
 DEFAULT_LIST_FORMAT_WITH_IPV6 = """\
     table(
       name,
       zone.basename(),
       machineType.machine_type().basename(),
       scheduling.preemptible.yesno(yes=true, no=''),
-      internal_ip():label=INTERNAL_IP,
+      networkInterfaces.internal_ip():label=INTERNAL_IP,
       external_ip():label=EXTERNAL_IP,
       status
     )"""
@@ -161,7 +173,9 @@ SSH_INSTANCE_RESOLVER = compute_flags.ResourceResolver.FromMap(
 
 
 def TransformInstanceExternalIp(resource):
-  """Transforms the instance resource to collect IPv4 and IPv6 external IPs."""
+  """Transforms an instance resource to collect IPv4 and IPv6 external IPs."""
+  if not resource:
+    return ''
   if not resource.get('networkInterfaces'):
     return ''
   ipv4_external_ips = [
@@ -180,17 +194,17 @@ def TransformInstanceExternalIp(resource):
 
 
 def TransformInstanceInternalIp(resource):
-  """Transforms the instance resource to collect IPv4 and IPv6 internal IPs."""
-  if not resource.get('networkInterfaces'):
+  """Transforms a list of network interface resources to collect IPv4 and IPv6 internal IPs."""
+  if not resource:
     return ''
   ipv4_internal_ips = [
       r['networkIP']
-      for r in resource['networkInterfaces']
+      for r in resource
       if r.get('networkIP')
   ]
   ipv6_internal_ips = [
       f"{r['ipv6Address']}/{r['internalIpv6PrefixLength']}"
-      for r in resource['networkInterfaces']
+      for r in resource
       if r.get('ipv6Address') and r.get('internalIpv6PrefixLength')
   ]
   return '\n'.join(ipv4_internal_ips + ipv6_internal_ips)
@@ -300,11 +314,10 @@ def MakeSourceInstanceTemplateArg():
       global_collection='compute.instanceTemplates',
       regional_collection='compute.regionInstanceTemplates',
       short_help=(
-          'The name of the instance template that the instance will '
-          'be created from. An instance template can be a '
-          'global/regional resource.\n\nUsers can also override machine '
-          'type and labels. Values of other flags will be ignored and'
-          ' `--source-instance-template` will be used instead.'
+          'The name of the instance template that the instance will be created'
+          ' from. An instance template can be a global/regional'
+          ' resource.\n\nUsers can override instance properties using other'
+          ' flags.'
       ),
   )
 
@@ -335,6 +348,7 @@ def AddImageArgs(
     enable_snapshots=False,
     support_image_family_scope=False,
     enable_instant_snapshots=False,
+    support_source_snapshot_region=False,
 ):
   """Adds arguments related to images for instances and instance-templates."""
 
@@ -396,6 +410,15 @@ def AddImageArgs(
     )
   if support_image_family_scope:
     image_utils.AddImageFamilyScopeFlag(image_parent_group)
+
+  if support_source_snapshot_region:
+    image_parent_group.add_argument(
+        '--source-snapshot-region',
+        metavar='SOURCE_SNAPSHOT_REGION',
+        help="""\
+        Sets the region for the `--source-snapshot` flag. By default, when
+        specifying a snapshot, the global snapshot scope is used. Use this flag to override this behavior to use regionally scoped snapshots.""",
+    )
 
 
 def AddCanIpForwardArgs(parser):
@@ -550,13 +573,13 @@ def AddLocalSsdArgsWithSize(parser):
       '--local-ssd',
       type=arg_parsers.ArgDict(
           spec={
-              'device-name':
-                  str,
-              'interface': (lambda x: x.upper()),
-              'size':
-                  arg_parsers.BinarySize(
-                      lower_bound='375GB', upper_bound='3000GB'),
-          }),
+              'device-name': str,
+              'interface': lambda x: x.upper(),
+              'size': arg_parsers.BinarySize(
+                  lower_bound='375GB', upper_bound='6000GB'
+              ),
+          }
+      ),
       action='append',
       help="""\
       Attaches a local SSD to the instances.
@@ -575,7 +598,8 @@ def AddLocalSsdArgsWithSize(parser):
       ``--local-ssd'' flag multiple times if you need multiple ``375GB'' local
       SSD partitions. You can specify a maximum of 24 local SSDs for a maximum
       of ``9TB'' attached to an instance.
-      """)
+      """,
+  )
 
 
 def GetDiskDeviceNameHelp(container_mount_enabled=False):
@@ -612,6 +636,7 @@ def AddDiskArgs(parser,
       'boot': arg_parsers.ArgBoolean(),
       'device-name': str,
       'auto-delete': arg_parsers.ArgBoolean(),
+      'interface': str,
   }
 
   if enable_regional_disks:
@@ -619,12 +644,12 @@ def AddDiskArgs(parser,
     disk_arg_spec['force-attach'] = arg_parsers.ArgBoolean()
 
   disk_help = """
-      Attaches an existing persistent disk to the instances.
+      Attaches an existing disk to the instances.
 
       *name*::: The disk to attach to the instances. If you create more than
       one instance, you can only attach a disk in read-only mode. By default,
-      you attach a zonal persistent disk located in the same zone of the
-      instance. If you want to attach a regional persistent disk, you must
+      you attach a zonal disk located in the same zone of the
+      instance. If you want to attach a regional disk, you must
       specify the disk using its URI; for example,
       ``projects/myproject/regions/us-central1/disks/my-regional-disk''.
 
@@ -642,7 +667,12 @@ def AddDiskArgs(parser,
       *auto-delete*::: If set to ``yes'', the persistent disk is
       automatically deleted when the instance is deleted. However,
       if you detach the disk from the instance, deleting the instance
-      doesn't delete the disk. The default value for this is ``yes''.
+      doesn't delete the disk. The default value is ``yes''.
+
+      *interface*::: The interface to use for the disk.
+      The value must be one of the following:
+        * SCSI
+        * NVME
       """.format(disk_device_name_help)
   if enable_regional_disks:
     disk_help += """
@@ -700,11 +730,10 @@ def AddBootDiskArgs(parser, enable_kms=False):
 
   parser.add_argument(
       '--boot-disk-provisioned-iops',
-      type=arg_parsers.BoundedInt(10000, 120000),
+      type=arg_parsers.BoundedInt(),
       help="""\
       Indicates how many IOPS to provision for the disk. This sets the number
-      of I/O operations per second that the disk can handle. Value must be
-      between 10,000 and 120,000.
+      of I/O operations per second that the disk can handle.
       """)
 
   parser.add_argument(
@@ -716,14 +745,34 @@ def AddBootDiskArgs(parser, enable_kms=False):
       """,
   )
 
+  parser.add_argument(
+      '--boot-disk-interface',
+      help="""\
+      Indicates the interface to use for the boot disk.
+      The value must be one of the following:
+      * SCSI
+      * NVME
+      """,
+  )
+
   if enable_kms:
+    kms_flags = ['kms-key', 'kms-keyring', 'kms-location', 'kms-project']
+    flag_overrides = dict(
+        [(flag, '--boot-disk-' + flag) for flag in kms_flags])
+    name = '--boot-disk-kms-key'
     kms_resource_args.AddKmsKeyResourceArg(
-        parser, 'disk', boot_disk_prefix=True)
+        parser, 'disk', flag_overrides=flag_overrides, name=name)
 
 
 def AddInstanceKmsArgs(parser):
+  kms_flags = ['kms-key', 'kms-keyring', 'kms-location', 'kms-project']
+  flag_overrides = dict([
+      (flag, '--instance-' + flag) for flag in kms_flags
+  ])
+  name = '--instance-kms-key'
+
   kms_resource_args.AddKmsKeyResourceArg(
-      parser, 'instance', instance_prefix=True)
+      parser, 'instance', flag_overrides=flag_overrides, name=name)
 
 
 def AddCreateDiskArgs(
@@ -739,6 +788,8 @@ def AddCreateDiskArgs(
     support_replica_zones=True,
     enable_source_instant_snapshots=False,
     enable_confidential_compute=False,
+    support_disk_labels=False,
+    support_source_snapshot_region=False,
 ):
   """Adds create-disk argument for instances and instance-templates."""
 
@@ -831,10 +882,16 @@ def AddCreateDiskArgs(
 
       *storage-pool*::: The name of the storage pool in which the new disk is
       created. The new disk and the storage pool must be in the same location.
+
+      *interface*::: The interface to use with the disk. The value must be one
+      of the following:
+        * SCSI
+        * NVME
       """.format(
-          disk_name=disk_name_extra_help,
-          disk_mode=disk_mode_extra_help,
-          disk_device=disk_device_name_help)
+      disk_name=disk_name_extra_help,
+      disk_mode=disk_mode_extra_help,
+      disk_device=disk_device_name_help,
+  )
   if support_boot:
     disk_help += """
       *boot*::: If ``yes'', indicates that this is a boot disk. The
@@ -899,6 +956,8 @@ def AddCreateDiskArgs(
       'disk-resource-policy': arg_parsers.ArgList(max_length=1),
       'architecture': str,
       'storage-pool': str,
+      'labels': arg_parsers.ArgList(min_length=1, custom_delim_char=':'),
+      'interface': str,
   }
 
   if include_name:
@@ -993,6 +1052,28 @@ def AddCreateDiskArgs(
     """
     spec['replica-zones'] = arg_parsers.ArgList(max_length=2)
 
+  if support_disk_labels:
+    disk_help += """
+      *labels*::: List of label KEY=VALUE pairs separated by `:` character to
+      add to the disk.
+
+      Example: `Key1=Value1:Key2=Value2:Key3=Value3`.\n
+
+      {KEY_FORMAT_HELP} {VALUE_FORMAT_HELP}
+    """.format(
+        KEY_FORMAT_HELP=labels_util.KEY_FORMAT_HELP,
+        VALUE_FORMAT_HELP=labels_util.VALUE_FORMAT_HELP,
+    )
+    spec['labels'] = arg_parsers.ArgList(min_length=1, custom_delim_char=':')
+
+  if support_source_snapshot_region:
+    disk_help += """
+      *source-snapshot-region*::: The region of the source snapshot that
+      will be used to create the disk. You can provide region name to use
+      scoped snapshot as the source snapshot.
+      """
+    spec['source-snapshot-region'] = str
+
   parser.add_argument(
       '--create-disk',
       type=arg_parsers.ArgDict(spec=spec),
@@ -1058,6 +1139,9 @@ def _GetAddress(compute_client, address_ref):
                      project=address_ref.project,
                      region=address_ref.region))],
       errors_to_collect=errors)
+  if errors:
+    utils.RaiseToolException(
+        errors, error_message='Could not fetch address resource.')
   return res[0]
 
 
@@ -1134,14 +1218,24 @@ def ValidateDiskCommonFlags(args):
       raise exceptions.InvalidArgumentException(
           '--disk',
           '[name] is missing in [--disk]. [--disk] value must be of the form '
-          '[{0}].'.format(DISK_METAVAR))
+          '[{0}].'.format(DISK_METAVAR),
+      )
 
     mode_value = disk.get('mode')
     if mode_value and mode_value not in ('rw', 'ro'):
       raise exceptions.InvalidArgumentException(
           '--disk',
           'Value for [mode] in [--disk] must be [rw] or [ro], not [{0}].'
-          .format(mode_value))
+          .format(mode_value),
+      )
+
+    interface = disk.get('interface')
+    if interface and interface not in PD_INTERFACES:
+      raise exceptions.InvalidArgumentException(
+          '--disk',
+          'Value for [interface] in [--disk] must be one of following: {0}, not'
+          ' [{1}].'.format(PD_INTERFACES, interface),
+      )
 
 
 def ValidateDiskAccessModeFlags(args):
@@ -1212,6 +1306,15 @@ def ValidateDiskBootFlags(args, enable_kms=False):
           '--boot-disk-provisioned-throughput cannot be used with the given'
           ' disk type.',
       )
+  if args.IsSpecified('boot_disk_interface'):
+    if args.boot_disk_interface not in PD_INTERFACES:
+      raise exceptions.InvalidArgumentException(
+          '--boot-disk-interface',
+          'Value for [--boot-disk-interface] must be one of'
+          ' following: {0}, not [{1}].'.format(
+              PD_INTERFACES, args.boot_disk_interface
+          ),
+      )
 
   if args.IsSpecified('boot_disk_size'):
     size_gb = utils.BytesToGb(args.boot_disk_size)
@@ -1222,7 +1325,7 @@ def ValidateDiskBootFlags(args, enable_kms=False):
     ):
       raise exceptions.InvalidArgumentException(
           '--boot-disk-size',
-          'Value must be greater than or equal to 10 GB; reveived {0} GB'
+          'Value must be greater than or equal to 10 GB; received {0} GB'
           .format(size_gb),
       )
 
@@ -1313,6 +1416,13 @@ def ValidateCreateDiskFlags(
           '--disk',
           'Value for [mode] in [--disk] must be [rw] or [ro], not [{0}].'
           .format(mode_value))
+    interface = disk.get('interface')
+    if interface and interface not in PD_INTERFACES:
+      raise exceptions.InvalidArgumentException(
+          '--disk',
+          'Value for [interface] in [--disk] must be one of following: {0}, not'
+          ' [{1}].'.format(PD_INTERFACES, interface),
+      )
 
     image_value = disk.get('image')
     image_family_value = disk.get('image-family')
@@ -1385,7 +1495,7 @@ def ValidateNetworkInterfaceStackTypeIpv6OnlyNotSupported(stack_type_input):
         'Invalid value for stack-type [%s].' % stack_type)
 
 
-def _ValidateNetworkInterfaceIgmpQuery(igmp_query_input):
+def ValidateNetworkInterfaceIgmpQuery(igmp_query_input):
   """Validates igmp query field, throws exception if invalid."""
   igmp_query = igmp_query_input.upper()
   if igmp_query in constants.NETWORK_INTERFACE_IGMP_QUERY_CHOICES:
@@ -1428,16 +1538,18 @@ def ValidateNetworkInterfaceNicType(nic_type_input):
         '--network-interface', 'Invalid value for nic-type [%s]' % nic_type)
 
 
-def AddAddressArgs(parser,
-                   instances=True,
-                   support_subinterface=False,
-                   instance_create=False,
-                   containers=False,
-                   support_network_queue_count=False,
-                   support_network_attachments=False,
-                   support_vlan_nic=False,
-                   support_ipv6_only=False,
-                   support_igmp_query=False):
+def AddAddressArgs(
+    parser,
+    instances=True,
+    support_subinterface=False,
+    instance_create=False,
+    containers=False,
+    support_network_queue_count=False,
+    support_vlan_nic=True,
+    support_ipv6_only=False,
+    support_igmp_query=False,
+    support_enable_vpc_scoped_dns=False,
+):
   """Adds address arguments for instances and instance-templates.
 
   Args:
@@ -1451,12 +1563,12 @@ def AddAddressArgs(parser,
       to true, for create command otherwise.
     support_network_queue_count: indicates flexible networking queue count is
       supported or not.
-    support_network_attachments: indicates whether network attachments are
-      supported.
     support_vlan_nic: indicates whether VLAN network interfaces are supported.
     support_ipv6_only: indicates whether IPV6_ONLY stack type is supported.
     support_igmp_query: indicates whether setting igmp query on network
       interfaces is supported.
+    support_enable_vpc_scoped_dns: indicates whether setting enable vpc scoped
+      dns on network interfaces is supported.
   """
   addresses = parser.add_mutually_exclusive_group()
   AddNoAddressArg(addresses)
@@ -1485,7 +1597,8 @@ def AddAddressArgs(parser,
       'external-ipv6-address': str,
       'external-ipv6-prefix-length': int,
       'internal-ipv6-address': str,
-      'internal-ipv6-prefix-length': int
+      'internal-ipv6-prefix-length': int,
+      'enable-vpc-scoped-dns': None,
   }
 
   multiple_network_interface_cards_spec['network-tier'] = _ValidateNetworkTier
@@ -1493,37 +1606,48 @@ def AddAddressArgs(parser,
   multiple_network_interface_cards_spec[
       'nic-type'] = ValidateNetworkInterfaceNicType
 
+  if support_igmp_query:
+    multiple_network_interface_cards_spec['igmp-query'] = (
+        ValidateNetworkInterfaceIgmpQuery
+    )
+
+  if support_ipv6_only:
+    multiple_network_interface_cards_spec[
+        'stack-type'] = ValidateNetworkInterfaceStackType
+  else:
+    multiple_network_interface_cards_spec[
+        'stack-type'] = ValidateNetworkInterfaceStackTypeIpv6OnlyNotSupported
+
   multiple_network_interface_cards_spec[
-      'igmp-query'] = _ValidateNetworkInterfaceIgmpQuery
+      'ipv6-network-tier'] = _ValidateNetworkInterfaceIpv6NetworkTier
 
   network_interface_help_texts = []
-  # IPv6 related fields are not supported in create-with-container commands yet.
+
   if not containers:
+    # TODO(b/331951827): Determine whether ipv6-public-ptr-domain should be
+    # supported for create-with-container
     multiple_network_interface_cards_spec['ipv6-public-ptr-domain'] = str
-    if support_ipv6_only:
-      multiple_network_interface_cards_spec[
-          'stack-type'] = ValidateNetworkInterfaceStackType
-    else:
-      multiple_network_interface_cards_spec[
-          'stack-type'] = ValidateNetworkInterfaceStackTypeIpv6OnlyNotSupported
-    multiple_network_interface_cards_spec[
-        'ipv6-network-tier'] = _ValidateNetworkInterfaceIpv6NetworkTier
     network_interface_help_texts.append("""\
       Adds a network interface to the instance. Mutually exclusive with any
       of these flags: *--address*, *--network*, *--network-tier*, *--subnet*,
       *--private-network-ip*, *--stack-type*, *--ipv6-network-tier*,
-      *--ipv6-public-ptr-domain*, *--internal-ipv6-address*,
+      *--internal-ipv6-address*,
       *--internal-ipv6-prefix-length*, *--ipv6-address*, *--ipv6-prefix-length*,
-      *--external-ipv6-address*, *--external-ipv6-prefix-length*.
-      This flag can be repeated to specify multiple network interfaces.
+      *--external-ipv6-address*, *--external-ipv6-prefix-length*,
+      *--ipv6-public-ptr-domain*. This flag can be repeated to specify
+      multiple network interfaces.
     """)
   else:
     network_interface_help_texts.append("""\
       Adds a network interface to the instance. Mutually exclusive with any
       of these flags: *--address*, *--network*, *--network-tier*, *--subnet*,
-      *--private-network-ip*. This flag can be repeated to specify multiple
-      network interfaces.
+      *--private-network-ip*, *--stack-type*, *--ipv6-network-tier*,
+      *--internal-ipv6-address*,
+      *--internal-ipv6-prefix-length*, *--ipv6-address*, *--ipv6-prefix-length*,
+      *--external-ipv6-address*, *--external-ipv6-prefix-length*.
+      This flag can be repeated to specify multiple network interfaces.
     """)
+
   network_interface_help_texts.append("""
       The following keys are allowed:
       *address*::: Assigns the given external address to the instance that is
@@ -1540,8 +1664,8 @@ def AddAddressArgs(parser,
       instance will get an ephemeral IP.
 
       *network-tier*::: Specifies the network tier of the interface.
-      ``NETWORK_TIER'' must be one of: `PREMIUM`, `STANDARD`, `FIXED_STANDARD`.
-      The default value is `PREMIUM`.
+      ``NETWORK_TIER'' must be one of: `PREMIUM`, `STANDARD`. The default
+      value is `PREMIUM`.
 
       *private-network-ip*::: Assigns the given RFC1918 IP address to the
       interface.
@@ -1564,22 +1688,50 @@ def AddAddressArgs(parser,
       more details.
       """)
 
-  if not containers:
-    if support_ipv6_only:
-      stack_types = '`IPV4_ONLY`, `IPV4_IPV6`, `IPV6_ONLY`'
-    else:
-      stack_types = '`IPV4_ONLY`, `IPV4_IPV6`'
-    network_interface_help_texts.append(f"""
-      *stack-type*::: Specifies whether IPv6 is enabled on the interface.
-      ``STACK_TYPE'' must be one of: {stack_types}.
-      The default value is `IPV4_ONLY`.
-    """)
+  if support_ipv6_only:
     network_interface_help_texts.append("""
-      *ipv6-network-tier*::: Specifies the IPv6 network tier that will be used
-      to configure the instance network interface IPv6 access config.
-      ``IPV6_NETWORK_TIER'' must be `PREMIUM` (currently only one value is
-      supported).
+      *stack-type*::: Specifies whether IPv6 is enabled on the interface.
+      ``STACK_TYPE'' must be one of: `IPV4_ONLY`, `IPV4_IPV6`, `IPV6_ONLY`.
+      The default value is `IPV4_ONLY`.
+      """)
+  else:
 
+    network_interface_help_texts.append("""
+      *stack-type*::: Specifies whether IPv6 is enabled on the interface.
+      ``STACK_TYPE'' must be one of: `IPV4_ONLY`, `IPV4_IPV6`.
+      The default value is `IPV4_ONLY`.
+      """)
+
+  network_interface_help_texts.append("""
+      *ipv6-network-tier*::: Specifies the IPv6 network tier that will be used
+        to configure the instance network interface IPv6 access config.
+        ``IPV6_NETWORK_TIER'' must be `PREMIUM` (currently only one value is
+        supported).
+
+      *internal-ipv6-address*::: Assigns the given internal IPv6 address or range
+        to the instance that is created. The address must be the first IP address
+        in the range or from a /96 IP address range. This option can be used only
+        when creating a single instance.
+
+      *internal-ipv6-prefix-length*::: Optional field that indicates the prefix
+        length of the internal IPv6 address range. It should be used together with
+        internal-ipv6-address. Only /96 IP address range is supported and the
+        default value is 96. If not set, either the prefix length from
+        --internal-ipv6-address will be used or the default value of 96 will be
+        assigned.
+
+      *external-ipv6-address*::: Assigns the given external IPv6 address to the
+        instance that is created. The address must be the first IP address in the
+        range. This option can be used only when creating a single instance.
+
+      *external-ipv6-prefix-length*::: The prefix length of the external IPv6
+        address range. This field should be used together with
+        external-ipv6-address. Only the /96 IP address range is supported, and the
+        default value is 96.
+      """)
+
+  if not containers:
+    network_interface_help_texts.append("""
       *ipv6-public-ptr-domain*::: Assigns a custom PTR domain for the external
       IPv6 in the IPv6 access configuration of instance. If its value is not
       specified, the default PTR record will be used. This option can only be
@@ -1622,17 +1774,24 @@ def AddAddressArgs(parser,
       netmask and allocate it to this network interface.
       """)
 
-  if support_network_attachments:
-    # TODO(b/265153883): Add a link to the user guide.
-    network_interface_help_texts.append("""
+  network_interface_help_texts.append("""
       *network-attachment*::: Specifies the network attachment that this
-      interface should connect to. Mutually exclusive with *--network* and
-      *--subnet* flags.
+        interface should connect to. Mutually exclusive with *--network* and
+        *--subnet* flags.
+      """)
+
+  if support_enable_vpc_scoped_dns:
+    network_interface_help_texts.append("""
+      *enable-vpc-scoped-dns*::: If specified with network_attachment, DNS
+      resolution will be enabled over this interface.
       """)
 
   if support_vlan_nic:
+    network_interface_help_texts.append("""
+      *vlan*::: VLAN ID of a Dynamic Network Interface, must be  an integer in
+      the range from 2 to 255 inclusively.
+      """)
     multiple_network_interface_cards_spec['vlan'] = int
-    # TODO(b/274638343): Add help text before release.
 
   if support_igmp_query:
     network_interface_help_texts.append("""
@@ -1821,26 +1980,39 @@ def AddPreemptibleVmArgs(parser, is_update=False):
         '--preemptible', action='store_true', default=False, help=help_text)
 
 
-def AddProvisioningModelVmArgs(parser):
+def AddProvisioningModelVmArgs(parser, support_flex_start=False):
   """Set arguments for specifing provisioning model for instances."""
+  choices = {
+      'SPOT': (
+          'Compute Engine may stop a Spot VM instance whenever it needs '
+          "capacity. Because Spot VM instances don't have a guaranteed "
+          'runtime, they come at a discounted price.'
+      ),
+      'STANDARD': (
+          'The default option. The STANDARD provisioning model gives you full '
+          "control over your VM instances' runtime."
+      ),
+      'RESERVATION_BOUND': (
+          'The VM instances run for the entire duration of their associated'
+          ' reservation. You can only specify this provisioning model if you'
+          ' want your VM instances to consume a specific reservation with'
+          ' either a calendar reservation mode or a dense deployment type.'
+      ),
+  }
+  if support_flex_start:
+    choices['FLEX_START'] = (
+        'The VM instance is provisioned using the Flex Start provisioning model'
+        ' and has a limited runtime.'
+    )
   parser.add_argument(
       '--provisioning-model',
-      choices={
-          'SPOT':
-              ('Spot VMs are spare capacity; Spot VMs are discounted '
-               'to have much lower prices than standard VMs '
-               'but have no guaranteed runtime. Spot VMs are the new version '
-               'of preemptible VM instances, except Spot VMs do not have '
-               'a 24-hour maximum runtime.'),
-          'STANDARD': ('Default. Standard provisioning model for VM instances, '
-                       'which has user-controlled runtime '
-                       'but no Spot discounts.')
-      },
+      choices=choices,
       type=arg_utils.ChoiceToEnumName,
       help="""\
-      Specifies provisioning model, which determines price, obtainability,
-      and runtime for the VM instance.
-      """)
+      Specifies the provisioning model for your VM instances. This choice
+      affects the price, availability, and how long your VM instances can run.
+      """,
+  )
 
 
 def AddMaxRunDurationVmArgs(parser, is_update=False):
@@ -1995,17 +2167,25 @@ def AddGracefulShutdownArgs(parser, is_create=False):
         '--graceful-shutdown',
         action=arg_parsers.StoreTrueFalseAction,
         help="""\
-        If set to true, enables graceful shutdown for the instance.
+        Enables or disables graceful shutdown for the instance.
         """,
     )
   parser.add_argument(
       '--graceful-shutdown-max-duration',
       type=arg_parsers.Duration(lower_bound='1s', upper_bound='3600s'),
       help="""
-      Specifies time needed to gracefully
-      shutdown the instance. After that time, the instance goes to STOPPING even
-      if graceful shutdown is not completed.e.g. `300s`, `1h`. See $ gcloud
-      topic datetimes for information on duration formats.
+      Specifies the maximum time for the graceful shutdown. After this time, the instance is set to STOPPING even if tasks are still running. Specify the time as the number of hours, minutes, or seconds followed by h, m, and s respectively. For example, specify 30m for 30 minutes or 20m10s for 20 minutes and 10 seconds. The value must be between 1 second and 1 hour.
+      """,
+  )
+
+
+def AddPreemptionNoticeDurationArgs(parser):
+  parser.add_argument(
+      '--preemption-notice-duration',
+      type=arg_parsers.Duration(),
+      help="""\
+      Specifies the metadata preemption notice duration before the ACPI G2
+      soft off signal is triggered for Spot VMs. e.g. 120s.
       """,
   )
 
@@ -2241,14 +2421,13 @@ def AddNetworkTierArgs(parser, instance=True, for_update=False):
   if instance:
     network_tier_help = """\
         Specifies the network tier that will be used to configure the instance.
-        ``NETWORK_TIER'' must be one of: `PREMIUM`, `STANDARD`, `FIXED_STANDARD`.
-        The default value is `PREMIUM`.
+        ``NETWORK_TIER'' must be one of: `PREMIUM`, `STANDARD`. The default
+        value is `PREMIUM`.
         """
   else:
     network_tier_help = """\
         Specifies the network tier of the access configuration. ``NETWORK_TIER''
-        must be one of: `PREMIUM`, `STANDARD`, `FIXED_STANDARD`.
-        The default value is `PREMIUM`.
+        must be one of: `PREMIUM`, `STANDARD`. The default value is `PREMIUM`.
         """
   parser.add_argument(
       '--network-tier', type=lambda x: x.upper(), help=network_tier_help)
@@ -2559,7 +2738,7 @@ def AddMaintenancePolicyArgs(parser, deprecate=False):
 def AddAcceleratorArgs(parser):
   """Adds Accelerator-related args."""
   # Attaches accelerators (e.g. GPUs) to the instances. e.g. --accelerator
-  # type=nvidia-tesla-k80,count=4
+  # type=nvidia-tesla-t4,count=4
   parser.add_argument(
       '--accelerator',
       type=arg_parsers.ArgDict(spec={
@@ -2569,7 +2748,7 @@ def AddAcceleratorArgs(parser):
       help="""\
       Attaches accelerators (e.g. GPUs) to the instances.
 
-      *type*::: The specific type (e.g. nvidia-tesla-k80 for nVidia Tesla K80)
+      *type*::: The specific type (e.g. nvidia-tesla-t4 for NVIDIA T4)
       of accelerator to attach to the instances. Use 'gcloud compute
       accelerator-types list' to learn about all available accelerator types.
 
@@ -2596,7 +2775,7 @@ def ValidateAcceleratorArgs(args):
     if not accelerator_type_name:
       raise exceptions.InvalidArgumentException(
           '--accelerator', 'accelerator type must be specified. '
-          'e.g. --accelerator type=nvidia-tesla-k80,count=2')
+          'e.g. --accelerator type=nvidia-tesla-t4,count=2')
 
 
 def AddKonletArgs(parser):
@@ -2737,15 +2916,24 @@ def ValidateLocalSsdFlags(args):
     # still accepted as a value for select customers. Updates to any public
     # documentation will occur once Large Local SSD is more widely available.
     if size is not None:
-      if size != (constants.SSD_SMALL_PARTITION_GB * constants.BYTES_IN_ONE_GB
-                 ) and size != (constants.SSD_LARGE_PARTITION_GB *
-                                constants.BYTES_IN_ONE_GB):
+      if (
+          size != (constants.SSD_SMALL_PARTITION_GB * constants.BYTES_IN_ONE_GB)
+          and size
+          != (constants.SSD_LARGE_PARTITION_GB * constants.BYTES_IN_ONE_GB)
+          and size
+          != (constants.SSD_Z3_METAL_PARTITION_GB * constants.BYTES_IN_ONE_GB)
+      ):
         raise exceptions.InvalidArgumentException(
-            '--local-ssd:size', 'Unexpected local SSD size: [{given}] bytes. '
-            'Legal values are {small}GB and {large}GB only.'.format(
+            '--local-ssd:size',
+            'Unexpected local SSD size: [{given}] bytes. '
+            'Legal values are {small}GB, {large}GB, and {z3_metal}GB only.'
+            .format(
                 given=size,
                 small=constants.SSD_SMALL_PARTITION_GB,
-                large=constants.SSD_LARGE_PARTITION_GB))
+                large=constants.SSD_LARGE_PARTITION_GB,
+                z3_metal=constants.SSD_Z3_METAL_PARTITION_GB,
+            ),
+        )
 
 
 def ValidateNicFlags(args):
@@ -3032,7 +3220,8 @@ def AddShieldedInstanceIntegrityPolicyArgs(parser):
 def AddConfidentialComputeArgs(
     parser,
     support_confidential_compute_type=False,
-    support_confidential_compute_type_tdx=False) -> None:
+    support_confidential_compute_type_tdx=False,
+    support_snp_svsm=False) -> None:
   """Adds flags for confidential compute for instance."""
   if support_confidential_compute_type:
     choices = {
@@ -3057,6 +3246,29 @@ def AddConfidentialComputeArgs(
         Trust Domain eXtension based on Intel virtualization features for
         running confidential instances is also supported.
         """)))
+    if support_snp_svsm:
+      svsm_help_text = textwrap.dedent("""\
+        Secure VM Service Module (SVSM) is supported on AMD Secure Nested Paging
+        (SEV-SNP) VMs for additional security. To specify the svsm-config also
+        provide the argument `confidential-compute-type=SEV_SNP` on the command
+        line.
+
+        *tpm*::: The virtual Trusted Platform Module (TPM) used by SVSM.
+        Currently the only vTPM supported is: EPHEMERAL.
+        *snp-irq*::: The interrupt request mode to use for the AMD SEV-SNP VM.
+        Currently the only IRQ mode supported is: UNRESTRICTED.
+        """)
+      svsm_congfig_spec = {
+          'tpm': str,
+          'snp-irq': str,
+      }
+      parser.add_argument(
+          '--svsm-config',
+          hidden=True,
+          type=arg_parsers.ArgDict(spec=svsm_congfig_spec),
+          metavar='PROPERTY=VALUE',
+          help=svsm_help_text,
+      )
 
     parser = parser.add_mutually_exclusive_group()
     parser.add_argument(
@@ -3158,7 +3370,7 @@ def ValidateReservationAffinityGroup(args):
     if not args.IsSpecified('reservation'):
       raise exceptions.InvalidArgumentException(
           '--reservation',
-          'The name the specific reservation must be specified.',
+          'The name of the specific reservation must be specified.',
       )
 
 
@@ -3682,13 +3894,16 @@ def AddPerformanceMonitoringUnitArgs(parser):
   parser.add_argument(
       '--performance-monitoring-unit',
       choices={
-          'architectural': 'Enable architecturally defined non-LLC events.',
-          'standard': 'Enable most documented core/L2 events.',
-          'enhanced': 'Enable most documented core/L2 and LLC events.',
+          'architectural': (
+              'This enables architecturally defined non-last level cache (LLC)'
+              ' events.'
+          ),
+          'standard': 'This enables most documented core/L2 events.',
+          'enhanced': 'This enables most documented core/L2 and LLC events.',
       },
       type=str,
       help=(
-          'The set of performance measurement counters to enable for the'
+          'The type of performance monitoring counters (PMCs) to enable in the'
           ' instance.'
       ),
   )
@@ -3919,4 +4134,48 @@ def AddAvailabilityDomainAgrs(parser):
           Specify a value from 1 to the number of domains that are available in
           your placement policy.
           """,
+  )
+
+
+def AddTurboModeArgs(parser):
+  parser.add_argument(
+      '--turbo-mode',
+      type=str,
+      help="""
+      Turbo mode to use for the instance. Supported modes include:
+      * ALL_CORE_MAX
+
+      To achieve all-core-turbo frequency for more consistent CPU
+      performance, set the field to ALL_CORE_MAX. The field is unset by
+      default, which results in maximum performance single-core boosting.
+      """,
+  )
+
+
+def AddSkipGuestOsShutdownArgs(parser):
+  parser.add_argument(
+      '--skip-guest-os-shutdown',
+      action=arg_parsers.StoreTrueFalseAction,
+      help="""\
+      If enabled, then, when the instance is stopped or deleted, the instance
+      is immediately stopped without giving time to the guest OS to cleanly
+      shut down.
+      """)
+
+
+def AddRequestValidForDurationArgs(parser):
+  parser.add_argument(
+      '--request-valid-for-duration',
+      type=arg_parsers.Duration(),
+      help="""
+      When you create an instance by using the FLEX_START provisioning model,
+      you can specify the duration to wait for available resources. If the
+      instance creation request is still pending after this duration, then the
+      request fails. You specify a duration by using numbers followed
+      by `h`, `m`, and `s` for hours, minutes, and seconds, respectively. For
+      example, specify `30m` for a duration of 30 minutes, or `1h2m3s` for
+      1 hour, 2 minutes, and 3 seconds. Longer durations give you higher chances
+      that your instance creation request succeeds when resources are in high
+      demand.
+      """,
   )

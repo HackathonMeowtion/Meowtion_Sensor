@@ -19,8 +19,8 @@ from googlecloudsdk.calliope import base
 from googlecloudsdk.command_lib.resource_manager import completers
 
 
-def AddConsumerFlags(parser, help_string):
-  """Parse consumer flag in the command.
+def AddResourceFlags(parser, help_string):
+  """Adds project, folder, or organization flags to the parser.
 
   Args:
     parser: An argparse parser that you can use to add arguments that go on the
@@ -48,6 +48,22 @@ def AddConsumerFlags(parser, help_string):
   )
 
 
+def AddProjectFlag(parser, help_string):
+  """Add project flag to the parser.
+
+  Args:
+    parser: An argparse parser that you can use to add arguments that go on the
+      command line after this command. Positional arguments are allowed.
+    help_string: text that is prepended to help for each argument.
+  """
+  group = parser.add_mutually_exclusive_group(required=True)
+  group.add_argument(
+      '--project',
+      metavar='PROJECT_ID_OR_NUMBER',
+      help='Project of the {0}.'.format(help_string),
+  )
+
+
 def QuotaId(
     positional=True,
     text='ID of the quota, which is unique within the service.',
@@ -58,7 +74,7 @@ def QuotaId(
     return base.Argument('--quota-id', type=str, required=True, help=text)
 
 
-def PreferrenceId(
+def PreferenceId(
     positional=True,
     text='ID of the Quota Preference object, must be unique under its parent.',
 ):
@@ -73,6 +89,15 @@ def Service():
       '--service',
       required=True,
       help='Name of the service in which the quota is defined.',
+  )
+
+
+def Enablement():
+  return base.Argument(
+      '--enablement',
+      required=True,
+      help='Enablement state of the QuotaAdjusterSettings.',
+      choices=['enabled', 'disabled', 'inherited'],
   )
 
 
@@ -102,8 +127,8 @@ def AllowsQuotaDecreaseBelowUsage():
       '--allow-quota-decrease-below-usage',
       action='store_true',
       help=(
-          'If specified, allows consumers to reduce their effective limit below'
-          ' their quota usage. Default is false.'
+          'If specified, allows you to reduce your effective limit below your'
+          ' quota usage. Default is false.'
       ),
   )
 
@@ -113,8 +138,8 @@ def AllowHighPercentageQuotaDecrease():
       '--allow-high-percentage-quota-decrease',
       action='store_true',
       help=(
-          'If specified, allows consumers to reduce their effective limit by'
-          ' more than 10 percent. Default is false.'
+          'If specified, allows you to reduce your effective limit by more than'
+          ' 10 percent. Default is false.'
       ),
   )
 

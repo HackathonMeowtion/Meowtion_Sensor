@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import string
 import textwrap
 
 from googlecloudsdk.calliope import arg_parsers
@@ -45,12 +46,13 @@ def AddCollectionIdsFlag(parser):
   )
 
 
-def AddDatabaseIdFlag(parser, required=False):
+def AddDatabaseIdFlag(parser, required=False, hidden=False):
   """Adds flag for database id to the given parser.
 
   Args:
     parser: The argparse parser.
     required: Whether the flag must be set for running the command, a bool.
+    hidden: Whether the flag is hidden, a bool.
   """
   if not required:
     helper_text = """\
@@ -74,6 +76,7 @@ def AddDatabaseIdFlag(parser, required=False):
       type=str,
       default='(default)' if not required else None,
       required=required,
+      hidden=hidden,
       help=helper_text,
   )
 
@@ -258,4 +261,148 @@ def AddRecurrenceFlag(parser):
       type=arg_parsers.DayOfWeek.Parse,
       help=help_text,
       required=False,
+  )
+
+
+def AddEncryptionConfigGroup(parser, source_type):
+  """Adds flags for the database's encryption configuration to the given parser.
+
+  Args:
+    parser: The argparse parser.
+    source_type: "backup" if a restore; "database" if a clone
+  """
+  encryption_config = parser.add_argument_group(
+      required=False,
+      help=textwrap.dedent(string.Template("""\
+            The encryption configuration of the new database being created from the $source_type.
+            If not specified, the same encryption settings as the $source_type will be used.
+
+            To create a CMEK-enabled database:
+
+              $$ {command} --encryption-type=customer-managed-encryption --kms-key-name=projects/PROJECT_ID/locations/LOCATION_ID/keyRings/KEY_RING_ID/cryptoKeys/CRYPTO_KEY_ID
+
+            To create a Google-default-encrypted database:
+
+              $$ {command} --encryption-type=google-default-encryption
+
+            To create a database using the same encryption settings as the $source_type:
+
+              $$ {command} --encryption-type=use-source-encryption
+            """).substitute(source_type=source_type)),
+  )
+  encryption_config.add_argument(
+      '--encryption-type',
+      metavar='ENCRYPTION_TYPE',
+      type=str,
+      required=True,
+      choices=[
+          'use-source-encryption',
+          'customer-managed-encryption',
+          'google-default-encryption',
+      ],
+      help=textwrap.dedent("""\
+          The encryption type of the destination database.
+          """),
+  )
+  AddKmsKeyNameFlag(
+      encryption_config,
+      'This flag must only be specified when encryption-type is'
+      ' `customer-managed-encryption`.',
+  )
+
+
+def AddKmsKeyNameFlag(parser, additional_help_text=None):
+  """Adds flag for KMS Key Name to the given parser.
+
+  Args:
+    parser: The argparse parser.
+    additional_help_text: Additional help text to be added to the flag.
+  """
+
+  help_text = textwrap.dedent("""
+      The resource ID of a Cloud KMS key. If set, the database created will be a Customer-Managed Encryption Key (CMEK) database encrypted with this key.
+      This feature is allowlist only in initial launch.
+
+      Only a key in the same location as this database is allowed to be used for encryption.
+      For Firestore's nam5 multi-region, this corresponds to Cloud KMS location us.
+      For Firestore's eur3 multi-region, this corresponds to Cloud KMS location europe.
+      See https://cloud.google.com/kms/docs/locations.
+
+      This value should be the KMS key resource ID in the format of `projects/{project_id}/locations/{kms_location}/keyRings/{key_ring}/cryptoKeys/{crypto_key}`.
+      How to retrieve this resource ID is listed at https://cloud.google.com/kms/docs/getting-resource-ids#getting_the_id_for_a_key_and_version.
+    """)
+  if additional_help_text:
+    help_text = help_text + '\n\n' + additional_help_text
+
+  parser.add_argument(
+      '--kms-key-name',
+      metavar='KMS_KEY_NAME',
+      type=str,
+      required=False,
+      default=None,
+      help=help_text,
+  )
+
+
+def AddDestinationDatabase(parser, action_name, source_type):
+  parser.add_argument(
+      '--destination-database',
+      metavar='DESTINATION_DATABASE',
+      type=str,
+      required=True,
+      help=textwrap.dedent(f"""\
+          Destination database to {action_name} to. Destination database will be created in the same location as the source {source_type}.
+
+          This value should be 4-63 characters. Valid characters are /[a-z][0-9]-/
+          with first character a letter and the last a letter or a number. Must
+          not be UUID-like /[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}/.
+
+          Using "(default)" database ID is also allowed.
+
+          For example, to {action_name} to database `testdb`:
+
+          $ {{command}} --destination-database=testdb
+          """),
+  )
+
+
+def AddTags(parser, resource_type):
+  """Adds the --tags flag to the given parser.
+
+  Args:
+    parser: The parser to add the flag to.
+    resource_type: The resource type to use in the help text (e.g. 'database').
+  """
+  parser.add_argument(
+      '--tags',
+      metavar='KEY=VALUE',
+      type=arg_parsers.ArgDict(),
+      default=None,
+      help=textwrap.dedent(f"""\
+          Tags to attach to the destination {resource_type}. Example: --tags=key1=value1,key2=value2
+
+          For example, to attach tags to a {resource_type}:
+
+          $ --tags=key1=value1,key2=value2
+          """),
+  )
+
+
+def AddUserCredsIdArg(parser):
+  """Adds positional arg for user creds id to the given parser.
+
+  Args:
+    parser: The argparse parser.
+  """
+  parser.add_argument(
+      'user_creds',
+      metavar='USER_CREDS',
+      type=str,
+      help="""
+      The user creds to operate on.
+
+      For example, to operate on user creds `creds-name-1`:
+
+        $ {command} creds-name-1
+      """,
   )

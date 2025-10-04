@@ -26,6 +26,10 @@ from googlecloudsdk.calliope import base
 from googlecloudsdk.core import properties
 
 
+@base.UniverseCompatible
+@base.ReleaseTracks(
+    base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA, base.ReleaseTrack.GA
+)
 class List(base.ListCommand):
   """List Compute Engine interconnect locations."""
 
@@ -35,7 +39,8 @@ class List(base.ListCommand):
         table(
           name,
           description,
-          facilityProvider
+          facilityProvider,
+          singleRegionProductionCriticalPeerLocations.basename().join(sep="\n"):label=99.99%_PEER_LOCATIONS
         )
     """)
 

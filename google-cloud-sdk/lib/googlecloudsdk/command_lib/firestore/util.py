@@ -18,7 +18,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from typing import Optional
+
 from apitools.base.py import encoding
+from googlecloudsdk.api_lib.firestore import api_utils as fs_api
 from googlecloudsdk.api_lib.util import apis
 from googlecloudsdk.calliope import exceptions
 from googlecloudsdk.command_lib.util.apis import arg_utils
@@ -86,16 +89,6 @@ def ValidateFieldConfig(unused_ref, args, request):
   Raises:
     InvalidArgumentException: If the field configuration is invalid.
   """
-  if len(args.field_config) == 1 and args.field_config[0].vectorConfig:
-    # Allow single vector config in composite indexes surface.
-    pass
-  elif len(args.field_config) < 2:
-    raise exceptions.InvalidArgumentException(
-        '--field-config',
-        'Composite indexes must be configured with at least 2 fields. For '
-        'single-field index management, use the commands under `gcloud '
-        'firestore indexes fields`.')
-
   invalid_field_configs = []
   for field_config in args.field_config:
     # Because of the way declarative ArgDict parsing works, the type of
@@ -259,3 +252,64 @@ def AddIndexConfigToUpdateRequest(unused_ref, args, req):
                               'googleFirestoreAdminV1Field.indexConfig',
                               index_config)
   return req
+
+
+def ExtractEncryptionConfig(args):
+  """Parses the args and returns the encryption configuration, or none.
+
+  Args:
+    args: The parsed arg namespace.
+
+  Returns:
+    The encryption configuration, or none.
+  """
+  messages = fs_api.GetMessages()
+  encryption_type = _NormalizeString(args.encryption_type)
+  if encryption_type == 'google-default-encryption':
+    _ThrowIfKmsKeyNameSet(args.kms_key_name)
+    return messages.GoogleFirestoreAdminV1EncryptionConfig(
+        googleDefaultEncryption=messages.GoogleFirestoreAdminV1GoogleDefaultEncryptionOptions()
+    )
+  elif encryption_type == 'use-source-encryption':
+    _ThrowIfKmsKeyNameSet(args.kms_key_name)
+    return messages.GoogleFirestoreAdminV1EncryptionConfig(
+        useSourceEncryption=messages.GoogleFirestoreAdminV1SourceEncryptionOptions()
+    )
+  elif encryption_type == 'customer-managed-encryption':
+    _ThrowIfKmsKeyNameNotSet(args.kms_key_name)
+    return messages.GoogleFirestoreAdminV1EncryptionConfig(
+        customerManagedEncryption=messages.GoogleFirestoreAdminV1CustomerManagedEncryptionOptions(
+            kmsKeyName=args.kms_key_name
+        )
+    )
+  elif encryption_type is not None:
+    raise exceptions.InvalidArgumentException(
+        'Invalid encryption type: {}'.format(encryption_type),
+        'encryption-type',
+    )
+  return None
+
+
+def _NormalizeString(value: Optional[str]):
+  if not value:
+    return None
+  return value.casefold()
+
+
+def _ThrowIfKmsKeyNameSet(kms_key_name: Optional[str]):
+  if kms_key_name is not None:
+    raise exceptions.ConflictingArgumentsException(
+        '--kms-key-name',
+        'A KMS Key cannot be set when using an --encryption-type of'
+        ' google-default-encryption or use-source-encryption.',
+    )
+
+
+def _ThrowIfKmsKeyNameNotSet(kms_key_name: Optional[str]):
+  if kms_key_name is None:
+    raise exceptions.RequiredArgumentException(
+        '--kms-key-name',
+        'The KMS Key Name is required'
+        ' when using customer-managed encryption (CMEK), please use'
+        ' --kms-key-name to specify this value',
+    )

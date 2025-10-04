@@ -18,16 +18,25 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from typing import Any
+
 from googlecloudsdk.api_lib.compute import utils as compute_utils
 from googlecloudsdk.core.exceptions import Error
 
-
-_THROUGHPUT_PROVISIONING_SUPPORTED_DISK_TYPES = (
+_SUPPORTED_DISK_TYPES_IOPS = frozenset([
+    'pd-extreme',
+    'cs-extreme',
+    'hyperdisk-extreme',
+    'hyperdisk-balanced',
+    'hyperdisk-balanced-high-availability',
+])
+_SUPPORTED_DISK_TYPES_THROUGHPUT = frozenset([
     'cs-throughput',
     'hyperdisk-throughput',
     'hyperdisk-balanced',
     'hyperdisk-ml',
-)
+    'hyperdisk-balanced-high-availability',
+])
 
 
 class UnknownDiskResourceError(Error):
@@ -214,13 +223,8 @@ def IsProvisioningTypeIops(disk_type):
   Returns:
     Whether the disk_type supports IOPS provisioning.
   """
-
-  return (disk_type.endswith('/pd-extreme') or
-          disk_type.endswith('/cs-extreme') or
-          disk_type.endswith('/hyperdisk-extreme') or
-          disk_type.endswith('/hyperdisk-balanced') or
-          disk_type in ['pd-extreme', 'cs-extreme', 'hyperdisk-extreme',
-                        'hyperdisk-balanced'])
+  disk_type_name = disk_type.split('/')[-1]
+  return disk_type_name in _SUPPORTED_DISK_TYPES_IOPS
 
 
 def IsProvisioningTypeThroughput(disk_type):
@@ -233,11 +237,42 @@ def IsProvisioningTypeThroughput(disk_type):
     Boolean, true if the disk_type supports throughput provisioning, false
     otherwise.
   """
+  disk_type_name = disk_type.split('/')[-1]
+  return disk_type_name in _SUPPORTED_DISK_TYPES_THROUGHPUT
 
-  return (
-      disk_type.endswith('/cs-throughput')
-      or disk_type.endswith('/hyperdisk-throughput')
-      or disk_type.endswith('/hyperdisk-balanced')
-      or disk_type.endswith('/hyperdisk-ml')
-      or disk_type in _THROUGHPUT_PROVISIONING_SUPPORTED_DISK_TYPES
-  )
+
+def GetDiskTypeUri(
+    disk_type: str, disk_ref: Any, compute_holder: Any
+):
+  """Get the disk type URI for a given disk type name and disk reference.
+
+  Args:
+    disk_type: name of the disk type.
+    disk_ref: the disk resource reference that is parsed from resource
+      arguments.
+    compute_holder: the compute api_tools_client.
+
+  Returns:
+    The disk type URI.
+  """
+  type_ref = None
+  if disk_type:
+    if disk_ref.Collection() == 'compute.disks':
+      type_ref = compute_holder.resources.Parse(
+          disk_type,
+          collection='compute.diskTypes',
+          params={
+              'project': disk_ref.project,
+              'zone': disk_ref.zone
+          })
+    elif disk_ref.Collection() == 'compute.regionDisks':
+      type_ref = compute_holder.resources.Parse(
+          disk_type,
+          collection='compute.regionDiskTypes',
+          params={
+              'project': disk_ref.project,
+              'region': disk_ref.region
+          })
+    if type_ref:
+      return type_ref.SelfLink()
+  return None

@@ -291,6 +291,7 @@ class CLILoader(object):
     self.__post_run_hooks = []
 
     self.__modules = []
+    self.__modules_by_parent = collections.defaultdict(list)
     self.__missing_components = {}
     self.__release_tracks = {}
 
@@ -336,6 +337,20 @@ class CLILoader(object):
     """
     self.__modules.append((name, path, component))
 
+  def GetModules(self):
+    """Returns modules added to this CLI tool."""
+    return self.__modules
+
+  def GetModulesByParent(self):
+    """Returns info about added modules (if any) for each parent command group.
+
+    Returns:
+      {str: [(str, bool, str)]}, Mapping of parent group to list of
+        (module_name, module_is_command, module_impl_path) tuples for each
+        additional module.
+    """
+    return self.__modules_by_parent
+
   def RegisterPreRunHook(self, func,
                          include_commands=None, exclude_commands=None):
     """Register a function to be run before command execution.
@@ -376,7 +391,7 @@ class CLILoader(object):
     path_string = '.'.join(command_path)
     return [component
             for path, component in six.iteritems(self.__missing_components)
-            if path_string.startswith(self.__name + '.' + path)]
+            if path_string == path or path_string.startswith(path + '.')]
 
   def ReplicateCommandPathForAllOtherTracks(self, command_path):
     """Finds other release tracks this command could be in.
@@ -431,6 +446,30 @@ class CLILoader(object):
     Returns:
       CLI, The generated CLI tool.
     """
+    # Register additional modules (if any) to be loaded later.
+    for module_dot_path, module_dir_path, component in self.__modules:
+      is_command = module_dir_path.endswith(_COMMAND_SUFFIX)
+      if is_command:
+        module_dir_path = module_dir_path[:-len(_COMMAND_SUFFIX)]
+      match = CLILoader.PATH_RE.match(module_dot_path)
+      root, cmd_or_grp_name = match.group(1, 2)
+      impl_path = self.__ValidateCommandOrGroupInfo(
+          module_dir_path,
+          allow_non_existing_modules=self.__allow_non_existing_modules)
+      # Create a mapping under the parent for each release track that exists.
+      for track in [calliope_base.ReleaseTrack.GA, *self.__release_tracks]:
+        if impl_path:
+          parent_group_name = '.'.join(
+              [self.__name] + ([track.prefix] if track.prefix else []) +
+              ([root.replace('_', '-')] if root else []))
+          self.__modules_by_parent[parent_group_name].append(
+              (cmd_or_grp_name, is_command, impl_path))
+        elif component:
+          group_name = '.'.join(
+              [self.__name] + ([track.prefix] if track.prefix else []) +
+              [module_dot_path.replace('_', '-')])
+          self.__missing_components[group_name] = component
+
     # The root group of the CLI.
     impl_path = self.__ValidateCommandOrGroupInfo(
         self.__command_root_directory, allow_non_existing_modules=False)
@@ -440,7 +479,6 @@ class CLILoader(object):
     self.__AddBuiltinGlobalFlags(top_group)
 
     # Sub groups for each alternate release track.
-    loaded_release_tracks = dict([(calliope_base.ReleaseTrack.GA, top_group)])
     track_names = set(track.prefix for track in self.__release_tracks.keys())
     for track, (module_dir, component) in six.iteritems(self.__release_tracks):
       impl_path = self.__ValidateCommandOrGroupInfo(
@@ -456,83 +494,14 @@ class CLILoader(object):
             track.prefix, allow_empty=True, release_track_override=track)
         # Copy all the root elements of the top group into the release group.
         top_group.CopyAllSubElementsTo(track_group, ignore=track_names)
-        loaded_release_tracks[track] = track_group
       elif component:
-        self.__missing_components[track.prefix] = component
-
-    # Load the normal set of registered sub groups.
-    for module_dot_path, module_dir_path, component in self.__modules:
-      is_command = module_dir_path.endswith(_COMMAND_SUFFIX)
-      if is_command:
-        module_dir_path = module_dir_path[:-len(_COMMAND_SUFFIX)]
-      match = CLILoader.PATH_RE.match(module_dot_path)
-      root, name = match.group(1, 2)
-      try:
-        # Mount each registered sub group under each release track that exists.
-        for track, track_root_group in six.iteritems(loaded_release_tracks):
-          # pylint: disable=line-too-long
-          parent_group = self.__FindParentGroup(track_root_group, root)
-          # pylint: enable=line-too-long
-          exception_if_present = None
-          if not parent_group:
-            if track != calliope_base.ReleaseTrack.GA:
-              # Don't error mounting sub groups if the parent group can't be
-              # found unless this is for the GA group.  The GA should always be
-              # there, but for alternate release channels, the parent group
-              # might not be enabled for that particular release channel, so it
-              # is valid to not exist.
-              continue
-            exception_if_present = command_loading.LayoutException(
-                'Root [{root}] for command group [{group}] does not exist.'
-                .format(root=root, group=name))
-
-          cmd_or_grp_name = module_dot_path.split('.')[-1]
-          impl_path = self.__ValidateCommandOrGroupInfo(
-              module_dir_path,
-              allow_non_existing_modules=self.__allow_non_existing_modules,
-              exception_if_present=exception_if_present)
-
-          if impl_path:
-            # pylint: disable=protected-access
-            if is_command:
-              parent_group._commands_to_load[cmd_or_grp_name] = [impl_path]
-            else:
-              parent_group._groups_to_load[cmd_or_grp_name] = [impl_path]
-          elif component:
-            prefix = track.prefix + '.' if track.prefix else ''
-            self.__missing_components[prefix + module_dot_path] = component
-      except command_loading.CommandLoadFailure as e:
-        log.exception(e)
+        self.__missing_components[f'{self.__name}.{track.prefix}'] = component
 
     cli = self.__MakeCLI(top_group)
-
     return cli
 
-  def __FindParentGroup(self, top_group, root):
-    """Find the group that should be the parent of this command.
-
-    Args:
-      top_group: _CommandCommon, The top group in this CLI hierarchy.
-      root: str, The dotted path of where this command or group should appear
-        in the command tree.
-
-    Returns:
-      _CommandCommon, The group that should be parent of this new command tree
-        or None if it could not be found.
-    """
-    if not root:
-      return top_group
-    root_path = root.split('.')
-    group = top_group
-    for part in root_path:
-      group = group.LoadSubElement(part)
-      if not group:
-        return None
-    return group
-
   def __ValidateCommandOrGroupInfo(
-      self, impl_path, allow_non_existing_modules=False,
-      exception_if_present=None):
+      self, impl_path, allow_non_existing_modules=False):
     """Generates the information necessary to be able to load a command group.
 
     The group might actually be loaded now if it is the root of the SDK, or the
@@ -543,8 +512,6 @@ class CLILoader(object):
         command or group.
       allow_non_existing_modules: True to allow this module directory to not
         exist, False to raise an exception if this module does not exist.
-      exception_if_present: Exception, An exception to throw if the module
-        actually exists, or None.
 
     Raises:
       LayoutException: If the module directory does not exist and
@@ -561,9 +528,6 @@ class CLILoader(object):
       raise command_loading.LayoutException(
           'The given module directory does not exist: {0}'.format(
               impl_path))
-    elif exception_if_present:
-      # pylint: disable=raising-bad-type, This will be an actual exception.
-      raise exception_if_present
     return impl_path
 
   def __AddBuiltinGlobalFlags(self, top_element):
@@ -594,8 +558,8 @@ class CLILoader(object):
         metavar='CONFIGURATION',
         category=calliope_base.COMMONLY_USED_FLAGS,
         help="""\
-        The configuration to use for this command invocation. For more
-        information on how to use configurations, run:
+        File name of the configuration to use for this command invocation.
+        For more information on how to use configurations, run:
         `gcloud topic configurations`.  You can also use the {0} environment
         variable to set the equivalent of this flag for a terminal
         session.""".format(config.CLOUDSDK_ACTIVE_CONFIG_NAME))
@@ -608,28 +572,11 @@ class CLILoader(object):
         help='Override the default verbosity for this command.',
         action=actions.StoreProperty(properties.VALUES.core.verbosity))
 
-    # This should be a pure Boolean flag, but the alternate true/false explicit
-    # value form is preserved for backwards compatibility. This flag and
-    # is the only Cloud SDK outlier.
-    # TODO(b/24095744): Add true/false deprecation message.
     top_element.ai.add_argument(
         '--user-output-enabled',
-        metavar=' ',  # Help text will look like the flag does not have a value.
-        nargs='?',
         default=None,  # Tri-valued, None => don't override the property.
-        const='true',
-        choices=('true', 'false'),
-        action=actions.DeprecationAction(
-            '--user-output-enabled',
-            warn=(
-                'The `{flag_name}` flag will no longer support the explicit use'
-                ' of the `true/false` optional value in an upcoming release.'
-            ),
-            removed=False,
-            show_message=lambda _: False,
-            action=actions.StoreBooleanProperty(
-                properties.VALUES.core.user_output_enabled
-            ),
+        action=actions.StoreBooleanProperty(
+            properties.VALUES.core.user_output_enabled
         ),
         help='Print user intended output to the console.',
     )
@@ -994,7 +941,6 @@ class CLI(object):
 
       for hook in self.__pre_run_hooks:
         hook.Run(command_path_string)
-
       resources = calliope_command.Run(cli=self, args=args)
 
       for hook in self.__post_run_hooks:
@@ -1017,9 +963,12 @@ class CLI(object):
       # Do this last. If there is an error, the error handler will log the
       # command execution along with the error.
       metrics.Commands(
-          command_path_string, config.CLOUD_SDK_VERSION, specified_arg_names)
+          command_path_string, config.CLOUD_SDK_VERSION, specified_arg_names
+      )
       return resources
 
+    except exceptions.DryRunError as exc:
+      return exc.request
     except Exception as exc:  # pylint: disable=broad-except
       self._HandleAllErrors(exc, command_path_string, specified_arg_names)
 
@@ -1044,6 +993,13 @@ class CLI(object):
     Raises:
       exc or a core.exceptions variant that does not produce a stack trace.
     """
+    if (
+        'CLOUDSDK_CORE_DRY_RUN' in os.environ
+        and os.environ['CLOUDSDK_CORE_DRY_RUN'] == '1'
+    ):
+      # in dry run mode, we want to raise exception to get reason of failure
+      raise exc
+
     error_extra_info = {'error_code': getattr(exc, 'exit_code', 1)}
 
     # Returns exc.payload.status if available. Otherwise, None.

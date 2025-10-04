@@ -101,6 +101,7 @@ def ValidateUpdatePolicyAgainstStateful(update_policy, group_ref,
         'set to \'NONE\'. Use \'--instance-redistribution-type=NONE\'.')
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class CreateGA(base.CreateCommand):
   """Create Compute Engine managed instance groups."""
@@ -126,7 +127,10 @@ class CreateGA(base.CreateCommand):
     managed_flags.AddMigForceUpdateOnRepairFlags(parser)
     if cls.support_resource_manager_tags:
       managed_flags.AddMigResourceManagerTagsFlags(parser)
-    managed_flags.AddMigDefaultActionOnVmFailure(parser)
+    managed_flags.AddMigDefaultActionOnVmFailure(parser, cls.ReleaseTrack())
+    managed_flags.AddInstanceFlexibilityPolicyArgs(parser)
+    managed_flags.AddStandbyPolicyFlags(parser)
+    managed_flags.AddWorkloadPolicyFlag(parser)
     # When adding RMIG-specific flag, update REGIONAL_FLAGS constant.
 
   def _HandleStatefulArgs(self, instance_group_manager, args, client):
@@ -310,11 +314,18 @@ class CreateGA(base.CreateCommand):
         auto_healing_policies)
     update_policy = managed_instance_groups_utils.PatchUpdatePolicy(
         client, args, None)
-
     instance_lifecycle_policy = (
         managed_instance_groups_utils.CreateInstanceLifecyclePolicy(
             client.messages, args
         )
+    )
+    instance_flexibility_policy = (
+        managed_instance_groups_utils.CreateInstanceFlexibilityPolicy(
+            args, client.messages
+        )
+    )
+    resource_policies = managed_instance_groups_utils.CreateResourcePolicies(
+        client.messages, args
     )
 
     instance_group_manager = client.messages.InstanceGroupManager(
@@ -332,6 +343,8 @@ class CreateGA(base.CreateCommand):
         ),
         updatePolicy=update_policy,
         instanceLifecyclePolicy=instance_lifecycle_policy,
+        instanceFlexibilityPolicy=instance_flexibility_policy,
+        resourcePolicies=resource_policies,
     )
 
     if args.IsSpecified('list_managed_instances_results'):
@@ -352,6 +365,25 @@ class CreateGA(base.CreateCommand):
                                         group_ref,
                                         instance_group_manager.statefulPolicy,
                                         client)
+
+    standby_policy = managed_instance_groups_utils.CreateStandbyPolicy(
+        client.messages,
+        args.standby_policy_initial_delay,
+        args.standby_policy_mode,
+    )
+    if standby_policy:
+      instance_group_manager.standbyPolicy = standby_policy
+    if args.suspended_size:
+      instance_group_manager.targetSuspendedSize = args.suspended_size
+    if args.stopped_size:
+      instance_group_manager.targetStoppedSize = args.stopped_size
+
+    if args.IsKnownAndSpecified('target_size_policy_mode'):
+      instance_group_manager.targetSizePolicy = (
+          managed_instance_groups_utils.CreateTargetSizePolicy(
+              client.messages, args.target_size_policy_mode
+          )
+      )
 
     return instance_group_manager
 
@@ -438,8 +470,9 @@ class CreateBeta(CreateGA):
 
   @classmethod
   def Args(cls, parser):
+    managed_flags.AddMigActionOnVmFailedHealthCheck(parser)
+    managed_flags.AddTargetSizePolicyModeFlag(parser)
     super(CreateBeta, cls).Args(parser)
-    managed_flags.AddStandbyPolicyFlags(parser)
 
   def _CreateInstanceGroupManager(self, args, group_ref, template_ref, client,
                                   holder):
@@ -447,17 +480,6 @@ class CreateBeta(CreateGA):
                                    self)._CreateInstanceGroupManager(
                                        args, group_ref, template_ref, client,
                                        holder)
-    standby_policy = managed_instance_groups_utils.CreateStandbyPolicy(
-        client.messages,
-        args.standby_policy_initial_delay,
-        args.standby_policy_mode,
-    )
-    if standby_policy:
-      instance_group_manager.standbyPolicy = standby_policy
-    if args.suspended_size:
-      instance_group_manager.targetSuspendedSize = args.suspended_size
-    if args.stopped_size:
-      instance_group_manager.targetStoppedSize = args.stopped_size
     return instance_group_manager
 
 
@@ -473,22 +495,14 @@ class CreateAlpha(CreateBeta):
   @classmethod
   def Args(cls, parser):
     super(CreateAlpha, cls).Args(parser)
-    managed_flags.AddInstanceFlexibilityPolicyArgs(parser)
 
-  def _CreateInstanceGroupManager(self, args, group_ref, template_ref, client,
-                                  holder):
-    instance_group_manager = super(CreateAlpha,
-                                   self)._CreateInstanceGroupManager(
-                                       args, group_ref, template_ref, client,
-                                       holder)
-    instance_flexibility_policy = (
-        managed_instance_groups_utils.CreateInstanceFlexibilityPolicy(
-            args, client.messages
-        )
-    )
-    instance_group_manager.instanceFlexibilityPolicy = (
-        instance_flexibility_policy
-    )
+  def _CreateInstanceGroupManager(
+      self, args, group_ref, template_ref, client, holder
+  ):
+    instance_group_manager = super(
+        CreateAlpha, self
+    )._CreateInstanceGroupManager(args, group_ref, template_ref, client, holder)
+
     return instance_group_manager
 
 CreateAlpha.detailed_help = CreateGA.detailed_help

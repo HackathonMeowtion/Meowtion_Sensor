@@ -25,6 +25,7 @@ import re
 
 from apitools.base.protorpclite import messages
 from apitools.base.py import encoding
+from apitools.base.py import extra_types
 from googlecloudsdk.calliope import arg_parsers
 from googlecloudsdk.calliope import base
 from googlecloudsdk.calliope.concepts import util as format_util
@@ -54,6 +55,8 @@ class UnknownFieldError(Error):
 
 
 def _GetFullClassName(obj):
+  if isinstance(obj, type):
+    return '{}.{}'.format(obj.__module__, obj.__name__)
   return '{}.{}'.format(type(obj).__module__, type(obj).__name__)
 
 
@@ -153,6 +156,13 @@ def GetFieldValueFromMessage(message, field_path):
   return message
 
 
+def EncodeToMessage(field_type, value):
+  if value is not None:
+    return encoding.PyValueToMessage(field_type, value)
+  else:
+    return None
+
+
 def SetFieldInMessage(message, field_path, value):
   """Sets the given field in the message object.
 
@@ -173,11 +183,11 @@ def SetFieldInMessage(message, field_path, value):
     message = sub_message[0] if is_repeated else sub_message
   field_type = _GetField(message, fields[-1]).type
   if isinstance(value, dict):
-    value = encoding.PyValueToMessage(field_type, value)
+    value = EncodeToMessage(field_type, value)
   if isinstance(value, list):
     for i, item in enumerate(value):
       if isinstance(field_type, type) and not isinstance(item, field_type):
-        value[i] = encoding.PyValueToMessage(field_type, item)
+        value[i] = EncodeToMessage(field_type, item)
   setattr(message, fields[-1], value)
 
 
@@ -228,6 +238,8 @@ class FieldType(enum.Enum):
   MAP = 'map'
   MESSAGE = 'message'
   FIELD = 'field'
+  JSON = 'json'
+  JSON_VALUE = 'json_value'
 
 
 ADDITIONAL_PROPS = 'additionalProperties'
@@ -240,6 +252,10 @@ def _GetAdditionalPropsField(field):
     return GetFieldFromMessage(field.type, ADDITIONAL_PROPS)
   except UnknownFieldError:
     return None
+
+
+def _IsJSONValueType(field):
+  return field.type == extra_types.JsonValue
 
 
 def GetFieldType(field):
@@ -263,10 +279,17 @@ def GetFieldType(field):
   is_map = (additional_props_field and
             isinstance(additional_props_field, messages.MessageField) and
             additional_props_field.repeated)
+  value_field = (GetFieldFromMessage(additional_props_field.type, 'value')
+                 if is_map else None)
 
-  if is_map:
+  if value_field and _IsJSONValueType(value_field):
+    return FieldType.JSON
+  elif is_map:
     return FieldType.MAP
-  return FieldType.MESSAGE
+  elif _IsJSONValueType(field):
+    return FieldType.JSON_VALUE
+  else:
+    return FieldType.MESSAGE
 
 
 DEFAULT_PARAMS = {'project': properties.VALUES.core.project.Get,
@@ -286,6 +309,28 @@ def GetFromNamespace(namespace, arg_name, fallback=None, use_defaults=False):
   if not value and use_defaults:
     value = DEFAULT_PARAMS.get(arg_name, lambda: None)()
   return value
+
+
+class FileType(object):
+  """An interface for custom type generators derived from a file."""
+
+  def GenerateType(self, field):
+    """Generates an argparse type function to use to parse the argument."""
+
+  def Action(self):
+    """The argparse action to use for this argument."""
+    return 'store'
+
+
+class ArgJSONType(object):
+  """An interface for custom type generators for JSON (struct type)."""
+
+  def GenerateType(self, field):
+    """Generates an argparse type function to use to parse the argument."""
+
+  def Action(self, unused_repeated):
+    """The argparse action to use for this argument."""
+    return 'store'
 
 
 class ArgObjectType(object):
@@ -360,6 +405,22 @@ def GenerateChoices(field, attributes):
   return choices
 
 
+def GenerateHiddenChoices(attributes):
+  if attributes.choices is not None:
+    hidden_choices = [c.arg_value for c in attributes.choices if c.hidden]
+    if hidden_choices:
+      return hidden_choices
+  return None
+
+
+STORE_TRUE = 'store_true'
+
+
+def _IsStoreBoolAction(action):
+  return (action == STORE_TRUE or
+          action == arg_parsers.StoreTrueFalseAction)
+
+
 def GenerateFlagType(field, attributes, fix_bools=True):
   """Generates the type and action for a flag.
 
@@ -381,19 +442,22 @@ def GenerateFlagType(field, attributes, fix_bools=True):
     (str) -> Any, a type or function that returns input into correct type
     action, flag action used with a given type
   """
-  variant = field.variant if field else None
-  flag_type = attributes.type or TYPES.get(variant, None)
+  if attributes.type and isinstance(attributes.type, FileType):
+    flag_type = attributes.type.GenerateType(field)
+  else:
+    variant = field.variant if field else None
+    flag_type = attributes.type or TYPES.get(variant, None)
 
   action = attributes.action
   if flag_type == bool and fix_bools and not action:
     # For boolean flags, we want to create a flag with action 'store_true'
     # rather than a flag that takes a value and converts it to a boolean. Only
     # do this if not using a custom action.
-    action = 'store_true'
+    action = STORE_TRUE
 
   append_action = 'append'
   repeated = (field and field.repeated) and attributes.repeated is not False  # repeated as None should default to True, so pylint: disable=g-bool-id-comparison
-  if isinstance(flag_type, ArgObjectType):
+  if isinstance(flag_type, ArgObjectType) or isinstance(flag_type, ArgJSONType):
     if action:
       raise ArgumentGenerationError(
           field.name,
@@ -421,7 +485,8 @@ def GenerateFlagType(field, attributes, fix_bools=True):
       # it.
       elif not is_arg_list and action != append_action:
         flag_type = arg_parsers.ArgList(
-            element_type=flag_type, choices=GenerateChoices(field, attributes))
+            element_type=flag_type, choices=GenerateChoices(field, attributes),
+            hidden_choices=GenerateHiddenChoices(attributes))
   elif isinstance(flag_type, RepeatedMessageBindableType):
     raise ArgumentGenerationError(
         field.name,
@@ -483,10 +548,12 @@ def GenerateFlag(field, attributes, fix_bools=True, category=None):
   flag_type, action = GenerateFlagType(field, attributes, fix_bools)
 
   if isinstance(flag_type, arg_parsers.ArgList):
-    choices = None
-  else:
     # Choices are already combined in the ArgList
+    choices = None
+    hidden_choices = None
+  else:
     choices = GenerateChoices(field, attributes)
+    hidden_choices = GenerateHiddenChoices(attributes)
 
   if field and not flag_type and not action and not attributes.processor:
     # The type is unknown and there is no custom action or processor, we don't
@@ -506,7 +573,7 @@ def GenerateFlag(field, attributes, fix_bools=True, category=None):
   )
   if attributes.default != UNSPECIFIED:
     arg.kwargs['default'] = attributes.default
-  if action != 'store_true':
+  if not _IsStoreBoolAction(action):
     # For this special action type, it won't accept a bunch of the common
     # kwargs, so we can only add them if not generating a boolean flag.
     metavar = GetMetavar(attributes.metavar, flag_type, name)
@@ -514,6 +581,8 @@ def GenerateFlag(field, attributes, fix_bools=True, category=None):
       arg.kwargs['metavar'] = metavar
     arg.kwargs['type'] = flag_type
     arg.kwargs['choices'] = choices
+    if hidden_choices:
+      arg.kwargs['hidden_choices'] = hidden_choices
   if not attributes.is_positional:
     arg.kwargs['required'] = attributes.required
   return arg
@@ -581,27 +650,6 @@ def GetFlagName(arg_name, flag_prefix=None):
   return format_util.FlagNameFormat(name)
 
 
-def GetAttributeFlags(
-    arg_data, arg_name, resource_collection, shared_resource_args):
-  """Gets a list of attribute flags for the given resource arg.
-
-  Args:
-    arg_data: yaml_arg_schema.YAMLResourceArgument, data used to generate the
-      resource argument
-    arg_name: str, name of the anchor resource arg
-    resource_collection: registry.APICollection | None, collection used to
-      create resource argument.
-    shared_resource_args: [str], list of resource args to ignore
-
-  Returns:
-    A list of base.Argument resource attribute flags.
-  """
-  name = GetFlagName(arg_name)
-  resource_arg = arg_data.GenerateResourceArg(
-      resource_collection, name, shared_resource_args).GetInfo(name)
-  return resource_arg.GetAttributeArgs()[:-1]
-
-
 def _GetCommonPrefix(longest_arr, arr):
   """Gets the long common sub list between two lists."""
   new_arr = []
@@ -613,7 +661,7 @@ def _GetCommonPrefix(longest_arr, arr):
   return new_arr
 
 
-def _GetSharedParent(api_fields):
+def GetSharedParent(api_fields):
   """Gets shared parent of api_fields.
 
   For a list of fields, find the common parent between them or None.
@@ -729,10 +777,8 @@ def ClearUnspecifiedMutexFields(message, namespace, arg_group):
   # Find api fields that are associated with the root of the oneof.
   # This ensures everything is cleared within the oneof and not just nested
   # fields associated with flags.
-  arg_api_fields = arg_group.api_fields
-  arg_group_api_field = _GetSharedParent(arg_api_fields)
   first_child_fields = _GetFirstChildFields(
-      arg_api_fields, shared_parent=arg_group_api_field)
+      arg_group.api_fields, shared_parent=arg_group.parent_api_field)
 
   specified_fields = _GetSpecifiedApiFieldsInGroup(
       arg_group.arguments, namespace)
@@ -1079,6 +1125,7 @@ class ChoiceEnumMapper(object):
                dest=None,
                default=None,
                hidden=False,
+               hidden_choices=None,
                include_filter=None):
     """Initialize ChoiceEnumMapper.
 
@@ -1100,6 +1147,8 @@ class ChoiceEnumMapper(object):
           see base.ChoiceArgument().
       hidden: boolean, pass through for base.Argument,
           see base.ChoiceArgument().
+      hidden_choices: list, pass through for base.Argument,
+          see base.ChoiceArgument().
       include_filter: callable, function of type string->bool used to filter
           enum values from message_enum that should be included in choices.
           If include_filter returns True for a particular enum value, it will be
@@ -1117,6 +1166,7 @@ class ChoiceEnumMapper(object):
     self._arg_name = arg_name
     self._enum = message_enum
     self._custom_mappings = custom_mappings
+    self._hidden_choices = hidden_choices
     if include_filter is not None and not callable(include_filter):
       raise TypeError('include_filter must be callable received [{}]'.format(
           include_filter))
@@ -1133,7 +1183,8 @@ class ChoiceEnumMapper(object):
         metavar=metavar,
         dest=dest,
         default=default,
-        hidden=hidden)
+        hidden=hidden,
+        hidden_choices=hidden_choices)
 
   def _ValidateAndParseMappings(self):
     """Validates and parses choice to enum mappings.
@@ -1177,6 +1228,12 @@ class ChoiceEnumMapper(object):
           for x, y in six.iteritems(self._choice_to_enum)
       }
       self._choices = sorted(self._choice_to_enum.keys())
+
+    if self._hidden_choices:
+      if not set(self._choices).issuperset(self._hidden_choices):
+        raise ValueError(
+            'hidden_choices [{}] must be subset of choices [{}]'.format(
+                ', '.join(self._hidden_choices), ', '.join(self._choices)))
 
   def _ParseCustomMappingsFromTuples(self):
     """Parses choice to enum mappings from custom_mapping with tuples.

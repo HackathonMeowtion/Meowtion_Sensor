@@ -12,9 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Base classes for calliope commands and groups.
-
-"""
+"""Base classes for calliope commands and groups."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -44,6 +42,8 @@ except AttributeError:
   collections_abc = collections
 
 # Category constants
+BACKUP_CATEGORY = 'Backup'
+RESTORE_CATEGORY = 'Restore'
 AI_AND_MACHINE_LEARNING_CATEGORY = 'AI and Machine Learning'
 VERTEX_AI_CATEGORY = 'Vertex AI'
 TENSORBOARD_CATEGORY = 'AI Platform Tensorboard'
@@ -56,6 +56,7 @@ COMPOSER_CATEGORY = 'Composer'
 COMPUTE_CATEGORY = 'Compute'
 DATA_ANALYTICS_CATEGORY = 'Data Analytics'
 DATABASES_CATEGORY = 'Databases'
+GDCC_ZONE_CATEGORY = 'GDCc Zone'
 IDENTITY_AND_SECURITY_CATEGORY = 'Identity and Security'
 INTERNET_OF_THINGS_CATEGORY = 'Internet of Things'
 MANAGEMENT_TOOLS_CATEGORY = 'Management Tools'
@@ -84,6 +85,7 @@ COMMERCE_CATEGORY = 'Commerce'
 DECLARATIVE_CONFIGURATION_CATEGORY = 'Declarative Resource Management'
 MICROSERVICES_CATEGORY = 'Microservices'
 WEB3_CATEGORY = 'Web3'
+SAAS_CATEGORY = 'SaaS'
 
 
 # Common markdown.
@@ -119,6 +121,19 @@ class ReleaseTrack(enum.Enum):
     return self.name
 
   GA = (None, None, None)
+  # TODO(b/330610172): __NOT FOR GENERAL USE__: This release track is not
+  # intended for general use. It is only intended for use by the gcloud team and
+  # specific Contirbutors for testing new API versioning UX.
+  PREVIEW = (
+      'preview',
+      '{0}(PREVIEW){0} '.format(MARKDOWN_BOLD),
+      (
+          'This command is currently in DEVELOPER PREVIEW and may change'
+          ' without notice. If this command fails with API permission errors'
+          ' despite specifying the correct project, you might be trying to'
+          ' access an API with an invitation-only early access allowlist.'
+      ),
+  )
   BETA = (
       'beta',
       '{0}(BETA){0} '.format(MARKDOWN_BOLD),
@@ -227,8 +242,7 @@ class Action(six.with_metaclass(abc.ABCMeta, object)):
 
 
 class ArgumentGroup(Action):
-  """A class that allows you to save an argument group configuration for reuse.
-  """
+  """A class that allows you to save an argument group configuration for reuse."""
 
   def __init__(self, *args, **kwargs):
     super(ArgumentGroup, self).__init__(*args, **kwargs)
@@ -288,8 +302,9 @@ class Argument(Action):
       name = flag.option_strings[0]
       conflicts = [(name, flag)]
       no_name = '--no-' + name[2:]
-      for no_flag in itertools.chain(parser.flag_args,
-                                     parser.ancestor_flag_args):
+      for no_flag in itertools.chain(
+          parser.flag_args, parser.ancestor_flag_args
+      ):
         if no_name in no_flag.option_strings:
           conflicts.append((no_name, no_flag))
       # pylint: disable=protected-access, argparse, why can't we be friends
@@ -318,8 +333,9 @@ class Argument(Action):
 
       # Update the flag's help text.
       original_help = flag.help
-      match = re.search(r'(.*The default is ).*?(\.([ \t\n].*))',
-                        original_help, re.DOTALL)
+      match = re.search(
+          r'(.*The default is ).*?(\.([ \t\n].*))', original_help, re.DOTALL
+      )
       if match:
         new_help = '{}*{}*{}'.format(match.group(1), default, match.group(2))
       else:
@@ -346,7 +362,8 @@ FLAGS_FILE_FLAG = Argument(
         Useful for specifying complex flag values with special characters
         that work with any command interpreter. Additionally, each
         *--flags-file* arg is replaced by its constituent flags. See
-        $ gcloud topic flags-file for more information.""")
+        $ gcloud topic flags-file for more information.""",
+)
 
 FLATTEN_FLAG = Argument(
     '--flatten',
@@ -363,7 +380,8 @@ FLATTEN_FLAG = Argument(
         will expand to N records in the flattened output. This allows us to
         specify what `resource-key` the `filter` will operate on. This flag
         interacts with other flags that are applied in this order: *--flatten*,
-        *--sort-by*, *--filter*, *--limit*.""")
+        *--sort-by*, *--filter*, *--limit*.""",
+)
 
 FORMAT_FLAG = Argument(
     '--format',
@@ -377,7 +395,9 @@ FORMAT_FLAG = Argument(
         supported formats are limited to: `{0}`. For more details run $ gcloud
         topic formats. Run `$ gcloud config set --help` to see more information
         about `core/format`""".format(
-            '`, `'.join(resource_printer.SupportedFormats())))
+        '`, `'.join(resource_printer.SupportedFormats())
+    ),
+)
 
 LIST_COMMAND_FLAGS = 'LIST COMMAND'
 
@@ -387,7 +407,8 @@ ASYNC_FLAG = Argument(
     dest='async_',
     help="""\
     Return immediately, without waiting for the operation in progress to
-    complete.""")
+    complete.""",
+)
 
 FILTER_FLAG = Argument(
     '--filter',
@@ -399,7 +420,8 @@ FILTER_FLAG = Argument(
     If the expression evaluates `True`, then that item is listed. For more
     details and examples of filter expressions, run $ gcloud topic filters. This
     flag interacts with other flags that are applied in this order: *--flatten*,
-    *--sort-by*, *--filter*, *--limit*.""")
+    *--sort-by*, *--filter*, *--limit*.""",
+)
 
 LIMIT_FLAG = Argument(
     '--limit',
@@ -410,7 +432,8 @@ LIMIT_FLAG = Argument(
     Maximum number of resources to list. The default is *unlimited*.
     This flag interacts with other flags that are applied in this order:
     *--flatten*, *--sort-by*, *--filter*, *--limit*.
-    """)
+    """,
+)
 
 PAGE_SIZE_FLAG = Argument(
     '--page-size',
@@ -423,7 +446,8 @@ PAGE_SIZE_FLAG = Argument(
     service if it supports paging, otherwise it is *unlimited* (no paging).
     Paging may be applied before or after *--filter* and *--limit* depending
     on the service.
-    """)
+    """,
+)
 
 SORT_BY_FLAG = Argument(
     '--sort-by',
@@ -436,7 +460,8 @@ SORT_BY_FLAG = Argument(
     default order is ascending. Prefix a field with ``~'' for descending
     order on that field. This flag interacts with other flags that are applied
     in this order: *--flatten*, *--sort-by*, *--filter*, *--limit*.
-    """)
+    """,
+)
 
 URI_FLAG = Argument(
     '--uri',
@@ -448,7 +473,8 @@ URI_FLAG = Argument(
     command output to a list of URIs. If this flag is used with *--format*,
     the formatting is applied on this URI list. To display URIs alongside other
     keys instead, use the *uri()* transform.
-    """)
+    """,
+)
 
 # Binary Command Flags
 BINARY_BACKED_COMMAND_FLAGS = 'BINARY BACKED COMMAND'
@@ -459,18 +485,24 @@ SHOW_EXEC_ERROR_FLAG = Argument(
     action='store_true',
     required=False,
     category=BINARY_BACKED_COMMAND_FLAGS,
-    help='If true and command fails, print the underlying command '
-         'that was executed and its exit status.')
+    help=(
+        'If true and command fails, print the underlying command '
+        'that was executed and its exit status.'
+    ),
+)
 
 
 class _Common(six.with_metaclass(abc.ABCMeta, object)):
   """Base class for Command and Group."""
+
   category = None
   _cli_generator = None
   _is_hidden = False
+  _is_auto_generated = False
   _is_unicode_supported = False
   _release_track = None
   _universe_compatible = None
+  _default_universe_compatible = True
   _valid_release_tracks = None
   _notices = None
   _is_deprecated = False
@@ -502,8 +534,17 @@ class _Common(six.with_metaclass(abc.ABCMeta, object)):
     return cls._is_hidden
 
   @classmethod
+  def IsAutoGenerated(cls):
+    """Returns whether or not this command or group is auto generated."""
+    return cls._is_auto_generated
+
+  @classmethod
   def IsUniverseCompatible(cls):
     return cls._universe_compatible
+
+  @classmethod
+  def IsDefaultUniverseCompatible(cls):
+    return cls._default_universe_compatible
 
   @classmethod
   def IsUnicodeSupported(cls):
@@ -610,9 +651,9 @@ class Group(_Common):
 
     Args:
       context: {str:object}, A set of key-value pairs that can be used for
-          common initialization among commands.
+        common initialization among commands.
       args: argparse.Namespace: The same namespace given to the corresponding
-          .Run() invocation.
+        .Run() invocation.
     """
     pass
 
@@ -624,8 +665,8 @@ class Command(six.with_metaclass(abc.ABCMeta, _Common)):
     _cli_do_not_use_directly: calliope.cli.CLI, The CLI object representing this
       command line tool. This should *only* be accessed via commands that
       absolutely *need* introspection of the entire CLI.
-    context: {str:object}, A set of key-value pairs that can be used for
-        common initialization among commands.
+    context: {str:object}, A set of key-value pairs that can be used for common
+      initialization among commands.
     _uri_cache_enabled: bool, The URI cache enabled state.
   """
 
@@ -670,7 +711,7 @@ class Command(six.with_metaclass(abc.ABCMeta, _Common)):
 
     Args:
       args: argparse.Namespace, An object that contains the values for the
-          arguments specified in the .Args() method.
+        arguments specified in the .Args() method.
 
     Returns:
       A resource object dispatched by display.Displayer().
@@ -702,8 +743,9 @@ class TopicCommand(six.with_metaclass(abc.ABCMeta, Command)):
   """A command that displays its own help on execution."""
 
   def Run(self, args):
-    self.ExecuteCommandDoNotUse(args.command_path[1:] +
-                                ['--document=style=topic'])
+    self.ExecuteCommandDoNotUse(
+        args.command_path[1:] + ['--document=style=topic']
+    )
     return None
 
 
@@ -842,6 +884,23 @@ def Visible(cmd_class):
   return cmd_class
 
 
+def Autogenerated(group_class):
+  """Decorator for marking calliope groups as autogenerated.
+
+  Decorate a subclass of base.Group with this function, and the decorated
+  group will be treated as autogenerated.
+
+  Args:
+    group_class: base.Group, A calliope group.
+
+  Returns:
+    A modified version of the provided class.
+  """
+  # pylint: disable=protected-access
+  group_class._is_auto_generated = True
+  return group_class
+
+
 def UniverseCompatible(cmd_class):
   """Decorator for marking calliope commands and groups available in universes.
 
@@ -861,7 +920,7 @@ def UniverseCompatible(cmd_class):
 
 
 def DefaultUniverseOnly(cmd_class):
-  """Decorator for marking commands and groups unavailable in universes.
+  """Decorator for marking commands & groups available only in default universe.
 
   Decorate a subclass of base.Command or base.Group with this function, and the
   decorated command or group will display help text with disclaimer information
@@ -875,6 +934,25 @@ def DefaultUniverseOnly(cmd_class):
   """
   # pylint: disable=protected-access
   cmd_class._universe_compatible = False
+  return cmd_class
+
+
+def NonDefaultUniverseOnly(cmd_class):
+  """Decorator for marking commands & groups not available in default universe.
+
+  Decorate a subclass of base.Command or base.Group with this function, and the
+  decorated command or group will display help text with disclaimer information
+  about the command or group is supported only outside the default universe.
+
+  Args:
+    cmd_class: base._Common, A calliope command or group.
+
+  Returns:
+    A modified version of the provided class.
+  """
+  # pylint: disable=protected-access
+  cmd_class._universe_compatible = True
+  cmd_class._default_universe_compatible = False
   return cmd_class
 
 
@@ -905,17 +983,21 @@ def ReleaseTracks(*tracks):
   Returns:
     The decorated function.
   """
+
   def ApplyReleaseTracks(cmd_class):
     """Wrapper function for the decorator."""
     # pylint: disable=protected-access
     cmd_class._valid_release_tracks = set(tracks)
     return cmd_class
+
   return ApplyReleaseTracks
 
 
-def Deprecate(is_removed=True,
-              warning='This command is deprecated.',
-              error='This command has been removed.'):
+def Deprecate(
+    is_removed=True,
+    warning='This command is deprecated.',
+    error='This command has been removed.',
+):
   """Decorator that marks a Calliope command as deprecated.
 
   Decorate a subclass of base.Command with this function and the
@@ -932,8 +1014,8 @@ def Deprecate(is_removed=True,
 
 
   Args:
-      is_removed: boolean, True if the command should raise an error
-      when executed. If false, a warning is printed
+      is_removed: boolean, True if the command should raise an error when
+        executed. If false, a warning is printed
       warning: string, warning message
       error: string, error message
 
@@ -967,6 +1049,7 @@ def Deprecate(is_removed=True,
           raise DeprecationException(error)
         log.warning(warning)
         return run_func(*args, **kw)
+
       return WrappedRun
 
     if issubclass(cmd_class, Group):
@@ -987,7 +1070,7 @@ def _ChoiceValueType(value):
 
   Args:
     value: string, string representing flag choice value parsed from command
-           line.
+      line.
 
   Returns:
        A string value entirely in lower case, with words separated by
@@ -1001,27 +1084,38 @@ def SanitizeChoices(iterable):
   return [_ChoiceValueType(x) for x in iterable]
 
 
-def ChoiceArgument(name_or_flag, choices, help_str=None, required=False,
-                   action=None, metavar=None, dest=None, default=None,
-                   hidden=False):
+def ChoiceArgument(
+    name_or_flag,
+    choices,
+    help_str=None,
+    required=False,
+    action=None,
+    metavar=None,
+    dest=None,
+    default=None,
+    hidden=False,
+    hidden_choices=None,
+):
   """Returns Argument with a Cloud SDK style compliant set of choices.
 
   Args:
-    name_or_flag: string, Either a name or a list of option strings,
-       e.g. foo or -f, --foo.
+    name_or_flag: string, Either a name or a list of option strings, e.g. foo or
+      -f, --foo.
     choices: container,  A container (e.g. set, dict, list, tuple) of the
-       allowable values for the argument. Should consist of strings entirely in
-       lower case, with words separated by hyphens.
+      allowable values for the argument. Should consist of strings entirely in
+      lower case, with words separated by hyphens.
     help_str: string,  A brief description of what the argument does.
     required: boolean, Whether or not the command-line option may be omitted.
-    action: string or argparse.Action, The basic type of argeparse.action
-       to be taken when this argument is encountered at the command line.
+    action: string or argparse.Action, The basic type of argeparse.action to be
+      taken when this argument is encountered at the command line.
     metavar: string,  A name for the argument in usage messages.
     dest: string,  The name of the attribute to be added to the object returned
-       by parse_args().
+      by parse_args().
     default: string,  The value produced if the argument is absent from the
-       command line.
+      command line.
     hidden: boolean, Whether or not the command-line option is hidden.
+    hidden_choices: list, A subset of 'choices' that should be hidden from
+      documentation.
 
   Returns:
      Argument object with choices, that can accept both lowercase and uppercase
@@ -1035,11 +1129,17 @@ def ChoiceArgument(name_or_flag, choices, help_str=None, required=False,
   if not choices:
     raise ValueError('Choices must not be empty.')
 
-  if (not isinstance(choices, collections_abc.Iterable)
-      or isinstance(choices, six.string_types)):
+  # pyformat: disable
+  if (
+      not isinstance(choices, collections_abc.Iterable)
+      or isinstance(choices, six.string_types)
+  ):
+  # pyformat: enable
     raise TypeError(
         'Choices must be an iterable container of options: [{}].'.format(
-            ', '.join(choices)))
+            ', '.join(choices)
+        )
+    )
 
   # Valid choices should be alphanumeric sequences followed by an optional
   # period '.', separated by a single hyphen '-'.
@@ -1047,12 +1147,25 @@ def ChoiceArgument(name_or_flag, choices, help_str=None, required=False,
   invalid_choices = [x for x in choices if not choice_re.match(x)]
   if invalid_choices:
     raise ValueError(
-        ('Invalid choices [{}]. Choices must be entirely in lowercase with '
-         'words separated by hyphens(-)').format(', '.join(invalid_choices)))
+        (
+            'Invalid choices [{}]. Choices must be entirely in lowercase with '
+            'words separated by hyphens(-)'
+        ).format(', '.join(invalid_choices))
+    )
 
-  return Argument(name_or_flag, choices=choices, required=required,
-                  type=_ChoiceValueType, help=help_str, action=action,
-                  metavar=metavar, dest=dest, default=default, hidden=hidden)
+  return Argument(
+      name_or_flag,
+      choices=choices,
+      required=required,
+      type=_ChoiceValueType,
+      help=help_str,
+      action=action,
+      metavar=metavar,
+      dest=dest,
+      default=default,
+      hidden=hidden,
+      hidden_choices=hidden_choices,
+  )
 
 
 @contextlib.contextmanager
@@ -1072,8 +1185,11 @@ def WithLegacyQuota():
     yield to the surrounded code block.
   """
   properties.VALUES.PushInvocationValues()
-  properties.VALUES.SetInvocationValue(properties.VALUES.billing.quota_project,
-                                       properties.VALUES.billing.LEGACY, None)
+  properties.VALUES.SetInvocationValue(
+      properties.VALUES.billing.quota_project,
+      properties.VALUES.billing.LEGACY,
+      None,
+  )
   try:
     yield
   finally:
@@ -1141,13 +1257,16 @@ def EnableUserProjectQuotaWithFallback():
   See the docstring of DisableUserProjectQuota for more information.
   """
   _SetUserProjectQuotaFallback(
-      properties.VALUES.billing.CURRENT_PROJECT_WITH_FALLBACK)
+      properties.VALUES.billing.CURRENT_PROJECT_WITH_FALLBACK
+  )
 
 
 def UserProjectQuotaWithFallbackEnabled():
   """Returns if the CURRENT_PROJECT_WITH_FALLBACK mode is enabled."""
-  return properties.VALUES.billing.quota_project.Get(
-  ) == properties.VALUES.billing.CURRENT_PROJECT_WITH_FALLBACK
+  return (
+      properties.VALUES.billing.quota_project.Get()
+      == properties.VALUES.billing.CURRENT_PROJECT_WITH_FALLBACK
+  )
 
 
 def OptOutRequests():
@@ -1167,9 +1286,11 @@ def UseRequests():
   to opt surfaces out of requests.
   """
 
-  return (UseGoogleAuth() and
-          not properties.VALUES.transport.opt_out_requests.GetBool() and
-          not properties.VALUES.transport.disable_requests_override.GetBool())
+  return (
+      UseGoogleAuth()
+      and not properties.VALUES.transport.opt_out_requests.GetBool()
+      and not properties.VALUES.transport.disable_requests_override.GetBool()
+  )
 
 
 def OptOutGoogleAuth():
@@ -1188,8 +1309,10 @@ def UseGoogleAuth():
   case google-auth is crashing. auth/opt_out_google_auth is an internal property
   to opt-out a surface.
   """
-  return not (properties.VALUES.auth.opt_out_google_auth.GetBool() or
-              properties.VALUES.auth.disable_load_google_auth.GetBool())
+  return not (
+      properties.VALUES.auth.opt_out_google_auth.GetBool()
+      or properties.VALUES.auth.disable_load_google_auth.GetBool()
+  )
 
 
 def LogCommand(prog, args):
@@ -1203,7 +1326,7 @@ def LogCommand(prog, args):
 
   Args:
     prog: string, the dotted name of the command being run (ex.
-        "gcloud.foos.list")
+      "gcloud.foos.list")
     args: argparse.namespace, the parsed arguments from the command line
   """
   specified_args = sorted(six.iteritems(args.GetSpecifiedArgs()))
@@ -1224,7 +1347,8 @@ def RequireProjectID(args):
     if args.project.isdigit():
       raise properties.InvalidValueError(
           "The value of ``--project'' flag was set to Project number."
-          "To use this command, set it to PROJECT ID instead.")
+          'To use this command, set it to PROJECT ID instead.'
+      )
     else:
       return
   else:

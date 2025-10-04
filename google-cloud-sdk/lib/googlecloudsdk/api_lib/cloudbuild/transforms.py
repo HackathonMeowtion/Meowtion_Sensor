@@ -94,14 +94,16 @@ def TransformBuildSource(r, undefined=''):
   b = apitools_encoding.DictToMessage(r, messages.Build)
   if b.source is None:
     return undefined
+
   storage_source = b.source.storageSource
-  repo_source = b.source.repoSource
   if storage_source is not None:
     bucket = storage_source.bucket
     obj = storage_source.object
     if bucket is None or obj is None:
       return undefined
     return 'gs://{0}/{1}'.format(bucket, obj)
+
+  repo_source = b.source.repoSource
   if repo_source is not None:
     repo_name = repo_source.repoName or 'default'
     branch_name = repo_source.branchName
@@ -113,6 +115,36 @@ def TransformBuildSource(r, undefined=''):
     commit_sha = repo_source.commitSha
     if commit_sha is not None:
       return '{0}@{1}'.format(repo_name, commit_sha)
+
+  git_source = b.source.gitSource
+  if git_source is not None:
+    url = git_source.url
+    revision = git_source.revision
+    if url is not None:
+      return '{0}@{1}'.format(url, revision)
+
+  storage_source_manifest = b.source.storageSourceManifest
+  if storage_source_manifest is not None:
+    bucket = storage_source_manifest.bucket
+    obj = storage_source_manifest.object
+    if bucket is None or obj is None:
+      return undefined
+    return 'gs://{0}/{1}'.format(bucket, obj)
+
+  connected_repository = b.source.connectedRepository
+  if connected_repository is not None:
+    repository = connected_repository.repository
+    revision = connected_repository.revision
+    if repository is not None:
+      return '{0}@{1}'.format(repository, revision)
+
+  developer_connect_config = b.source.developerConnectConfig
+  if developer_connect_config is not None:
+    git_repository_link = developer_connect_config.gitRepositoryLink
+    revision = developer_connect_config.revision
+    if git_repository_link is not None:
+      return '{0}@{1}'.format(git_repository_link, revision)
+
   return undefined
 
 
@@ -159,16 +191,24 @@ def TransformResultStatus(resource, undefined=''):
     return record_summary.status
   if 'pipeline_run_status' in record_data or 'task_run_status' in record_data:
     return 'CANCELLED'
-  if 'conditions[0].status' in record_data:
-    condition = record_data.get('conditions[0].status')
-    if condition == 'TRUE':
-      return 'SUCCESS'
-    if condition == 'FALSE':
-      return 'FAILURE'
-    if condition == 'UNKNOWN':
-      return 'WORKING'
-  if 'start_time' in record_data and 'finish_time' not in record_data and 'completion_time' not in record_data:
-    return 'WORKING'
+  # Get the status from conditions if record_summary.status is not set.
+  succeeded_status = ''
+  dequeued_status = ''
+  # There are two types of conditions, 'Succeeded' and 'Dequeued'.
+  for index in (0, 1):
+    condition_type = record_data.get(f'conditions[{index}].type')
+    if condition_type == 'Succeeded':
+      succeeded_status = record_data.get(f'conditions[{index}].status')
+    elif condition_type == 'Dequeued':
+      dequeued_status = record_data.get(f'conditions[{index}].status')
+  if succeeded_status == 'TRUE':
+    return 'SUCCESS'
+  if succeeded_status == 'FALSE':
+    return 'FAILURE'
+  if dequeued_status == 'TRUE':
+    return 'IN_PROGRESS'
+  if dequeued_status == 'FALSE':
+    return 'QUEUED'
   return undefined
 
 

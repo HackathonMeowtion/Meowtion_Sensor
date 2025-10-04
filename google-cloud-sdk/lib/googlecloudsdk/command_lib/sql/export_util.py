@@ -100,11 +100,18 @@ def RunExportCommand(args, client, export_context):
         sql_messages.SqlOperationsGetRequest(
             project=operation_ref.project, operation=operation_ref.operation))
 
+  is_tde_export = (
+      export_context.fileType
+      == sql_messages.ExportContext.FileTypeValueValuesEnum.TDE
+  )
+
+  export_dest = args.cert_path if is_tde_export else args.uri
+
   operations.OperationsV1Beta4.WaitForOperation(sql_client, operation_ref,
                                                 'Exporting Cloud SQL instance')
 
   log.status.write('Exported [{instance}] to [{bucket}].\n'.format(
-      instance=instance_ref, bucket=args.uri))
+      instance=instance_ref, bucket=export_dest))
 
   return None
 
@@ -129,6 +136,8 @@ def RunSqlExportCommand(args, client):
       offload=args.offload,
       parallel=args.parallel,
       threads=args.threads,
+      clean=args.clean,
+      if_exists=args.if_exists,
   )
   if args.offload:
     log.status.write(
@@ -186,5 +195,29 @@ def RunBakExportCommand(args, client):
       args.striped,
       args.bak_type,
       args.differential_base,
+      args.export_log_start_time,
+      args.export_log_end_time,
   )
   return RunExportCommand(args, client, sql_export_context)
+
+
+def RunTdeExportCommand(args, client):
+  """Export TDE certificate from a Cloud SQL instance.
+
+  Args:
+    args: argparse.Namespace, The arguments that this command was invoked with.
+    client: SqlClient instance, with sql_client and sql_messages props, for use
+      in generating messages and making API calls.
+
+  Returns:
+    A dict object representing the operations resource describing the export
+    operation if the export was successful.
+  """
+  tde_export_context = export_util.TdeExportContext(
+      client.sql_messages,
+      args.certificate,
+      args.cert_path,
+      args.pvk_path,
+      args.pvk_password,
+  )
+  return RunExportCommand(args, client, tde_export_context)

@@ -54,6 +54,7 @@ def _BaseRun(args, context):
   return cluster, cluster_ref
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class GetCredentials(base.Command):
   """Fetch credentials for a running cluster.
@@ -103,6 +104,9 @@ class GetCredentials(base.Command):
         to capture some information, but behaves like an ArgumentParser.
     """
     flags.AddGetCredentialsArgs(parser)
+    flags.AddDnsEndpointFlag(parser)
+    flags.AddKubecontextOverrideFlag(parser)
+    flags.AddUseIamTokenFlag(parser)
 
   def Run(self, args):
     """This is what gets called when the user runs this command.
@@ -115,9 +119,18 @@ class GetCredentials(base.Command):
       util.Error: if the cluster is unreachable or not running.
     """
     cluster, cluster_ref = _BaseRun(args, self.context)
-    util.ClusterConfig.Persist(cluster, cluster_ref.projectId, args.internal_ip)
+    util.ClusterConfig.Persist(
+        cluster,
+        cluster_ref.projectId,
+        args.internal_ip,
+        use_dns_endpoint=args.dns_endpoint,
+        impersonate_service_account=args.impersonate_service_account,
+        kubecontext_override=args.kubecontext_override,
+        use_iam_token=args.use_iam_token,
+    )
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.BETA)
 class GetCredentialsBeta(base.Command):
   """Fetch credentials for a running cluster.
@@ -162,6 +175,8 @@ class GetCredentialsBeta(base.Command):
     flags.AddCrossConnectSubnetworkFlag(parser)
     flags.AddPrivateEndpointFQDNFlag(parser)
     flags.AddDnsEndpointFlag(parser)
+    flags.AddKubecontextOverrideFlag(parser)
+    flags.AddUseIamTokenFlag(parser)
 
   def Run(self, args):
     """This is what gets called when the user runs this command.
@@ -175,12 +190,19 @@ class GetCredentialsBeta(base.Command):
     """
     flags.VerifyGetCredentialsFlags(args)
     cluster, cluster_ref = _BaseRun(args, self.context)
-    util.ClusterConfig.Persist(cluster, cluster_ref.projectId, args.internal_ip,
-                               args.cross_connect_subnetwork,
-                               args.private_endpoint_fqdn,
-                               args.dns_endpoint)
+    util.ClusterConfig.Persist(
+        cluster,
+        cluster_ref.projectId,
+        args.internal_ip,
+        args.cross_connect_subnetwork,
+        args.private_endpoint_fqdn,
+        args.dns_endpoint,
+        kubecontext_override=args.kubecontext_override,
+        use_iam_token=args.use_iam_token,
+    )
 
 
+@base.UniverseCompatible
 @base.ReleaseTracks(base.ReleaseTrack.ALPHA)
 class GetCredentialsAlpha(base.Command):
   """Fetch credentials for a running cluster.
@@ -230,6 +252,8 @@ class GetCredentialsAlpha(base.Command):
     flags.AddCrossConnectSubnetworkFlag(parser)
     flags.AddPrivateEndpointFQDNFlag(parser)
     flags.AddDnsEndpointFlag(parser)
+    flags.AddKubecontextOverrideFlag(parser)
+    flags.AddUseIamTokenFlag(parser)
 
   def Run(self, args):
     """This is what gets called when the user runs this command.
@@ -243,7 +267,13 @@ class GetCredentialsAlpha(base.Command):
     """
     flags.VerifyGetCredentialsFlags(args)
     cluster, cluster_ref = _BaseRun(args, self.context)
-    util.ClusterConfig.Persist(cluster, cluster_ref.projectId, args.internal_ip,
-                               args.cross_connect_subnetwork,
-                               args.private_endpoint_fqdn,
-                               args.dns_endpoint)
+    util.ClusterConfig.Persist(
+        cluster,
+        cluster_ref.projectId,
+        args.internal_ip,
+        args.cross_connect_subnetwork,
+        args.private_endpoint_fqdn,
+        args.dns_endpoint,
+        kubecontext_override=args.kubecontext_override,
+        use_iam_token=args.use_iam_token,
+    )

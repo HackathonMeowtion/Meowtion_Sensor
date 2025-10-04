@@ -90,12 +90,15 @@ class SparkRBase(job_base.JobBase):
         archiveUris=files_by_type['archives'],
         fileUris=files_by_type['files'],
         mainRFileUri=files_by_type['r_file'],
-        loggingConfig=logging_config)
+        loggingConfig=logging_config,
+    )
 
     job_properties = job_util.BuildJobProperties(
-        args.properties, args.properties_file)
+        args.properties, args.properties_file
+    )
     if job_properties:
       spark_r_job.properties = encoding.DictToMessage(
-          job_properties, messages.SparkRJob.PropertiesValue)
+          job_properties, messages.SparkRJob.PropertiesValue
+      )
 
     job.sparkRJob = spark_r_job

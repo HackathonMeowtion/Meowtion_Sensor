@@ -14,10 +14,6 @@
 # limitations under the License.
 """Flags and helpers for the compute security policies commands."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 from googlecloudsdk.calliope import arg_parsers
 from googlecloudsdk.command_lib.compute import completers as compute_completers
 from googlecloudsdk.command_lib.compute import flags as compute_flags
@@ -221,7 +217,7 @@ def AddCloudArmorAdaptiveProtectionAutoDeploy(parser):
       ))
 
 
-def AddAdvancedOptions(parser, required=False):
+def AddAdvancedOptions(parser, required=False, enable_large_body_size=False):
   """Adds the cloud armor advanced options arguments to the argparse."""
   parser.add_argument(
       '--json-parsing',
@@ -251,6 +247,15 @@ def AddAdvancedOptions(parser, required=False):
       required=required,
       help='The level of detail to display for WAF logging.')
 
+  if enable_large_body_size:
+    parser.add_argument(
+        '--request-body-inspection-size',
+        choices=['8KB', '16KB', '32KB', '48KB', '64KB'],
+        type=lambda x: x.upper(),
+        required=required,
+        help='Maximum request body inspection size.',
+    )
+
   parser.add_argument(
       '--user-ip-request-headers',
       type=arg_parsers.ArgList(),
@@ -259,20 +264,6 @@ def AddAdvancedOptions(parser, required=False):
       A comma-separated list of request header names to use for resolving the
       caller's user IP address.
       """)
-
-
-def AddDdosProtectionConfig(parser, required=False):
-  """Adds the cloud armor DDoS protection config arguments to the argparse."""
-  parser.add_argument(
-      '--network-ddos-protection',
-      choices=['STANDARD', 'ADVANCED'],
-      type=lambda x: x.upper(),
-      required=required,
-      help=(
-          'The DDoS protection level for network load balancing and instances '
-          'with external IPs'
-      ),
-  )
 
 
 def AddDdosProtectionConfigWithAdvancedPreview(parser, required=False):
@@ -299,6 +290,33 @@ def AddDdosProtectionConfigOld(parser, required=False):
       help=(
           'The DDoS protection level for network load balancing and instances '
           'with external IPs'
+      ),
+  )
+
+
+def AddNetworkDdosAdaptiveProtection(parser, required=False):
+  """Adds the Cloud Armor Network DDoS adaptive protection arguments."""
+  parser.add_argument(
+      '--network-ddos-adaptive-protection',
+      choices=['DISABLED', 'ENABLED', 'PREVIEW'],
+      type=lambda x: x.upper(),
+      required=required,
+      help=(
+          'The DDoS adaptive protection level for network load balancing and'
+          ' instances with external IPs'
+      ),
+  )
+
+
+def AddNetworkDdosImpactedBaselineThreshold(parser, required=False):
+  """Adds the Cloud Armor Network DDoS impacted baseline threshold argument."""
+  parser.add_argument(
+      '--network-ddos-impacted-baseline-threshold',
+      type=float,
+      required=required,
+      help=(
+          'Threshold below which rules with collateral damage below this'
+          ' value will be deployed'
       ),
   )
 

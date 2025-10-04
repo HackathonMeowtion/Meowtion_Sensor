@@ -447,7 +447,7 @@ class FileV1beta1(base_api.BaseApiClient):
         method_id='file.projects.locations.instances.snapshots.list',
         ordered_params=['parent'],
         path_params=['parent'],
-        query_params=['filter', 'orderBy', 'pageSize', 'pageToken'],
+        query_params=['filter', 'orderBy', 'pageSize', 'pageToken', 'returnPartialSuccess'],
         relative_path='v1beta1/{+parent}/snapshots',
         request_field='',
         request_type_name='FileProjectsLocationsInstancesSnapshotsListRequest',
@@ -627,8 +627,35 @@ class FileV1beta1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def PauseReplica(self, request, global_params=None):
+      r"""Pause the standby instance (replica). WARNING: This operation makes the standby instance's NFS filesystem writable. Any data written to the standby instance while paused will be lost when the replica is resumed or promoted.
+
+      Args:
+        request: (FileProjectsLocationsInstancesPauseReplicaRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('PauseReplica')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    PauseReplica.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}:pauseReplica',
+        http_method='POST',
+        method_id='file.projects.locations.instances.pauseReplica',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:pauseReplica',
+        request_field='pauseReplicaRequest',
+        request_type_name='FileProjectsLocationsInstancesPauseReplicaRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
     def PromoteReplica(self, request, global_params=None):
-      r"""Promote an standby instance (replica).
+      r"""Promote the standby instance (replica).
 
       Args:
         request: (FileProjectsLocationsInstancesPromoteReplicaRequest) input message
@@ -681,6 +708,33 @@ class FileV1beta1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def ResumeReplica(self, request, global_params=None):
+      r"""Resume the standby instance (replica). WARNING: Any data written to the standby instance while paused will be lost when the replica is resumed.
+
+      Args:
+        request: (FileProjectsLocationsInstancesResumeReplicaRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('ResumeReplica')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    ResumeReplica.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1beta1/projects/{projectsId}/locations/{locationsId}/instances/{instancesId}:resumeReplica',
+        http_method='POST',
+        method_id='file.projects.locations.instances.resumeReplica',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1beta1/{+name}:resumeReplica',
+        request_field='resumeReplicaRequest',
+        request_type_name='FileProjectsLocationsInstancesResumeReplicaRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
     def Revert(self, request, global_params=None):
       r"""Revert an existing instance's file system to a specified snapshot.
 
@@ -719,7 +773,7 @@ class FileV1beta1(base_api.BaseApiClient):
           }
 
     def Cancel(self, request, global_params=None):
-      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of 1, corresponding to `Code.CANCELLED`.
+      r"""Starts asynchronous cancellation on a long-running operation. The server makes a best effort to cancel the operation, but success is not guaranteed. If the server doesn't support this method, it returns `google.rpc.Code.UNIMPLEMENTED`. Clients can use Operations.GetOperation or other methods to check whether the cancellation succeeded or whether the operation completed despite cancellation. On successful cancellation, the operation is not deleted; instead, it becomes an operation with an Operation.error value with a google.rpc.Status.code of `1`, corresponding to `Code.CANCELLED`.
 
       Args:
         request: (FileProjectsLocationsOperationsCancelRequest) input message
@@ -882,7 +936,7 @@ class FileV1beta1(base_api.BaseApiClient):
         method_id='file.projects.locations.list',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['filter', 'includeUnrevealedLocations', 'pageSize', 'pageToken'],
+        query_params=['extraLocationTypes', 'filter', 'pageSize', 'pageToken'],
         relative_path='v1beta1/{+name}/locations',
         request_field='',
         request_type_name='FileProjectsLocationsListRequest',

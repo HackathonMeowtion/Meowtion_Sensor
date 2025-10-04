@@ -18,7 +18,7 @@ import enum
 
 
 BASE_URL = 'https://managedkafka.googleapis.com/v1/'
-DOCS_URL = 'https://cloud.google.com/managed-kafka'
+DOCS_URL = 'https://cloud.google.com/managed-service-for-apache-kafka/docs'
 
 
 class Collections(enum.Enum):
@@ -52,6 +52,17 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_LOCATIONS_CLUSTERS_ACLS = (
+      'projects.locations.clusters.acls',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/clusters/'
+              '{clustersId}/acls/{aclsId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS_LOCATIONS_CLUSTERS_CONSUMERGROUPS = (
       'projects.locations.clusters.consumerGroups',
       '{+name}',
@@ -74,6 +85,28 @@ class Collections(enum.Enum):
       ['name'],
       True
   )
+  PROJECTS_LOCATIONS_CONNECTCLUSTERS = (
+      'projects.locations.connectClusters',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/connectClusters/'
+              '{connectClustersId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_CONNECTCLUSTERS_CONNECTORS = (
+      'projects.locations.connectClusters.connectors',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/connectClusters/'
+              '{connectClustersId}/connectors/{connectorsId}',
+      },
+      ['name'],
+      True
+  )
   PROJECTS_LOCATIONS_OPERATIONS = (
       'projects.locations.operations',
       '{+name}',
@@ -81,6 +114,137 @@ class Collections(enum.Enum):
           '':
               'projects/{projectsId}/locations/{locationsId}/operations/'
               '{operationsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_SCHEMAREGISTRIES = (
+      'projects.locations.schemaRegistries',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'schemaRegistries/{schemaRegistriesId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_SCHEMAREGISTRIES_CONFIG = (
+      'projects.locations.schemaRegistries.config',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'schemaRegistries/{schemaRegistriesId}/config/{configId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_SCHEMAREGISTRIES_CONTEXTS = (
+      'projects.locations.schemaRegistries.contexts',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'schemaRegistries/{schemaRegistriesId}/contexts/{contextsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_SCHEMAREGISTRIES_CONTEXTS_CONFIG = (
+      'projects.locations.schemaRegistries.contexts.config',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'schemaRegistries/{schemaRegistriesId}/contexts/{contextsId}/'
+              'config/{configId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_SCHEMAREGISTRIES_CONTEXTS_MODE = (
+      'projects.locations.schemaRegistries.contexts.mode',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'schemaRegistries/{schemaRegistriesId}/contexts/{contextsId}/'
+              'mode/{modeId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_SCHEMAREGISTRIES_CONTEXTS_SCHEMAS = (
+      'projects.locations.schemaRegistries.contexts.schemas',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'schemaRegistries/{schemaRegistriesId}/contexts/{contextsId}/'
+              'schemas/{schemasId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_SCHEMAREGISTRIES_CONTEXTS_SUBJECTS = (
+      'projects.locations.schemaRegistries.contexts.subjects',
+      'projects/{projectsId}/locations/{locationsId}/schemaRegistries/'
+      '{schemaRegistriesId}/contexts/{contextsId}/subjects/{subjectsId}',
+      {},
+      ['projectsId', 'locationsId', 'schemaRegistriesId', 'contextsId', 'subjectsId'],
+      True
+  )
+  PROJECTS_LOCATIONS_SCHEMAREGISTRIES_CONTEXTS_SUBJECTS_VERSIONS = (
+      'projects.locations.schemaRegistries.contexts.subjects.versions',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'schemaRegistries/{schemaRegistriesId}/contexts/{contextsId}/'
+              'subjects/{subjectsId}/versions/{versionsId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_SCHEMAREGISTRIES_MODE = (
+      'projects.locations.schemaRegistries.mode',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'schemaRegistries/{schemaRegistriesId}/mode/{modeId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_SCHEMAREGISTRIES_SCHEMAS = (
+      'projects.locations.schemaRegistries.schemas',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'schemaRegistries/{schemaRegistriesId}/schemas/{schemasId}',
+      },
+      ['name'],
+      True
+  )
+  PROJECTS_LOCATIONS_SCHEMAREGISTRIES_SUBJECTS = (
+      'projects.locations.schemaRegistries.subjects',
+      'projects/{projectsId}/locations/{locationsId}/schemaRegistries/'
+      '{schemaRegistriesId}/subjects/{subjectsId}',
+      {},
+      ['projectsId', 'locationsId', 'schemaRegistriesId', 'subjectsId'],
+      True
+  )
+  PROJECTS_LOCATIONS_SCHEMAREGISTRIES_SUBJECTS_VERSIONS = (
+      'projects.locations.schemaRegistries.subjects.versions',
+      '{+name}',
+      {
+          '':
+              'projects/{projectsId}/locations/{locationsId}/'
+              'schemaRegistries/{schemaRegistriesId}/subjects/{subjectsId}/'
+              'versions/{versionsId}',
       },
       ['name'],
       True

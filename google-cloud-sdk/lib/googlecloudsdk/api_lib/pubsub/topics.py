@@ -19,10 +19,12 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from apitools.base.py import list_pager
+from googlecloudsdk.api_lib.pubsub import utils
 from googlecloudsdk.api_lib.util import apis
 from googlecloudsdk.command_lib.iam import iam_util
 from googlecloudsdk.core import exceptions
 
+CLEAR_MESSAGE_TRANSFORMS_VALUE = []
 
 class PublishOperationException(exceptions.Error):
   """Error when something went wrong with publish."""
@@ -38,6 +40,10 @@ class NoFieldsSpecifiedError(exceptions.Error):
 
 class InvalidSchemaSettingsException(exceptions.Error):
   """Error when the schema settings are invalid."""
+
+
+class ConflictingIngestionSettingsException(exceptions.Error):
+  """Error when the ingestion settings are invalid."""
 
 
 class _TopicUpdateSetting(object):
@@ -64,8 +70,9 @@ def ParseMessageEncoding(messages, message_encoding):
   elif enc == 'binary':
     return messages.SchemaSettings.EncodingValueValuesEnum.BINARY
   else:
-    raise InvalidSchemaSettingsException('Unknown message encoding. '
-                                         'Options are JSON or BINARY.')
+    raise InvalidSchemaSettingsException(
+        'Unknown message encoding. Options are JSON or BINARY.'
+    )
 
 
 class TopicsClient(object):
@@ -77,15 +84,45 @@ class TopicsClient(object):
     self._service = self.client.projects_topics
     self._subscriptions_service = self.client.projects_subscriptions
 
+  def _ParseIngestionPlatformLogsSettings(self, ingestion_log_severity):
+    if ingestion_log_severity:
+      return self.messages.PlatformLogsSettings(
+          severity=self.messages.PlatformLogsSettings.SeverityValueValuesEnum(
+              ingestion_log_severity
+          )
+      )
+    return None
+
   def _ParseIngestionDataSourceSettings(
       self,
       kinesis_ingestion_stream_arn=None,
       kinesis_ingestion_consumer_arn=None,
       kinesis_ingestion_role_arn=None,
       kinesis_ingestion_service_account=None,
+      cloud_storage_ingestion_bucket=None,
+      cloud_storage_ingestion_input_format=None,
+      cloud_storage_ingestion_text_delimiter=None,
+      cloud_storage_ingestion_minimum_object_create_time=None,
+      cloud_storage_ingestion_match_glob=None,
+      azure_event_hubs_ingestion_resource_group=None,
+      azure_event_hubs_ingestion_namespace=None,
+      azure_event_hubs_ingestion_event_hub=None,
+      azure_event_hubs_ingestion_client_id=None,
+      azure_event_hubs_ingestion_tenant_id=None,
+      azure_event_hubs_ingestion_subscription_id=None,
+      azure_event_hubs_ingestion_service_account=None,
+      aws_msk_ingestion_cluster_arn=None,
+      aws_msk_ingestion_topic=None,
+      aws_msk_ingestion_aws_role_arn=None,
+      aws_msk_ingestion_service_account=None,
+      confluent_cloud_ingestion_bootstrap_server=None,
+      confluent_cloud_ingestion_cluster_id=None,
+      confluent_cloud_ingestion_topic=None,
+      confluent_cloud_ingestion_identity_pool_id=None,
+      confluent_cloud_ingestion_service_account=None,
+      ingestion_log_severity=None,
   ):
-    """Returns an IngestionDataSourceSettings message from the provided args.
-    """
+    """Returns an IngestionDataSourceSettings message from the provided args."""
 
     # For each datasource type, check if all required flags are passed, and
     # conditionally construct the source and return the first datasource type
@@ -99,6 +136,35 @@ class TopicsClient(object):
         and (kinesis_ingestion_service_account is not None)
     )
 
+    is_cloud_storage = (cloud_storage_ingestion_bucket is not None) and (
+        cloud_storage_ingestion_input_format is not None
+    )
+
+    is_azure_event_hubs = (
+        (azure_event_hubs_ingestion_resource_group is not None)
+        and (azure_event_hubs_ingestion_namespace is not None)
+        and (azure_event_hubs_ingestion_event_hub is not None)
+        and (azure_event_hubs_ingestion_client_id is not None)
+        and (azure_event_hubs_ingestion_tenant_id is not None)
+        and (azure_event_hubs_ingestion_subscription_id is not None)
+        and (azure_event_hubs_ingestion_service_account is not None)
+    )
+
+    is_msk = (
+        (aws_msk_ingestion_cluster_arn is not None)
+        and (aws_msk_ingestion_topic is not None)
+        and (aws_msk_ingestion_aws_role_arn is not None)
+        and (aws_msk_ingestion_service_account is not None)
+    )
+
+    is_confluent_cloud = (
+        (confluent_cloud_ingestion_bootstrap_server is not None)
+        and (confluent_cloud_ingestion_cluster_id is not None)
+        and (confluent_cloud_ingestion_topic is not None)
+        and (confluent_cloud_ingestion_identity_pool_id is not None)
+        and (confluent_cloud_ingestion_service_account is not None)
+    )
+
     if is_kinesis:
       kinesis_source = self.messages.AwsKinesis(
           streamArn=kinesis_ingestion_stream_arn,
@@ -107,8 +173,83 @@ class TopicsClient(object):
           gcpServiceAccount=kinesis_ingestion_service_account,
       )
       return self.messages.IngestionDataSourceSettings(
-          awsKinesis=kinesis_source
+          awsKinesis=kinesis_source,
+          platformLogsSettings=self._ParseIngestionPlatformLogsSettings(
+              ingestion_log_severity
+          ),
       )
+    elif is_cloud_storage:
+      cloud_storage_source = self.messages.CloudStorage(
+          bucket=cloud_storage_ingestion_bucket,
+          minimumObjectCreateTime=cloud_storage_ingestion_minimum_object_create_time,
+          matchGlob=cloud_storage_ingestion_match_glob,
+      )
+      if cloud_storage_ingestion_input_format == 'text':
+        cloud_storage_source.textFormat = self.messages.TextFormat(
+            delimiter=cloud_storage_ingestion_text_delimiter
+        )
+      elif cloud_storage_ingestion_input_format == 'avro':
+        cloud_storage_source.avroFormat = self.messages.AvroFormat()
+      elif cloud_storage_ingestion_input_format == 'pubsub_avro':
+        cloud_storage_source.pubsubAvroFormat = self.messages.PubSubAvroFormat()
+
+      return self.messages.IngestionDataSourceSettings(
+          cloudStorage=cloud_storage_source,
+          platformLogsSettings=self._ParseIngestionPlatformLogsSettings(
+              ingestion_log_severity
+          ),
+      )
+    elif is_azure_event_hubs:
+      azure_event_hubs_source = self.messages.AzureEventHubs(
+          resourceGroup=azure_event_hubs_ingestion_resource_group,
+          namespace=azure_event_hubs_ingestion_namespace,
+          eventHub=azure_event_hubs_ingestion_event_hub,
+          clientId=azure_event_hubs_ingestion_client_id,
+          tenantId=azure_event_hubs_ingestion_tenant_id,
+          subscriptionId=azure_event_hubs_ingestion_subscription_id,
+          gcpServiceAccount=azure_event_hubs_ingestion_service_account,
+      )
+
+      return self.messages.IngestionDataSourceSettings(
+          azureEventHubs=azure_event_hubs_source,
+          platformLogsSettings=self._ParseIngestionPlatformLogsSettings(
+              ingestion_log_severity
+          ),
+      )
+    elif is_msk:
+      msk_source = self.messages.AwsMsk(
+          clusterArn=aws_msk_ingestion_cluster_arn,
+          topic=aws_msk_ingestion_topic,
+          awsRoleArn=aws_msk_ingestion_aws_role_arn,
+          gcpServiceAccount=aws_msk_ingestion_service_account,
+      )
+
+      return self.messages.IngestionDataSourceSettings(
+          awsMsk=msk_source,
+          platformLogsSettings=self._ParseIngestionPlatformLogsSettings(
+              ingestion_log_severity
+          ),
+      )
+    elif is_confluent_cloud:
+      confluent_cloud_source = self.messages.ConfluentCloud(
+          bootstrapServer=confluent_cloud_ingestion_bootstrap_server,
+          clusterId=confluent_cloud_ingestion_cluster_id,
+          topic=confluent_cloud_ingestion_topic,
+          identityPoolId=confluent_cloud_ingestion_identity_pool_id,
+          gcpServiceAccount=confluent_cloud_ingestion_service_account,
+      )
+
+      return self.messages.IngestionDataSourceSettings(
+          confluentCloud=confluent_cloud_source,
+          platformLogsSettings=self._ParseIngestionPlatformLogsSettings(
+              ingestion_log_severity
+          ),
+      )
+    elif ingestion_log_severity:
+      raise ConflictingIngestionSettingsException(
+          'Must set ingestion settings with log severity.'
+      )
+
     return None
 
   def Create(
@@ -126,7 +267,32 @@ class TopicsClient(object):
       kinesis_ingestion_stream_arn=None,
       kinesis_ingestion_consumer_arn=None,
       kinesis_ingestion_role_arn=None,
-      kinesis_ingestion_service_account=None
+      kinesis_ingestion_service_account=None,
+      cloud_storage_ingestion_bucket=None,
+      cloud_storage_ingestion_input_format=None,
+      cloud_storage_ingestion_text_delimiter=None,
+      cloud_storage_ingestion_minimum_object_create_time=None,
+      cloud_storage_ingestion_match_glob=None,
+      azure_event_hubs_ingestion_resource_group=None,
+      azure_event_hubs_ingestion_namespace=None,
+      azure_event_hubs_ingestion_event_hub=None,
+      azure_event_hubs_ingestion_client_id=None,
+      azure_event_hubs_ingestion_tenant_id=None,
+      azure_event_hubs_ingestion_subscription_id=None,
+      azure_event_hubs_ingestion_service_account=None,
+      aws_msk_ingestion_cluster_arn=None,
+      aws_msk_ingestion_topic=None,
+      aws_msk_ingestion_aws_role_arn=None,
+      aws_msk_ingestion_service_account=None,
+      confluent_cloud_ingestion_bootstrap_server=None,
+      confluent_cloud_ingestion_cluster_id=None,
+      confluent_cloud_ingestion_topic=None,
+      confluent_cloud_ingestion_identity_pool_id=None,
+      confluent_cloud_ingestion_service_account=None,
+      ingestion_log_severity=None,
+      message_transforms_file=None,
+      tags=None,
+      enable_vertex_ai_smt=False,
   ):
     """Creates a Topic.
 
@@ -156,6 +322,58 @@ class TopicsClient(object):
         Identity authentication with Kinesis.
       kinesis_ingestion_service_account (str): The GCP service account to be
         used for Federated Identity authentication with Kinesis
+      cloud_storage_ingestion_bucket (str): The Cloud Storage bucket to ingest
+        data from.
+      cloud_storage_ingestion_input_format (str): the format of the data in the
+        Cloud Storage bucket ('text', 'avro', or 'pubsub_avro').
+      cloud_storage_ingestion_text_delimiter (optional[str]): delimiter to use
+        with text format when partioning the object.
+      cloud_storage_ingestion_minimum_object_create_time (optional[str]): only
+        Cloud Storage objects with a larger or equal creation timestamp will be
+        ingested.
+      cloud_storage_ingestion_match_glob (optional[str]): glob pattern used to
+        match Cloud Storage objects that will be ingested. If unset, all objects
+        will be ingested.
+      azure_event_hubs_ingestion_resource_group (str): The name of the resource
+        group within an Azure subscription.
+      azure_event_hubs_ingestion_namespace (str): The name of the Azure Event
+        Hubs namespace.
+      azure_event_hubs_ingestion_event_hub (str): The name of the Azure event
+        hub.
+      azure_event_hubs_ingestion_client_id (str): The client id of the Azure
+        Event Hubs application used to authenticate Pub/Sub.
+      azure_event_hubs_ingestion_tenant_id (str): The tenant id of the Azure
+        Event Hubs application used to authenticate Pub/Sub.
+      azure_event_hubs_ingestion_subscription_id (str): The id of the Azure
+        Event Hubs subscription.
+      azure_event_hubs_ingestion_service_account (str): The GCP service account
+        to be used for Federated Identity authentication with Azure Event Hubs.
+      aws_msk_ingestion_cluster_arn (str): The ARN that uniquely identifies the
+        MSK cluster.
+      aws_msk_ingestion_topic (str): The name of the MSK topic that Pub/Sub will
+        import from.
+      aws_msk_ingestion_aws_role_arn (str): AWS role ARN to be used for
+        Federated Identity authentication with MSK.
+      aws_msk_ingestion_service_account (str): The GCP service account to be
+        used for Federated Identity authentication with MSK.
+      confluent_cloud_ingestion_bootstrap_server (str): The address of the
+        Confluent Cloud bootstrap server. The format is url:port.
+      confluent_cloud_ingestion_cluster_id (str): The id of the Confluent Cloud
+        cluster.
+      confluent_cloud_ingestion_topic (str): The name of the Confluent Cloud
+        topic that Pub/Sub will import from.
+      confluent_cloud_ingestion_identity_pool_id (str): The id of the identity
+        pool to be used for Federated Identity authentication with Confluent
+        Cloud.
+      confluent_cloud_ingestion_service_account (str): The GCP service account
+        to be used for Federated Identity authentication with Confluent Cloud.
+      ingestion_log_severity (optional[str]): The log severity to use for
+        ingestion.
+      message_transforms_file (str): The file path to the JSON or YAML file
+        containing the message transforms.
+      tags (TagsValue): The tag Keys/Values to be bound to the topic.
+      enable_vertex_ai_smt (bool): Whether or not to enable Vertex AI message
+        transforms.
 
     Returns:
       Topic: The created topic.
@@ -169,7 +387,8 @@ class TopicsClient(object):
     topic = self.messages.Topic(
         name=topic_ref.RelativeName(),
         labels=labels,
-        messageRetentionDuration=message_retention_duration)
+        messageRetentionDuration=message_retention_duration,
+    )
     if kms_key:
       topic.kmsKeyName = kms_key
     if message_storage_policy_allowed_regions:
@@ -194,7 +413,47 @@ class TopicsClient(object):
         kinesis_ingestion_consumer_arn=kinesis_ingestion_consumer_arn,
         kinesis_ingestion_role_arn=kinesis_ingestion_role_arn,
         kinesis_ingestion_service_account=kinesis_ingestion_service_account,
+        cloud_storage_ingestion_bucket=cloud_storage_ingestion_bucket,
+        cloud_storage_ingestion_input_format=cloud_storage_ingestion_input_format,
+        cloud_storage_ingestion_text_delimiter=cloud_storage_ingestion_text_delimiter,
+        cloud_storage_ingestion_minimum_object_create_time=cloud_storage_ingestion_minimum_object_create_time,
+        cloud_storage_ingestion_match_glob=cloud_storage_ingestion_match_glob,
+        azure_event_hubs_ingestion_resource_group=azure_event_hubs_ingestion_resource_group,
+        azure_event_hubs_ingestion_namespace=azure_event_hubs_ingestion_namespace,
+        azure_event_hubs_ingestion_event_hub=azure_event_hubs_ingestion_event_hub,
+        azure_event_hubs_ingestion_client_id=azure_event_hubs_ingestion_client_id,
+        azure_event_hubs_ingestion_tenant_id=azure_event_hubs_ingestion_tenant_id,
+        azure_event_hubs_ingestion_subscription_id=azure_event_hubs_ingestion_subscription_id,
+        azure_event_hubs_ingestion_service_account=azure_event_hubs_ingestion_service_account,
+        aws_msk_ingestion_cluster_arn=aws_msk_ingestion_cluster_arn,
+        aws_msk_ingestion_topic=aws_msk_ingestion_topic,
+        aws_msk_ingestion_aws_role_arn=aws_msk_ingestion_aws_role_arn,
+        aws_msk_ingestion_service_account=aws_msk_ingestion_service_account,
+        confluent_cloud_ingestion_bootstrap_server=confluent_cloud_ingestion_bootstrap_server,
+        confluent_cloud_ingestion_cluster_id=confluent_cloud_ingestion_cluster_id,
+        confluent_cloud_ingestion_topic=confluent_cloud_ingestion_topic,
+        confluent_cloud_ingestion_identity_pool_id=confluent_cloud_ingestion_identity_pool_id,
+        confluent_cloud_ingestion_service_account=confluent_cloud_ingestion_service_account,
+        ingestion_log_severity=ingestion_log_severity,
     )
+    if message_transforms_file:
+      try:
+        topic.messageTransforms = utils.GetMessageTransformsFromFile(
+            self.messages.MessageTransform,
+            message_transforms_file,
+            enable_vertex_ai_smt,
+        )
+      except (
+          utils.MessageTransformsInvalidFormatError,
+          utils.MessageTransformsEmptyFileError,
+          utils.MessageTransformsMissingFileError,
+      ) as e:
+        e.args = (utils.GetErrorMessage(e),)
+        raise
+
+    if tags:
+      topic.tags = tags
+
     return self._service.Create(topic)
 
   def Get(self, topic_ref):
@@ -207,7 +466,8 @@ class TopicsClient(object):
       Topic: The topic.
     """
     get_req = self.messages.PubsubProjectsTopicsGetRequest(
-        topic=topic_ref.RelativeName())
+        topic=topic_ref.RelativeName()
+    )
     return self._service.Get(get_req)
 
   def Delete(self, topic_ref):
@@ -220,7 +480,8 @@ class TopicsClient(object):
       Empty: An empty response message.
     """
     delete_req = self.messages.PubsubProjectsTopicsDeleteRequest(
-        topic=topic_ref.RelativeName())
+        topic=topic_ref.RelativeName()
+    )
     return self._service.Delete(delete_req)
 
   def DetachSubscription(self, subscription_ref):
@@ -234,7 +495,8 @@ class TopicsClient(object):
       Empty: An empty response message.
     """
     detach_req = self.messages.PubsubProjectsSubscriptionsDetachRequest(
-        subscription=subscription_ref.RelativeName())
+        subscription=subscription_ref.RelativeName()
+    )
     return self._subscriptions_service.Detach(detach_req)
 
   def List(self, project_ref, page_size=100):
@@ -249,13 +511,15 @@ class TopicsClient(object):
       A generator of Topics in the Project.
     """
     list_req = self.messages.PubsubProjectsTopicsListRequest(
-        project=project_ref.RelativeName(), pageSize=page_size)
+        project=project_ref.RelativeName(), pageSize=page_size
+    )
     return list_pager.YieldFromList(
         self._service,
         list_req,
         batch_size=page_size,
         field='topics',
-        batch_size_attribute='pageSize')
+        batch_size_attribute='pageSize',
+    )
 
   def ListSnapshots(self, topic_ref, page_size=100):
     """Lists Snapshots for a given topic.
@@ -269,14 +533,16 @@ class TopicsClient(object):
       A generator of Snapshots for the Topic.
     """
     list_req = self.messages.PubsubProjectsTopicsSnapshotsListRequest(
-        topic=topic_ref.RelativeName(), pageSize=page_size)
+        topic=topic_ref.RelativeName(), pageSize=page_size
+    )
     list_snaps_service = self.client.projects_topics_snapshots
     return list_pager.YieldFromList(
         list_snaps_service,
         list_req,
         batch_size=page_size,
         field='snapshots',
-        batch_size_attribute='pageSize')
+        batch_size_attribute='pageSize',
+    )
 
   def ListSubscriptions(self, topic_ref, page_size=100):
     """Lists Subscriptions for a given topic.
@@ -291,20 +557,20 @@ class TopicsClient(object):
       A generator of Subscriptions for the Topic..
     """
     list_req = self.messages.PubsubProjectsTopicsSubscriptionsListRequest(
-        topic=topic_ref.RelativeName(), pageSize=page_size)
+        topic=topic_ref.RelativeName(), pageSize=page_size
+    )
     list_subs_service = self.client.projects_topics_subscriptions
     return list_pager.YieldFromList(
         list_subs_service,
         list_req,
         batch_size=page_size,
         field='subscriptions',
-        batch_size_attribute='pageSize')
+        batch_size_attribute='pageSize',
+    )
 
-  def Publish(self,
-              topic_ref,
-              message_body=None,
-              attributes=None,
-              ordering_key=None):
+  def Publish(
+      self, topic_ref, message_body=None, attributes=None, ordering_key=None
+  ):
     """Publishes a message to the given topic.
 
     Args:
@@ -325,20 +591,25 @@ class TopicsClient(object):
     if not message_body and not attributes:
       raise EmptyMessageException(
           'You cannot send an empty message. You must specify either a '
-          'MESSAGE, one or more ATTRIBUTE, or both.')
+          'MESSAGE, one or more ATTRIBUTE, or both.'
+      )
     message = self.messages.PubsubMessage(
         data=message_body,
         attributes=self.messages.PubsubMessage.AttributesValue(
-            additionalProperties=attributes),
-        orderingKey=ordering_key)
+            additionalProperties=attributes
+        ),
+        orderingKey=ordering_key,
+    )
     publish_req = self.messages.PubsubProjectsTopicsPublishRequest(
         publishRequest=self.messages.PublishRequest(messages=[message]),
-        topic=topic_ref.RelativeName())
+        topic=topic_ref.RelativeName(),
+    )
     result = self._service.Publish(publish_req)
     if not result.messageIds:
       # If we got a result with empty messageIds, then we've got a problem.
       raise PublishOperationException(
-          'Publish operation failed with Unknown error.')
+          'Publish operation failed with Unknown error.'
+      )
     return result
 
   def SetIamPolicy(self, topic_ref, policy):
@@ -353,7 +624,8 @@ class TopicsClient(object):
     """
     request = self.messages.PubsubProjectsTopicsSetIamPolicyRequest(
         resource=topic_ref.RelativeName(),
-        setIamPolicyRequest=self.messages.SetIamPolicyRequest(policy=policy))
+        setIamPolicyRequest=self.messages.SetIamPolicyRequest(policy=policy),
+    )
     return self._service.SetIamPolicy(request)
 
   def GetIamPolicy(self, topic_ref):
@@ -367,7 +639,8 @@ class TopicsClient(object):
       Policy: the policy for the Topic.
     """
     request = self.messages.PubsubProjectsTopicsGetIamPolicyRequest(
-        resource=topic_ref.RelativeName())
+        resource=topic_ref.RelativeName()
+    )
     return self._service.GetIamPolicy(request)
 
   def AddIamPolicyBinding(self, topic_ref, member, role):
@@ -426,6 +699,31 @@ class TopicsClient(object):
       kinesis_ingestion_consumer_arn=None,
       kinesis_ingestion_role_arn=None,
       kinesis_ingestion_service_account=None,
+      cloud_storage_ingestion_bucket=None,
+      cloud_storage_ingestion_input_format=None,
+      cloud_storage_ingestion_text_delimiter=None,
+      cloud_storage_ingestion_minimum_object_create_time=None,
+      cloud_storage_ingestion_match_glob=None,
+      azure_event_hubs_ingestion_resource_group=None,
+      azure_event_hubs_ingestion_namespace=None,
+      azure_event_hubs_ingestion_event_hub=None,
+      azure_event_hubs_ingestion_client_id=None,
+      azure_event_hubs_ingestion_tenant_id=None,
+      azure_event_hubs_ingestion_subscription_id=None,
+      azure_event_hubs_ingestion_service_account=None,
+      aws_msk_ingestion_cluster_arn=None,
+      aws_msk_ingestion_topic=None,
+      aws_msk_ingestion_aws_role_arn=None,
+      aws_msk_ingestion_service_account=None,
+      confluent_cloud_ingestion_bootstrap_server=None,
+      confluent_cloud_ingestion_cluster_id=None,
+      confluent_cloud_ingestion_topic=None,
+      confluent_cloud_ingestion_identity_pool_id=None,
+      confluent_cloud_ingestion_service_account=None,
+      ingestion_log_severity=None,
+      message_transforms_file=None,
+      clear_message_transforms=False,
+      enable_vertex_ai_smt=False,
   ):
     """Updates a Topic.
 
@@ -455,14 +753,67 @@ class TopicsClient(object):
         topic.
       clear_ingestion_data_source_settings (bool): If set, clear
         IngestionDataSourceSettings from the topic.
-      kinesis_ingestion_stream_arn (str): The Kinesis data stream ARN to
-        ingest data from.
+      kinesis_ingestion_stream_arn (str): The Kinesis data stream ARN to ingest
+        data from.
       kinesis_ingestion_consumer_arn (str): The Kinesis data streams consumer
         ARN to use for ingestion.
       kinesis_ingestion_role_arn (str): AWS role ARN to be used for Federated
         Identity authentication with Kinesis.
       kinesis_ingestion_service_account (str): The GCP service account to be
         used for Federated Identity authentication with Kinesis
+      cloud_storage_ingestion_bucket (str): The Cloud Storage bucket to ingest
+        data from.
+      cloud_storage_ingestion_input_format (str): the format of the data in the
+        Cloud Storage bucket ('text', 'avro', or 'pubsub_avro').
+      cloud_storage_ingestion_text_delimiter (optional[str]): delimiter to use
+        with text format when partioning the object.
+      cloud_storage_ingestion_minimum_object_create_time (optional[str]): only
+        Cloud Storage objects with a larger or equal creation timestamp will be
+        ingested.
+      cloud_storage_ingestion_match_glob (optional[str]): glob pattern used to
+        match Cloud Storage objects that will be ingested. If unset, all objects
+        will be ingested.
+      azure_event_hubs_ingestion_resource_group (str): The name of the resource
+        group within an Azure subscription.
+      azure_event_hubs_ingestion_namespace (str): The name of the Azure Event
+        Hubs namespace.
+      azure_event_hubs_ingestion_event_hub (str): The name of the Azure event
+        hub.
+      azure_event_hubs_ingestion_client_id (str): The client id of the Azure
+        Event Hubs application used to authenticate Pub/Sub.
+      azure_event_hubs_ingestion_tenant_id (str): The tenant id of the Azure
+        Event Hubs application used to authenticate Pub/Sub.
+      azure_event_hubs_ingestion_subscription_id (str): The id of the Azure
+        Event Hubs subscription.
+      azure_event_hubs_ingestion_service_account (str): The GCP service account
+        to be used for Federated Identity authentication with Azure Event Hubs.
+      aws_msk_ingestion_cluster_arn (str): The ARN that uniquely identifies the
+        MSK cluster.
+      aws_msk_ingestion_topic (str): The name of the MSK topic that Pub/Sub will
+        import from.
+      aws_msk_ingestion_aws_role_arn (str): AWS role ARN to be used for
+        Federated Identity authentication with MSK.
+      aws_msk_ingestion_service_account (str): The GCP service account to be
+        used for Federated Identity authentication with MSK.
+      confluent_cloud_ingestion_bootstrap_server (str): The address of the
+        Confluent Cloud bootstrap server. The format is url:port.
+      confluent_cloud_ingestion_cluster_id (str): The id of the Confluent Cloud
+        cluster.
+      confluent_cloud_ingestion_topic (str): The name of the Confluent Cloud
+        topic that Pub/Sub will import from.
+      confluent_cloud_ingestion_identity_pool_id (str): The id of the identity
+        pool to be used for Federated Identity authentication with Confluent
+        Cloud.
+      confluent_cloud_ingestion_service_account (str): The GCP service account
+        to be used for Federated Identity authentication with Confluent Cloud.
+      ingestion_log_severity (optional[str]): The log severity to use for
+        ingestion.
+      message_transforms_file (str): The file path to the JSON or YAML file
+        containing the message transforms.
+      clear_message_transforms (bool): If set, clears all message transforms
+        from the topic.
+      enable_vertex_ai_smt (bool): If set, enables Vertex AI message
+        transforms.
 
     Returns:
       Topic: The updated topic.
@@ -483,11 +834,14 @@ class TopicsClient(object):
 
     if message_retention_duration:
       update_settings.append(
-          _TopicUpdateSetting('messageRetentionDuration',
-                              message_retention_duration))
+          _TopicUpdateSetting(
+              'messageRetentionDuration', message_retention_duration
+          )
+      )
     if clear_message_retention_duration:
       update_settings.append(
-          _TopicUpdateSetting('messageRetentionDuration', None))
+          _TopicUpdateSetting('messageRetentionDuration', None)
+      )
 
     if recompute_message_storage_policy:
       update_settings.append(_TopicUpdateSetting('messageStoragePolicy', None))
@@ -529,11 +883,60 @@ class TopicsClient(object):
           kinesis_ingestion_consumer_arn=kinesis_ingestion_consumer_arn,
           kinesis_ingestion_role_arn=kinesis_ingestion_role_arn,
           kinesis_ingestion_service_account=kinesis_ingestion_service_account,
+          cloud_storage_ingestion_bucket=cloud_storage_ingestion_bucket,
+          cloud_storage_ingestion_input_format=cloud_storage_ingestion_input_format,
+          cloud_storage_ingestion_text_delimiter=cloud_storage_ingestion_text_delimiter,
+          cloud_storage_ingestion_minimum_object_create_time=cloud_storage_ingestion_minimum_object_create_time,
+          cloud_storage_ingestion_match_glob=cloud_storage_ingestion_match_glob,
+          azure_event_hubs_ingestion_resource_group=azure_event_hubs_ingestion_resource_group,
+          azure_event_hubs_ingestion_namespace=azure_event_hubs_ingestion_namespace,
+          azure_event_hubs_ingestion_event_hub=azure_event_hubs_ingestion_event_hub,
+          azure_event_hubs_ingestion_client_id=azure_event_hubs_ingestion_client_id,
+          azure_event_hubs_ingestion_tenant_id=azure_event_hubs_ingestion_tenant_id,
+          azure_event_hubs_ingestion_subscription_id=azure_event_hubs_ingestion_subscription_id,
+          azure_event_hubs_ingestion_service_account=azure_event_hubs_ingestion_service_account,
+          aws_msk_ingestion_cluster_arn=aws_msk_ingestion_cluster_arn,
+          aws_msk_ingestion_topic=aws_msk_ingestion_topic,
+          aws_msk_ingestion_aws_role_arn=aws_msk_ingestion_aws_role_arn,
+          aws_msk_ingestion_service_account=aws_msk_ingestion_service_account,
+          confluent_cloud_ingestion_bootstrap_server=confluent_cloud_ingestion_bootstrap_server,
+          confluent_cloud_ingestion_cluster_id=confluent_cloud_ingestion_cluster_id,
+          confluent_cloud_ingestion_topic=confluent_cloud_ingestion_topic,
+          confluent_cloud_ingestion_identity_pool_id=confluent_cloud_ingestion_identity_pool_id,
+          confluent_cloud_ingestion_service_account=confluent_cloud_ingestion_service_account,
+          ingestion_log_severity=ingestion_log_severity,
       )
       if new_settings is not None:
         update_settings.append(
             _TopicUpdateSetting('ingestionDataSourceSettings', new_settings)
         )
+
+    if message_transforms_file:
+      try:
+        update_settings.append(
+            _TopicUpdateSetting(
+                'messageTransforms',
+                utils.GetMessageTransformsFromFile(
+                    self.messages.MessageTransform,
+                    message_transforms_file,
+                    enable_vertex_ai_smt=enable_vertex_ai_smt,
+                ),
+            )
+        )
+      except (
+          utils.MessageTransformsInvalidFormatError,
+          utils.MessageTransformsEmptyFileError,
+          utils.MessageTransformsMissingFileError,
+      ) as e:
+        e.args = (utils.GetErrorMessage(e),)
+        raise
+
+    if clear_message_transforms:
+      update_settings.append(
+          _TopicUpdateSetting(
+              'messageTransforms', CLEAR_MESSAGE_TRANSFORMS_VALUE
+          )
+      )
 
     topic = self.messages.Topic(name=topic_ref.RelativeName())
 
@@ -546,7 +949,9 @@ class TopicsClient(object):
 
     patch_req = self.messages.PubsubProjectsTopicsPatchRequest(
         updateTopicRequest=self.messages.UpdateTopicRequest(
-            topic=topic, updateMask=','.join(update_mask)),
-        name=topic_ref.RelativeName())
+            topic=topic, updateMask=','.join(update_mask)
+        ),
+        name=topic_ref.RelativeName(),
+    )
 
     return self._service.Patch(patch_req)

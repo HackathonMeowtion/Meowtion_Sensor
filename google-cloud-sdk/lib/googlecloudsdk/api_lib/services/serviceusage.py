@@ -16,6 +16,7 @@
 import collections
 import copy
 import enum
+import json
 import sys
 from typing import List
 
@@ -23,6 +24,7 @@ from apitools.base.py import encoding
 from apitools.base.py import exceptions as apitools_exceptions
 from apitools.base.py import list_pager
 from googlecloudsdk.api_lib.services import exceptions
+from googlecloudsdk.api_lib.services import services_util
 from googlecloudsdk.api_lib.util import apis_internal
 from googlecloudsdk.api_lib.util import http_retry
 from googlecloudsdk.core import log
@@ -40,6 +42,7 @@ _DEPENDENCY_GROUP = '/groups/dependencies'
 _REVERSE_CLOSURE = '/reverseClosure'
 _CONSUMER_SERVICE_RESOURCE = '%s/services/%s'
 _CONSUMER_POLICY_DEFAULT = '/consumerPolicies/%s'
+_MCP_POLICY_DEFAULT = '/mcpPolicies/%s'
 _EFFECTIVE_POLICY = '/effectivePolicy'
 _GOOGLE_CATEGORY_RESOURCE = 'categories/google'
 _LIMIT_OVERRIDE_RESOURCE = '%s/consumerOverrides/%s'
@@ -48,6 +51,7 @@ _V1_VERSION = 'v1'
 _V1BETA1_VERSION = 'v1beta1'
 _V1ALPHA_VERSION = 'v1alpha'
 _V2ALPHA_VERSION = 'v2alpha'
+_V2BETA_VERSION = 'v2beta'
 _TOO_MANY_REQUESTS = 429
 
 # Map of services which should be protected from being disabled by
@@ -60,6 +64,7 @@ _PROTECTED_SERVICES = {
 
 
 class ContainerType(enum.Enum):
+  """Return the container type."""
   PROJECT_SERVICE_RESOURCE = 1
   FOLDER_SERVICE_RESOURCE = 2
   ORG_SERVICE_RESOURCE = 3
@@ -70,7 +75,7 @@ def GetProtectedServiceWarning(service_name):
   return _PROTECTED_SERVICES.get(service_name)
 
 
-def GetConsumerPolicyV2Alpha(policy_name):
+def GetConsumerPolicyV2Beta(policy_name):
   """Make API call to get a consumer policy.
 
   Args:
@@ -84,9 +89,9 @@ def GetConsumerPolicyV2Alpha(policy_name):
     apitools_exceptions.HttpError: Another miscellaneous error with the service.
 
   Returns:
-    The consumer policy
+    message.GoogleApiServiceusageV2betaConsumerPolicy: The consumer policy
   """
-  client = _GetClientInstance('v2alpha')
+  client = _GetClientInstance(version=_V2BETA_VERSION)
   messages = client.MESSAGES_MODULE
 
   request = messages.ServiceusageConsumerPoliciesGetRequest(name=policy_name)
@@ -97,9 +102,75 @@ def GetConsumerPolicyV2Alpha(policy_name):
       apitools_exceptions.HttpForbiddenError,
       apitools_exceptions.HttpNotFoundError,
   ) as e:
-    exceptions.ReraiseError(
-        e, exceptions.GetConsumerPolicyPermissionDeniedException
-    )
+    exceptions.ReraiseError(e, exceptions.GetConsumerPolicyException)
+
+
+def GetMcpPolicy(policy_name):
+  """Make API call to get a MCP policy.
+
+  Args:
+    policy_name: The name of a MCP policy. Currently supported format
+      '{resource_type}/{resource_name}/mcpPolicies/default'. For example,
+      'projects/100/mcpPolicies/default'.
+
+  Raises:
+    exceptions.GetMcpPolicyException: when getting a
+      MCP policy fails.
+    apitools_exceptions.HttpError: Another miscellaneous error with the service.
+
+  Returns:
+    The MCP policy
+  """
+  client = _GetClientInstance(_V2BETA_VERSION)
+  messages = client.MESSAGES_MODULE
+
+  request = messages.ServiceusageMcpPoliciesGetRequest(name=policy_name)
+
+  try:
+    return client.mcpPolicies.Get(request)
+  except (
+      apitools_exceptions.HttpForbiddenError,
+      apitools_exceptions.HttpNotFoundError,
+  ) as e:
+    exceptions.ReraiseError(e, exceptions.GetMcpPolicyException)
+
+
+def TestMcpEnabled(name: str, service: str):
+  """Make API call to test MCP enabled.
+
+  Args:
+    name: Parent resource to test a value against the result of merging MCP
+      policies in the resource hierarchy. Format: "projects/{PROJECT_ID}" (e.g.,
+      "projects/foo-bar"), "projects/{PROJECT_NUMBER}" (e.g.,
+      "projects/12345678"), "folders/{FOLDER_NUMBER}" (e.g., "folders/1234567")
+      , "organizations/{ORGANIZATION_NUMBER}" (e.g., "organizations/123456").
+    service: Service name to check if the targeted resource can use this service
+      for MCP. Current supported value: services/{SERVICE_NAME} (format:
+      "services/{service}").
+
+  Raises:
+    exceptions.TestMcpEnabledException: when testing value for a
+      service and resource.
+    apitools_exceptions.HttpError: Another miscellaneous error with the service.
+
+  Returns:
+    Message.State: The state of the service.
+  """
+  client = _GetClientInstance(_V2BETA_VERSION)
+  messages = client.MESSAGES_MODULE
+
+  request = messages.ServiceusageTestMcpEnabledRequest(
+      name=name,
+      testMcpEnabledRequest=messages.TestMcpEnabledRequest(serviceName=service),
+  )
+
+  try:
+    return client.v2beta.TestMcpEnabled(request)
+  except (
+      apitools_exceptions.HttpForbiddenError,
+      apitools_exceptions.HttpNotFoundError,
+  ) as e:
+    exceptions.ReraiseError(e, exceptions.TestMcpEnabledException)
 
 
 def TestEnabled(name: str, service: str):
@@ -118,9 +189,9 @@ def TestEnabled(name: str, service: str):
     apitools_exceptions.HttpError: Another miscellaneous error with the service.
 
   Returns:
-    State of the service.
+    Message.State: The state of the service.
   """
-  client = _GetClientInstance('v2alpha')
+  client = _GetClientInstance(_V2BETA_VERSION)
   messages = client.MESSAGES_MODULE
 
   request = messages.ServiceusageTestEnabledRequest(
@@ -129,15 +200,15 @@ def TestEnabled(name: str, service: str):
   )
 
   try:
-    return client.v2alpha.TestEnabled(request)
+    return client.v2beta.TestEnabled(request)
   except (
       apitools_exceptions.HttpForbiddenError,
       apitools_exceptions.HttpNotFoundError,
   ) as e:
-    exceptions.ReraiseError(e, exceptions.TestEnabledPermissionDeniedException)
+    exceptions.ReraiseError(e, exceptions.TestEnabledException)
 
 
-def GetEffectivePolicyV2Alpha(name: str, view: str = 'BASIC'):
+def GetEffectivePolicyV2Beta(name: str, view: str = 'BASIC'):
   """Make API call to get a effective policy.
 
   Args:
@@ -147,14 +218,14 @@ def GetEffectivePolicyV2Alpha(name: str, view: str = 'BASIC'):
     view: The view of the effective policy to use. The default view is 'BASIC'.
 
   Raises:
-    exceptions.GetEffectiverPolicyPermissionDeniedException: when getting a
+    exceptions.GetEffectivePolicyException: when getting a
       effective policy fails.
     apitools_exceptions.HttpError: Another miscellaneous error with the service.
 
   Returns:
-    The Effective Policy
+    message.EffectivePolicy: The effective policy
   """
-  client = _GetClientInstance('v2alpha')
+  client = _GetClientInstance(version=_V2BETA_VERSION)
   messages = client.MESSAGES_MODULE
   if view == 'BASIC':
     view_type = (
@@ -170,14 +241,54 @@ def GetEffectivePolicyV2Alpha(name: str, view: str = 'BASIC'):
   )
 
   try:
-    return client.v2alpha.GetEffectivePolicy(request)
+    return client.v2beta.GetEffectivePolicy(request)
   except (
       apitools_exceptions.HttpForbiddenError,
       apitools_exceptions.HttpNotFoundError,
   ) as e:
-    exceptions.ReraiseError(
-        e, exceptions.GetEffectiverPolicyPermissionDeniedException
+    exceptions.ReraiseError(e, exceptions.GetEffectivePolicyException)
+
+
+def GetEffectiveMcpPolicy(name: str, view: str = 'BASIC'):
+  """Make API call to get a effective MCP policy.
+
+  Args:
+    name: The name of the effective MCP policy. Currently supported format
+      '{resource_type}/{resource_name}/effectiveMcpPolicy'. For example,
+      'projects/100/effectivePolicy'.
+    view: The view of the effective MCP policy to use. The default view is
+      'BASIC'.
+
+  Raises:
+    exceptions.GetEffectiveMcpPolicyException: when getting a
+      effective policy fails.
+    apitools_exceptions.HttpError: Another miscellaneous error with the service.
+
+  Returns:
+    message.EffectiveMcpPolicy: The effective MCP policy
+  """
+  client = _GetClientInstance(version=_V2BETA_VERSION)
+  messages = client.MESSAGES_MODULE
+  if view == 'BASIC':
+    view_type = (
+        messages.ServiceusageGetEffectiveMcpPolicyRequest.ViewValueValuesEnum.EFFECTIVE_MCP_POLICY_VIEW_BASIC
     )
+  else:
+    view_type = (
+        messages.ServiceusageGetEffectiveMcpPolicyRequest.ViewValueValuesEnum.EFFECTIVE_MCP_POLICY_VIEW_FULL
+    )
+
+  request = messages.ServiceusageGetEffectiveMcpPolicyRequest(
+      name=name, view=view_type
+  )
+
+  try:
+    return client.v2beta.GetEffectiveMcpPolicy(request)
+  except (
+      apitools_exceptions.HttpForbiddenError,
+      apitools_exceptions.HttpNotFoundError,
+  ) as e:
+    exceptions.ReraiseError(e, exceptions.GetEffectiveMcpPolicyException)
 
 
 def BatchGetService(parent, services):
@@ -190,14 +301,14 @@ def BatchGetService(parent, services):
       "{resource}/{resource_Id}/services/{service}").
 
   Raises:
-    exceptions.BatchGetServicePermissionDeniedException: when getting batch
+    exceptions.BatchGetServiceException: when getting batch
       service state for services in the resource.
     apitools_exceptions.HttpError: Another miscellaneous error with the service.
 
   Returns:
-    Service state of the given resource.
+    Message.BatchGetServicesResponse: Service state of the given resource.
   """
-  client = _GetClientInstance('v2alpha')
+  client = _GetClientInstance(version=_V2BETA_VERSION)
   messages = client.MESSAGES_MODULE
 
   request = messages.ServiceusageServicesBatchGetRequest(
@@ -212,9 +323,7 @@ def BatchGetService(parent, services):
       apitools_exceptions.HttpForbiddenError,
       apitools_exceptions.HttpNotFoundError,
   ) as e:
-    exceptions.ReraiseError(
-        e, exceptions.BatchGetServicePermissionDeniedException
-    )
+    exceptions.ReraiseError(e, exceptions.BatchGetServiceException)
 
 
 def ListCategoryServices(resource, category, page_size=200, limit=sys.maxsize):
@@ -228,14 +337,15 @@ def ListCategoryServices(resource, category, page_size=200, limit=sys.maxsize):
     limit: The max number of services to display.
 
   Raises:
-    exceptions.ListCategoryServicespermissionDeniedException: when listing the
+    exceptions.ListCategoryServicesException: when listing the
     services the parent category includes.
     apitools_exceptions.HttpError: Another miscellaneous error with the service.
 
   Returns:
-    The services the parent category includes.
+    Message.ListCategoryServicesResponse: The services the parent category
+    includes.
   """
-  client = _GetClientInstance('v2alpha')
+  client = _GetClientInstance(version=_V2BETA_VERSION)
   messages = client.MESSAGES_MODULE
 
   request = messages.ServiceusageCategoriesCategoryServicesListRequest(
@@ -255,9 +365,7 @@ def ListCategoryServices(resource, category, page_size=200, limit=sys.maxsize):
       apitools_exceptions.HttpForbiddenError,
       apitools_exceptions.HttpNotFoundError,
   ) as e:
-    exceptions.ReraiseError(
-        e, exceptions.ListCategoryServicespermissionDeniedException
-    )
+    exceptions.ReraiseError(e, exceptions.ListCategoryServicesException)
 
 
 def UpdateConsumerPolicyV2Alpha(
@@ -299,9 +407,7 @@ def UpdateConsumerPolicyV2Alpha(
       apitools_exceptions.HttpForbiddenError,
       apitools_exceptions.HttpNotFoundError,
   ) as e:
-    exceptions.ReraiseError(
-        e, exceptions.UpdateConsumerPolicyPermissionDeniedException
-    )
+    exceptions.ReraiseError(e, exceptions.UpdateConsumerPolicyException)
   except apitools_exceptions.HttpBadRequestError as e:
     log.status.Print(
         'Provide the --force flag if you wish to force disable services.'
@@ -309,7 +415,54 @@ def UpdateConsumerPolicyV2Alpha(
     exceptions.ReraiseError(e, exceptions.Error)
 
 
-def ListGroupMembersV2Alpha(
+def UpdateConsumerPolicyV2Beta(
+    consumerpolicy, name, force=False, validateonly=False
+):
+  """Make API call to update a consumer policy.
+
+  Args:
+    consumerpolicy: The consumer policy to update.
+    name: The resource name of the policy. Currently supported format
+      '{resource_type}/{resource_name}/consumerPolicies/default. For example,
+      'projects/100/consumerPolicies/default'.
+    force: Disable service with usage within last 30 days or disable recently
+      enabled service.
+    validateonly: If set, validate the request and preview the result but do not
+      actually commit it. The default is false.
+
+  Raises:
+    exceptions.UpdateConsumerPolicyException: when updating a
+      consumer policy fails.
+    apitools_exceptions.HttpError: Another miscellaneous error with the service.
+
+  Returns:
+    Updated consumer policy
+  """
+  client = _GetClientInstance(_V2BETA_VERSION)
+  messages = client.MESSAGES_MODULE
+
+  request = messages.ServiceusageConsumerPoliciesPatchRequest(
+      googleApiServiceusageV2betaConsumerPolicy=consumerpolicy,
+      name=name,
+      force=force,
+      validateOnly=validateonly,
+  )
+
+  try:
+    return client.consumerPolicies.Patch(request)
+  except (
+      apitools_exceptions.HttpForbiddenError,
+      apitools_exceptions.HttpNotFoundError,
+  ) as e:
+    exceptions.ReraiseError(e, exceptions.UpdateConsumerPolicyException)
+  except apitools_exceptions.HttpBadRequestError as e:
+    log.status.Print(
+        'Provide the --force flag if you wish to force disable services.'
+    )
+    exceptions.ReraiseError(e, exceptions.Error)
+
+
+def ListGroupMembers(
     resource: str,
     service_group: str,
     page_size: int = 50,
@@ -330,9 +483,9 @@ def ListGroupMembersV2Alpha(
     apitools_exceptions.HttpError: Another miscellaneous error with the service.
 
   Returns:
-    Group members in the given service group.
+    Message.ListGroupMembersResponse : Group members in the given service group.
   """
-  client = _GetClientInstance('v2alpha')
+  client = _GetClientInstance(_V2BETA_VERSION)
   messages = client.MESSAGES_MODULE
 
   request = messages.ServiceusageServicesGroupsMembersListRequest(
@@ -340,7 +493,7 @@ def ListGroupMembersV2Alpha(
   )
 
   try:
-    return list_pager.YieldFromList(
+    response = list_pager.YieldFromList(
         _Lister(client.services_groups_members),
         request,
         limit=limit,
@@ -348,13 +501,19 @@ def ListGroupMembersV2Alpha(
         batch_size=page_size,
         field='memberStates',
     )
+    member_states = []
+    for member_state in response:
+      member_states.append(member_state)
+    return member_states
   except (
+      apitools_exceptions.HttpBadRequestError,
       apitools_exceptions.HttpForbiddenError,
       apitools_exceptions.HttpNotFoundError,
   ) as e:
-    exceptions.ReraiseError(
-        e, exceptions.ListGroupMembersPermissionDeniedException
-    )
+    if 'SU_GROUP_NOT_FOUND' in str(e):
+      return []
+    else:
+      exceptions.ReraiseError(e, exceptions.ListGroupMembersException)
 
 
 def ListDescendantServices(
@@ -396,12 +555,58 @@ def ListDescendantServices(
       apitools_exceptions.HttpForbiddenError,
       apitools_exceptions.HttpNotFoundError,
   ) as e:
-    exceptions.ReraiseError(
-        e, exceptions.ListDescendantServicesPermissionDeniedException
+    exceptions.ReraiseError(e, exceptions.ListDescendantServicesException)
+
+
+def ListExpandedMembers(resource: str, service_group: str, page_size: int = 50):
+  """Make API call to list expanded members of a specific service group.
+
+  Args:
+    resource: The target resource in the format:
+      '{resource_type}/{resource_name}'.
+    service_group: Service group, for example,
+      'services/compute.googleapis.com/groups/dependencies'.
+    page_size: The page size to list. The default page_size is 50.
+
+  Raises:
+    exceptions.ListExpandedMembersException: when listing
+      expanded members fails.
+    apitools_exceptions.HttpError: Another miscellaneous error with the service.
+
+  Returns:
+    Message. ExpandedMember.serviceName : Service names of the expanded members
+    of the service group.
+  """
+  client = _GetClientInstance(_V2BETA_VERSION)
+  messages = client.MESSAGES_MODULE
+
+  request = messages.ServiceusageServicesGroupsExpandedMembersListRequest(
+      parent='{}/{}'.format(resource, service_group)
+  )
+
+  try:
+    response = list_pager.YieldFromList(
+        _Lister(client.services_groups_expandedMembers),
+        request,
+        batch_size_attribute='pageSize',
+        batch_size=page_size,
+        field='members',
     )
+    service_names = []
+    for member in response:
+      service_names.append(member.serviceName)
+    return service_names
+  except (
+      apitools_exceptions.HttpForbiddenError,
+      apitools_exceptions.HttpNotFoundError,
+  ) as e:
+    if 'SU_GROUP_NOT_FOUND' in str(e):
+      return []
+    else:
+      exceptions.ReraiseError(e, exceptions.ListExpandedMembersException)
 
 
-def ListAncestorGroups(resource: str, service: str, page_size=50):
+def ListAncestorGroups(resource: str, service: str, page_size: int = 50):
   """Make API call to list ancestor groups that depend on the service.
 
   Args:
@@ -442,6 +647,131 @@ def ListAncestorGroups(resource: str, service: str, page_size=50):
     )
 
 
+def AnalyzeConsumerPolicy(
+    proposed_policy,
+):
+  """Make API call to analyze a consumer policy for dependencies.
+
+  Args:
+    proposed_policy: The consumer policy to analyze. type :
+      message.GoogleApiServiceusageV2alphaConsumerPolicy
+
+  Raises:
+    exceptions.AnalyzeConsumerPolicyException: when analyzing a
+      consumer policy fails.
+    apitools_exceptions.HttpError: Another miscellaneous error with the service.
+
+  Returns:
+    message.
+  """
+  client = _GetClientInstance(version=_V2BETA_VERSION)
+  messages = client.MESSAGES_MODULE
+
+  request = messages.ServiceusageConsumerPoliciesAnalyzeRequest(
+      analyzeConsumerPolicyRequest=messages.AnalyzeConsumerPolicyRequest(
+          proposedPolicy=proposed_policy,
+          analysisTypes=[
+              messages.AnalyzeConsumerPolicyRequest.AnalysisTypesValueListEntryValuesEnum.ANALYSIS_TYPE_DEPENDENCY,
+          ],
+      ),
+      name=proposed_policy.name,
+  )
+  try:
+    return client.consumerPolicies.Analyze(request)
+  except (
+      apitools_exceptions.HttpForbiddenError,
+      apitools_exceptions.HttpNotFoundError,
+  ) as e:
+    exceptions.ReraiseError(e, exceptions.AnalyzeConsumerPolicyException)
+
+
+def UpdateConsumerPolicy(
+    consumerpolicy,
+    validate_only: bool = False,
+    bypass_dependency_check: bool = False,
+    force: bool = False,
+):
+  """Make API call to update a consumer policy.
+
+  Args:
+    consumerpolicy: The consumer policy to update.
+    validate_only: If True, the action will be validated and result will be
+      preview but not exceuted.
+    bypass_dependency_check: If True, dependencies check will be bypassed.
+    force: If True, the system will bypass usage checks for services that are
+      being removed.
+
+  Raises:
+    exceptions.UpdateConsumerPolicyException: when updating policy API fails.
+    apitools_exceptions.HttpError: Another miscellaneous error with the service.
+
+  Returns:
+    The result of the operation
+  """
+
+  client = _GetClientInstance(version=_V2BETA_VERSION)
+  messages = client.MESSAGES_MODULE
+
+  try:
+
+    policy = messages.GoogleApiServiceusageV2betaConsumerPolicy(
+        name=consumerpolicy['name']
+    )
+
+    if (
+        'enableRules' in consumerpolicy.keys()
+        and consumerpolicy['enableRules'] is not None
+    ):
+      for enable_rule in consumerpolicy['enableRules']:
+        if 'services' in enable_rule:
+          policy.enableRules.append(
+              messages.GoogleApiServiceusageV2betaEnableRule(
+                  services=enable_rule['services']
+              )
+          )
+
+    if not bypass_dependency_check:
+      op = AnalyzeConsumerPolicy(policy)
+
+      op = services_util.WaitOperation(op.name, GetOperationV2Beta)
+
+      analysis_reponse = encoding.MessageToDict(op.response)
+
+      missing_dependencies = {}
+
+      if 'analysis' in analysis_reponse:
+        for analysis in analysis_reponse['analysis']:
+          for warning in analysis['analysisResult']['warnings']:
+            # using missing_dependencies field to retrive the missing
+            # dependencies for each service.
+            if analysis['service'] not in missing_dependencies.keys():
+              missing_dependencies[analysis['service']] = [warning['detail']]
+            else:
+              missing_dependencies[analysis['service']].append(
+                  warning['detail']
+              )
+
+      if missing_dependencies:
+        error_message = 'Policy cannot be updated as \n'
+        for service in missing_dependencies:
+          for dependency in missing_dependencies[service]:
+            error_message += service + ' is ' + dependency + '\n'
+
+        raise exceptions.ConfigError(error_message)
+
+    return UpdateConsumerPolicyV2Beta(
+        policy,
+        policy.name,
+        validateonly=validate_only,
+        force=force,
+    )
+  except (
+      apitools_exceptions.HttpForbiddenError,
+      apitools_exceptions.HttpNotFoundError,
+  ) as e:
+    exceptions.ReraiseError(e, exceptions.UpdateConsumerPolicyException)
+
+
 def AddEnableRule(
     services: List[str],
     project: str,
@@ -449,6 +779,7 @@ def AddEnableRule(
     folder: str = None,
     organization: str = None,
     validate_only: bool = False,
+    skip_dependency: bool = False,
 ):
   """Make API call to enable a specific service.
 
@@ -462,15 +793,17 @@ def AddEnableRule(
     organization: The organization for which to enable the service.
     validate_only: If True, the action will be validated and result will be
       preview but not exceuted.
+    skip_dependency: If True, the dependencies of the service to be enabled will
+      not be enabled.
 
   Raises:
-    exceptions.EnableServicePermissionDeniedException: when enabling API fails.
+    exceptions.EnableServiceException: when enabling API fails.
     apitools_exceptions.HttpError: Another miscellaneous error with the service.
 
   Returns:
     The result of the operation
   """
-  client = _GetClientInstance('v2alpha')
+  client = _GetClientInstance(version=_V2BETA_VERSION)
   messages = client.MESSAGES_MODULE
 
   resource_name = _PROJECT_RESOURCE % project
@@ -484,65 +817,79 @@ def AddEnableRule(
   policy_name = resource_name + _CONSUMER_POLICY_DEFAULT % consumer_policy_name
 
   try:
-    policy = GetConsumerPolicyV2Alpha(policy_name)
+    policy = GetConsumerPolicyV2Beta(policy_name)
 
     services_to_enabled = set()
 
-    for service in services:
-      services_to_enabled.add(_SERVICE_RESOURCE % service)
-      request = (
-          messages.ServiceusageServicesGroupsDescendantServicesListRequest(
-              parent='{}/{}'.format(
-                  resource_name, _SERVICE_RESOURCE % service + _DEPENDENCY_GROUP
-              )
-          )
-      )
-      try:
-        list_descendant_services = (
-            client.services_groups_descendantServices.List(request)
-        ).services
-        for member in list_descendant_services:
-          services_to_enabled.add(member.serviceName)
-      except apitools_exceptions.HttpNotFoundError:
-        continue
     if policy.enableRules:
-      policy.enableRules[0].services.extend(list(services_to_enabled))
+      enabled_services = set(policy.enableRules[0].services)
+      for service in services:
+        # Check if services to add is not already present in the policy.
+        if _SERVICE_RESOURCE % service not in enabled_services:
+          services_to_enabled.add(_SERVICE_RESOURCE % service)
+    else:
+      for service in services:
+        services_to_enabled.add(_SERVICE_RESOURCE % service)
+
+    if not services_to_enabled:
+      raise exceptions.ConfigError(
+          'The service(s) '
+          + ','.join(services)
+          + ' are already enabled and present in the consumer policy'
+      )
+
+    if not skip_dependency:
+      dependent_services = []
+      for service in services_to_enabled:
+        list_expanded_members = ListExpandedMembers(
+            resource_name, service + _DEPENDENCY_GROUP
+        )
+        for dependent_service in list_expanded_members:
+          # dependent_service is in format services/{service_name}
+          dependent_services.append(dependent_service)
+
+      for service in dependent_services:
+        services_to_enabled.add(service)
+
+    if policy.enableRules:
+      for service in list(services_to_enabled):
+        # check if dependent services are already enabled
+        if service not in policy.enableRules[0].services:
+          policy.enableRules[0].services.append(service)
     else:
       policy.enableRules.append(
-          messages.GoogleApiServiceusageV2alphaEnableRule(
+          messages.GoogleApiServiceusageV2betaEnableRule(
               services=list(services_to_enabled)
           )
       )
 
-    if validate_only:
-      _GetServices(policy, policy_name, force=False, validate_only=True)
-      return
-    else:
-      return UpdateConsumerPolicyV2Alpha(policy, policy_name)
+    return UpdateConsumerPolicyV2Beta(
+        policy, policy_name, validateonly=validate_only
+    )
   except (
       apitools_exceptions.HttpForbiddenError,
       apitools_exceptions.HttpNotFoundError,
   ) as e:
-    exceptions.ReraiseError(
-        e, exceptions.EnableServicePermissionDeniedException
-    )
+    exceptions.ReraiseError(e, exceptions.EnableServiceException)
 
 
 def RemoveEnableRule(
     project: str,
-    service: str,
+    services: List[str],
     consumer_policy_name: str = 'default',
     force: bool = False,
     folder: str = None,
     organization: str = None,
     validate_only: bool = False,
+    skip_dependency_check: bool = False,
+    disable_dependency_services: bool = False,
 ):
   """Make API call to disable a specific service.
 
   Args:
     project: The project for which to disable the service.
-    service: The identifier of the service to disable, for example
-      'serviceusage.googleapis.com'.
+    services: The list of identifiers of the services to disable, for example
+      ['serviceusage.googleapis.com', 'apikeys.googleapis.com'].
     consumer_policy_name: Name of consumer policy. The default name is
       "default".
     force: Disable service with usage within last 30 days or disable recently
@@ -553,9 +900,13 @@ def RemoveEnableRule(
     organization: The organization for which to disable the service.
     validate_only: If True, the action will be validated and result will be
       preview but not exceuted.`
+    skip_dependency_check: If True, the enabled dependent services of the
+      service to be disabled will remian enabled.
+    disable_dependency_services: If True, the services which depend on the
+      service to be disabled will also be disabled.
 
   Raises:
-    exceptions.EnableServicePermissionDeniedException: when disabling API fails.
+    exceptions.EnableServiceException: when disabling API fails.
     apitools_exceptions.HttpError: Another miscellaneous error with the service.
 
   Returns:
@@ -572,44 +923,73 @@ def RemoveEnableRule(
   policy_name = resource_name + _CONSUMER_POLICY_DEFAULT % consumer_policy_name
 
   try:
-    current_policy = GetConsumerPolicyV2Alpha(policy_name)
+    current_policy = GetConsumerPolicyV2Beta(policy_name)
 
-    ancestor_groups = ListAncestorGroups(
-        resource_name, _SERVICE_RESOURCE % service
-    )
+    services_to_remove = {
+        service
+        for service in services
+        if any(
+            _SERVICE_RESOURCE % service in enable_rule.services
+            for enable_rule in current_policy.enableRules
+        )
+    }
 
-    if not force:
-      enabled = set()
+    services = [
+        service for service in services if service not in services_to_remove
+    ]
 
-      for enable_rule in current_policy.enableRules:
-        enabled.update(enable_rule.services)
+    if not services_to_remove:
+      raise exceptions.ConfigError(
+          'The services '
+          + ','.join(services)
+          + ' are not enabled in the consumer policy.'
+      )
 
-      enabled_dependents = set()
+    proposed_policy = copy.deepcopy(current_policy)
+    for enable_rule in proposed_policy.enableRules:
+      for service in services_to_remove:
+        if _SERVICE_RESOURCE % service in enable_rule.services:
+          enable_rule.services.remove(_SERVICE_RESOURCE % service)
 
-      for ancestor_group in ancestor_groups:
-        service_name = '/'.join(str.split(ancestor_group.groupName, '/')[:2])
-        if service_name in enabled:
-          enabled_dependents.add(service_name)
+    to_remove = []
 
-      if enabled_dependents:
-        enabled_dependents = ','.join(enabled_dependents)
+    if not skip_dependency_check:
+
+      op = AnalyzeConsumerPolicy(proposed_policy)
+
+      op = services_util.WaitOperation(op.name, GetOperationV2Beta)
+
+      analysis_reponse = encoding.MessageToDict(op.response)
+
+      missing_dependency = {}
+
+      if 'analysis' in analysis_reponse:
+        for analysis in analysis_reponse['analysis']:
+          for warning in analysis['analysisResult']['warnings']:
+            for service in services_to_remove:
+              ## check if analysis is related to service to be removed.
+              if _SERVICE_RESOURCE % service in warning['detail']:
+                if service not in missing_dependency:
+                  missing_dependency[service] = []
+                missing_dependency[service].append(analysis['service'])
+                to_remove.append(analysis['service'])
+
+      if not disable_dependency_services and to_remove:
+        json_string = json.dumps(missing_dependency)
         raise exceptions.ConfigError(
-            'The service '
-            + service
-            + ' is depended on by the following active service(s) '
-            + enabled_dependents
-            + ' . Provide the --force flag if you wish to force disable'
-            ' services.'
+            'The services are depended on by the following active service(s) '
+            + json_string
+            + ' . Please remove the active depedndent services or provide the'
+            ' --disable-dependency-services flag to disable them, or'
+            ' --bypass-dependency-service-check to ignore this check.'
         )
 
-    to_remove = {_SERVICE_RESOURCE % service}
-    for ancestor_group in ancestor_groups:
-      to_remove.add('/'.join(str.split(ancestor_group.groupName, '/')[:2]))
+    to_remove = set(to_remove)
 
-    updated_consumer_poicy = copy.deepcopy(current_policy)
+    updated_consumer_poicy = copy.deepcopy(proposed_policy)
     updated_consumer_poicy.enableRules.clear()
 
-    for enable_rule in current_policy.enableRules:
+    for enable_rule in proposed_policy.enableRules:
       rule = copy.deepcopy(enable_rule)
       for service_name in enable_rule.services:
         if service_name in to_remove:
@@ -617,28 +997,21 @@ def RemoveEnableRule(
       if rule.services:
         updated_consumer_poicy.enableRules.append(rule)
 
-    if validate_only:
-      _GetServices(
-          updated_consumer_poicy, policy_name, force=force, validate_only=True
-      )
-      return
-    else:
-      return UpdateConsumerPolicyV2Alpha(
-          updated_consumer_poicy, policy_name, force=force
-      )
+    return UpdateConsumerPolicyV2Beta(
+        updated_consumer_poicy,
+        policy_name,
+        force=force,
+        validateonly=validate_only,
+    )
   except (
       apitools_exceptions.HttpForbiddenError,
       apitools_exceptions.HttpNotFoundError,
   ) as e:
-    exceptions.ReraiseError(
-        e, exceptions.EnableServicePermissionDeniedException
-    )
+    exceptions.ReraiseError(e, exceptions.EnableServiceException)
   except apitools_exceptions.HttpBadRequestError as e:
     log.status.Print(
         'Provide the --force flag if you wish to force disable services.'
     )
-    # TODO(b/274633761) Repharse error message to avoid showing internal
-    # flags in the error message.
     exceptions.ReraiseError(e, exceptions.Error)
 
 
@@ -651,7 +1024,7 @@ def EnableApiCall(project, service):
       'serviceusage.googleapis.com'.
 
   Raises:
-    exceptions.EnableServicePermissionDeniedException: when enabling API fails.
+    exceptions.EnableServiceException: when enabling API fails.
     apitools_exceptions.HttpError: Another miscellaneous error with the service.
 
   Returns:
@@ -666,8 +1039,7 @@ def EnableApiCall(project, service):
     return client.services.Enable(request)
   except (apitools_exceptions.HttpForbiddenError,
           apitools_exceptions.HttpNotFoundError) as e:
-    exceptions.ReraiseError(e,
-                            exceptions.EnableServicePermissionDeniedException)
+    exceptions.ReraiseError(e, exceptions.EnableServiceException)
 
 
 def BatchEnableApiCall(project, services):
@@ -678,7 +1050,7 @@ def BatchEnableApiCall(project, services):
     services: Iterable of identifiers of services to enable.
 
   Raises:
-    exceptions.EnableServicePermissionDeniedException: when enabling API fails.
+    exceptions.EnableServiceException: when enabling API fails.
     apitools_exceptions.HttpError: Another miscellaneous error with the service.
 
   Returns:
@@ -695,8 +1067,7 @@ def BatchEnableApiCall(project, services):
     return client.services.BatchEnable(request)
   except (apitools_exceptions.HttpForbiddenError,
           apitools_exceptions.HttpNotFoundError) as e:
-    exceptions.ReraiseError(e,
-                            exceptions.EnableServicePermissionDeniedException)
+    exceptions.ReraiseError(e, exceptions.EnableServiceException)
 
 
 def DisableApiCall(project, service, force=False):
@@ -711,7 +1082,7 @@ def DisableApiCall(project, service, force=False):
       disabled.
 
   Raises:
-    exceptions.EnableServicePermissionDeniedException: when disabling API fails.
+    exceptions.EnableServiceException: when disabling API fails.
     apitools_exceptions.HttpError: Another miscellaneous error with the service.
 
   Returns:
@@ -734,8 +1105,7 @@ def DisableApiCall(project, service, force=False):
     return client.services.Disable(request)
   except (apitools_exceptions.HttpForbiddenError,
           apitools_exceptions.HttpNotFoundError) as e:
-    exceptions.ReraiseError(e,
-                            exceptions.EnableServicePermissionDeniedException)
+    exceptions.ReraiseError(e, exceptions.EnableServiceException)
   except apitools_exceptions.HttpBadRequestError as e:
     log.status.Print('Provide the --force flag if you wish to force disable '
                      'services.')
@@ -784,13 +1154,13 @@ class _Lister:
     return self.service_usage.List(request, global_params=global_params)
 
 
-def ListServicesV2Alpha(
-    project,
-    enabled,
-    page_size,
+def ListServicesV2Beta(
+    project: str,
+    enabled: bool,
+    page_size: int,
     limit=sys.maxsize,
-    folder=None,
-    organization=None,
+    folder: str = None,
+    organization: str = None,
 ):
   """Make API call to list services.
 
@@ -803,7 +1173,7 @@ def ListServicesV2Alpha(
     organization: The organization for which to list services.
 
   Raises:
-    exceptions.ListServicesPermissionDeniedException: when listing services
+    exceptions.ListServicesException: when listing services
     fails.
     apitools_exceptions.HttpError: Another miscellaneous error with the service.
 
@@ -822,7 +1192,7 @@ def ListServicesV2Alpha(
   try:
     if enabled:
       policy_name = resource_name + _EFFECTIVE_POLICY
-      effectivepolicy = GetEffectivePolicyV2Alpha(policy_name)
+      effectivepolicy = GetEffectivePolicyV2Beta(policy_name)
 
       for rules in effectivepolicy.enableRules:
         for value in rules.services:
@@ -856,9 +1226,7 @@ def ListServicesV2Alpha(
       apitools_exceptions.HttpForbiddenError,
       apitools_exceptions.HttpNotFoundError,
   ) as e:
-    exceptions.ReraiseError(
-        e, exceptions.EnableServicePermissionDeniedException
-    )
+    exceptions.ReraiseError(e, exceptions.ListServicesException)
 
 
 def ListServices(project, enabled, page_size, limit):
@@ -871,7 +1239,7 @@ def ListServices(project, enabled, page_size, limit):
     limit: The max number of services to display.
 
   Raises:
-    exceptions.ListServicesPermissionDeniedException: when listing services
+    exceptions.ListServicesException: when listing services
     fails.
     apitools_exceptions.HttpError: Another miscellaneous error with the service.
 
@@ -897,12 +1265,11 @@ def ListServices(project, enabled, page_size, limit):
         field='services')
   except (apitools_exceptions.HttpForbiddenError,
           apitools_exceptions.HttpNotFoundError) as e:
-    exceptions.ReraiseError(e,
-                            exceptions.EnableServicePermissionDeniedException)
+    exceptions.ReraiseError(e, exceptions.ListServicesException)
 
 
-def GetOperation(name):
-  """Make API call to get an operation.
+def GetOperation(name: str):
+  """Make API call to get an operation using serviceusageV1 api.
 
   Args:
     name: The name of operation.
@@ -921,6 +1288,58 @@ def GetOperation(name):
     return client.operations.Get(request)
   except (apitools_exceptions.HttpForbiddenError,
           apitools_exceptions.HttpNotFoundError) as e:
+    exceptions.ReraiseError(e, exceptions.OperationErrorException)
+
+
+def GetOperationV2Alpha(name: str):
+  """Make API call to get an operation using serviceusageV2alpha api.
+
+  Args:
+    name: The name of the operation resource. Format
+      'operations/<operation_id>'.
+
+  Raises:
+    exceptions.OperationErrorException: when the getting operation API fails.
+    apitools_exceptions.HttpError: Another miscellaneous error with the service.
+
+  Returns:
+    The message.Operation object with response and error.
+  """
+  client = _GetClientInstance('v2alpha')
+  messages = client.MESSAGES_MODULE
+  request = messages.ServiceusageOperationsGetRequest(name=name)
+  try:
+    return client.operations.Get(request)
+  except (
+      apitools_exceptions.HttpForbiddenError,
+      apitools_exceptions.HttpNotFoundError,
+  ) as e:
+    exceptions.ReraiseError(e, exceptions.OperationErrorException)
+
+
+def GetOperationV2Beta(name: str):
+  """Make API call to get an operation using serviceusageV2beta api.
+
+  Args:
+    name: The name of the operation resource. Format
+      'operations/<operation_id>'.
+
+  Raises:
+    exceptions.OperationErrorException: when the getting operation API fails.
+    apitools_exceptions.HttpError: Another miscellaneous error with the service.
+
+  Returns:
+    The message.Operation object with response and error.
+  """
+  client = _GetClientInstance(version=_V2BETA_VERSION)
+  messages = client.MESSAGES_MODULE
+  request = messages.ServiceusageOperationsGetRequest(name=name)
+  try:
+    return client.operations.Get(request)
+  except (
+      apitools_exceptions.HttpForbiddenError,
+      apitools_exceptions.HttpNotFoundError,
+  ) as e:
     exceptions.ReraiseError(e, exceptions.OperationErrorException)
 
 
@@ -1162,25 +1581,3 @@ def _GetClientInstance(version='v1'):
       enable_resource_quota=enable_resource_quota)
   return apis_internal._GetClientInstance(
       'serviceusage', version, http_client=http_client)
-
-
-def _GetServices(
-    policy: str, policy_name: str, force: bool, validate_only: bool
-):
-  """Get list of services from operation response."""
-  operation = UpdateConsumerPolicyV2Alpha(
-      policy, policy_name, force, validate_only
-  )
-  services = set()
-  if operation.response:
-    reposonse_dict = encoding.MessageToPyValue(operation.response)
-    if 'enableRules' in reposonse_dict.keys():
-      enable_rules = reposonse_dict['enableRules']
-      keys = list(set().union(*(d.keys() for d in enable_rules)))
-      if 'services' in keys:
-        services_enabled = enable_rules[keys.index('services')]
-        for service in services_enabled['services']:
-          services.add(service)
-    log.status.Print("Consumer policy '" + policy_name + "' (validate-only):")
-    for service in services:
-      log.status.Print(service)

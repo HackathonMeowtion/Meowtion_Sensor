@@ -36,15 +36,16 @@ DETAILED_HELP = {
         """\
           To update the role ``ProjectUpdater'' from a YAML file, run:
 
-            $ {command} roles/ProjectUpdater --organization=123 --file=role_file_path
+            $ {command} ProjectUpdater --organization=123 --file=role_file_path
 
           To update the role ``ProjectUpdater'' with flags, run:
 
-            $ {command} roles/ProjectUpdater --project=myproject --permissions=permission1,permission2
+            $ {command} ProjectUpdater --project=myproject --permissions=permission1,permission2
         """
 }
 
 
+@base.UniverseCompatible
 class Update(base.Command):
   """Update an IAM custom role.
 

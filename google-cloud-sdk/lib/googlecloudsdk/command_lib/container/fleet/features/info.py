@@ -128,6 +128,14 @@ _INFO = {
         display_name='Namespace Actuation',
         cmd_group='namespaceactuation',
     ),
+    'workloadidentity': Info(
+        display_name='Workload Identity',
+        cmd_group='workload-identity',
+    ),
+    'rbacrolebindingactuation': Info(
+        display_name='RBACRoleBinding Actuation',
+        cmd_group='rbacrolebindingactuation',
+    ),
 }
 
 

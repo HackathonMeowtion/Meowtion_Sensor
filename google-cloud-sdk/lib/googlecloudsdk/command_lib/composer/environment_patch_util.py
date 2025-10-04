@@ -57,7 +57,7 @@ def _ConstructAirflowDatabaseRetentionDaysPatch(airflow_database_retention_days,
         )
     )
   return (
-      'config.data_retention_configuration.airflow_metadata_retention_config',
+      'config.data_retention_config.airflow_metadata_retention_config',
       messages.Environment(config=config),
   )
 
@@ -559,7 +559,7 @@ def _ConstructVpcConnectivityPatch(
   if disable_vpc_connectivity:
     update_mask = 'config.node_config.network,config.node_config.subnetwork'
   elif network_attachment:
-    update_mask = 'config.node_config.network_attachment'
+    update_mask = 'config.node_config.composer_network_attachment'
     node_config.composerNetworkAttachment = network_attachment
   elif network and subnetwork:
     update_mask = 'config.node_config.network,config.node_config.subnetwork'
@@ -1011,14 +1011,13 @@ def _ConstructAutoscalingPatch(scheduler_cpu, worker_cpu, web_server_cpu,
     workload_resources['triggerer'] = messages.TriggererResource(
         cpu=triggerer_cpu, memoryGb=triggerer_memory_gb, count=triggerer_count
     )
-  if release_track != base.ReleaseTrack.GA:
-    if dag_processor_count is not None:
-      workload_resources['dagProcessor'] = messages.DagProcessorResource(
-          cpu=dag_processor_cpu,
-          memoryGb=dag_processor_memory_gb,
-          storageGb=dag_processor_storage_gb,
-          count=dag_processor_count,
-      )
+  if dag_processor_count is not None:
+    workload_resources['dagProcessor'] = messages.DagProcessorResource(
+        cpu=dag_processor_cpu,
+        memoryGb=dag_processor_memory_gb,
+        storageGb=dag_processor_storage_gb,
+        count=dag_processor_count,
+    )
 
   config = messages.EnvironmentConfig(
       workloadsConfig=messages.WorkloadsConfig(**workload_resources))

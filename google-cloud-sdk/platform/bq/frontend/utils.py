@@ -9,24 +9,32 @@ import collections
 import datetime
 import functools
 import json
+import logging
 import os
 import re
 import sys
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Type
 
 from absl import app
 from absl import flags
-
 import yaml
 
 import table_formatter
-
 import bq_utils
 from clients import utils as bq_client_utils
-
+from frontend import utils_flags
+from frontend import utils_formatting
+from utils import bq_consts
 from utils import bq_error
 from utils import bq_id_utils
 from pyglib import stringutil
+
+# pylint: disable=g-multiple-import
+if sys.version_info < (3, 11):
+  from typing_extensions import TypedDict, NotRequired  # pylint: disable=g-import-not-at-top
+else:
+  from typing import TypedDict, NotRequired  # pylint: disable=g-import-not-at-top
+# pylint: enable=g-multiple-import
 
 FLAGS = flags.FLAGS
 
@@ -53,6 +61,11 @@ PARQUET_LIST_INFERENCE_DESCRIPTION = (
 CONNECTION_ID_PATTERN = re.compile(r'[\w-]+')
 _RANGE_PATTERN = re.compile(r'^\[(\S+.+\S+), (\S+.+\S+)\)$')
 
+_PARAMETERS_KEY = 'parameters'
+_DEFAULT_STORAGE_LOCATION_URI_KEY = 'defaultStorageLocationUri'
+_STORAGE_DESCRIPTOR_KEY = 'storageDescriptor'
+_CONNECTION_ID_KEY = 'connectionId'
+
 _DELIMITER_MAP = {
     'tab': '\t',
     '\\t': '\t',
@@ -70,7 +83,8 @@ def ValidateGlobalFlags():
   """Validate combinations of global flag values."""
   if FLAGS.service_account and FLAGS.use_gce_service_account:
     raise app.UsageError(
-        'Cannot specify both --service_account and --use_gce_service_account.')
+        'Cannot specify both --service_account and --use_gce_service_account.'
+    )
 
 
 def ValidateAtMostOneSelected(*args: Any) -> bool:
@@ -89,77 +103,129 @@ def ValidateAtMostOneSelected(*args: Any) -> bool:
   return count > 1
 
 
-def GetFormatterFromFlags(secondary_format='sparse'):
-  if FLAGS['format'].present:
-    return table_formatter.GetFormatter(FLAGS.format)
-  else:
-    return table_formatter.GetFormatter(secondary_format)
+def ValidateAtMostOneSelectedAllowsDefault(*args: Any) -> bool:
+  """Validates that at most one of the argument flags is selected.
+
+    if the arg exists but the value is the default value,
+    then it won't be counted. This is uself when users want to clear the
+    value while setting another value. For example, 'update --arg1=0 --arg2=100'
+    when arg1 and arg2 shouldn't coexist.
+
+  Args:
+    *args: Each flag to be tested parsed in as a separate arg.
+
+  Returns:
+    True if more than 1 flag was selected, False if 1 or 0 were selected.
+  """
+  count = 0
+  for arg in args:
+    if arg and type(arg)() != arg:
+      count += 1
+  return count > 1
+
+
+def ProcessSource(description: str, source: str) -> Tuple[Any, Any]:
+  """Process "source" parameter used for bq update and bq mk command.
+
+  Args:
+    description: Description of the dataset.
+    source: source file path attached by "--source" parameter.
+
+  Returns:
+    new description if the source file updates the description, otherwise return
+    the original description.
+    acl if the source file updates the acl, otherwise return None.
+  """
+  acl = None
+  if source is None:
+    return (description, acl)
+  if not os.path.exists(source):
+    raise app.UsageError('Source file not found: %s' % (source,))
+  if not os.path.isfile(source):
+    raise app.UsageError('Source path is not a file: %s' % (source,))
+  with open(source) as f:
+    try:
+      payload = json.load(f)
+      if 'description' in payload:
+        description = payload['description']
+        logging.debug(
+            'Both source file and description flag exist, using the value in'
+            ' the source file.'
+        )
+      if 'access' in payload:
+        acl = payload['access']
+    except ValueError as e:
+      raise app.UsageError(
+          'Error decoding JSON schema from file %s: %s' % (source, e)
+      )
+
+  return (description, acl)
 
 
 def PrintDryRunInfo(job):
   """Prints the dry run info."""
-  num_bytes = job['statistics']['query']['totalBytesProcessed']
-  num_bytes_accuracy = job['statistics']['query'].get(
-      'totalBytesProcessedAccuracy', 'PRECISE')
   if FLAGS.format in ['prettyjson', 'json']:
     bq_utils.PrintFormattedJsonObject(job)
-  elif FLAGS.format == 'csv':
+    return
+  # TODO: b/422281423 - Revert this check once server returns this field for
+  # all dry run queries again.
+  if 'totalBytesProcessed' not in job['statistics']['query']:
+    print(
+        'Query successfully validated. No information about number of bytes'
+        ' processed. To see the full details of the job, run this query with'
+        ' `--format=json` or `--format=prettyjson`.'
+    )
+    return
+  num_bytes = job['statistics']['query']['totalBytesProcessed']
+  num_bytes_accuracy = job['statistics']['query'].get(
+      'totalBytesProcessedAccuracy', 'PRECISE'
+  )
+  if FLAGS.format == 'csv':
     print(num_bytes)
   else:
     if job['statistics']['query'].get('statementType', '') == 'LOAD_DATA':
       print(
           'Query successfully validated. Assuming the files are not modified, '
-          'running this query will process %s files loading %s bytes of data.' %
-          (
+          'running this query will process %s files loading %s bytes of data.'
+          % (
               job['statistics']['query']['loadQueryStatistics']['inputFiles'],
-              job['statistics']['query']['loadQueryStatistics']
-              ['inputFileBytes'],
-          ))
+              job['statistics']['query']['loadQueryStatistics'][
+                  'inputFileBytes'
+              ],
+          )
+      )
     elif num_bytes_accuracy == 'PRECISE':
       print(
           'Query successfully validated. Assuming the tables are not modified, '
-          'running this query will process %s bytes of data.' % (num_bytes,))
+          'running this query will process %s bytes of data.' % (num_bytes,)
+      )
     elif num_bytes_accuracy == 'LOWER_BOUND':
       print(
           'Query successfully validated. Assuming the tables are not modified, '
-          'running this query will process lower bound of %s bytes of data.' %
-          (num_bytes,))
+          'running this query will process lower bound of %s bytes of data.'
+          % (num_bytes,)
+      )
     elif num_bytes_accuracy == 'UPPER_BOUND':
       print(
           'Query successfully validated. Assuming the tables are not modified, '
-          'running this query will process upper bound of %s bytes of data.' %
-          (num_bytes,))
+          'running this query will process upper bound of %s bytes of data.'
+          % (num_bytes,)
+      )
     else:
       if job['statistics']['query']['statementType'] == 'CREATE_MODEL':
-        print('Query successfully validated. The number of bytes that will '
-              'be processed by this query cannot be calculated automatically. '
-              'More information about this can be seen in '
-              'https://cloud.google.com/bigquery-ml/pricing#dry_run')
+        print(
+            'Query successfully validated. The number of bytes that will '
+            'be processed by this query cannot be calculated automatically. '
+            'More information about this can be seen in '
+            'https://cloud.google.com/bigquery-ml/pricing#dry_run'
+        )
       else:
-        print('Query successfully validated. Assuming the tables are not '
-              'modified, running this query will process %s of data and the '
-              'accuracy is unknown because of federated tables or clustered '
-              'tables.' % (num_bytes,))
-
-
-def GetJobIdFromFlags() -> Optional[bq_client_utils.JobIdGenerator]:
-  """Returns the job id or job generator from the flags."""
-  if FLAGS.fingerprint_job_id and FLAGS.job_id:
-    raise app.UsageError(
-        'The fingerprint_job_id flag cannot be specified with the job_id '
-        'flag.')
-  if FLAGS.fingerprint_job_id:
-    return bq_client_utils.JobIdGeneratorFingerprint()
-  elif FLAGS.job_id is None:
-    return bq_client_utils.JobIdGeneratorIncrementing(
-        bq_client_utils.JobIdGeneratorRandom()
-    )
-  elif FLAGS.job_id:
-    return FLAGS.job_id
-  else:
-    # User specified a job id, but it was empty. Let the
-    # server come up with a job id.
-    return None
+        print(
+            'Query successfully validated. Assuming the tables are not '
+            'modified, running this query will process %s of data and the '
+            'accuracy is unknown because of federated tables or clustered '
+            'tables.' % (num_bytes,)
+        )
 
 
 def RawInput(message: str) -> str:
@@ -212,7 +278,8 @@ def ValidateHivePartitioningOptions(hive_partitioning_mode):
   if hive_partitioning_mode not in ['AUTO', 'STRINGS', 'CUSTOM']:
     raise app.UsageError(
         'Only the following hive partitioning modes are supported: "AUTO", '
-        '"STRINGS" and "CUSTOM"')
+        '"STRINGS" and "CUSTOM"'
+    )
 
 
 def ParseLabels(labels: List[str]) -> Dict[str, str]:
@@ -265,40 +332,54 @@ class TablePrinter(object):
     if isinstance(formatter, table_formatter.CsvFormatter):
       for field in fields:
         if field['type'].upper() == 'RECORD':
-          raise app.UsageError(('Error printing table: Cannot print record '
-                                'field "%s" in CSV format.') % field['name'])
+          raise app.UsageError(
+              (
+                  'Error printing table: Cannot print record '
+                  'field "%s" in CSV format.'
+              )
+              % field['name']
+          )
         if field.get('mode', 'NULLABLE').upper() == 'REPEATED':
-          raise app.UsageError(('Error printing table: Cannot print repeated '
-                                'field "%s" in CSV format.') % (field['name']))
+          raise app.UsageError(
+              (
+                  'Error printing table: Cannot print repeated '
+                  'field "%s" in CSV format.'
+              )
+              % (field['name'])
+          )
 
   @staticmethod
-  def _NormalizeRecord(field, value):
+  def _NormalizeRecord(field, value, use_full_timestamp):
     """Returns bq-specific formatting of a RECORD type."""
     result = collections.OrderedDict()
     for subfield, subvalue in zip(field.get('fields', []), value):
       result[subfield.get('name', '')] = TablePrinter.NormalizeField(
-          subfield, subvalue)
+          subfield, subvalue, use_full_timestamp
+      )
     return result
 
   @staticmethod
-  def _NormalizeTimestamp(unused_field, value):
+  def _NormalizeTimestamp(unused_field, value, use_full_timestamp):
     """Returns bq-specific formatting of a TIMESTAMP type."""
     try:
-      date = datetime.datetime.fromtimestamp(
-          0,
-          tz=datetime.timezone.utc) + datetime.timedelta(seconds=float(value))
-      # Remove the extra timezone info "+00:00" at the end of the date.
-      date = date.replace(tzinfo=None)
-      # Our goal is the equivalent of '%Y-%m-%d %H:%M:%S' via strftime but that
-      # doesn't work for dates with years prior to 1900.  Instead we zero out
-      # fractional seconds then call isoformat with a space separator.
-      date = date.replace(microsecond=0)
-      return date.isoformat(' ')
-    except ValueError:
+      if use_full_timestamp:
+        return value
+      else:
+        date = datetime.datetime.fromtimestamp(
+            0, tz=datetime.timezone.utc
+        ) + datetime.timedelta(seconds=float(value))
+        # Remove the extra timezone info "+00:00" at the end of the date.
+        date = date.replace(tzinfo=None)
+        # Our goal is the equivalent of '%Y-%m-%d %H:%M:%S' via strftime but that
+        # doesn't work for dates with years prior to 1900.  Instead we zero out
+        # fractional seconds then call isoformat with a space separator.
+        date = date.replace(microsecond=0)
+        return date.isoformat(' ')
+    except (ValueError, OverflowError):
       return '<date out of range for display>'
 
   @staticmethod
-  def _NormalizeRange(field, value):
+  def _NormalizeRange(field, value, use_full_timestamp):
     """Returns bq-specific formatting of a RANGE type."""
     parsed = ParseRangeString(value)
     if parsed is None:
@@ -310,37 +391,42 @@ class TablePrinter(object):
       end = end.upper() if IsRangeBoundaryUnbounded(end) else end
       return '[%s, %s)' % (start, end)
 
-    normalized_start = (
-        start.upper()
-        if IsRangeBoundaryUnbounded(start)
-        else TablePrinter._NormalizeTimestamp(field, start)
-    )
-    normalized_end = (
-        end.upper()
-        if IsRangeBoundaryUnbounded(end)
-        else TablePrinter._NormalizeTimestamp(field, end)
-    )
+    if IsRangeBoundaryUnbounded(start):
+      normalized_start = start.upper()
+    else:
+      normalized_start = TablePrinter._NormalizeTimestamp(
+          field, start, use_full_timestamp
+      )
+    if IsRangeBoundaryUnbounded(end):
+      normalized_end = end.upper()
+    else:
+      normalized_end = TablePrinter._NormalizeTimestamp(
+          field, end, use_full_timestamp
+      )
     return '[%s, %s)' % (normalized_start, normalized_end)
 
-  _FIELD_NORMALIZERS = {
-      # TODO(b/324243535): Re-enable once more typing has been added.
-      # pytype: disable=attribute-error
-      'RECORD': _NormalizeRecord.__func__,
-      'TIMESTAMP': _NormalizeTimestamp.__func__,
-      'RANGE': _NormalizeRange.__func__,
-      # pytype: enable=attribute-error
-  }
-
   @staticmethod
-  def NormalizeField(field, value):
+  def NormalizeField(field, value, use_full_timestamp: bool):
     """Returns bq-specific formatting of a field."""
     if value is None:
       return None
-    normalizer = TablePrinter._FIELD_NORMALIZERS.get(
-        field.get('type', '').upper(), lambda _, x: x)
     if field.get('mode', '').upper() == 'REPEATED':
-      return [normalizer(field, value) for value in value]
-    return normalizer(field, value)
+      return [
+          TablePrinter._NormalizeSingleValue(field, value, use_full_timestamp)
+          for value in value
+      ]
+    return TablePrinter._NormalizeSingleValue(field, value, use_full_timestamp)
+
+  @staticmethod
+  def _NormalizeSingleValue(field, value, use_full_timestamp: bool):
+    """Returns formatting of a single field value."""
+    if field.get('type', '').upper() == 'RECORD':
+      return TablePrinter._NormalizeRecord(field, value, use_full_timestamp)
+    elif field.get('type', '').upper() == 'TIMESTAMP':
+      return TablePrinter._NormalizeTimestamp(field, value, use_full_timestamp)
+    elif field.get('type', '').upper() == 'RANGE':
+      return TablePrinter._NormalizeRange(field, value, use_full_timestamp)
+    return value
 
   @staticmethod
   def MaybeConvertToJson(value):
@@ -350,10 +436,10 @@ class TablePrinter(object):
     return value
 
   @staticmethod
-  def FormatRow(fields, row, formatter):
+  def FormatRow(fields, row, formatter, use_full_timestamp: bool):
     """Convert fields in a single row to bq-specific formatting."""
     values = [
-        TablePrinter.NormalizeField(field, value)
+        TablePrinter.NormalizeField(field, value, use_full_timestamp)
         for field, value in zip(fields, row)
     ]
     # Convert complex values to JSON if we're not already outputting as such.
@@ -366,12 +452,14 @@ class TablePrinter(object):
       values = ['NULL' if value is None else value for value in values]
     return values
 
-  def PrintTable(self, fields, rows):
-    formatter = GetFormatterFromFlags(secondary_format='pretty')
+  def PrintTable(self, fields, rows, use_full_timestamp: bool):
+    formatter = utils_flags.get_formatter_from_flags(secondary_format='pretty')
     self._ValidateFields(fields, formatter)
     formatter.AddFields(fields)
     formatter.AddRows(
-        TablePrinter.FormatRow(fields, row, formatter) for row in rows)
+        TablePrinter.FormatRow(fields, row, formatter, use_full_timestamp)
+        for row in rows
+    )
     formatter.Print()
 
 
@@ -395,6 +483,13 @@ def CreateExternalTableDefinition(
     encoding=None,
     file_set_spec_type=None,
     null_marker=None,
+    null_markers=None,
+    time_zone=None,
+    date_format=None,
+    datetime_format=None,
+    time_format=None,
+    timestamp_format=None,
+    source_column_match=None,
     parquet_map_target_type=None,
 ):
   """Creates an external table definition with the given URIs and the schema.
@@ -455,6 +550,15 @@ def CreateExternalTableDefinition(
       manifest files, where each line contains a URI (No wild-card URIs are
       supported).
     null_marker: Specifies a string that represents a null value in a CSV file.
+    null_markers: Specifies a list of strings that represent null values in a
+      CSV file.
+    time_zone: Specifies the time zone for a CSV or JSON file.
+    date_format: Specifies the date format for a CSV or JSON file.
+    datetime_format: Specifies the datetime format for a CSV or JSON file.
+    time_format: Specifies the time format for a CSV or JSON file.
+    timestamp_format: Specifies the timestamp format for a CSV or JSON file.
+    source_column_match: Controls the strategy used to match loaded columns to
+      the schema.
     parquet_map_target_type: Indicate the target type for parquet maps. If
       unspecified, we represent parquet maps as map {repeated key_value {key,
       value}}. This option can simplify this by omiting the key_value record if
@@ -474,23 +578,34 @@ def CreateExternalTableDefinition(
         'ORC',
         'PARQUET',
         'GOOGLE_SHEETS',
-        'ICEBERG'
+        'ICEBERG',
     ]
 
     if source_format not in supported_formats:
-      raise app.UsageError(('%s is not a supported format.') % source_format)
+      raise app.UsageError('%s is not a supported format.' % source_format)
 
     external_table_def = {'sourceFormat': source_format}
     if file_set_spec_type is not None:
       external_table_def['fileSetSpecType'] = file_set_spec_type
     if metadata_cache_mode is not None:
       external_table_def['metadataCacheMode'] = metadata_cache_mode
+    if time_zone is not None:
+      external_table_def['timeZone'] = time_zone
+    if date_format is not None:
+      external_table_def['dateFormat'] = date_format
+    if datetime_format is not None:
+      external_table_def['datetimeFormat'] = datetime_format
+    if time_format is not None:
+      external_table_def['timeFormat'] = time_format
+    if timestamp_format is not None:
+      external_table_def['timestampFormat'] = timestamp_format
     if object_metadata is not None:
       supported_obj_metadata_types = ['DIRECTORY', 'SIMPLE']
 
       if object_metadata not in supported_obj_metadata_types:
-        raise app.UsageError('%s is not a supported Object Metadata Type.' %
-                             object_metadata)
+        raise app.UsageError(
+            '%s is not a supported Object Metadata Type.' % object_metadata
+        )
 
       external_table_def['sourceFormat'] = None
       external_table_def['objectMetadata'] = object_metadata
@@ -516,10 +631,17 @@ def CreateExternalTableDefinition(
             }
         """)
       external_table_def['csvOptions'][
-          'preserveAsciiControlCharacters'] = preserve_ascii_control_characters
+          'preserveAsciiControlCharacters'
+      ] = preserve_ascii_control_characters
       external_table_def['csvOptions']['encoding'] = encoding or 'UTF-8'
       if null_marker is not None:
         external_table_def['csvOptions']['nullMarker'] = null_marker
+      if null_markers is not None:
+        external_table_def['csvOptions']['nullMarkers'] = null_markers
+      if source_column_match is not None:
+        external_table_def['csvOptions'][
+            'sourceColumnMatch'
+        ] = source_column_match
     elif external_table_def['sourceFormat'] == 'NEWLINE_DELIMITED_JSON':
       if autodetect is None or autodetect:
         external_table_def['autodetect'] = True
@@ -568,7 +690,8 @@ def CreateExternalTableDefinition(
       external_table_def['autodetect'] = True
       if len(source_uris.split(',')) != 1:
         raise app.UsageError(
-            'Must provide only one source_uri for %s table.' % (source_format,))
+            'Must provide only one source_uri for %s table.' % (source_format,)
+        )
 
 
     if ignore_unknown_values:
@@ -580,8 +703,9 @@ def CreateExternalTableDefinition(
       hive_partitioning_options = {}
       hive_partitioning_options['mode'] = hive_partitioning_mode
       if hive_partitioning_source_uri_prefix is not None:
-        hive_partitioning_options[
-            'sourceUriPrefix'] = hive_partitioning_source_uri_prefix
+        hive_partitioning_options['sourceUriPrefix'] = (
+            hive_partitioning_source_uri_prefix
+        )
       external_table_def['hivePartitioningOptions'] = hive_partitioning_options
       if require_hive_partition_filter:
         hive_partitioning_options['requirePartitionFilter'] = True
@@ -599,7 +723,8 @@ def CreateExternalTableDefinition(
 
   except ValueError as e:
     raise app.UsageError(
-        ('Error occurred while creating table definition: %s') % e)
+        'Error occurred while creating table definition: %s' % e
+    )
 
 
 def GetExternalDataConfig(
@@ -613,6 +738,13 @@ def GetExternalDataConfig(
     reference_file_schema_uri=None,
     file_set_spec_type=None,
     null_marker=None,
+    null_markers=None,
+    time_zone=None,
+    date_format=None,
+    datetime_format=None,
+    time_format=None,
+    timestamp_format=None,
+    source_column_match=None,
     parquet_map_target_type=None,
 ):
   """Returns a ExternalDataConfiguration from the file or specification string.
@@ -635,17 +767,19 @@ def GetExternalDataConfig(
         return yaml.safe_load(external_config_file)
     except yaml.error.YAMLError as e:
       raise app.UsageError(
-          ('Error decoding YAML external table definition from '
-           'file %s: %s') % (maybe_filepath, e))
+          'Error decoding YAML external table definition from file %s: %s'
+          % (maybe_filepath, e)
+      )
   else:
     source_format = 'CSV'
     schema = None
     connection_id = None
-    error_msg = ('Error decoding external_table_definition. '
-                 'external_table_definition should either be the name of a '
-                 'JSON file or the text representation of an external table '
-                 'definition. Given:%s') % (
-                     file_path_or_simple_spec)
+    error_msg = (
+        'Error decoding external_table_definition. '
+        'external_table_definition should either be the name of a '
+        'JSON file or the text representation of an external table '
+        'definition. Given:%s'
+    ) % (file_path_or_simple_spec)
 
     parts = file_path_or_simple_spec.split('@')
     if len(parts) == 1:
@@ -679,7 +813,7 @@ def GetExternalDataConfig(
       uri = format_and_uri
     else:
       source_format = format_and_uri[0:separator_pos]
-      uri = format_and_uri[separator_pos + 1:]
+      uri = format_and_uri[separator_pos + 1 :]
 
     if not uri:
       raise app.UsageError(error_msg)
@@ -701,8 +835,137 @@ def GetExternalDataConfig(
         reference_file_schema_uri=reference_file_schema_uri,
         file_set_spec_type=file_set_spec_type,
         null_marker=null_marker,
-        parquet_map_target_type=parquet_map_target_type
+        null_markers=null_markers,
+        time_zone=time_zone,
+        date_format=date_format,
+        datetime_format=datetime_format,
+        time_format=time_format,
+        timestamp_format=timestamp_format,
+        source_column_match=source_column_match,
+        parquet_map_target_type=parquet_map_target_type,
     )
+
+
+def GetJson(
+    file_path_or_json_string: str,
+) -> Optional[Dict[str, Any]]:
+  """Returns a JSON object from the file or a JSON string.
+
+  Determines if the input string is a file path or a string,
+  then returns either the parsed file contents, or the parsed JSON from
+  string. The file content is expected to be a JSON string.
+
+  Args:
+    file_path_or_json_string: Path to the JSON file or a JSON string.
+
+  Raises:
+    UsageError: when incorrect usage or invalid args are used.
+  """
+  maybe_filepath = os.path.expanduser(file_path_or_json_string)
+  if os.path.isfile(maybe_filepath):
+    try:
+      with open(maybe_filepath) as json_file:
+        return json.load(json_file)
+    except json.decoder.JSONDecodeError as e:
+      raise app.UsageError(
+          'Error decoding JSON from file %s: %s' % (maybe_filepath, e)
+      )
+  else:
+    try:
+      return json.loads(file_path_or_json_string)
+    except json.decoder.JSONDecodeError as e:
+      raise app.UsageError(
+          'Error decoding JSON from string %s: %s'
+          % (file_path_or_json_string, e)
+      )
+
+
+def UpdateExternalCatalogTableOptions(
+    current_options: Dict[str, Any],
+    external_options_str: str,
+) -> Dict[str, Any]:
+  """Updates the external catalog table options.
+
+  Args:
+    current_options: The current external catalog table options.
+    external_options_str: The new external catalog table options as a JSON
+      string or a file path.
+
+  Returns:
+    The updated external catalog table options.
+  """
+  # Clear the parameters if they are present in the existing options but not
+  # in the new external catalog table options.
+  if current_options.get(_PARAMETERS_KEY) is not None:
+    current_options[_PARAMETERS_KEY] = {
+        k: None for k in current_options[_PARAMETERS_KEY]
+    }
+  # Clear the storage descriptor if they are present in the existing options
+  # but not in the new external catalog table options.
+  if current_options.get(_STORAGE_DESCRIPTOR_KEY) is not None:
+    current_options[_STORAGE_DESCRIPTOR_KEY] = {
+        k: None for k in current_options[_STORAGE_DESCRIPTOR_KEY]
+    }
+
+  external_catalog_table_options_dict = GetJson(external_options_str)
+  if _PARAMETERS_KEY in external_catalog_table_options_dict:
+    current_options.setdefault(_PARAMETERS_KEY, {})
+    current_options[_PARAMETERS_KEY].update(
+        external_catalog_table_options_dict[_PARAMETERS_KEY]
+    )
+  else:
+    current_options[_PARAMETERS_KEY] = None
+  if _STORAGE_DESCRIPTOR_KEY in external_catalog_table_options_dict:
+    current_options[_STORAGE_DESCRIPTOR_KEY] = (
+        external_catalog_table_options_dict[_STORAGE_DESCRIPTOR_KEY]
+    )
+  else:
+    current_options[_STORAGE_DESCRIPTOR_KEY] = None
+  if _CONNECTION_ID_KEY in external_catalog_table_options_dict:
+    current_options[_CONNECTION_ID_KEY] = external_catalog_table_options_dict[
+        _CONNECTION_ID_KEY
+    ]
+  else:
+    current_options[_CONNECTION_ID_KEY] = None
+  return current_options
+
+
+def UpdateExternalCatalogDatasetOptions(
+    current_options: Dict[str, Any],
+    external_options_str: str,
+) -> Dict[str, Any]:
+  """Updates the external catalog dataset options.
+
+  Args:
+    current_options: The current external catalog dataset options.
+    external_options_str: The new external catalog dataset options as a JSON
+      string or a file path.
+
+  Returns:
+    The updated external catalog dataset options.
+  """
+  # Clear the parameters if they are present in the existing dataset but not
+  # in the new external catalog dataset options.
+  if current_options.get(_PARAMETERS_KEY) is not None:
+    current_options[_PARAMETERS_KEY] = {
+        k: None for k in current_options[_PARAMETERS_KEY]
+    }
+  external_catalog_dataset_options_dict = GetJson(external_options_str)
+  if _PARAMETERS_KEY in external_catalog_dataset_options_dict:
+    current_options.setdefault(_PARAMETERS_KEY, {})
+    for key, value in external_catalog_dataset_options_dict[
+        _PARAMETERS_KEY
+    ].items():
+      current_options[_PARAMETERS_KEY][key] = value
+  else:
+    current_options[_PARAMETERS_KEY] = None
+  if _DEFAULT_STORAGE_LOCATION_URI_KEY in external_catalog_dataset_options_dict:
+    current_options[_DEFAULT_STORAGE_LOCATION_URI_KEY] = (
+        external_catalog_dataset_options_dict[_DEFAULT_STORAGE_LOCATION_URI_KEY]
+    )
+  else:
+    current_options[_DEFAULT_STORAGE_LOCATION_URI_KEY] = None
+  return current_options
 
 
 def PrintPageToken(page_token):
@@ -711,8 +974,8 @@ def PrintPageToken(page_token):
   Args:
     page_token: The dictionary mapping of pageToken with string 'nextPageToken'.
   """
-  formatter = GetFormatterFromFlags(secondary_format='pretty')
-  bq_client_utils.ConfigureFormatter(
+  formatter = utils_flags.get_formatter_from_flags(secondary_format='pretty')
+  utils_formatting.configure_formatter(
       formatter, bq_id_utils.ApiClientHelper.NextPageTokenReference
   )
   formatter.AddDict(page_token)
@@ -763,21 +1026,27 @@ def ParseTimePartitioning(
     time_partitioning[key_field] = partitioning_field
   if partitioning_minimum_partition_date is not None:
     if partitioning_field is not None:
-      time_partitioning[
-          key_minimum_partition_date] = partitioning_minimum_partition_date
+      time_partitioning[key_minimum_partition_date] = (
+          partitioning_minimum_partition_date
+      )
     else:
-      raise app.UsageError('Need to specify --time_partitioning_field for '
-                           '--time_partitioning_minimum_partition_date.')
+      raise app.UsageError(
+          'Need to specify --time_partitioning_field for '
+          '--time_partitioning_minimum_partition_date.'
+      )
   if partitioning_require_partition_filter is not None:
     if time_partitioning:
-      time_partitioning[
-          key_require_partition_filter] = partitioning_require_partition_filter
+      time_partitioning[key_require_partition_filter] = (
+          partitioning_require_partition_filter
+      )
 
   if time_partitioning:
     if key_type not in time_partitioning:
       time_partitioning[key_type] = 'DAY'
-    if (key_expiration in time_partitioning and
-        time_partitioning[key_expiration] <= 0):
+    if (
+        key_expiration in time_partitioning
+        and time_partitioning[key_expiration] <= 0
+    ):
       time_partitioning[key_expiration] = None
     return time_partitioning
   else:
@@ -801,7 +1070,8 @@ def ParseFileSetSpecType(file_set_spec_type=None):
   if file_set_spec_type not in valid_spec_types:
     raise app.UsageError(
         'Error parsing file_set_spec_type, only FILE_SYSTEM_MATCH, '
-        'NEW_LINE_DELIMITED_MANIFEST or no value are accepted')
+        'NEW_LINE_DELIMITED_MANIFEST or no value are accepted'
+    )
   return 'FILE_SET_SPEC_TYPE_' + file_set_spec_type
 
 
@@ -851,7 +1121,8 @@ def ParseNumericTypeConversionMode(
   else:
     raise app.UsageError(
         'Error parsing numeric_type_conversion_mode, only ROUND or no value '
-        'are accepted')
+        'are accepted'
+    )
 
 
 def ParseRangePartitioning(range_partitioning_spec=None):
@@ -879,7 +1150,8 @@ def ParseRangePartitioning(range_partitioning_spec=None):
     if len(parts) != 4:
       raise app.UsageError(
           'Error parsing range_partitioning. range_partitioning should be in '
-          'the format of "field,start,end,interval"')
+          'the format of "field,start,end,interval"'
+      )
     range_partitioning[key_field] = parts[0]
     range_spec = {}
     range_spec[key_range_start] = parts[1]
@@ -942,6 +1214,14 @@ def PrintJobMessages(printable_job_info):
   For DML queries prints number of affected rows.
   For DDL queries prints the performed operation and the target.
   """
+  messages = GetJobMessagesForPrinting(printable_job_info)
+  if messages:
+    print(messages)
+
+
+def GetJobMessagesForPrinting(printable_job_info):
+  """Similar to _PrintJobMessages(), but returns a string, rather than printing."""
+  result_lines = []
 
   job_ref = '(unknown)'  # Should never be seen, but beats a weird crash.
   if 'jobReference' in printable_job_info:
@@ -953,11 +1233,15 @@ def PrintJobMessages(printable_job_info):
     error_result = printable_job_info['status']['errorResult']
     error_ls = printable_job_info['status'].get('errors', [])
     error = bq_error.CreateBigqueryError(error_result, error_result, error_ls)
-    print('Error encountered during job execution:\n%s\n' % (error,))
+    result_lines.append(
+        'Error encountered during job execution:\n%s\n' % (error,)
+    )
   elif 'errors' in printable_job_info['status']:
     warnings = printable_job_info['status']['errors']
-    print(('Warning%s encountered during job execution:\n' %
-           ('' if len(warnings) == 1 else 's')))
+    result_lines.append((
+        'Warning%s encountered during job execution:\n'
+        % ('' if len(warnings) == 1 else 's')
+    ))
     recommend_show = False
     for w in warnings:
       # Some warnings include detailed error messages, and some just
@@ -972,37 +1256,44 @@ def PrintJobMessages(printable_job_info):
           message = w['message']
         if message is not None:
           message = message.encode('utf-8')
-        print('%s\n' % message)
+        result_lines.append('%s\n' % message)
     if recommend_show:
-      print('Use "bq show -j %s" to view job warnings.' % job_ref)
+      result_lines.append('Use "bq show -j %s" to view job warnings.' % job_ref)
   elif 'Affected Rows' in printable_job_info:
-    print('Number of affected rows: %s\n' % printable_job_info['Affected Rows'])
+    result_lines.append(
+        'Number of affected rows: %s\n' % printable_job_info['Affected Rows']
+    )
   elif 'DDL Target Table' in printable_job_info:
     ddl_target_table = printable_job_info['DDL Target Table']
     project_id = ddl_target_table.get('projectId')
     dataset_id = ddl_target_table.get('datasetId')
     table_id = ddl_target_table.get('tableId')
     op = _DDL_OPERATION_MAP.get(
-        printable_job_info.get('DDL Operation Performed'))
+        printable_job_info.get('DDL Operation Performed')
+    )
     # DDL Target Table is returned for both TABLE DDL and DROP ALL ROW ACCESS
     # POLICIES DDL statements.
     if project_id and dataset_id and table_id and op:
       if 'DDL Affected Row Access Policy Count' in printable_job_info:
         ddl_affected_row_access_policy_count = printable_job_info[
-            'DDL Affected Row Access Policy Count']
-        print('{op} {count} row access policies on table '
-              '{project}.{dataset}.{table}\n'.format(
-                  op=op,
-                  count=ddl_affected_row_access_policy_count,
-                  project=project_id,
-                  dataset=dataset_id,
-                  table=table_id))
+            'DDL Affected Row Access Policy Count'
+        ]
+        result_lines.append(
+            '{op} {count} row access policies on table '
+            '{project}.{dataset}.{table}\n'.format(
+                op=op,
+                count=ddl_affected_row_access_policy_count,
+                project=project_id,
+                dataset=dataset_id,
+                table=table_id,
+            )
+        )
       elif (
           'Statement Type' in printable_job_info
           and 'INDEX' in printable_job_info['Statement Type']
       ):
         if 'SEARCH_INDEX' in printable_job_info['Statement Type']:
-          print(
+          result_lines.append(
               '%s search index on table %s.%s.%s\n'
               % (
                   stringutil.ensure_str(op),
@@ -1018,10 +1309,10 @@ def PrintJobMessages(printable_job_info):
               'REPLACE',
           ):
             index_progress_instruction = (
-                'Please use INFORMATION_SCHEMA to check the progress of the'
-                ' index.\n'
-            )
-          print(
+                'Please query %s.%s.INFORMATION_SCHEMA to check the progress '
+                ' of the index.\n'
+            ) % (project_id, dataset_id)
+          result_lines.append(
               '%s vector index on table %s.%s.%s\n%s'
               % (
                   stringutil.ensure_str(op),
@@ -1032,7 +1323,7 @@ def PrintJobMessages(printable_job_info):
               )
           )
       else:
-        print(
+        result_lines.append(
             '%s %s.%s.%s\n'
             % (
                 stringutil.ensure_str(op),
@@ -1041,46 +1332,82 @@ def PrintJobMessages(printable_job_info):
                 stringutil.ensure_str(table_id),
             )
         )
+        if 'Default Connection Stats' in printable_job_info:
+          default_connection_stats = printable_job_info[
+              'Default Connection Stats'
+          ]
+          location_id = job_ref['location']
+          if 'provisioned' in default_connection_stats:
+            if printable_job_info['Statement Type'] == 'CREATE_MODEL':
+              target_type = 'model'
+            else:
+              target_type = 'table'
+            result_lines.append(
+                'Default connection created for %s [%s] in project [%s] in'
+                ' region [%s]\n'
+                % (
+                    stringutil.ensure_str(target_type),
+                    stringutil.ensure_str(table_id),
+                    stringutil.ensure_str(project_id),
+                    stringutil.ensure_str(location_id),
+                )
+            )
+          if 'permissionUpdated' in default_connection_stats:
+            result_lines.append(
+                'Your IAM policy has been updated for the default connection\n'
+            )
   elif 'DDL Target Routine' in printable_job_info:
     ddl_target_routine = printable_job_info['DDL Target Routine']
     project_id = ddl_target_routine.get('projectId')
     dataset_id = ddl_target_routine.get('datasetId')
     routine_id = ddl_target_routine.get('routineId')
     op = _DDL_OPERATION_MAP.get(
-        printable_job_info.get('DDL Operation Performed'))
+        printable_job_info.get('DDL Operation Performed')
+    )
     temp_object_name = MaybeGetSessionTempObjectName(dataset_id, routine_id)
     if temp_object_name is not None:
-      print('%s temporary routine %s' % (op, temp_object_name))
+      result_lines.append('%s temporary routine %s' % (op, temp_object_name))
     else:
-      print('%s %s.%s.%s' % (op, project_id, dataset_id, routine_id))
+      result_lines.append(
+          '%s %s.%s.%s' % (op, project_id, dataset_id, routine_id)
+      )
   elif 'DDL Target Row Access Policy' in printable_job_info:
     ddl_target_row_access_policy = printable_job_info[
-        'DDL Target Row Access Policy']
+        'DDL Target Row Access Policy'
+    ]
     project_id = ddl_target_row_access_policy.get('projectId')
     dataset_id = ddl_target_row_access_policy.get('datasetId')
     table_id = ddl_target_row_access_policy.get('tableId')
     row_access_policy_id = ddl_target_row_access_policy.get('policyId')
     op = _DDL_OPERATION_MAP.get(
-        printable_job_info.get('DDL Operation Performed'))
+        printable_job_info.get('DDL Operation Performed')
+    )
     if project_id and dataset_id and table_id and row_access_policy_id and op:
-      print(
+      result_lines.append(
           '{op} row access policy {policy} on table {project}.{dataset}.{table}'
           .format(
               op=op,
               policy=row_access_policy_id,
               project=project_id,
               dataset=dataset_id,
-              table=table_id))
+              table=table_id,
+          )
+      )
   elif 'Assertion' in printable_job_info:
-    print('Assertion successful')
+    result_lines.append('Assertion successful')
 
   if 'Session Id' in printable_job_info:
-    print('In session: %s' % printable_job_info['Session Id'])
+    result_lines.append('In session: %s' % printable_job_info['Session Id'])
+
+  return '\n'.join(result_lines)
 
 
 def PrintObjectInfo(
-    object_info, reference, custom_format, print_reference=True
-):
+    object_info,
+    reference: bq_id_utils.ApiClientHelper.Reference,
+    custom_format: bq_consts.CustomPrintFormat,
+    print_reference: bool = True,
+) -> None:
   """Prints the object with various formats."""
   # The JSON formats are handled separately so that they don't print
   # the record as a list of one record.
@@ -1091,13 +1418,14 @@ def PrintObjectInfo(
   elif FLAGS.format in ['prettyjson', 'json']:
     bq_utils.PrintFormattedJsonObject(object_info)
   elif FLAGS.format in [None, 'sparse', 'pretty']:
-    formatter = GetFormatterFromFlags()
-    bq_client_utils.ConfigureFormatter(
+    formatter = utils_flags.get_formatter_from_flags()
+    utils_formatting.configure_formatter(
         formatter,
         type(reference),
         print_format=custom_format,
-        object_info=object_info)
-    object_info = bq_client_utils.FormatInfoByType(
+        object_info=object_info,
+    )
+    object_info = utils_formatting.format_info_by_type(
         object_info, type(reference)
     )
     if object_info:
@@ -1109,7 +1437,7 @@ def PrintObjectInfo(
     if isinstance(reference, bq_id_utils.ApiClientHelper.JobReference):
       PrintJobMessages(object_info)
   else:
-    formatter = GetFormatterFromFlags()
+    formatter = utils_flags.get_formatter_from_flags()
     formatter.AddColumns(list(object_info.keys()))
     formatter.AddDict(object_info)
     formatter.Print()
@@ -1121,13 +1449,14 @@ def PrintObjectsArray(object_infos, objects_type):
   elif FLAGS.format in [None, 'sparse', 'pretty']:
     if not object_infos:
       return
-    formatter = GetFormatterFromFlags()
-    bq_client_utils.ConfigureFormatter(
-        formatter, objects_type, print_format='list')
+    formatter = utils_flags.get_formatter_from_flags()
+    utils_formatting.configure_formatter(
+        formatter, objects_type, print_format='list'
+    )
     formatted_infos = list(
         map(
             functools.partial(
-                bq_client_utils.FormatInfoByType,
+                utils_formatting.format_info_by_type,
                 object_type=objects_type,
             ),
             object_infos,
@@ -1137,20 +1466,65 @@ def PrintObjectsArray(object_infos, objects_type):
       formatter.AddDict(info)
     formatter.Print()
   elif object_infos:
-    formatter = GetFormatterFromFlags()
+    formatter = utils_flags.get_formatter_from_flags()
     formatter.AddColumns(list(object_infos[0].keys()))
     for info in object_infos:
       formatter.AddDict(info)
     formatter.Print()
 
 
-def PrintObjectsArrayWithToken(object_infos, objects_type):
+class ResourceMetadata(TypedDict):
+  token: NotRequired[str] = None
+  unreachable: NotRequired[List[str]] = None
+
+
+def PrintObjectsArrayWithMetadata(
+    objects_list: List[Any],
+    objects_type: Type[bq_id_utils.ApiClientHelper.Reference],
+    passed_flags: NamedTuple(
+        'PassedFlags',
+        [
+            ('print_last_token', bool),
+            ('print_unreachable', bool),
+        ],
+    ),
+    objects_metadata: Optional[ResourceMetadata],
+) -> None:
+  """Prints the objects array with metadata configured to print using flags.
+
+  If there is no `objects_metadata` passed in, then this function has the same
+  behaviour as `PrintObjectsArray`.
+
+  Different metadata can be printed by setting flags in `passed_flags`. With
+  a `format` of 'sparse' or 'pretty' then nothing will be printed if no flags
+  are set. With a format of 'prettyjson' or 'json' then the `objects_list`
+  will be printed as a `results` value even if no flags are set to print
+  metadata but if some are set, these will also be printed.
+
+  Arguments:
+    objects_list: The list of resources to print.
+    objects_type: The type of the resources to be printed.
+    passed_flags: Flags used to configure the printing behaviour.
+    objects_metadata: Optional metadata to be printed.
+  """
   if FLAGS.format in ['prettyjson', 'json']:
-    bq_utils.PrintFormattedJsonObject(object_infos)
+    if passed_flags.print_last_token or passed_flags.print_unreachable:
+      json_object = {'results': objects_list}
+      if passed_flags.print_last_token and 'token' in objects_metadata:
+        json_object['token'] = objects_metadata['token']
+      if passed_flags.print_unreachable and 'unreachable' in objects_metadata:
+        json_object['unreachable'] = objects_metadata['unreachable']
+    else:
+      json_object = objects_list
+    bq_utils.PrintFormattedJsonObject(json_object)
   elif FLAGS.format in [None, 'sparse', 'pretty']:
-    PrintObjectsArray(object_infos['results'], objects_type)
-    if 'token' in object_infos:
-      print('\nNext token: ' + object_infos['token'])
+    PrintObjectsArray(objects_list, objects_type)
+    if objects_metadata is None:
+      return
+    if passed_flags.print_last_token and 'token' in objects_metadata:
+      print('\nNext token: ' + objects_metadata['token'])
+    if passed_flags.print_unreachable and 'unreachable' in objects_metadata:
+      print('\nUnreachable: ' + ', '.join(objects_metadata['unreachable']))
 
 
 def ParseUdfResources(udf_resources):
@@ -1176,8 +1550,8 @@ def ParseUdfResources(udf_resources):
       else:
         if not uri.startswith('gs://'):
           raise app.UsageError(
-              'Non-inline resources must be Google Cloud Storage '
-              '(gs://) URIs')
+              'Non-inline resources must be Google Cloud Storage (gs://) URIs'
+          )
         external_udf_resources.append(uri)
   udfs = []
   if inline_udf_resources:
@@ -1204,7 +1578,8 @@ def ValidateDatasetName(dataset_name: str) -> None:
     raise app.UsageError(
         'Dataset name: %s is invalid, must be letters '
         '(uppercase or lowercase), numbers, and underscores up to '
-        '1024 characters.' % dataset_name)
+        '1024 characters.' % dataset_name
+    )
 
 
 def ParseParameters(parameters):
@@ -1233,10 +1608,12 @@ def ParseParameters(parameters):
 def SplitParam(param_string):
   split = param_string.split(':', 1)
   if len(split) != 2:
-    raise app.UsageError('Query parameters must be of the form: '
-                         '"name:type:value", ":type:value", or "name::value". '
-                         'An empty name produces a positional parameter. '
-                         'An empty type produces a STRING parameter.')
+    raise app.UsageError(
+        'Query parameters must be of the form: '
+        '"name:type:value", ":type:value", or "name::value". '
+        'An empty name produces a positional parameter. '
+        'An empty type produces a STRING parameter.'
+    )
   return split
 
 
@@ -1269,12 +1646,12 @@ def ParseParameterType(type_string):
   if type_string.upper().startswith('ARRAY<') and type_string.endswith('>'):
     type_dict = {
         'type': 'ARRAY',
-        'arrayType': ParseParameterType(type_string[6:-1])
+        'arrayType': ParseParameterType(type_string[6:-1]),
     }
   if type_string.startswith('STRUCT<') and type_string.endswith('>'):
     type_dict = {
         'type': 'STRUCT',
-        'structTypes': ParseStructType(type_string[7:-1])
+        'structTypes': ParseStructType(type_string[7:-1]),
     }
   if type_string.startswith('RANGE<') and type_string.endswith('>'):
     type_dict = {
@@ -1314,15 +1691,15 @@ def StructTypeSplit(type_string):
           break
       if angle_count != 0:
         raise app.UsageError('Malformatted struct type')
-      next_span = type_string[:i + 1]
-    type_string = type_string[len(next_span) + 1:]
+      next_span = type_string[: i + 1]
+    type_string = type_string[len(next_span) + 1 :]
     splits = next_span.split(None, 1)
     if len(splits) != 2:
       raise app.UsageError('Struct parameter missing name for field')
     yield splits
 
 
-def FormatRfc3339(datetime_obj):
+def FormatRfc3339(datetime_obj: datetime.datetime) -> str:
   """Formats a datetime.datetime object (UTC) in RFC3339.
 
   https://developers.google.com/protocol-buffers/docs/reference/google.protobuf#timestamp
@@ -1372,7 +1749,7 @@ def ParseParameterValue(type_dict, value_input):
       value_input = json.loads(value_input)
     type_map = dict([(x['name'], x['type']) for x in type_dict['structTypes']])
     values = {}
-    for (field_name, value) in value_input.items():
+    for field_name, value in value_input.items():
       values[field_name] = ParseParameterValue(type_map[field_name], value)
     return {'structValues': values}
   if 'arrayType' in type_dict:
@@ -1384,8 +1761,9 @@ def ParseParameterValue(type_dict, value_input):
       except json.decoder.JSONDecodeError:
         tb = sys.exc_info()[2]
         # pylint: disable=raise-missing-from
-        raise app.UsageError(('Error parsing string as JSON: %s') %
-                             value_input).with_traceback(tb)
+        raise app.UsageError(
+            'Error parsing string as JSON: %s' % value_input
+        ).with_traceback(tb)
     values = [
         ParseParameterValue(type_dict['arrayType'], x) for x in value_input
     ]

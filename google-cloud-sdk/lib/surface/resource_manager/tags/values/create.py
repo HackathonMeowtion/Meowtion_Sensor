@@ -25,20 +25,18 @@ from googlecloudsdk.command_lib.resource_manager import tag_arguments as argumen
 from googlecloudsdk.command_lib.resource_manager import tag_utils
 
 
-@base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA,
-                    base.ReleaseTrack.GA)
+@base.ReleaseTracks(base.ReleaseTrack.GA)
+@base.DefaultUniverseOnly
 class Create(base.Command):
   """Creates a TagValue resource.
 
-    Creates a TagValue resource given the short_name and description (optional)
-    as well as the parent, the of the TagValue. The parent of the
-    TagValue is always a TagKey and the TagKey's details can be passed as
-    a numeric id or the namespaced name.
+  Creates a TagValue resource given the short_name and description (optional)
+  as well as the parent, the of the TagValue. The parent of the
+  TagValue is always a TagKey and the TagKey's details can be passed as
+  a numeric id or the namespaced name.
   """
 
-  detailed_help = {
-      "EXAMPLES":
-          """
+  detailed_help = {"EXAMPLES": """
           To create a TagValue with the short name 'test' and the
           description 'description' under a TagKey with a short name 'env'
           under 'organizations/123', run:
@@ -51,8 +49,9 @@ class Create(base.Command):
 
             $ {command} test --parent=tagKeys/456
                 --description=description
-          """
-  }
+          """}
+
+  tag_value_parent = None
 
   @staticmethod
   def Args(parser):
@@ -60,8 +59,11 @@ class Create(base.Command):
     arguments.AddShortNameArgToParser(group)
     arguments.AddParentArgToParser(
         group,
-        message=("Parent of the TagValue in either in the form of "
-                 "tagKeys/{id} or {org_id}/{tagkey_short_name}"))
+        message=(
+            "Parent of the TagValue in either in the form of "
+            "tagKeys/{id} or {org_id}/{tagkey_short_name}"
+        ),
+    )
     arguments.AddDescriptionArgToParser(parser)
     arguments.AddAsyncArgToParser(parser)
 
@@ -72,17 +74,26 @@ class Create(base.Command):
     short_name = args.short_name
     description = args.description
 
-    if args.parent.find("tagKeys/") == 0:
-      tag_key = args.parent
+    if self.tag_value_parent is not None:
+      tag_value = messages.TagValue(
+          shortName=short_name,
+          description=description,
+          parent=self.tag_value_parent,
+      )
     else:
-      tag_key = tag_utils.GetNamespacedResource(
-          args.parent, tag_utils.TAG_KEYS
-      ).name
+      if args.parent.find("tagKeys/") == 0:
+        tag_key = args.parent
+      else:
+        tag_key = tag_utils.GetNamespacedResource(
+            args.parent, tag_utils.TAG_KEYS
+        ).name
+      tag_value = messages.TagValue(
+          shortName=short_name, description=description, parent=tag_key
+      )
 
-    tag_value = messages.TagValue(
-        shortName=short_name, description=description, parent=tag_key)
     create_req = messages.CloudresourcemanagerTagValuesCreateRequest(
-        tagValue=tag_value)
+        tagValue=tag_value
+    )
 
     op = service.Create(create_req)
 
@@ -92,4 +103,21 @@ class Create(base.Command):
     return operations.WaitForOperation(
         op,
         "Waiting for TagValue [{}] to be created".format(short_name),
-        service=service)
+        service=service,
+    )
+
+
+@base.ReleaseTracks(base.ReleaseTrack.ALPHA, base.ReleaseTrack.BETA)
+@base.DefaultUniverseOnly
+class CreateAlpha(Create):
+  """Creates a TagValue resource.
+
+  Creates a TagValue resource given the short_name and description (optional)
+  as well as the parent, the of the TagValue. The parent of the
+  TagValue can be a TagKey and TagValue the parent's details can be passed as
+  a numeric id or the namespaced name.
+  """
+
+  def Run(self, args):
+    self.tag_value_parent = tag_utils.GetTagValueParent(args.parent)
+    return super().Run(args)

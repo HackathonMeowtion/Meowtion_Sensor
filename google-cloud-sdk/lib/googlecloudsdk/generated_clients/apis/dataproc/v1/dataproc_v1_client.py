@@ -374,6 +374,60 @@ class DataprocV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def AccessNativeBuildInfo(self, request, global_params=None):
+      r"""Obtain build data for Native Job.
+
+      Args:
+        request: (DataprocProjectsLocationsBatchesSparkApplicationsAccessNativeBuildInfoRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (AccessSparkApplicationNativeBuildInfoResponse) The response message.
+      """
+      config = self.GetMethodConfig('AccessNativeBuildInfo')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    AccessNativeBuildInfo.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/batches/{batchesId}/sparkApplications/{sparkApplicationsId}:accessNativeBuildInfo',
+        http_method='GET',
+        method_id='dataproc.projects.locations.batches.sparkApplications.accessNativeBuildInfo',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['parent'],
+        relative_path='v1/{+name}:accessNativeBuildInfo',
+        request_field='',
+        request_type_name='DataprocProjectsLocationsBatchesSparkApplicationsAccessNativeBuildInfoRequest',
+        response_type_name='AccessSparkApplicationNativeBuildInfoResponse',
+        supports_download=False,
+    )
+
+    def AccessNativeSqlQuery(self, request, global_params=None):
+      r"""Obtain data corresponding to a particular Native SQL Query for a Spark Application.
+
+      Args:
+        request: (DataprocProjectsLocationsBatchesSparkApplicationsAccessNativeSqlQueryRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (AccessSparkApplicationNativeSqlQueryResponse) The response message.
+      """
+      config = self.GetMethodConfig('AccessNativeSqlQuery')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    AccessNativeSqlQuery.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/batches/{batchesId}/sparkApplications/{sparkApplicationsId}:accessNativeSqlQuery',
+        http_method='GET',
+        method_id='dataproc.projects.locations.batches.sparkApplications.accessNativeSqlQuery',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['executionId', 'parent'],
+        relative_path='v1/{+name}:accessNativeSqlQuery',
+        request_field='',
+        request_type_name='DataprocProjectsLocationsBatchesSparkApplicationsAccessNativeSqlQueryRequest',
+        response_type_name='AccessSparkApplicationNativeSqlQueryResponse',
+        supports_download=False,
+    )
+
     def AccessSqlPlan(self, request, global_params=None):
       r"""Obtain Spark Plan Graph for a Spark Application SQL execution. Limits the number of clusters returned as part of the graph to 10000.
 
@@ -587,6 +641,33 @@ class DataprocV1(base_api.BaseApiClient):
         request_field='',
         request_type_name='DataprocProjectsLocationsBatchesSparkApplicationsSearchJobsRequest',
         response_type_name='SearchSparkApplicationJobsResponse',
+        supports_download=False,
+    )
+
+    def SearchNativeSqlQueries(self, request, global_params=None):
+      r"""Obtain data corresponding to Native SQL Queries for a Spark Application.
+
+      Args:
+        request: (DataprocProjectsLocationsBatchesSparkApplicationsSearchNativeSqlQueriesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (SearchSparkApplicationNativeSqlQueriesResponse) The response message.
+      """
+      config = self.GetMethodConfig('SearchNativeSqlQueries')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SearchNativeSqlQueries.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/batches/{batchesId}/sparkApplications/{sparkApplicationsId}:searchNativeSqlQueries',
+        http_method='GET',
+        method_id='dataproc.projects.locations.batches.sparkApplications.searchNativeSqlQueries',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['pageSize', 'pageToken', 'parent'],
+        relative_path='v1/{+name}:searchNativeSqlQueries',
+        request_field='',
+        request_type_name='DataprocProjectsLocationsBatchesSparkApplicationsSearchNativeSqlQueriesRequest',
+        response_type_name='SearchSparkApplicationNativeSqlQueriesResponse',
         supports_download=False,
     )
 
@@ -1332,6 +1413,60 @@ class DataprocV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def AccessNativeBuildInfo(self, request, global_params=None):
+      r"""Obtain data corresponding to Native Build Information for a Spark Application.
+
+      Args:
+        request: (DataprocProjectsLocationsSessionsSparkApplicationsAccessNativeBuildInfoRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (AccessSessionSparkApplicationNativeBuildInfoResponse) The response message.
+      """
+      config = self.GetMethodConfig('AccessNativeBuildInfo')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    AccessNativeBuildInfo.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/sessions/{sessionsId}/sparkApplications/{sparkApplicationsId}:accessNativeBuildInfo',
+        http_method='GET',
+        method_id='dataproc.projects.locations.sessions.sparkApplications.accessNativeBuildInfo',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['parent'],
+        relative_path='v1/{+name}:accessNativeBuildInfo',
+        request_field='',
+        request_type_name='DataprocProjectsLocationsSessionsSparkApplicationsAccessNativeBuildInfoRequest',
+        response_type_name='AccessSessionSparkApplicationNativeBuildInfoResponse',
+        supports_download=False,
+    )
+
+    def AccessNativeSqlQuery(self, request, global_params=None):
+      r"""Obtain data corresponding to a particular Native SQL Query for a Spark Application.
+
+      Args:
+        request: (DataprocProjectsLocationsSessionsSparkApplicationsAccessNativeSqlQueryRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (AccessSessionSparkApplicationNativeSqlQueryResponse) The response message.
+      """
+      config = self.GetMethodConfig('AccessNativeSqlQuery')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    AccessNativeSqlQuery.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/sessions/{sessionsId}/sparkApplications/{sparkApplicationsId}:accessNativeSqlQuery',
+        http_method='GET',
+        method_id='dataproc.projects.locations.sessions.sparkApplications.accessNativeSqlQuery',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['executionId', 'parent'],
+        relative_path='v1/{+name}:accessNativeSqlQuery',
+        request_field='',
+        request_type_name='DataprocProjectsLocationsSessionsSparkApplicationsAccessNativeSqlQueryRequest',
+        response_type_name='AccessSessionSparkApplicationNativeSqlQueryResponse',
+        supports_download=False,
+    )
+
     def AccessSqlPlan(self, request, global_params=None):
       r"""Obtain Spark Plan Graph for a Spark Application SQL execution. Limits the number of clusters returned as part of the graph to 10000.
 
@@ -1540,11 +1675,38 @@ class DataprocV1(base_api.BaseApiClient):
         method_id='dataproc.projects.locations.sessions.sparkApplications.searchJobs',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['jobStatus', 'pageSize', 'pageToken', 'parent'],
+        query_params=['jobIds', 'jobStatus', 'pageSize', 'pageToken', 'parent'],
         relative_path='v1/{+name}:searchJobs',
         request_field='',
         request_type_name='DataprocProjectsLocationsSessionsSparkApplicationsSearchJobsRequest',
         response_type_name='SearchSessionSparkApplicationJobsResponse',
+        supports_download=False,
+    )
+
+    def SearchNativeSqlQueries(self, request, global_params=None):
+      r"""Obtain data corresponding to Native SQL Queries for a Spark Application.
+
+      Args:
+        request: (DataprocProjectsLocationsSessionsSparkApplicationsSearchNativeSqlQueriesRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (SearchSessionSparkApplicationNativeSqlQueriesResponse) The response message.
+      """
+      config = self.GetMethodConfig('SearchNativeSqlQueries')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    SearchNativeSqlQueries.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/locations/{locationsId}/sessions/{sessionsId}/sparkApplications/{sparkApplicationsId}:searchNativeSqlQueries',
+        http_method='GET',
+        method_id='dataproc.projects.locations.sessions.sparkApplications.searchNativeSqlQueries',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=['pageSize', 'pageToken', 'parent'],
+        relative_path='v1/{+name}:searchNativeSqlQueries',
+        request_field='',
+        request_type_name='DataprocProjectsLocationsSessionsSparkApplicationsSearchNativeSqlQueriesRequest',
+        response_type_name='SearchSessionSparkApplicationNativeSqlQueriesResponse',
         supports_download=False,
     )
 
@@ -1567,7 +1729,7 @@ class DataprocV1(base_api.BaseApiClient):
         method_id='dataproc.projects.locations.sessions.sparkApplications.searchSqlQueries',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['details', 'pageSize', 'pageToken', 'parent', 'planDescription'],
+        query_params=['details', 'operationIds', 'pageSize', 'pageToken', 'parent', 'planDescription'],
         relative_path='v1/{+name}:searchSqlQueries',
         request_field='',
         request_type_name='DataprocProjectsLocationsSessionsSparkApplicationsSearchSqlQueriesRequest',
@@ -1648,7 +1810,7 @@ class DataprocV1(base_api.BaseApiClient):
         method_id='dataproc.projects.locations.sessions.sparkApplications.searchStages',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['pageSize', 'pageToken', 'parent', 'stageStatus', 'summaryMetricsMask'],
+        query_params=['pageSize', 'pageToken', 'parent', 'stageIds', 'stageStatus', 'summaryMetricsMask'],
         relative_path='v1/{+name}:searchStages',
         request_field='',
         request_type_name='DataprocProjectsLocationsSessionsSparkApplicationsSearchStagesRequest',
@@ -1702,7 +1864,7 @@ class DataprocV1(base_api.BaseApiClient):
         method_id='dataproc.projects.locations.sessions.sparkApplications.summarizeJobs',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['parent'],
+        query_params=['jobIds', 'parent'],
         relative_path='v1/{+name}:summarizeJobs',
         request_field='',
         request_type_name='DataprocProjectsLocationsSessionsSparkApplicationsSummarizeJobsRequest',
@@ -1756,7 +1918,7 @@ class DataprocV1(base_api.BaseApiClient):
         method_id='dataproc.projects.locations.sessions.sparkApplications.summarizeStages',
         ordered_params=['name'],
         path_params=['name'],
-        query_params=['parent'],
+        query_params=['parent', 'stageIds'],
         relative_path='v1/{+name}:summarizeStages',
         request_field='',
         request_type_name='DataprocProjectsLocationsSessionsSparkApplicationsSummarizeStagesRequest',
@@ -1879,33 +2041,6 @@ class DataprocV1(base_api.BaseApiClient):
         request_field='',
         request_type_name='DataprocProjectsLocationsSessionsGetRequest',
         response_type_name='Session',
-        supports_download=False,
-    )
-
-    def InjectCredentials(self, request, global_params=None):
-      r"""Inject Credentials in the interactive session.
-
-      Args:
-        request: (DataprocProjectsLocationsSessionsInjectCredentialsRequest) input message
-        global_params: (StandardQueryParameters, default: None) global arguments
-      Returns:
-        (Operation) The response message.
-      """
-      config = self.GetMethodConfig('InjectCredentials')
-      return self._RunMethod(
-          config, request, global_params=global_params)
-
-    InjectCredentials.method_config = lambda: base_api.ApiMethodInfo(
-        flat_path='v1/projects/{projectsId}/locations/{locationsId}/sessions/{sessionsId}:injectCredentials',
-        http_method='POST',
-        method_id='dataproc.projects.locations.sessions.injectCredentials',
-        ordered_params=['session'],
-        path_params=['session'],
-        query_params=[],
-        relative_path='v1/{+session}:injectCredentials',
-        request_field='injectSessionCredentialsRequest',
-        request_type_name='DataprocProjectsLocationsSessionsInjectCredentialsRequest',
-        response_type_name='Operation',
         supports_download=False,
     )
 
@@ -2651,6 +2786,60 @@ class DataprocV1(base_api.BaseApiClient):
         supports_download=False,
     )
 
+    def Start(self, request, global_params=None):
+      r"""Starts all the VMs in a node group in a cluster. The returned Operation.metadata is NodeGroupOperationMetadata (https://cloud.google.com/dataproc/docs/reference/rpc/google.cloud.dataproc.v1#nodegroupoperationmetadata).
+
+      Args:
+        request: (DataprocProjectsRegionsClustersNodeGroupsStartRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Start')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Start.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/regions/{regionsId}/clusters/{clustersId}/nodeGroups/{nodeGroupsId}:start',
+        http_method='POST',
+        method_id='dataproc.projects.regions.clusters.nodeGroups.start',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}:start',
+        request_field='startNodeGroupRequest',
+        request_type_name='DataprocProjectsRegionsClustersNodeGroupsStartRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def Stop(self, request, global_params=None):
+      r"""Stops all the VMs in a node group in a cluster. The returned Operation.metadata is NodeGroupOperationMetadata (https://cloud.google.com/dataproc/docs/reference/rpc/google.cloud.dataproc.v1#nodegroupoperationmetadata).
+
+      Args:
+        request: (DataprocProjectsRegionsClustersNodeGroupsStopRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('Stop')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    Stop.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/regions/{regionsId}/clusters/{clustersId}/nodeGroups/{nodeGroupsId}:stop',
+        http_method='POST',
+        method_id='dataproc.projects.regions.clusters.nodeGroups.stop',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}:stop',
+        request_field='stopNodeGroupRequest',
+        request_type_name='DataprocProjectsRegionsClustersNodeGroupsStopRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
     def UpdateLabels(self, request, global_params=None):
       r"""Updates labels on the node group in a cluster. The returned Operation.metadata is NodeGroupOperationMetadata (https://cloud.google.com/dataproc/docs/reference/rpc/google.cloud.dataproc.v1#nodegroupoperationmetadata).
 
@@ -2674,6 +2863,33 @@ class DataprocV1(base_api.BaseApiClient):
         relative_path='v1/{+name}:updateLabels',
         request_field='updateLabelsNodeGroupRequest',
         request_type_name='DataprocProjectsRegionsClustersNodeGroupsUpdateLabelsRequest',
+        response_type_name='Operation',
+        supports_download=False,
+    )
+
+    def UpdateMetadataConfig(self, request, global_params=None):
+      r"""Updates config on the node group in a cluster. The returned Operation.metadata is NodeGroupOperationMetadata (https://cloud.google.com/dataproc/docs/reference/rpc/google.cloud.dataproc.v1#nodegroupoperationmetadata).
+
+      Args:
+        request: (DataprocProjectsRegionsClustersNodeGroupsUpdateMetadataConfigRequest) input message
+        global_params: (StandardQueryParameters, default: None) global arguments
+      Returns:
+        (Operation) The response message.
+      """
+      config = self.GetMethodConfig('UpdateMetadataConfig')
+      return self._RunMethod(
+          config, request, global_params=global_params)
+
+    UpdateMetadataConfig.method_config = lambda: base_api.ApiMethodInfo(
+        flat_path='v1/projects/{projectsId}/regions/{regionsId}/clusters/{clustersId}/nodeGroups/{nodeGroupsId}:updateMetadataConfig',
+        http_method='POST',
+        method_id='dataproc.projects.regions.clusters.nodeGroups.updateMetadataConfig',
+        ordered_params=['name'],
+        path_params=['name'],
+        query_params=[],
+        relative_path='v1/{+name}:updateMetadataConfig',
+        request_field='updateMetadataConfigNodeGroupRequest',
+        request_type_name='DataprocProjectsRegionsClustersNodeGroupsUpdateMetadataConfigRequest',
         response_type_name='Operation',
         supports_download=False,
     )

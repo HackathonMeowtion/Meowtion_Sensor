@@ -24,6 +24,7 @@ from googlecloudsdk.command_lib.run import flags
 from googlecloudsdk.command_lib.run import platforms
 
 
+@base.DefaultUniverseOnly
 @base.ReleaseTracks(base.ReleaseTrack.GA)
 class DomainMappings(base.Group):
   """View and manage your Cloud Run for Anthos domain mappings.
@@ -34,6 +35,9 @@ class DomainMappings(base.Group):
   To view and manage fully managed Cloud Run domain mappings, use
   `gcloud beta run domain-mappings`.
   """
+
+  # Hide GA command because only used by Cloud Run for Anthos
+  hidden = True
 
   detailed_help = {
       'DESCRIPTION':
