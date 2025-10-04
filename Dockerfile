@@ -1,11 +1,12 @@
-# Use a lightweight Nginx image as the base
+FROM node:20 AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+ARG VITE_GEMINI_API_KEY
+RUN VITE_GEMINI_API_KEY=$VITE_GEMINI_API_KEY npm run build
+
 FROM nginx:alpine
-
-# Copy all your application files to the Nginx public directory
-COPY . /usr/share/nginx/html
-
-# Expose port 80
+COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80
-
-# Start Nginx
 CMD ["nginx", "-g", "daemon off;"]
