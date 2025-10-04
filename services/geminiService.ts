@@ -2,11 +2,21 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { CatBreedAnalysis } from '../types';
 
-if (!process.env.API_KEY) {
-  throw new Error("API_KEY environment variable not set");
-}
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+let aiClient: GoogleGenAI | null = null;
+
+const getClient = () => {
+  if (!apiKey) {
+    throw new Error('Gemini API key is not configured. Please set the VITE_GEMINI_API_KEY environment variable.');
+  }
+
+  if (!aiClient) {
+    aiClient = new GoogleGenAI({ apiKey });
+  }
+
+  return aiClient;
+};
 
 const model = 'gemini-2.5-flash';
 
@@ -54,7 +64,9 @@ export const identifyCatBreed = async (base64Image: string, mimeType: string): P
   };
   
   try {
-    const response = await ai.models.generateContent({
+    const client = getClient();
+
+    const response = await client.models.generateContent({
       model: model,
       contents: { parts: [textPart, imagePart] },
       config: {
@@ -75,6 +87,11 @@ export const identifyCatBreed = async (base64Image: string, mimeType: string): P
 
   } catch (error) {
     console.error("Error calling Gemini API:", error);
+
+    if (error instanceof Error && error.message.includes("Gemini API key is not configured")) {
+      throw error;
+    }
+
     throw new Error("Could not get a valid response from the AI model.");
   }
 };
