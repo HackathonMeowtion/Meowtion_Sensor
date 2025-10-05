@@ -1,69 +1,26 @@
-// src/App.tsx
-import React, { useState, useCallback, useEffect } from 'react';
-// Make sure to import both types if you use them elsewhere
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { CatBreedAnalysis, MatchResult } from './types';
-// Keep your existing service & util imports
 import { identifyCatBreed, findMatchingCat } from './services/geminiService';
 import { fileToBase64 } from './utils/imageUtils';
+
+import Header from './components/Header';
+import Footer, { FooterTab } from './components/Footer';
+import Loader from './components/Loader';
 import ImageUploader from './components/ImageUploader';
 import ResultCard from './components/ResultCard';
 import MatchResultCard from './components/MatchResultCard';
 import ProfilePanel from './components/ProfilePanel';
+import CatMap from './components/CatMap';
 
-// Logos / assets
-import meowtionSensorLogo from './assets/MeowtionSensorLogo.png';
-import searchBarIcon from './assets/searchBarIcon.PNG';
-
-// Footer assets
-import homeIconUnselected from './assets/home_unselected.png';
-import homeIconSelected from './assets/home_selected.PNG';
-import searchIconUnselected from './assets/search_unselected.png';
-import searchIconSelected from './assets/search_selected.PNG';
-import addCatIconUnselected from './assets/addCat_unselected.png';
-import addCatIconSelected from './assets/addCat_selected.PNG';
-import mapIconUnselected from './assets/catMap_unselected.png';
-import mapIconSelected from './assets/catMap_selected.PNG';
-import profileIconUnselected from './assets/userProfile_unselected.png';
-import profileIconSelected from './assets/userProfile_selected.PNG';
-
-// Social icons
-import instagramIcon from './assets/instagram.PNG';
-import discordIcon from './assets/discord.PNG';
-import facebookIcon from './assets/facebook.PNG';
-import twitterIcon from './assets/twitter.PNG';
-
-// Known cat images (you already listed these — keep same imports)
-import eggs1 from './assets/known-cats/eggs1.png';
-import eggs2 from './assets/known-cats/eggs2.png';
-import eggs3 from './assets/known-cats/eggs3.png';
-import microwave1 from './assets/known-cats/microwave.webp';
-import microwave2 from './assets/known-cats/microwave2.jpg';
-import microwave3 from './assets/known-cats/microwave3.jpg';
-import oreo1 from './assets/known-cats/oreo.jpg';
-import oreo2 from './assets/known-cats/oreo2.jpeg';
-import oreo3 from './assets/known-cats/oreo3.png';
-import snickers1 from './assets/known-cats/snickers1.png';
-import snickers2 from './assets/known-cats/snickers2.png';
-import snickers3 from './assets/known-cats/snickers3.png';
-import twix1 from './assets/known-cats/twix.jpg';
-import twix2 from './assets/known-cats/twix2.jpg';
-import twix3 from './assets/known-cats/twix3.jpg';
-
-// Profile default
 import profileDefault from './assets/profileDefault.png';
+import microwave1 from './assets/known-cats/microwave.webp';
+import oreo1 from './assets/known-cats/oreo.jpg';
 
-// Define a more structured type for our cat data
-type CatImage = {
-  name: string; // e.g., 'eggs', 'oreo'
-  src: string;  // The URL path to the image
-};
+const POST_CHARACTER_LIMIT = 120;
 
-// --- NEW: Preset hashtags for known cats (B: visible anywhere they appear) ---
 const catHashtags: Record<string, string[]> = {
-  eggs: ['#eggs', '#orange', '#tabby'],
   microwave: ['#microwave', '#gray', '#fluffy'],
   oreo: ['#oreo', '#blackandwhite'],
-  snickers: ['#snickers', '#brown', '#striped'],
   twix: ['#twix', '#cream', '#tabby'],
 };
 
@@ -79,10 +36,28 @@ type FeedPost = {
   isUserGenerated?: boolean;
 };
 
+const headerCopy: Record<FooterTab, { title: string; subtitle: string }> = {
+  identify: {
+    title: 'Identify a campus cat',
+    subtitle: 'Upload a photo to analyze the breed and match known friends.',
+  },
+  gallery: {
+    title: 'Community feed',
+    subtitle: 'See recent sightings and share your own Meowtion reports.',
+  },
+  map: {
+    title: 'Cat map',
+    subtitle: 'Explore favourite hangouts around campus in real time.',
+  },
+  profile: {
+    title: 'Your profile',
+    subtitle: 'Sign in with Auth0 to manage your Meowtion Sensor account.',
+  },
+};
+
 const formatTimeAgo = (timestamp: number) => {
   const now = Date.now();
-  const diffMs = now - timestamp;
-  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffSeconds = Math.floor((now - timestamp) / 1000);
   if (diffSeconds < 60) return 'Just now';
   const diffMinutes = Math.floor(diffSeconds / 60);
   if (diffMinutes < 60) return `${diffMinutes}m`;
@@ -101,105 +76,49 @@ const formatTimeAgo = (timestamp: number) => {
   return diffYears === 1 ? '1y' : `${diffYears}y`;
 };
 
-// Helper to render preset hashtags
-const renderHashtags = (name: string | undefined | null) => {
+const renderHashtags = (name?: string | null) => {
   if (!name) return null;
-  const key = name.toLowerCase();
-  const tags = catHashtags[key];
-  return tags ? (
-    <div className="text-xs text-[#98522C] font-bold tracking-wide mt-1">
-      {tags.join(' ')}
-    </div>
-  ) : null;
+  const tags = catHashtags[name.toLowerCase()];
+  if (!tags) return null;
+  return <p className="mt-2 text-xs font-semibold text-blue-700">{tags.join(' ')}</p>;
 };
 
-// Master lists (kept from your previous file)
-const catNames = ["eggs", "microwave", "oreo", "snickers", "twix"];
-const allCatImages: CatImage[] = [
-  { name: 'eggs', src: eggs1 }, { name: 'eggs', src: eggs2 }, { name: 'eggs', src: eggs3 },
-  { name: 'microwave', src: microwave1 }, { name: 'microwave', src: microwave2 }, { name: 'microwave', src: microwave3 },
-  { name: 'oreo', src: oreo1 }, { name: 'oreo', src: oreo2 }, { name: 'oreo', src: oreo3 },
-  { name: 'snickers', src: snickers1 }, { name: 'snickers', src: snickers2 }, { name: 'snickers', src: snickers3 },
-  { name: 'twix', src: twix1 }, { name: 'twix', src: twix2 }, { name: 'twix', src: twix3 },
-];
-
 const App: React.FC = () => {
-  // debug environment prints (as before)
-  console.log("Auth0 domain:", import.meta.env.VITE_AUTH0_DOMAIN);
-  console.log("Auth0 client ID:", import.meta.env.VITE_AUTH0_CLIENT_ID);
-
-  // existing states
+  const [activeTab, setActiveTab] = useState<FooterTab>('identify');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<CatBreedAnalysis | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isMatching, setIsMatching] = useState<boolean>(false);
+  const [isMatching, setIsMatching] = useState(false);
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
   const [matchError, setMatchError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>('home');
-
-  // Search states (kept)
-  const [searchTerm, setSearchTerm] = useState('');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [displayedCats, setDisplayedCats] = useState<CatImage[]>(allCatImages);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-
-  // Post creation state
   const [isCreatingPost, setIsCreatingPost] = useState(false);
   const [postMessage, setPostMessage] = useState('');
   const [postError, setPostError] = useState<string | null>(null);
   const [isPosting, setIsPosting] = useState(false);
-
-  // track last-known detected cat name (best effort from analysis/match/selected image)
   const [lastKnownCatName, setLastKnownCatName] = useState<string | null>(null);
-
-  const userPostsStorageKey = 'meowtionSensor.userPosts';
-
-  // --- New: Home feed demo data (static, but ready for array/expansion) ---
-  // You said to display the username and use profileDefault.png
-  const username = 'UTACatLuvr'; // using the account name from metadata as requested
-  const mainPost: FeedPost = {
-    id: 'post-main',
-    user: username,
-    userAvatar: profileDefault,
-    image: microwave1, // main image (you requested microwave.webp)
-    caption: "Spotted this sneaky floof by the courtyard — stole my sandwich and my heart. 🐾",
-    name: 'microwave', // added to allow hashtag display on the demo post
-    createdAt: Date.now() - 2 * 60 * 60 * 1000,
-    likes: 129,
-  };
-  const nextPostPreview: FeedPost = {
-    id: 'post-preview',
-    user: 'Oreo Lover',
-    userAvatar: profileDefault,
-    image: oreo1, // preview image
-    caption: 'Peek a boo!',
-    name: 'oreo', // added to allow hashtag display on the demo preview
-    createdAt: Date.now() - 4 * 60 * 60 * 1000,
-    likes: 54,
-  };
   const [userPosts, setUserPosts] = useState<FeedPost[]>([]);
+
+  const username = 'UTACatLuvr';
+  const userPostsStorageKey = 'meowtionSensor.userPosts';
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
       const stored = window.localStorage.getItem(userPostsStorageKey);
-      if (stored) {
-        const parsed = JSON.parse(stored) as FeedPost[];
-        if (Array.isArray(parsed)) {
-          setUserPosts(
-            parsed.map((post) => {
-              const timestamp = Number(post.createdAt);
-              return {
-                ...post,
-                createdAt: Number.isNaN(timestamp) ? Date.now() : timestamp,
-              };
-            })
-          );
-        }
-      }
+      if (!stored) return;
+      const parsed = JSON.parse(stored) as FeedPost[];
+      if (!Array.isArray(parsed)) return;
+      setUserPosts(
+        parsed.map((post) => {
+          const timestamp = Number(post.createdAt);
+          return {
+            ...post,
+            createdAt: Number.isNaN(timestamp) ? Date.now() : timestamp,
+          };
+        }),
+      );
     } catch (storageError) {
       console.error('Failed to load saved posts', storageError);
     }
@@ -214,26 +133,71 @@ const App: React.FC = () => {
     }
   }, [userPosts]);
 
-  const combinedPosts = [...userPosts, mainPost, nextPostPreview];
-  const upcomingPost = combinedPosts.length > 1 ? combinedPosts[1] : null;
+  useEffect(() => {
+    if (analysis?.isCat && analysis.breed) {
+      setLastKnownCatName(analysis.breed.toLowerCase());
+    }
+  }, [analysis]);
 
-  // --- Existing handlers kept mostly unchanged ---
-  const handleImageChange = async (file: File | null) => {
-    if (file) {
+  useEffect(() => {
+    if (matchResult?.matchedCatName) {
+      setLastKnownCatName(matchResult.matchedCatName.toLowerCase());
+    }
+  }, [matchResult]);
+
+  useEffect(() => {
+    if (isCreatingPost && lastKnownCatName && postMessage.trim().length === 0) {
+      const tags = catHashtags[lastKnownCatName];
+      if (tags) {
+        setPostMessage(tags.join(' '));
+      }
+    }
+  }, [isCreatingPost, lastKnownCatName, postMessage]);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  const handleReset = useCallback(() => {
+    setImageFile(null);
+    setPreviewUrl(null);
+    setAnalysis(null);
+    setError(null);
+    setIsLoading(false);
+    setIsMatching(false);
+    setMatchResult(null);
+    setMatchError(null);
+    setIsCreatingPost(false);
+    setPostError(null);
+    setPostMessage('');
+    setLastKnownCatName(null);
+  }, []);
+
+  const handleImageChange = useCallback(
+    (file: File) => {
       setImageFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
+      const nextPreviewUrl = URL.createObjectURL(file);
+      setPreviewUrl((previous) => {
+        if (previous) {
+          URL.revokeObjectURL(previous);
+        }
+        return nextPreviewUrl;
+      });
       setAnalysis(null);
       setError(null);
       setMatchResult(null);
       setMatchError(null);
       setIsCreatingPost(false);
       setPostMessage('');
-      setLastKnownCatName(null);
       setPostError(null);
-    } else {
-      handleReset();
-    }
-  };
+      setActiveTab('identify');
+    },
+    [],
+  );
 
   const handleIdentifyClick = useCallback(async () => {
     if (!imageFile) {
@@ -246,17 +210,9 @@ const App: React.FC = () => {
       const { base64, mimeType } = await fileToBase64(imageFile);
       const result = await identifyCatBreed(base64, mimeType);
       setAnalysis(result);
-      // If the analysis returned a name we can use, store it as last-known
-      const maybeName =
-        (result as any)?.name ||
-        (result as any)?.label ||
-        (result as any)?.predictedName ||
-        null;
-      if (maybeName) {
-        setLastKnownCatName(String(maybeName).toLowerCase());
-      }
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to analyze image.');
+    } catch (identifyError: unknown) {
+      const message = identifyError instanceof Error ? identifyError.message : 'Failed to analyze image.';
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -264,7 +220,7 @@ const App: React.FC = () => {
 
   const handleMatchClick = useCallback(async () => {
     if (!imageFile) {
-      setMatchError('Image file is missing.');
+      setMatchError('Upload a photo before searching for a match.');
       return;
     }
     try {
@@ -273,519 +229,292 @@ const App: React.FC = () => {
       const { base64, mimeType } = await fileToBase64(imageFile);
       const result = await findMatchingCat(base64, mimeType);
       setMatchResult(result);
-      // If match returns a name, set as last-known
-      const maybeName = (result as any)?.name || (result as any)?.label || null;
-      if (maybeName) {
-        setLastKnownCatName(String(maybeName).toLowerCase());
-      }
-    } catch (e: any) {
-      setMatchError(e?.message ?? 'Failed to match.');
+    } catch (matchErr: unknown) {
+      const message = matchErr instanceof Error ? matchErr.message : 'Failed to compare with the campus roster.';
+      setMatchError(message);
     } finally {
       setIsMatching(false);
     }
   }, [imageFile]);
 
-  const handleReset = () => {
-    setImageFile(null);
-    setPreviewUrl(null);
-    setAnalysis(null);
-    setError(null);
-    setMatchResult(null);
-    setMatchError(null);
-    setIsCreatingPost(false);
-    setPostMessage('');
-    setSelectedImage(null);
-    setLastKnownCatName(null);
-    setPostError(null);
-    setIsPosting(false);
-  };
-
   const handleOpenCreatePost = () => {
-    setPostError(null);
     setIsCreatingPost(true);
+    setPostError(null);
+    setActiveTab('identify');
   };
 
   const handleCreatePost = useCallback(async () => {
     if (isPosting) return;
-    if (!imageFile) {
+    if (!imageFile || !previewUrl) {
       setPostError('Upload a cat photo before posting.');
       return;
     }
-    if (!previewUrl) {
-      setPostError('We need a preview image to share. Try re-uploading your photo.');
-      return;
-    }
     if (!postMessage.trim()) {
-      setPostError('Add a caption or hashtags to describe this cat.');
+      setPostError('Add a caption or hashtags so others know this cat.');
       return;
     }
-
     try {
       setIsPosting(true);
       const { base64, mimeType } = await fileToBase64(imageFile);
       const dataUrl = `data:${mimeType};base64,${base64}`;
-
       const newPost: FeedPost = {
         id: `user-post-${Date.now()}`,
         user: username,
         userAvatar: profileDefault,
         image: dataUrl,
-        caption: postMessage.trim(),
+        caption: postMessage.trim().slice(0, POST_CHARACTER_LIMIT),
         createdAt: Date.now(),
         name: lastKnownCatName,
         isUserGenerated: true,
       };
-
       setUserPosts((previous) => [newPost, ...previous]);
       setIsCreatingPost(false);
       handleReset();
-      setActiveTab('home');
-    } catch (postErrorEvent) {
+      setActiveTab('gallery');
+    } catch (postErrorEvent: unknown) {
       console.error('Failed to create post', postErrorEvent);
       setPostError('Something went wrong while preparing your post. Please try again.');
     } finally {
       setIsPosting(false);
     }
-  }, [handleReset, imageFile, isPosting, lastKnownCatName, postMessage, previewUrl, setActiveTab, username]);
+  }, [handleReset, imageFile, isPosting, lastKnownCatName, postMessage, previewUrl, username]);
 
-  // Search functions (kept)
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    if (value) {
-      const filteredSuggestions = catNames.filter(name =>
-        name.toLowerCase().startsWith(value.toLowerCase())
-      );
-      setSuggestions(filteredSuggestions);
-    } else {
-      setSuggestions(catNames);
-    }
-  };
-
-  const executeSearch = (name: string) => {
-    const term = name.trim().toLowerCase();
-    if (catNames.includes(term)) {
-        const filteredCats = allCatImages.filter(cat => cat.name.toLowerCase() === term);
-        setDisplayedCats(filteredCats);
-    }
-    setSearchTerm(name);
-    setIsSearchFocused(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      const term = searchTerm.trim();
-      if (!term) {
-        setDisplayedCats(allCatImages);
-        setIsSearchFocused(false);
-      } else if (suggestions.length > 0) {
-        executeSearch(suggestions[0]);
-      }
-    }
-  };
-
-  const handleTabClick = (tabName: string) => {
-    if (tabName === 'search') {
-      setDisplayedCats(allCatImages);
-      setSearchTerm('');
-    }
-    setActiveTab(tabName);
-  }
-
-  // Whenever selectedImage changes (user clicked a known image in the search grid),
-  // try to update lastKnownCatName to allow auto-fill when creating a post.
-  useEffect(() => {
-    if (selectedImage) {
-      const found = allCatImages.find(c => c.src === selectedImage);
-      if (found) {
-        setLastKnownCatName(found.name.toLowerCase());
-      }
-    }
-  }, [selectedImage]);
-
-  // Also if previewUrl corresponds to a known image in the demo assets, set lastKnownCatName.
-  useEffect(() => {
-    if (previewUrl) {
-      const found = allCatImages.find(c => c.src === previewUrl);
-      if (found) {
-        setLastKnownCatName(found.name.toLowerCase());
-      }
-    }
-  }, [previewUrl]);
-
-  // If matchResult or analysis are set with a name, set lastKnownCatName in their handlers,
-  // and also this effect catches other possible shapes.
-  useEffect(() => {
-    // check analysis for other common property names
-    if (analysis) {
-      const maybeName = (analysis as any).name || (analysis as any).label || (analysis as any).predictedName || null;
-      if (maybeName) {
-        setLastKnownCatName(String(maybeName).toLowerCase());
-      }
-    }
-  }, [analysis]);
-
-  useEffect(() => {
-    if (matchResult) {
-      const maybeName = (matchResult as any).name || (matchResult as any).label || null;
-      if (maybeName) {
-        setLastKnownCatName(String(maybeName).toLowerCase());
-      }
-    }
-  }, [matchResult]);
-
-  // When the user opens the Create Post view, auto-fill the caption box with the preset hashtags
-  // for the last-known detected cat (if any). The hashtags will appear alone (exactly as requested).
-  useEffect(() => {
-    if (isCreatingPost && lastKnownCatName) {
-      const tags = catHashtags[lastKnownCatName];
-      if (tags) {
-        setPostMessage(tags.join(' '));
-      } else {
-        // If not a known cat, leave existing postMessage alone (do nothing).
-      }
-    } else if (!isCreatingPost) {
-      // if user closes the post creation view, don't clobber their typed text; keep current postMessage
-    }
-    // intentionally dependent on isCreatingPost and lastKnownCatName
-  }, [isCreatingPost, lastKnownCatName]);
-
+  const loaderLabel = isLoading ? 'Analyzing photo…' : 'Comparing with known cats…';
   const showLoader = isLoading || isMatching;
-  const loaderText = isLoading ? 'AUTHENTICATING' : 'COMPARING';
 
-  // ---- UI ----
-  return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 font-sans">
-      <div className="w-[393px] h-[852px] bg-[#6C8167] rounded-[40px] shadow-2xl border-4 border-black overflow-hidden relative flex flex-col">
+  const mainPost: FeedPost = useMemo(
+    () => ({
+      id: 'post-main',
+      user: 'Microwave HQ',
+      userAvatar: profileDefault,
+      image: microwave1,
+      caption: 'Sneaky floof caught by the University Center again. Sandwich status: compromised. 🐾',
+      createdAt: Date.now() - 2 * 60 * 60 * 1000,
+      likes: 129,
+      name: 'microwave',
+    }),
+    [],
+  );
 
-        {/* Header / Search bar */}
-        <header className="absolute top-0 left-0 right-0 z-10 bg-[#E9DDCD] py-2 shadow-md">
-          {activeTab === 'search' ? (
-            <div className="flex items-center justify-center p-1">
-              <div className="relative w-full mx-4">
-                <img src={searchBarIcon} alt="Search Icon" className="absolute left-3 top-1/2 -translate-y-1/2 h-6 w-6" />
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  className="w-full bg-white text-gray-800 placeholder:text-[#BE956C] rounded-full py-2 pl-11 pr-4 focus:outline-none focus:ring-2 focus:ring-[#98522C]"
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                  onFocus={() => { setSuggestions(catNames); setIsSearchFocused(true); }}
-                  onBlur={() => setTimeout(() => setIsSearchFocused(false), 150)}
-                  onKeyDown={handleKeyDown}
-                />
-                {isSearchFocused && suggestions.length > 0 && (
-                  <div className="absolute top-full mt-2 w-full bg-white rounded-lg shadow-lg z-20">
-                    {suggestions.map(name => (
-                      <div
-                        key={name}
-                        className="px-4 py-2 text-gray-700 hover:bg-gray-100 cursor-pointer"
-                        onMouseDown={() => executeSearch(name)}
-                      >
-                        {name}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="flex justify-center items-center text-center">
-               <img src={meowtionSensorLogo} alt="Meowtion Sensor Header" className="h-12 w-12 mr-2" />
-               <div>
-                <h1 className="text-3xl font-bold tracking-wider text-[#BE956C]">
-                  MEOWTION SENSOR
-                </h1>
-                <div className="flex justify-center items-center space-x-2 mt-1">
-                  {/* "catsofUTA" text is removed from here */}
-                  <a href="https://www.instagram.com/catsofuta" target="_blank" rel="noopener noreferrer"><img src={instagramIcon} alt="Instagram" className="h-4 w-4 cursor-pointer" /></a>
-                  <a href="https://discord.com/invite/rAEFDeT" target="_blank" rel="noopener noreferrer"><img src={discordIcon} alt="Discord" className="h-4 w-4 cursor-pointer" /></a>
-                  <a href="https://www.facebook.com/catsofuta" target="_blank" rel="noopener noreferrer"><img src={facebookIcon} alt="Facebook" className="h-4 w-4 cursor-pointer" /></a>
-                  <a href="https://x.com/utacampuscats" target="_blank" rel="noopener noreferrer"><img src={twitterIcon} alt="Twitter" className="h-4 w-4 cursor-pointer" /></a>
-                </div>
-              </div>
-            </div>
-          )}
-        </header>
+  const nextPostPreview: FeedPost = useMemo(
+    () => ({
+      id: 'post-preview',
+      user: 'Oreo Lover',
+      userAvatar: profileDefault,
+      image: oreo1,
+      caption: 'Oreo was supervising the library entrance today!',
+      createdAt: Date.now() - 4 * 60 * 60 * 1000,
+      likes: 54,
+      name: 'oreo',
+    }),
+    [],
+  );
 
-        {/* Main content area */}
-        <main className="flex-grow flex flex-col items-center w-full pt-24 pb-28 overflow-y-auto relative">
-          {/* ===== HOME VIEW ===== */}
-          {activeTab === 'home' && (
-            <div className="w-full flex justify-center px-4">
-              <div className="w-full max-w-[340px]">
+  const galleryPosts = useMemo(() => {
+    const seeded = [mainPost, nextPostPreview];
+    return userPosts.length > 0 ? [...userPosts, ...seeded] : seeded;
+  }, [mainPost, nextPostPreview, userPosts]);
 
-                {userPosts.map((post) => (
-                  <article key={post.id} className="bg-[#E9DDCD] rounded-2xl shadow-lg border-2 border-black overflow-hidden mb-4">
-                    <div className="flex items-center gap-3 px-4 py-3">
-                      <img src={post.userAvatar} alt="avatar" className="h-12 w-12 rounded-full object-cover border-2 border-black" />
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-[#98522C] font-bold tracking-wide text-sm">{post.user}</p>
-                            <p className="text-xs text-[#6C8167]">{formatTimeAgo(post.createdAt)}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="w-full aspect-square bg-gray-200">
-                      <img src={post.image} alt="cat" className="w-full h-full object-cover" />
-                    </div>
-                    <div className="px-4 py-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          <button className="font-bold text-[#98522C]">❤</button>
-                          <button className="font-bold text-[#98522C]">💬</button>
-                          <button className="font-bold text-[#98522C]">✈️</button>
-                        </div>
-                      </div>
-                      <p className="text-sm text-[#6C8167] leading-relaxed mb-2">
-                        <span className="font-bold text-[#98522C] mr-2">{post.user}</span>
-                        {post.caption}
-                      </p>
-                      {renderHashtags(post.name)}
-                    </div>
-                  </article>
-                ))}
+  const featuredPost = galleryPosts[0];
+  const upcomingPost = galleryPosts[1] ?? null;
+  const remainingPosts = galleryPosts.slice(2);
 
-                <article className="bg-[#E9DDCD] rounded-2xl shadow-lg border-2 border-black overflow-hidden">
-                  {/* Header row: profile avatar + username */}
-                  <div className="flex items-center gap-3 px-4 py-3">
-                    <img src={profileDefault} alt="avatar" className="h-12 w-12 rounded-full object-cover border-2 border-black" />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-[#98522C] font-bold tracking-wide text-sm">{mainPost.user}</p>
-                          <p className="text-xs text-[#6C8167]">{formatTimeAgo(mainPost.createdAt)}</p>
-                        </div>
-                        <button className="text-sm px-2 py-1 bg-[#6C8167] text-[#E9DDCD] rounded-md font-bold">Follow</button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Cat Image */}
-                  <div className="w-full aspect-square bg-gray-200">
-                    <img src={mainPost.image} alt="cat" className="w-full h-full object-cover" />
-                  </div>
-
-                  {/* Caption / Actions */}
-                  <div className="px-4 py-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <button className="font-bold text-[#98522C]">❤</button>
-                        <button className="font-bold text-[#98522C]">💬</button>
-                        <button className="font-bold text-[#98522C]">✈️</button>
-                      </div>
-                      <div className="text-xs text-[#6C8167] font-semibold">{mainPost.likes ?? 0} likes</div>
-                    </div>
-
-                    <p className="text-sm text-[#6C8167] leading-relaxed mb-2">
-                      <span className="font-bold text-[#98522C] mr-2">{mainPost.user}</span>
-                      {mainPost.caption}
-                    </p>
-
-                    {/* NEW: render known-cat hashtags (demo main post uses name 'microwave') */}
-                    {renderHashtags(mainPost.name)}
-
-                    <div className="text-xs text-[#98522C] font-bold tracking-wide mt-2">#campuscat #utech #meow</div>
-                  </div>
-                </article>
-
-                {/* Action buttons under the post */}
-                <div className="mt-4 flex gap-3">
-                  <button
-                    onClick={() => {
-                      setActiveTab('addCat');
-                      setIsCreatingPost(false);
-                    }}
-                    className="flex-1 bg-green-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-green-700"
-                  >
-                    Create Post
-                  </button>
-                  <button
-                    onClick={() => { /* placeholder for share/save */ }}
-                    className="w-16 bg-[#BE956C] text-white font-bold py-3 rounded-lg shadow-md"
-                  >
-                    Share
-                  </button>
-                </div>
-
-                {/* small spacer so preview peeks nicely */}
-                <div className="h-6" />
-
-                {/* NEXT POST PREVIEW (peeking at bottom like instagram) */}
-                <div className="relative mt-4">
-                  <div
-                    className="absolute inset-x-0 -bottom-12 mx-auto w-full max-w-[340px] transform translate-y-0"
-                    aria-hidden
-                  >
-                    <div className="bg-[#E9DDCD] rounded-2xl shadow-lg border-2 border-black overflow-hidden opacity-95">
-                      <div className="flex items-center gap-3 px-4 py-2">
-                        <img src={(upcomingPost ?? nextPostPreview).userAvatar} alt="avatar" className="h-10 w-10 rounded-full object-cover border-2 border-black" />
-                        <div className="flex-1">
-                          <p className="text-[#98522C] font-bold text-sm">{(upcomingPost ?? nextPostPreview).user}</p>
-                          <p className="text-xs text-[#6C8167]">{formatTimeAgo((upcomingPost ?? nextPostPreview).createdAt)}</p>
-                        </div>
-                      </div>
-                      <div className="w-full h-36 bg-gray-200">
-                        <img src={(upcomingPost ?? nextPostPreview).image} alt="preview" className="w-full h-full object-cover" />
-                      </div>
-                      <div className="px-4 py-2">
-                        <p className="text-sm text-[#6C8167] truncate">{(upcomingPost ?? nextPostPreview).caption}</p>
-                        {/* NEW: render known-cat hashtags for preview post */}
-                        {renderHashtags((upcomingPost ?? nextPostPreview).name)}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Empty box to ensure page height leaves room for the preview peek */}
-                  <div className="h-24" />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ===== Search grid (kept unchanged) ===== */}
-          {activeTab === 'search' && (
-            <div className="grid grid-cols-3 gap-1 w-full px-1">
-              {displayedCats.map((cat, index) => (
-                <div
-                  key={`${cat.src}-${index}`}
-                  className="aspect-square cursor-pointer"
-                  onClick={() => setSelectedImage(cat.src)}
-                >
-                  <img src={cat.src} alt={`${cat.name} ${index + 1}`} className="w-full h-full object-cover" />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* ===== Profile view ===== */}
-          {activeTab === 'profile' && ( <div className="w-full max-w-sm mx-auto px-4"> <ProfilePanel /> </div> )}
-
-          {/* ===== Add Cat (uploader & results) ===== */}
-          {activeTab === 'addCat' && (
-            <div className="w-full max-w-sm mx-auto px-4">
-              {isCreatingPost ? (
-                // Post Creation View
-                <div className="w-full">
-                  {previewUrl && <img src={previewUrl} alt="Cat to post" className="w-full rounded-lg shadow-lg mb-4" />}
-                  <div className="bg-[#97A88D] p-4 rounded-lg">
-                    <textarea
-                      value={postMessage}
-                      onChange={(e) => {
-                        if (e.target.value.length <= 120) {
-                          setPostMessage(e.target.value);
-                        }
-                      }}
-                      maxLength={120}
-                      placeholder="Add a message..."
-                      className="w-full h-24 bg-transparent text-[#E9DDCD] placeholder:text-[#E9DDCD]/70 resize-none focus:outline-none"
-                    />
-                    <div className="text-right text-xs text-[#E9DDCD] mt-2">
-                      {postMessage.length} / 120
-                    </div>
-                    {postMessage.length >= 120 && (
-                      <div className="text-center font-bold text-[#6C8167] mt-2">
-                        Max characters (120) reached!
-                      </div>
-                    )}
-                    {postError && (
-                      <div className="mt-2 bg-red-200/40 text-[#2F1C16] border border-[#2F1C16]/40 rounded-md px-3 py-2 text-sm">
-                        {postError}
-                      </div>
-                    )}
-                    <div className="flex justify-end space-x-2 mt-4">
-                        <button
-                            onClick={() => {
-                                setIsCreatingPost(false);
-                                setPostError(null);
-                            }}
-                            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleCreatePost}
-                            className="px-4 py-2 bg-[#BE956C] text-white rounded-lg hover:bg-[#98522C] disabled:bg-[#BE956C]/60 disabled:cursor-not-allowed"
-                            disabled={isPosting}
-                        >
-                            {isPosting ? 'Posting…' : 'Post'}
-                        </button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                // Original Uploader and Results View
-                <>
-                  {showLoader && ( <h2 className="text-center text-2xl font-bold tracking-widest text-[#E9DDCD] mb-4 animate-pulse"> {loaderText} </h2> )}
-                  <ImageUploader onImageSelected={handleImageChange} previewUrl={previewUrl} onReset={handleReset} />
-                  {imageFile && !analysis && !isLoading && (
-                    <button onClick={handleIdentifyClick} className="w-full mt-4 bg-[#BE956C] text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-[#98522C] focus:outline-none focus:ring-2 focus:ring-[#E9DDCD] focus:ring-opacity-50 transition-colors transform active:scale-95 disabled:bg-gray-400 disabled:cursor-not-allowed" disabled={isLoading}>
-                      Identify Cat
-                    </button>
-                  )}
-                  {showLoader && ( <div className="flex justify-center items-center pt-8"> <div className="w-16 h-16 border-8 border-[#E9DDCD] border-t-8 border-t-[#BE956C] rounded-full animate-spin"></div> </div> )}
-                  {error && ( <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert"> <p>{error}</p> </div> )}
-
-                  {analysis && !showLoader && <ResultCard analysis={analysis} />}
-
-                  {analysis && analysis.isCat && !isCreatingPost && (
-                    <div className="w-full mt-4 space-y-2">
-                      {!matchResult && !isMatching && (
-                        <button onClick={handleMatchClick} className="w-full bg-[#BE956C] text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-[#98522C] focus:outline-none focus:ring-2 focus:ring-[#E9DDCD] focus:ring-opacity-50 transition-colors transform active:scale-95 disabled:bg-gray-400 disabled:cursor-not-allowed" disabled={isMatching}>
-                          Is this a known cat?
-                        </button>
-                      )}
-                      <button onClick={handleOpenCreatePost} className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors transform active:scale-95">
-                        Create Post
-                      </button>
-                    </div>
-                  )}
-
-                  {matchError && ( <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert"> <p>{matchError}</p> </div> )}
-                  {matchResult && !isMatching && (
-                    <>
-                      <MatchResultCard result={matchResult} />
-                      {/* NEW: show preset hashtags under match result */}
-                      {renderHashtags((matchResult as any).name)}
-                    </>
-                  )}
-                </>
-              )}
-            </div>
-          )}
-
-          {/* ===== MAP placeholder ===== */}
-          {activeTab === 'map' && ( <div className="text-[#E9DDCD] mt-8">Map coming soon…</div> )}
-        </main>
-
-        {/* Footer navigation */}
-        <footer className="absolute bottom-0 left-0 right-0 w-full bg-[#6C8167] shadow-t-lg py-2 px-4">
-          <div className="flex justify-around items-center max-w-sm mx-auto">
-            <img src={activeTab === 'home' ? homeIconSelected : homeIconUnselected} alt="Home" className="h-10 w-10 cursor-pointer" onClick={() => handleTabClick('home')} />
-            <img src={activeTab === 'search' ? searchIconSelected : searchIconUnselected} alt="Search" className="h-10 w-10 cursor-pointer" onClick={() => handleTabClick('search')} />
-            <img src={activeTab === 'addCat' ? addCatIconSelected : addCatIconUnselected} alt="Add Cat" className="h-12 w-12 cursor-pointer" onClick={() => handleTabClick('addCat')} />
-            <img src={activeTab === 'map' ? mapIconSelected : mapIconUnselected} alt="Map" className="h-10 w-10 cursor-pointer" onClick={() => handleTabClick('map')} />
-            <img src={activeTab === 'profile' ? profileIconSelected : profileIconUnselected} alt="Profile" className="h-10 w-10 cursor-pointer" onClick={() => handleTabClick('profile')} />
-          </div>
-        </footer>
-
-        {/* Image fullscreen modal when selecting an image from the grid */}
-        {selectedImage && (
-          <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => setSelectedImage(null)}>
-            <img src={selectedImage} alt="Enlarged cat" className="max-w-full max-h-full object-contain" onClick={(e) => e.stopPropagation()} />
-            {/* NEW: show preset hashtags if this is a known demo cat */}
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
-              {(() => {
-                const found = allCatImages.find(c => c.src === selectedImage);
-                return found ? renderHashtags(found.name) : null;
-              })()}
+  const renderPostCard = (post: FeedPost, variant: 'featured' | 'standard' = 'standard') => (
+    <article
+      key={post.id}
+      className={`bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden ${
+        variant === 'featured' ? 'md:col-span-2' : ''
+      }`}
+    >
+      <img src={post.image} alt={post.caption} className={variant === 'featured' ? 'h-64 w-full object-cover' : 'h-52 w-full object-cover'} />
+      <div className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <img src={post.userAvatar} alt={post.user} className="h-9 w-9 rounded-full border border-gray-200" />
+            <div>
+              <p className="font-semibold text-gray-900">{post.user}</p>
+              <p className="text-xs text-gray-500">{formatTimeAgo(post.createdAt)}</p>
             </div>
           </div>
-        )}
-
+          {post.likes ? (
+            <span className="text-xs font-semibold text-blue-600">{post.likes.toLocaleString()} likes</span>
+          ) : null}
+        </div>
+        <p className="mt-3 text-sm text-gray-800 whitespace-pre-line">{post.caption}</p>
+        {renderHashtags(post.name)}
+        {post.isUserGenerated ? (
+          <span className="mt-4 inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+            Shared by you
+          </span>
+        ) : null}
       </div>
+    </article>
+  );
+
+  const renderIdentifyView = () => (
+    <div className="space-y-6">
+      {isCreatingPost ? (
+        <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6 space-y-4">
+          <header className="space-y-1">
+            <h2 className="text-xl font-semibold text-gray-900">Share this sighting</h2>
+            <p className="text-sm text-gray-600">Craft a caption and send it to the community feed.</p>
+          </header>
+          {previewUrl ? (
+            <img src={previewUrl} alt="Preview" className="w-full h-52 object-cover rounded-xl" />
+          ) : null}
+          <textarea
+            value={postMessage}
+            onChange={(event) => {
+              const next = event.target.value.slice(0, POST_CHARACTER_LIMIT);
+              setPostMessage(next);
+              if (postError) {
+                setPostError(null);
+              }
+            }}
+            placeholder="Add a caption, hashtags, or quick notes about this cat."
+            className="w-full min-h-[140px] rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+          />
+          <div className="flex items-center justify-between text-xs text-gray-500">
+            <span>{POST_CHARACTER_LIMIT - postMessage.length} characters left</span>
+            {postError ? <span className="text-red-600">{postError}</span> : null}
+          </div>
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={() => {
+                setIsCreatingPost(false);
+                setPostError(null);
+              }}
+              className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleCreatePost}
+              disabled={isPosting}
+              className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold shadow-sm hover:bg-blue-500 disabled:bg-blue-300"
+            >
+              {isPosting ? 'Posting…' : 'Post to feed'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <ImageUploader onImageSelected={handleImageChange} previewUrl={previewUrl} onReset={handleReset} />
+          {imageFile && !analysis && !isLoading ? (
+            <button
+              type="button"
+              onClick={handleIdentifyClick}
+              className="w-full rounded-xl bg-blue-600 py-3 text-white font-semibold shadow-sm hover:bg-blue-500"
+              disabled={isLoading}
+            >
+              Identify cat
+            </button>
+          ) : null}
+
+          {showLoader ? <Loader label={loaderLabel} /> : null}
+
+          {error ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+          ) : null}
+
+          {analysis && !showLoader ? <ResultCard analysis={analysis} /> : null}
+
+          {analysis?.isCat && !isCreatingPost ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {!matchResult && !isMatching ? (
+                <button
+                  type="button"
+                  onClick={handleMatchClick}
+                  className="rounded-xl border border-blue-200 bg-blue-50 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100"
+                  disabled={isMatching}
+                >
+                  Check against known cats
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={handleOpenCreatePost}
+                className="rounded-xl bg-emerald-500 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-400"
+              >
+                Create a post
+              </button>
+            </div>
+          ) : null}
+
+          {matchError ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{matchError}</div>
+          ) : null}
+
+          {matchResult && !isMatching ? (
+            <div className="space-y-3">
+              <MatchResultCard result={matchResult} />
+              {renderHashtags(matchResult.matchedCatName)}
+            </div>
+          ) : null}
+        </>
+      )}
+    </div>
+  );
+
+  const renderGalleryView = () => (
+    <div className="space-y-6">
+      {featuredPost ? renderPostCard(featuredPost, 'featured') : null}
+      {upcomingPost ? (
+        <section className="bg-blue-50 border border-blue-100 rounded-2xl p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-blue-900">Next up on the feed</h2>
+            <span className="text-xs font-medium text-blue-600">Stay tuned</span>
+          </div>
+          <div className="flex items-center space-x-4">
+            <img src={upcomingPost.image} alt={upcomingPost.caption} className="h-16 w-16 rounded-xl object-cover" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-blue-900">{upcomingPost.user}</p>
+              <p className="text-xs text-blue-700">{formatTimeAgo(upcomingPost.createdAt)}</p>
+              <p className="mt-2 text-sm text-blue-900 line-clamp-2">{upcomingPost.caption}</p>
+              {renderHashtags(upcomingPost.name)}
+            </div>
+          </div>
+        </section>
+      ) : null}
+      <div className="grid gap-5 md:grid-cols-2">
+        {remainingPosts.map((post) => renderPostCard(post))}
+      </div>
+      {remainingPosts.length === 0 ? (
+        <p className="text-center text-sm text-gray-500">
+          Once more sightings roll in, they will appear here automatically.
+        </p>
+      ) : null}
+    </div>
+  );
+
+  const renderMapView = () => (
+    <div className="h-[520px] rounded-2xl overflow-hidden border border-gray-200">
+      <CatMap />
+    </div>
+  );
+
+  const renderProfileView = () => (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+      <ProfilePanel />
+    </div>
+  );
+
+  const { title, subtitle } = headerCopy[activeTab];
+
+  return (
+    <div className="min-h-screen bg-slate-100">
+      <Header title={title} subtitle={subtitle} />
+      <main className="pt-24 pb-28 px-4">
+        <div className="mx-auto max-w-4xl">
+          {activeTab === 'identify' && renderIdentifyView()}
+          {activeTab === 'gallery' && renderGalleryView()}
+          {activeTab === 'map' && renderMapView()}
+          {activeTab === 'profile' && renderProfileView()}
+        </div>
+      </main>
+      <Footer activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 };
