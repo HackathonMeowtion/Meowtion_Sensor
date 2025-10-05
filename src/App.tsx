@@ -33,6 +33,9 @@ import twitterIcon from './assets/twitter.PNG';
 
 
 const App: React.FC = () => {
+  console.log("Auth0 domain:", import.meta.env.VITE_AUTH0_DOMAIN);
+  console.log("Auth0 client ID:", import.meta.env.VITE_AUTH0_CLIENT_ID);
+
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<CatBreedAnalysis | null>(null);
