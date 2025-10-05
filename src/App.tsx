@@ -133,10 +133,18 @@ const App: React.FC = () => {
                   catsofUTA
                 </p>
                 {/* Social Icons - Returned to normal size */}
-                <img src={instagramIcon} alt="Instagram" className="h-4 w-4 cursor-pointer" />
-                <img src={discordIcon} alt="Discord" className="h-4 w-4 cursor-pointer" />
-                <img src={facebookIcon} alt="Facebook" className="h-4 w-4 cursor-pointer" />
-                <img src={twitterIcon} alt="Twitter" className="h-4 w-4 cursor-pointer" />
+                <a href="https://www.instagram.com/catsofuta" target="_blank" rel="noopener noreferrer">
+                        <img src={instagramIcon} alt="Instagram" className="h-4 w-4 cursor-pointer" />
+                    </a>
+                <a href="https://discord.com/invite/rAEFDeT" target="_blank" rel="noopener noreferrer">
+                        <img src={discordIcon} alt="Discord" className="h-4 w-4 cursor-pointer" />
+                    </a>
+                    <a href="https://www.facebook.com/catsofuta" target="_blank" rel="noopener noreferrer">
+                        <img src={facebookIcon} alt="Facebook" className="h-4 w-4 cursor-pointer" />
+                    </a>
+                    <a href="https://x.com/utacampuscats" target="_blank" rel="noopener noreferrer">
+                        <img src={twitterIcon} alt="Twitter" className="h-4 w-4 cursor-pointer" />
+                    </a>
               </div>
             </div>
           </div>
