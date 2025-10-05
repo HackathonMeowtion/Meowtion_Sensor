@@ -5,6 +5,14 @@ import { fileToBase64 } from './utils/imageUtils';
 import ImageUploader from './components/ImageUploader';
 import ResultCard from './components/ResultCard';
 
+// Import all the new assets
+import meowtionSensorLogo from './assets/MeowtionSensorLogo.png';
+import homeIcon from './assets/home_unselected.png';
+import searchIcon from './assets/search_unselected.png';
+import addCatIcon from './assets/addCat_selected.PNG';
+import mapIcon from './assets/catMap_unselected.png';
+import profileIcon from './assets/userProfile_unselected.png';
+
 const App: React.FC = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -37,13 +45,11 @@ const App: React.FC = () => {
       setAnalysis(result);
     } catch (err) {
       console.error(err);
-
       if (err instanceof Error && err.message) {
         setError(err.message);
-        return;
+      } else {
+        setError('Failed to identify the cat. The AI may be busy, or the image could not be processed. Please try again.');
       }
-
-      setError('Failed to identify the cat. The AI may be busy, or the image could not be processed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -60,22 +66,24 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen font-sans antialiased text-white bg-[#6C8167] flex flex-col">
-      {/* Custom Header */}
-      <header className="bg-[#E9DDCD] py-4 shadow-md fixed top-0 left-0 right-0 z-10">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-wider text-[#BE956C]">
-            MEOWTIN SENSOR
-          </h1>
-          <p className="text-sm tracking-widest text-[#98522C]">
-            catsofUTA
-          </p>
+      {/* Header with Logo */}
+      <header className="bg-[#E9DDCD] py-2 shadow-md fixed top-0 left-0 right-0 z-10">
+        <div className="flex justify-center items-center text-center">
+          <img src={meowtionSensorLogo} alt="Meowtion Sensor Logo" className="h-12 w-12 mr-2"/>
+          <div>
+            <h1 className="text-3xl font-bold tracking-wider text-[#BE956C]">
+              MEOWTIN SENSOR
+            </h1>
+            <p className="text-sm tracking-widest text-[#98522C]">
+              catsofUTA
+            </p>
+          </div>
         </div>
       </header>
 
+      {/* Main content area */}
       <main className="flex-grow flex flex-col items-center p-4 pt-28 pb-24">
         <div className="w-full max-w-sm mx-auto">
-
-          {/* "AUTHENTICATING" text appears while loading */}
           {isLoading && (
             <h2 className="text-center text-2xl font-bold tracking-widest text-[#E9DDCD] mb-4 animate-pulse">
               AUTHENTICATING
@@ -98,7 +106,6 @@ const App: React.FC = () => {
             </button>
           )}
 
-          {/* Custom Loading Circle */}
           {isLoading && (
             <div className="flex justify-center items-center pt-8">
               <div className="w-16 h-16 border-8 border-[#E9DDCD] border-t-8 border-t-[#BE956C] rounded-full animate-spin"></div>
@@ -115,9 +122,15 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* Bottom Bar/Footer */}
-      <footer className="w-full bg-[#6C8167] p-4">
-        {/* This is the bottom bar you requested with the same color as the background. */}
+      {/* Bottom Navigation Bar */}
+      <footer className="fixed bottom-0 left-0 right-0 w-full bg-[#6C8167] shadow-t-lg py-2 px-4">
+        <div className="flex justify-around items-center max-w-sm mx-auto">
+          <img src={homeIcon} alt="Home" className="h-10 w-10 cursor-pointer" />
+          <img src={searchIcon} alt="Search" className="h-10 w-10 cursor-pointer" />
+          <img src={addCatIcon} alt="Add Cat" className="h-12 w-12 cursor-pointer" />
+          <img src={mapIcon} alt="Map" className="h-10 w-10 cursor-pointer" />
+          <img src={profileIcon} alt="Profile" className="h-10 w-10 cursor-pointer" />
+        </div>
       </footer>
     </div>
   );
