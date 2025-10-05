@@ -1,3 +1,81 @@
+# -------------------------------
+# 🔧 Node / Vite project ignores
+# -------------------------------
+node_modules/
+dist/
+.vite/
+.cache/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# -------------------------------
+# ⚙️ Environment files
+# -------------------------------
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+
+# Never commit private keys or secrets
+*.key
+*.pem
+
+# -------------------------------
+# 🧱 Build outputs
+# -------------------------------
+build/
+*.tgz
+*.zip
+*.tar.gz
+
+# -------------------------------
+# 🧠 OS-specific junk
+# -------------------------------
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.nfs*
+
+# -------------------------------
+# 💻 Editor/IDE files
+# -------------------------------
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# -------------------------------
+# 🔒 Lockfiles (pick ONE manager)
+# -------------------------------
+# Uncomment ONE of the following lines depending on what you use.
+# Others should remain ignored to avoid cross-platform conflicts.
+
+# package-lock.json   # ← for npm users (recommended default)
+# pnpm-lock.yaml      # ← if you decide to switch to pnpm
+# yarn.lock           # ← if using yarn
+
+# -------------------------------
+# 🧪 Testing / coverage
+# -------------------------------
+coverage/
+*.lcov
+jest-html-reporters-*
+
 .env.local
 .env.*.local
 node_modules/

@@ -1,3 +1,26 @@
+# Ignore local dev stuff from being copied into Docker image
+
+node_modules
+dist
+.git
+.gitignore
+.vscode
+.idea
+.env
+.env.local
+Dockerfile
+*.log
+*.md
+*.tgz
+*.zip
+*.tar.gz
+*.swp
+*.swo
+*.tmp
+.DS_Store
+Thumbs.db
+
+
 node_modules/
 dist/
 .git/
