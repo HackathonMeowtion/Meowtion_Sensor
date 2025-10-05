@@ -9,13 +9,22 @@ import ResultCard from './components/ResultCard';
 import MatchResultCard from './components/MatchResultCard';
 
 // Import all the assets
-import meowtionSensorLogo from './assets/MeowtionSensorLogo.png';
-import homeIcon from './assets/home_unselected.png';
-import searchIcon from './assets/search_unselected.png';
-import addCatIcon from './assets/addCat_selected.PNG';
-import mapIcon from './assets/catMap_unselected.png';
-import profileIcon from './assets/userProfile_unselected.png';
-// Import the new social media icons
+import meowtionSensorLogo from './assets/MeowtionSensorLogo.png'; // Original header logo
+import searchBarIcon from './assets/searchBarIcon.PNG'; // Header logo for search tab
+
+// Import all versions of footer icons for state changes
+import homeIconUnselected from './assets/home_unselected.png';
+import homeIconSelected from './assets/home_selected.PNG';
+import searchIconUnselected from './assets/search_unselected.png';
+import searchIconSelected from './assets/search_selected.PNG';
+import addCatIconUnselected from './assets/addCat_unselected.png';
+import addCatIconSelected from './assets/addCat_selected.PNG';
+import mapIconUnselected from './assets/catMap_unselected.png';
+import mapIconSelected from './assets/catMap_selected.PNG';
+import profileIconUnselected from './assets/userProfile_unselected.png';
+import profileIconSelected from './assets/userProfile_selected.PNG';
+
+// Social media icons
 import instagramIcon from './assets/instagram.PNG';
 import discordIcon from './assets/discord.PNG';
 import facebookIcon from './assets/facebook.PNG';
@@ -33,6 +42,9 @@ const App: React.FC = () => {
   const [isMatching, setIsMatching] = useState<boolean>(false);
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
   const [matchError, setMatchError] = useState<string | null>(null);
+
+  // --- State for the active navigation tab ---
+  const [activeTab, setActiveTab] = useState<string>('addCat');
 
   const handleImageChange = (file: File | null) => {
     if (file) {
@@ -119,10 +131,14 @@ const App: React.FC = () => {
       {/* This is the main container, styled to look like a phone */}
       <div className="w-[393px] h-[852px] bg-[#6C8167] rounded-[40px] shadow-2xl border-4 border-black overflow-hidden relative flex flex-col">
 
-        {/* Header with Logo and Social Icons */}
+        {/* Header with conditional Logo and Social Icons */}
         <header className="absolute top-0 left-0 right-0 z-10 bg-[#E9DDCD] py-2 shadow-md">
           <div className="flex justify-center items-center text-center">
-            <img src={meowtionSensorLogo} alt="Meowtion Sensor Logo" className="h-12 w-12 mr-2"/>
+            <img
+              src={activeTab === 'search' ? searchBarIcon : meowtionSensorLogo}
+              alt="Meowtion Sensor Header"
+              className="h-12 w-12 mr-2"
+            />
             <div>
               <h1 className="text-3xl font-bold tracking-wider text-[#BE956C]">
                 MEOWTION SENSOR
@@ -132,7 +148,7 @@ const App: React.FC = () => {
                 <p className="text-sm tracking-widest text-[#98522C] font-bold">
                   catsofUTA
                 </p>
-                {/* Social Icons - Returned to normal size */}
+                {/* Social Icons */}
                 <a href="https://www.instagram.com/catsofuta" target="_blank" rel="noopener noreferrer">
                         <img src={instagramIcon} alt="Instagram" className="h-4 w-4 cursor-pointer" />
                     </a>
@@ -188,7 +204,7 @@ const App: React.FC = () => {
             )}
 
             {analysis && !showLoader && <ResultCard analysis={analysis} />}
-            
+
             {/* --- UI for the matching feature --- */}
             {analysis && analysis.isCat && !matchResult && !isMatching && (
                <button
@@ -213,11 +229,11 @@ const App: React.FC = () => {
         {/* Bottom Navigation Bar */}
         <footer className="absolute bottom-0 left-0 right-0 w-full bg-[#6C8167] shadow-t-lg py-2 px-4">
           <div className="flex justify-around items-center max-w-sm mx-auto">
-            <img src={homeIcon} alt="Home" className="h-10 w-10 cursor-pointer" />
-            <img src={searchIcon} alt="Search" className="h-10 w-10 cursor-pointer" />
-            <img src={addCatIcon} alt="Add Cat" className="h-12 w-12 cursor-pointer" />
-            <img src={mapIcon} alt="Map" className="h-10 w-10 cursor-pointer" />
-            <img src={profileIcon} alt="Profile" className="h-10 w-10 cursor-pointer" />
+            <img src={activeTab === 'home' ? homeIconSelected : homeIconUnselected} alt="Home" className="h-10 w-10 cursor-pointer" onClick={() => setActiveTab('home')} />
+            <img src={activeTab === 'search' ? searchIconSelected : searchIconUnselected} alt="Search" className="h-10 w-10 cursor-pointer" onClick={() => setActiveTab('search')} />
+            <img src={activeTab === 'addCat' ? addCatIconSelected : addCatIconUnselected} alt="Add Cat" className="h-12 w-12 cursor-pointer" onClick={() => setActiveTab('addCat')} />
+            <img src={activeTab === 'map' ? mapIconSelected : mapIconUnselected} alt="Map" className="h-10 w-10 cursor-pointer" onClick={() => setActiveTab('map')} />
+            <img src={activeTab === 'profile' ? profileIconSelected : profileIconUnselected} alt="Profile" className="h-10 w-10 cursor-pointer" onClick={() => setActiveTab('profile')} />
           </div>
         </footer>
       </div>
