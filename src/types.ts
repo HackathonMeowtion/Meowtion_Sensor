@@ -21,3 +21,32 @@ export interface MatchResult {
   reasoning: string;
   evaluations: MatchCandidateEvaluation[];
 }
+
+export interface Post {
+  id: string;
+  user: string;
+  userAvatar: string;
+  imageUrl: string;
+  caption: string;
+  createdAt: string;
+  likes: number;
+  catName?: string | null;
+  hashtags?: string[];
+  analysisSummary?: string | null;
+  matchSummary?: string | null;
+  aiConfidence?: number | null;
+}
+
+export interface CreatePostInput {
+  id?: string;
+  user: string;
+  userAvatar: string;
+  imageUrl: string;
+  caption: string;
+  likes?: number;
+  catName?: string | null;
+  hashtags?: string[];
+  analysisSummary?: string | null;
+  matchSummary?: string | null;
+  aiConfidence?: number | null;
+}

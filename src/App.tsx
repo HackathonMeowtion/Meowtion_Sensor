@@ -1,9 +1,10 @@
 // src/App.tsx
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 // Make sure to import both types if you use them elsewhere
-import type { CatBreedAnalysis, MatchResult } from './types';
+import type { CatBreedAnalysis, MatchResult, Post } from './types';
 // Keep your existing service & util imports
 import { identifyCatBreed, findMatchingCat } from './services/geminiService';
+import { fetchPosts, createPost } from './services/postService';
 import { fileToBase64 } from './utils/imageUtils';
 import ImageUploader from './components/ImageUploader';
 import ResultCard from './components/ResultCard';
@@ -66,15 +67,35 @@ const catHashtags: Record<string, string[]> = {
   twix: ['#twix', '#cream', '#tabby'],
 };
 
-const renderHashtags = (name: string | undefined | null) => {
-  if (!name) return null;
-  const key = name.toLowerCase();
-  const tags = catHashtags[key];
-  return tags ? (
+const renderHashtagLine = (tags: string[] | undefined) => {
+  if (!tags || tags.length === 0) {
+    return null;
+  }
+  return (
     <div className="text-xs text-[#98522C] font-bold tracking-wide mt-1">
       {tags.join(' ')}
     </div>
-  ) : null;
+  );
+};
+
+const renderHashtagsFromName = (name: string | undefined | null) => {
+  if (!name) return null;
+  const key = name.toLowerCase();
+  const tags = catHashtags[key];
+  return renderHashtagLine(tags);
+};
+
+const renderPostHashtags = (post?: Post | null) => {
+  if (!post) {
+    return null;
+  }
+  if (post.hashtags && post.hashtags.length > 0) {
+    return renderHashtagLine(post.hashtags);
+  }
+  if (post.catName) {
+    return renderHashtagsFromName(post.catName);
+  }
+  return null;
 };
 
 const catNames = ["eggs", "microwave", "oreo", "snickers", "twix"];
@@ -85,6 +106,40 @@ const allCatImages: CatImage[] = [
   { name: 'snickers', src: snickers1 }, { name: 'snickers', src: snickers2 }, { name: 'snickers', src: snickers3 },
   { name: 'twix', src: twix1 }, { name: 'twix', src: twix2 }, { name: 'twix', src: twix3 },
 ];
+
+const formatTimeAgo = (isoString: string) => {
+  const timestamp = Date.parse(isoString);
+  if (Number.isNaN(timestamp)) {
+    return '';
+  }
+  const now = Date.now();
+  const diffMs = Math.max(0, now - timestamp);
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) {
+    return 'just now';
+  }
+  if (minutes < 60) {
+    return `${minutes}m`;
+  }
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${hours}h`;
+  }
+  const days = Math.floor(hours / 24);
+  if (days < 7) {
+    return `${days}d`;
+  }
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) {
+    return `${weeks}w`;
+  }
+  const months = Math.floor(days / 30);
+  if (months < 12) {
+    return `${months}mo`;
+  }
+  const years = Math.floor(days / 365);
+  return `${years}y`;
+};
 
 const App: React.FC = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -104,29 +159,41 @@ const App: React.FC = () => {
   const [isCreatingPost, setIsCreatingPost] = useState(false);
   const [postMessage, setPostMessage] = useState('');
   const [lastKnownCatName, setLastKnownCatName] = useState<string | null>(null);
-  
+  const [userPosts, setUserPosts] = useState<Post[]>([]);
+  const [isSavingPost, setIsSavingPost] = useState(false);
+  const [postError, setPostError] = useState<string | null>(null);
+
   // ✅ **CHANGE 1 of 3: Add a new state to track if the initial mount is complete.**
   const [isMounted, setIsMounted] = useState(false);
 
   const username = 'UTACatLuvr';
-  const mainPost = {
-    id: 'post-main',
-    user: username,
-    userAvatar: profileDefault,
-    image: microwave1,
-    caption: "Spotted this sneaky floof by the courtyard — stole my sandwich and my heart. 🐾",
-    timeAgo: '2h',
-    name: 'microwave',
-  };
-  const nextPostPreview = {
-    id: 'post-preview',
-    user: 'Oreo Lover',
-    userAvatar: profileDefault,
-    image: oreo1,
-    caption: 'Peek a boo!',
-    timeAgo: '4h',
-    name: 'oreo',
-  };
+  const seededPosts = useMemo<Post[]>(() => [
+    {
+      id: 'seed-microwave',
+      user: username,
+      userAvatar: profileDefault,
+      imageUrl: microwave1,
+      caption: 'Spotted this sneaky floof by the courtyard — stole my sandwich and my heart. 🐾',
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+      likes: 129,
+      catName: 'microwave',
+      hashtags: catHashtags['microwave'],
+    },
+    {
+      id: 'seed-oreo',
+      user: 'Oreo Lover',
+      userAvatar: profileDefault,
+      imageUrl: oreo1,
+      caption: 'Peek a boo!',
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
+      likes: 87,
+      catName: 'oreo',
+      hashtags: catHashtags['oreo'],
+    },
+  ], [username]);
+  const posts = useMemo(() => [...userPosts, ...seededPosts], [userPosts, seededPosts]);
+  const primaryPost = posts[0] ?? null;
+  const secondaryPost = posts[1] ?? null;
 
   // ✅ **CHANGE 2 of 3: Add an effect that runs only once after the component mounts.**
   useEffect(() => {
@@ -140,10 +207,34 @@ const App: React.FC = () => {
     return () => clearTimeout(timer); // Cleanup the timer
   }, []); // Empty dependency array means this effect runs only once.
 
+  useEffect(() => {
+    let isCancelled = false;
+    const loadPosts = async () => {
+      try {
+        const storedPosts = await fetchPosts();
+        if (!isCancelled) {
+          setUserPosts(storedPosts);
+        }
+      } catch (error) {
+        console.warn('Unable to load saved posts.', error);
+      }
+    };
+
+    loadPosts();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
   const handleImageChange = async (file: File | null) => {
     if (file) {
+      if (previewUrl && previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(previewUrl);
+      }
       setImageFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
+      const objectUrl = URL.createObjectURL(file);
+      setPreviewUrl(objectUrl);
       setAnalysis(null);
       setError(null);
       setMatchResult(null);
@@ -151,6 +242,7 @@ const App: React.FC = () => {
       setIsCreatingPost(false);
       setPostMessage('');
       setLastKnownCatName(null);
+      setPostError(null);
     } else {
       handleReset();
     }
@@ -164,6 +256,7 @@ const App: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
+      setPostError(null);
       const { base64, mimeType } = await fileToBase64(imageFile);
       const result = await identifyCatBreed(base64, mimeType);
       setAnalysis(result);
@@ -186,6 +279,7 @@ const App: React.FC = () => {
     try {
       setIsMatching(true);
       setMatchError(null);
+      setPostError(null);
       const { base64, mimeType } = await fileToBase64(imageFile);
       const result = await findMatchingCat(base64, mimeType);
       setMatchResult(result);
@@ -201,6 +295,9 @@ const App: React.FC = () => {
   }, [imageFile]);
 
   const handleReset = () => {
+    if (previewUrl && previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setImageFile(null);
     setPreviewUrl(null);
     setAnalysis(null);
@@ -211,6 +308,52 @@ const App: React.FC = () => {
     setPostMessage('');
     setSelectedImage(null);
     setLastKnownCatName(null);
+    setPostError(null);
+    setIsSavingPost(false);
+  };
+
+  const handleSubmitPost = async () => {
+    if (isSavingPost) {
+      return;
+    }
+    if (!imageFile) {
+      setPostError('Upload a cat photo before posting.');
+      return;
+    }
+    if (!analysis || !analysis.isCat) {
+      setPostError('Run "Identify Cat" and confirm the image is a cat before posting.');
+      return;
+    }
+
+    try {
+      setIsSavingPost(true);
+      setPostError(null);
+      const { base64, mimeType } = await fileToBase64(imageFile);
+      const imageDataUrl = `data:${mimeType};base64,${base64}`;
+      const hashtags = lastKnownCatName ? catHashtags[lastKnownCatName] ?? [] : [];
+      const caption = postMessage.trim() || analysis.description || 'New campus cat sighting! 🐾';
+
+      const createdPost = await createPost({
+        user: username,
+        userAvatar: profileDefault,
+        imageUrl: imageDataUrl,
+        caption,
+        catName: lastKnownCatName,
+        hashtags,
+        analysisSummary: analysis.description ?? null,
+        matchSummary: matchResult?.reasoning ?? null,
+        aiConfidence: typeof analysis.confidence === 'number' ? analysis.confidence : null,
+      });
+
+      setUserPosts((prev) => [createdPost, ...prev]);
+      handleReset();
+      setActiveTab('home');
+    } catch (error: any) {
+      console.error('Failed to create post.', error);
+      setPostError(error?.message ?? 'We could not save your post. Please try again.');
+    } finally {
+      setIsSavingPost(false);
+    }
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -283,16 +426,23 @@ const App: React.FC = () => {
   }, [matchResult]);
 
   useEffect(() => {
-    if (isCreatingPost && lastKnownCatName) {
-      const tags = catHashtags[lastKnownCatName];
-      if (tags) {
-        setPostMessage(tags.join(' '));
-      }
+    if (!isCreatingPost) {
+      return;
     }
-  }, [isCreatingPost, lastKnownCatName]);
+    if (postMessage) {
+      return;
+    }
+    const tags = lastKnownCatName ? catHashtags[lastKnownCatName] : undefined;
+    const summary = analysis?.description?.trim();
+    const combined = [summary, tags ? tags.join(' ') : ''].filter(Boolean).join(' ').trim();
+    if (combined) {
+      setPostMessage(combined.slice(0, 120));
+    }
+  }, [isCreatingPost, lastKnownCatName, analysis, postMessage]);
 
   const showLoader = isLoading || isMatching;
   const loaderText = isLoading ? 'AUTHENTICATING' : 'COMPARING';
+  const canSubmitPost = Boolean(imageFile && analysis && analysis.isCat);
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 font-sans">
@@ -352,41 +502,59 @@ const App: React.FC = () => {
           {activeTab === 'home' && (
             <div className="w-full flex justify-center px-4">
               <div className="w-full max-w-[340px]">
-                <article className="bg-[#E9DDCD] rounded-2xl shadow-lg border-2 border-black overflow-hidden">
-                  <div className="flex items-center gap-3 px-4 py-3">
-                    <img src={profileDefault} alt="avatar" className="h-12 w-12 rounded-full object-cover border-2 border-black" />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-[#98522C] font-bold tracking-wide text-sm">{mainPost.user}</p>
-                          <p className="text-xs text-[#6C8167]">{mainPost.timeAgo}</p>
+                {primaryPost ? (
+                  <article className="bg-[#E9DDCD] rounded-2xl shadow-lg border-2 border-black overflow-hidden">
+                    <div className="flex items-center gap-3 px-4 py-3">
+                      <img src={primaryPost.userAvatar} alt={`${primaryPost.user} avatar`} className="h-12 w-12 rounded-full object-cover border-2 border-black" />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-[#98522C] font-bold tracking-wide text-sm">{primaryPost.user}</p>
+                            <p className="text-xs text-[#6C8167]">{formatTimeAgo(primaryPost.createdAt)}</p>
+                          </div>
+                          <button className="text-sm px-2 py-1 bg-[#6C8167] text-[#E9DDCD] rounded-md font-bold">Follow</button>
                         </div>
-                        <button className="text-sm px-2 py-1 bg-[#6C8167] text-[#E9DDCD] rounded-md font-bold">Follow</button>
                       </div>
                     </div>
-                  </div>
-                  <div className="w-full aspect-square bg-gray-200">
-                    <img src={mainPost.image} alt="cat" className="w-full h-full object-cover" />
-                  </div>
-                  <div className="px-4 py-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <button className="font-bold text-[#98522C]">❤</button>
-                        <button className="font-bold text-[#98522C]">💬</button>
-                        <button className="font-bold text-[#98522C]">✈️</button>
-                      </div>
-                      <div className="text-xs text-[#6C8167] font-semibold">129 likes</div>
+                    <div className="w-full aspect-square bg-gray-200">
+                      <img src={primaryPost.imageUrl} alt="cat" className="w-full h-full object-cover" />
                     </div>
-                    <p className="text-sm text-[#6C8167] leading-relaxed mb-2">
-                      <span className="font-bold text-[#98522C] mr-2">{mainPost.user}</span>
-                      {mainPost.caption}
-                    </p>
-                    {renderHashtags((mainPost as any).name)}
-                    <div className="text-xs text-[#98522C] font-bold tracking-wide mt-2">#campuscat #utech #meow</div>
+                    <div className="px-4 py-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <button className="font-bold text-[#98522C]">❤</button>
+                          <button className="font-bold text-[#98522C]">💬</button>
+                          <button className="font-bold text-[#98522C]">✈️</button>
+                        </div>
+                        <div className="text-xs text-[#6C8167] font-semibold">
+                          {primaryPost.likes === 1 ? '1 like' : `${primaryPost.likes} likes`}
+                        </div>
+                      </div>
+                      <p className="text-sm text-[#6C8167] leading-relaxed mb-2">
+                        <span className="font-bold text-[#98522C] mr-2">{primaryPost.user}</span>
+                        {primaryPost.caption}
+                      </p>
+                      {primaryPost.analysisSummary && (
+                        <p className="text-xs text-[#6C8167] leading-relaxed mb-2">{primaryPost.analysisSummary}</p>
+                      )}
+                      {typeof primaryPost.aiConfidence === 'number' && (
+                        <p className="text-xs text-[#6C8167] mb-2">AI confidence: {(primaryPost.aiConfidence * 100).toFixed(0)}%</p>
+                      )}
+                      {primaryPost.matchSummary && (
+                        <p className="text-xs text-[#6C8167] leading-relaxed mb-2">{primaryPost.matchSummary}</p>
+                      )}
+                      {renderPostHashtags(primaryPost)}
+                      <div className="text-xs text-[#98522C] font-bold tracking-wide mt-2">#campuscat #utech #meow</div>
+                    </div>
+                  </article>
+                ) : (
+                  <div className="bg-[#E9DDCD] rounded-2xl shadow-lg border-2 border-dashed border-[#BE956C] p-6 text-center text-[#6C8167]">
+                    <p className="font-bold text-lg text-[#98522C]">No posts yet</p>
+                    <p className="text-sm mt-2">Be the first to share a campus cat sighting!</p>
                   </div>
-                </article>
+                )}
                 <div className="mt-4 flex gap-3">
-                  <button onClick={() => setIsCreatingPost(true)} className="flex-1 bg-green-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-green-700">
+                  <button onClick={() => setActiveTab('addCat')} className="flex-1 bg-green-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-green-700">
                     Create Post
                   </button>
                   <button onClick={() => {}} className="w-16 bg-[#BE956C] text-white font-bold py-3 rounded-lg shadow-md">
@@ -395,24 +563,29 @@ const App: React.FC = () => {
                 </div>
                 <div className="h-6" />
                 <div className="relative mt-4">
-                  <div className="absolute inset-x-0 -bottom-12 mx-auto w-full max-w-[340px] transform translate-y-0" aria-hidden>
-                    <div className="bg-[#E9DDCD] rounded-2xl shadow-lg border-2 border-black overflow-hidden opacity-95">
-                      <div className="flex items-center gap-3 px-4 py-2">
-                        <img src={nextPostPreview.userAvatar} alt="avatar" className="h-10 w-10 rounded-full object-cover border-2 border-black" />
-                        <div className="flex-1">
-                          <p className="text-[#98522C] font-bold text-sm">{nextPostPreview.user}</p>
-                          <p className="text-xs text-[#6C8167]">{nextPostPreview.timeAgo}</p>
+                  {secondaryPost && (
+                    <div className="absolute inset-x-0 -bottom-12 mx-auto w-full max-w-[340px] transform translate-y-0" aria-hidden>
+                      <div className="bg-[#E9DDCD] rounded-2xl shadow-lg border-2 border-black overflow-hidden opacity-95">
+                        <div className="flex items-center gap-3 px-4 py-2">
+                          <img src={secondaryPost.userAvatar} alt={`${secondaryPost.user} avatar`} className="h-10 w-10 rounded-full object-cover border-2 border-black" />
+                          <div className="flex-1">
+                            <p className="text-[#98522C] font-bold text-sm">{secondaryPost.user}</p>
+                            <p className="text-xs text-[#6C8167]">{formatTimeAgo(secondaryPost.createdAt)}</p>
+                          </div>
+                        </div>
+                        <div className="w-full h-36 bg-gray-200">
+                          <img src={secondaryPost.imageUrl} alt="preview" className="w-full h-full object-cover" />
+                        </div>
+                        <div className="px-4 py-2 space-y-1">
+                          <p className="text-sm text-[#6C8167] truncate">{secondaryPost.caption}</p>
+                          {secondaryPost.analysisSummary && (
+                            <p className="text-xs text-[#6C8167] truncate">{secondaryPost.analysisSummary}</p>
+                          )}
+                          {renderPostHashtags(secondaryPost)}
                         </div>
                       </div>
-                      <div className="w-full h-36 bg-gray-200">
-                        <img src={nextPostPreview.image} alt="preview" className="w-full h-full object-cover" />
-                      </div>
-                      <div className="px-4 py-2">
-                        <p className="text-sm text-[#6C8167] truncate">{nextPostPreview.caption}</p>
-                        {renderHashtags((nextPostPreview as any).name)}
-                      </div>
                     </div>
-                  </div>
+                  )}
                   <div className="h-24" />
                 </div>
               </div>
@@ -437,12 +610,38 @@ const App: React.FC = () => {
                 <div className="w-full">
                   {previewUrl && <img src={previewUrl} alt="Cat to post" className="w-full rounded-lg shadow-lg mb-4" />}
                   <div className="bg-[#97A88D] p-4 rounded-lg">
-                    <textarea value={postMessage} onChange={(e) => { if (e.target.value.length <= 120) setPostMessage(e.target.value) }} maxLength={120} placeholder="Add a message..." className="w-full h-24 bg-transparent text-[#E9DDCD] placeholder:text-[#E9DDCD]/70 resize-none focus:outline-none" />
+                    <textarea
+                      value={postMessage}
+                      onChange={(e) => {
+                        if (e.target.value.length <= 120) {
+                          setPostError(null);
+                          setPostMessage(e.target.value);
+                        }
+                      }}
+                      maxLength={120}
+                      placeholder="Add a message..."
+                      className="w-full h-24 bg-transparent text-[#E9DDCD] placeholder:text-[#E9DDCD]/70 resize-none focus:outline-none"
+                    />
                     <div className="text-right text-xs text-[#E9DDCD] mt-2">{postMessage.length} / 120</div>
                     {postMessage.length >= 120 && <div className="text-center font-bold text-[#6C8167] mt-2">Max characters (120) reached!</div>}
+                    {!analysis && (
+                      <p className="text-xs text-[#E9DDCD] mt-2">Run "Identify Cat" to generate a description for your post.</p>
+                    )}
+                    {analysis && !analysis.isCat && (
+                      <p className="text-xs text-red-200 mt-2 font-semibold">The AI didn't find a cat in this photo, so posting is disabled.</p>
+                    )}
+                    {postError && (
+                      <div className="mt-3 bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded-lg text-sm">{postError}</div>
+                    )}
                     <div className="flex justify-end space-x-2 mt-4">
-                      <button onClick={() => setIsCreatingPost(false)} className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">Cancel</button>
-                      <button onClick={() => { handleReset(); }} className="px-4 py-2 bg-[#BE956C] text-white rounded-lg hover:bg-[#98522C]">Post</button>
+                      <button onClick={() => { setIsCreatingPost(false); setPostError(null); }} className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">Cancel</button>
+                      <button
+                        onClick={handleSubmitPost}
+                        disabled={!canSubmitPost || isSavingPost}
+                        className={`px-4 py-2 text-white rounded-lg ${!canSubmitPost || isSavingPost ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#BE956C] hover:bg-[#98522C]'}`}
+                      >
+                        {isSavingPost ? 'Posting...' : 'Post'}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -474,7 +673,7 @@ const App: React.FC = () => {
                   {matchResult && !isMatching && (
                     <>
                       <MatchResultCard result={matchResult} />
-                      {renderHashtags((matchResult as any).name)}
+                      {renderHashtagsFromName((matchResult as any).name)}
                     </>
                   )}
                 </>
@@ -505,7 +704,7 @@ const App: React.FC = () => {
             <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
               {(() => {
                 const found = allCatImages.find(c => c.src === selectedImage);
-                return found ? renderHashtags(found.name) : null;
+                return found ? renderHashtagsFromName(found.name) : null;
               })()}
             </div>
           </div>
