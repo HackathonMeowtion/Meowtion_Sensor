@@ -32,7 +32,7 @@ import discordIcon from './assets/discord.PNG';
 import facebookIcon from './assets/facebook.PNG';
 import twitterIcon from './assets/twitter.PNG';
 
-// --- Manually import all known cat images ---
+// Manually import all known cat images
 import eggs1 from './assets/known-cats/eggs1.png';
 import eggs2 from './assets/known-cats/eggs2.png';
 import eggs3 from './assets/known-cats/eggs3.png';
@@ -126,7 +126,7 @@ const App: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [imageFile]); // <-- FIX: Restored [imageFile] dependency
+  }, [imageFile]);
 
   const handleMatchClick = useCallback(async () => {
     if (!imageFile) {
@@ -146,7 +146,7 @@ const App: React.FC = () => {
     } finally {
       setIsMatching(false);
     }
-  }, [imageFile]); // <-- FIX: Restored [imageFile] dependency
+  }, [imageFile]);
 
   const handleReset = () => {
     setImageFile(null);
@@ -180,14 +180,24 @@ const App: React.FC = () => {
     setIsSearchFocused(false);
   };
 
+  // --- THIS FUNCTION HAS BEEN UPDATED ---
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      executeSearch(searchTerm);
+      const term = searchTerm.trim();
+      // If the search bar is empty, show all cats
+      if (!term) {
+        setDisplayedCats(allCatImages);
+        setIsSearchFocused(false);
+      // If there's a valid suggestion, use the best one
+      } else if (suggestions.length > 0) {
+        executeSearch(suggestions[0]);
+      }
     }
   };
 
   const handleTabClick = (tabName: string) => {
     if (tabName === 'search') {
+      // Reset search view when navigating to it
       setDisplayedCats(allCatImages);
       setSearchTerm('');
     }
@@ -213,7 +223,7 @@ const App: React.FC = () => {
                   value={searchTerm}
                   onChange={handleSearchChange}
                   onFocus={() => { setSuggestions(catNames); setIsSearchFocused(true); }}
-                  onBlur={() => setTimeout(() => setIsSearchFocused(false), 150)}
+                  onBlur={() => setTimeout(() => setIsSearchFocused(false), 150)} // Delay to allow click on suggestion
                   onKeyDown={handleKeyDown}
                 />
                 {isSearchFocused && suggestions.length > 0 && (
