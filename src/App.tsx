@@ -15,6 +15,12 @@ import searchIcon from './assets/search_unselected.png';
 import addCatIcon from './assets/addCat_selected.PNG';
 import mapIcon from './assets/catMap_unselected.png';
 import profileIcon from './assets/userProfile_unselected.png';
+// Import the new social media icons
+import instagramIcon from './assets/instagram.PNG';
+import discordIcon from './assets/discord.PNG';
+import facebookIcon from './assets/facebook.PNG';
+import twitterIcon from './assets/twitter.PNG';
+
 
 const App: React.FC = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -65,18 +71,18 @@ const App: React.FC = () => {
       setIsLoading(false);
     }
   }, [imageFile]);
-  
+
   // --- Handler for the matching feature ---
   const handleMatchClick = useCallback(async () => {
     if (!imageFile) {
       setMatchError('Image file is missing.');
       return;
     }
-    
+
     setIsMatching(true);
     setMatchResult(null);
     setMatchError(null);
-    
+
     try {
       const { base64, mimeType } = await fileToBase64(imageFile);
       const result = await findMatchingCat(base64, mimeType);
@@ -113,7 +119,7 @@ const App: React.FC = () => {
       {/* This is the main container, styled to look like a phone */}
       <div className="w-[393px] h-[852px] bg-[#6C8167] rounded-[40px] shadow-2xl border-4 border-black overflow-hidden relative flex flex-col">
 
-        {/* Header with Logo */}
+        {/* Header with Logo and Social Icons */}
         <header className="absolute top-0 left-0 right-0 z-10 bg-[#E9DDCD] py-2 shadow-md">
           <div className="flex justify-center items-center text-center">
             <img src={meowtionSensorLogo} alt="Meowtion Sensor Logo" className="h-12 w-12 mr-2"/>
@@ -121,9 +127,17 @@ const App: React.FC = () => {
               <h1 className="text-3xl font-bold tracking-wider text-[#BE956C]">
                 MEOWTION SENSOR
               </h1>
-              <p className="text-sm tracking-widest text-[#98522C]">
-                catsofUTA
-              </p>
+              {/* Container for subtitle and social icons */}
+              <div className="flex justify-center items-center space-x-2 mt-1">
+                <p className="text-sm tracking-widest text-[#98522C] font-bold">
+                  catsofUTA
+                </p>
+                {/* Social Icons - Returned to normal size */}
+                <img src={instagramIcon} alt="Instagram" className="h-4 w-4 cursor-pointer" />
+                <img src={discordIcon} alt="Discord" className="h-4 w-4 cursor-pointer" />
+                <img src={facebookIcon} alt="Facebook" className="h-4 w-4 cursor-pointer" />
+                <img src={twitterIcon} alt="Twitter" className="h-4 w-4 cursor-pointer" />
+              </div>
             </div>
           </div>
         </header>
