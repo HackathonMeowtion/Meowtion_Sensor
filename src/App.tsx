@@ -9,6 +9,7 @@ import ImageUploader from './components/ImageUploader';
 import ResultCard from './components/ResultCard';
 import MatchResultCard from './components/MatchResultCard';
 import ProfilePanel from './components/ProfilePanel';
+import CatMap from './components/CatMap';
 
 // Logos / assets
 import meowtionSensorLogo from './assets/MeowtionSensorLogo.png';
@@ -476,8 +477,12 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {/* ===== MAP placeholder ===== */}
-          {activeTab === 'map' && ( <div className="text-[#E9DDCD] mt-8">Map coming soon…</div> )}
+          {/* ===== Campus cat map ===== */}
+          {activeTab === 'map' && (
+            <div className="w-full flex justify-center px-4">
+              <CatMap />
+            </div>
+          )}
         </main>
 
         {/* Footer navigation */}
