@@ -422,9 +422,18 @@ const App: React.FC = () => {
           {activeTab === 'search' && (
             <div className="grid grid-cols-3 gap-1 w-full px-1">
               {displayedCats.map((cat, index) => (
-                <div key={`${cat.src}-${index}`} className="aspect-square cursor-pointer" onClick={() => setSelectedImage(cat.src)}>
-                  <img src={cat.src} alt={`${cat.name} ${index + 1}`} className="w-full h-full object-cover" />
-                </div>
+                <button
+                  type="button"
+                  key={`${cat.src}-${index}`}
+                  className="aspect-square cursor-pointer border border-[#4F7057] rounded-lg overflow-hidden transition-transform duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4F7057]/60"
+                  onClick={() => setSelectedImage(cat.src)}
+                >
+                  <img
+                    src={cat.src}
+                    alt={`${cat.name} ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
               ))}
             </div>
           )}
