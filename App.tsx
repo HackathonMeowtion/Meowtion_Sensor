@@ -1,13 +1,9 @@
-
 import React, { useState, useCallback } from 'react';
 import type { CatBreedAnalysis } from './types';
 import { identifyCatBreed } from './services/geminiService';
 import { fileToBase64 } from './utils/imageUtils';
-import Header from './components/Header';
 import ImageUploader from './components/ImageUploader';
 import ResultCard from './components/ResultCard';
-import Loader from './components/Loader';
-import Footer from './components/Footer';
 
 const App: React.FC = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -52,7 +48,7 @@ const App: React.FC = () => {
       setIsLoading(false);
     }
   }, [imageFile]);
-  
+
   const handleReset = () => {
     setImageFile(null);
     setPreviewUrl(null);
@@ -63,16 +59,35 @@ const App: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen font-sans antialiased text-gray-800 bg-gray-100 flex flex-col">
-      <Header />
-      <main className="flex-grow flex flex-col items-center p-4 pt-20 pb-24">
+    <div className="min-h-screen font-sans antialiased text-white bg-[#6C8167] flex flex-col">
+      {/* Custom Header */}
+      <header className="bg-[#E9DDCD] py-4 shadow-md fixed top-0 left-0 right-0 z-10">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold tracking-wider text-[#BE956C]">
+            MEOWTIN SENSOR
+          </h1>
+          <p className="text-sm tracking-widest text-[#98522C]">
+            catsofUTA
+          </p>
+        </div>
+      </header>
+
+      <main className="flex-grow flex flex-col items-center p-4 pt-28 pb-24">
         <div className="w-full max-w-sm mx-auto">
-          <ImageUploader 
-            onImageSelected={handleImageChange} 
+
+          {/* "AUTHENTICATING" text appears while loading */}
+          {isLoading && (
+            <h2 className="text-center text-2xl font-bold tracking-widest text-[#E9DDCD] mb-4 animate-pulse">
+              AUTHENTICATING
+            </h2>
+          )}
+
+          <ImageUploader
+            onImageSelected={handleImageChange}
             previewUrl={previewUrl}
             onReset={handleReset}
           />
-          
+
           {imageFile && !isLoading && !analysis && (
             <button
               onClick={handleIdentifyClick}
@@ -83,7 +98,12 @@ const App: React.FC = () => {
             </button>
           )}
 
-          {isLoading && <Loader />}
+          {/* Custom Loading Circle */}
+          {isLoading && (
+            <div className="flex justify-center items-center pt-8">
+              <div className="w-16 h-16 border-8 border-[#E9DDCD] border-t-8 border-t-[#BE956C] rounded-full animate-spin"></div>
+            </div>
+          )}
 
           {error && (
             <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert">
@@ -94,7 +114,11 @@ const App: React.FC = () => {
           {analysis && <ResultCard analysis={analysis} />}
         </div>
       </main>
-      <Footer />
+
+      {/* Bottom Bar/Footer */}
+      <footer className="w-full bg-[#6C8167] p-4">
+        {/* This is the bottom bar you requested with the same color as the background. */}
+      </footer>
     </div>
   );
 };
