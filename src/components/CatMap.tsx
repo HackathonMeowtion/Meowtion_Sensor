@@ -1,5 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
+// Import assets
+import catPingIcon from '../assets/catPing.png';
+import microwaveImage from '../assets/known-cats/microwave.webp';
+import snickersImage from '../assets/known-cats/snickers1.png';
+import eggsImage from '../assets/known-cats/eggs1.png';
+import twixImage from '../assets/known-cats/twix.jpg';
+import eraserImage from '../assets/known-cats/oreo2.jpeg';
+
 type Coordinates = [number, number];
 
 type CatSpot = {
@@ -7,6 +15,7 @@ type CatSpot = {
   name: string;
   description: string;
   coords: Coordinates;
+  imageSrc: string;
 };
 
 declare global {
@@ -22,26 +31,37 @@ const catSpots: CatSpot[] = [
   {
     id: 'microwave',
     name: 'Microwave',
-    description: 'Loves napping near the University Center courtyard benches.',
-    coords: [32.73075943089946, -97.11194459433784],
+    description: 'A 14-year-old cat usually found behind the Planetarium.',
+    coords: [32.73062939838508, -97.11227835862472], // <-- UPDATED COORDINATES for behind the Chem/Phys building
+    imageSrc: microwaveImage,
   },
   {
     id: 'snickers',
     name: 'Snickers',
-    description: 'Usually found by the engineering building planters.',
-    coords: [32.73136320465538, -97.11238129897278],
+    description: 'Often found in the mornings wandering near Woolf Hall and the Tri-C.',
+    coords: [32.731748281337225, -97.11292651116041], // Coordinates for Woolf Hall
+    imageSrc: snickersImage,
   },
   {
     id: 'eggs',
     name: 'Eggs',
-    description: 'Keeps watch close to the library steps and sunny lawn.',
-    coords: [32.7298388011233, -97.11042768317395],
+    description: 'Bonded with Eraser, found in the saplings at the College of Business pavilion.',
+    coords: [32.72991170639939, -97.11087942941545], // Coordinates for College of Business
+    imageSrc: eggsImage,
   },
   {
     id: 'twix',
     name: 'Twix',
-    description: 'Hangs out near the architecture studio doorway.',
-    coords: [32.73109871375422, -97.11028512162308],
+    description: 'Sociable in the mornings, found under cars or near picnic tables.',
+    coords: [32.7317, -97.1135],
+    imageSrc: twixImage,
+  },
+  {
+    id: 'eraser',
+    name: 'Eraser',
+    description: 'Bonded with Eggs, found under cars or by food stations in the mornings and evenings.',
+    coords: [32.731298144082174, -97.11218612970153],
+    imageSrc: eraserImage,
   },
 ];
 
@@ -127,6 +147,7 @@ const calculateDistance = (from: Coordinates, to: Coordinates): number => {
   return earthRadiusMeters * c;
 };
 
+
 const CatMap: React.FC = () => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -157,10 +178,25 @@ const CatMap: React.FC = () => {
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         }).addTo(map);
 
+        const catIcon = L.icon({
+          iconUrl: catPingIcon,
+          iconSize: [40, 40],
+          iconAnchor: [20, 40],
+          popupAnchor: [0, -40],
+        });
+
         const catLayer = L.layerGroup();
         catSpots.forEach((spot) => {
-          const marker = L.marker(spot.coords);
-          marker.bindPopup(`<strong>${spot.name}</strong><br>${spot.description}`);
+          const marker = L.marker(spot.coords, { icon: catIcon });
+
+          const popupContent = `
+            <div style="text-align: center; width: 160px;">
+              <img src="${spot.imageSrc}" alt="${spot.name}" style="width: 100%; height: 112px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;" />
+              <strong style="font-size: 1.125rem; color: #98522C;">${spot.name}</strong>
+              <p style="font-size: 0.75rem; color: #6C8167; line-height: 1.2; margin-top: 4px;">${spot.description}</p>
+            </div>
+          `;
+          marker.bindPopup(popupContent);
           catLayer.addLayer(marker);
         });
         catLayer.addTo(map);
@@ -242,6 +278,7 @@ const CatMap: React.FC = () => {
       userCircleRef.current.setLatLng(userLocation);
     }
   }, [userLocation]);
+
 
   const spotsWithDistance = useMemo(
     () =>
