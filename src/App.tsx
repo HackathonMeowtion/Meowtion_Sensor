@@ -77,7 +77,7 @@ const App: React.FC = () => {
             <img src={meowtionSensorLogo} alt="Meowtion Sensor Logo" className="h-12 w-12 mr-2"/>
             <div>
               <h1 className="text-3xl font-bold tracking-wider text-[#BE956C]">
-                MEOWTIN SENSOR
+                MEOWTION SENSOR
               </h1>
               <p className="text-sm tracking-widest text-[#98522C]">
                 catsofUTA
