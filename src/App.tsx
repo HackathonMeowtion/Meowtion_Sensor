@@ -58,6 +58,22 @@ type CatImage = {
   src: string;
 };
 
+type Post = {
+  id: string;
+  user: string;
+  userAvatar: string;
+  image: string;
+  caption: string;
+  timeAgo: string;
+  name?: string | null;
+  likes?: number;
+  isDefault?: boolean;
+  createdAt?: string;
+};
+
+const LOCAL_STORAGE_KEY = 'meowtion-sensor-user-posts';
+const DEFAULT_USERNAME = 'UTACatLuvr';
+
 const catHashtags: Record<string, string[]> = {
   eggs: ['#eggs', '#orange', '#tabby'],
   microwave: ['#microwave', '#gray', '#fluffy'],
@@ -86,6 +102,42 @@ const allCatImages: CatImage[] = [
   { name: 'twix', src: twix1 }, { name: 'twix', src: twix2 }, { name: 'twix', src: twix3 },
 ];
 
+const defaultPosts: Post[] = [
+  {
+    id: 'post-main',
+    user: DEFAULT_USERNAME,
+    userAvatar: profileDefault,
+    image: microwave1,
+    caption: 'Spotted this sneaky floof by the courtyard — stole my sandwich and my heart. 🐾',
+    timeAgo: '2h',
+    name: 'microwave',
+    likes: 129,
+    isDefault: true,
+  },
+  {
+    id: 'post-eggs-1',
+    user: 'Campus Cats',
+    userAvatar: profileDefault,
+    image: eggs2,
+    caption: 'Eggs holding down the Student Union steps like a pro guard cat.',
+    timeAgo: '5h',
+    name: 'eggs',
+    likes: 98,
+    isDefault: true,
+  },
+  {
+    id: 'post-twix-1',
+    user: 'Twix Treats',
+    userAvatar: profileDefault,
+    image: twix1,
+    caption: 'Twix demanded belly rub tributes before allowing entry into class today.',
+    timeAgo: '1d',
+    name: 'twix',
+    likes: 214,
+    isDefault: true,
+  },
+];
+
 const App: React.FC = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -103,21 +155,14 @@ const App: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isCreatingPost, setIsCreatingPost] = useState(false);
   const [postMessage, setPostMessage] = useState('');
+  const [postError, setPostError] = useState<string | null>(null);
   const [lastKnownCatName, setLastKnownCatName] = useState<string | null>(null);
-  
+  const [posts, setPosts] = useState<Post[]>(() => defaultPosts.map((post) => ({ ...post })));
+
   // ✅ **CHANGE 1 of 3: Add a new state to track if the initial mount is complete.**
   const [isMounted, setIsMounted] = useState(false);
 
-  const username = 'UTACatLuvr';
-  const mainPost = {
-    id: 'post-main',
-    user: username,
-    userAvatar: profileDefault,
-    image: microwave1,
-    caption: "Spotted this sneaky floof by the courtyard — stole my sandwich and my heart. 🐾",
-    timeAgo: '2h',
-    name: 'microwave',
-  };
+  const username = DEFAULT_USERNAME;
   const nextPostPreview = {
     id: 'post-preview',
     user: 'Oreo Lover',
@@ -140,6 +185,64 @@ const App: React.FC = () => {
     return () => clearTimeout(timer); // Cleanup the timer
   }, []); // Empty dependency array means this effect runs only once.
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const stored = window.localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (!stored) {
+      return;
+    }
+
+    try {
+      const parsed: Post[] = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        const sanitized = parsed.map((post) => ({ ...post, isDefault: false }));
+        setPosts([...sanitized, ...defaultPosts.map((post) => ({ ...post }))]);
+      }
+    } catch (storageError) {
+      console.error('Failed to load saved posts from storage.', storageError);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const customPosts = posts.filter((post) => !post.isDefault);
+    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(customPosts));
+  }, [posts]);
+
+  const formatTimeAgo = useCallback((post: Post) => {
+    if (post.createdAt) {
+      const createdTime = new Date(post.createdAt).getTime();
+      if (!Number.isFinite(createdTime)) {
+        return post.timeAgo || 'Just now';
+      }
+      const diff = Date.now() - createdTime;
+      const minute = 60 * 1000;
+      const hour = 60 * minute;
+      const day = 24 * hour;
+
+      if (diff < minute) return 'Just now';
+      if (diff < hour) return `${Math.floor(diff / minute)}m`;
+      if (diff < day) return `${Math.floor(diff / hour)}h`;
+      return `${Math.floor(diff / day)}d`;
+    }
+
+    return post.timeAgo || 'Just now';
+  }, []);
+
+  const getPostLikesLabel = useCallback((post: Post) => {
+    if (typeof post.likes === 'number') {
+      const suffix = post.likes === 1 ? 'like' : 'likes';
+      return `${post.likes} ${suffix}`;
+    }
+    return 'Be the first to like this';
+  }, []);
+
   const handleImageChange = async (file: File | null) => {
     if (file) {
       setImageFile(file);
@@ -150,6 +253,7 @@ const App: React.FC = () => {
       setMatchError(null);
       setIsCreatingPost(false);
       setPostMessage('');
+      setPostError(null);
       setLastKnownCatName(null);
     } else {
       handleReset();
@@ -209,8 +313,49 @@ const App: React.FC = () => {
     setMatchError(null);
     setIsCreatingPost(false);
     setPostMessage('');
+    setPostError(null);
     setSelectedImage(null);
     setLastKnownCatName(null);
+  };
+
+  const handleCreatePost = async () => {
+    if (!imageFile) {
+      setPostError('Please select an image before posting.');
+      return;
+    }
+
+    try {
+      setPostError(null);
+      const { base64, mimeType } = await fileToBase64(imageFile);
+      const dataUrl = `data:${mimeType};base64,${base64}`;
+      const caption = postMessage.trim() ||
+        (lastKnownCatName && catHashtags[lastKnownCatName]?.join(' ')) ||
+        'Look who I spotted around campus today!';
+
+      const newPost: Post = {
+        id: `post-${Date.now()}`,
+        user: username,
+        userAvatar: profileDefault,
+        image: dataUrl,
+        caption,
+        timeAgo: 'Just now',
+        name: lastKnownCatName,
+        likes: 0,
+        createdAt: new Date().toISOString(),
+      };
+
+      setPosts((prev) => [newPost, ...prev]);
+      setActiveTab('home');
+      handleReset();
+    } catch (creationError) {
+      console.error('Failed to create post.', creationError);
+      setPostError('Something went wrong while creating your post. Please try again.');
+    }
+  };
+
+  const beginCreatePost = () => {
+    setIsCreatingPost(true);
+    setPostError(null);
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -352,40 +497,44 @@ const App: React.FC = () => {
           {activeTab === 'home' && (
             <div className="w-full flex justify-center px-4">
               <div className="w-full max-w-[340px]">
-                <article className="bg-[#E9DDCD] rounded-2xl shadow-lg border-2 border-black overflow-hidden">
-                  <div className="flex items-center gap-3 px-4 py-3">
-                    <img src={profileDefault} alt="avatar" className="h-12 w-12 rounded-full object-cover border-2 border-black" />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-[#98522C] font-bold tracking-wide text-sm">{mainPost.user}</p>
-                          <p className="text-xs text-[#6C8167]">{mainPost.timeAgo}</p>
+                <div className="space-y-6">
+                  {posts.map((post) => (
+                    <article key={post.id} className="bg-[#E9DDCD] rounded-2xl shadow-lg border-2 border-black overflow-hidden">
+                      <div className="flex items-center gap-3 px-4 py-3">
+                        <img src={post.userAvatar || profileDefault} alt="avatar" className="h-12 w-12 rounded-full object-cover border-2 border-black" />
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-[#98522C] font-bold tracking-wide text-sm">{post.user}</p>
+                              <p className="text-xs text-[#6C8167]">{formatTimeAgo(post)}</p>
+                            </div>
+                            <button className="text-sm px-2 py-1 bg-[#6C8167] text-[#E9DDCD] rounded-md font-bold">Follow</button>
+                          </div>
                         </div>
-                        <button className="text-sm px-2 py-1 bg-[#6C8167] text-[#E9DDCD] rounded-md font-bold">Follow</button>
                       </div>
-                    </div>
-                  </div>
-                  <div className="w-full aspect-square bg-gray-200">
-                    <img src={mainPost.image} alt="cat" className="w-full h-full object-cover" />
-                  </div>
-                  <div className="px-4 py-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <button className="font-bold text-[#98522C]">❤</button>
-                        <button className="font-bold text-[#98522C]">💬</button>
-                        <button className="font-bold text-[#98522C]">✈️</button>
+                      <div className="w-full aspect-square bg-gray-200">
+                        <img src={post.image} alt="cat" className="w-full h-full object-cover" />
                       </div>
-                      <div className="text-xs text-[#6C8167] font-semibold">129 likes</div>
-                    </div>
-                    <p className="text-sm text-[#6C8167] leading-relaxed mb-2">
-                      <span className="font-bold text-[#98522C] mr-2">{mainPost.user}</span>
-                      {mainPost.caption}
-                    </p>
-                    {renderHashtags((mainPost as any).name)}
-                  </div>
-                </article>
+                      <div className="px-4 py-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <button className="font-bold text-[#98522C]">❤</button>
+                            <button className="font-bold text-[#98522C]">💬</button>
+                            <button className="font-bold text-[#98522C]">✈️</button>
+                          </div>
+                          <div className="text-xs text-[#6C8167] font-semibold">{getPostLikesLabel(post)}</div>
+                        </div>
+                        <p className="text-sm text-[#6C8167] leading-relaxed mb-2">
+                          <span className="font-bold text-[#98522C] mr-2">{post.user}</span>
+                          {post.caption}
+                        </p>
+                        {renderHashtags(post.name)}
+                      </div>
+                    </article>
+                  ))}
+                </div>
                 <div className="mt-4 flex gap-3">
-                  <button onClick={() => setIsCreatingPost(true)} className="flex-1 bg-green-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-green-700">
+                  <button onClick={() => { setActiveTab('addCat'); beginCreatePost(); }} className="flex-1 bg-green-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-green-700">
                     Create Post
                   </button>
                   <button onClick={() => {}} className="w-16 bg-[#BE956C] text-white font-bold py-3 rounded-lg shadow-md">
@@ -445,12 +594,13 @@ const App: React.FC = () => {
                 <div className="w-full">
                   {previewUrl && <img src={previewUrl} alt="Cat to post" className="w-full rounded-lg shadow-lg mb-4" />}
                   <div className="bg-[#97A88D] p-4 rounded-lg">
-                    <textarea value={postMessage} onChange={(e) => { if (e.target.value.length <= 120) setPostMessage(e.target.value) }} maxLength={120} placeholder="Add a message..." className="w-full h-24 bg-transparent text-[#E9DDCD] placeholder:text-[#E9DDCD]/70 resize-none focus:outline-none" />
+                    <textarea value={postMessage} onChange={(e) => { if (e.target.value.length <= 120) setPostMessage(e.target.value); }} maxLength={120} placeholder="Add a message..." className="w-full h-24 bg-transparent text-[#E9DDCD] placeholder:text-[#E9DDCD]/70 resize-none focus:outline-none" />
                     <div className="text-right text-xs text-[#E9DDCD] mt-2">{postMessage.length} / 120</div>
                     {postMessage.length >= 120 && <div className="text-center font-bold text-[#6C8167] mt-2">Max characters (120) reached!</div>}
+                    {postError && <div className="mt-2 bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded text-sm text-center">{postError}</div>}
                     <div className="flex justify-end space-x-2 mt-4">
-                      <button onClick={() => setIsCreatingPost(false)} className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">Cancel</button>
-                      <button onClick={() => { handleReset(); }} className="px-4 py-2 bg-[#BE956C] text-white rounded-lg hover:bg-[#98522C]">Post</button>
+                      <button onClick={() => { setIsCreatingPost(false); setPostError(null); }} className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">Cancel</button>
+                      <button onClick={handleCreatePost} className="px-4 py-2 bg-[#BE956C] text-white rounded-lg hover:bg-[#98522C]">Post</button>
                     </div>
                   </div>
                 </div>
@@ -473,7 +623,7 @@ const App: React.FC = () => {
                           Is this a known cat?
                         </button>
                       )}
-                      <button onClick={() => setIsCreatingPost(true)} className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors transform active:scale-95">
+                      <button onClick={beginCreatePost} className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors transform active:scale-95">
                         Create Post
                       </button>
                     </div>
