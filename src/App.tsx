@@ -32,7 +32,7 @@ import discordIcon from './assets/discord.PNG';
 import facebookIcon from './assets/facebook.PNG';
 import twitterIcon from './assets/twitter.PNG';
 
-// --- (FIX) STEP 1: Manually import all known cat images ---
+// --- Manually import all known cat images ---
 import eggs1 from './assets/known-cats/eggs1.png';
 import eggs2 from './assets/known-cats/eggs2.png';
 import eggs3 from './assets/known-cats/eggs3.png';
@@ -49,14 +49,24 @@ import twix1 from './assets/known-cats/twix.jpg';
 import twix2 from './assets/known-cats/twix2.jpg';
 import twix3 from './assets/known-cats/twix3.jpg';
 
-// --- (FIX) STEP 2: Create an array containing all the imported images ---
-const allCatImages = [
-  eggs1, eggs2, eggs3,
-  microwave1, microwave2, microwave3,
-  oreo1, oreo2, oreo3,
-  snickers1, snickers2, snickers3,
-  twix1, twix2, twix3
+// Define a more structured type for our cat data
+type CatImage = {
+  name: string; // e.g., 'eggs', 'oreo'
+  src: string;  // The URL path to the image
+};
+
+// Create a master list of cat names for suggestions
+const catNames = ["eggs", "microwave", "oreo", "snickers", "twix"];
+
+// Create a structured array of all cat images with their names
+const allCatImages: CatImage[] = [
+  { name: 'eggs', src: eggs1 }, { name: 'eggs', src: eggs2 }, { name: 'eggs', src: eggs3 },
+  { name: 'microwave', src: microwave1 }, { name: 'microwave', src: microwave2 }, { name: 'microwave', src: microwave3 },
+  { name: 'oreo', src: oreo1 }, { name: 'oreo', src: oreo2 }, { name: 'oreo', src: oreo3 },
+  { name: 'snickers', src: snickers1 }, { name: 'snickers', src: snickers2 }, { name: 'snickers', src: snickers3 },
+  { name: 'twix', src: twix1 }, { name: 'twix', src: twix2 }, { name: 'twix', src: twix3 },
 ];
+
 
 const App: React.FC = () => {
   // (debug) will print in the BROWSER console
@@ -73,8 +83,12 @@ const App: React.FC = () => {
   const [matchError, setMatchError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('addCat');
 
-  // --- (FIX) STEP 3: Initialize the state directly with the image array ---
-  const [knownCats] = useState(allCatImages);
+  // State variables for search functionality
+  const [searchTerm, setSearchTerm] = useState('');
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [displayedCats, setDisplayedCats] = useState<CatImage[]>(allCatImages);
+
 
   const handleImageChange = async (file: File | null) => {
     if (file) {
@@ -112,7 +126,7 @@ const App: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [imageFile]);
+  }, [imageFile]); // <-- FIX: Restored [imageFile] dependency
 
   const handleMatchClick = useCallback(async () => {
     if (!imageFile) {
@@ -132,7 +146,7 @@ const App: React.FC = () => {
     } finally {
       setIsMatching(false);
     }
-  }, [imageFile]);
+  }, [imageFile]); // <-- FIX: Restored [imageFile] dependency
 
   const handleReset = () => {
     setImageFile(null);
@@ -143,6 +157,43 @@ const App: React.FC = () => {
     setMatchError(null);
   };
 
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    if (value) {
+      const filteredSuggestions = catNames.filter(name =>
+        name.toLowerCase().startsWith(value.toLowerCase())
+      );
+      setSuggestions(filteredSuggestions);
+    } else {
+      setSuggestions(catNames);
+    }
+  };
+
+  const executeSearch = (name: string) => {
+    const term = name.trim().toLowerCase();
+    if (catNames.includes(term)) {
+        const filteredCats = allCatImages.filter(cat => cat.name.toLowerCase() === term);
+        setDisplayedCats(filteredCats);
+    }
+    setSearchTerm(name);
+    setIsSearchFocused(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      executeSearch(searchTerm);
+    }
+  };
+
+  const handleTabClick = (tabName: string) => {
+    if (tabName === 'search') {
+      setDisplayedCats(allCatImages);
+      setSearchTerm('');
+    }
+    setActiveTab(tabName);
+  }
+
   const showLoader = isLoading || isMatching;
   const loaderText = isLoading ? 'AUTHENTICATING' : 'COMPARING';
 
@@ -150,10 +201,8 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 font-sans">
       <div className="w-[393px] h-[852px] bg-[#6C8167] rounded-[40px] shadow-2xl border-4 border-black overflow-hidden relative flex flex-col">
 
-        {/* --- CONDITIONAL HEADER --- */}
         <header className="absolute top-0 left-0 right-0 z-10 bg-[#E9DDCD] py-2 shadow-md">
           {activeTab === 'search' ? (
-            // Search Bar View
             <div className="flex items-center justify-center p-1">
               <div className="relative w-full mx-4">
                 <img src={searchBarIcon} alt="Search Icon" className="absolute left-3 top-1/2 -translate-y-1/2 h-6 w-6" />
@@ -161,14 +210,31 @@ const App: React.FC = () => {
                   type="text"
                   placeholder="Search..."
                   className="w-full bg-white text-gray-800 placeholder:text-[#BE956C] rounded-full py-2 pl-11 pr-4 focus:outline-none focus:ring-2 focus:ring-[#98522C]"
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  onFocus={() => { setSuggestions(catNames); setIsSearchFocused(true); }}
+                  onBlur={() => setTimeout(() => setIsSearchFocused(false), 150)}
+                  onKeyDown={handleKeyDown}
                 />
+                {isSearchFocused && suggestions.length > 0 && (
+                  <div className="absolute top-full mt-2 w-full bg-white rounded-lg shadow-lg z-20">
+                    {suggestions.map(name => (
+                      <div
+                        key={name}
+                        className="px-4 py-2 text-gray-700 hover:bg-gray-100 cursor-pointer"
+                        onMouseDown={() => executeSearch(name)}
+                      >
+                        {name}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           ) : (
-            // Default Header View
             <div className="flex justify-center items-center text-center">
-              <img src={meowtionSensorLogo} alt="Meowtion Sensor Header" className="h-12 w-12 mr-2" />
-              <div>
+               <img src={activeTab === 'search' ? searchBarIcon : meowtionSensorLogo} alt="Meowtion Sensor Header" className="h-12 w-12 mr-2" />
+               <div>
                 <h1 className="text-3xl font-bold tracking-wider text-[#BE956C]">
                   MEOWTION SENSOR
                 </h1>
@@ -176,25 +242,16 @@ const App: React.FC = () => {
                   <p className="text-sm tracking-widest text-[#98522C] font-bold">
                     catsofUTA
                   </p>
-                  <a href="https://www.instagram.com/catsofuta" target="_blank" rel="noopener noreferrer">
-                    <img src={instagramIcon} alt="Instagram" className="h-4 w-4 cursor-pointer" />
-                  </a>
-                  <a href="https://discord.com/invite/rAEFDeT" target="_blank" rel="noopener noreferrer">
-                    <img src={discordIcon} alt="Discord" className="h-4 w-4 cursor-pointer" />
-                  </a>
-                  <a href="https://www.facebook.com/catsofuta" target="_blank" rel="noopener noreferrer">
-                    <img src={facebookIcon} alt="Facebook" className="h-4 w-4 cursor-pointer" />
-                  </a>
-                  <a href="https://x.com/utacampuscats" target="_blank" rel="noopener noreferrer">
-                    <img src={twitterIcon} alt="Twitter" className="h-4 w-4 cursor-pointer" />
-                  </a>
+                  <a href="https://www.instagram.com/catsofuta" target="_blank" rel="noopener noreferrer"><img src={instagramIcon} alt="Instagram" className="h-4 w-4 cursor-pointer" /></a>
+                  <a href="https://discord.com/invite/rAEFDeT" target="_blank" rel="noopener noreferrer"><img src={discordIcon} alt="Discord" className="h-4 w-4 cursor-pointer" /></a>
+                  <a href="https://www.facebook.com/catsofuta" target="_blank" rel="noopener noreferrer"><img src={facebookIcon} alt="Facebook" className="h-4 w-4 cursor-pointer" /></a>
+                  <a href="https://x.com/utacampuscats" target="_blank" rel="noopener noreferrer"><img src={twitterIcon} alt="Twitter" className="h-4 w-4 cursor-pointer" /></a>
                 </div>
               </div>
             </div>
           )}
         </header>
 
-        {/* --- CONDITIONAL MAIN CONTENT --- */}
         <main className="flex-grow flex flex-col items-center w-full pt-24 pb-24 overflow-y-auto">
           {activeTab === 'home' && (
             <div className="text-[#E9DDCD] mt-8">Home coming soon…</div>
@@ -205,25 +262,22 @@ const App: React.FC = () => {
           )}
 
           {activeTab === 'search' && (
-            // Search Grid View
             <div className="grid grid-cols-3 gap-1 w-full px-1">
-              {knownCats.map((catImage, index) => (
-                <div key={index} className="aspect-square">
-                  <img src={catImage} alt={`Known cat ${index + 1}`} className="w-full h-full object-cover" />
+              {displayedCats.map((cat, index) => (
+                <div key={`${cat.src}-${index}`} className="aspect-square">
+                  <img src={cat.src} alt={`${cat.name} ${index + 1}`} className="w-full h-full object-cover" />
                 </div>
               ))}
             </div>
           )}
 
           {activeTab === 'profile' && (
-            // Profile View
             <div className="w-full max-w-sm mx-auto px-4">
               <ProfilePanel />
             </div>
           )}
 
           {activeTab === 'addCat' && (
-            // Image Uploader View
             <div className="w-full max-w-sm mx-auto px-4">
               {showLoader && (
                 <h2 className="text-center text-2xl font-bold tracking-widest text-[#E9DDCD] mb-4 animate-pulse">
@@ -282,14 +336,13 @@ const App: React.FC = () => {
           )}
         </main>
 
-        {/* Footer Tabs */}
         <footer className="absolute bottom-0 left-0 right-0 w-full bg-[#6C8167] shadow-t-lg py-2 px-4">
           <div className="flex justify-around items-center max-w-sm mx-auto">
-            <img src={activeTab === 'home' ? homeIconSelected : homeIconUnselected} alt="Home" className="h-10 w-10 cursor-pointer" onClick={() => setActiveTab('home')} />
-            <img src={activeTab === 'search' ? searchIconSelected : searchIconUnselected} alt="Search" className="h-10 w-10 cursor-pointer" onClick={() => setActiveTab('search')} />
-            <img src={activeTab === 'addCat' ? addCatIconSelected : addCatIconUnselected} alt="Add Cat" className="h-12 w-12 cursor-pointer" onClick={() => setActiveTab('addCat')} />
-            <img src={activeTab === 'map' ? mapIconSelected : mapIconUnselected} alt="Map" className="h-10 w-10 cursor-pointer" onClick={() => setActiveTab('map')} />
-            <img src={activeTab === 'profile' ? profileIconSelected : profileIconUnselected} alt="Profile" className="h-10 w-10 cursor-pointer" onClick={() => setActiveTab('profile')} />
+            <img src={activeTab === 'home' ? homeIconSelected : homeIconUnselected} alt="Home" className="h-10 w-10 cursor-pointer" onClick={() => handleTabClick('home')} />
+            <img src={activeTab === 'search' ? searchIconSelected : searchIconUnselected} alt="Search" className="h-10 w-10 cursor-pointer" onClick={() => handleTabClick('search')} />
+            <img src={activeTab === 'addCat' ? addCatIconSelected : addCatIconUnselected} alt="Add Cat" className="h-12 w-12 cursor-pointer" onClick={() => handleTabClick('addCat')} />
+            <img src={activeTab === 'map' ? mapIconSelected : mapIconUnselected} alt="Map" className="h-10 w-10 cursor-pointer" onClick={() => handleTabClick('map')} />
+            <img src={activeTab === 'profile' ? profileIconSelected : profileIconUnselected} alt="Profile" className="h-10 w-10 cursor-pointer" onClick={() => handleTabClick('profile')} />
           </div>
         </footer>
       </div>
