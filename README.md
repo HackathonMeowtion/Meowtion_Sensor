@@ -38,3 +38,27 @@ View your app in AI Studio: https://ai.studio/apps/drive/1UEt0ap-0kQPwTD-hZVxubY
 3. Run the servers:
    - Start the Gemini proxy API: `npm run server`
    - Start the Vite dev server (in a separate terminal): `npm run dev`
+
+## Deploy to Cloud Run
+
+The repository includes two deployment flows (a helper script and a Cloud Build pipeline). Both expect the same configuration:
+
+- `VITE_GEMINI_API_KEY`
+- `VITE_AUTH0_DOMAIN`
+- `VITE_AUTH0_CLIENT_ID`
+
+### One-command deploy (`src/deploy.sh`)
+
+1. Create an `.env` file **either** in the repository root **or** inside `src/` with the three variables above. The script will automatically pick whichever file exists.
+2. Run `bash src/deploy.sh`. The script sources your `.env`, validates the variables, forwards them to the Cloud Build step with `--build-arg`, and sets the same values on the Cloud Run service for the runtime Gemini proxy.
+
+If you keep secrets in `src/.env`, remember to add it to your local `.gitignore` so you do not commit credentials.
+
+### Cloud Build pipeline (`src/cloudbuild.yaml`)
+
+The provided pipeline accepts two additional substitutions so Auth0 settings make it into the production bundle:
+
+- `_VITE_AUTH0_DOMAIN`
+- `_VITE_AUTH0_CLIENT_ID`
+
+Set them when you create the trigger (alongside the existing `_REGION`, `_REPO`, `_IMAGE_NAME`, and secret for `VITE_GEMINI_API_KEY`). The pipeline passes these substitutions to `docker build --build-arg ...` and configures the Cloud Run service with the same runtime variables.
