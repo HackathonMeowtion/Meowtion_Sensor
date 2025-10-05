@@ -382,7 +382,6 @@ const App: React.FC = () => {
                       {mainPost.caption}
                     </p>
                     {renderHashtags((mainPost as any).name)}
-                    <div className="text-xs text-[#98522C] font-bold tracking-wide mt-2">#campuscat #utech #meow</div>
                   </div>
                 </article>
                 <div className="mt-4 flex gap-3">
@@ -434,7 +433,7 @@ const App: React.FC = () => {
                     className="w-full h-full object-cover"
                   />
                 </button>
-              ))}
+              ))}F
             </div>
           )}
 
