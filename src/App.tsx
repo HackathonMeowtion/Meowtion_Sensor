@@ -384,7 +384,7 @@ const App: React.FC = () => {
               {displayedCats.map((cat, index) => (
                 <div
                   key={`${cat.src}-${index}`}
-                  className="aspect-square cursor-pointer"
+                  className="aspect-square cursor-pointer border border-[#2F4F2F] rounded-md overflow-hidden shadow-sm shadow-[#2F4F2F]/20"
                   onClick={() => setSelectedImage(cat.src)}
                 >
                   <img src={cat.src} alt={`${cat.name} ${index + 1}`} className="w-full h-full object-cover" />
