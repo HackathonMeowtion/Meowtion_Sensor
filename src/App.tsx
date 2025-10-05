@@ -81,15 +81,16 @@ const App: React.FC = () => {
   const [isMatching, setIsMatching] = useState<boolean>(false);
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
   const [matchError, setMatchError] = useState<string | null>(null);
-
-  // --- THIS LINE HAS BEEN CHANGED ---
-  const [activeTab, setActiveTab] = useState<string>('home'); // Set 'home' as the default tab
+  const [activeTab, setActiveTab] = useState<string>('home');
 
   // State variables for search functionality
   const [searchTerm, setSearchTerm] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [displayedCats, setDisplayedCats] = useState<CatImage[]>(allCatImages);
+
+  // --- NEW: State for the full-screen image viewer ---
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
 
   const handleImageChange = async (file: File | null) => {
@@ -272,7 +273,12 @@ const App: React.FC = () => {
           {activeTab === 'search' && (
             <div className="grid grid-cols-3 gap-1 w-full px-1">
               {displayedCats.map((cat, index) => (
-                <div key={`${cat.src}-${index}`} className="aspect-square">
+                // --- NEW: Added onClick to open the image viewer ---
+                <div
+                  key={`${cat.src}-${index}`}
+                  className="aspect-square cursor-pointer"
+                  onClick={() => setSelectedImage(cat.src)}
+                >
                   <img src={cat.src} alt={`${cat.name} ${index + 1}`} className="w-full h-full object-cover" />
                 </div>
               ))}
@@ -353,6 +359,22 @@ const App: React.FC = () => {
             <img src={activeTab === 'profile' ? profileIconSelected : profileIconUnselected} alt="Profile" className="h-10 w-10 cursor-pointer" onClick={() => handleTabClick('profile')} />
           </div>
         </footer>
+
+        {/* --- NEW: Full-screen image viewer (Modal) --- */}
+        {selectedImage && (
+          <div
+            className="absolute inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+            onClick={() => setSelectedImage(null)} // Click background to close
+          >
+            <img
+              src={selectedImage}
+              alt="Enlarged cat"
+              className="max-w-full max-h-full object-contain"
+              onClick={(e) => e.stopPropagation()} // Click image does not close
+            />
+          </div>
+        )}
+
       </div>
     </div>
   );
