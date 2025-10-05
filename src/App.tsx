@@ -60,6 +60,8 @@ const App: React.FC = () => {
         setError(err.message);
       } else {
         setError('Failed to identify the cat. The AI may be busy, or the image could not be processed. Please try again.');
+      } else {
+        setError('Failed to identify the cat. The AI may be busy, or the image could not be processed. Please try again.');
       }
     } finally {
       setIsLoading(false);
@@ -142,6 +144,11 @@ const App: React.FC = () => {
               previewUrl={previewUrl}
               onReset={handleReset}
             />
+            <ImageUploader
+              onImageSelected={handleImageChange}
+              previewUrl={previewUrl}
+              onReset={handleReset}
+            />
 
             {imageFile && !analysis && !isLoading && (
               <button
@@ -159,6 +166,11 @@ const App: React.FC = () => {
               </div>
             )}
 
+            {error && (
+              <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert">
+                <p>{error}</p>
+              </div>
+            )}
             {error && (
               <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert">
                 <p>{error}</p>
