@@ -1,0 +1,7 @@
+# Keep Cloud Build uploads tiny
+node_modules/
+dist/
+.git/
+.DS_Store
+google-cloud-sdk/
+google-cloud-cli-*.tar.gz

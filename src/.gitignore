@@ -1,3 +1,8 @@
+node_modules/
+dist/
+.DS_Store
+google-cloud-sdk/
+google-cloud-cli-*.tar.gz
 # Logs
 logs
 *.log
