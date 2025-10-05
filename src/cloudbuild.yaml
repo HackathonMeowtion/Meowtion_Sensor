@@ -28,6 +28,20 @@ steps:
         exit 1
       fi
       echo "Secret fetched OK."
+      if ! gcloud secrets versions access latest --secret=VITE_AUTH0_DOMAIN > /workspace/.auth0domain ; then
+        echo "FAILED to read VITE_AUTH0_DOMAIN. IAM or API issue." >&2
+        gcloud secrets get-iam-policy VITE_AUTH0_DOMAIN --format='yaml' || true
+        gcloud info || true
+        exit 1
+      fi
+      echo "Auth0 domain secret fetched OK."
+      if ! gcloud secrets versions access latest --secret=VITE_AUTH0_CLIENT_ID > /workspace/.auth0clientid ; then
+        echo "FAILED to read VITE_AUTH0_CLIENT_ID. IAM or API issue." >&2
+        gcloud secrets get-iam-policy VITE_AUTH0_CLIENT_ID --format='yaml' || true
+        gcloud info || true
+        exit 1
+      fi
+      echo "Auth0 client ID secret fetched OK."
 
 # 2) Build the Docker image (tag with BUILD_ID and latest)
 - name: gcr.io/cloud-builders/docker
@@ -40,6 +54,8 @@ steps:
       IMG="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}"
       docker build \
         --build-arg VITE_GEMINI_API_KEY="$$(cat /workspace/.geminikey)" \
+        --build-arg VITE_AUTH0_DOMAIN="$$(cat /workspace/.auth0domain)" \
+        --build-arg VITE_AUTH0_CLIENT_ID="$$(cat /workspace/.auth0clientid)" \
         -t "$${IMG}:$BUILD_ID" \
         -t "$${IMG}:latest" \
         .

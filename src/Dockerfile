@@ -12,9 +12,13 @@
     # Copy the rest of the project (remember: you're in src/)
     COPY . .
     
-    # (Hackathon OK; exposes key in built JS)
-    ARG VITE_GEMINI_API_KEY
-    ENV VITE_GEMINI_API_KEY=$VITE_GEMINI_API_KEY
+# (Hackathon OK; exposes key in built JS)
+ARG VITE_GEMINI_API_KEY
+ARG VITE_AUTH0_DOMAIN
+ARG VITE_AUTH0_CLIENT_ID
+ENV VITE_GEMINI_API_KEY=$VITE_GEMINI_API_KEY \
+    VITE_AUTH0_DOMAIN=$VITE_AUTH0_DOMAIN \
+    VITE_AUTH0_CLIENT_ID=$VITE_AUTH0_CLIENT_ID
     
     # Build Vite app -> /app/dist
     RUN npm run build
