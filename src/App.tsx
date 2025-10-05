@@ -7,6 +7,7 @@ import { fileToBase64 } from './utils/imageUtils';
 import ImageUploader from './components/ImageUploader';
 import ResultCard from './components/ResultCard';
 import MatchResultCard from './components/MatchResultCard';
+import ProfilePanel from './components/ProfilePanel';
 
 // Import all the assets
 import meowtionSensorLogo from './assets/MeowtionSensorLogo.png'; // Original header logo
@@ -168,62 +169,68 @@ const App: React.FC = () => {
 
         {/* Main content area (made scrollable) */}
         <main className="flex-grow flex flex-col items-center p-4 pt-28 pb-24 overflow-y-auto">
-          <div className="w-full max-w-sm mx-auto">
-            {showLoader && (
-              <h2 className="text-center text-2xl font-bold tracking-widest text-[#E9DDCD] mb-4 animate-pulse">
-                {loaderText}
-              </h2>
-            )}
+          {activeTab === 'profile' ? (
+            <div className="w-full max-w-sm mx-auto">
+              <ProfilePanel />
+            </div>
+          ) : (
+            <div className="w-full max-w-sm mx-auto">
+              {showLoader && (
+                <h2 className="text-center text-2xl font-bold tracking-widest text-[#E9DDCD] mb-4 animate-pulse">
+                  {loaderText}
+                </h2>
+              )}
 
-            <ImageUploader
-              onImageSelected={handleImageChange}
-              previewUrl={previewUrl}
-              onReset={handleReset}
-            />
+              <ImageUploader
+                onImageSelected={handleImageChange}
+                previewUrl={previewUrl}
+                onReset={handleReset}
+              />
 
-            {imageFile && !analysis && !isLoading && (
-              <button
-                onClick={handleIdentifyClick}
-                className="w-full mt-4 bg-[#BE956C] text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-[#98522C] focus:outline-none focus:ring-2 focus:ring-[#E9DDCD] focus:ring-opacity-50 transition-colors transform active:scale-95 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                disabled={isLoading}
-              >
-                Identify Cat
-              </button>
-            )}
+              {imageFile && !analysis && !isLoading && (
+                <button
+                  onClick={handleIdentifyClick}
+                  className="w-full mt-4 bg-[#BE956C] text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-[#98522C] focus:outline-none focus:ring-2 focus:ring-[#E9DDCD] focus:ring-opacity-50 transition-colors transform active:scale-95 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  disabled={isLoading}
+                >
+                  Identify Cat
+                </button>
+              )}
 
-            {showLoader && (
-              <div className="flex justify-center items-center pt-8">
-                <div className="w-16 h-16 border-8 border-[#E9DDCD] border-t-8 border-t-[#BE956C] rounded-full animate-spin"></div>
-              </div>
-            )}
+              {showLoader && (
+                <div className="flex justify-center items-center pt-8">
+                  <div className="w-16 h-16 border-8 border-[#E9DDCD] border-t-8 border-t-[#BE956C] rounded-full animate-spin"></div>
+                </div>
+              )}
 
-            {error && (
-              <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert">
-                <p>{error}</p>
-              </div>
-            )}
+              {error && (
+                <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert">
+                  <p>{error}</p>
+                </div>
+              )}
 
-            {analysis && !showLoader && <ResultCard analysis={analysis} />}
+              {analysis && !showLoader && <ResultCard analysis={analysis} />}
 
-            {/* --- UI for the matching feature --- */}
-            {analysis && analysis.isCat && !matchResult && !isMatching && (
-               <button
-                onClick={handleMatchClick}
-                className="w-full mt-4 bg-[#BE956C] text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-[#98522C] focus:outline-none focus:ring-2 focus:ring-[#E9DDCD] focus:ring-opacity-50 transition-colors transform active:scale-95 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                disabled={isMatching}
-              >
-                Is this a known cat?
-              </button>
-            )}
+              {/* --- UI for the matching feature --- */}
+              {analysis && analysis.isCat && !matchResult && !isMatching && (
+                 <button
+                  onClick={handleMatchClick}
+                  className="w-full mt-4 bg-[#BE956C] text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-[#98522C] focus:outline-none focus:ring-2 focus:ring-[#E9DDCD] focus:ring-opacity-50 transition-colors transform active:scale-95 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  disabled={isMatching}
+                >
+                  Is this a known cat?
+                </button>
+              )}
 
-            {matchError && (
-               <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert">
-                <p>{matchError}</p>
-              </div>
-            )}
+              {matchError && (
+                 <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert">
+                  <p>{matchError}</p>
+                </div>
+              )}
 
-            {matchResult && !isMatching && <MatchResultCard result={matchResult} />}
-          </div>
+              {matchResult && !isMatching && <MatchResultCard result={matchResult} />}
+            </div>
+          )}
         </main>
 
         {/* Bottom Navigation Bar */}
