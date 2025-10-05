@@ -11,7 +11,7 @@ import MatchResultCard from './components/MatchResultCard';
 import ProfilePanel from './components/ProfilePanel';
 
 // Logos / assets
-import meowtionSensorLogo from './assets/MeowtionSensorLogo.PNG';
+import meowtionSensorLogo from './assets/MeowtionSensorLogo.png';
 import searchBarIcon from './assets/searchBarIcon.PNG';
 
 // Footer assets
@@ -23,7 +23,7 @@ import addCatIconUnselected from './assets/addCat_unselected.png';
 import addCatIconSelected from './assets/addCat_selected.PNG';
 import mapIconUnselected from './assets/catMap_unselected.png';
 import mapIconSelected from './assets/catMap_selected.PNG';
-import profileIconUnselected from './assets/userProfile_unselected.PNG';
+import profileIconUnselected from './assets/userProfile_unselected.png';
 import profileIconSelected from './assets/userProfile_selected.PNG';
 
 // Social icons
@@ -50,7 +50,7 @@ import twix2 from './assets/known-cats/twix2.jpg';
 import twix3 from './assets/known-cats/twix3.jpg';
 
 // Profile default
-import profileDefault from './assets/profileDefault.PNG';
+import profileDefault from './assets/profileDefault.png';
 
 // Define a more structured type for our cat data
 type CatImage = {
@@ -96,7 +96,7 @@ const App: React.FC = () => {
   const [postMessage, setPostMessage] = useState('');
 
   // --- New: Home feed demo data (static, but ready for array/expansion) ---
-  // You said to display the username and use profileDefault.PNG
+  // You said to display the username and use profileDefault.png
   const username = 'UTACatLuvr'; // using the account name from metadata as requested
   const mainPost = {
     id: 'post-main',
