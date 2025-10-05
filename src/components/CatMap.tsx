@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { catLocations, CatLocation } from '../data/catLocations';
+import './CatMap.css';
 
 declare global {
   interface Window {
@@ -155,10 +156,76 @@ const CatMap: React.FC = () => {
       zoomControl: false,
     });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
+    const baseTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
       maxZoom: 19,
-    }).addTo(map);
+      keepBuffer: 6,
+      reuseTiles: true,
+      updateWhenIdle: true,
+      updateInterval: 100,
+      className: 'cat-map-tile-layer',
+      crossOrigin: true,
+    });
+
+    const handleTileLoadStart = (event: any) => {
+      const tile: HTMLImageElement | undefined = event?.tile;
+      if (tile) {
+        tile.classList.remove('cat-map-tile-loaded');
+        tile.classList.remove('cat-map-tile-error');
+        if (!tile.dataset.originalSrc) {
+          tile.dataset.originalSrc = tile.src;
+        } else {
+          tile.src = tile.dataset.originalSrc;
+        }
+        tile.dataset.retryCount = '0';
+      }
+    };
+
+    const handleTileLoad = (event: any) => {
+      const tile: HTMLImageElement | undefined = event?.tile;
+      if (tile) {
+        tile.classList.add('cat-map-tile-loaded');
+        tile.classList.remove('cat-map-tile-error');
+        delete tile.dataset.retryCount;
+        delete tile.dataset.originalSrc;
+      }
+    };
+
+    const handleTileError = (event: any) => {
+      const tile = event?.tile as (HTMLImageElement & { dataset: DOMStringMap }) | undefined;
+      if (!tile) {
+        return;
+      }
+
+      const currentRetries = Number(tile.dataset.retryCount ?? '0');
+      if (currentRetries >= 3) {
+        tile.classList.add('cat-map-tile-error');
+        return;
+      }
+
+      const nextRetries = currentRetries + 1;
+      tile.dataset.retryCount = `${nextRetries}`;
+
+      setTimeout(() => {
+        try {
+          const retryUrl = new URL(tile.dataset.originalSrc ?? tile.src);
+          retryUrl.searchParams.set('retry', `${Date.now()}`);
+          retryUrl.searchParams.set('attempt', `${nextRetries}`);
+          tile.src = retryUrl.toString();
+        } catch (error) {
+          // Fallback for browsers that cannot construct a URL from the tile src
+          const originalSrc = tile.dataset.originalSrc ?? tile.src;
+          tile.src = `${originalSrc}?retry=${Date.now()}&attempt=${nextRetries}`;
+        }
+      }, nextRetries * 400);
+    };
+
+    baseTiles
+      .on('tileloadstart', handleTileLoadStart)
+      .on('tileload', handleTileLoad)
+      .on('tileerror', handleTileError)
+      .addTo(map);
 
     catMarkersRef.current = catLocations.map((cat) => {
       const marker = L.marker(toLatLngTuple(cat), { title: cat.name });
@@ -176,6 +243,10 @@ const CatMap: React.FC = () => {
     }, 0);
 
     return () => {
+      baseTiles
+        .off('tileloadstart', handleTileLoadStart)
+        .off('tileload', handleTileLoad)
+        .off('tileerror', handleTileError);
       map.remove();
       mapRef.current = null;
       userMarkerRef.current = null;
@@ -262,7 +333,7 @@ const CatMap: React.FC = () => {
     <div className="space-y-4">
       <div
         ref={containerRef}
-        className="w-full h-[420px] rounded-3xl overflow-hidden shadow-xl border border-[#E9DDCD]"
+        className="cat-map-container w-full h-[420px] rounded-3xl overflow-hidden shadow-xl border border-[#E9DDCD]"
       />
 
       <div className="bg-[#3B4A39]/80 text-[#FDEFD2] rounded-2xl p-4 space-y-2 border border-[#E9DDCD]/60">

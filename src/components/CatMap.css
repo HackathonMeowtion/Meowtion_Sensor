@@ -1,0 +1,36 @@
+.cat-map-container {
+  background-color: #1f2937;
+  position: relative;
+}
+
+.cat-map-container .leaflet-container {
+  background: #1f2937;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.cat-map-container .leaflet-control-container {
+  display: none;
+}
+
+.cat-map-container .leaflet-pane .leaflet-layer {
+  will-change: transform;
+}
+
+.cat-map-container .cat-map-tile-layer {
+  filter: saturate(1.05);
+}
+
+.cat-map-container .cat-map-tile-layer > img {
+  transition: opacity 180ms ease-in-out;
+  opacity: 0;
+  background-color: #1f2937;
+}
+
+.cat-map-container .cat-map-tile-layer > img.cat-map-tile-loaded {
+  opacity: 1;
+}
+
+.cat-map-container .cat-map-tile-layer > img.cat-map-tile-error {
+  opacity: 0.25;
+  filter: grayscale(0.6);
+}
