@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 // Import assets
-import catPingIcon from '../assets/catPing.png';
+import catPingIcon from '../assets/catPing.PNG';
 import microwaveImage from '../assets/known-cats/microwave.webp';
 import snickersImage from '../assets/known-cats/snickers1.png';
 import eggsImage from '../assets/known-cats/eggs1.png';
