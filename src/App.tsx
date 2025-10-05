@@ -88,9 +88,11 @@ const App: React.FC = () => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [displayedCats, setDisplayedCats] = useState<CatImage[]>(allCatImages);
-
-  // --- NEW: State for the full-screen image viewer ---
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  // State for the post creation view
+  const [isCreatingPost, setIsCreatingPost] = useState(false);
+  const [postMessage, setPostMessage] = useState('');
 
 
   const handleImageChange = async (file: File | null) => {
@@ -101,13 +103,10 @@ const App: React.FC = () => {
       setError(null);
       setMatchResult(null);
       setMatchError(null);
+      setIsCreatingPost(false);
+      setPostMessage('');
     } else {
-      setImageFile(null);
-      setPreviewUrl(null);
-      setAnalysis(null);
-      setMatchResult(null);
-      setError(null);
-      setMatchError(null);
+      handleReset();
     }
   };
 
@@ -119,10 +118,8 @@ const App: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
-
       const { base64, mimeType } = await fileToBase64(imageFile);
       const result = await identifyCatBreed(base64, mimeType);
-
       setAnalysis(result);
     } catch (e: any) {
       setError(e?.message ?? 'Failed to analyze image.');
@@ -139,10 +136,8 @@ const App: React.FC = () => {
     try {
       setIsMatching(true);
       setMatchError(null);
-
       const { base64, mimeType } = await fileToBase64(imageFile);
       const result = await findMatchingCat(base64, mimeType);
-
       setMatchResult(result);
     } catch (e: any) {
       setMatchError(e?.message ?? 'Failed to match.');
@@ -158,6 +153,8 @@ const App: React.FC = () => {
     setError(null);
     setMatchResult(null);
     setMatchError(null);
+    setIsCreatingPost(false);
+    setPostMessage('');
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -262,18 +259,12 @@ const App: React.FC = () => {
         </header>
 
         <main className="flex-grow flex flex-col items-center w-full pt-24 pb-24 overflow-y-auto">
-          {activeTab === 'home' && (
-            <div className="text-[#E9DDCD] mt-8">Home coming soon…</div>
-          )}
-
-          {activeTab === 'map' && (
-            <div className="text-[#E9DDCD] mt-8">Map coming soon…</div>
-          )}
+          {activeTab === 'home' && ( <div className="text-[#E9DDCD] mt-8">Home coming soon…</div> )}
+          {activeTab === 'map' && ( <div className="text-[#E9DDCD] mt-8">Map coming soon…</div> )}
 
           {activeTab === 'search' && (
             <div className="grid grid-cols-3 gap-1 w-full px-1">
               {displayedCats.map((cat, index) => (
-                // --- NEW: Added onClick to open the image viewer ---
                 <div
                   key={`${cat.src}-${index}`}
                   className="aspect-square cursor-pointer"
@@ -285,67 +276,85 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'profile' && (
-            <div className="w-full max-w-sm mx-auto px-4">
-              <ProfilePanel />
-            </div>
-          )}
+          {activeTab === 'profile' && ( <div className="w-full max-w-sm mx-auto px-4"> <ProfilePanel /> </div> )}
 
           {activeTab === 'addCat' && (
             <div className="w-full max-w-sm mx-auto px-4">
-              {showLoader && (
-                <h2 className="text-center text-2xl font-bold tracking-widest text-[#E9DDCD] mb-4 animate-pulse">
-                  {loaderText}
-                </h2>
-              )}
-
-              <ImageUploader
-                onImageSelected={handleImageChange}
-                previewUrl={previewUrl}
-                onReset={handleReset}
-              />
-
-              {imageFile && !analysis && !isLoading && (
-                <button
-                  onClick={handleIdentifyClick}
-                  className="w-full mt-4 bg-[#BE956C] text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-[#98522C] focus:outline-none focus:ring-2 focus:ring-[#E9DDCD] focus:ring-opacity-50 transition-colors transform active:scale-95 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                  disabled={isLoading}
-                >
-                  Identify Cat
-                </button>
-              )}
-
-              {showLoader && (
-                <div className="flex justify-center items-center pt-8">
-                  <div className="w-16 h-16 border-8 border-[#E9DDCD] border-t-8 border-t-[#BE956C] rounded-full animate-spin"></div>
+              {isCreatingPost ? (
+                // Post Creation View
+                <div className="w-full">
+                  {previewUrl && <img src={previewUrl} alt="Cat to post" className="w-full rounded-lg shadow-lg mb-4" />}
+                  <div className="bg-[#97A88D] p-4 rounded-lg">
+                    <textarea
+                      value={postMessage}
+                      onChange={(e) => {
+                        if (e.target.value.length <= 120) {
+                          setPostMessage(e.target.value);
+                        }
+                      }}
+                      maxLength={120}
+                      placeholder="Add a message..."
+                      className="w-full h-24 bg-transparent text-[#E9DDCD] placeholder:text-[#E9DDCD]/70 resize-none focus:outline-none"
+                    />
+                    <div className="text-right text-xs text-[#E9DDCD] mt-2">
+                      {postMessage.length} / 120
+                    </div>
+                    {postMessage.length >= 120 && (
+                      <div className="text-center font-bold text-[#6C8167] mt-2">
+                        Max characters (120) reached!
+                      </div>
+                    )}
+                    <div className="flex justify-end space-x-2 mt-4">
+                        <button
+                            onClick={() => setIsCreatingPost(false)}
+                            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={() => {
+                                console.log("Posting message:", postMessage);
+                                handleReset(); // Go back to uploader after posting
+                            }}
+                            className="px-4 py-2 bg-[#BE956C] text-white rounded-lg hover:bg-[#98522C]"
+                        >
+                            Post
+                        </button>
+                    </div>
+                  </div>
                 </div>
+              ) : (
+                // Original Uploader and Results View
+                <>
+                  {showLoader && ( <h2 className="text-center text-2xl font-bold tracking-widest text-[#E9DDCD] mb-4 animate-pulse"> {loaderText} </h2> )}
+                  <ImageUploader onImageSelected={handleImageChange} previewUrl={previewUrl} onReset={handleReset} />
+                  {imageFile && !analysis && !isLoading && (
+                    <button onClick={handleIdentifyClick} className="w-full mt-4 bg-[#BE956C] text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-[#98522C] focus:outline-none focus:ring-2 focus:ring-[#E9DDCD] focus:ring-opacity-50 transition-colors transform active:scale-95 disabled:bg-gray-400 disabled:cursor-not-allowed" disabled={isLoading}>
+                      Identify Cat
+                    </button>
+                  )}
+                  {showLoader && ( <div className="flex justify-center items-center pt-8"> <div className="w-16 h-16 border-8 border-[#E9DDCD] border-t-8 border-t-[#BE956C] rounded-full animate-spin"></div> </div> )}
+                  {error && ( <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert"> <p>{error}</p> </div> )}
+
+                  {analysis && !showLoader && <ResultCard analysis={analysis} />}
+
+                  {analysis && analysis.isCat && !isCreatingPost && (
+                    <div className="w-full mt-4 space-y-2">
+                      {!matchResult && !isMatching && (
+                        <button onClick={handleMatchClick} className="w-full bg-[#BE956C] text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-[#98522C] focus:outline-none focus:ring-2 focus:ring-[#E9DDCD] focus:ring-opacity-50 transition-colors transform active:scale-95 disabled:bg-gray-400 disabled:cursor-not-allowed" disabled={isMatching}>
+                          Is this a known cat?
+                        </button>
+                      )}
+                      <button onClick={() => setIsCreatingPost(true)} className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors transform active:scale-95">
+                        Create Post
+                      </button>
+                    </div>
+                  )}
+
+                  {matchError && ( <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert"> <p>{matchError}</p> </div> )}
+                  {matchResult && !isMatching && <MatchResultCard result={matchResult} />}
+                </>
               )}
-
-              {error && (
-                <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert">
-                  <p>{error}</p>
-                </div>
-              )}
-
-              {analysis && !showLoader && <ResultCard analysis={analysis} />}
-
-              {analysis && analysis.isCat && !matchResult && !isMatching && (
-                <button
-                  onClick={handleMatchClick}
-                  className="w-full mt-4 bg-[#BE956C] text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-[#98522C] focus:outline-none focus:ring-2 focus:ring-[#E9DDCD] focus:ring-opacity-50 transition-colors transform active:scale-95 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                  disabled={isMatching}
-                >
-                  Is this a known cat?
-                </button>
-              )}
-
-              {matchError && (
-                <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert">
-                  <p>{matchError}</p>
-                </div>
-              )}
-
-              {matchResult && !isMatching && <MatchResultCard result={matchResult} />}
             </div>
           )}
         </main>
@@ -360,18 +369,9 @@ const App: React.FC = () => {
           </div>
         </footer>
 
-        {/* --- NEW: Full-screen image viewer (Modal) --- */}
         {selectedImage && (
-          <div
-            className="absolute inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
-            onClick={() => setSelectedImage(null)} // Click background to close
-          >
-            <img
-              src={selectedImage}
-              alt="Enlarged cat"
-              className="max-w-full max-h-full object-contain"
-              onClick={(e) => e.stopPropagation()} // Click image does not close
-            />
+          <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => setSelectedImage(null)}>
+            <img src={selectedImage} alt="Enlarged cat" className="max-w-full max-h-full object-contain" onClick={(e) => e.stopPropagation()} />
           </div>
         )}
 
