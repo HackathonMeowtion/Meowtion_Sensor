@@ -1,75 +1,63 @@
-# cloudbuild.yaml — fetch secret at runtime, pass as --build-arg, tag with BUILD_ID + latest
 substitutions:
   _REGION: "us-south1"
   _REPO: "cloud-run-source-deploy"
   _IMAGE_NAME: "meowtion-sensor"
+  _SERVICE: "meowtion-sensor"
 
 options:
   logging: CLOUD_LOGGING_ONLY
 
 steps:
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: make-env
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        : "${PROJECT_ID:?PROJECT_ID not set}"
+        GEMINI=$(gcloud secrets versions access latest --secret=VITE_GEMINI_API_KEY)
+        AUTH0_DOMAIN=$(gcloud secrets versions access latest --secret=VITE_AUTH0_DOMAIN)
+        AUTH0_CLIENT_ID=$(gcloud secrets versions access latest --secret=VITE_AUTH0_CLIENT_ID)
+        mkdir -p src
+        {
+          echo "VITE_GEMINI_API_KEY=$GEMINI"
+          echo "VITE_AUTH0_DOMAIN=$AUTH0_DOMAIN"
+          echo "VITE_AUTH0_CLIENT_ID=$AUTH0_CLIENT_ID"
+        } > src/.env
 
+  - name: gcr.io/cloud-builders/docker
+    id: docker-build
+    dir: src
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:$BUILD_ID
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:latest
+      - .
 
-# 1) Fetch the secret and write it to a workspace file (no set -u)
-- name: gcr.io/google.com/cloudsdktool/cloud-sdk
-  id: fetch-secret
-  entrypoint: bash
-  args:
-    - -lc
-    - |
-      set -eo pipefail
-      echo "Active account in build:" >&2
-      gcloud auth list --filter=status:ACTIVE --format='value(account)' || true
-      echo "Trying to read secret..." >&2
-      if ! gcloud secrets versions access latest --secret=VITE_GEMINI_API_KEY > /workspace/.geminikey ; then
-        echo "FAILED to read VITE_GEMINI_API_KEY. IAM or API issue." >&2
-        gcloud secrets get-iam-policy VITE_GEMINI_API_KEY --format='yaml' || true
-        gcloud info || true
-        exit 1
-      fi
-      echo "Secret fetched OK."
+  - name: gcr.io/cloud-builders/docker
+    id: push-tags
+    args:
+      - sh
+      - -ceu
+      - |
+        docker push ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:$BUILD_ID
+        docker push ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:latest
 
-# 2) Build the Docker image (tag with BUILD_ID and latest)
-- name: gcr.io/cloud-builders/docker
-  id: docker-build
-  entrypoint: bash
-  args:
-    - -lc
-    - |
-      set -euo pipefail
-      IMG="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}"
-      docker build \
-        --build-arg VITE_GEMINI_API_KEY="$$(cat /workspace/.geminikey)" \
-        -t "$${IMG}:$BUILD_ID" \
-        -t "$${IMG}:latest" \
-        .
-
-# 3) Push both tags
-- name: gcr.io/cloud-builders/docker
-  id: docker-push
-  entrypoint: bash
-  args:
-    - -lc
-    - |
-      set -euo pipefail
-      IMG="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}"
-      docker push "$${IMG}:$BUILD_ID"
-      docker push "$${IMG}:latest"
-
-# 4) Deploy the BUILD_ID tag to Cloud Run
-- name: gcr.io/google.com/cloudsdktool/cloud-sdk
-  id: deploy
-  entrypoint: gcloud
-  args:
-    - run
-    - deploy
-    - ${_IMAGE_NAME}
-    - --image
-    - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:$BUILD_ID
-    - --region
-    - ${_REGION}
-    - --allow-unauthenticated
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: deploy
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:$BUILD_ID
+      - --region
+      - ${_REGION}
+      - --allow-unauthenticated
 
 images:
-- ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:$BUILD_ID
-- ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:latest
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:$BUILD_ID
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:latest
