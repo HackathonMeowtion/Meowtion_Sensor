@@ -1,8 +1,7 @@
 // src/App.tsx
+
 import React, { useState, useCallback, useEffect } from 'react';
-// Make sure to import both types if you use them elsewhere
 import type { CatBreedAnalysis, MatchResult } from './types';
-// Keep your existing service & util imports
 import { identifyCatBreed, findMatchingCat } from './services/geminiService';
 import { fileToBase64 } from './utils/imageUtils';
 import ImageUploader from './components/ImageUploader';
@@ -11,11 +10,9 @@ import MatchResultCard from './components/MatchResultCard';
 import ProfilePanel from './components/ProfilePanel';
 import CatMap from './components/CatMap';
 
-// Logos / assets
 import meowtionSensorLogo from './assets/MeowtionSensorLogo.png';
 import searchBarIcon from './assets/searchBarIcon.PNG';
 
-// Footer assets
 import homeIconUnselected from './assets/home_unselected.png';
 import homeIconSelected from './assets/home_selected.PNG';
 import searchIconUnselected from './assets/search_unselected.png';
@@ -27,13 +24,11 @@ import mapIconSelected from './assets/catMap_selected.PNG';
 import profileIconUnselected from './assets/userProfile_unselected.png';
 import profileIconSelected from './assets/userProfile_selected.PNG';
 
-// Social icons
 import instagramIcon from './assets/instagram.PNG';
 import discordIcon from './assets/discord.PNG';
 import facebookIcon from './assets/facebook.PNG';
 import twitterIcon from './assets/twitter.PNG';
 
-// Known cat images
 import eggs1 from './assets/known-cats/eggs1.png';
 import eggs2 from './assets/known-cats/eggs2.png';
 import eggs3 from './assets/known-cats/eggs3.png';
@@ -50,7 +45,6 @@ import twix1 from './assets/known-cats/twix.jpg';
 import twix2 from './assets/known-cats/twix2.jpg';
 import twix3 from './assets/known-cats/twix3.jpg';
 
-// Profile default
 import profileDefault from './assets/profileDefault.png';
 
 type CatImage = {
@@ -155,14 +149,19 @@ const App: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isCreatingPost, setIsCreatingPost] = useState(false);
   const [postMessage, setPostMessage] = useState('');
-  const [postError, setPostError] = useState<string | null>(null);
   const [lastKnownCatName, setLastKnownCatName] = useState<string | null>(null);
-  const [posts, setPosts] = useState<Post[]>(() => defaultPosts.map((post) => ({ ...post })));
-
-  // ✅ **CHANGE 1 of 3: Add a new state to track if the initial mount is complete.**
   const [isMounted, setIsMounted] = useState(false);
 
-  const username = DEFAULT_USERNAME;
+  const username = 'UTACatLuvr';
+  const mainPost = {
+    id: 'post-main',
+    user: username,
+    userAvatar: profileDefault,
+    image: microwave1,
+    caption: "Spotted this sneaky floof by the courtyard — stole my sandwich and my heart. 🐾",
+    timeAgo: '2h',
+    name: 'microwave',
+  };
   const nextPostPreview = {
     id: 'post-preview',
     user: 'Oreo Lover',
@@ -173,74 +172,11 @@ const App: React.FC = () => {
     name: 'oreo',
   };
 
-  // ✅ **CHANGE 2 of 3: Add an effect that runs only once after the component mounts.**
   useEffect(() => {
-    // This effect uses a short timeout to set isMounted to true.
-    // This ensures the browser has finished its initial layout calculations
-    // before we fade the content in, preventing the UI glitches.
     const timer = setTimeout(() => {
       setIsMounted(true);
-    }, 100); // A 100ms delay is enough to prevent the flash of misaligned content.
-
-    return () => clearTimeout(timer); // Cleanup the timer
-  }, []); // Empty dependency array means this effect runs only once.
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    const stored = window.localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (!stored) {
-      return;
-    }
-
-    try {
-      const parsed: Post[] = JSON.parse(stored);
-      if (Array.isArray(parsed)) {
-        const sanitized = parsed.map((post) => ({ ...post, isDefault: false }));
-        setPosts([...sanitized, ...defaultPosts.map((post) => ({ ...post }))]);
-      }
-    } catch (storageError) {
-      console.error('Failed to load saved posts from storage.', storageError);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    const customPosts = posts.filter((post) => !post.isDefault);
-    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(customPosts));
-  }, [posts]);
-
-  const formatTimeAgo = useCallback((post: Post) => {
-    if (post.createdAt) {
-      const createdTime = new Date(post.createdAt).getTime();
-      if (!Number.isFinite(createdTime)) {
-        return post.timeAgo || 'Just now';
-      }
-      const diff = Date.now() - createdTime;
-      const minute = 60 * 1000;
-      const hour = 60 * minute;
-      const day = 24 * hour;
-
-      if (diff < minute) return 'Just now';
-      if (diff < hour) return `${Math.floor(diff / minute)}m`;
-      if (diff < day) return `${Math.floor(diff / hour)}h`;
-      return `${Math.floor(diff / day)}d`;
-    }
-
-    return post.timeAgo || 'Just now';
-  }, []);
-
-  const getPostLikesLabel = useCallback((post: Post) => {
-    if (typeof post.likes === 'number') {
-      const suffix = post.likes === 1 ? 'like' : 'likes';
-      return `${post.likes} ${suffix}`;
-    }
-    return 'Be the first to like this';
+    }, 100);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleImageChange = async (file: File | null) => {
@@ -253,7 +189,6 @@ const App: React.FC = () => {
       setMatchError(null);
       setIsCreatingPost(false);
       setPostMessage('');
-      setPostError(null);
       setLastKnownCatName(null);
     } else {
       handleReset();
@@ -372,8 +307,8 @@ const App: React.FC = () => {
   const executeSearch = (name: string) => {
     const term = name.trim().toLowerCase();
     if (catNames.includes(term)) {
-        const filteredCats = allCatImages.filter(cat => cat.name.toLowerCase() === term);
-        setDisplayedCats(filteredCats);
+      const filteredCats = allCatImages.filter(cat => cat.name.toLowerCase() === term);
+      setDisplayedCats(filteredCats);
     }
     setSearchTerm(name);
     setIsSearchFocused(false);
@@ -397,7 +332,7 @@ const App: React.FC = () => {
       setSearchTerm('');
     }
     setActiveTab(tabName);
-  }
+  };
 
   useEffect(() => {
     if (selectedImage) {
@@ -442,7 +377,6 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 font-sans">
       <div className="w-[393px] h-[852px] bg-[#6C8167] rounded-[40px] shadow-2xl border-4 border-black overflow-hidden relative flex flex-col">
-
         <header className="absolute top-0 left-0 right-0 z-10 bg-[#E9DDCD] py-2 shadow-md">
           {activeTab === 'search' ? (
             <div className="flex items-center justify-center p-1">
@@ -475,11 +409,9 @@ const App: React.FC = () => {
             </div>
           ) : (
             <div className="flex justify-center items-center text-center">
-               <img src={meowtionSensorLogo} alt="Meowtion Sensor Header" className="h-12 w-12 mr-2" />
-               <div>
-                <h1 className="text-3xl font-bold tracking-wider text-[#BE956C]">
-                  MEOWTION SENSOR
-                </h1>
+              <img src={meowtionSensorLogo} alt="Meowtion Sensor Header" className="h-12 w-12 mr-2" />
+              <div>
+                <h1 className="text-3xl font-bold tracking-wider text-[#BE956C]">MEOWTION SENSOR</h1>
                 <div className="flex justify-center items-center space-x-2 mt-1">
                   <a href="https://www.instagram.com/catsofuta" target="_blank" rel="noopener noreferrer"><img src={instagramIcon} alt="Instagram" className="h-4 w-4 cursor-pointer" /></a>
                   <a href="https://discord.com/invite/rAEFDeT" target="_blank" rel="noopener noreferrer"><img src={discordIcon} alt="Discord" className="h-4 w-4 cursor-pointer" /></a>
@@ -491,78 +423,62 @@ const App: React.FC = () => {
           )}
         </header>
 
-        {/* ✅ **CHANGE 3 of 3: Add conditional classes to the main content area.** */}
         <main className={`flex-grow flex flex-col items-center w-full pt-24 pb-28 overflow-y-auto relative z-0 transition-opacity duration-300 ${isMounted ? 'opacity-100' : 'opacity-0'}`}>
-          
           {activeTab === 'home' && (
             <div className="w-full flex justify-center px-4">
-              <div className="w-full max-w-[340px]">
-                <div className="space-y-6">
-                  {posts.map((post) => (
-                    <article key={post.id} className="bg-[#E9DDCD] rounded-2xl shadow-lg border-2 border-black overflow-hidden">
-                      <div className="flex items-center gap-3 px-4 py-3">
-                        <img src={post.userAvatar || profileDefault} alt="avatar" className="h-12 w-12 rounded-full object-cover border-2 border-black" />
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-[#98522C] font-bold tracking-wide text-sm">{post.user}</p>
-                              <p className="text-xs text-[#6C8167]">{formatTimeAgo(post)}</p>
-                            </div>
-                            <button className="text-sm px-2 py-1 bg-[#6C8167] text-[#E9DDCD] rounded-md font-bold">Follow</button>
-                          </div>
+              <div className="w-full max-w-[340px] flex flex-col space-y-6">
+                <article className="bg-[#E9DDCD] rounded-2xl shadow-lg border-2 border-black overflow-hidden">
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <img src={profileDefault} alt="avatar" className="h-12 w-12 rounded-full object-cover border-2 border-black" />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-[#98522C] font-bold tracking-wide text-sm">{mainPost.user}</p>
+                          <p className="text-xs text-[#6C8167]">{mainPost.timeAgo}</p>
                         </div>
-                      </div>
-                      <div className="w-full aspect-square bg-gray-200">
-                        <img src={post.image} alt="cat" className="w-full h-full object-cover" />
-                      </div>
-                      <div className="px-4 py-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-3">
-                            <button className="font-bold text-[#98522C]">❤</button>
-                            <button className="font-bold text-[#98522C]">💬</button>
-                            <button className="font-bold text-[#98522C]">✈️</button>
-                          </div>
-                          <div className="text-xs text-[#6C8167] font-semibold">{getPostLikesLabel(post)}</div>
-                        </div>
-                        <p className="text-sm text-[#6C8167] leading-relaxed mb-2">
-                          <span className="font-bold text-[#98522C] mr-2">{post.user}</span>
-                          {post.caption}
-                        </p>
-                        {renderHashtags(post.name)}
-                      </div>
-                    </article>
-                  ))}
-                </div>
-                <div className="mt-4 flex gap-3">
-                  <button onClick={() => { setActiveTab('addCat'); beginCreatePost(); }} className="flex-1 bg-green-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-green-700">
-                    Create Post
-                  </button>
-                  <button onClick={() => {}} className="w-16 bg-[#BE956C] text-white font-bold py-3 rounded-lg shadow-md">
-                    Share
-                  </button>
-                </div>
-                <div className="h-6" />
-                <div className="relative mt-4">
-                  <div className="absolute inset-x-0 -bottom-12 mx-auto w-full max-w-[340px] transform translate-y-0" aria-hidden>
-                    <div className="bg-[#E9DDCD] rounded-2xl shadow-lg border-2 border-black overflow-hidden opacity-95">
-                      <div className="flex items-center gap-3 px-4 py-2">
-                        <img src={nextPostPreview.userAvatar} alt="avatar" className="h-10 w-10 rounded-full object-cover border-2 border-black" />
-                        <div className="flex-1">
-                          <p className="text-[#98522C] font-bold text-sm">{nextPostPreview.user}</p>
-                          <p className="text-xs text-[#6C8167]">{nextPostPreview.timeAgo}</p>
-                        </div>
-                      </div>
-                      <div className="w-full h-36 bg-gray-200">
-                        <img src={nextPostPreview.image} alt="preview" className="w-full h-full object-cover" />
-                      </div>
-                      <div className="px-4 py-2">
-                        <p className="text-sm text-[#6C8167] truncate">{nextPostPreview.caption}</p>
-                        {renderHashtags((nextPostPreview as any).name)}
+                        <button className="text-sm px-2 py-1 bg-[#6C8167] text-[#E9DDCD] rounded-md font-bold">Follow</button>
                       </div>
                     </div>
                   </div>
-                  <div className="h-24" />
-                </div>
+                  <div className="w-full aspect-square bg-gray-200">
+                    <img src={mainPost.image} alt="cat" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="px-4 py-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <button className="font-bold text-[#98522C]">❤</button>
+                        <button className="font-bold text-[#98522C]">💬</button>
+                        <button className="font-bold text-[#98522C]">✈️</button>
+                      </div>
+                      <div className="text-xs text-[#6C8167] font-semibold">129 likes</div>
+                    </div>
+                    <p className="text-sm text-[#6C8167] leading-relaxed mb-2">
+                      <span className="font-bold text-[#98522C] mr-2">{mainPost.user}</span>
+                      {mainPost.caption}
+                    </p>
+                    {renderHashtags((mainPost as any).name)}
+                  </div>
+                </article>
+
+                <article className="bg-[#E9DDCD] rounded-2xl shadow-lg border-2 border-black overflow-hidden">
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <img src={nextPostPreview.userAvatar} alt="avatar" className="h-10 w-10 rounded-full object-cover border-2 border-black" />
+                    <div className="flex-1">
+                      <p className="text-[#98522C] font-bold text-sm">{nextPostPreview.user}</p>
+                      <p className="text-xs text-[#6C8167]">{nextPostPreview.timeAgo}</p>
+                    </div>
+                  </div>
+                  <div className="w-full aspect-square bg-gray-200">
+                    <img src={nextPostPreview.image} alt="preview" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="px-4 py-3">
+                    <p className="text-sm text-[#6C8167] leading-relaxed mb-2">
+                      <span className="font-bold text-[#98522C] mr-2">{nextPostPreview.user}</span>
+                      {nextPostPreview.caption}
+                    </p>
+                    {renderHashtags((nextPostPreview as any).name)}
+                  </div>
+                </article>
               </div>
             </div>
           )}
@@ -586,7 +502,11 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'profile' && ( <div className="w-full max-w-sm mx-auto px-4"> <ProfilePanel /> </div> )}
+          {activeTab === 'profile' && (
+            <div className="w-full max-w-sm mx-auto px-4">
+              <ProfilePanel />
+            </div>
+          )}
 
           {activeTab === 'addCat' && (
             <div className="w-full max-w-sm mx-auto px-4">
@@ -594,27 +514,38 @@ const App: React.FC = () => {
                 <div className="w-full">
                   {previewUrl && <img src={previewUrl} alt="Cat to post" className="w-full rounded-lg shadow-lg mb-4" />}
                   <div className="bg-[#97A88D] p-4 rounded-lg">
-                    <textarea value={postMessage} onChange={(e) => { if (e.target.value.length <= 120) setPostMessage(e.target.value); }} maxLength={120} placeholder="Add a message..." className="w-full h-24 bg-transparent text-[#E9DDCD] placeholder:text-[#E9DDCD]/70 resize-none focus:outline-none" />
+                    <textarea value={postMessage} onChange={(e) => { if (e.target.value.length <= 120) setPostMessage(e.target.value) }} maxLength={120} placeholder="Add a message..." className="w-full h-24 bg-transparent text-[#E9DDCD] placeholder:text-[#E9DDCD]/70 resize-none focus:outline-none" />
                     <div className="text-right text-xs text-[#E9DDCD] mt-2">{postMessage.length} / 120</div>
                     {postMessage.length >= 120 && <div className="text-center font-bold text-[#6C8167] mt-2">Max characters (120) reached!</div>}
-                    {postError && <div className="mt-2 bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded text-sm text-center">{postError}</div>}
                     <div className="flex justify-end space-x-2 mt-4">
-                      <button onClick={() => { setIsCreatingPost(false); setPostError(null); }} className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">Cancel</button>
-                      <button onClick={handleCreatePost} className="px-4 py-2 bg-[#BE956C] text-white rounded-lg hover:bg-[#98522C]">Post</button>
+                      <button onClick={() => setIsCreatingPost(false)} className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">Cancel</button>
+                      <button onClick={() => { handleReset(); }} className="px-4 py-2 bg-[#BE956C] text-white rounded-lg hover:bg-[#98522C]">Post</button>
                     </div>
                   </div>
                 </div>
               ) : (
                 <>
-                  {showLoader && ( <h2 className="text-center text-2xl font-bold tracking-widest text-[#E9DDCD] mb-4 animate-pulse"> {loaderText} </h2> )}
+                  {showLoader && (
+                    <h2 className="text-center text-2xl font-bold tracking-widest text-[#E9DDCD] mb-4 animate-pulse">
+                      {loaderText}
+                    </h2>
+                  )}
                   <ImageUploader onImageSelected={handleImageChange} previewUrl={previewUrl} onReset={handleReset} />
                   {imageFile && !analysis && !isLoading && (
                     <button onClick={handleIdentifyClick} className="w-full mt-4 bg-[#BE956C] text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-[#98522C] focus:outline-none focus:ring-2 focus:ring-[#E9DDCD] focus:ring-opacity-50 transition-colors transform active:scale-95 disabled:bg-gray-400 disabled:cursor-not-allowed" disabled={isLoading}>
                       Identify Cat
                     </button>
                   )}
-                  {showLoader && ( <div className="flex justify-center items-center pt-8"> <div className="w-16 h-16 border-8 border-[#E9DDCD] border-t-8 border-t-[#BE956C] rounded-full animate-spin"></div> </div> )}
-                  {error && ( <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert"> <p>{error}</p> </div> )}
+                  {showLoader && (
+                    <div className="flex justify-center items-center pt-8">
+                      <div className="w-16 h-16 border-8 border-[#E9DDCD] border-t-8 border-t-[#BE956C] rounded-full animate-spin"></div>
+                    </div>
+                  )}
+                  {error && (
+                    <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert">
+                      <p>{error}</p>
+                    </div>
+                  )}
                   {analysis && !showLoader && <ResultCard analysis={analysis} />}
                   {analysis && analysis.isCat && !isCreatingPost && (
                     <div className="w-full mt-4 space-y-2">
@@ -623,12 +554,16 @@ const App: React.FC = () => {
                           Is this a known cat?
                         </button>
                       )}
-                      <button onClick={beginCreatePost} className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors transform active:scale-95">
+                      <button onClick={() => setIsCreatingPost(true)} className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors transform active:scale-95">
                         Create Post
                       </button>
                     </div>
                   )}
-                  {matchError && ( <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert"> <p>{matchError}</p> </div> )}
+                  {matchError && (
+                    <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert">
+                      <p>{matchError}</p>
+                    </div>
+                  )}
                   {matchResult && !isMatching && (
                     <>
                       <MatchResultCard result={matchResult} />
@@ -639,7 +574,7 @@ const App: React.FC = () => {
               )}
             </div>
           )}
-          
+
           {activeTab === 'map' && (
             <div className="w-full max-w-sm mx-auto px-4">
               <CatMap />
