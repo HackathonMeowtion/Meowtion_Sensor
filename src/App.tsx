@@ -433,7 +433,7 @@ const App: React.FC = () => {
                     className="w-full h-full object-cover"
                   />
                 </button>
-              ))}F
+              ))}
             </div>
           )}
 
