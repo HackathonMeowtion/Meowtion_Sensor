@@ -1,4 +1,5 @@
 // src/App.tsx
+
 import React, { useState, useCallback, useEffect } from 'react';
 import type { CatBreedAnalysis, MatchResult } from './types';
 import { identifyCatBreed, findMatchingCat } from './services/geminiService';
@@ -51,6 +52,22 @@ type CatImage = {
   src: string;
 };
 
+type Post = {
+  id: string;
+  user: string;
+  userAvatar: string;
+  image: string;
+  caption: string;
+  timeAgo: string;
+  name?: string | null;
+  likes?: number;
+  isDefault?: boolean;
+  createdAt?: string;
+};
+
+const LOCAL_STORAGE_KEY = 'meowtion-sensor-user-posts';
+const DEFAULT_USERNAME = 'UTACatLuvr';
+
 const catHashtags: Record<string, string[]> = {
   eggs: ['#eggs', '#orange', '#tabby'],
   microwave: ['#microwave', '#gray', '#fluffy'],
@@ -77,6 +94,42 @@ const allCatImages: CatImage[] = [
   { name: 'oreo', src: oreo1 }, { name: 'oreo', src: oreo2 }, { name: 'oreo', src: oreo3 },
   { name: 'snickers', src: snickers1 }, { name: 'snickers', src: snickers2 }, { name: 'snickers', src: snickers3 },
   { name: 'twix', src: twix1 }, { name: 'twix', src: twix2 }, { name: 'twix', src: twix3 },
+];
+
+const defaultPosts: Post[] = [
+  {
+    id: 'post-main',
+    user: DEFAULT_USERNAME,
+    userAvatar: profileDefault,
+    image: microwave1,
+    caption: 'Spotted this sneaky floof by the courtyard — stole my sandwich and my heart. 🐾',
+    timeAgo: '2h',
+    name: 'microwave',
+    likes: 129,
+    isDefault: true,
+  },
+  {
+    id: 'post-eggs-1',
+    user: 'Campus Cats',
+    userAvatar: profileDefault,
+    image: eggs2,
+    caption: 'Eggs holding down the Student Union steps like a pro guard cat.',
+    timeAgo: '5h',
+    name: 'eggs',
+    likes: 98,
+    isDefault: true,
+  },
+  {
+    id: 'post-twix-1',
+    user: 'Twix Treats',
+    userAvatar: profileDefault,
+    image: twix1,
+    caption: 'Twix demanded belly rub tributes before allowing entry into class today.',
+    timeAgo: '1d',
+    name: 'twix',
+    likes: 214,
+    isDefault: true,
+  },
 ];
 
 const App: React.FC = () => {
@@ -195,8 +248,49 @@ const App: React.FC = () => {
     setMatchError(null);
     setIsCreatingPost(false);
     setPostMessage('');
+    setPostError(null);
     setSelectedImage(null);
     setLastKnownCatName(null);
+  };
+
+  const handleCreatePost = async () => {
+    if (!imageFile) {
+      setPostError('Please select an image before posting.');
+      return;
+    }
+
+    try {
+      setPostError(null);
+      const { base64, mimeType } = await fileToBase64(imageFile);
+      const dataUrl = `data:${mimeType};base64,${base64}`;
+      const caption = postMessage.trim() ||
+        (lastKnownCatName && catHashtags[lastKnownCatName]?.join(' ')) ||
+        'Look who I spotted around campus today!';
+
+      const newPost: Post = {
+        id: `post-${Date.now()}`,
+        user: username,
+        userAvatar: profileDefault,
+        image: dataUrl,
+        caption,
+        timeAgo: 'Just now',
+        name: lastKnownCatName,
+        likes: 0,
+        createdAt: new Date().toISOString(),
+      };
+
+      setPosts((prev) => [newPost, ...prev]);
+      setActiveTab('home');
+      handleReset();
+    } catch (creationError) {
+      console.error('Failed to create post.', creationError);
+      setPostError('Something went wrong while creating your post. Please try again.');
+    }
+  };
+
+  const beginCreatePost = () => {
+    setIsCreatingPost(true);
+    setPostError(null);
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
