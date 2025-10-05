@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { CatBreedAnalysis, MatchResult } from '../types';
+import type { CatBreedAnalysis, MatchCandidateEvaluation, MatchResult } from '../types';
 import { knownCats } from '../data/knownCats';
 import { urlToBase64 } from '../utils/imageUtils';
 
@@ -30,15 +30,24 @@ const breedSchema = {
   required: ["isCat", "breed", "confidence", "description"]
 };
 
-const matchSchema = {
-    type: Type.OBJECT,
-    properties: {
-      isMatch: { type: Type.BOOLEAN, description: "Confirms if the primary user-submitted image is a match for any of the provided known cat images." },
-      matchedCatName: { type: Type.STRING, description: "If a match is found, this is the name of the matching cat. Otherwise, it should be an empty string." },
-      confidence: { type: Type.NUMBER, description: "Confidence score from 0.0 to 1.0 for the match. If not a match, this should be 0." },
-      reasoning: { type: Type.STRING, description: "A brief, one-sentence explanation for the decision, mentioning specific visual features like fur color, patterns, or facial structure." }
+const evaluationSchema = {
+  type: Type.OBJECT,
+  properties: {
+    catName: { type: Type.STRING, description: "Name of the known cat being evaluated." },
+    similarity: { type: Type.NUMBER, description: "Similarity score between 0 and 1, where 1 means the same cat." },
+    matchedFeatures: {
+      type: Type.ARRAY,
+      description: "Specific visual attributes that match between the user cat and the known cat reference images.",
+      items: { type: Type.STRING },
     },
-    required: ["isMatch", "matchedCatName", "confidence", "reasoning"]
+    mismatchedFeatures: {
+      type: Type.ARRAY,
+      description: "Specific visual attributes that do not match.",
+      items: { type: Type.STRING },
+    },
+    summary: { type: Type.STRING, description: "A concise summary of the comparison citing concrete visual evidence." },
+  },
+  required: ["catName", "similarity", "matchedFeatures", "mismatchedFeatures", "summary"],
 };
 
 export const identifyCatBreed = async (base64Image: string, mimeType: string): Promise<CatBreedAnalysis> => {
@@ -59,38 +68,85 @@ export const identifyCatBreed = async (base64Image: string, mimeType: string): P
   }
 };
 
-export const findMatchingCat = async (userImageBase64: string, userImageMimeType: string): Promise<MatchResult> => {
-  const prompt = `You are a visual comparison expert. Your task is to determine if the primary user-submitted image is the exact same cat as any of the provided "known cat" image groups. Each known cat may have multiple reference images provided. Focus on unique identifying features. The user's cat is the first image. The subsequent images are grouped by the known cat's name. Return your analysis in the specified JSON format.`;
+const buildComparisonPrompt = (catName: string) => `You are a meticulous visual identification expert. Compare the primary user-submitted cat image to the reference images for the known cat named "${catName}".
 
+Carry out the steps below before you return your decision:
+1. Inspect the reference images together and list the distinctive visual features that stay consistent across them (fur color placement, markings, eye colour/shape, body structure, etc.).
+2. Inspect the user image and note the same categories of features.
+3. Determine which features clearly match and which clearly conflict. Avoid vague statements—cite concrete evidence you can actually observe in the images.
+4. Score the similarity on a 0-1 scale where 1 means it is the same individual cat. Penalise conflicts in markings, coat length, or body structure heavily.
+
+Return only JSON that follows the provided schema.`;
+
+const evaluateKnownCat = async (
+  client: GoogleGenAI,
+  catName: string,
+  userImagePart: { inlineData: { data: string; mimeType: string } },
+  referenceImageParts: { inlineData: { data: string; mimeType: string } }[],
+): Promise<MatchCandidateEvaluation> => {
+  const prompt = buildComparisonPrompt(catName);
+
+  const response = await client.models.generateContent({
+    model,
+    contents: {
+      parts: [
+        { text: prompt },
+        { text: "Primary user-submitted cat image" },
+        userImagePart,
+        { text: `Reference images for ${catName}` },
+        ...referenceImageParts,
+      ],
+    },
+    config: { responseMimeType: "application/json", responseSchema: evaluationSchema },
+  });
+
+  const parsed = JSON.parse(response.text) as MatchCandidateEvaluation;
+
+  // Ensure the cat name stays consistent even if the model rephrases it.
+  parsed.catName = catName;
+
+  // Clamp similarity values to [0, 1] to avoid API drift.
+  parsed.similarity = Math.min(1, Math.max(0, parsed.similarity));
+
+  return parsed;
+};
+
+export const findMatchingCat = async (userImageBase64: string, userImageMimeType: string): Promise<MatchResult> => {
   try {
     const client = getClient();
     const userImagePart = { inlineData: { data: userImageBase64, mimeType: userImageMimeType } };
 
-    const contentParts = [
-      { text: prompt },
-      { text: "--- User's Cat Image ---" },
-      userImagePart,
-      { text: "--- Known Cat Images for Comparison ---" },
-    ];
+    const evaluations = await Promise.all(
+      knownCats.map(async (cat) => {
+        const referenceImageParts = await Promise.all(
+          cat.imageSrcs.map(async (src) => {
+            const { base64, mimeType } = await urlToBase64(src);
+            return { inlineData: { data: base64, mimeType } };
+          })
+        );
 
-    for (const cat of knownCats) {
-      contentParts.push({ text: `Known Cat Name: ${cat.name}` });
-      const imageParts = await Promise.all(
-        cat.imageSrcs.map(async (src) => {
-          const { base64, mimeType } = await urlToBase64(src);
-          return { inlineData: { data: base64, mimeType } };
-        })
-      );
-      contentParts.push(...imageParts);
-    }
-    
-    const response = await client.models.generateContent({
-      model: model,
-      contents: { parts: contentParts },
-      config: { responseMimeType: "application/json", responseSchema: matchSchema }
-    });
+        return evaluateKnownCat(client, cat.name, userImagePart, referenceImageParts);
+      })
+    );
 
-    return JSON.parse(response.text) as MatchResult;
+    const sortedEvaluations = evaluations.sort((a, b) => b.similarity - a.similarity);
+    const bestEvaluation = sortedEvaluations[0];
+
+    const highSimilarity = bestEvaluation.similarity >= 0.75;
+    const fewConflicts = bestEvaluation.mismatchedFeatures.filter(Boolean).length <= 1;
+    const isMatch = highSimilarity && fewConflicts;
+
+    const matchResult: MatchResult = {
+      isMatch,
+      matchedCatName: isMatch ? bestEvaluation.catName : '',
+      confidence: bestEvaluation.similarity,
+      reasoning: isMatch
+        ? bestEvaluation.summary
+        : `Closest match is ${bestEvaluation.catName}, but conflicts include: ${bestEvaluation.mismatchedFeatures.join('; ') || 'insufficient distinctive matches.'}`,
+      evaluations: sortedEvaluations,
+    };
+
+    return matchResult;
   } catch (error) {
     console.error("Error calling Gemini API for matching:", error);
     throw new Error("Could not get a valid match response from the AI model.");
