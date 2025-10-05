@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useEffect } from 'react';
+// src/App.tsx
+import React, { useState, useCallback } from 'react';
 // Make sure to import both types
 import type { CatBreedAnalysis, MatchResult } from './types';
 // Make sure to import both service functions
@@ -31,8 +32,34 @@ import discordIcon from './assets/discord.PNG';
 import facebookIcon from './assets/facebook.PNG';
 import twitterIcon from './assets/twitter.PNG';
 
+// --- (FIX) STEP 1: Manually import all known cat images ---
+import eggs1 from './assets/known-cats/eggs1.png';
+import eggs2 from './assets/known-cats/eggs2.png';
+import eggs3 from './assets/known-cats/eggs3.png';
+import microwave1 from './assets/known-cats/microwave.webp';
+import microwave2 from './assets/known-cats/microwave2.jpg';
+import microwave3 from './assets/known-cats/microwave3.jpg';
+import oreo1 from './assets/known-cats/oreo.jpg';
+import oreo2 from './assets/known-cats/oreo2.jpeg';
+import oreo3 from './assets/known-cats/oreo3.png';
+import snickers1 from './assets/known-cats/snickers1.png';
+import snickers2 from './assets/known-cats/snickers2.png';
+import snickers3 from './assets/known-cats/snickers3.png';
+import twix1 from './assets/known-cats/twix.jpg';
+import twix2 from './assets/known-cats/twix2.jpg';
+import twix3 from './assets/known-cats/twix3.jpg';
+
+// --- (FIX) STEP 2: Create an array containing all the imported images ---
+const allCatImages = [
+  eggs1, eggs2, eggs3,
+  microwave1, microwave2, microwave3,
+  oreo1, oreo2, oreo3,
+  snickers1, snickers2, snickers3,
+  twix1, twix2, twix3
+];
 
 const App: React.FC = () => {
+  // (debug) will print in the BROWSER console
   console.log("Auth0 domain:", import.meta.env.VITE_AUTH0_DOMAIN);
   console.log("Auth0 client ID:", import.meta.env.VITE_AUTH0_CLIENT_ID);
 
@@ -46,35 +73,23 @@ const App: React.FC = () => {
   const [matchError, setMatchError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('addCat');
 
-  // --- State for the known cats image grid ---
-  const [knownCats, setKnownCats] = useState<string[]>([]);
+  // --- (FIX) STEP 3: Initialize the state directly with the image array ---
+  const [knownCats] = useState(allCatImages);
 
-  // --- Effect to dynamically load known cat images ---
-  useEffect(() => {
-    const fetchImages = async () => {
-      // This Vite feature finds all images in the specified directory
-      const imageModules = import.meta.glob('/src/assets/known-cats/*');
-
-      const imageUrls = await Promise.all(
-        Object.values(imageModules).map(async (importModule) => {
-          const module = await importModule();
-          return (module as { default: string }).default;
-        })
-      );
-      setKnownCats(imageUrls);
-    };
-
-    fetchImages();
-  }, []);
-
-
-  const handleImageChange = (file: File | null) => {
+  const handleImageChange = async (file: File | null) => {
     if (file) {
       setImageFile(file);
       setPreviewUrl(URL.createObjectURL(file));
       setAnalysis(null);
       setError(null);
       setMatchResult(null);
+      setMatchError(null);
+    } else {
+      setImageFile(null);
+      setPreviewUrl(null);
+      setAnalysis(null);
+      setMatchResult(null);
+      setError(null);
       setMatchError(null);
     }
   };
@@ -84,21 +99,16 @@ const App: React.FC = () => {
       setError('Please select an image first.');
       return;
     }
-    setIsLoading(true);
-    setError(null);
-    setAnalysis(null);
-
     try {
-      const { base64, mimeType } = await fileToBase64(imageFile);
-      const result = await identifyCatBreed(base64, mimeType);
+      setIsLoading(true);
+      setError(null);
+
+      const base64 = await fileToBase64(imageFile);
+      const result = await identifyCatBreed(base64);
+
       setAnalysis(result);
-    } catch (err) {
-      console.error(err);
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('An unknown error occurred during identification.');
-      }
+    } catch (e: any) {
+      setError(e?.message ?? 'Failed to analyze image.');
     } finally {
       setIsLoading(false);
     }
@@ -109,20 +119,18 @@ const App: React.FC = () => {
       setMatchError('Image file is missing.');
       return;
     }
-    setIsMatching(true);
-    setMatchResult(null);
-    setMatchError(null);
-
     try {
-      const { base64, mimeType } = await fileToBase64(imageFile);
-      const result = await findMatchingCat(base64, mimeType);
+      setIsMatching(true);
+      setMatchError(null);
+
+      const base64 = await fileToBase64(imageFile);
+      const result = await findMatchingCat(base64);
+
       setMatchResult(result);
-    } catch (err) {
-        console.error(err);
-        const message = err instanceof Error ? err.message : 'An unknown error occurred.';
-        setMatchError(`Failed to perform match: ${message}`);
+    } catch (e: any) {
+      setMatchError(e?.message ?? 'Failed to match.');
     } finally {
-        setIsMatching(false);
+      setIsMatching(false);
     }
   }, [imageFile]);
 
@@ -131,10 +139,8 @@ const App: React.FC = () => {
     setPreviewUrl(null);
     setAnalysis(null);
     setError(null);
-    setIsLoading(false);
     setMatchResult(null);
     setMatchError(null);
-    setIsMatching(false);
   };
 
   const showLoader = isLoading || isMatching;
@@ -188,87 +194,95 @@ const App: React.FC = () => {
           )}
         </header>
 
-{/* --- CONDITIONAL MAIN CONTENT --- */}
-<main className="flex-grow flex flex-col items-center w-full pt-24 pb-24 overflow-y-auto">
-  {activeTab === 'search' && (
-    // Search Grid View
-    <div className="grid grid-cols-3 gap-1 w-full px-1">
-      {knownCats.map((catImage, index) => (
-        <div key={index} className="aspect-square">
-          <img src={catImage} alt={`Known cat ${index + 1}`} className="w-full h-full object-cover" />
-        </div>
-      ))}
-    </div>
-  )}
+        {/* --- CONDITIONAL MAIN CONTENT --- */}
+        <main className="flex-grow flex flex-col items-center w-full pt-24 pb-24 overflow-y-auto">
+          {activeTab === 'home' && (
+            <div className="text-[#E9DDCD] mt-8">Home coming soon…</div>
+          )}
 
-  {activeTab === 'profile' && (
-    // Profile View
-    <div className="w-full max-w-sm mx-auto px-4">
-      <ProfilePanel />
-    </div>
-  )}
+          {activeTab === 'map' && (
+            <div className="text-[#E9DDCD] mt-8">Map coming soon…</div>
+          )}
 
-  {activeTab === 'addCat' && (
-    // Image Uploader View
-    <div className="w-full max-w-sm mx-auto px-4">
-      {showLoader && (
-        <h2 className="text-center text-2xl font-bold tracking-widest text-[#E9DDCD] mb-4 animate-pulse">
-          {loaderText}
-        </h2>
-      )}
+          {activeTab === 'search' && (
+            // Search Grid View
+            <div className="grid grid-cols-3 gap-1 w-full px-1">
+              {knownCats.map((catImage, index) => (
+                <div key={index} className="aspect-square">
+                  <img src={catImage} alt={`Known cat ${index + 1}`} className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </div>
+          )}
 
-      <ImageUploader
-        onImageSelected={handleImageChange}
-        previewUrl={previewUrl}
-        onReset={handleReset}
-      />
+          {activeTab === 'profile' && (
+            // Profile View
+            <div className="w-full max-w-sm mx-auto px-4">
+              <ProfilePanel />
+            </div>
+          )}
 
-      {imageFile && !analysis && !isLoading && (
-        <button
-          onClick={handleIdentifyClick}
-          className="w-full mt-4 bg-[#BE956C] text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-[#98522C] focus:outline-none focus:ring-2 focus:ring-[#E9DDCD] focus:ring-opacity-50 transition-colors transform active:scale-95 disabled:bg-gray-400 disabled:cursor-not-allowed"
-          disabled={isLoading}
-        >
-          Identify Cat
-        </button>
-      )}
+          {activeTab === 'addCat' && (
+            // Image Uploader View
+            <div className="w-full max-w-sm mx-auto px-4">
+              {showLoader && (
+                <h2 className="text-center text-2xl font-bold tracking-widest text-[#E9DDCD] mb-4 animate-pulse">
+                  {loaderText}
+                </h2>
+              )}
 
-      {showLoader && (
-        <div className="flex justify-center items-center pt-8">
-          <div className="w-16 h-16 border-8 border-[#E9DDCD] border-t-8 border-t-[#BE956C] rounded-full animate-spin"></div>
-        </div>
-      )}
+              <ImageUploader
+                onImageSelected={handleImageChange}
+                previewUrl={previewUrl}
+                onReset={handleReset}
+              />
 
-      {error && (
-        <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert">
-          <p>{error}</p>
-        </div>
-      )}
+              {imageFile && !analysis && !isLoading && (
+                <button
+                  onClick={handleIdentifyClick}
+                  className="w-full mt-4 bg-[#BE956C] text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-[#98522C] focus:outline-none focus:ring-2 focus:ring-[#E9DDCD] focus:ring-opacity-50 transition-colors transform active:scale-95 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  disabled={isLoading}
+                >
+                  Identify Cat
+                </button>
+              )}
 
-      {analysis && !showLoader && <ResultCard analysis={analysis} />}
+              {showLoader && (
+                <div className="flex justify-center items-center pt-8">
+                  <div className="w-16 h-16 border-8 border-[#E9DDCD] border-t-8 border-t-[#BE956C] rounded-full animate-spin"></div>
+                </div>
+              )}
 
-      {analysis && analysis.isCat && !matchResult && !isMatching && (
-        <button
-          onClick={handleMatchClick}
-          className="w-full mt-4 bg-[#BE956C] text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-[#98522C] focus:outline-none focus:ring-2 focus:ring-[#E9DDCD] focus:ring-opacity-50 transition-colors transform active:scale-95 disabled:bg-gray-400 disabled:cursor-not-allowed"
-          disabled={isMatching}
-        >
-          Is this a known cat?
-        </button>
-      )}
+              {error && (
+                <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert">
+                  <p>{error}</p>
+                </div>
+              )}
 
-      {matchError && (
-        <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert">
-          <p>{matchError}</p>
-        </div>
-      )}
+              {analysis && !showLoader && <ResultCard analysis={analysis} />}
 
-      {matchResult && !isMatching && <MatchResultCard result={matchResult} />}
-    </div>
-  )}
-</main>
+              {analysis && analysis.isCat && !matchResult && !isMatching && (
+                <button
+                  onClick={handleMatchClick}
+                  className="w-full mt-4 bg-[#BE956C] text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-[#98522C] focus:outline-none focus:ring-2 focus:ring-[#E9DDCD] focus:ring-opacity-50 transition-colors transform active:scale-95 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  disabled={isMatching}
+                >
+                  Is this a known cat?
+                </button>
+              )}
 
+              {matchError && (
+                <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert">
+                  <p>{matchError}</p>
+                </div>
+              )}
 
+              {matchResult && !isMatching && <MatchResultCard result={matchResult} />}
+            </div>
+          )}
+        </main>
+
+        {/* Footer Tabs */}
         <footer className="absolute bottom-0 left-0 right-0 w-full bg-[#6C8167] shadow-t-lg py-2 px-4">
           <div className="flex justify-around items-center max-w-sm mx-auto">
             <img src={activeTab === 'home' ? homeIconSelected : homeIconUnselected} alt="Home" className="h-10 w-10 cursor-pointer" onClick={() => setActiveTab('home')} />
