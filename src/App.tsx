@@ -1,5 +1,5 @@
 // src/App.tsx
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 // Make sure to import both types if you use them elsewhere
 import type { CatBreedAnalysis, MatchResult } from './types';
 // Keep your existing service & util imports
@@ -9,7 +9,6 @@ import ImageUploader from './components/ImageUploader';
 import ResultCard from './components/ResultCard';
 import MatchResultCard from './components/MatchResultCard';
 import ProfilePanel from './components/ProfilePanel';
-import CatMap from './components/CatMap';
 
 // Logos / assets
 import meowtionSensorLogo from './assets/MeowtionSensorLogo.png';
@@ -59,6 +58,61 @@ type CatImage = {
   src: string;  // The URL path to the image
 };
 
+// --- NEW: Preset hashtags for known cats (B: visible anywhere they appear) ---
+const catHashtags: Record<string, string[]> = {
+  eggs: ['#eggs', '#orange', '#tabby'],
+  microwave: ['#microwave', '#gray', '#fluffy'],
+  oreo: ['#oreo', '#blackandwhite'],
+  snickers: ['#snickers', '#brown', '#striped'],
+  twix: ['#twix', '#cream', '#tabby'],
+};
+
+type FeedPost = {
+  id: string;
+  user: string;
+  userAvatar: string;
+  image: string;
+  caption: string;
+  createdAt: number;
+  likes?: number;
+  name?: string | null;
+  isUserGenerated?: boolean;
+};
+
+const formatTimeAgo = (timestamp: number) => {
+  const now = Date.now();
+  const diffMs = now - timestamp;
+  const diffSeconds = Math.floor(diffMs / 1000);
+  if (diffSeconds < 60) return 'Just now';
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  if (diffMinutes < 60) return `${diffMinutes}m`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return '1d';
+  if (diffDays < 7) return `${diffDays}d`;
+  const diffWeeks = Math.floor(diffDays / 7);
+  if (diffWeeks === 1) return '1w';
+  if (diffWeeks < 5) return `${diffWeeks}w`;
+  const diffMonths = Math.floor(diffDays / 30);
+  if (diffMonths === 1) return '1mo';
+  if (diffMonths < 12) return `${diffMonths}mo`;
+  const diffYears = Math.floor(diffDays / 365);
+  return diffYears === 1 ? '1y' : `${diffYears}y`;
+};
+
+// Helper to render preset hashtags
+const renderHashtags = (name: string | undefined | null) => {
+  if (!name) return null;
+  const key = name.toLowerCase();
+  const tags = catHashtags[key];
+  return tags ? (
+    <div className="text-xs text-[#98522C] font-bold tracking-wide mt-1">
+      {tags.join(' ')}
+    </div>
+  ) : null;
+};
+
 // Master lists (kept from your previous file)
 const catNames = ["eggs", "microwave", "oreo", "snickers", "twix"];
 const allCatImages: CatImage[] = [
@@ -95,26 +149,73 @@ const App: React.FC = () => {
   // Post creation state
   const [isCreatingPost, setIsCreatingPost] = useState(false);
   const [postMessage, setPostMessage] = useState('');
+  const [postError, setPostError] = useState<string | null>(null);
+  const [isPosting, setIsPosting] = useState(false);
+
+  // track last-known detected cat name (best effort from analysis/match/selected image)
+  const [lastKnownCatName, setLastKnownCatName] = useState<string | null>(null);
+
+  const userPostsStorageKey = 'meowtionSensor.userPosts';
 
   // --- New: Home feed demo data (static, but ready for array/expansion) ---
   // You said to display the username and use profileDefault.png
   const username = 'UTACatLuvr'; // using the account name from metadata as requested
-  const mainPost = {
+  const mainPost: FeedPost = {
     id: 'post-main',
     user: username,
     userAvatar: profileDefault,
     image: microwave1, // main image (you requested microwave.webp)
     caption: "Spotted this sneaky floof by the courtyard — stole my sandwich and my heart. 🐾",
-    timeAgo: '2h',
+    name: 'microwave', // added to allow hashtag display on the demo post
+    createdAt: Date.now() - 2 * 60 * 60 * 1000,
+    likes: 129,
   };
-  const nextPostPreview = {
+  const nextPostPreview: FeedPost = {
     id: 'post-preview',
     user: 'Oreo Lover',
     userAvatar: profileDefault,
     image: oreo1, // preview image
     caption: 'Peek a boo!',
-    timeAgo: '4h',
+    name: 'oreo', // added to allow hashtag display on the demo preview
+    createdAt: Date.now() - 4 * 60 * 60 * 1000,
+    likes: 54,
   };
+  const [userPosts, setUserPosts] = useState<FeedPost[]>([]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = window.localStorage.getItem(userPostsStorageKey);
+      if (stored) {
+        const parsed = JSON.parse(stored) as FeedPost[];
+        if (Array.isArray(parsed)) {
+          setUserPosts(
+            parsed.map((post) => {
+              const timestamp = Number(post.createdAt);
+              return {
+                ...post,
+                createdAt: Number.isNaN(timestamp) ? Date.now() : timestamp,
+              };
+            })
+          );
+        }
+      }
+    } catch (storageError) {
+      console.error('Failed to load saved posts', storageError);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(userPostsStorageKey, JSON.stringify(userPosts));
+    } catch (storageError) {
+      console.error('Failed to persist posts', storageError);
+    }
+  }, [userPosts]);
+
+  const combinedPosts = [...userPosts, mainPost, nextPostPreview];
+  const upcomingPost = combinedPosts.length > 1 ? combinedPosts[1] : null;
 
   // --- Existing handlers kept mostly unchanged ---
   const handleImageChange = async (file: File | null) => {
@@ -127,6 +228,8 @@ const App: React.FC = () => {
       setMatchError(null);
       setIsCreatingPost(false);
       setPostMessage('');
+      setLastKnownCatName(null);
+      setPostError(null);
     } else {
       handleReset();
     }
@@ -143,6 +246,15 @@ const App: React.FC = () => {
       const { base64, mimeType } = await fileToBase64(imageFile);
       const result = await identifyCatBreed(base64, mimeType);
       setAnalysis(result);
+      // If the analysis returned a name we can use, store it as last-known
+      const maybeName =
+        (result as any)?.name ||
+        (result as any)?.label ||
+        (result as any)?.predictedName ||
+        null;
+      if (maybeName) {
+        setLastKnownCatName(String(maybeName).toLowerCase());
+      }
     } catch (e: any) {
       setError(e?.message ?? 'Failed to analyze image.');
     } finally {
@@ -161,6 +273,11 @@ const App: React.FC = () => {
       const { base64, mimeType } = await fileToBase64(imageFile);
       const result = await findMatchingCat(base64, mimeType);
       setMatchResult(result);
+      // If match returns a name, set as last-known
+      const maybeName = (result as any)?.name || (result as any)?.label || null;
+      if (maybeName) {
+        setLastKnownCatName(String(maybeName).toLowerCase());
+      }
     } catch (e: any) {
       setMatchError(e?.message ?? 'Failed to match.');
     } finally {
@@ -177,7 +294,59 @@ const App: React.FC = () => {
     setMatchError(null);
     setIsCreatingPost(false);
     setPostMessage('');
+    setSelectedImage(null);
+    setLastKnownCatName(null);
+    setPostError(null);
+    setIsPosting(false);
   };
+
+  const handleOpenCreatePost = () => {
+    setPostError(null);
+    setIsCreatingPost(true);
+  };
+
+  const handleCreatePost = useCallback(async () => {
+    if (isPosting) return;
+    if (!imageFile) {
+      setPostError('Upload a cat photo before posting.');
+      return;
+    }
+    if (!previewUrl) {
+      setPostError('We need a preview image to share. Try re-uploading your photo.');
+      return;
+    }
+    if (!postMessage.trim()) {
+      setPostError('Add a caption or hashtags to describe this cat.');
+      return;
+    }
+
+    try {
+      setIsPosting(true);
+      const { base64, mimeType } = await fileToBase64(imageFile);
+      const dataUrl = `data:${mimeType};base64,${base64}`;
+
+      const newPost: FeedPost = {
+        id: `user-post-${Date.now()}`,
+        user: username,
+        userAvatar: profileDefault,
+        image: dataUrl,
+        caption: postMessage.trim(),
+        createdAt: Date.now(),
+        name: lastKnownCatName,
+        isUserGenerated: true,
+      };
+
+      setUserPosts((previous) => [newPost, ...previous]);
+      setIsCreatingPost(false);
+      handleReset();
+      setActiveTab('home');
+    } catch (postErrorEvent) {
+      console.error('Failed to create post', postErrorEvent);
+      setPostError('Something went wrong while preparing your post. Please try again.');
+    } finally {
+      setIsPosting(false);
+    }
+  }, [handleReset, imageFile, isPosting, lastKnownCatName, postMessage, previewUrl, setActiveTab, username]);
 
   // Search functions (kept)
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -222,6 +391,64 @@ const App: React.FC = () => {
     }
     setActiveTab(tabName);
   }
+
+  // Whenever selectedImage changes (user clicked a known image in the search grid),
+  // try to update lastKnownCatName to allow auto-fill when creating a post.
+  useEffect(() => {
+    if (selectedImage) {
+      const found = allCatImages.find(c => c.src === selectedImage);
+      if (found) {
+        setLastKnownCatName(found.name.toLowerCase());
+      }
+    }
+  }, [selectedImage]);
+
+  // Also if previewUrl corresponds to a known image in the demo assets, set lastKnownCatName.
+  useEffect(() => {
+    if (previewUrl) {
+      const found = allCatImages.find(c => c.src === previewUrl);
+      if (found) {
+        setLastKnownCatName(found.name.toLowerCase());
+      }
+    }
+  }, [previewUrl]);
+
+  // If matchResult or analysis are set with a name, set lastKnownCatName in their handlers,
+  // and also this effect catches other possible shapes.
+  useEffect(() => {
+    // check analysis for other common property names
+    if (analysis) {
+      const maybeName = (analysis as any).name || (analysis as any).label || (analysis as any).predictedName || null;
+      if (maybeName) {
+        setLastKnownCatName(String(maybeName).toLowerCase());
+      }
+    }
+  }, [analysis]);
+
+  useEffect(() => {
+    if (matchResult) {
+      const maybeName = (matchResult as any).name || (matchResult as any).label || null;
+      if (maybeName) {
+        setLastKnownCatName(String(maybeName).toLowerCase());
+      }
+    }
+  }, [matchResult]);
+
+  // When the user opens the Create Post view, auto-fill the caption box with the preset hashtags
+  // for the last-known detected cat (if any). The hashtags will appear alone (exactly as requested).
+  useEffect(() => {
+    if (isCreatingPost && lastKnownCatName) {
+      const tags = catHashtags[lastKnownCatName];
+      if (tags) {
+        setPostMessage(tags.join(' '));
+      } else {
+        // If not a known cat, leave existing postMessage alone (do nothing).
+      }
+    } else if (!isCreatingPost) {
+      // if user closes the post creation view, don't clobber their typed text; keep current postMessage
+    }
+    // intentionally dependent on isCreatingPost and lastKnownCatName
+  }, [isCreatingPost, lastKnownCatName]);
 
   const showLoader = isLoading || isMatching;
   const loaderText = isLoading ? 'AUTHENTICATING' : 'COMPARING';
@@ -288,7 +515,39 @@ const App: React.FC = () => {
             <div className="w-full flex justify-center px-4">
               <div className="w-full max-w-[340px]">
 
-                {/* Post Card */}
+                {userPosts.map((post) => (
+                  <article key={post.id} className="bg-[#E9DDCD] rounded-2xl shadow-lg border-2 border-black overflow-hidden mb-4">
+                    <div className="flex items-center gap-3 px-4 py-3">
+                      <img src={post.userAvatar} alt="avatar" className="h-12 w-12 rounded-full object-cover border-2 border-black" />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-[#98522C] font-bold tracking-wide text-sm">{post.user}</p>
+                            <p className="text-xs text-[#6C8167]">{formatTimeAgo(post.createdAt)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="w-full aspect-square bg-gray-200">
+                      <img src={post.image} alt="cat" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="px-4 py-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <button className="font-bold text-[#98522C]">❤</button>
+                          <button className="font-bold text-[#98522C]">💬</button>
+                          <button className="font-bold text-[#98522C]">✈️</button>
+                        </div>
+                      </div>
+                      <p className="text-sm text-[#6C8167] leading-relaxed mb-2">
+                        <span className="font-bold text-[#98522C] mr-2">{post.user}</span>
+                        {post.caption}
+                      </p>
+                      {renderHashtags(post.name)}
+                    </div>
+                  </article>
+                ))}
+
                 <article className="bg-[#E9DDCD] rounded-2xl shadow-lg border-2 border-black overflow-hidden">
                   {/* Header row: profile avatar + username */}
                   <div className="flex items-center gap-3 px-4 py-3">
@@ -297,7 +556,7 @@ const App: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-[#98522C] font-bold tracking-wide text-sm">{mainPost.user}</p>
-                          <p className="text-xs text-[#6C8167]">{mainPost.timeAgo}</p>
+                          <p className="text-xs text-[#6C8167]">{formatTimeAgo(mainPost.createdAt)}</p>
                         </div>
                         <button className="text-sm px-2 py-1 bg-[#6C8167] text-[#E9DDCD] rounded-md font-bold">Follow</button>
                       </div>
@@ -317,7 +576,7 @@ const App: React.FC = () => {
                         <button className="font-bold text-[#98522C]">💬</button>
                         <button className="font-bold text-[#98522C]">✈️</button>
                       </div>
-                      <div className="text-xs text-[#6C8167] font-semibold">129 likes</div>
+                      <div className="text-xs text-[#6C8167] font-semibold">{mainPost.likes ?? 0} likes</div>
                     </div>
 
                     <p className="text-sm text-[#6C8167] leading-relaxed mb-2">
@@ -325,14 +584,20 @@ const App: React.FC = () => {
                       {mainPost.caption}
                     </p>
 
-                    <div className="text-xs text-[#98522C] font-bold tracking-wide">#campuscat #utech #meow</div>
+                    {/* NEW: render known-cat hashtags (demo main post uses name 'microwave') */}
+                    {renderHashtags(mainPost.name)}
+
+                    <div className="text-xs text-[#98522C] font-bold tracking-wide mt-2">#campuscat #utech #meow</div>
                   </div>
                 </article>
 
                 {/* Action buttons under the post */}
                 <div className="mt-4 flex gap-3">
                   <button
-                    onClick={() => setIsCreatingPost(true)}
+                    onClick={() => {
+                      setActiveTab('addCat');
+                      setIsCreatingPost(false);
+                    }}
                     className="flex-1 bg-green-600 text-white font-bold py-3 rounded-lg shadow-md hover:bg-green-700"
                   >
                     Create Post
@@ -356,17 +621,19 @@ const App: React.FC = () => {
                   >
                     <div className="bg-[#E9DDCD] rounded-2xl shadow-lg border-2 border-black overflow-hidden opacity-95">
                       <div className="flex items-center gap-3 px-4 py-2">
-                        <img src={nextPostPreview.userAvatar} alt="avatar" className="h-10 w-10 rounded-full object-cover border-2 border-black" />
+                        <img src={(upcomingPost ?? nextPostPreview).userAvatar} alt="avatar" className="h-10 w-10 rounded-full object-cover border-2 border-black" />
                         <div className="flex-1">
-                          <p className="text-[#98522C] font-bold text-sm">{nextPostPreview.user}</p>
-                          <p className="text-xs text-[#6C8167]">{nextPostPreview.timeAgo}</p>
+                          <p className="text-[#98522C] font-bold text-sm">{(upcomingPost ?? nextPostPreview).user}</p>
+                          <p className="text-xs text-[#6C8167]">{formatTimeAgo((upcomingPost ?? nextPostPreview).createdAt)}</p>
                         </div>
                       </div>
                       <div className="w-full h-36 bg-gray-200">
-                        <img src={nextPostPreview.image} alt="preview" className="w-full h-full object-cover" />
+                        <img src={(upcomingPost ?? nextPostPreview).image} alt="preview" className="w-full h-full object-cover" />
                       </div>
                       <div className="px-4 py-2">
-                        <p className="text-sm text-[#6C8167] truncate">{nextPostPreview.caption}</p>
+                        <p className="text-sm text-[#6C8167] truncate">{(upcomingPost ?? nextPostPreview).caption}</p>
+                        {/* NEW: render known-cat hashtags for preview post */}
+                        {renderHashtags((upcomingPost ?? nextPostPreview).name)}
                       </div>
                     </div>
                   </div>
@@ -423,21 +690,27 @@ const App: React.FC = () => {
                         Max characters (120) reached!
                       </div>
                     )}
+                    {postError && (
+                      <div className="mt-2 bg-red-200/40 text-[#2F1C16] border border-[#2F1C16]/40 rounded-md px-3 py-2 text-sm">
+                        {postError}
+                      </div>
+                    )}
                     <div className="flex justify-end space-x-2 mt-4">
                         <button
-                            onClick={() => setIsCreatingPost(false)}
+                            onClick={() => {
+                                setIsCreatingPost(false);
+                                setPostError(null);
+                            }}
                             className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
                         >
                             Cancel
                         </button>
                         <button
-                            onClick={() => {
-                                console.log("Posting message:", postMessage);
-                                handleReset(); // Go back to uploader after posting
-                            }}
-                            className="px-4 py-2 bg-[#BE956C] text-white rounded-lg hover:bg-[#98522C]"
+                            onClick={handleCreatePost}
+                            className="px-4 py-2 bg-[#BE956C] text-white rounded-lg hover:bg-[#98522C] disabled:bg-[#BE956C]/60 disabled:cursor-not-allowed"
+                            disabled={isPosting}
                         >
-                            Post
+                            {isPosting ? 'Posting…' : 'Post'}
                         </button>
                     </div>
                   </div>
@@ -464,25 +737,27 @@ const App: React.FC = () => {
                           Is this a known cat?
                         </button>
                       )}
-                      <button onClick={() => setIsCreatingPost(true)} className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors transform active:scale-95">
+                      <button onClick={handleOpenCreatePost} className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors transform active:scale-95">
                         Create Post
                       </button>
                     </div>
                   )}
 
                   {matchError && ( <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert"> <p>{matchError}</p> </div> )}
-                  {matchResult && !isMatching && <MatchResultCard result={matchResult} />}
+                  {matchResult && !isMatching && (
+                    <>
+                      <MatchResultCard result={matchResult} />
+                      {/* NEW: show preset hashtags under match result */}
+                      {renderHashtags((matchResult as any).name)}
+                    </>
+                  )}
                 </>
               )}
             </div>
           )}
 
-          {/* ===== Campus cat map ===== */}
-          {activeTab === 'map' && (
-            <div className="w-full flex justify-center px-4">
-              <CatMap />
-            </div>
-          )}
+          {/* ===== MAP placeholder ===== */}
+          {activeTab === 'map' && ( <div className="text-[#E9DDCD] mt-8">Map coming soon…</div> )}
         </main>
 
         {/* Footer navigation */}
@@ -500,6 +775,13 @@ const App: React.FC = () => {
         {selectedImage && (
           <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => setSelectedImage(null)}>
             <img src={selectedImage} alt="Enlarged cat" className="max-w-full max-h-full object-contain" onClick={(e) => e.stopPropagation()} />
+            {/* NEW: show preset hashtags if this is a known demo cat */}
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
+              {(() => {
+                const found = allCatImages.find(c => c.src === selectedImage);
+                return found ? renderHashtags(found.name) : null;
+              })()}
+            </div>
           </div>
         )}
 
