@@ -103,8 +103,8 @@ const App: React.FC = () => {
       setIsLoading(true);
       setError(null);
 
-      const base64 = await fileToBase64(imageFile);
-      const result = await identifyCatBreed(base64);
+      const { base64, mimeType } = await fileToBase64(imageFile);
+      const result = await identifyCatBreed(base64, mimeType);
 
       setAnalysis(result);
     } catch (e: any) {
@@ -123,8 +123,8 @@ const App: React.FC = () => {
       setIsMatching(true);
       setMatchError(null);
 
-      const base64 = await fileToBase64(imageFile);
-      const result = await findMatchingCat(base64);
+      const { base64, mimeType } = await fileToBase64(imageFile);
+      const result = await findMatchingCat(base64, mimeType);
 
       setMatchResult(result);
     } catch (e: any) {
