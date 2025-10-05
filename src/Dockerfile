@@ -12,16 +12,19 @@
     # Copy the rest of the project (remember: you're in src/)
     COPY . .
     
-    ARG VITE_GEMINI_API_KEY
-    ENV VITE_GEMINI_API_KEY=$VITE_GEMINI_API_KEY
-    
-    # Auth0 (already set)
+    # accept Vite build-time vars
     ARG VITE_AUTH0_DOMAIN
     ARG VITE_AUTH0_CLIENT_ID
-    ENV VITE_AUTH0_DOMAIN=$VITE_AUTH0_DOMAIN
-    ENV VITE_AUTH0_CLIENT_ID=$VITE_AUTH0_CLIENT_ID
+    ARG VITE_GEMINI_API_KEY
     
+    # (optional but fine) make them visible in the env of the build step
+    ENV VITE_AUTH0_DOMAIN=${VITE_AUTH0_DOMAIN}
+    ENV VITE_AUTH0_CLIENT_ID=${VITE_AUTH0_CLIENT_ID}
+    ENV VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY}
+    
+    # run the Vite build with those vars available
     RUN npm run build
+    
     
     # ---------- runtime stage ----------
     FROM nginx:alpine
