@@ -1,5 +1,5 @@
 // src/App.tsx
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 // Make sure to import both types if you use them elsewhere
 import type { CatBreedAnalysis, MatchResult } from './types';
 // Keep your existing service & util imports
@@ -9,6 +9,7 @@ import ImageUploader from './components/ImageUploader';
 import ResultCard from './components/ResultCard';
 import MatchResultCard from './components/MatchResultCard';
 import ProfilePanel from './components/ProfilePanel';
+import CatMap from './components/CatMap';
 
 // Logos / assets
 import meowtionSensorLogo from './assets/MeowtionSensorLogo.png';
@@ -58,27 +59,6 @@ type CatImage = {
   src: string;  // The URL path to the image
 };
 
-// --- NEW: Preset hashtags for known cats (B: visible anywhere they appear) ---
-const catHashtags: Record<string, string[]> = {
-  eggs: ['#eggs', '#orange', '#tabby'],
-  microwave: ['#microwave', '#gray', '#fluffy'],
-  oreo: ['#oreo', '#blackandwhite'],
-  snickers: ['#snickers', '#brown', '#striped'],
-  twix: ['#twix', '#cream', '#tabby'],
-};
-
-// Helper to render preset hashtags
-const renderHashtags = (name: string | undefined | null) => {
-  if (!name) return null;
-  const key = name.toLowerCase();
-  const tags = catHashtags[key];
-  return tags ? (
-    <div className="text-xs text-[#98522C] font-bold tracking-wide mt-1">
-      {tags.join(' ')}
-    </div>
-  ) : null;
-};
-
 // Master lists (kept from your previous file)
 const catNames = ["eggs", "microwave", "oreo", "snickers", "twix"];
 const allCatImages: CatImage[] = [
@@ -116,9 +96,6 @@ const App: React.FC = () => {
   const [isCreatingPost, setIsCreatingPost] = useState(false);
   const [postMessage, setPostMessage] = useState('');
 
-  // track last-known detected cat name (best effort from analysis/match/selected image)
-  const [lastKnownCatName, setLastKnownCatName] = useState<string | null>(null);
-
   // --- New: Home feed demo data (static, but ready for array/expansion) ---
   // You said to display the username and use profileDefault.png
   const username = 'UTACatLuvr'; // using the account name from metadata as requested
@@ -129,7 +106,6 @@ const App: React.FC = () => {
     image: microwave1, // main image (you requested microwave.webp)
     caption: "Spotted this sneaky floof by the courtyard — stole my sandwich and my heart. 🐾",
     timeAgo: '2h',
-    name: 'microwave', // added to allow hashtag display on the demo post
   };
   const nextPostPreview = {
     id: 'post-preview',
@@ -138,7 +114,6 @@ const App: React.FC = () => {
     image: oreo1, // preview image
     caption: 'Peek a boo!',
     timeAgo: '4h',
-    name: 'oreo', // added to allow hashtag display on the demo preview
   };
 
   // --- Existing handlers kept mostly unchanged ---
@@ -152,7 +127,6 @@ const App: React.FC = () => {
       setMatchError(null);
       setIsCreatingPost(false);
       setPostMessage('');
-      setLastKnownCatName(null);
     } else {
       handleReset();
     }
@@ -169,15 +143,6 @@ const App: React.FC = () => {
       const { base64, mimeType } = await fileToBase64(imageFile);
       const result = await identifyCatBreed(base64, mimeType);
       setAnalysis(result);
-      // If the analysis returned a name we can use, store it as last-known
-      const maybeName =
-        (result as any)?.name ||
-        (result as any)?.label ||
-        (result as any)?.predictedName ||
-        null;
-      if (maybeName) {
-        setLastKnownCatName(String(maybeName).toLowerCase());
-      }
     } catch (e: any) {
       setError(e?.message ?? 'Failed to analyze image.');
     } finally {
@@ -196,11 +161,6 @@ const App: React.FC = () => {
       const { base64, mimeType } = await fileToBase64(imageFile);
       const result = await findMatchingCat(base64, mimeType);
       setMatchResult(result);
-      // If match returns a name, set as last-known
-      const maybeName = (result as any)?.name || (result as any)?.label || null;
-      if (maybeName) {
-        setLastKnownCatName(String(maybeName).toLowerCase());
-      }
     } catch (e: any) {
       setMatchError(e?.message ?? 'Failed to match.');
     } finally {
@@ -217,8 +177,6 @@ const App: React.FC = () => {
     setMatchError(null);
     setIsCreatingPost(false);
     setPostMessage('');
-    setSelectedImage(null);
-    setLastKnownCatName(null);
   };
 
   // Search functions (kept)
@@ -264,64 +222,6 @@ const App: React.FC = () => {
     }
     setActiveTab(tabName);
   }
-
-  // Whenever selectedImage changes (user clicked a known image in the search grid),
-  // try to update lastKnownCatName to allow auto-fill when creating a post.
-  useEffect(() => {
-    if (selectedImage) {
-      const found = allCatImages.find(c => c.src === selectedImage);
-      if (found) {
-        setLastKnownCatName(found.name.toLowerCase());
-      }
-    }
-  }, [selectedImage]);
-
-  // Also if previewUrl corresponds to a known image in the demo assets, set lastKnownCatName.
-  useEffect(() => {
-    if (previewUrl) {
-      const found = allCatImages.find(c => c.src === previewUrl);
-      if (found) {
-        setLastKnownCatName(found.name.toLowerCase());
-      }
-    }
-  }, [previewUrl]);
-
-  // If matchResult or analysis are set with a name, set lastKnownCatName in their handlers,
-  // and also this effect catches other possible shapes.
-  useEffect(() => {
-    // check analysis for other common property names
-    if (analysis) {
-      const maybeName = (analysis as any).name || (analysis as any).label || (analysis as any).predictedName || null;
-      if (maybeName) {
-        setLastKnownCatName(String(maybeName).toLowerCase());
-      }
-    }
-  }, [analysis]);
-
-  useEffect(() => {
-    if (matchResult) {
-      const maybeName = (matchResult as any).name || (matchResult as any).label || null;
-      if (maybeName) {
-        setLastKnownCatName(String(maybeName).toLowerCase());
-      }
-    }
-  }, [matchResult]);
-
-  // When the user opens the Create Post view, auto-fill the caption box with the preset hashtags
-  // for the last-known detected cat (if any). The hashtags will appear alone (exactly as requested).
-  useEffect(() => {
-    if (isCreatingPost && lastKnownCatName) {
-      const tags = catHashtags[lastKnownCatName];
-      if (tags) {
-        setPostMessage(tags.join(' '));
-      } else {
-        // If not a known cat, leave existing postMessage alone (do nothing).
-      }
-    } else if (!isCreatingPost) {
-      // if user closes the post creation view, don't clobber their typed text; keep current postMessage
-    }
-    // intentionally dependent on isCreatingPost and lastKnownCatName
-  }, [isCreatingPost, lastKnownCatName]);
 
   const showLoader = isLoading || isMatching;
   const loaderText = isLoading ? 'AUTHENTICATING' : 'COMPARING';
@@ -425,10 +325,7 @@ const App: React.FC = () => {
                       {mainPost.caption}
                     </p>
 
-                    {/* NEW: render known-cat hashtags (demo main post uses name 'microwave') */}
-                    {renderHashtags((mainPost as any).name)}
-
-                    <div className="text-xs text-[#98522C] font-bold tracking-wide mt-2">#campuscat #utech #meow</div>
+                    <div className="text-xs text-[#98522C] font-bold tracking-wide">#campuscat #utech #meow</div>
                   </div>
                 </article>
 
@@ -470,8 +367,6 @@ const App: React.FC = () => {
                       </div>
                       <div className="px-4 py-2">
                         <p className="text-sm text-[#6C8167] truncate">{nextPostPreview.caption}</p>
-                        {/* NEW: render known-cat hashtags for preview post */}
-                        {renderHashtags((nextPostPreview as any).name)}
                       </div>
                     </div>
                   </div>
@@ -569,31 +464,25 @@ const App: React.FC = () => {
                           Is this a known cat?
                         </button>
                       )}
-                      <button onClick={() => {
-                        // When user clicks Create Post from this context, open the post creator.
-                        // lastKnownCatName is set earlier from analysis/match handlers if we detected a known cat.
-                        setIsCreatingPost(true);
-                      }} className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors transform active:scale-95">
+                      <button onClick={() => setIsCreatingPost(true)} className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg text-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors transform active:scale-95">
                         Create Post
                       </button>
                     </div>
                   )}
 
                   {matchError && ( <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert"> <p>{matchError}</p> </div> )}
-                  {matchResult && !isMatching && (
-                    <>
-                      <MatchResultCard result={matchResult} />
-                      {/* NEW: show preset hashtags under match result */}
-                      {renderHashtags((matchResult as any).name)}
-                    </>
-                  )}
+                  {matchResult && !isMatching && <MatchResultCard result={matchResult} />}
                 </>
               )}
             </div>
           )}
 
-          {/* ===== MAP placeholder ===== */}
-          {activeTab === 'map' && ( <div className="text-[#E9DDCD] mt-8">Map coming soon…</div> )}
+          {/* ===== Campus cat map ===== */}
+          {activeTab === 'map' && (
+            <div className="w-full flex justify-center px-4">
+              <CatMap />
+            </div>
+          )}
         </main>
 
         {/* Footer navigation */}
@@ -611,13 +500,6 @@ const App: React.FC = () => {
         {selectedImage && (
           <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => setSelectedImage(null)}>
             <img src={selectedImage} alt="Enlarged cat" className="max-w-full max-h-full object-contain" onClick={(e) => e.stopPropagation()} />
-            {/* NEW: show preset hashtags if this is a known demo cat */}
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
-              {(() => {
-                const found = allCatImages.find(c => c.src === selectedImage);
-                return found ? renderHashtags(found.name) : null;
-              })()}
-            </div>
           </div>
         )}
 
