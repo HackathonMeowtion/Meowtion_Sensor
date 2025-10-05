@@ -81,7 +81,9 @@ const App: React.FC = () => {
   const [isMatching, setIsMatching] = useState<boolean>(false);
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
   const [matchError, setMatchError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>('addCat');
+
+  // --- THIS LINE HAS BEEN CHANGED ---
+  const [activeTab, setActiveTab] = useState<string>('home'); // Set 'home' as the default tab
 
   // State variables for search functionality
   const [searchTerm, setSearchTerm] = useState('');
@@ -180,15 +182,12 @@ const App: React.FC = () => {
     setIsSearchFocused(false);
   };
 
-  // --- THIS FUNCTION HAS BEEN UPDATED ---
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       const term = searchTerm.trim();
-      // If the search bar is empty, show all cats
       if (!term) {
         setDisplayedCats(allCatImages);
         setIsSearchFocused(false);
-      // If there's a valid suggestion, use the best one
       } else if (suggestions.length > 0) {
         executeSearch(suggestions[0]);
       }
@@ -197,7 +196,6 @@ const App: React.FC = () => {
 
   const handleTabClick = (tabName: string) => {
     if (tabName === 'search') {
-      // Reset search view when navigating to it
       setDisplayedCats(allCatImages);
       setSearchTerm('');
     }
@@ -223,7 +221,7 @@ const App: React.FC = () => {
                   value={searchTerm}
                   onChange={handleSearchChange}
                   onFocus={() => { setSuggestions(catNames); setIsSearchFocused(true); }}
-                  onBlur={() => setTimeout(() => setIsSearchFocused(false), 150)} // Delay to allow click on suggestion
+                  onBlur={() => setTimeout(() => setIsSearchFocused(false), 150)}
                   onKeyDown={handleKeyDown}
                 />
                 {isSearchFocused && suggestions.length > 0 && (
